@@ -1,0 +1,866 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="90c6d75b-2347-49dc-abe0-246e18de3fed" name="Default" comment="">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/.name" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/LICENSE" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/NOTICE" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.gitignore" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/ant.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/compiler.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/copyright/profiles_settings.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/dictionaries/jhyde.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/encodings.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/libraries/Maven__junit_junit_3_8_1.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/modules.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/scopes/scope_settings.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/linq4j.iml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/pom.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/AbstractEnumerable.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/AbstractEnumerable2.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/AbstractQueryable.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/DefaultEnumerable.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/DefaultQueryable.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/Enumerable.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/Enumerator.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/ExtendedEnumerable.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/ExtendedQueryable.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/Extensions.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/Grouping.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/MultiMap.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/QueryProvider.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/Queryable.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/BinaryExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/BlockExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/CallSiteBinder.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/CatchBlock.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/ConditionalExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/ConstantExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/DefaultExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/DynamicExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/ElementInit.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/Expression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/ExpressionType.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/ExpressionVisitor.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/Expressions.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/FunctionExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/GotoExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/GotoExpressionKind.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/IndexExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/InvocationExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/LabelExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/LabelTarget.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/LambdaExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/ListInitExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/LoopExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/MemberAssignment.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/MemberBinding.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/MemberExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/MemberInitExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/MemberListBinding.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/MemberMemberBinding.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/MethodCallExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/NewArrayExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/NewExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/ParameterExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/SwitchCase.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/SwitchExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/TryExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/TypeBinaryExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/UnaryExpression.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/BigDecimalFunction1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/DoubleFunction1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/EqualityComparer.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/FloatFunction1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/Function.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/Function0.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/Function1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/Function2.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/IntegerFunction1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/LongFunction1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableBigDecimalFunction1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableDoubleFunction1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableFloatFunction1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableIntegerFunction1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableLongFunction1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/Predicate1.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/test/java/net/hydromatic/linq4j/test/Linq4jTest.java" />
+    </list>
+    <ignored path="linq4j.iws" />
+    <ignored path=".idea/workspace.xml" />
+    <option name="TRACKING_ENABLED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ChangesViewManager" flattened_view="true" show_ignored="false" />
+  <component name="CreatePatchCommitExecutor">
+    <option name="PATCH_PATH" value="" />
+  </component>
+  <component name="DaemonCodeAnalyzer">
+    <disable_hints />
+  </component>
+  <component name="DebuggerManager">
+    <breakpoint_any>
+      <breakpoint>
+        <option name="NOTIFY_CAUGHT" value="true" />
+        <option name="NOTIFY_UNCAUGHT" value="true" />
+        <option name="ENABLED" value="false" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint>
+        <option name="NOTIFY_CAUGHT" value="true" />
+        <option name="NOTIFY_UNCAUGHT" value="true" />
+        <option name="ENABLED" value="false" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+    </breakpoint_any>
+    <breakpoint_rules />
+    <ui_properties />
+  </component>
+  <component name="FavoritesManager">
+    <favorites_list name="linq4j" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf>
+      <file leaf-file-name="FloatFunction1.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/FloatFunction1.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="3" column="56" selection-start="190" selection-end="190" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="IntegerFunction1.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/IntegerFunction1.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="3" column="56" selection-start="190" selection-end="190" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="LongFunction1.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/LongFunction1.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="3" column="56" selection-start="190" selection-end="190" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="NullableBigDecimalFunction1.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableBigDecimalFunction1.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="10" column="1" selection-start="452" selection-end="452" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="NullableDoubleFunction1.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableDoubleFunction1.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="5" column="0" selection-start="45" selection-end="136" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="NullableFloatFunction1.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableFloatFunction1.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="3" column="56" selection-start="190" selection-end="190" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="NullableIntegerFunction1.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableIntegerFunction1.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="3" column="48" selection-start="182" selection-end="182" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="NullableLongFunction1.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableLongFunction1.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="7" column="0" selection-start="329" selection-end="329" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="CallSiteBinder.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/CallSiteBinder.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="8" column="0" selection-start="402" selection-end="402" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="EqualityComparer.java" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/EqualityComparer.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="25" column="0" selection-start="930" selection-end="930" vertical-scroll-proportion="0.5392912">
+              <folding>
+                <element signature="e#0#930#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FindManager">
+    <FindUsagesManager>
+      <setting name="OPEN_NEW_TAB" value="false" />
+    </FindUsagesManager>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="changedFiles">
+      <list>
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/DefaultExpression.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/MemberInitExpression.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/GotoExpression.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/FunctionExpression.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/BigDecimalFunction1.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/DoubleFunction1.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/FloatFunction1.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/IntegerFunction1.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/LongFunction1.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableBigDecimalFunction1.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableDoubleFunction1.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableFloatFunction1.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableIntegerFunction1.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableLongFunction1.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/CallSiteBinder.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/EqualityComparer.java" />
+      </list>
+    </option>
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="importingSettings">
+      <MavenImportingSettings>
+        <option name="importAutomatically" value="true" />
+        <option name="keepSourceFolders" value="false" />
+      </MavenImportingSettings>
+    </option>
+  </component>
+  <component name="ProjectFrameBounds">
+    <option name="x" value="399" />
+    <option name="y" value="72" />
+    <option name="width" value="1438" />
+    <option name="height" value="1114" />
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <OptionsSetting value="true" id="Add" />
+    <OptionsSetting value="true" id="Remove" />
+    <OptionsSetting value="true" id="Checkout" />
+    <OptionsSetting value="true" id="Update" />
+    <OptionsSetting value="true" id="Status" />
+    <OptionsSetting value="true" id="Edit" />
+    <ConfirmationsSetting value="0" id="Add" />
+    <ConfirmationsSetting value="0" id="Remove" />
+  </component>
+  <component name="ProjectReloadState">
+    <option name="STATE" value="0" />
+  </component>
+  <component name="ProjectView">
+    <navigator currentView="ProjectPane" proportions="" version="1" splitterProportion="0.5">
+      <flattenPackages />
+      <showMembers />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource />
+      <autoscrollFromSource />
+      <sortByType />
+    </navigator>
+    <panes>
+      <pane id="Scope">
+        <subPane subId="Project Files">
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+      <pane id="ProjectPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="linq4j" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="External Libraries" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ExternalLibrariesNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="linq4j" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="linq4j" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="linq4j" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="linq4j" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="linq4j" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="linq4j" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="main" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="java" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="linq4j" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+      <pane id="PackagesPane" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="last_directory_selection" value="$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function" />
+    <property name="GoToFile.includeJavaFiles" value="false" />
+    <property name="project.structure.last.edited" value="Modules" />
+    <property name="OverrideImplement.combined" value="true" />
+    <property name="project.structure.proportion" value="0.15" />
+    <property name="options.splitter.main.proportions" value="0.3" />
+    <property name="MemberChooser.sorted" value="false" />
+    <property name="recentsLimit" value="5" />
+    <property name="options.lastSelected" value="project.propVCSSupport.Mappings" />
+    <property name="project.structure.side.proportion" value="0.2" />
+    <property name="MemberChooser.copyJavadoc" value="false" />
+    <property name="GoToClass.toSaveIncludeLibraries" value="false" />
+    <property name="MemberChooser.showClasses" value="true" />
+    <property name="GoToClass.includeLibraries" value="false" />
+    <property name="dynamic.classpath" value="false" />
+    <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="options.searchVisible" value="true" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="net.hydromatic.linq4j" />
+    </key>
+    <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
+      <recent name="net.hydromatic.linq4j" />
+    </key>
+  </component>
+  <component name="RunManager" selected="JUnit.Linq4jTest">
+    <configuration default="false" name="Linq4jTest" type="Application" factoryName="Application" temporary="true">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
+        <pattern>
+          <option name="PATTERN" value="net.hydromatic.linq4j.test.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="MAIN_CLASS_NAME" value="net.hydromatic.linq4j.test.Linq4jTest" />
+      <option name="VM_PARAMETERS" />
+      <option name="PROGRAM_PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="ENABLE_SWING_INSPECTOR" value="false" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <module name="linq4j" />
+      <envs />
+      <RunnerSettings RunnerId="Debug">
+        <option name="DEBUG_PORT" value="" />
+        <option name="TRANSPORT" value="0" />
+        <option name="LOCAL" value="true" />
+      </RunnerSettings>
+      <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Debug" />
+      <ConfigurationWrapper RunnerId="Run" />
+      <method />
+    </configuration>
+    <configuration default="false" name="Linq4jTest" type="JUnit" factoryName="JUnit" temporary="true">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
+        <pattern>
+          <option name="PATTERN" value="net.hydromatic.linq4j.test.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <module name="linq4j" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="PACKAGE_NAME" value="net.hydromatic.linq4j.test" />
+      <option name="MAIN_CLASS_NAME" value="net.hydromatic.linq4j.test.Linq4jTest" />
+      <option name="METHOD_NAME" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" />
+      <option name="PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="moduleWithDependencies" />
+      </option>
+      <envs />
+      <patterns />
+      <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Run" />
+      <method />
+    </configuration>
+    <configuration default="true" type="Remote" factoryName="Remote">
+      <option name="USE_SOCKET_TRANSPORT" value="true" />
+      <option name="SERVER_MODE" value="false" />
+      <option name="SHMEM_ADDRESS" value="javadebug" />
+      <option name="HOST" value="localhost" />
+      <option name="PORT" value="5005" />
+      <method>
+        <option name="AntTarget" enabled="false" />
+        <option name="BuildArtifacts" enabled="false" />
+        <option name="Maven.BeforeRunTask" enabled="false" />
+        <option name="PhingTarget" enabled="false" />
+      </method>
+    </configuration>
+    <configuration default="true" type="Applet" factoryName="Applet">
+      <module name="" />
+      <option name="MAIN_CLASS_NAME" />
+      <option name="HTML_FILE_NAME" />
+      <option name="HTML_USED" value="false" />
+      <option name="WIDTH" value="400" />
+      <option name="HEIGHT" value="300" />
+      <option name="POLICY_FILE" value="$APPLICATION_HOME_DIR$/bin/appletviewer.policy" />
+      <option name="VM_PARAMETERS" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <method>
+        <option name="AntTarget" enabled="false" />
+        <option name="BuildArtifacts" enabled="false" />
+        <option name="Make" enabled="true" />
+        <option name="Maven.BeforeRunTask" enabled="false" />
+        <option name="PhingTarget" enabled="false" />
+      </method>
+    </configuration>
+    <configuration default="true" type="Application" factoryName="Application">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea" />
+      <option name="MAIN_CLASS_NAME" />
+      <option name="VM_PARAMETERS" />
+      <option name="PROGRAM_PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="ENABLE_SWING_INSPECTOR" value="false" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <module name="" />
+      <envs />
+      <method>
+        <option name="AntTarget" enabled="false" />
+        <option name="BuildArtifacts" enabled="false" />
+        <option name="Make" enabled="true" />
+        <option name="Maven.BeforeRunTask" enabled="false" />
+        <option name="PhingTarget" enabled="false" />
+      </method>
+    </configuration>
+    <configuration default="true" type="JUnit" factoryName="JUnit">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea" />
+      <module name="" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="PACKAGE_NAME" />
+      <option name="MAIN_CLASS_NAME" />
+      <option name="METHOD_NAME" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" />
+      <option name="PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="moduleWithDependencies" />
+      </option>
+      <envs />
+      <patterns />
+      <method>
+        <option name="AntTarget" enabled="false" />
+        <option name="BuildArtifacts" enabled="false" />
+        <option name="Make" enabled="true" />
+        <option name="Maven.BeforeRunTask" enabled="false" />
+        <option name="PhingTarget" enabled="false" />
+      </method>
+    </configuration>
+    <list size="2">
+      <item index="0" class="java.lang.String" itemvalue="Application.Linq4jTest" />
+      <item index="1" class="java.lang.String" itemvalue="JUnit.Linq4jTest" />
+    </list>
+    <configuration name="&lt;template&gt;" type="WebApp" default="true" selected="false">
+      <Host>localhost</Host>
+      <Port>5050</Port>
+    </configuration>
+  </component>
+  <component name="ShelveChangesManager" show_recycled="false" />
+  <component name="SvnConfiguration" maxAnnotateRevisions="500" myUseAcceleration="nothing" myAutoUpdateAfterCommit="false" cleanupOnStartRun="false">
+    <option name="USER" value="" />
+    <option name="PASSWORD" value="" />
+    <option name="mySSHConnectionTimeout" value="30000" />
+    <option name="mySSHReadTimeout" value="30000" />
+    <option name="LAST_MERGED_REVISION" />
+    <option name="MERGE_DRY_RUN" value="false" />
+    <option name="MERGE_DIFF_USE_ANCESTRY" value="true" />
+    <option name="UPDATE_LOCK_ON_DEMAND" value="false" />
+    <option name="IGNORE_SPACES_IN_MERGE" value="false" />
+    <option name="DETECT_NESTED_COPIES" value="true" />
+    <option name="CHECK_NESTED_FOR_QUICK_MERGE" value="false" />
+    <option name="IGNORE_SPACES_IN_ANNOTATE" value="true" />
+    <option name="SHOW_MERGE_SOURCES_IN_ANNOTATE" value="true" />
+    <option name="FORCE_UPDATE" value="false" />
+    <configuration useDefault="true">$USER_HOME$/.subversion_IDEA</configuration>
+    <myIsUseDefaultProxy>false</myIsUseDefaultProxy>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="90c6d75b-2347-49dc-abe0-246e18de3fed" name="Default" comment="" />
+      <created>1334868362550</created>
+      <updated>1334868362550</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="399" y="72" width="1438" height="1114" extended-state="0" />
+    <editor active="true" />
+    <layout>
+      <window_info id="Data Sources" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="JetGradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3996063" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4488189" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="true" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.25107914" sideWeight="0.66437006" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3356299" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.5521653" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+    </layout>
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="OFFER_MOVE_TO_ANOTHER_CHANGELIST_ON_PARTIAL_COMMIT" value="true" />
+    <option name="CHECK_CODE_SMELLS_BEFORE_PROJECT_COMMIT" value="true" />
+    <option name="CHECK_NEW_TODO" value="true" />
+    <option name="myTodoPanelSettings">
+      <value>
+        <are-packages-shown value="false" />
+        <are-modules-shown value="false" />
+        <flatten-packages value="false" />
+        <is-autoscroll-to-source value="false" />
+      </value>
+    </option>
+    <option name="PERFORM_UPDATE_IN_BACKGROUND" value="true" />
+    <option name="PERFORM_COMMIT_IN_BACKGROUND" value="true" />
+    <option name="PERFORM_EDIT_IN_BACKGROUND" value="true" />
+    <option name="PERFORM_CHECKOUT_IN_BACKGROUND" value="true" />
+    <option name="PERFORM_ADD_REMOVE_IN_BACKGROUND" value="true" />
+    <option name="PERFORM_ROLLBACK_IN_BACKGROUND" value="false" />
+    <option name="CHECK_LOCALLY_CHANGED_CONFLICTS_IN_BACKGROUND" value="false" />
+    <option name="ENABLE_BACKGROUND_PROCESSES" value="false" />
+    <option name="CHANGED_ON_SERVER_INTERVAL" value="60" />
+    <option name="SHOW_ONLY_CHANGED_IN_SELECTION_DIFF" value="true" />
+    <option name="CHECK_COMMIT_MESSAGE_SPELLING" value="true" />
+    <option name="DEFAULT_PATCH_EXTENSION" value="patch" />
+    <option name="SHORT_DIFF_HORISONTALLY" value="true" />
+    <option name="SHORT_DIFF_EXTRA_LINES" value="2" />
+    <option name="SOFT_WRAPS_IN_SHORT_DIFF" value="true" />
+    <option name="INCLUDE_TEXT_INTO_PATCH" value="false" />
+    <option name="INCLUDE_TEXT_INTO_SHELF" value="false" />
+    <option name="CREATE_PATCH_EXPAND_DETAILS_DEFAULT" value="true" />
+    <option name="SHOW_FILE_HISTORY_DETAILS" value="true" />
+    <option name="SHOW_VCS_ERROR_NOTIFICATIONS" value="true" />
+    <option name="FORCE_NON_EMPTY_COMMENT" value="false" />
+    <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="false" />
+    <option name="LAST_COMMIT_MESSAGE" />
+    <option name="MAKE_NEW_CHANGELIST_ACTIVE" value="true" />
+    <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="false" />
+    <option name="CHECK_FILES_UP_TO_DATE_BEFORE_COMMIT" value="false" />
+    <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="false" />
+    <option name="REFORMAT_BEFORE_FILE_COMMIT" value="false" />
+    <option name="FILE_HISTORY_DIALOG_COMMENTS_SPLITTER_PROPORTION" value="0.8" />
+    <option name="FILE_HISTORY_DIALOG_SPLITTER_PROPORTION" value="0.5" />
+    <option name="ACTIVE_VCS_NAME" />
+    <option name="UPDATE_GROUP_BY_PACKAGES" value="false" />
+    <option name="UPDATE_GROUP_BY_CHANGELIST" value="false" />
+    <option name="SHOW_FILE_HISTORY_AS_TREE" value="false" />
+    <option name="FILE_HISTORY_SPLITTER_PROPORTION" value="0.6" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager />
+  </component>
+  <component name="antWorkspaceConfiguration">
+    <option name="IS_AUTOSCROLL_TO_SOURCE" value="false" />
+    <option name="FILTER_TARGETS" value="false" />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/MemberExpression.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="7" column="14" selection-start="217" selection-end="217" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/DynamicExpression.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="7" column="14" selection-start="209" selection-end="209" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/InvocationExpression.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="8" column="14" selection-start="291" selection-end="291" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/ConstantExpression.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="7" column="14" selection-start="231" selection-end="231" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/BigDecimalFunction1.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="7" column="0" selection-start="71" selection-end="152" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/DoubleFunction1.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="3" column="0" selection-start="45" selection-end="123" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/FloatFunction1.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="3" column="56" selection-start="190" selection-end="190" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/IntegerFunction1.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="3" column="56" selection-start="190" selection-end="190" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/LongFunction1.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="3" column="56" selection-start="190" selection-end="190" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableBigDecimalFunction1.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="10" column="1" selection-start="452" selection-end="452" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableDoubleFunction1.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="5" column="0" selection-start="45" selection-end="136" vertical-scroll-proportion="0.0" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableFloatFunction1.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="3" column="56" selection-start="190" selection-end="190" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableIntegerFunction1.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="3" column="48" selection-start="182" selection-end="182" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/NullableLongFunction1.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="7" column="0" selection-start="329" selection-end="329" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/expressions/CallSiteBinder.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="8" column="0" selection-start="402" selection-end="402" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/linq4j/function/EqualityComparer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="25" column="0" selection-start="930" selection-end="930" vertical-scroll-proportion="0.5392912">
+          <folding>
+            <element signature="e#0#930#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+  </component>
+  <component name="masterDetails">
+    <states>
+      <state key="ArtifactsStructureConfigurable.UI">
+        <settings>
+          <artifact-editor />
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="FacetStructureConfigurable.UI">
+        <settings>
+          <last-edited>No facets are configured</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="GlobalLibrariesConfigurable.UI">
+        <settings>
+          <last-edited>scala-compiler-2.9.1</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="JdkListConfigurable.UI">
+        <settings>
+          <last-edited>1.5</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="ModuleStructureConfigurable.UI">
+        <settings>
+          <last-edited>linq4j</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+                <option value="0.5" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="ProjectJDKs.UI">
+        <settings>
+          <last-edited>1.5</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="ProjectLibrariesConfigurable.UI">
+        <settings>
+          <last-edited>Maven: junit:junit:3.8.1</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+    </states>
+  </component>
+</project>
+

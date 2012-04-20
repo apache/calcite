@@ -1,0 +1,53 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>net.hydromatic</groupId>
+  <artifactId>linq4j</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>linq4j</name>
+  <description>linq4j is a port of LINQ (Language-Integrated Query) to Java</description>
+  <url>http://github.com/julianhyde/linq4j</url>
+  <inceptionYear>2012</inceptionYear>
+  <organization>
+    <name>Julian Hyde</name>
+    <url>http://www.hydromatic.net</url>
+  </organization>
+  <licenses>
+    <license>
+      <name>Apache 2</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>julianhyde</id>
+      <name>Julian Hyde</name>
+      <email>jhyde@pentaho.com</email>
+      <url>http://www.hydromatic.net</url>
+      <roles>
+        <role>architect</role>
+        <role>developer</role>
+      </roles>
+      <timezone>-8</timezone>
+      <properties>
+        <picUrl>http://www.hydromatic.net/jhyde-headshot7-512x512.jpg</picUrl>
+      </properties>
+    </developer>
+  </developers>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
