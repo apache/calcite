@@ -28,14 +28,40 @@ import java.util.*;
  * Tests for LINQ4J.
  */
 public class Linq4jTest extends TestCase {
+
+    public static final Function1<Employee,String> EMP_NAME_SELECTOR =
+        new Function1<Employee, String>() {
+            public String apply(Employee employee) {
+                return employee.name;
+            }
+        };
+
+    public static final Function1<Employee, Integer> EMP_DEPTNO_SELECTOR =
+        new Function1<Employee, Integer>() {
+            public Integer apply(Employee employee) {
+                return employee.deptno;
+            }
+        };
+
+    public static final Function1<Employee, Integer> EMP_EMPNO_SELECTOR =
+        new Function1<Employee, Integer>() {
+            public Integer apply(Employee employee) {
+                return employee.empno;
+            }
+        };
+
+    public static final Function1<Department,Enumerable<Employee>> DEPT_EMPLOYEES_SELECTOR =
+        new Function1<Department, Enumerable<Employee>>() {
+            public Enumerable<Employee> apply(Department a0) {
+                return Extensions.asEnumerable(a0.employees);
+            }
+        };
+
     public void testSelect() {
         List<String> names =
             Extensions.asEnumerable(emps)
-                .select(new Function1<Employee, String>() {
-                    public String apply(Employee employee) {
-                        return employee.name;
-                    }
-                }).toList();
+                .select(EMP_NAME_SELECTOR)
+                .toList();
         assertEquals("[Fred, Bill, Eric, Jane]", names.toString());
     }
 
@@ -48,25 +74,30 @@ public class Linq4jTest extends TestCase {
                             return employee.deptno < 15;
                         }
                     })
-                .select(
-                    new Function1<Employee, String>() {
-                        public String apply(Employee employee) {
-                            return employee.name;
+                .select(EMP_NAME_SELECTOR)
+                .toList();
+        assertEquals("[Fred, Eric, Jane]", names.toString());
+    }
+
+    public void testWhereIndexed() {
+        // Returns every other employee.
+        List<String> names =
+            Extensions.asEnumerable(emps)
+                .where(
+                   new Predicate2<Employee, Integer>() {
+                        public boolean apply(Employee employee, Integer n) {
+                            return n % 2 == 0;
                         }
                     })
-        .toList();
-        assertEquals("[Fred, Eric, Jane]", names.toString());
+                .select(EMP_NAME_SELECTOR)
+                .toList();
+        assertEquals("[Fred, Eric]", names.toString());
     }
 
     public void testSelectMany() {
         final List<String> nameSeqs =
             Extensions.asEnumerable(depts)
-                .selectMany(
-                    new Function1<Department, Enumerable<Employee>>() {
-                        public Enumerable<Employee> apply(Department a0) {
-                            return Extensions.asEnumerable(a0.employees);
-                        }
-                    })
+                .selectMany(DEPT_EMPLOYEES_SELECTOR)
                 .select(
                     new Function2<Employee, Integer, String>() {
                         public String apply(Employee arg0, Integer arg1) {
@@ -77,6 +108,54 @@ public class Linq4jTest extends TestCase {
                 .toList();
         assertEquals(
             "[#0: Fred, #1: Eric, #2: Jane, #3: Bill]", nameSeqs.toString());
+    }
+
+    public void testCount() {
+        final int count = Extensions.asEnumerable(depts).count();
+        assertEquals(3, count);
+    }
+
+    public void testCountPredicate() {
+        final int count =
+            Extensions.asEnumerable(depts).count(
+                new Predicate1<Department>() {
+                    public boolean apply(Department v1) {
+                        return v1.employees.size() > 0;
+                    }
+                });
+        assertEquals(2, count);
+    }
+
+    public void testLongCount() {
+        final long count = Extensions.asEnumerable(depts).longCount();
+        assertEquals(3, count);
+    }
+
+    public void testLongCountPredicate() {
+        final long count =
+            Extensions.asEnumerable(depts).longCount(
+                new Predicate1<Department>() {
+                    public boolean apply(Department v1) {
+                        return v1.employees.size() > 0;
+                    }
+                });
+        assertEquals(2, count);
+    }
+
+    public void testToMap() {
+        final Map<Integer, Employee> map =
+            Extensions.asEnumerable(emps)
+                .toMap(EMP_EMPNO_SELECTOR);
+        assertEquals(4, map.size());
+        assertTrue(map.get(110).name.equals("Bill"));
+    }
+
+    public void testToMap2() {
+        final Map<Integer, Integer> map =
+            Extensions.asEnumerable(emps)
+                .toMap(EMP_EMPNO_SELECTOR, EMP_DEPTNO_SELECTOR);
+        assertEquals(4, map.size());
+        assertTrue(map.get(110) == 30);
     }
 
     public static class Employee {

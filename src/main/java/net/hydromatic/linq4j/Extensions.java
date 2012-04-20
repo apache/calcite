@@ -368,7 +368,9 @@ public class Extensions {
 
     /** Returns the number of elements in a
      * sequence. */
-    public static <TSource> int count(Enumerable<TSource> enumerable) { throw Extensions.todo(); }
+    public static <TSource> int count(Enumerable<TSource> enumerable) {
+        return (int) longCount(enumerable, Functions.<TSource>truePredicate1());
+    }
 
     /** Returns the number of elements in a
      * sequence. */
@@ -376,7 +378,12 @@ public class Extensions {
 
     /** Returns a number that represents how many elements
      * in the specified sequence satisfy a condition. */
-    public static <TSource> int count(Enumerable<TSource> enumerable, Predicate1<TSource> predicate) { throw Extensions.todo(); }
+    public static <TSource> int count(
+        Enumerable<TSource> enumerable,
+        Predicate1<TSource> predicate)
+    {
+        return (int) longCount(enumerable, predicate);
+    }
 
     /** Returns the number of elements in the specified
      * sequence that satisfies a condition. */
@@ -685,7 +692,9 @@ public class Extensions {
 
     /** Returns an long that represents the total number
      * of elements in a sequence. */
-    public static <TSource> long longCount(Enumerable<TSource> enumerable) { throw Extensions.todo(); }
+    public static <TSource> long longCount(Enumerable<TSource> source)  {
+        return longCount(source, Functions.<TSource>truePredicate1());
+    }
 
     /** Returns an long that represents the total number
      * of elements in a sequence. */
@@ -693,7 +702,24 @@ public class Extensions {
 
     /** Returns an long that represents how many elements
      * in a sequence satisfy a condition. */
-    public static <TSource> long longCount(Enumerable<TSource> enumerable, Predicate1<TSource> predicate) { throw Extensions.todo(); }
+    public static <TSource> long longCount(
+        Enumerable<TSource> enumerable,
+        Predicate1<TSource> predicate)
+    {
+        // Shortcut if this is a collection and the predicate is always true.
+        if (predicate == Predicate1.TRUE
+            && enumerable instanceof Collection)
+        {
+            return ((Collection) enumerable).size();
+        }
+        int n = 0;
+        for (TSource o : enumerable) {
+            if (predicate.apply(o)) {
+                ++n;
+            }
+        }
+        return n;
+    }
 
     /** Returns an long that represents the number of
      * elements in a sequence that satisfy a condition. */
@@ -946,7 +972,7 @@ public class Extensions {
                     }
 
                     public void reset() {
-                        enumerator().reset();
+                        enumerator.reset();
                     }
                 };
             }
@@ -1274,13 +1300,19 @@ public class Extensions {
      * logic of the predicate function. */
     public static <TSource> Queryable<TSource> takeWhileN(Queryable<TSource> source, FunctionExpression<Function2<TSource, Integer, Boolean>> predicate) { throw Extensions.todo(); }
 
-    /** Creates a Dictionary<TKey, TValue> from an
-     * Enumerable<TSource> according to a specified key selector
+    /** Creates a Map&lt;TKey, TValue&gt; from an
+     * Enumerable&lt;TSource&gt; according to a specified key selector
      * function.
      *
      * <p>NOTE: Called {@code toDictionary} in LINQ.NET.</p>
      * */
-    public static <TSource, TKey> Map<TKey, TSource> toMap(Enumerable<TSource> source, Function1<TSource, TKey> keySelector) { throw Extensions.todo(); }
+    public static <TSource, TKey> Map<TKey, TSource> toMap(
+        Enumerable<TSource> source,
+        Function1<TSource, TKey> keySelector)
+    {
+        return toMap(
+            source, keySelector, Functions.<TSource>identitySelector());
+    }
 
     /** Creates a Dictionary<TKey, TValue> from an
      * Enumerable<TSource> according to a specified key selector function
@@ -1290,7 +1322,17 @@ public class Extensions {
     /** Creates a Dictionary<TKey, TValue> from an
      * Enumerable<TSource> according to specified key selector and element
      * selector functions. */
-    public static <TSource, TKey, TElement> Map<TKey, TElement> toMap(Enumerable<TSource> source, Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector) { throw Extensions.todo(); }
+    public static <TSource, TKey, TElement> Map<TKey, TElement> toMap(
+        Enumerable<TSource> source,
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector)
+    {
+        final Map<TKey, TElement> map = new HashMap<TKey, TElement>();
+        for (TSource o : source) {
+            map.put(keySelector.apply(o), elementSelector.apply(o));
+        }
+        return map;
+    }
 
     /** Creates a Dictionary<TKey, TValue> from an
      * Enumerable<TSource> according to a specified key selector function,
@@ -1344,7 +1386,10 @@ public class Extensions {
 
     /** Filters a sequence of values based on a
      * predicate. */
-    public static <TSource> Enumerable<TSource> where(final Enumerable<TSource> source, final Predicate1<TSource> predicate) {
+    public static <TSource> Enumerable<TSource> where(
+        final Enumerable<TSource> source,
+        final Predicate1<TSource> predicate)
+    {
         return new AbstractEnumerable<TSource>() {
             public Enumerator<TSource> enumerator() {
                 final Enumerator<TSource> enumerator = source.enumerator();
@@ -1377,7 +1422,38 @@ public class Extensions {
     /** Filters a sequence of values based on a
      * predicate. Each element's index is used in the logic of the
      * predicate function. */
-    public static <TSource> Enumerable<TSource> where(Enumerable<TSource> source, Function2<TSource, Integer, Boolean> predicate) { throw Extensions.todo(); }
+    public static <TSource> Enumerable<TSource> where(
+        final Enumerable<TSource> source,
+        final Predicate2<TSource, Integer> predicate)
+    {
+        return new AbstractEnumerable<TSource>() {
+            public Enumerator<TSource> enumerator() {
+                return new Enumerator<TSource>() {
+                    final Enumerator<TSource> enumerator = source.enumerator();
+                    int n = -1;
+
+                    public TSource current() {
+                        return enumerator.current();
+                    }
+
+                    public boolean moveNext() {
+                        while (enumerator.moveNext()) {
+                            ++n;
+                            if (predicate.apply(enumerator.current(), n)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+
+                    public void reset() {
+                        enumerator.reset();
+                        n = -1;
+                    }
+                };
+            }
+        };
+    }
 
     /** Filters a sequence of values based on a
      * predicate. Each element's index is used in the logic of the

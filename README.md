@@ -36,10 +36,10 @@ Please let us know if you are starting one.
 * Second tranche: implement remaining select, selectMany, where methods for
   Enumerable.
 
-* Third tranche: implement groupBy, toMap, toLookup for Enumerable.
+* Third tranche: implement groupBy, toLookup for Enumerable.
 
-* Fourth tranche: implement any, all, aggregate, sum, min, max, average, count,
-  longCount for Enumerable.
+* Fourth tranche: implement any, all, aggregate, sum, min, max, average
+  for Enumerable.
 
 * Fifth tranche: implement groupJoin and join methods for Enumerable.
 
@@ -50,7 +50,9 @@ Please let us know if you are starting one.
   firstOrDefault, lastOrDefault for Enumerable. May need to add a class
   parameter so that we can generate the right default value.
 
-* Eight tranche: implement orderBy, reverse for Enumerable.
+* Eighth tranche: implement orderBy, reverse for Enumerable.
+
+* Ninth tranche: implement methods that require EqualityComparer.
 
 * Last tranche: all remaining methods for Enumerable.
 
@@ -83,6 +85,13 @@ Please let us know if you are starting one.
 
 * Use planner framework to build back-ends to non-SQL data sources (e.g.
   MongoDB, Hadoop, text files).
+
+Already implemented
+===================
+
+* For Enumerable: select, selectMany, where;
+  count, longCount;
+  toMap (except variants that require EqualityComparer).
 
 More information
 ================

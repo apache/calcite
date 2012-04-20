@@ -653,7 +653,7 @@ interface ExtendedEnumerable<TSource> {
     /** Filters a sequence of values based on a
      * predicate. Each element's index is used in the logic of the
      * predicate function. */
-    Enumerable<TSource> where(Function2<TSource, Integer, Boolean> predicate);
+    Enumerable<TSource> where(Predicate2<TSource, Integer> predicate);
 
     /** Applies a specified function to the corresponding
      * elements of two sequences, producing a sequence of the

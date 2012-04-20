@@ -688,7 +688,7 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         return Extensions.where(getThis(), predicate);
     }
 
-    public Enumerable<T> where(Function2<T, Integer, Boolean> predicate) {
+    public Enumerable<T> where(Predicate2<T, Integer> predicate) {
         return Extensions.where(getThis(), predicate);
     }
 
