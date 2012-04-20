@@ -18,7 +18,7 @@
 package net.hydromatic.linq4j.function;
 
 /**
- * Function that takes 1 parameter and returns a native {@code double} value.
+ * Function that takes one parameter and returns a native {@code double} value.
 */
 public interface DoubleFunction1<T1> extends Function<Double> {
     double apply(T1 v1);

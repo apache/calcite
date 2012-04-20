@@ -18,7 +18,7 @@
 package net.hydromatic.linq4j.function;
 
 /**
- * Function that takes 1 parameter and returns a {@link Long} value that
+ * Function that takes one parameter and returns a {@link Long} value that
  * may be null.
  */
 public interface NullableLongFunction1<T0> extends Function1<T0, Long> {}

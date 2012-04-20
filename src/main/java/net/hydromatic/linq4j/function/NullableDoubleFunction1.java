@@ -18,7 +18,7 @@
 package net.hydromatic.linq4j.function;
 
 /**
- * Function that takes 1 parameter and returns a {@link Double} value that
+ * Function that takes one parameter and returns a {@link Double} value that
  * may be null.
  */
 public interface NullableDoubleFunction1<T0> extends Function1<T0, Double> {}

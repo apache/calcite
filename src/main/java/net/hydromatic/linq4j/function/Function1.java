@@ -18,7 +18,7 @@
 package net.hydromatic.linq4j.function;
 
 /**
- * Function with 1 parameters.
+ * Function with one parameter.
  *
  * @param <R> result type
  * @param <T1> type of parameter 1

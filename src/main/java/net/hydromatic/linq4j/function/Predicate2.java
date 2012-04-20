@@ -18,7 +18,7 @@
 package net.hydromatic.linq4j.function;
 
 /**
- * Function with 2 parameters returning a native {@code boolean} value.
+ * Function with two parameters returning a native {@code boolean} value.
  *
  * @param <T1> type of parameter 1
  * @param <T2> type of parameter 2

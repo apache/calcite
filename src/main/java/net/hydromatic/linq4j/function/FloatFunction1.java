@@ -18,7 +18,7 @@
 package net.hydromatic.linq4j.function;
 
 /**
- * Function that takes 1 parameter and returns a native {@code float} value.
+ * Function that takes one parameter and returns a native {@code float} value.
  */
 public interface FloatFunction1<T1> extends Function<Float> {
     float apply(T1 v1);

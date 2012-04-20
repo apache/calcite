@@ -20,7 +20,7 @@ package net.hydromatic.linq4j.function;
 import java.math.BigDecimal;
 
 /**
- * Function that takes 1 parameter and returns a {@link BigDecimal} value that
+ * Function that takes one parameter and returns a {@link BigDecimal} value that
  * may be null.
  */
 public interface NullableBigDecimalFunction1<T0>
