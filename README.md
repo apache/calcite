@@ -6,12 +6,7 @@ A port of LINQ (Language-Integrated Query) to Java.
 Download
 ========
 
-    $ mkdir linq4j
-    $ cd linq4j
-    $ git init
-    $ git remote add origin git@github.com:julianhyde/linq4j.git
-    $ git pull
-    $ git checkout master
+    $ git clone git://github.com/julianhyde/linq4j.git linq4j
 
 Build and test
 ==============
