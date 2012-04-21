@@ -31,15 +31,15 @@ Please let us know if you are starting one.
 * Second tranche: implement remaining select, selectMany, where methods for
   Enumerable.
 
-* Third tranche: implement groupBy, toLookup for Enumerable.
+* Third tranche: implement groupBy for Enumerable.
 
 * Fourth tranche: implement any, all, aggregate, sum, min, max, average
   for Enumerable.
 
 * Fifth tranche: implement groupJoin and join methods for Enumerable.
 
-* Sixth tranche: implement union, intersect, except, distinct methods for
-  Enumerable.
+* Sixth tranche: implement union, intersect, except, distinct, concat methods
+  for Enumerable.
 
 * Seventh tranche: first, last, defaultIfEmpty, elementAtOrDefault,
   firstOrDefault, lastOrDefault for Enumerable. May need to add a class
@@ -86,7 +86,7 @@ Already implemented
 
 * For Enumerable: select, selectMany, where;
   count, longCount;
-  toMap (except variants that require EqualityComparer).
+  toMap, toLookup (except variants that require EqualityComparer).
 
 More information
 ================

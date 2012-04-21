@@ -25,7 +25,7 @@ package net.hydromatic.linq4j.function;
  * @param <T2> type of parameter 2
  */
 public interface Function2<T1, T2, R> {
-    R apply(T1 v0, T2 v2);
+    R apply(T1 v1, T2 v2);
 }
 
 // End Function2.java

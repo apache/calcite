@@ -17,13 +17,26 @@
 */
 package net.hydromatic.linq4j;
 
+import net.hydromatic.linq4j.function.Function2;
+
 import java.util.Map;
 
 /**
-* Map where each key can have one or more values.
+* Represents a collection of keys each mapped to one or more values.
 */
-interface MultiMap<K, V> extends Map<K, Enumerable<V>> {
-
+public interface Lookup<K, V>
+    extends Map<K, Enumerable<V>>, Enumerable<Grouping<K, V>>
+{
+    /**
+     * Applies a transform function to each key and its associated values and
+     * returns the results.
+     *
+     * @param resultSelector Result selector
+     * @param <TResult> Result type
+     * @return Enumerable over results
+     */
+    public <TResult> Enumerable<TResult> applyResultSelector(
+        Function2<K, Enumerable<V>, TResult> resultSelector);
 }
 
-// End MultiMap.java
+// End Lookup.java

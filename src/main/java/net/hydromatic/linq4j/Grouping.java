@@ -20,7 +20,7 @@ package net.hydromatic.linq4j;
 /**
 * Represents a collection of objects that have a common key.
 */
-interface Grouping<TKey, T> extends Enumerable<T> {
+public interface Grouping<TKey, T> extends Enumerable<T> {
     /**
      * Gets the key of this Grouping.
      */

@@ -18,8 +18,7 @@
 package net.hydromatic.linq4j.test;
 
 import junit.framework.TestCase;
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.Extensions;
+import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.function.*;
 
 import java.util.*;
@@ -100,8 +99,8 @@ public class Linq4jTest extends TestCase {
                 .selectMany(DEPT_EMPLOYEES_SELECTOR)
                 .select(
                     new Function2<Employee, Integer, String>() {
-                        public String apply(Employee arg0, Integer arg1) {
-                            return "#" + arg1 + ": " + arg0.name;
+                        public String apply(Employee v1, Integer v2) {
+                            return "#" + v2 + ": " + v1.name;
                         }
                     }
                 )
@@ -156,6 +155,67 @@ public class Linq4jTest extends TestCase {
                 .toMap(EMP_EMPNO_SELECTOR, EMP_DEPTNO_SELECTOR);
         assertEquals(4, map.size());
         assertTrue(map.get(110) == 30);
+    }
+
+    public void testToLookup() {
+        final Lookup<Integer, Employee> lookup =
+            Extensions.asEnumerable(emps).toLookup(
+                EMP_DEPTNO_SELECTOR);
+        int n = 0;
+        for (Grouping<Integer, Employee> grouping : lookup) {
+            ++n;
+            switch (grouping.getKey()) {
+            case 10:
+                assertEquals(3, grouping.count());
+                break;
+            case 30:
+                assertEquals(1, grouping.count());
+                break;
+            default:
+                fail("unknown department number " + grouping);
+            }
+        }
+        assertEquals(n, 2);
+    }
+
+    public void testToLookupSelector() {
+        final Lookup<Integer, String> lookup =
+            Extensions.asEnumerable(emps).toLookup(
+                EMP_DEPTNO_SELECTOR,
+                EMP_NAME_SELECTOR);
+        int n = 0;
+        for (Grouping<Integer, String> grouping : lookup) {
+            ++n;
+            switch (grouping.getKey()) {
+            case 10:
+                assertEquals(3, grouping.count());
+                assertTrue(grouping.contains("Fred"));
+                assertTrue(grouping.contains("Eric"));
+                assertTrue(grouping.contains("Jane"));
+                assertFalse(grouping.contains("Bill"));
+                break;
+            case 30:
+                assertEquals(1, grouping.count());
+                assertTrue(grouping.contains("Bill"));
+                assertFalse(grouping.contains("Fred"));
+                break;
+            default:
+                fail("unknown department number " + grouping);
+            }
+        }
+        assertEquals(n, 2);
+
+        assertEquals(
+            "[10:3, 30:1]",
+            lookup.applyResultSelector(
+                new Function2<Integer, Enumerable<String>, Object>() {
+                    public Object apply(Integer v1, Enumerable<String> v2) {
+                        return v1 + ":" + v2.count();
+                    }
+                }
+            )
+                .toList()
+                .toString());
     }
 
     public static class Employee {

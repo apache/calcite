@@ -644,25 +644,25 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         return Extensions.toList(getThis());
     }
 
-    public <TKey> MultiMap<T, TKey> toLookup(Function1<T, TKey> keySelector) {
+    public <TKey> Lookup<TKey, T> toLookup(Function1<T, TKey> keySelector) {
         return Extensions.toLookup(getThis(), keySelector);
     }
 
-    public <TKey> MultiMap<T, TKey> toLookup(
+    public <TKey> Lookup<TKey, T> toLookup(
         Function1<T, TKey> keySelector,
         EqualityComparer<TKey> comparer)
     {
         return Extensions.toLookup(getThis(), keySelector, comparer);
     }
 
-    public <TKey, TElement> MultiMap<T, TElement> toLookup(
+    public <TKey, TElement> Lookup<TKey, TElement> toLookup(
         Function1<T, TKey> keySelector,
         Function1<T, TElement> elementSelector)
     {
         return Extensions.toLookup(getThis(), keySelector, elementSelector);
     }
 
-    public <TKey, TElement> MultiMap<T, TElement> toLookup(
+    public <TKey, TElement> Lookup<TKey, TElement> toLookup(
         Function1<T, TKey> keySelector,
         Function1<T, TElement> elementSelector,
         EqualityComparer<TKey> comparer)

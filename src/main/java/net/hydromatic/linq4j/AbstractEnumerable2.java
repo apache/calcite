@@ -27,7 +27,7 @@ package net.hydromatic.linq4j;
  */
 public abstract class AbstractEnumerable2<T> extends DefaultEnumerable<T> {
     public Enumerator<T> enumerator() {
-        return Extensions.iteratorEnumerator(iterator());
+        return Extensions.iterableEnumerator(this);
     }
 }
 

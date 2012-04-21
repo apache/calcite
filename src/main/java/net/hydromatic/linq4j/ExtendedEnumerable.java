@@ -621,22 +621,22 @@ interface ExtendedEnumerable<TSource> {
     /** Creates a Lookup<TKey, TElement> from an
      * Enumerable<TSource> according to a specified key selector
      * function. */
-    <TKey> MultiMap<TSource, TKey> toLookup(Function1<TSource, TKey> keySelector);
+    <TKey> Lookup<TKey, TSource> toLookup(Function1<TSource, TKey> keySelector);
 
     /** Creates a Lookup<TKey, TElement> from an
      * Enumerable<TSource> according to a specified key selector function
      * and key comparer. */
-    <TKey> MultiMap<TSource, TKey> toLookup(Function1<TSource, TKey> keySelector, EqualityComparer<TKey> comparer);
+    <TKey> Lookup<TKey, TSource> toLookup(Function1<TSource, TKey> keySelector, EqualityComparer<TKey> comparer);
 
     /** Creates a Lookup<TKey, TElement> from an
      * Enumerable<TSource> according to specified key selector and element
      * selector functions. */
-    <TKey, TElement> MultiMap<TSource, TElement> toLookup(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector);
+    <TKey, TElement> Lookup<TKey, TElement> toLookup(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector);
 
     /** Creates a Lookup<TKey, TElement> from an
      * Enumerable<TSource> according to a specified key selector function,
      * a comparer and an element selector function. */
-    <TKey, TElement> MultiMap<TSource, TElement> toLookup(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector, EqualityComparer<TKey> comparer);
+    <TKey, TElement> Lookup<TKey, TElement> toLookup(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector, EqualityComparer<TKey> comparer);
 
     /** Produces the set union of two sequences by using
      * the default equality comparer. */

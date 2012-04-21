@@ -352,7 +352,19 @@ public class Extensions {
 
     /** Determines whether a sequence contains a specified
      * element by using the default equality comparer. */
-    public static <TSource> boolean contains(Enumerable<TSource> enumerable, TSource element) { throw Extensions.todo(); }
+    public static <TSource> boolean contains(
+        Enumerable<TSource> enumerable,
+        TSource element)
+    {
+        // TODO: Optimize if the enumerable has random access (e.g. is a
+        // HashSet)
+        for (TSource o : enumerable) {
+            if (o.equals(element)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /** Determines whether a sequence contains a specified
      * element by using the default equality comparer. */
@@ -1348,25 +1360,49 @@ public class Extensions {
         return list;
     }
 
-    /** Creates a Lookup<TKey, TElement> from an
-     * Enumerable<TSource> according to a specified key selector
+    /** Creates a Lookup&lt;TKey, TElement&gt; from an
+     * Enumerable&lt;TSource&gt; according to a specified key selector
      * function. */
-    public static <TSource, TKey> MultiMap<TSource, TKey> toLookup(Enumerable<TSource> source, Function1<TSource, TKey> keySelector) { throw Extensions.todo(); }
+    public static <TSource, TKey> Lookup<TKey, TSource> toLookup(
+        Enumerable<TSource> source,
+        Function1<TSource, TKey> keySelector)
+    {
+        return toLookup(
+            source, keySelector, Functions.<TSource>identitySelector());
+    }
 
     /** Creates a Lookup<TKey, TElement> from an
      * Enumerable<TSource> according to a specified key selector function
      * and key comparer. */
-    public static <TSource, TKey> MultiMap<TSource, TKey> toLookup(Enumerable<TSource> source, Function1<TSource, TKey> keySelector, EqualityComparer<TKey> comparer) { throw Extensions.todo(); }
+    public static <TSource, TKey> Lookup<TKey, TSource> toLookup(Enumerable<TSource> source, Function1<TSource, TKey> keySelector, EqualityComparer<TKey> comparer) { throw Extensions.todo(); }
 
     /** Creates a Lookup<TKey, TElement> from an
      * Enumerable<TSource> according to specified key selector and element
      * selector functions. */
-    public static <TSource, TKey, TElement> MultiMap<TSource, TElement> toLookup(Enumerable<TSource> source, Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector) { throw Extensions.todo(); }
+    public static <TSource, TKey, TElement> Lookup<TKey, TElement> toLookup(
+        Enumerable<TSource> source,
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector)
+    {
+        final Map<TKey, List<TElement>> map =
+            new HashMap<TKey, List<TElement>>();
+        for (TSource o : source) {
+            final TKey key = keySelector.apply(o);
+            List<TElement> list = map.get(key);
+            if (list == null) {
+                list = new ArrayList<TElement>();
+                map.put(key, list);
+            }
+            list.add(elementSelector.apply(o));
+        }
+        return new LookupImpl<TKey, TElement>(map);
+
+    }
 
     /** Creates a Lookup<TKey, TElement> from an
      * Enumerable<TSource> according to a specified key selector function,
      * a comparer and an element selector function. */
-    public static <TSource, TKey, TElement> MultiMap<TSource, TElement> toLookup(Enumerable<TSource> source, Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector, EqualityComparer<TKey> comparer) { throw Extensions.todo(); }
+    public static <TSource, TKey, TElement> Lookup<TKey, TElement> toLookup(Enumerable<TSource> source, Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector, EqualityComparer<TKey> comparer) { throw Extensions.todo(); }
 
     /** Produces the set union of two sequences by using
      * the default equality comparer. */
@@ -1499,16 +1535,17 @@ public class Extensions {
     }
 
     /**
-     * Adapter that converts an iterator into an enumerator.
+     * Adapter that converts an iterable into an enumerator.
      *
-     * @param iterator Iterator
+     * @param iterable Iterable
      * @param <T> Element type
      * @return enumerator
      */
-    public static <T> Enumerator<T> iteratorEnumerator(
-        final Iterator<T> iterator)
+    public static <T> Enumerator<T> iterableEnumerator(
+        final Iterable<T> iterable)
     {
         return new Enumerator<T>() {
+            Iterator<T> iterator = iterable.iterator();
             T current = (T) DUMMY;
 
             public T current() {
@@ -1528,7 +1565,8 @@ public class Extensions {
             }
 
             public void reset() {
-                throw new UnsupportedOperationException();
+                iterator = iterable.iterator();
+                current = (T) DUMMY;
             }
         };
     }
@@ -1545,7 +1583,7 @@ public class Extensions {
     public static <T> Enumerable<T> asEnumerable(final Iterable<T> iterable) {
         return new AbstractEnumerable<T>() {
             public Enumerator<T> enumerator() {
-                return iteratorEnumerator(iterable.iterator());
+                return iterableEnumerator(iterable);
             }
         };
     }
@@ -1559,6 +1597,17 @@ public class Extensions {
      */
     public static <T> Enumerable<T> asEnumerable(final T[] ts) {
         return asEnumerable(Arrays.asList(ts));
+    }
+
+    /**
+     * Adapter that converts a collection into an enumerator.
+     *
+     * @param values Collection
+     * @param <V> Element type
+     * @return Enumerator over the collection
+     */
+    public static <V> Enumerator<V> enumerator(Collection<V> values) {
+        return iterableEnumerator(values);
     }
 }
 
