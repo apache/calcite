@@ -295,7 +295,11 @@ interface ExtendedEnumerable<TSource> {
     /** Correlates the elements of two sequences based on
      * matching keys. The default equality comparer is used to compare
      * keys. */
-    <TInner, TKey, TResult> Enumerable<TResult> join(Enumerable<TInner> inner, Function1<TSource, TKey> outerKeySelector, Function1<TInner, TKey> innerKeySelector, Function2<TSource, TInner, TResult> resultSelector);
+    <TInner, TKey, TResult> Enumerable<TResult> join(
+        Enumerable<TInner> inner,
+        Function1<TSource, TKey> outerKeySelector,
+        Function1<TInner, TKey> innerKeySelector,
+        Function2<TSource, TInner, TResult> resultSelector);
 
     /** Correlates the elements of two sequences based on
      * matching keys. A specified EqualityComparer<TSource> is used to

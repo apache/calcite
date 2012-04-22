@@ -25,6 +25,27 @@ import java.util.*;
 public class Linq4j {
     private static final Object DUMMY = new Object();
 
+    private static final Enumerator<Object> EMPTY_ENUMERATOR =
+        new Enumerator<Object>() {
+            public Object current() {
+                throw new NoSuchElementException();
+            }
+
+            public boolean moveNext() {
+                return false;
+            }
+
+            public void reset() {
+            }
+        };
+
+    public static final Enumerable<?> EMPTY_ENUMERABLE =
+        new AbstractEnumerable<Object>() {
+            public Enumerator<Object> enumerator() {
+                return EMPTY_ENUMERATOR;
+            }
+        };
+
     /**
      * Adapter that converts an enumerator into an iterator.
      *
@@ -179,6 +200,46 @@ public class Linq4j {
         return asEnumerable(source).ofType(clazz);
     }
 
+    /**
+     * Returns an {@link Enumerable} that has no elements.
+     *
+     * @param <T> Element type
+     * @return Empty enumerable
+     */
+    public static <T> Enumerable<T> emptyEnumerable() {
+        //noinspection unchecked
+        return (Enumerable<T>) EMPTY_ENUMERABLE;
+    }
+
+    /**
+     * Returns an {@link Enumerator} that has no elements.
+     *
+     * @param <T> Element type
+     * @return Empty enumerator
+     */
+    public static <T> Enumerator<T> emptyEnumerator() {
+        //noinspection unchecked
+        return (Enumerator<T>) EMPTY_ENUMERATOR;
+    }
+
+    /**
+     * Concatenates two or more {@link Enumerable}s to form a composite
+     * enumerable that contains the union of their elements.
+     *
+     * @param enumerableList List of enumerable objects
+     * @param <E> Element type
+     * @return Composite enumerator
+     */
+    public static <E> Enumerable<E> concat(
+        final List<Enumerable<E>> enumerableList)
+    {
+        return new CompositeEnumerator<E>(enumerableList);
+    }
+
+    public static <T> Enumerator<List<T>> product(List<Enumerator<T>> lists) {
+        return new CartesianProductEnumerator<T>(lists);
+    }
+
     @SuppressWarnings("unchecked")
     private static class IterableEnumerator<T> implements Enumerator<T> {
         private final Iterable<T> iterable;
@@ -210,6 +271,42 @@ public class Linq4j {
         public void reset() {
             iterator = iterable.iterator();
             current = (T) DUMMY;
+        }
+    }
+
+    static class CompositeEnumerator<E> extends AbstractEnumerable<E> {
+        private final Enumerator<Enumerable<E>> enumerableEnumerator;
+
+        CompositeEnumerator(List<Enumerable<E>> enumerableList) {
+            enumerableEnumerator =
+                Linq4j.asEnumerable(enumerableList).enumerator();
+        }
+
+        public Enumerator<E> enumerator() {
+            return new Enumerator<E>() {
+                Enumerator<E> current = emptyEnumerator();
+
+                public E current() {
+                    return current.current();
+                }
+
+                public boolean moveNext() {
+                    for (;;) {
+                        if (current.moveNext()) {
+                            return true;
+                        }
+                        if (!enumerableEnumerator.moveNext()) {
+                            return false;
+                        }
+                        current = enumerableEnumerator.current().enumerator();
+                    }
+                }
+
+                public void reset() {
+                    enumerableEnumerator.reset();
+                    current = emptyEnumerator();
+                }
+            };
         }
     }
 }

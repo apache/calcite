@@ -271,7 +271,9 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         Function1<TInner, TKey> innerKeySelector,
         Function2<T, Enumerable<TInner>, TResult> resultSelector)
     {
-        return Extensions.groupJoin(getThis(), inner, outerKeySelector, innerKeySelector, resultSelector);
+        return Extensions.groupJoin(
+            getThis(), inner, outerKeySelector, innerKeySelector,
+            resultSelector);
     }
 
     public <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
@@ -307,7 +309,9 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         Function1<TInner, TKey> innerKeySelector,
         Function2<T, TInner, TResult> resultSelector)
     {
-        return Extensions.join(getThis(), inner, outerKeySelector, innerKeySelector, resultSelector);
+        return Extensions.join(
+            getThis(), inner, outerKeySelector, innerKeySelector,
+            resultSelector);
     }
 
     public <TInner, TKey, TResult> Enumerable<TResult> join(

@@ -56,6 +56,13 @@ public class Linq4jTest extends TestCase {
             }
         };
 
+    public static final Function1<Department, Integer> DEPT_DEPTNO_SELECTOR =
+        new Function1<Department, Integer>() {
+            public Integer apply(Department department) {
+                return department.deptno;
+            }
+        };
+
     public void testSelect() {
         List<String> names =
             Linq4j.asEnumerable(emps)
@@ -285,6 +292,115 @@ public class Linq4jTest extends TestCase {
         assertEquals(Integer.valueOf(2), enumerator.current());
     }
 
+    public void testConcat() {
+        assertEquals(
+            5,
+            Linq4j.asEnumerable(emps)
+                .concat(Linq4j.asEnumerable(badEmps))
+                .count());
+    }
+
+    public void testGroupJoin() {
+        // Note #1: Group join is a "left join": "bad employees" are filtered
+        //   out, but empty departments are not.
+        // Note #2: Order of departments is preserved.
+        String s =
+            Linq4j.asEnumerable(depts)
+                .groupJoin(
+                    Linq4j.asEnumerable(emps)
+                        .concat(Linq4j.asEnumerable(badEmps)),
+                    DEPT_DEPTNO_SELECTOR,
+                    EMP_DEPTNO_SELECTOR,
+                    new Function2<Department, Enumerable<Employee>, String>() {
+                        public String apply(
+                            Department v1, Enumerable<Employee> v2)
+                        {
+                            final StringBuilder buf = new StringBuilder("[");
+                            int n = 0;
+                            for (Employee employee : v2) {
+                                if (n++ > 0) {
+                                    buf.append(", ");
+                                }
+                                buf.append(employee.name);
+                            }
+                            return buf.append("] work(s) in ").append(v1.name)
+                                .toString();
+                        }
+                    }
+                ).toList()
+                .toString();
+        assertEquals(
+            "[[Fred, Eric, Jane] work(s) in Sales, "
+            + "[] work(s) in HR, "
+            + "[Bill] work(s) in Marketing]",
+            s);
+    }
+
+    public void testJoin() {
+        // Note #1: Inner on both sides. Employees with bad departments,
+        //   and departments with no employees are eliminated.
+        // Note #2: Order of employees is preserved.
+        String s =
+            Linq4j.asEnumerable(emps)
+                .concat(Linq4j.asEnumerable(badEmps))
+                .join(
+                    Linq4j.asEnumerable(depts),
+                    EMP_DEPTNO_SELECTOR,
+                    DEPT_DEPTNO_SELECTOR,
+                    new Function2<Employee, Department, String>() {
+                        public String apply(Employee v1, Department v2) {
+                            return v1.name + " works in " + v2.name;
+                        }
+                    })
+                .toList()
+                .toString();
+        assertEquals(
+            "[Fred works in Sales, "
+            + "Eric works in Sales, "
+            + "Jane works in Sales, "
+            + "Bill works in Marketing]",
+            s);
+    }
+
+    @SuppressWarnings("unchecked")
+    public void testCartesianProductEnumerator() {
+        final Enumerable<String> abc =
+            Linq4j.asEnumerable(Arrays.asList("a", "b", "c"));
+        final Enumerable<String> xy =
+            Linq4j.asEnumerable(Arrays.asList("x", "y"));
+
+        final Enumerator<List<String>> product0 =
+            Linq4j.product(
+                Arrays.asList(Linq4j.<String>emptyEnumerator()));
+        assertFalse(product0.moveNext());
+
+        final Enumerator<List<String>> productFullEmpty =
+            Linq4j.product(
+                Arrays.asList(
+                    abc.enumerator(), Linq4j.<String>emptyEnumerator()));
+        assertFalse(productFullEmpty.moveNext());
+
+        final Enumerator<List<String>> productEmptyFull =
+            Linq4j.product(
+                Arrays.asList(
+                    abc.enumerator(), Linq4j.<String>emptyEnumerator()));
+        assertFalse(productEmptyFull.moveNext());
+
+        final Enumerator<List<String>> productAbcXy =
+            Linq4j.product(
+                Arrays.asList(abc.enumerator(), xy.enumerator()));
+        assertTrue(productAbcXy.moveNext());
+        assertEquals(Arrays.asList("a", "x"), productAbcXy.current());
+        assertTrue(productAbcXy.moveNext());
+        assertEquals(Arrays.asList("a", "y"), productAbcXy.current());
+        assertTrue(productAbcXy.moveNext());
+        assertEquals(Arrays.asList("b", "x"), productAbcXy.current());
+        assertTrue(productAbcXy.moveNext());
+        assertTrue(productAbcXy.moveNext());
+        assertTrue(productAbcXy.moveNext());
+        assertFalse(productAbcXy.moveNext());
+    }
+
     public static class Employee {
         final int empno;
         final String name;
@@ -319,6 +435,11 @@ public class Linq4jTest extends TestCase {
                    + ")";
         }
     }
+
+    // Cedric works in a non-existent department.
+    public static final Employee[] badEmps = {
+        new Employee(140, "Cedric", 40),
+    };
 
     public static final Employee[] emps = {
         new Employee(100, "Fred", 10),

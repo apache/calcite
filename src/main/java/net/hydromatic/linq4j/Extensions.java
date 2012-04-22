@@ -107,23 +107,6 @@ import java.util.*;
  * It would be wrong to infer that the function is allowed to return null.</li>
  */
 public class Extensions {
-    private static final Enumerator<?> EMPTY_ENUMERATOR =
-        new Enumerator<Object>() {
-            public Object current() {
-                throw new NoSuchElementException();
-            }
-
-            public boolean moveNext() {
-                return false;
-            }
-
-            public void reset() {
-            }
-        };
-
-    public static <T> Enumerator<T> emptyEnumerator() {
-        return (Enumerator<T>) EMPTY_ENUMERATOR;
-    }
 
     // flags a piece of code we're yet to implement
     public static RuntimeException todo() {
@@ -170,7 +153,9 @@ public class Extensions {
 
     /** Determines whether a sequence contains any
      * elements. */
-    public static boolean any(Enumerable enumerable) { throw Extensions.todo(); }
+    public static boolean any(Enumerable enumerable) {
+        return enumerable.enumerator().moveNext();
+    }
 
     /** Determines whether a sequence contains any
      * elements. */
@@ -358,7 +343,14 @@ public class Extensions {
     }
 
     /** Concatenates two sequences. */
-    public static <TSource> Enumerable<TSource> concat(Enumerable<TSource> enumerable0, Enumerable<TSource> enumerable1) { throw Extensions.todo(); }
+    public static <TSource> Enumerable<TSource> concat(
+        Enumerable<TSource> enumerable0,
+        Enumerable<TSource> enumerable1)
+    {
+        //noinspection unchecked
+        return Linq4j.concat(
+            Arrays.<Enumerable<TSource>>asList(enumerable0, enumerable1));
+    }
 
     /** Concatenates two sequences. */
     public static <TSource> Queryable<TSource> concat(Queryable<TSource> queryable0, Queryable<TSource> queryable1) { throw Extensions.todo(); }
@@ -588,7 +580,6 @@ public class Extensions {
      * each group and its key. Keys are compared by using a specified
      * comparer.
      *
-     *
      * <p>NOTE: Renamed from {@code groupBy} to distinguish from
      * {@link #groupBy(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression, EqualityComparer)},
      * which has the same erasure.</p>
@@ -624,7 +615,45 @@ public class Extensions {
     /** Correlates the elements of two sequences based on
      * equality of keys and groups the results. The default equality
      * comparer is used to compare keys. */
-    public static <TSource, TInner, TKey, TResult> Enumerable<TResult> groupJoin(Enumerable<TSource> outer, Enumerable<TInner> inner, Function1<TSource, TKey> outerKeySelector, Function1<TInner, TKey> innerKeySelector, Function2<TSource, Enumerable<TInner>, TResult> resultSelector) { throw Extensions.todo(); }
+    public static <TSource, TInner, TKey, TResult>
+    Enumerable<TResult> groupJoin(
+        final Enumerable<TSource> outer,
+        final Enumerable<TInner> inner,
+        final Function1<TSource, TKey> outerKeySelector,
+        final Function1<TInner, TKey> innerKeySelector,
+        final Function2<TSource, Enumerable<TInner>, TResult> resultSelector)
+    {
+        return new AbstractEnumerable<TResult>() {
+            final Map<TKey, TSource> outerMap = outer.toMap(outerKeySelector);
+            final Lookup<TKey, TInner> innerLookup =
+                inner.toLookup(innerKeySelector);
+            final Enumerator<Map.Entry<TKey,TSource>> entries =
+                Linq4j.enumerator(outerMap.entrySet());
+            public Enumerator<TResult> enumerator() {
+                return new Enumerator<TResult>() {
+                    public TResult current() {
+                        final Map.Entry<TKey, TSource> entry =
+                            entries.current();
+                        final Enumerable<TInner> inners =
+                            innerLookup.get(entry.getKey());
+                        return resultSelector.apply(
+                            entry.getValue(),
+                            inners == null
+                                ? Linq4j.<TInner>emptyEnumerable()
+                                : inners);
+                    }
+
+                    public boolean moveNext() {
+                        return entries.moveNext();
+                    }
+
+                    public void reset() {
+                        entries.reset();
+                    }
+                };
+            }
+        };
+    }
 
     /** Correlates the elements of two sequences based on
      * key equality and groups the results. The default equality
@@ -664,7 +693,71 @@ public class Extensions {
     /** Correlates the elements of two sequences based on
      * matching keys. The default equality comparer is used to compare
      * keys. */
-    public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(Enumerable<TSource> outer, Enumerable<TInner> inner, Function1<TSource, TKey> outerKeySelector, Function1<TInner, TKey> innerKeySelector, Function2<TSource, TInner, TResult> resultSelector) { throw Extensions.todo(); }
+    public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(
+        final Enumerable<TSource> outer,
+        final Enumerable<TInner> inner,
+        final Function1<TSource, TKey> outerKeySelector,
+        final Function1<TInner, TKey> innerKeySelector,
+        final Function2<TSource, TInner, TResult> resultSelector)
+    {
+        return new AbstractEnumerable<TResult>() {
+            final Lookup<TKey, TSource> outerMap =
+                outer.toLookup(outerKeySelector);
+            final Lookup<TKey, TInner> innerLookup =
+                inner.toLookup(innerKeySelector);
+            final Enumerator<Map.Entry<TKey,Enumerable<TSource>>> entries =
+                Linq4j.enumerator(outerMap.entrySet());
+            public Enumerator<TResult> enumerator() {
+                return new Enumerator<TResult>() {
+                    Enumerator<List<Object>> productEnumerator =
+                        Linq4j.emptyEnumerator();
+
+                    public TResult current() {
+                        return resultSelector.apply(
+                            (TSource) productEnumerator.current().get(0),
+                            (TInner) productEnumerator.current().get(1));
+                    }
+
+                    public boolean moveNext() {
+                        for (;;) {
+                            if (productEnumerator.moveNext()) {
+                                return true;
+                            }
+                            if (!entries.moveNext()) {
+                                return false;
+                            }
+                            final Map.Entry<TKey, Enumerable<TSource>> outer =
+                                entries.current();
+                            final Enumerable<TSource> outerEnumerable =
+                                outer.getValue();
+                            final Enumerable<TInner> innerEnumerable =
+                                innerLookup.get(outer.getKey());
+                            if (innerEnumerable == null
+                                || !innerEnumerable.any()
+                                || !outerEnumerable.any())
+                            {
+                                productEnumerator = Linq4j.emptyEnumerator();
+                            } else {
+                                productEnumerator =
+                                    Linq4j.product(
+                                        Arrays.asList(
+                                            (Enumerator<Object>)
+                                            (Enumerator)
+                                                outerEnumerable.enumerator(),
+                                            (Enumerator<Object>)
+                                                (Enumerator)
+                                                innerEnumerable.enumerator()));
+                            }
+                        }
+                    }
+
+                    public void reset() {
+                        entries.reset();
+                    }
+                };
+            }
+        };
+    }
 
     /** Correlates the elements of two sequences based on
      * matching keys. The default equality comparer is used to compare
@@ -1034,7 +1127,7 @@ public class Extensions {
             public Enumerator<TResult> enumerator() {
                 return new Enumerator<TResult>() {
                     Enumerator<TSource> sourceEnumerator = source.enumerator();
-                    Enumerator<TResult> resultEnumerator = emptyEnumerator();
+                    Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
 
                     public TResult current() {
                         return resultEnumerator.current();
@@ -1056,7 +1149,7 @@ public class Extensions {
 
                     public void reset() {
                         sourceEnumerator.reset();
-                        resultEnumerator = emptyEnumerator();
+                        resultEnumerator = Linq4j.emptyEnumerator();
                     }
                 };
             }
@@ -1363,7 +1456,9 @@ public class Extensions {
         Function1<TSource, TKey> keySelector,
         Function1<TSource, TElement> elementSelector)
     {
-        final Map<TKey, TElement> map = new HashMap<TKey, TElement>();
+        // Use LinkedHashMap because groupJoin requires order of keys to be
+        // preserved.
+        final Map<TKey, TElement> map = new LinkedHashMap<TKey, TElement>();
         for (TSource o : source) {
             map.put(keySelector.apply(o), elementSelector.apply(o));
         }
