@@ -71,6 +71,25 @@ public class Functions {
         //noinspection unchecked
         return (Function1) Function1.IDENTITY;
     }
+
+    /**
+     * Creates a predicate that returns whether an object is an instance of a
+     * particular type or is null.
+     *
+     * @param clazz Desired type
+     * @param <T> Type of objects to test
+     * @param <T2> Desired type
+     * @return Predicate that tests for desired type
+     */
+    public static <T, T2> Predicate1<T> ofTypePredicate(
+        final Class<T2> clazz)
+    {
+        return new Predicate1<T>() {
+            public boolean apply(T v1) {
+                return v1 == null || clazz.isInstance(v1);
+            }
+        };
+    }
 }
 
 // End Functions.java

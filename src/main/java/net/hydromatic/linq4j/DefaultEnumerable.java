@@ -46,10 +46,6 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         return Extensions.asQueryable(getThis());
     }
 
-    public <T2> Enumerable<T2> cast(Class<T2> clazz) {
-        return Extensions.cast(getThis(), clazz);
-    }
-
     public T aggregate(Function2<T, T, T> func) {
         return Extensions.aggregate(getThis(), func);
     }
@@ -124,8 +120,8 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         return Extensions.average(getThis(), selector);
     }
 
-    public <TResult> Enumerable<TResult> cast() {
-        return Extensions.cast(getThis());
+    public <T2> Enumerable<T2> cast(Class<T2> clazz) {
+        return Extensions.cast(getThis(), clazz);
     }
 
     public Enumerable<T> concat(Enumerable<T> enumerable1) {

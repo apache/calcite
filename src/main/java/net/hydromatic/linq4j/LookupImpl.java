@@ -42,7 +42,7 @@ class LookupImpl<K, V>
     public Enumerator<Grouping<K, V>> enumerator() {
         return new Enumerator<Grouping<K, V>>() {
             Enumerator<Entry<K, List<V>>> enumerator =
-                Extensions.enumerator(map.entrySet());
+                Linq4j.enumerator(map.entrySet());
 
             public Grouping<K, V> current() {
                 final Entry<K, List<V>> keyAndList = enumerator.current();
@@ -78,23 +78,23 @@ class LookupImpl<K, V>
     public boolean containsValue(Object value) {
         @SuppressWarnings("unchecked")
         List<V> list = (List<V>) value;
-        Enumerable<V> enumerable = Extensions.asEnumerable(list);
+        Enumerable<V> enumerable = Linq4j.asEnumerable(list);
         return map.containsValue(enumerable);
     }
 
     public Enumerable<V> get(Object key) {
         final List<V> list = map.get(key);
-        return list == null ? null : Extensions.asEnumerable(list);
+        return list == null ? null : Linq4j.asEnumerable(list);
     }
 
     public Enumerable<V> put(K key, Enumerable<V> value) {
         final List<V> list = map.put(key, value.toList());
-        return list == null ? null : Extensions.asEnumerable(list);
+        return list == null ? null : Linq4j.asEnumerable(list);
     }
 
     public Enumerable<V> remove(Object key) {
         final List<V> list = map.remove(key);
-        return list == null ? null : Extensions.asEnumerable(list);
+        return list == null ? null : Linq4j.asEnumerable(list);
     }
 
     public void putAll(Map<? extends K, ? extends Enumerable<V>> m) {
@@ -123,7 +123,7 @@ class LookupImpl<K, V>
                     }
 
                     public Enumerable<V> next() {
-                        return Extensions.asEnumerable(iterator.next());
+                        return Linq4j.asEnumerable(iterator.next());
                     }
 
                     public void remove() {
@@ -152,7 +152,7 @@ class LookupImpl<K, V>
                         final Entry<K, List<V>> entry = iterator.next();
                         return new AbstractMap.SimpleEntry<K, Enumerable<V>>(
                             entry.getKey(),
-                            Extensions.asEnumerable(entry.getValue()));
+                            Linq4j.asEnumerable(entry.getValue()));
                     }
 
                     public void remove() {

@@ -27,25 +27,15 @@ package net.hydromatic.linq4j;
  *
  * @param <T> element type
  */
-public interface Enumerable<T> extends Iterable<T>, ExtendedEnumerable<T> {
-    /**
-     * Returns an enumerator that iterates through a collection.
-     */
-    Enumerator<T> enumerator();
-
+public interface Enumerable<T>
+    extends RawEnumerable<T>, Iterable<T>, ExtendedEnumerable<T>
+{
     /**
      * Converts this Enumerable to a Queryable.
      *
      * @see Extensions#asQueryable(Enumerable)
      */
     Queryable<T> asQueryable();
-
-    /**
-     * Converts the elements of this Enumerable to the specified type.
-     *
-     * @see Extensions#cast(Enumerable, Class)
-     */
-    <T2> Enumerable<T2> cast(Class<T2> clazz);
 
 }
 

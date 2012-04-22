@@ -52,13 +52,13 @@ public class Linq4jTest extends TestCase {
     public static final Function1<Department,Enumerable<Employee>> DEPT_EMPLOYEES_SELECTOR =
         new Function1<Department, Enumerable<Employee>>() {
             public Enumerable<Employee> apply(Department a0) {
-                return Extensions.asEnumerable(a0.employees);
+                return Linq4j.asEnumerable(a0.employees);
             }
         };
 
     public void testSelect() {
         List<String> names =
-            Extensions.asEnumerable(emps)
+            Linq4j.asEnumerable(emps)
                 .select(EMP_NAME_SELECTOR)
                 .toList();
         assertEquals("[Fred, Bill, Eric, Jane]", names.toString());
@@ -66,7 +66,7 @@ public class Linq4jTest extends TestCase {
 
     public void testWhere() {
         List<String> names =
-            Extensions.asEnumerable(emps)
+            Linq4j.asEnumerable(emps)
                 .where(
                     new Predicate1<Employee>() {
                         public boolean apply(Employee employee) {
@@ -81,7 +81,7 @@ public class Linq4jTest extends TestCase {
     public void testWhereIndexed() {
         // Returns every other employee.
         List<String> names =
-            Extensions.asEnumerable(emps)
+            Linq4j.asEnumerable(emps)
                 .where(
                    new Predicate2<Employee, Integer>() {
                         public boolean apply(Employee employee, Integer n) {
@@ -95,7 +95,7 @@ public class Linq4jTest extends TestCase {
 
     public void testSelectMany() {
         final List<String> nameSeqs =
-            Extensions.asEnumerable(depts)
+            Linq4j.asEnumerable(depts)
                 .selectMany(DEPT_EMPLOYEES_SELECTOR)
                 .select(
                     new Function2<Employee, Integer, String>() {
@@ -110,13 +110,13 @@ public class Linq4jTest extends TestCase {
     }
 
     public void testCount() {
-        final int count = Extensions.asEnumerable(depts).count();
+        final int count = Linq4j.asEnumerable(depts).count();
         assertEquals(3, count);
     }
 
     public void testCountPredicate() {
         final int count =
-            Extensions.asEnumerable(depts).count(
+            Linq4j.asEnumerable(depts).count(
                 new Predicate1<Department>() {
                     public boolean apply(Department v1) {
                         return v1.employees.size() > 0;
@@ -126,13 +126,13 @@ public class Linq4jTest extends TestCase {
     }
 
     public void testLongCount() {
-        final long count = Extensions.asEnumerable(depts).longCount();
+        final long count = Linq4j.asEnumerable(depts).longCount();
         assertEquals(3, count);
     }
 
     public void testLongCountPredicate() {
         final long count =
-            Extensions.asEnumerable(depts).longCount(
+            Linq4j.asEnumerable(depts).longCount(
                 new Predicate1<Department>() {
                     public boolean apply(Department v1) {
                         return v1.employees.size() > 0;
@@ -143,7 +143,7 @@ public class Linq4jTest extends TestCase {
 
     public void testToMap() {
         final Map<Integer, Employee> map =
-            Extensions.asEnumerable(emps)
+            Linq4j.asEnumerable(emps)
                 .toMap(EMP_EMPNO_SELECTOR);
         assertEquals(4, map.size());
         assertTrue(map.get(110).name.equals("Bill"));
@@ -151,7 +151,7 @@ public class Linq4jTest extends TestCase {
 
     public void testToMap2() {
         final Map<Integer, Integer> map =
-            Extensions.asEnumerable(emps)
+            Linq4j.asEnumerable(emps)
                 .toMap(EMP_EMPNO_SELECTOR, EMP_DEPTNO_SELECTOR);
         assertEquals(4, map.size());
         assertTrue(map.get(110) == 30);
@@ -159,7 +159,7 @@ public class Linq4jTest extends TestCase {
 
     public void testToLookup() {
         final Lookup<Integer, Employee> lookup =
-            Extensions.asEnumerable(emps).toLookup(
+            Linq4j.asEnumerable(emps).toLookup(
                 EMP_DEPTNO_SELECTOR);
         int n = 0;
         for (Grouping<Integer, Employee> grouping : lookup) {
@@ -180,7 +180,7 @@ public class Linq4jTest extends TestCase {
 
     public void testToLookupSelector() {
         final Lookup<Integer, String> lookup =
-            Extensions.asEnumerable(emps).toLookup(
+            Linq4j.asEnumerable(emps).toLookup(
                 EMP_DEPTNO_SELECTOR,
                 EMP_NAME_SELECTOR);
         int n = 0;
@@ -216,6 +216,73 @@ public class Linq4jTest extends TestCase {
             )
                 .toList()
                 .toString());
+    }
+
+    public void testCast() {
+        final List<Number> numbers = Arrays.asList((Number) 2, null, 3.14, 5);
+        final Enumerator<Integer> enumerator =
+            Linq4j.asEnumerable(numbers)
+                .cast(Integer.class)
+                .enumerator();
+        checkCast(enumerator);
+    }
+
+    public void testIterableCast() {
+        final List<Number> numbers = Arrays.asList((Number) 2, null, 3.14, 5);
+        final Enumerator<Integer> enumerator =
+            Linq4j.cast(numbers, Integer.class)
+                .enumerator();
+        checkCast(enumerator);
+    }
+
+    private void checkCast(Enumerator<Integer> enumerator) {
+        assertTrue(enumerator.moveNext());
+        assertEquals(Integer.valueOf(2), enumerator.current());
+        assertTrue(enumerator.moveNext());
+        assertNull(enumerator.current());
+        assertTrue(enumerator.moveNext());
+        try {
+            Object x = enumerator.current();
+            fail("expected error, got " + x);
+        } catch (ClassCastException e) {
+            // good
+        }
+        assertTrue(enumerator.moveNext());
+        assertEquals(Integer.valueOf(5), enumerator.current());
+        assertFalse(enumerator.moveNext());
+        enumerator.reset();
+        assertTrue(enumerator.moveNext());
+        assertEquals(Integer.valueOf(2), enumerator.current());
+    }
+
+    public void testOfType() {
+        final List<Number> numbers = Arrays.asList((Number) 2, null, 3.14, 5);
+        final Enumerator<Integer> enumerator =
+            Linq4j.asEnumerable(numbers)
+                .ofType(Integer.class)
+                .enumerator();
+        checkIterable(enumerator);
+    }
+
+    public void testIterableOfType() {
+        final List<Number> numbers = Arrays.asList((Number) 2, null, 3.14, 5);
+        final Enumerator<Integer> enumerator =
+            Linq4j.ofType(numbers, Integer.class)
+                .enumerator();
+        checkIterable(enumerator);
+    }
+
+    private void checkIterable(Enumerator<Integer> enumerator) {
+        assertTrue(enumerator.moveNext());
+        assertEquals(Integer.valueOf(2), enumerator.current());
+        assertTrue(enumerator.moveNext());
+        assertNull(enumerator.current());
+        assertTrue(enumerator.moveNext());
+        assertEquals(Integer.valueOf(5), enumerator.current());
+        assertFalse(enumerator.moveNext());
+        enumerator.reset();
+        assertTrue(enumerator.moveNext());
+        assertEquals(Integer.valueOf(2), enumerator.current());
     }
 
     public static class Employee {

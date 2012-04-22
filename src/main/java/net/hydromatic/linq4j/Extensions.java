@@ -130,20 +130,6 @@ public class Extensions {
         return new RuntimeException();
     }
 
-    /**
-     * <p>Analogous to LINQ's Enumerable.Cast extension method.</p>
-     *
-     * @param clazz Target type
-     * @param <T2> Target type
-     * @return Collection of T2
-     */
-    public static <TSource, T2> Enumerable<T2> cast(
-        Enumerable<TSource> enumerable,
-        Class<T2> clazz)
-    {
-        throw Extensions.todo();
-    }
-
     /** Applies an accumulator function over a
      * sequence. */
     public static <TSource> TSource aggregate(Enumerable<?> enumerable, Function2<TSource, TSource, TSource> func) { throw Extensions.todo(); }
@@ -340,9 +326,36 @@ public class Extensions {
      * on each element of the input sequence. */
     public static <TSource> Long averageNullableLong(Queryable<TSource> queryable, FunctionExpression<NullableLongFunction1<TSource>> selector) { throw Extensions.todo(); }
 
-    /** Casts the elements of an Enumerable to the
-     * specified type. */
-    public static <TResult> Enumerable<TResult> cast(Enumerable<?> enumerable) { throw Extensions.todo(); }
+    /**
+     * <p>Analogous to LINQ's Enumerable.Cast extension method.</p>
+     *
+     * @param clazz Target type
+     * @param <T2> Target type
+     * @return Collection of T2
+     */
+    public static <TSource, T2> Enumerable<T2> cast(
+        final Enumerable<TSource> enumerable,
+        final Class<T2> clazz)
+    {
+        return new AbstractEnumerable<T2>() {
+            public Enumerator<T2> enumerator() {
+                final Enumerator<TSource> enumerator = enumerable.enumerator();
+                return new Enumerator<T2>() {
+                    public T2 current() {
+                        return clazz.cast(enumerator.current());
+                    }
+
+                    public boolean moveNext() {
+                        return enumerator.moveNext();
+                    }
+
+                    public void reset() {
+                        enumerator.reset();
+                    }
+                };
+            }
+        };
+    }
 
     /** Concatenates two sequences. */
     public static <TSource> Enumerable<TSource> concat(Enumerable<TSource> enumerable0, Enumerable<TSource> enumerable1) { throw Extensions.todo(); }
@@ -893,7 +906,15 @@ public class Extensions {
      * @param <TResult> Target type
      * @return Collection of T2
      */
-    public static <TResult> Enumerable<TResult> ofType(Enumerable<?> enumerable, Class<TResult> clazz) { throw Extensions.todo(); }
+    public static <TSource, TResult> Enumerable<TResult> ofType(
+        Enumerable<TSource> enumerable,
+        Class<TResult> clazz)
+    {
+        //noinspection unchecked
+        return (Enumerable) where(
+            enumerable,
+            Functions.<TSource, TResult>ofTypePredicate(clazz));
+    }
 
     /** Sorts the elements of a sequence in ascending
      * order according to a key. */
@@ -1005,7 +1026,10 @@ public class Extensions {
     /** Projects each element of a sequence to an
      * Enumerable<TSource> and flattens the resulting sequences into one
      * sequence. */
-    public static <TSource, TResult> Enumerable<TResult> selectMany(final Enumerable<TSource> source, final Function1<TSource, Enumerable<TResult>> selector) {
+    public static <TSource, TResult> Enumerable<TResult> selectMany(
+        final Enumerable<TSource> source,
+        final Function1<TSource, Enumerable<TResult>> selector)
+    {
         return new AbstractEnumerable<TResult>() {
             public Enumerator<TResult> enumerator() {
                 return new Enumerator<TResult>() {
@@ -1505,110 +1529,6 @@ public class Extensions {
      * predicate function. */
     public static <T0, T1, TResult> Queryable<TResult> zip(Queryable<T0> source0, Enumerable<T1> source1, FunctionExpression<Function2<T0, T1, TResult>> resultSelector) { throw Extensions.todo(); }
 
-    /**
-     * Adapter that converts an enumerator into an iterator.
-     *
-     * @param enumerator Enumerator
-     * @param <T> Element type
-     * @return Iterator
-     */
-    public static <T> Iterator<T> enumeratorIterator(
-        final Enumerator<T> enumerator)
-    {
-        return new Iterator<T>() {
-            boolean hasNext = enumerator.moveNext();
-
-            public boolean hasNext() {
-                return hasNext;
-            }
-
-            public T next() {
-                T t = enumerator.current();
-                hasNext = enumerator.moveNext();
-                return t;
-            }
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
-
-    /**
-     * Adapter that converts an iterable into an enumerator.
-     *
-     * @param iterable Iterable
-     * @param <T> Element type
-     * @return enumerator
-     */
-    public static <T> Enumerator<T> iterableEnumerator(
-        final Iterable<T> iterable)
-    {
-        return new Enumerator<T>() {
-            Iterator<T> iterator = iterable.iterator();
-            T current = (T) DUMMY;
-
-            public T current() {
-                if (current == (T) DUMMY) {
-                    throw new NoSuchElementException();
-                }
-                return current;
-            }
-
-            public boolean moveNext() {
-                if (iterator.hasNext()) {
-                    current = iterator.next();
-                    return true;
-                }
-                current = (T) DUMMY;
-                return false;
-            }
-
-            public void reset() {
-                iterator = iterable.iterator();
-                current = (T) DUMMY;
-            }
-        };
-    }
-
-    private static final Object DUMMY = new Object();
-
-    /**
-     * Adapter that converts an iterable into an enumerable.
-     *
-     * @param iterable Iterable
-     * @param <T> Element type
-     * @return enumerable
-     */
-    public static <T> Enumerable<T> asEnumerable(final Iterable<T> iterable) {
-        return new AbstractEnumerable<T>() {
-            public Enumerator<T> enumerator() {
-                return iterableEnumerator(iterable);
-            }
-        };
-    }
-
-    /**
-     * Adapter that converts an array into an enumerable.
-     *
-     * @param ts Array
-     * @param <T> Element type
-     * @return enumerable
-     */
-    public static <T> Enumerable<T> asEnumerable(final T[] ts) {
-        return asEnumerable(Arrays.asList(ts));
-    }
-
-    /**
-     * Adapter that converts a collection into an enumerator.
-     *
-     * @param values Collection
-     * @param <V> Element type
-     * @return Enumerator over the collection
-     */
-    public static <V> Enumerator<V> enumerator(Collection<V> values) {
-        return iterableEnumerator(values);
-    }
 }
 
 // End Extensions.java

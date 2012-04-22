@@ -86,6 +86,7 @@ Already implemented
 
 * For Enumerable: select, selectMany, where;
   count, longCount;
+  cast, ofType;
   toMap, toLookup (except variants that require EqualityComparer).
 
 More information

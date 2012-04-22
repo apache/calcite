@@ -18,17 +18,22 @@
 package net.hydromatic.linq4j;
 
 /**
- * Abstract implementation of the {@link net.hydromatic.linq4j.Enumerable} interface that
- * implements the extension methods.
+ * Exposes the enumerator, which supports a simple iteration over a collection,
+ * without the extension methods.
  *
- * <p>It is helpful to derive from this class if you are implementing
- * {@code Enumerable}, because {@code Enumerable} has so many extension methods,
- * but it is not required.</p>
+ * <p>Just the bare methods, to make it easier to implement. Code that requires
+ * the extension methods can use the static methods in {@link Extensions}.</p>
+ *
+ * <p>Analogous to LINQ's System.Collections.IEnumerable (both generic
+ * and non-generic variants), without the extension methods.</p>
+ *
+ * @see Enumerable
  */
-public abstract class AbstractEnumerable2<T> extends DefaultEnumerable<T> {
-    public Enumerator<T> enumerator() {
-        return Linq4j.iterableEnumerator(this);
-    }
+public interface RawEnumerable<T> {
+    /**
+     * Returns an enumerator that iterates through a collection.
+     */
+    Enumerator<T> enumerator();
 }
 
-// End AbstractEnumerable.java
+// End RawEnumerable.java

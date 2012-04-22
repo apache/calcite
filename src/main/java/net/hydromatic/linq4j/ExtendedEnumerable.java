@@ -134,9 +134,26 @@ interface ExtendedEnumerable<TSource> {
      * function on each element of the input sequence. */
     Float average(NullableFloatFunction1<TSource> selector);
 
-    /** Casts the elements of an Enumerable to the
-     * specified type. */
-    <TResult> Enumerable<TResult> cast();
+    /**
+     * Converts the elements of this Enumerable to the specified type.
+     *
+     * <p>This method is implemented by using deferred execution. The immediate
+     * return value is an object that stores all the information that is
+     * required to perform the action. The query represented by this method is
+     * not executed until the object is enumerated either by calling its
+     * {@link Enumerable#enumerator} method directly or by using
+     * {@code for (... in ...)}.
+     *
+     * <p>If an element cannot be cast to type TResult, the
+     * {@link Enumerator#current()} method will throw a
+     * {@link ClassCastException} a exception when the element it accessed. To
+     * obtain only those elements that can be cast to type TResult, use the
+     * {@link #ofType(Class)} method instead.
+     *
+     * @see Extensions#cast(Enumerable, Class)
+     * @see #ofType(Class)
+     */
+    <T2> Enumerable<T2> cast(Class<T2> clazz);
 
     /** Concatenates two sequences. */
     Enumerable<TSource> concat(Enumerable<TSource> enumerable1);

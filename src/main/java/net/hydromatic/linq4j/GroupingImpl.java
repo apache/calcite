@@ -55,7 +55,7 @@ class GroupingImpl<K, V>
 
     // implement Map.Entry
     public Enumerable<V> getValue() {
-        return Extensions.asEnumerable(values);
+        return Linq4j.asEnumerable(values);
     }
 
     // implement Map.Entry
@@ -71,7 +71,7 @@ class GroupingImpl<K, V>
     }
 
     public Enumerator<V> enumerator() {
-        return Extensions.enumerator(values);
+        return Linq4j.enumerator(values);
     }
 }
 
