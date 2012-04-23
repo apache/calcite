@@ -497,6 +497,122 @@ public class Linq4jTest extends TestCase {
         assertEquals(2, nh3.count());
     }
 
+    public void testTake_enumerable() {
+        final Enumerable<Department> enumerableDepts = Linq4j.asEnumerable(depts);
+        final List<Department> enumerableDeptsResult = Extensions.take(enumerableDepts, 2).toList();
+        assertEquals(2, enumerableDeptsResult.size());
+        assertEquals(depts[0], enumerableDeptsResult.get(0));
+        assertEquals(depts[1], enumerableDeptsResult.get(1));
+    }
+
+    public void testTake_queryable() {
+        final Queryable<Department> querableDepts = Linq4j.asEnumerable(depts).asQueryable();
+        final List<Department> queryableResult = Extensions.take(querableDepts, 2).toList();
+
+        assertEquals(2, queryableResult.size());
+        assertEquals(depts[0], queryableResult.get(0));
+        assertEquals(depts[1], queryableResult.get(1));
+    }
+
+    public void testTake_enumerable_zero_or_negative_size() {
+        assertEquals(0, Extensions.take(Linq4j.asEnumerable(depts), 0).toList().size());
+        assertEquals(0, Extensions.take(Linq4j.asEnumerable(depts), -2).toList().size());
+    }
+
+    public void testTake_queryable_zero_or_negative_size() {
+        assertEquals(0, Extensions.take(Linq4j.asEnumerable(depts).asQueryable(), 0).toList().size());
+        assertEquals(0, Extensions.take(Linq4j.asEnumerable(depts).asQueryable(), -2).toList().size());
+    }
+
+    public void testTake_enumerable_greater_than_length() {
+        final Enumerable<Department> enumerableDepts = Linq4j.asEnumerable(depts);
+        final List<Department> depList = Extensions.take(enumerableDepts, 5).toList();
+        assertEquals(3, depList.size());
+        assertEquals(depts[0], depList.get(0));
+        assertEquals(depts[1], depList.get(1));
+        assertEquals(depts[2], depList.get(2));
+    }
+
+    public void testTake_queryable_greater_than_length() {
+        final Enumerable<Department> enumerableDepts = Linq4j.asEnumerable(depts);
+        final List<Department> depList = Extensions.take(enumerableDepts, 5).toList();
+        assertEquals(3, depList.size());
+        assertEquals(depts[0], depList.get(0));
+        assertEquals(depts[1], depList.get(1));
+        assertEquals(depts[2], depList.get(2));
+    }
+
+    public void testTakeWhile_enumerable_predicate() {
+        final Enumerable<Department> enumerableDepts = Linq4j.asEnumerable(depts);
+        final List<Department> deptList = Extensions.takeWhile(enumerableDepts, new Predicate1<Department>() {
+            public boolean apply(Department v1) {
+                return v1.name.contains("e");
+            }
+        }).toList();
+
+        assertEquals(2, deptList.size());
+        assertEquals(depts[0], deptList.get(0));
+        assertEquals(depts[2], deptList.get(1));
+    }
+
+    public void testTakeWhile_enumerable_function() {
+        final Enumerable<Department> enumerableDepts = Linq4j.asEnumerable(depts);
+        final List<Department> deptList = Extensions.takeWhile(enumerableDepts, new Function2<Department, Integer, Boolean>() {
+            Integer index = 0;
+            public Boolean apply(Department v1, Integer v2) {
+                // Make sure we're passed the correct indices
+                assertEquals("Invalid index passed to function", (Integer) index++, v2);
+                return 20 == v1.deptno;
+            }
+        }).toList();
+
+        assertEquals(1, deptList.size());
+        assertEquals(depts[1], deptList.get(0));
+    }
+
+    public void testTakeWhile_queryable_functionexpression_predicate() {
+        final Queryable<Department> queryableDepts = Linq4j.asEnumerable(depts).asQueryable();
+        Predicate1<Department> predicate = new Predicate1<Department>() {
+            public boolean apply(Department v1) {
+                return "HR".equals(v1.name);
+            }
+        };
+        final List<Department> deptList = Extensions.takeWhile(queryableDepts, new FunctionExpression<Predicate1<Department>>(predicate)).toList();
+
+        assertEquals(1, deptList.size());
+        assertEquals(depts[1], deptList.get(0));
+    }
+
+    public void testTakeWhileN() {
+        final Queryable<Department> queryableDepts = Linq4j.asEnumerable(depts).asQueryable();
+        Function2<Department, Integer, Boolean> function2 = new Function2<Department, Integer, Boolean>() {
+            Integer index = 0;
+            public Boolean apply(Department v1, Integer v2) {
+                // Make sure we're passed the correct indices
+                assertEquals("Invalid index passed to function", (Integer) index++, v2);
+                return v2 == 1;
+            }
+        };
+
+        final List<Department> deptList = Extensions.takeWhileN(queryableDepts, Expressions.lambda(function2)).toList();
+
+        assertEquals(1, deptList.size());
+        assertEquals(depts[1], deptList.get(0));
+    }
+
+    public void testTakeWhileN_no_match() {
+        final Queryable<Department> queryableDepts = Linq4j.asEnumerable(depts).asQueryable();
+        Function2<Department, Integer, Boolean> function2 = new Function2<Department, Integer, Boolean>() {
+            public Boolean apply(Department v1, Integer v2) {
+                return false;
+            }
+        };
+
+        final List<Department> deptList = Extensions.takeWhileN(queryableDepts, Expressions.lambda(function2)).toList();
+
+        assertEquals(0, deptList.size());
+    }
+
     public static class Employee {
         public final int empno;
         public final String name;
