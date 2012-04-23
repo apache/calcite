@@ -26,3 +26,5 @@ public class BlockExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End BlockExpression.java

@@ -25,3 +25,5 @@ public class NewExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End NewExpression.java

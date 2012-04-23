@@ -25,3 +25,5 @@ public class ListInitExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End ListInitExpression.java

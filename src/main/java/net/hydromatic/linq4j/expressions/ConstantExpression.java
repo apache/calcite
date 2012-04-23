@@ -25,3 +25,5 @@ public class ConstantExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End ConstantExpression.java

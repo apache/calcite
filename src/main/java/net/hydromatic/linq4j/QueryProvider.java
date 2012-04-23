@@ -22,3 +22,5 @@ package net.hydromatic.linq4j;
  */
 public interface QueryProvider {
 }
+
+// End QueryProvider.java

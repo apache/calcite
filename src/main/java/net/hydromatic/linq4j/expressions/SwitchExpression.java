@@ -26,3 +26,5 @@ public class SwitchExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End SwitchExpression.java

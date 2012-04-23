@@ -23,3 +23,5 @@ import java.math.BigDecimal;
 * Function that takes one parameter and returns a {@link BigDecimal} value.
 */
 public interface BigDecimalFunction1<T0> extends Function1<T0, BigDecimal> {}
+
+// End BigDecimalFunction1.java

@@ -248,7 +248,8 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         Function1<T, TElement> elementSelector,
         Function2<TKey, Enumerable<TElement>, TResult> resultSelector)
     {
-        return Extensions.groupBy(getThis(), keySelector, elementSelector, resultSelector);
+        return Extensions.groupBy(
+            getThis(), keySelector, elementSelector, resultSelector);
     }
 
     public <TKey, TElement, TResult> Enumerable<TResult> groupBy(
@@ -454,7 +455,9 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         return Extensions.ofType(getThis(), clazz);
     }
 
-    public <TKey extends Comparable> Enumerable<T> orderBy(Function1<T, TKey> keySelector) {
+    public <TKey extends Comparable> Enumerable<T> orderBy(
+        Function1<T, TKey> keySelector)
+    {
         return Extensions.orderBy(getThis(), keySelector);
     }
 
@@ -480,7 +483,9 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         return Extensions.reverse(getThis());
     }
 
-    public <TResult> Enumerable<TResult> select(Function1<T, TResult> selector) {
+    public <TResult> Enumerable<TResult> select(
+        Function1<T, TResult> selector)
+    {
         return Extensions.select(getThis(), selector);
     }
 
@@ -490,7 +495,9 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         return Extensions.select(getThis(), selector);
     }
 
-    public <TResult> Enumerable<TResult> selectMany(Function1<T, Enumerable<TResult>> selector) {
+    public <TResult> Enumerable<TResult> selectMany(
+        Function1<T, Enumerable<TResult>> selector)
+    {
         return Extensions.selectMany(getThis(), selector);
     }
 
@@ -504,7 +511,8 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         Function2<T, Integer, Enumerable<TCollection>> collectionSelector,
         Function2<T, TCollection, TResult> resultSelector)
     {
-        return Extensions.selectMany(getThis(), collectionSelector, resultSelector);
+        return Extensions.selectMany(
+            getThis(), collectionSelector, resultSelector);
     }
 
     public <TCollection, TResult> Enumerable<TResult> selectMany(
@@ -699,4 +707,4 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
     }
 }
 
-// End AbstractEnumerable.java
+// End DefaultEnumerable.java

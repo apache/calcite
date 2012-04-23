@@ -25,3 +25,5 @@ public class BinaryExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End BinaryExpression.java

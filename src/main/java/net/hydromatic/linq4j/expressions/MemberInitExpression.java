@@ -26,3 +26,5 @@ public class MemberInitExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End MemberInitExpression.java

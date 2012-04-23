@@ -31,4 +31,4 @@ public abstract class AbstractEnumerable2<T> extends DefaultEnumerable<T> {
     }
 }
 
-// End AbstractEnumerable.java
+// End AbstractEnumerable2.java

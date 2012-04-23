@@ -23,3 +23,5 @@ package net.hydromatic.linq4j.function;
 public interface DoubleFunction1<T1> extends Function<Double> {
     double apply(T1 v1);
 }
+
+// End DoubleFunction1.java

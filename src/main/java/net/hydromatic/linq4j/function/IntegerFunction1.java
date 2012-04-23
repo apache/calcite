@@ -23,3 +23,5 @@ package net.hydromatic.linq4j.function;
 public interface IntegerFunction1<T1> extends Function<Integer> {
     int apply(T1 v1);
 }
+
+// End IntegerFunction1.java

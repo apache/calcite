@@ -25,3 +25,5 @@ public class DefaultExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End DefaultExpression.java

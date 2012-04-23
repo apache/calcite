@@ -32,3 +32,5 @@ public class LabelExpression extends Expression {
         this.defaultValue = defaultValue;
     }
 }
+
+// End LabelExpression.java

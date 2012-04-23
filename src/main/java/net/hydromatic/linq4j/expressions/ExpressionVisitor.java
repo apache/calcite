@@ -22,3 +22,5 @@ package net.hydromatic.linq4j.expressions;
  */
 public interface ExpressionVisitor {
 }
+
+// End ExpressionVisitor.java

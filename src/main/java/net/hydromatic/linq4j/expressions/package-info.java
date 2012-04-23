@@ -9,3 +9,5 @@
  * source SQL system.</p>
  */
 package net.hydromatic.linq4j.expressions;
+
+// End package-info.java

@@ -34,13 +34,18 @@ interface ExtendedEnumerable<TSource> {
     /** Applies an accumulator function over a
      * sequence. The specified seed value is used as the initial
      * accumulator value. */
-    <TAccumulate> TSource aggregate(TAccumulate seed, Function2<TAccumulate, TSource, TAccumulate> func);
+    <TAccumulate> TSource aggregate(
+        TAccumulate seed,
+        Function2<TAccumulate, TSource, TAccumulate> func);
 
     /** Applies an accumulator function over a
      * sequence. The specified seed value is used as the initial
      * accumulator value, and the specified function is used to select
      * the result value. */
-    <TAccumulate, TResult> TResult aggregate(TAccumulate seed, Function2<TAccumulate, TSource, TAccumulate> func, Function1<TAccumulate, TResult> selector);
+    <TAccumulate, TResult> TResult aggregate(
+        TAccumulate seed,
+        Function2<TAccumulate, TSource, TAccumulate> func,
+        Function1<TAccumulate, TResult> selector);
 
     /** Determines whether all elements of a sequence
      * satisfy a condition. */
@@ -61,17 +66,17 @@ interface ExtendedEnumerable<TSource> {
      * implements Enumerable<TSource> to Enumerable<TSource> itself.
      *
      * <p>AsEnumerable<TSource>(Enumerable<TSource>) can be used to choose
-     * between query implementations when a sequence implements Enumerable<TSource>
-     * but also has a different set of public query methods available. For
-     * example, given a generic class Table that implements Enumerable<TSource> and
-     * has its own methods such as Where, Select, and SelectMany, a call to
-     * Where would invoke the public Where method of Table. A Table type that
-     * represents a database table could have a Where method that takes the
-     * predicate argument as an expression tree and converts the tree to SQL for
-     * remote execution. If remote execution is not desired, for example because
-     * the predicate invokes a local method, the AsEnumerable<TSource> method
-     * can be used to hide the custom methods and instead make the standard
-     * query operators available.
+     * between query implementations when a sequence implements
+     * Enumerable<TSource> but also has a different set of public query methods
+     * available. For example, given a generic class Table that implements
+     * Enumerable<TSource> and has its own methods such as Where, Select, and
+     * SelectMany, a call to Where would invoke the public Where method of
+     * Table. A Table type that represents a database table could have a Where
+     * method that takes the predicate argument as an expression tree and
+     * converts the tree to SQL for remote execution. If remote execution is not
+     * desired, for example because the predicate invokes a local method, the
+     * AsEnumerable<TSource> method can be used to hide the custom methods and
+     * instead make the standard query operators available.
      */
     Enumerable<TSource> asEnumerable();
 
@@ -209,7 +214,9 @@ interface ExtendedEnumerable<TSource> {
     /** Produces the set difference of two sequences by
      * using the specified EqualityComparer<TSource> to compare
      * values. */
-    Enumerable<TSource> except(Enumerable<TSource> enumerable1, EqualityComparer comparer);
+    Enumerable<TSource> except(
+        Enumerable<TSource> enumerable1,
+        EqualityComparer comparer);
 
     /** Returns the first element of a sequence. (Defined
      * by Enumerable.) */
@@ -230,57 +237,85 @@ interface ExtendedEnumerable<TSource> {
 
     /** Groups the elements of a sequence according to a
      * specified key selector function. */
-    <TKey> Enumerable<Grouping<TKey, TSource>> groupBy(Function1<TSource, TKey> keySelector);
+    <TKey> Enumerable<Grouping<TKey, TSource>> groupBy(
+        Function1<TSource, TKey> keySelector);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and compares the keys by using
      * a specified comparer. */
-    <TKey> Enumerable<Grouping<TKey, TSource>> groupBy(Function1<TSource, TKey> keySelector, EqualityComparer comparer);
+    <TKey> Enumerable<Grouping<TKey, TSource>> groupBy(
+        Function1<TSource, TKey> keySelector, EqualityComparer comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and projects the elements for
      * each group by using a specified function. */
-    <TKey, TElement> Enumerable<Grouping<TKey, TElement>> groupBy(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector);
+    <TKey, TElement> Enumerable<Grouping<TKey, TElement>> groupBy(
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
      * each group and its key. */
-    <TKey, TResult> Enumerable<Grouping<TKey, TResult>> groupBy(Function1<TSource, TKey> keySelector, Function2<TKey, Enumerable<TSource>, TResult> elementSelector);
+    <TKey, TResult> Enumerable<Grouping<TKey, TResult>> groupBy(
+        Function1<TSource, TKey> keySelector,
+        Function2<TKey, Enumerable<TSource>, TResult> elementSelector);
 
     /** Groups the elements of a sequence according to a
      * key selector function. The keys are compared by using a
      * comparer and each group's elements are projected by using a
      * specified function. */
-    <TKey, TElement> Enumerable<Grouping<TKey, TElement>> groupBy(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector, EqualityComparer comparer);
+    <TKey, TElement> Enumerable<Grouping<TKey, TElement>> groupBy(
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector,
+        EqualityComparer comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
      * each group and its key. The keys are compared by using a
      * specified comparer. */
-    <TKey, TResult> Enumerable<TResult> groupBy(Function1<TSource, TKey> keySelector, Function2<TKey, Enumerable<TSource>, TResult> elementSelector, EqualityComparer comparer);
+    <TKey, TResult> Enumerable<TResult> groupBy(
+        Function1<TSource, TKey> keySelector,
+        Function2<TKey, Enumerable<TSource>, TResult> elementSelector,
+        EqualityComparer comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
      * each group and its key. The elements of each group are
      * projected by using a specified function. */
-    <TKey, TElement, TResult> Enumerable<TResult> groupBy(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector, Function2<TKey, Enumerable<TElement>, TResult> resultSelector);
+    <TKey, TElement, TResult> Enumerable<TResult> groupBy(
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector,
+        Function2<TKey, Enumerable<TElement>, TResult> resultSelector);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
      * each group and its key. Key values are compared by using a
      * specified comparer, and the elements of each group are
      * projected by using a specified function. */
-    <TKey, TElement, TResult> Enumerable<TResult> groupBy(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector, Function2<TKey, Enumerable<TElement>, TResult> resultSelector, EqualityComparer<TKey> comparer);
+    <TKey, TElement, TResult> Enumerable<TResult> groupBy(
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector,
+        Function2<TKey, Enumerable<TElement>, TResult> resultSelector,
+        EqualityComparer<TKey> comparer);
 
     /** Correlates the elements of two sequences based on
      * equality of keys and groups the results. The default equality
      * comparer is used to compare keys. */
-    <TInner, TKey, TResult> Enumerable<TResult> groupJoin(Enumerable<TInner> inner, Function1<TSource, TKey> outerKeySelector, Function1<TInner, TKey> innerKeySelector, Function2<TSource, Enumerable<TInner>, TResult> resultSelector);
+    <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
+        Enumerable<TInner> inner,
+        Function1<TSource, TKey> outerKeySelector,
+        Function1<TInner, TKey> innerKeySelector,
+        Function2<TSource, Enumerable<TInner>, TResult> resultSelector);
 
     /** Correlates the elements of two sequences based on
      * key equality and groups the results. A specified
      * EqualityComparer<TSource> is used to compare keys. */
-    <TInner, TKey, TResult> Enumerable<TResult> groupJoin(Enumerable<TInner> inner, Function1<TSource, TKey> outerKeySelector, Function1<TInner, TKey> innerKeySelector, Function2<TSource, Enumerable<TInner>, TResult> resultSelector, EqualityComparer<TKey> comparer);
+    <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
+        Enumerable<TInner> inner,
+        Function1<TSource, TKey> outerKeySelector,
+        Function1<TInner, TKey> innerKeySelector,
+        Function2<TSource, Enumerable<TInner>, TResult> resultSelector,
+        EqualityComparer<TKey> comparer);
 
     /** Produces the set intersection of two sequences by
      * using the default equality comparer to compare values. (Defined
@@ -290,7 +325,8 @@ interface ExtendedEnumerable<TSource> {
     /** Produces the set intersection of two sequences by
      * using the specified EqualityComparer<TSource> to compare
      * values. */
-    Enumerable<TSource> intersect(Enumerable<TSource> enumerable1, EqualityComparer<TSource> comparer);
+    Enumerable<TSource> intersect(
+        Enumerable<TSource> enumerable1, EqualityComparer<TSource> comparer);
 
     /** Correlates the elements of two sequences based on
      * matching keys. The default equality comparer is used to compare
@@ -304,7 +340,12 @@ interface ExtendedEnumerable<TSource> {
     /** Correlates the elements of two sequences based on
      * matching keys. A specified EqualityComparer<TSource> is used to
      * compare keys. */
-    <TInner, TKey, TResult> Enumerable<TResult> join(Enumerable<TInner> inner, Function1<TSource, TKey> outerKeySelector, Function1<TInner, TKey> innerKeySelector, Function2<TSource, TInner, TResult> resultSelector, EqualityComparer<TKey> comparer);
+    <TInner, TKey, TResult> Enumerable<TResult> join(
+        Enumerable<TInner> inner,
+        Function1<TSource, TKey> outerKeySelector,
+        Function1<TInner, TKey> innerKeySelector,
+        Function2<TSource, TInner, TResult> resultSelector,
+        EqualityComparer<TKey> comparer);
 
     /** Returns the last element of a sequence. (Defined
      * by Enumerable.) */
@@ -453,19 +494,23 @@ interface ExtendedEnumerable<TSource> {
 
     /** Sorts the elements of a sequence in ascending
      * order according to a key. */
-    <TKey extends Comparable> Enumerable<TSource> orderBy(Function1<TSource, TKey> keySelector);
+    <TKey extends Comparable> Enumerable<TSource> orderBy(
+        Function1<TSource, TKey> keySelector);
 
     /** Sorts the elements of a sequence in ascending
      * order by using a specified comparer. */
-    <TKey> Enumerable<TSource> orderBy(Function1<TSource, TKey> keySelector, Comparator<TKey> comparator);
+    <TKey> Enumerable<TSource> orderBy(
+        Function1<TSource, TKey> keySelector, Comparator<TKey> comparator);
 
     /** Sorts the elements of a sequence in descending
      * order according to a key. */
-    <TKey extends Comparable> Enumerable<TSource> orderByDescending(Function1<TSource, TKey> keySelector);
+    <TKey extends Comparable> Enumerable<TSource> orderByDescending(
+        Function1<TSource, TKey> keySelector);
 
     /** Sorts the elements of a sequence in descending
      * order by using a specified comparer. */
-    <TKey> Enumerable<TSource> orderByDescending(Function1<TSource, TKey> keySelector, Comparator<TKey> comparator);
+    <TKey> Enumerable<TSource> orderByDescending(
+        Function1<TSource, TKey> keySelector, Comparator<TKey> comparator);
 
     /** Inverts the order of the elements in a
      * sequence. */
@@ -477,31 +522,38 @@ interface ExtendedEnumerable<TSource> {
 
     /** Projects each element of a sequence into a new
      * form by incorporating the element's index. */
-    <TResult> Enumerable<TResult> select(Function2<TSource, Integer, TResult> selector);
+    <TResult> Enumerable<TResult> select(
+        Function2<TSource, Integer, TResult> selector);
 
     /** Projects each element of a sequence to an
      * Enumerable<TSource> and flattens the resulting sequences into one
      * sequence. */
-    <TResult> Enumerable<TResult> selectMany(Function1<TSource, Enumerable<TResult>> selector);
+    <TResult> Enumerable<TResult> selectMany(
+        Function1<TSource, Enumerable<TResult>> selector);
 
     /** Projects each element of a sequence to an
      * Enumerable<TSource>, and flattens the resulting sequences into one
      * sequence. The index of each source element is used in the
      * projected form of that element. */
-    <TResult> Enumerable<TResult> selectMany(Function2<TSource, Integer, Enumerable<TResult>> selector);
+    <TResult> Enumerable<TResult> selectMany(
+        Function2<TSource, Integer, Enumerable<TResult>> selector);
 
     /** Projects each element of a sequence to an
      * Enumerable<TSource>, flattens the resulting sequences into one
      * sequence, and invokes a result selector function on each
      * element therein. The index of each source element is used in
      * the intermediate projected form of that element. */
-    <TCollection, TResult> Enumerable<TResult> selectMany(Function2<TSource, Integer, Enumerable<TCollection>> collectionSelector, Function2<TSource, TCollection, TResult> resultSelector);
+    <TCollection, TResult> Enumerable<TResult> selectMany(
+        Function2<TSource, Integer, Enumerable<TCollection>> collectionSelector,
+        Function2<TSource, TCollection, TResult> resultSelector);
 
     /** Projects each element of a sequence to an
      * Enumerable<TSource>, flattens the resulting sequences into one
      * sequence, and invokes a result selector function on each
      * element therein. */
-    <TCollection, TResult> Enumerable<TResult> selectMany(Function1<TSource, Enumerable<TCollection>> collectionSelector, Function2<TSource, TCollection, TResult> resultSelector);
+    <TCollection, TResult> Enumerable<TResult> selectMany(
+        Function1<TSource, Enumerable<TCollection>> collectionSelector,
+        Function2<TSource, TCollection, TResult> resultSelector);
 
     /** Determines whether two sequences are equal by
      * comparing the elements by using the default equality comparer
@@ -511,7 +563,8 @@ interface ExtendedEnumerable<TSource> {
     /** Determines whether two sequences are equal by
      * comparing their elements by using a specified
      * EqualityComparer<TSource>. */
-    boolean sequenceEqual(Enumerable<TSource> enumerable1, EqualityComparer<TSource> comparer);
+    boolean sequenceEqual(
+        Enumerable<TSource> enumerable1, EqualityComparer<TSource> comparer);
 
     /** Returns the only element of a sequence, and throws
      * an exception if there is not exactly one element in the
@@ -548,7 +601,8 @@ interface ExtendedEnumerable<TSource> {
      * specified condition is true and then returns the remaining
      * elements. The element's index is used in the logic of the
      * predicate function. */
-    Enumerable<TSource> skipWhile(Function2<TSource, Integer, Boolean> predicate);
+    Enumerable<TSource> skipWhile(
+        Function2<TSource, Integer, Boolean> predicate);
 
     /** Computes the sum of the sequence of Decimal values
      * that are obtained by invoking a transform function on each
@@ -611,7 +665,8 @@ interface ExtendedEnumerable<TSource> {
     /** Returns elements from a sequence as long as a
      * specified condition is true. The element's index is used in the
      * logic of the predicate function. */
-    Enumerable<TSource> takeWhile(Function2<TSource, Integer, Boolean> predicate);
+    Enumerable<TSource> takeWhile(
+        Function2<TSource, Integer, Boolean> predicate);
 
     /** Creates a Dictionary<TKey, TValue> from an
      * Enumerable<TSource> according to a specified key selector
@@ -624,17 +679,23 @@ interface ExtendedEnumerable<TSource> {
     /** Creates a Dictionary<TKey, TValue> from an
      * Enumerable<TSource> according to a specified key selector function
      * and key comparer. */
-    <TKey> Map<TKey, TSource> toMap(Function1<TSource, TKey> keySelector, EqualityComparer<TKey> comparer);
+    <TKey> Map<TKey, TSource> toMap(
+        Function1<TSource, TKey> keySelector, EqualityComparer<TKey> comparer);
 
     /** Creates a Dictionary<TKey, TValue> from an
      * Enumerable<TSource> according to specified key selector and element
      * selector functions. */
-    <TKey, TElement> Map<TKey, TElement> toMap(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector);
+    <TKey, TElement> Map<TKey, TElement> toMap(
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector);
 
     /** Creates a Dictionary<TKey, TValue> from an
      * Enumerable<TSource> according to a specified key selector function,
      * a comparer, and an element selector function. */
-    <TKey, TElement> Map<TKey, TElement> toMap(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector, EqualityComparer<TKey> comparer);
+    <TKey, TElement> Map<TKey, TElement> toMap(
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector,
+        EqualityComparer<TKey> comparer);
 
     /** Creates a List<TSource> from an Enumerable<TSource>. */
     List<TSource> toList();
@@ -647,17 +708,23 @@ interface ExtendedEnumerable<TSource> {
     /** Creates a Lookup<TKey, TElement> from an
      * Enumerable<TSource> according to a specified key selector function
      * and key comparer. */
-    <TKey> Lookup<TKey, TSource> toLookup(Function1<TSource, TKey> keySelector, EqualityComparer<TKey> comparer);
+    <TKey> Lookup<TKey, TSource> toLookup(
+        Function1<TSource, TKey> keySelector, EqualityComparer<TKey> comparer);
 
     /** Creates a Lookup<TKey, TElement> from an
      * Enumerable<TSource> according to specified key selector and element
      * selector functions. */
-    <TKey, TElement> Lookup<TKey, TElement> toLookup(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector);
+    <TKey, TElement> Lookup<TKey, TElement> toLookup(
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector);
 
     /** Creates a Lookup<TKey, TElement> from an
      * Enumerable<TSource> according to a specified key selector function,
      * a comparer and an element selector function. */
-    <TKey, TElement> Lookup<TKey, TElement> toLookup(Function1<TSource, TKey> keySelector, Function1<TSource, TElement> elementSelector, EqualityComparer<TKey> comparer);
+    <TKey, TElement> Lookup<TKey, TElement> toLookup(
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector,
+        EqualityComparer<TKey> comparer);
 
     /** Produces the set union of two sequences by using
      * the default equality comparer. */
@@ -665,7 +732,8 @@ interface ExtendedEnumerable<TSource> {
 
     /** Produces the set union of two sequences by using a
      * specified EqualityComparer<TSource>. */
-    Enumerable<TSource> union(Enumerable<TSource> source1, EqualityComparer<TSource> comparer);
+    Enumerable<TSource> union(
+        Enumerable<TSource> source1, EqualityComparer<TSource> comparer);
 
     /** Filters a sequence of values based on a
      * predicate. */
@@ -679,5 +747,8 @@ interface ExtendedEnumerable<TSource> {
     /** Applies a specified function to the corresponding
      * elements of two sequences, producing a sequence of the
      * results. */
-    <T1, TResult> Enumerable<TResult> zip(Enumerable<T1> source1, Function2<TSource, T1, TResult> resultSelector);
+    <T1, TResult> Enumerable<TResult> zip(
+        Enumerable<T1> source1, Function2<TSource, T1, TResult> resultSelector);
 }
+
+// End ExtendedEnumerable.java

@@ -25,3 +25,5 @@ public class TypeBinaryExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End TypeBinaryExpression.java

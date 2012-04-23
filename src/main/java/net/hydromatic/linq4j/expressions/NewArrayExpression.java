@@ -26,3 +26,5 @@ public class NewArrayExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End NewArrayExpression.java

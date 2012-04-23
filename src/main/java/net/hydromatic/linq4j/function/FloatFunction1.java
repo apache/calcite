@@ -23,3 +23,5 @@ package net.hydromatic.linq4j.function;
 public interface FloatFunction1<T1> extends Function<Float> {
     float apply(T1 v1);
 }
+
+// End FloatFunction1.java

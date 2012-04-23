@@ -36,15 +36,20 @@ public abstract class Expression {
 
     /** Indicates that the node can be reduced to a simpler node. If this
      * returns true, Reduce() can be called to produce the reduced form. */
-    public boolean canReduce() { throw Extensions.todo(); }
+    public boolean canReduce() {
+        return false;
+    }
 
     /** Gets the node type of this Expression. */
     public ExpressionType getNodeType() {
         return nodeType;
     }
 
-    /** Gets the static type of the expression that this Expression represents. */
-    public Class getType() { throw Extensions.todo(); }
+    /** Gets the static type of the expression that this Expression
+     * represents. */
+    public Class getType() {
+        throw Extensions.todo();
+    }
 }
 
 // End Expression.java

@@ -18,6 +18,7 @@
 package net.hydromatic.linq4j.test;
 
 import junit.framework.TestCase;
+
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.function.*;
 
@@ -28,7 +29,7 @@ import java.util.*;
  */
 public class Linq4jTest extends TestCase {
 
-    public static final Function1<Employee,String> EMP_NAME_SELECTOR =
+    public static final Function1<Employee, String> EMP_NAME_SELECTOR =
         new Function1<Employee, String>() {
             public String apply(Employee employee) {
                 return employee.name;
@@ -49,7 +50,8 @@ public class Linq4jTest extends TestCase {
             }
         };
 
-    public static final Function1<Department,Enumerable<Employee>> DEPT_EMPLOYEES_SELECTOR =
+    public static final Function1<Department, Enumerable<Employee>>
+        DEPT_EMPLOYEES_SELECTOR =
         new Function1<Department, Enumerable<Employee>>() {
             public Enumerable<Employee> apply(Department a0) {
                 return Linq4j.asEnumerable(a0.employees);
@@ -60,6 +62,20 @@ public class Linq4jTest extends TestCase {
         new Function1<Department, Integer>() {
             public Integer apply(Department department) {
                 return department.deptno;
+            }
+        };
+
+    public static final Function1<Object, Integer> ONE_SELECTOR =
+        new Function1<Object, Integer>() {
+            public Integer apply(Object employee) {
+                return 1;
+            }
+        };
+
+    private static final Function2<Object, Object, Integer> PAIR_SELECTOR =
+        new Function2<Object, Object, Integer>() {
+            public Integer apply(Object employee, Object v2) {
+                return 1;
             }
         };
 
@@ -90,7 +106,7 @@ public class Linq4jTest extends TestCase {
         List<String> names =
             Linq4j.asEnumerable(emps)
                 .where(
-                   new Predicate2<Employee, Integer>() {
+                    new Predicate2<Employee, Integer>() {
                         public boolean apply(Employee employee, Integer n) {
                             return n % 2 == 0;
                         }
@@ -360,6 +376,18 @@ public class Linq4jTest extends TestCase {
             + "Jane works in Sales, "
             + "Bill works in Marketing]",
             s);
+    }
+
+    public void testJoinCartesianProduct() {
+        int n =
+            Linq4j.asEnumerable(emps)
+                .<Department, Integer, Integer>join(
+                    Linq4j.asEnumerable(depts),
+                    (Function1) ONE_SELECTOR,
+                    (Function1) ONE_SELECTOR,
+                    (Function2) PAIR_SELECTOR)
+            .count();
+        assertEquals(12, n); // 4 employees times 3 departments
     }
 
     @SuppressWarnings("unchecked")

@@ -31,20 +31,25 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Applies an accumulator function over a
      * sequence.
      */
-    TSource aggregate(FunctionExpression<Function2<TSource, TSource, TSource>> selector);
+    TSource aggregate(
+        FunctionExpression<Function2<TSource, TSource, TSource>> selector);
 
     /** Applies an accumulator function over a
      * sequence. The specified seed value is used as the initial
      * accumulator value. */
     <TAccumulate> TSource aggregate(
         TAccumulate seed,
-        FunctionExpression<Function2<TAccumulate, TSource, TAccumulate>> selector);
+        FunctionExpression<Function2<TAccumulate, TSource, TAccumulate>>
+            selector);
 
     /** Applies an accumulator function over a
      * sequence. The specified seed value is used as the initial
      * accumulator value, and the specified function is used to select
      * the result value. */
-    <TAccumulate, TResult> TResult aggregate(TAccumulate seed, FunctionExpression<Function2<TAccumulate, TSource, TAccumulate>> func, FunctionExpression<Function1<TAccumulate, TResult>> selector);
+    <TAccumulate, TResult> TResult aggregate(
+        TAccumulate seed,
+        FunctionExpression<Function2<TAccumulate, TSource, TAccumulate>> func,
+        FunctionExpression<Function1<TAccumulate, TResult>> selector);
 
     /** Determines whether all the elements of a sequence
      * satisfy a condition. */
@@ -61,12 +66,14 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Computes the average of a sequence of Decimal
      * values that is obtained by invoking a projection function on
      * each element of the input sequence. */
-    BigDecimal averageBigDecimal(FunctionExpression<BigDecimalFunction1<TSource>> selector);
+    BigDecimal averageBigDecimal(
+        FunctionExpression<BigDecimalFunction1<TSource>> selector);
 
     /** Computes the average of a sequence of nullable
      * Decimal values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    BigDecimal averageNullableBigDecimal(FunctionExpression<NullableBigDecimalFunction1<TSource>> selector);
+    BigDecimal averageNullableBigDecimal(
+        FunctionExpression<NullableBigDecimalFunction1<TSource>> selector);
 
     /** Computes the average of a sequence of Double
      * values that is obtained by invoking a projection function on
@@ -76,7 +83,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Computes the average of a sequence of nullable
      * Double values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    Double averageNullableDouble(FunctionExpression<NullableDoubleFunction1<TSource>> selector);
+    Double averageNullableDouble(
+        FunctionExpression<NullableDoubleFunction1<TSource>> selector);
 
     /** Computes the average of a sequence of int values
      * that is obtained by invoking a projection function on each
@@ -86,7 +94,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Computes the average of a sequence of nullable
      * int values that is obtained by invoking a projection function
      * on each element of the input sequence. */
-    Integer averageNullableInteger(FunctionExpression<NullableIntegerFunction1<TSource>> selector);
+    Integer averageNullableInteger(
+        FunctionExpression<NullableIntegerFunction1<TSource>> selector);
 
     /** Computes the average of a sequence of Float
      * values that is obtained by invoking a projection function on
@@ -96,7 +105,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Computes the average of a sequence of nullable
      * Float values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    Float averageNullableFloat(FunctionExpression<NullableFloatFunction1<TSource>> selector);
+    Float averageNullableFloat(
+        FunctionExpression<NullableFloatFunction1<TSource>> selector);
 
     /** Computes the average of a sequence of long values
      * that is obtained by invoking a projection function on each
@@ -106,7 +116,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Computes the average of a sequence of nullable
      * long values that is obtained by invoking a projection function
      * on each element of the input sequence. */
-    Long averageNullableLong(FunctionExpression<NullableLongFunction1<TSource>> selector);
+    Long averageNullableLong(
+        FunctionExpression<NullableLongFunction1<TSource>> selector);
 
 
     /** Concatenates two sequences. */
@@ -163,7 +174,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Produces the set difference of two sequences by
      * using the specified EqualityComparer<TSource> to compare
      * values. */
-    Queryable<TSource> except(Enumerable<TSource> enumerable, EqualityComparer comparer);
+    Queryable<TSource> except(
+        Enumerable<TSource> enumerable, EqualityComparer comparer);
 
     /** Returns the first element of a sequence. (Defined
      * by Queryable.) */
@@ -184,18 +196,22 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
     /** Groups the elements of a sequence according to a
      * specified key selector function. */
-    <TKey> Queryable<Grouping<TKey, TSource>> groupBy(FunctionExpression<Function1<TSource, TKey>> keySelector);
+    <TKey> Queryable<Grouping<TKey, TSource>> groupBy(
+        FunctionExpression<Function1<TSource, TKey>> keySelector);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and compares the keys by using
      * a specified comparer. */
-    <TKey> Queryable<Grouping<TKey, TSource>> groupBy(FunctionExpression<Function1<TSource, TKey>> keySelector, EqualityComparer comparer);
-
+    <TKey> Queryable<Grouping<TKey, TSource>> groupBy(
+        FunctionExpression<Function1<TSource, TKey>> keySelector,
+        EqualityComparer comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and projects the elements for
      * each group by using a specified function. */
-    <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(FunctionExpression<Function1<TSource, TKey>> keySelector, FunctionExpression<Function1<TSource, TElement>> elementSelector);
+    <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
+        FunctionExpression<Function1<TSource, TKey>> keySelector,
+        FunctionExpression<Function1<TSource, TElement>> elementSelector);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
@@ -205,44 +221,73 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      * {@link #groupBy(net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression)},
      * which has the same erasure.</p>
      */
-    <TKey, TResult> Queryable<Grouping<TKey, TResult>> groupByK(FunctionExpression<Function1<TSource, TKey>> keySelector, FunctionExpression<Function2<TKey, Enumerable<TSource>, TResult>> elementSelector);
-
+    <TKey, TResult> Queryable<Grouping<TKey, TResult>> groupByK(
+        FunctionExpression<Function1<TSource, TKey>> keySelector,
+        FunctionExpression<Function2<TKey, Enumerable<TSource>, TResult>>
+            elementSelector);
 
     /** Groups the elements of a sequence and projects the
      * elements for each group by using a specified function. Key
      * values are compared by using a specified comparer.
      */
-    <TKey, TElement> Queryable<TElement> groupBy(FunctionExpression<Function1<TSource, TKey>> keySelector, FunctionExpression<Function1<TSource, TElement>> elementSelector, EqualityComparer comparer);
+    <TKey, TElement> Queryable<TElement> groupBy(
+        FunctionExpression<Function1<TSource, TKey>> keySelector,
+        FunctionExpression<Function1<TSource, TElement>> elementSelector,
+        EqualityComparer comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
      * each group and its key. Keys are compared by using a specified
      * comparer.
      */
-    <TKey, TResult> Queryable<TResult> groupByK(FunctionExpression<Function1<TSource, TKey>> keySelector, FunctionExpression<Function2<TKey, Enumerable<TSource>, TResult>> elementSelector, EqualityComparer comparer);
+    <TKey, TResult> Queryable<TResult> groupByK(
+        FunctionExpression<Function1<TSource, TKey>> keySelector,
+        FunctionExpression<Function2<TKey, Enumerable<TSource>, TResult>>
+            elementSelector,
+        EqualityComparer comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
      * each group and its key. The elements of each group are
      * projected by using a specified function. */
-    <TKey, TElement, TResult> Queryable<TResult> groupBy(FunctionExpression<Function1<TSource, TKey>> keySelector, FunctionExpression<Function1<TSource, TElement>> elementSelector, FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>> resultSelector);
+    <TKey, TElement, TResult> Queryable<TResult> groupBy(
+        FunctionExpression<Function1<TSource, TKey>> keySelector,
+        FunctionExpression<Function1<TSource, TElement>> elementSelector,
+        FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>>
+            resultSelector);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
      * each group and its key. Keys are compared by using a specified
      * comparer and the elements of each group are projected by using
      * a specified function. */
-    <TKey, TElement, TResult> Queryable<TResult> groupBy(FunctionExpression<Function1<TSource, TKey>> keySelector, FunctionExpression<Function1<TSource, TElement>> elementSelector, FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>> resultSelector, EqualityComparer<TKey> comparer);
+    <TKey, TElement, TResult> Queryable<TResult> groupBy(
+        FunctionExpression<Function1<TSource, TKey>> keySelector,
+        FunctionExpression<Function1<TSource, TElement>> elementSelector,
+        FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>>
+            resultSelector,
+        EqualityComparer<TKey> comparer);
 
     /** Correlates the elements of two sequences based on
      * key equality and groups the results. The default equality
      * comparer is used to compare keys. */
-    <TInner, TKey, TResult> Queryable<TResult> groupJoin(Enumerable<TInner> inner, FunctionExpression<Function1<TSource, TKey>> outerKeySelector, FunctionExpression<Function1<TInner, TKey>> innerKeySelector, FunctionExpression<Function2<TSource, Enumerable<TInner>, TResult>> resultSelector);
+    <TInner, TKey, TResult> Queryable<TResult> groupJoin(
+        Enumerable<TInner> inner,
+        FunctionExpression<Function1<TSource, TKey>> outerKeySelector,
+        FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
+        FunctionExpression<Function2<TSource, Enumerable<TInner>, TResult>>
+            resultSelector);
 
     /** Correlates the elements of two sequences based on
      * key equality and groups the results. A specified
      * EqualityComparer<TSource> is used to compare keys. */
-    <TInner, TKey, TResult> Enumerable<TResult> groupJoin(Enumerable<TInner> inner, FunctionExpression<Function1<TSource, TKey>> outerKeySelector, FunctionExpression<Function1<TInner, TKey>> innerKeySelector, FunctionExpression<Function2<TSource, Enumerable<TInner>, TResult>> resultSelector, EqualityComparer<TKey> comparer);
+    <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
+        Enumerable<TInner> inner,
+        FunctionExpression<Function1<TSource, TKey>> outerKeySelector,
+        FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
+        FunctionExpression<Function2<TSource, Enumerable<TInner>, TResult>>
+            resultSelector,
+        EqualityComparer<TKey> comparer);
 
     /** Produces the set intersection of two sequences by
      * using the default equality comparer to compare values. (Defined
@@ -252,17 +297,28 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Produces the set intersection of two sequences by
      * using the specified EqualityComparer<TSource> to compare
      * values. */
-    Queryable<TSource> intersect(Enumerable<TSource> enumerable, EqualityComparer<TSource> comparer);
+    Queryable<TSource> intersect(
+        Enumerable<TSource> enumerable,
+        EqualityComparer<TSource> comparer);
 
     /** Correlates the elements of two sequences based on
      * matching keys. The default equality comparer is used to compare
      * keys. */
-    <TInner, TKey, TResult> Queryable<TResult> join(Enumerable<TInner> inner, FunctionExpression<Function1<TSource, TKey>> outerKeySelector, FunctionExpression<Function1<TInner, TKey>> innerKeySelector, FunctionExpression<Function2<TSource, TInner, TResult>> resultSelector);
+    <TInner, TKey, TResult> Queryable<TResult> join(
+        Enumerable<TInner> inner,
+        FunctionExpression<Function1<TSource, TKey>> outerKeySelector,
+        FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
+        FunctionExpression<Function2<TSource, TInner, TResult>> resultSelector);
 
     /** Correlates the elements of two sequences based on
      * matching keys. A specified EqualityComparer<TSource> is used to
      * compare keys. */
-    <TInner, TKey, TResult> Queryable<TResult> join(Enumerable<TInner> inner, FunctionExpression<Function1<TSource, TKey>> outerKeySelector, FunctionExpression<Function1<TInner, TKey>> innerKeySelector, FunctionExpression<Function2<TSource, TInner, TResult>> resultSelector, EqualityComparer<TKey> comparer);
+    <TInner, TKey, TResult> Queryable<TResult> join(
+        Enumerable<TInner> inner,
+        FunctionExpression<Function1<TSource, TKey>> outerKeySelector,
+        FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
+        FunctionExpression<Function2<TSource, TInner, TResult>> resultSelector,
+        EqualityComparer<TKey> comparer);
 
     /** Returns the last element in a sequence. (Defined
      * by Queryable.) */
@@ -296,7 +352,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Invokes a projection function on each element of a
      * generic IQueryable<TSource> and returns the maximum resulting
      * value. */
-    <TResult> TResult max(FunctionExpression<Function1<TSource, TResult>> selector);
+    <TResult> TResult max(
+        FunctionExpression<Function1<TSource, TResult>> selector);
 
     /** Returns the minimum value in a generic
      * IQueryable<TSource>. */
@@ -305,7 +362,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Invokes a projection function on each element of a
      * generic IQueryable<TSource> and returns the minimum resulting
      * value. */
-    <TResult> TResult min(FunctionExpression<Function1<TSource, TResult>> selector);
+    <TResult> TResult min(
+        FunctionExpression<Function1<TSource, TResult>> selector);
 
     /** Filters the elements of an IQueryable based on a
      * specified type.
@@ -330,19 +388,25 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
     /** Sorts the elements of a sequence in ascending
      * order according to a key. */
-    <TKey extends Comparable> Queryable<TSource> orderBy(FunctionExpression<Function1<TSource, TKey>> keySelector);
+    <TKey extends Comparable> Queryable<TSource> orderBy(
+        FunctionExpression<Function1<TSource, TKey>> keySelector);
 
     /** Sorts the elements of a sequence in ascending
      * order by using a specified comparer. */
-    <TKey> Queryable<TSource> orderBy(FunctionExpression<Function1<TSource, TKey>> keySelector, Comparator<TKey> comparator);
+    <TKey> Queryable<TSource> orderBy(
+        FunctionExpression<Function1<TSource, TKey>> keySelector,
+        Comparator<TKey> comparator);
 
     /** Sorts the elements of a sequence in descending
      * order according to a key. */
-    <TKey extends Comparable> Queryable<TSource> orderByDescending(FunctionExpression<Function1<TSource, TKey>> keySelector);
+    <TKey extends Comparable> Queryable<TSource> orderByDescending(
+        FunctionExpression<Function1<TSource, TKey>> keySelector);
 
     /** Sorts the elements of a sequence in descending
      * order by using a specified comparer. */
-    <TKey> Queryable<TSource> orderByDescending(FunctionExpression<Function1<TSource, TKey>> keySelector, Comparator<TKey> comparator);
+    <TKey> Queryable<TSource> orderByDescending(
+        FunctionExpression<Function1<TSource, TKey>> keySelector,
+        Comparator<TKey> comparator);
 
     /** Inverts the order of the elements in a
      * sequence. */
@@ -351,7 +415,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
     /** Projects each element of a sequence into a new
      * form. */
-    <TResult> Queryable<TResult> select(FunctionExpression<Function1<TSource, TResult>> selector);
+    <TResult> Queryable<TResult> select(
+        FunctionExpression<Function1<TSource, TResult>> selector);
 
     /** Projects each element of a sequence into a new
      * form by incorporating the element's index.
@@ -359,13 +424,15 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      * <p>NOTE: Renamed from {@code select} because had same erasure as
      * {@link #select(net.hydromatic.linq4j.expressions.FunctionExpression)}.</p>
      */
-    <TResult> Queryable<TResult> selectN(FunctionExpression<Function2<TSource, Integer, TResult>> selector);
+    <TResult> Queryable<TResult> selectN(
+        FunctionExpression<Function2<TSource, Integer, TResult>> selector);
 
 
     /** Projects each element of a sequence to an
      * Enumerable<TSource> and combines the resulting sequences into one
      * sequence. */
-    <TResult> Queryable<TResult> selectMany(FunctionExpression<Function1<TSource, Enumerable<TResult>>> selector);
+    <TResult> Queryable<TResult> selectMany(
+        FunctionExpression<Function1<TSource, Enumerable<TResult>>> selector);
 
     /** Projects each element of a sequence to an
      * Enumerable<TSource> and combines the resulting sequences into one
@@ -375,8 +442,9 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
      * {@link #selectMany(net.hydromatic.linq4j.expressions.FunctionExpression)}</p>
      */
-    <TResult> Queryable<TResult> selectManyN(FunctionExpression<Function2<TSource, Integer, Enumerable<TResult>>> selector);
-
+    <TResult> Queryable<TResult> selectManyN(
+        FunctionExpression<Function2<TSource, Integer, Enumerable<TResult>>>
+            selector);
 
     /** Projects each element of a sequence to an
      * Enumerable<TSource> that incorporates the index of the source
@@ -384,7 +452,11 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      * on each element of each intermediate sequence, and the
      * resulting values are combined into a single, one-dimensional
      * sequence and returned. */
-    <TCollection, TResult> Queryable<TResult> selectMany(FunctionExpression<Function2<TSource, Integer, Enumerable<TCollection>>> collectionSelector, FunctionExpression<Function2<TSource, TCollection, TResult>> resultSelector);
+    <TCollection, TResult> Queryable<TResult> selectMany(
+        FunctionExpression<Function2<TSource, Integer, Enumerable<TCollection>>>
+            collectionSelector,
+        FunctionExpression<Function2<TSource, TCollection, TResult>>
+            resultSelector);
 
     /** Projects each element of a sequence to an
      * Enumerable<TSource> and invokes a result selector function on each
@@ -395,7 +467,11 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
      * {@link #selectMany(net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression)}</p>
      * */
-    <TCollection, TResult> Queryable<TResult> selectManyN(FunctionExpression<Function1<TSource, Enumerable<TCollection>>> collectionSelector, FunctionExpression<Function2<TSource, TCollection, TResult>> resultSelector);
+    <TCollection, TResult> Queryable<TResult> selectManyN(
+        FunctionExpression<Function1<TSource, Enumerable<TCollection>>>
+            collectionSelector,
+        FunctionExpression<Function2<TSource, TCollection, TResult>>
+            resultSelector);
 
     /** Determines whether two sequences are equal by
      * using the default equality comparer to compare
@@ -405,7 +481,9 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Determines whether two sequences are equal by
      * using a specified EqualityComparer<TSource> to compare
      * elements. */
-    boolean sequenceEqual(Enumerable<TSource> enumerable, EqualityComparer<TSource> comparer);
+    boolean sequenceEqual(
+        Enumerable<TSource> enumerable,
+        EqualityComparer<TSource> comparer);
 
     /** Returns the only element of a sequence, and throws
      * an exception if there is not exactly one element in the
@@ -436,23 +514,27 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Bypasses elements in a sequence as long as a
      * specified condition is true and then returns the remaining
      * elements. */
-    Queryable<TSource> skipWhile(FunctionExpression<Predicate1<TSource>> predicate);
+    Queryable<TSource> skipWhile(
+        FunctionExpression<Predicate1<TSource>> predicate);
 
     /** Bypasses elements in a sequence as long as a
      * specified condition is true and then returns the remaining
      * elements. The element's index is used in the logic of the
      * predicate function. */
-    Queryable<TSource> skipWhileN(FunctionExpression<Function2<TSource, Integer, Boolean>> predicate);
+    Queryable<TSource> skipWhileN(
+        FunctionExpression<Function2<TSource, Integer, Boolean>> predicate);
 
     /** Computes the sum of the sequence of Decimal values
      * that is obtained by invoking a projection function on each
      * element of the input sequence. */
-    BigDecimal sumBigDecimal(FunctionExpression<BigDecimalFunction1<TSource>> selector);
+    BigDecimal sumBigDecimal(
+        FunctionExpression<BigDecimalFunction1<TSource>> selector);
 
     /** Computes the sum of the sequence of nullable
      * Decimal values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    BigDecimal sumNullableBigDecimal(FunctionExpression<NullableBigDecimalFunction1<TSource>> selector);
+    BigDecimal sumNullableBigDecimal(
+        FunctionExpression<NullableBigDecimalFunction1<TSource>> selector);
 
     /** Computes the sum of the sequence of Double values
      * that is obtained by invoking a projection function on each
@@ -462,7 +544,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Computes the sum of the sequence of nullable
      * Double values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    Double sumNullableDouble(FunctionExpression<NullableDoubleFunction1<TSource>> selector);
+    Double sumNullableDouble(
+        FunctionExpression<NullableDoubleFunction1<TSource>> selector);
 
     /** Computes the sum of the sequence of int values
      * that is obtained by invoking a projection function on each
@@ -472,7 +555,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Computes the sum of the sequence of nullable int
      * values that is obtained by invoking a projection function on
      * each element of the input sequence. */
-    Integer sumNullableInteger(FunctionExpression<NullableIntegerFunction1<TSource>> selector);
+    Integer sumNullableInteger(
+        FunctionExpression<NullableIntegerFunction1<TSource>> selector);
 
     /** Computes the sum of the sequence of long values
      * that is obtained by invoking a projection function on each
@@ -482,7 +566,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Computes the sum of the sequence of nullable long
      * values that is obtained by invoking a projection function on
      * each element of the input sequence. */
-    Long sumNullableLong(FunctionExpression<NullableLongFunction1<TSource>> selector);
+    Long sumNullableLong(
+        FunctionExpression<NullableLongFunction1<TSource>> selector);
 
     /** Computes the sum of the sequence of Float values
      * that is obtained by invoking a projection function on each
@@ -492,7 +577,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Computes the sum of the sequence of nullable
      * Float values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    Float sumNullableFloat(FunctionExpression<NullableFloatFunction1<TSource>> selector);
+    Float sumNullableFloat(
+        FunctionExpression<NullableFloatFunction1<TSource>> selector);
 
     /** Returns a specified number of contiguous elements
      * from the start of a sequence. */
@@ -500,12 +586,14 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
     /** Returns elements from a sequence as long as a
      * specified condition is true. */
-    Queryable<TSource> takeWhile(FunctionExpression<Predicate1<TSource>> predicate);
+    Queryable<TSource> takeWhile(
+        FunctionExpression<Predicate1<TSource>> predicate);
 
     /** Returns elements from a sequence as long as a
      * specified condition is true. The element's index is used in the
      * logic of the predicate function. */
-    Queryable<TSource> takeWhileN(FunctionExpression<Function2<TSource, Integer, Boolean>> predicate);
+    Queryable<TSource> takeWhileN(
+        FunctionExpression<Function2<TSource, Integer, Boolean>> predicate);
 
     /** Produces the set union of two sequences by using
      * the default equality comparer. */
@@ -513,7 +601,9 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
     /** Produces the set union of two sequences by using a
      * specified EqualityComparer<TSource>. */
-    Queryable<TSource> union(Enumerable<TSource> source1, EqualityComparer<TSource> comparer);
+    Queryable<TSource> union(
+        Enumerable<TSource> source1,
+        EqualityComparer<TSource> comparer);
 
     /** Filters a sequence of values based on a
      * predicate. */
@@ -522,12 +612,14 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Filters a sequence of values based on a
      * predicate. Each element's index is used in the logic of the
      * predicate function. */
-    Queryable<TSource> whereN(FunctionExpression<Function2<TSource, Integer, Boolean>> predicate);
+    Queryable<TSource> whereN(
+        FunctionExpression<Function2<TSource, Integer, Boolean>> predicate);
 
     /** Merges two sequences by using the specified
      * predicate function. */
-    <T1, TResult> Queryable<TResult> zip(Enumerable<T1> source1, FunctionExpression<Function2<TSource, T1, TResult>> resultSelector);
-
+    <T1, TResult> Queryable<TResult> zip(
+        Enumerable<T1> source1,
+        FunctionExpression<Function2<TSource, T1, TResult>> resultSelector);
 }
 
 // End ExtendedQueryable.java

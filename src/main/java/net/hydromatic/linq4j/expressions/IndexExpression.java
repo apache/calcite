@@ -25,3 +25,5 @@ public class IndexExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End IndexExpression.java

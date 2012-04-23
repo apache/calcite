@@ -22,3 +22,5 @@ package net.hydromatic.linq4j.function;
  * may be null.
  */
 public interface NullableDoubleFunction1<T0> extends Function1<T0, Double> {}
+
+// End NullableDoubleFunction1.java

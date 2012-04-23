@@ -25,3 +25,5 @@ public class UnaryExpression extends Expression {
         super(nodeType);
     }
 }
+
+// End UnaryExpression.java

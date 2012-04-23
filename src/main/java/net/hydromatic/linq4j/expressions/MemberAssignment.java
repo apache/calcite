@@ -22,3 +22,5 @@ package net.hydromatic.linq4j.expressions;
  */
 public class MemberAssignment extends MemberBinding {
 }
+
+// End MemberAssignment.java

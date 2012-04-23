@@ -164,7 +164,9 @@ abstract class DefaultQueryable<T>
         return Extensions.averageNullableDouble(getThis(), selector);
     }
 
-    public int averageInteger(FunctionExpression<IntegerFunction1<T>> selector) {
+    public int averageInteger(
+        FunctionExpression<IntegerFunction1<T>> selector)
+    {
         return Extensions.averageInteger(getThis(), selector);
     }
 
@@ -234,7 +236,8 @@ abstract class DefaultQueryable<T>
 
     public <TKey, TResult> Queryable<Grouping<TKey, TResult>> groupByK(
         FunctionExpression<Function1<T, TKey>> keySelector,
-        FunctionExpression<Function2<TKey, Enumerable<T>, TResult>> elementSelector)
+        FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
+            elementSelector)
     {
         return Extensions.groupByK(getThis(), keySelector, elementSelector);
     }
@@ -244,51 +247,64 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function1<T, TElement>> elementSelector,
         EqualityComparer comparer)
     {
-        return Extensions.groupBy(getThis(), keySelector, elementSelector, comparer);
+        return Extensions.groupBy(
+            getThis(), keySelector, elementSelector, comparer);
     }
 
     public <TKey, TResult> Queryable<TResult> groupByK(
         FunctionExpression<Function1<T, TKey>> keySelector,
-        FunctionExpression<Function2<TKey, Enumerable<T>, TResult>> elementSelector,
+        FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
+            elementSelector,
         EqualityComparer comparer)
     {
-        return Extensions.groupByK(getThis(), keySelector, elementSelector, comparer);
+        return Extensions.groupByK(
+            getThis(), keySelector, elementSelector, comparer);
     }
 
     public <TKey, TElement, TResult> Queryable<TResult> groupBy(
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function1<T, TElement>> elementSelector,
-        FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>> resultSelector)
+        FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>>
+            resultSelector)
     {
-        return Extensions.groupBy(getThis(), keySelector, elementSelector, resultSelector);
+        return Extensions.groupBy(
+            getThis(), keySelector, elementSelector, resultSelector);
     }
 
     public <TKey, TElement, TResult> Queryable<TResult> groupBy(
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function1<T, TElement>> elementSelector,
-        FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>> resultSelector,
+        FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>>
+            resultSelector,
         EqualityComparer<TKey> comparer)
     {
-        return Extensions.groupBy(getThis(), keySelector, elementSelector, resultSelector, comparer);
+        return Extensions.groupBy(
+            getThis(), keySelector, elementSelector, resultSelector, comparer);
     }
 
     public <TInner, TKey, TResult> Queryable<TResult> groupJoin(
         Enumerable<TInner> inner,
         FunctionExpression<Function1<T, TKey>> outerKeySelector,
         FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
-        FunctionExpression<Function2<T, Enumerable<TInner>, TResult>> resultSelector)
+        FunctionExpression<Function2<T, Enumerable<TInner>, TResult>>
+            resultSelector)
     {
-        return Extensions.groupJoin(getThis(), inner, outerKeySelector, innerKeySelector, resultSelector);
+        return Extensions.groupJoin(
+            getThis(), inner, outerKeySelector, innerKeySelector,
+            resultSelector);
     }
 
     public <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
         Enumerable<TInner> inner,
         FunctionExpression<Function1<T, TKey>> outerKeySelector,
         FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
-        FunctionExpression<Function2<T, Enumerable<TInner>, TResult>> resultSelector,
+        FunctionExpression<Function2<T, Enumerable<TInner>, TResult>>
+            resultSelector,
         EqualityComparer<TKey> comparer)
     {
-        return Extensions.groupJoin(getThis(), inner, outerKeySelector, innerKeySelector, resultSelector, comparer);
+        return Extensions.groupJoin(
+            getThis(), inner, outerKeySelector, innerKeySelector,
+            resultSelector, comparer);
     }
 
     public <TInner, TKey, TResult> Queryable<TResult> join(
@@ -297,7 +313,9 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
         FunctionExpression<Function2<T, TInner, TResult>> resultSelector)
     {
-        return Extensions.join(getThis(), inner, outerKeySelector, innerKeySelector, resultSelector);
+        return Extensions.join(
+            getThis(), inner, outerKeySelector, innerKeySelector,
+            resultSelector);
     }
 
     public <TInner, TKey, TResult> Queryable<TResult> join(
@@ -307,7 +325,9 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function2<T, TInner, TResult>> resultSelector,
         EqualityComparer<TKey> comparer)
     {
-        return Extensions.join(getThis(), inner, outerKeySelector, innerKeySelector, resultSelector, comparer);
+        return Extensions.join(
+            getThis(), inner, outerKeySelector, innerKeySelector,
+            resultSelector, comparer);
     }
 
     public Queryable<T> last(FunctionExpression<Predicate1<T>> predicate) {
@@ -322,15 +342,21 @@ abstract class DefaultQueryable<T>
         return Extensions.longCount(getThis(), predicate);
     }
 
-    public <TResult> TResult max(FunctionExpression<Function1<T, TResult>> selector) {
+    public <TResult> TResult max(
+        FunctionExpression<Function1<T, TResult>> selector)
+    {
         return Extensions.max(getThis(), selector);
     }
 
-    public <TResult> TResult min(FunctionExpression<Function1<T, TResult>> selector) {
+    public <TResult> TResult min(
+        FunctionExpression<Function1<T, TResult>> selector)
+    {
         return Extensions.min(getThis(), selector);
     }
 
-    public <TKey extends Comparable> Queryable<T> orderBy(FunctionExpression<Function1<T, TKey>> keySelector) {
+    public <TKey extends Comparable> Queryable<T> orderBy(
+        FunctionExpression<Function1<T, TKey>> keySelector)
+    {
         return Extensions.orderBy(getThis(), keySelector);
     }
 
@@ -354,34 +380,46 @@ abstract class DefaultQueryable<T>
         return Extensions.orderByDescending(getThis(), keySelector, comparator);
     }
 
-    public <TResult> Queryable<TResult> select(FunctionExpression<Function1<T, TResult>> selector) {
+    public <TResult> Queryable<TResult> select(
+        FunctionExpression<Function1<T, TResult>> selector)
+    {
         return Extensions.select(getThis(), selector);
     }
 
-    public <TResult> Queryable<TResult> selectN(FunctionExpression<Function2<T, Integer, TResult>> selector) {
+    public <TResult> Queryable<TResult> selectN(
+        FunctionExpression<Function2<T, Integer, TResult>> selector)
+    {
         return Extensions.selectN(getThis(), selector);
     }
 
-    public <TResult> Queryable<TResult> selectMany(FunctionExpression<Function1<T, Enumerable<TResult>>> selector) {
+    public <TResult> Queryable<TResult> selectMany(
+        FunctionExpression<Function1<T, Enumerable<TResult>>> selector)
+    {
         return Extensions.selectMany(getThis(), selector);
     }
 
-    public <TResult> Queryable<TResult> selectManyN(FunctionExpression<Function2<T, Integer, Enumerable<TResult>>> selector) {
+    public <TResult> Queryable<TResult> selectManyN(
+        FunctionExpression<Function2<T, Integer, Enumerable<TResult>>> selector)
+    {
         return Extensions.selectManyN(getThis(), selector);
     }
 
     public <TCollection, TResult> Queryable<TResult> selectMany(
-        FunctionExpression<Function2<T, Integer, Enumerable<TCollection>>> collectionSelector,
+        FunctionExpression<Function2<T, Integer, Enumerable<TCollection>>>
+            collectionSelector,
         FunctionExpression<Function2<T, TCollection, TResult>> resultSelector)
     {
-        return Extensions.selectMany(getThis(), collectionSelector, resultSelector);
+        return Extensions.selectMany(
+            getThis(), collectionSelector, resultSelector);
     }
 
     public <TCollection, TResult> Queryable<TResult> selectManyN(
-        FunctionExpression<Function1<T, Enumerable<TCollection>>> collectionSelector,
+        FunctionExpression<Function1<T, Enumerable<TCollection>>>
+            collectionSelector,
         FunctionExpression<Function2<T, TCollection, TResult>> resultSelector)
     {
-        return Extensions.selectManyN(getThis(), collectionSelector, resultSelector);
+        return Extensions.selectManyN(
+            getThis(), collectionSelector, resultSelector);
     }
 
     public T single(FunctionExpression<Predicate1<T>> predicate) {
@@ -396,7 +434,9 @@ abstract class DefaultQueryable<T>
         return Extensions.skipWhile(getThis(), predicate);
     }
 
-    public Queryable<T> skipWhileN(FunctionExpression<Function2<T, Integer, Boolean>> predicate) {
+    public Queryable<T> skipWhileN(
+        FunctionExpression<Function2<T, Integer, Boolean>> predicate)
+    {
         return Extensions.skipWhileN(getThis(), predicate);
     }
 
@@ -456,7 +496,9 @@ abstract class DefaultQueryable<T>
         return Extensions.takeWhile(getThis(), predicate);
     }
 
-    public Queryable<T> takeWhileN(FunctionExpression<Function2<T, Integer, Boolean>> predicate) {
+    public Queryable<T> takeWhileN(
+        FunctionExpression<Function2<T, Integer, Boolean>> predicate)
+    {
         return Extensions.takeWhileN(getThis(), predicate);
     }
 
@@ -464,7 +506,9 @@ abstract class DefaultQueryable<T>
         return Extensions.where(getThis(), predicate);
     }
 
-    public Queryable<T> whereN(FunctionExpression<Function2<T, Integer, Boolean>> predicate) {
+    public Queryable<T> whereN(
+        FunctionExpression<Function2<T, Integer, Boolean>> predicate)
+    {
         return Extensions.whereN(getThis(), predicate);
     }
 
@@ -494,3 +538,5 @@ abstract class DefaultQueryable<T>
     }
 
 }
+
+// End DefaultQueryable.java
