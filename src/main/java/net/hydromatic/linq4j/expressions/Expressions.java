@@ -18,6 +18,7 @@
 package net.hydromatic.linq4j.expressions;
 
 import net.hydromatic.linq4j.Extensions;
+import net.hydromatic.linq4j.function.Function;
 
 import java.lang.reflect.*;
 import java.util.Arrays;
@@ -1125,9 +1126,23 @@ public class Expressions {
         throw Extensions.todo();
     }
 
+    /** Creates a FunctionExpression from an actual function. */
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambda(F function) {
+        // REVIEW: Check that that function class is non-inner, has a public
+        // default constructor, etc.?
+
+        //noinspection unchecked
+        return new FunctionExpression<F>(
+            ExpressionType.Lambda,
+            null, // (Class<F>) (Class) function.getClass(),
+            null); // (Function<?>) function);
+    }
+
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
-    public static LambdaExpression lambda(
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambda(
         Expression body, Iterable<ParameterExpression> parameters)
     {
         throw Extensions.todo();
@@ -1135,15 +1150,8 @@ public class Expressions {
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
-    public static LambdaExpression Lambda(
-        Expression body, ParameterExpression[] parameters)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates a LambdaExpression by first constructing a delegate
-     * type. */
-    public static LambdaExpression lambdaE(
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambdaE(
         Expression body,
         boolean tailCall,
         Iterable<ParameterExpression> parameters)
@@ -1153,16 +1161,22 @@ public class Expressions {
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
-    public static LambdaExpression lambda(
-        Expression body, boolean tailCall, ParameterExpression[] parameters)
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambda(
+        Expression body,
+        boolean tailCall,
+        ParameterExpression... parameters)
     {
-        throw Extensions.todo();
+        return lambda(body, tailCall, Arrays.asList(parameters));
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
-    public static LambdaExpression lambdaE(
-        Expression body, String name, Iterable<ParameterExpression> parameters)
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambdaE(
+        Expression body,
+        String name,
+        Iterable<ParameterExpression> parameters)
     {
         throw Extensions.todo();
     }
@@ -1170,7 +1184,8 @@ public class Expressions {
     /** Creates a LambdaExpression by first constructing a delegate
      * type. It can be used when the delegate type is not known at
      * compile time. */
-    public static LambdaExpression lambda(
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambda(
         Class type, Expression body, Iterable<ParameterExpression> parameters)
     {
         throw Extensions.todo();
@@ -1179,15 +1194,19 @@ public class Expressions {
     /** Creates a LambdaExpression by first constructing a delegate
      * type. It can be used when the delegate type is not known at
      * compile time. */
-    public static LambdaExpression lambda(
-        Class type, Expression body, ParameterExpression[] parameters)
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambda(
+        Class type,
+        Expression body,
+        ParameterExpression[] parameters)
     {
-        throw Extensions.todo();
+        return lambda(type, body, Arrays.asList(parameters));
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
-    public static LambdaExpression lambdaE(
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambdaE(
         Expression body,
         String name,
         boolean tailCall,
@@ -1198,7 +1217,8 @@ public class Expressions {
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
-    public static LambdaExpression lambda(
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambda(
         Class type,
         Expression expression,
         boolean tailCall,
@@ -1209,18 +1229,20 @@ public class Expressions {
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
-    public static LambdaExpression lambda(
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambda(
         Class type,
         Expression body,
         boolean tailCall,
-        ParameterExpression[] parameters)
+        ParameterExpression... parameters)
     {
-        throw Extensions.todo();
+        return lambda(type, body, tailCall, Arrays.asList(parameters));
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
-    public static LambdaExpression lambda(
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambda(
         Class type,
         Expression body,
         String name,
@@ -1231,7 +1253,8 @@ public class Expressions {
 
     /** Creates a LambdaExpression lambdaExpression by first constructing a
      * delegate type. */
-    public static LambdaExpression lambda(
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambda(
         Class type,
         Expression body,
         String name,
@@ -1243,7 +1266,8 @@ public class Expressions {
 
     /** Creates an Expression<TDelegate> where the delegate type is
      * known at compile time. */
-    public static <TDelegate> FunctionExpression<TDelegate> lambdaE(
+    public static <TDelegate extends Function<?>>
+    FunctionExpression<TDelegate> lambdaE(
         Expression body, Iterable<ParameterExpression> parameters)
     {
         throw Extensions.todo();
@@ -1251,15 +1275,17 @@ public class Expressions {
 
     /** Creates an Expression<TDelegate> where the delegate type is
      * known at compile time. */
-    public static <TDelegate> FunctionExpression<TDelegate> lambda(
-        Expression body, ParameterExpression[] parameters)
+    public static <TDelegate extends Function<?>>
+    FunctionExpression<TDelegate> lambda(
+        Expression body, ParameterExpression... parameters)
     {
-        throw Extensions.todo();
+        return lambdaE(body, Arrays.asList(parameters));
     }
 
     /** Creates an Expression<TDelegate> where the delegate type is
      * known at compile time. */
-    public static <TDelegate> FunctionExpression<TDelegate> lambda(
+    public static <TDelegate extends Function<?>>
+    FunctionExpression<TDelegate> lambda(
         Expression body,
         boolean tailCall,
         Iterable<ParameterExpression> parameters)
@@ -1269,15 +1295,17 @@ public class Expressions {
 
     /** Creates an Expression<TDelegate> where the delegate type is
      * known at compile time. */
-    public static <TDelegate> FunctionExpression<TDelegate> lambdaT(
-        Expression body, boolean tailCall, ParameterExpression[] parameters)
+    public static <TDelegate extends Function<?>>
+    FunctionExpression<TDelegate> lambdaT(
+        Expression body, boolean tailCall, ParameterExpression... parameters)
     {
-        throw Extensions.todo();
+        return lambda(body, tailCall, Arrays.asList(parameters));
     }
 
     /** Creates an Expression<TDelegate> where the delegate type is
      * known at compile time. */
-    public static <TDelegate> FunctionExpression<TDelegate> lambda(
+    public static <TDelegate extends Function<?>>
+    FunctionExpression<TDelegate> lambda(
         Expression body, String name, Iterable<ParameterExpression> parameters)
     {
         throw Extensions.todo();
@@ -1285,7 +1313,8 @@ public class Expressions {
 
     /** Creates an Expression<TDelegate> where the delegate type is
      * known at compile time. */
-    public static <TDelegate> FunctionExpression<TDelegate> lambda(
+    public static <TDelegate extends Function<?>>
+    FunctionExpression<TDelegate> lambda(
         Expression body,
         String name,
         boolean tailCall,
@@ -1878,7 +1907,7 @@ public class Expressions {
 
     /** Creates a BinaryExpression that represents an arithmetic
      * multiplication operation that has overflow checking. */
-    public static BinaryExpression MultiplyChecked(
+    public static BinaryExpression multiplyChecked(
         Expression expression0,
         Expression expression1)
     {
@@ -1888,7 +1917,7 @@ public class Expressions {
 
     /** Creates a BinaryExpression that represents an arithmetic
      * multiplication operation that has overflow checking. */
-    public static BinaryExpression MultiplyChecked(
+    public static BinaryExpression multiplyChecked(
         Expression expression0,
         Expression expression1,
         Method method)

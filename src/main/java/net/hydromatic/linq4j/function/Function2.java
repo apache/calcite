@@ -24,7 +24,7 @@ package net.hydromatic.linq4j.function;
  * @param <T1> type of parameter 1
  * @param <T2> type of parameter 2
  */
-public interface Function2<T1, T2, R> {
+public interface Function2<T1, T2, R> extends Function<R> {
     R apply(T1 v1, T2 v2);
 }
 

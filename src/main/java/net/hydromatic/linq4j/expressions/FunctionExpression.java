@@ -17,13 +17,30 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import net.hydromatic.linq4j.function.Function;
+
 /**
  * Represents a strongly typed lambda expression as a data structure in the form
  * of an expression tree. This class cannot be inherited.
  */
-public final class FunctionExpression<T> extends LambdaExpression {
-    public FunctionExpression(ExpressionType nodeType, Class<T> clazz) {
+public final class FunctionExpression<F extends Function<?>>
+    extends LambdaExpression
+{
+    private final Class<F> clazz;
+    private final F function;
+
+    public FunctionExpression(
+        ExpressionType nodeType,
+        Class<F> clazz,
+        F function)
+    {
         super(nodeType);
+        this.clazz = clazz;
+        this.function = function;
+    }
+
+    public F getFunction() {
+        return function;
     }
 }
 

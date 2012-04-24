@@ -18,6 +18,8 @@
 package net.hydromatic.linq4j.expressions;
 
 import net.hydromatic.linq4j.Extensions;
+import net.hydromatic.linq4j.function.DynamicFunction;
+import net.hydromatic.linq4j.function.Function;
 
 /**
  * <p>Analogous to LINQ's System.Linq.Expression.</p>
@@ -49,6 +51,16 @@ public abstract class Expression {
      * represents. */
     public Class getType() {
         throw Extensions.todo();
+    }
+
+    public DynamicFunction compile() {
+        final ExpressionCompiler compiler = new ExpressionCompiler();
+        accept(compiler);
+        return compiler.function();
+    }
+
+    void accept(ExpressionCompiler compiler) {
+        // default implementation is to do nothing
     }
 }
 

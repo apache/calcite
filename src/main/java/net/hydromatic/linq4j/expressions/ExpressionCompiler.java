@@ -15,14 +15,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.linq4j.function;
+package net.hydromatic.linq4j.expressions;
+
+import net.hydromatic.linq4j.function.DynamicFunction;
+import net.hydromatic.linq4j.function.Function;
 
 /**
- * Base interface for all functions.
- *
- * @param <R> result type
+ * Expression compiler.
  */
-public interface Function<R> {
+class ExpressionCompiler implements ExpressionVisitor {
+    final DynamicFunction function = null;
+
+    /**
+     * Returns an invokable function that is the result of compilation.
+     *
+     * @return Invokable function
+     */
+    public DynamicFunction function() {
+        return function;
+    }
+
+    public <T extends Function<?>> void visitLambda(
+        FunctionExpression<T> expression)
+    {
+    }
 }
 
-// End Function.java
+// End ExpressionCompiler.java

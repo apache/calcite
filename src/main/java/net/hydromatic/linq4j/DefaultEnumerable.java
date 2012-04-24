@@ -43,7 +43,10 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
     }
 
     public Queryable<T> asQueryable() {
-        return Extensions.asQueryable(getThis());
+        return this instanceof Queryable
+            ? ((Queryable<T>) this)
+            : new EnumerableQueryable<T>(
+                this, (Class) Object.class, null, null);
     }
 
     public T aggregate(Function2<T, T, T> func) {
@@ -81,7 +84,7 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
     }
 
     public BigDecimal average(BigDecimalFunction1<T> selector) {
-        return Extensions.averageDecimal(getThis(), selector);
+        return Extensions.average(getThis(), selector);
     }
 
     public BigDecimal average(NullableBigDecimalFunction1<T> selector) {

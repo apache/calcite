@@ -23,7 +23,7 @@ package net.hydromatic.linq4j.function;
  * @param <R> result type
  * @param <T1> type of parameter 1
  */
-public interface Function1<T1, R> {
+public interface Function1<T1, R> extends Function<R> {
     /**
      * The identity function.
      *

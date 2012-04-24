@@ -119,9 +119,8 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     Long averageNullableLong(
         FunctionExpression<NullableLongFunction1<TSource>> selector);
 
-
     /** Concatenates two sequences. */
-    Queryable<TSource> concat(Queryable<TSource> queryable1);
+    Queryable<TSource> concat(Enumerable<TSource> source2);
 
     /** Determines whether a sequence contains a specified
      * element by using the default equality comparer. */
@@ -137,7 +136,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
     /** Returns the number of elements in the specified
      * sequence that satisfies a condition. */
-    int count(FunctionExpression<Predicate1<TSource>> func);
+    int count(FunctionExpression<Predicate1<TSource>> predicate);
 
     /** Returns the elements of the specified sequence or
      * the type parameter's default value in a singleton collection if
@@ -230,7 +229,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      * elements for each group by using a specified function. Key
      * values are compared by using a specified comparer.
      */
-    <TKey, TElement> Queryable<TElement> groupBy(
+    <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
         FunctionExpression<Function1<TSource, TKey>> keySelector,
         FunctionExpression<Function1<TSource, TElement>> elementSelector,
         EqualityComparer comparer);
@@ -326,7 +325,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
     /** Returns the last element of a sequence that
      * satisfies a specified condition. */
-    Queryable<TSource> last(FunctionExpression<Predicate1<TSource>> predicate);
+    TSource last(FunctionExpression<Predicate1<TSource>> predicate);
 
     /** Returns the last element in a sequence, or a
      * default value if the sequence contains no elements. */
@@ -613,7 +612,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      * predicate. Each element's index is used in the logic of the
      * predicate function. */
     Queryable<TSource> whereN(
-        FunctionExpression<Function2<TSource, Integer, Boolean>> predicate);
+        FunctionExpression<Predicate2<TSource, Integer>> predicate);
 
     /** Merges two sequences by using the specified
      * predicate function. */

@@ -17,10 +17,14 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import net.hydromatic.linq4j.function.Function;
+
 /**
  * Represents a visitor or rewriter for expression trees.
  */
 public interface ExpressionVisitor {
+    /** Visits the children of the delegate expression. */
+    <T extends Function<?>> void visitLambda(FunctionExpression<T> expression);
 }
 
 // End ExpressionVisitor.java

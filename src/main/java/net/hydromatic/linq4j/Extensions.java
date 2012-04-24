@@ -277,7 +277,7 @@ public class Extensions {
     /** Computes the average of a sequence of Decimal
      * values that are obtained by invoking a transform function on
      * each element of the input sequence. */
-    public static <TSource> BigDecimal averageDecimal(
+    public static <TSource> BigDecimal average(
         Enumerable<TSource> enumerable,
         Function1<TSource, BigDecimal> selector)
     {
@@ -512,7 +512,7 @@ public class Extensions {
 
     /** Concatenates two sequences. */
     public static <TSource> Queryable<TSource> concat(
-        Queryable<TSource> queryable0, Queryable<TSource> queryable1)
+        Queryable<TSource> queryable0, Enumerable<TSource> source2)
     {
         throw Extensions.todo();
     }
@@ -903,10 +903,8 @@ public class Extensions {
     public static <TSource, TKey, TElement>
     Enumerable<Grouping<TKey, TElement>> groupBy(
         Enumerable<TSource> enumerable,
-        Function1<TSource,
-        TKey> keySelector,
-        Function1<TSource,
-        TElement> elementSelector,
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector,
         EqualityComparer comparer)
     {
         throw Extensions.todo();
@@ -929,7 +927,8 @@ public class Extensions {
      * elements for each group by using a specified function. Key
      * values are compared by using a specified comparer.
      */
-    public static <TSource, TKey, TElement> Queryable<TElement> groupBy(
+    public static <TSource, TKey, TElement>
+    Queryable<Grouping<TKey, TElement>> groupBy(
         Queryable<TSource> queryable,
         FunctionExpression<Function1<TSource, TKey>> keySelector,
         FunctionExpression<Function1<TSource, TElement>> elementSelector,
@@ -1277,7 +1276,7 @@ public class Extensions {
 
     /** Returns the last element of a sequence that
      * satisfies a specified condition. */
-    public static <TSource> Queryable<TSource> last(
+    public static <TSource> TSource last(
         Queryable<TSource> queryable,
         FunctionExpression<Predicate1<TSource>> predicate)
     {
@@ -2618,7 +2617,7 @@ public class Extensions {
      * predicate function. */
     public static <TSource> Queryable<TSource> whereN(
         Queryable<TSource> source,
-        FunctionExpression<Function2<TSource, Integer, Boolean>> predicate)
+        FunctionExpression<Predicate2<TSource, Integer>> predicate)
     {
         throw Extensions.todo();
     }

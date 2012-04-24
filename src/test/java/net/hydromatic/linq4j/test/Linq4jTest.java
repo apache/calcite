@@ -20,6 +20,7 @@ package net.hydromatic.linq4j.test;
 import junit.framework.TestCase;
 
 import net.hydromatic.linq4j.*;
+import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.*;
 
 import java.util.*;
@@ -427,6 +428,48 @@ public class Linq4jTest extends TestCase {
         assertTrue(productAbcXy.moveNext());
         assertTrue(productAbcXy.moveNext());
         assertFalse(productAbcXy.moveNext());
+    }
+
+    public void testAsQueryable() {
+        // "count" is an Enumerable method.
+        final int n =
+        Linq4j.asEnumerable(emps)
+            .asQueryable()
+            .count();
+        assertEquals(4, n);
+
+        FunctionExpression<Predicate1<Employee>> y =
+            Expressions.<Predicate1<Employee>>lambda(
+                (Predicate1<Employee>)
+                new Predicate1<Employee>() {
+                    public boolean apply(Employee v1) {
+                        return v1.deptno == 10;
+                    }
+                });
+
+        // "where" is a Queryable method
+        // first, use a lambda
+        final Queryable<Employee> nh =
+            Linq4j.asEnumerable(emps)
+                .asQueryable()
+                .where(y);
+        assertEquals(3, nh.count());
+
+        // second, use an expression
+        final Queryable<Employee> nh2 =
+            Linq4j.asEnumerable(emps)
+                .asQueryable()
+                .where(
+                    Expressions.lambda(
+                        (Predicate1<Boolean>) null /*
+                            (Function)
+                            new Predicate1<Employee>() {
+                                public boolean apply(Employee v1) {
+                                    return v1.deptno == 10;
+                                }
+                            }
+                    */));
+        assertEquals(3, nh.count());
     }
 
     public static class Employee {
