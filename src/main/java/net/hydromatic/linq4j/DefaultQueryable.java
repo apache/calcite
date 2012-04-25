@@ -506,14 +506,22 @@ abstract class DefaultQueryable<T>
         return Extensions.takeWhileN(getThis(), predicate);
     }
 
-    public Queryable<T> where(FunctionExpression<Predicate1<T>> predicate) {
-        return Extensions.where(getThis(), predicate);
+    public Queryable<T> where(
+        FunctionExpression<? extends Predicate1<T>> predicate)
+    {
+        //noinspection unchecked
+        return Extensions.where(
+            getThis(),
+            (FunctionExpression<Predicate1<T>>) predicate);
     }
 
     public Queryable<T> whereN(
-        FunctionExpression<Predicate2<T, Integer>> predicate)
+        FunctionExpression<? extends Predicate2<T, Integer>> predicate)
     {
-        return Extensions.whereN(getThis(), predicate);
+        //noinspection unchecked
+        return Extensions.whereN(
+            getThis(),
+            (FunctionExpression<Predicate2<T,Integer>>) predicate);
     }
 
     public <T1, TResult> Queryable<TResult> zip(

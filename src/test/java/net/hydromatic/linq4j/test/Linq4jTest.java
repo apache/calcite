@@ -440,22 +440,21 @@ public class Linq4jTest extends TestCase {
 
         // "where" is a Queryable method
         // first, use a lambda
-            ParameterExpression parameter =
-                Expressions.parameter(Employee.class);
-            final Queryable<Employee> nh =
+        ParameterExpression parameter =
+            Expressions.parameter(Employee.class);
+        final Queryable<Employee> nh =
             Linq4j.asEnumerable(emps)
                 .asQueryable()
                 .where(
-                    (FunctionExpression<Predicate1<Employee>>)
-                        (FunctionExpression)
-                            Expressions.lambda(
-                                Expressions.equal(
-                                    Expressions.field(
-                                        parameter,
-                                        Employee.class,
-                                        "deptno"),
-                                    Expressions.constant(10)),
-                                parameter));
+                    Expressions.lambda(
+                        Predicate1.class,
+                        Expressions.equal(
+                            Expressions.field(
+                                parameter,
+                                Employee.class,
+                                "deptno"),
+                            Expressions.constant(10)),
+                        parameter));
         assertEquals(3, nh.count());
 
         // second, use an expression
@@ -463,16 +462,39 @@ public class Linq4jTest extends TestCase {
             Linq4j.asEnumerable(emps)
                 .asQueryable()
                 .where(
-                    (FunctionExpression<Predicate1<Employee>>)
-                        (FunctionExpression)
                     Expressions.lambda(
-                            new Predicate1<Employee>() {
-                                public boolean apply(Employee v1) {
-                                    return v1.deptno == 10;
-                                }
+                        new Predicate1<Employee>() {
+                            public boolean apply(Employee v1) {
+                                return v1.deptno == 10;
                             }
+                        }
                     ));
         assertEquals(3, nh2.count());
+
+        // use lambda, this time call whereN
+        ParameterExpression parameterE =
+            Expressions.parameter(Employee.class);
+        ParameterExpression parameterN =
+            Expressions.parameter(Integer.TYPE);
+        final Queryable<Employee> nh3 =
+            Linq4j.asEnumerable(emps)
+                .asQueryable()
+                .whereN(
+                    Expressions.lambda(
+                        Predicate2.class,
+                        Expressions.andAlso(
+                        Expressions.equal(
+                            Expressions.field(
+                                parameterE,
+                                Employee.class,
+                                "deptno"),
+                            Expressions.constant(10)),
+                            Expressions.lessThan(
+                                parameterN,
+                                Expressions.constant(3))),
+                        parameterE,
+                        parameterN));
+        assertEquals(2, nh3.count());
     }
 
     public static class Employee {

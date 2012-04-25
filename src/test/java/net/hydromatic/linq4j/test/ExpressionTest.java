@@ -28,17 +28,17 @@ import java.util.*;
  * and subclasses.
  */
 public class ExpressionTest extends TestCase {
-    public void testLambda() {
+    public void testLambdaCallsBinaryOp() {
         // A parameter for the lambda expression.
         ParameterExpression paramExpr =
             Expressions.parameter(Integer.TYPE, "arg");
 
         // This expression represents a lambda expression
         // that adds 1 to the parameter value.
-        LambdaExpression lambdaExpr = Expressions.lambda(
+        FunctionExpression lambdaExpr = Expressions.lambda(
             Expressions.add(
                 paramExpr,
-                Expressions.constant(1)),
+                Expressions.constant(2)),
             Arrays.asList(paramExpr));
 
         // Print out the expression.
@@ -50,8 +50,37 @@ public class ExpressionTest extends TestCase {
 
         // This code example produces the following output:
         //
-        // arg => (arg +1)
-        // 2
+        // arg => (arg +2)
+        // 3
+        assertEquals(3, n);
+    }
+
+    public void testLambdaCallsTwoArgMethod() throws NoSuchMethodException {
+        // A parameter for the lambda expression.
+        ParameterExpression paramS =
+            Expressions.parameter(String.class, "s");
+        ParameterExpression paramBegin =
+            Expressions.parameter(Integer.TYPE, "begin");
+        ParameterExpression paramEnd =
+            Expressions.parameter(Integer.TYPE, "end");
+
+        // This expression represents a lambda expression
+        // that adds 1 to the parameter value.
+        FunctionExpression lambdaExpr =
+            Expressions.lambda(
+                Expressions.call(
+                    paramS,
+                    String.class.getMethod(
+                        "substring", Integer.TYPE, Integer.TYPE),
+                    paramBegin,
+                    paramEnd),
+                paramS, paramBegin, paramEnd);
+
+        // Compile and run the lambda expression.
+        String s =
+            (String) lambdaExpr.compile().dynamicInvoke("hello world", 3, 7);
+
+        assertEquals("lo w", s);
     }
 }
 

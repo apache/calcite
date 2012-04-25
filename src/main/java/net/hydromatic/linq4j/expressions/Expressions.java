@@ -18,12 +18,10 @@
 package net.hydromatic.linq4j.expressions;
 
 import net.hydromatic.linq4j.Extensions;
-import net.hydromatic.linq4j.function.Function;
+import net.hydromatic.linq4j.function.*;
 
 import java.lang.reflect.*;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Utility methods for expressions, including a lot of factory methods.
@@ -42,7 +40,7 @@ public class Expressions {
         Expression expression0,
         Expression expression1)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.Add, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
@@ -62,7 +60,7 @@ public class Expressions {
         Expression expression0,
         Expression expression1)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.AddAssign, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents an addition
@@ -93,7 +91,7 @@ public class Expressions {
         Expression expression0,
         Expression expression1)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.AddAssignChecked, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents an addition
@@ -123,7 +121,7 @@ public class Expressions {
         Expression expression0,
         Expression expression1)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.AddChecked, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
@@ -141,7 +139,7 @@ public class Expressions {
         Expression expression0,
         Expression expression1)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.And, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents a bitwise AND
@@ -160,7 +158,7 @@ public class Expressions {
     public static BinaryExpression andAlso(
         Expression expression0, Expression expression1)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.AndAlso, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents a conditional AND
@@ -400,35 +398,46 @@ public class Expressions {
         Expression expression,
         Method method)
     {
-        throw Extensions.todo();
+        return new MethodCallExpression(
+            method,
+            expression,
+            Collections.<Expression>emptyList());
     }
 
     /** Creates a MethodCallExpression that represents a call to a
-     * static (Shared in Visual Basic) method. */
+     * static method. */
     public static MethodCallExpression call(
         Method method,
         Iterable<Expression> expressions)
     {
-        throw Extensions.todo();
+        return new MethodCallExpression(
+            method,
+            null,
+            toList(expressions));
     }
 
     /** Creates a MethodCallExpression that represents a call to a
-     * static (Shared in Visual Basic) method that takes one
-     * argument. */
+     * static method that takes one argument. */
     public static MethodCallExpression call(
         Method method,
         Expression expression)
     {
-        throw Extensions.todo();
+        return new MethodCallExpression(
+            method,
+            null,
+            Collections.singletonList(expression));
     }
 
     /** Creates a MethodCallExpression that represents a call to a
-     * static (Shared in Visual Basic) method that has arguments. */
+     * static method that has arguments. */
     public static MethodCallExpression call(
         Method method,
-        Expression[] expressions)
+        Expression[] arguments)
     {
-        throw Extensions.todo();
+        return new MethodCallExpression(
+            method,
+            null,
+            Arrays.asList(arguments));
     }
 
     /** Creates a MethodCallExpression that represents a call to a
@@ -438,7 +447,10 @@ public class Expressions {
         Method method,
         Iterable<Expression> arguments)
     {
-        throw Extensions.todo();
+        return new MethodCallExpression(
+            method,
+            expression,
+            toList(arguments));
     }
 
     /** Creates a MethodCallExpression that represents a call to a
@@ -448,17 +460,23 @@ public class Expressions {
         Method method,
         Expression[] arguments)
     {
-        throw Extensions.todo();
+        return new MethodCallExpression(
+            method,
+            expression,
+            Arrays.asList(arguments));
     }
 
     /** Creates a MethodCallExpression that represents a call to a
      * static method that takes two arguments. */
     public static MethodCallExpression call(
         Method method,
-        Expression expression0,
-        Expression expression1)
- {
-        throw Extensions.todo();
+        Expression argument0,
+        Expression argument1)
+    {
+        return new MethodCallExpression(
+            method,
+            null,
+            Arrays.asList(argument0, argument1));
     }
 
     /** Creates a MethodCallExpression that represents a call to an
@@ -466,10 +484,13 @@ public class Expressions {
     public static MethodCallExpression call(
         Expression expression,
         Method method,
-        Expression expression0,
-        Expression expression1)
+        Expression argument0,
+        Expression argument1)
     {
-        throw Extensions.todo();
+        return new MethodCallExpression(
+            method,
+            expression,
+            Arrays.asList(argument0, argument1));
     }
 
     /** Creates a MethodCallExpression that represents a call to an
@@ -491,7 +512,10 @@ public class Expressions {
         Expression expression1,
         Expression expression2)
     {
-        throw Extensions.todo();
+        return new MethodCallExpression(
+            method,
+            null,
+            Arrays.asList(expression0, expression1, expression2));
     }
 
     /** Creates a MethodCallExpression that represents a call to a
@@ -515,7 +539,10 @@ public class Expressions {
         Expression argument1,
         Expression argument2)
     {
-        throw Extensions.todo();
+        return new MethodCallExpression(
+            method,
+            expression,
+            Arrays.asList(argument0, argument1, argument2));
     }
 
     /** Creates a MethodCallExpression that represents a call to a
@@ -527,7 +554,10 @@ public class Expressions {
         Expression argument2,
         Expression argument3)
     {
-        throw Extensions.todo();
+        return new MethodCallExpression(
+            method,
+            null,
+            Arrays.asList(argument0, argument1, argument2, argument3));
     }
 
     /** Creates a MethodCallExpression that represents a call to a
@@ -540,7 +570,11 @@ public class Expressions {
         Expression argument3,
         Expression argument4)
     {
-        throw Extensions.todo();
+        return new MethodCallExpression(
+            method,
+            null,
+            Arrays.asList(
+                argument0, argument1, argument2, argument3, argument4));
     }
 
     /** Creates a CatchBlock representing a catch statement with a
@@ -936,7 +970,8 @@ public class Expressions {
             Field field = type.getField(fieldName);
             return makeMemberAccess(expression, field);
         } catch (NoSuchFieldException e) {
-            throw new RuntimeException("Unknown field '" + fieldName + "' in class " + type);
+            throw new RuntimeException(
+                "Unknown field '" + fieldName + "' in class " + type);
         }
     }
 
@@ -993,7 +1028,7 @@ public class Expressions {
     public static BinaryExpression greaterThan(
         Expression expression0, Expression expression1)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.GreaterThan, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents a "greater than"
@@ -1013,7 +1048,8 @@ public class Expressions {
     public static BinaryExpression greaterThanOrEqual(
         Expression expression0, Expression expression1)
     {
-        throw Extensions.todo();
+        return makeBinary(
+            ExpressionType.GreaterThanOrEqual, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents a "greater than or
@@ -1139,11 +1175,7 @@ public class Expressions {
         // default constructor, etc.?
 
         //noinspection unchecked
-        return new FunctionExpression<F>(
-            (Class<F>) function.getClass(),
-            function,
-            null,
-            Collections.<ParameterExpression>emptyList());
+        return new FunctionExpression<F>(function);
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
@@ -1153,7 +1185,33 @@ public class Expressions {
         Expression body,
         Iterable<ParameterExpression> parameters)
     {
-        return new FunctionExpression<F>(null, null, body, parameters);
+        final List<ParameterExpression> parameterList = toList(parameters);
+        Class<F> type = deduceType(parameterList);
+        return new FunctionExpression<F>(type, body, parameterList);
+    }
+
+    private static Class deduceType(List<ParameterExpression> parameterList) {
+        switch (parameterList.size()) {
+        case 0:
+            return Function0.class;
+        case 1:
+            return Function1.class;
+        case 2:
+            return Function2.class;
+        default:
+            return Function.class;
+        }
+    }
+
+    private static <T> List<T> toList(Iterable<T> iterable) {
+        if (iterable instanceof List) {
+            return (List<T>) iterable;
+        }
+        final List<T> list = new ArrayList<T>();
+        for (T parameter : iterable) {
+            list.add(parameter);
+        }
+        return list;
     }
 
     /** Creates an Expression<TDelegate> where the delegate type is
@@ -1204,11 +1262,11 @@ public class Expressions {
      * compile time. */
     public static <T, F extends Function<? extends T>>
     FunctionExpression<F> lambda(
-        Class type,
+        Class<F> type,
         Expression body,
         Iterable<ParameterExpression> parameters)
     {
-        throw Extensions.todo();
+        return new FunctionExpression<F>(type, body, toList(parameters));
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
@@ -1216,7 +1274,7 @@ public class Expressions {
      * compile time. */
     public static <T, F extends Function<? extends T>>
     FunctionExpression<F> lambda(
-        Class type,
+        Class<F> type,
         Expression body,
         ParameterExpression... parameters)
     {
@@ -1355,7 +1413,7 @@ public class Expressions {
     public static BinaryExpression lessThan(
         Expression expression0, Expression expression1)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.LessThan, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents a "less than"
@@ -1374,7 +1432,8 @@ public class Expressions {
     public static BinaryExpression lessThanOrEqual(
         Expression expression0, Expression expression1)
     {
-        throw Extensions.todo();
+        return makeBinary(
+            ExpressionType.LessThanOrEqual, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents a "less than or
@@ -1497,8 +1556,22 @@ public class Expressions {
         Expression expression0,
         Expression expression1)
     {
+        final Class type;
+        switch (binaryType) {
+        case Equal:
+        case NotEqual:
+        case LessThan:
+        case LessThanOrEqual:
+        case GreaterThan:
+        case GreaterThanOrEqual:
+            type = Boolean.TYPE;
+            break;
+        default:
+            type = expression0.getType();
+            break;
+        }
         return new BinaryExpression(
-            binaryType, expression0.getType(), expression0, expression1);
+            binaryType, type, expression0, expression1);
     }
 
     /** Creates a BinaryExpression, given the left operand, right

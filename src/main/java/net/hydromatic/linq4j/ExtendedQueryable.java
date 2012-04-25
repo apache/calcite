@@ -606,13 +606,14 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
     /** Filters a sequence of values based on a
      * predicate. */
-    Queryable<TSource> where(FunctionExpression<Predicate1<TSource>> predicate);
+    Queryable<TSource> where(
+        FunctionExpression<? extends Predicate1<TSource>> predicate);
 
     /** Filters a sequence of values based on a
      * predicate. Each element's index is used in the logic of the
      * predicate function. */
     Queryable<TSource> whereN(
-        FunctionExpression<Predicate2<TSource, Integer>> predicate);
+        FunctionExpression<? extends Predicate2<TSource, Integer>> predicate);
 
     /** Merges two sequences by using the specified
      * predicate function. */

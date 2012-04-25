@@ -17,12 +17,49 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.List;
+
 /**
  * Represents a call to either static or an instance method.
  */
 public class MethodCallExpression extends Expression {
-    public MethodCallExpression(Class type) {
-        super(ExpressionType.Call, type);
+    private final Method method;
+    private final Expression targetExpression;
+    private final List<Expression> expressions;
+
+    public MethodCallExpression(
+        Method method,
+        Expression targetExpression,
+        List<Expression> expressions)
+    {
+        super(ExpressionType.Call, method.getReturnType());
+        this.method = method;
+        this.targetExpression = targetExpression;
+        this.expressions = expressions;
+    }
+
+    @Override
+    public Object evaluate(Evaluator evaluator) {
+        final Object target;
+        if (targetExpression == null) {
+            target = null;
+        } else {
+            target = targetExpression.evaluate(evaluator);
+        }
+        final Object[] args = new Object[expressions.size()];
+        for (int i = 0; i < expressions.size(); i++) {
+            Expression expression = expressions.get(i);
+            args[i] = expression.evaluate(evaluator);
+        }
+        try {
+            return method.invoke(target, args);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("error while evaluating " + this, e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException("error while evaluating " + this, e);
+        }
     }
 }
 

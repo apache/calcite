@@ -17,9 +17,6 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import net.hydromatic.linq4j.Extensions;
-import net.hydromatic.linq4j.function.DynamicFunction;
-
 /**
  * <p>Analogous to LINQ's System.Linq.Expression.</p>
  */
@@ -54,14 +51,9 @@ public abstract class Expression {
         return type;
     }
 
-    public DynamicFunction compile() {
-        final ExpressionCompiler compiler = new ExpressionCompiler();
-        accept(compiler);
-        return compiler.function();
-    }
-
-    void accept(ExpressionCompiler compiler) {
-        // default implementation is to do nothing
+    public Object evaluate(Evaluator evaluator) {
+        throw new RuntimeException(
+            "evaluation not supported: " + this + ":" + nodeType);
     }
 }
 

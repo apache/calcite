@@ -33,6 +33,10 @@ public class ParameterExpression extends Expression {
         super(ExpressionType.Parameter, type);
         this.name = name;
     }
+
+    public Object evaluate(Evaluator evaluator) {
+        return evaluator.peek(this);
+    }
 }
 
 // End ParameterExpression.java

@@ -32,11 +32,13 @@ public class MemberExpression extends Expression {
         this.field = field;
     }
 
-    @Override
-    void accept(ExpressionCompiler compiler) {
-        expression.accept(compiler);
-        compiler.output(".");
-        compiler.output(field.getName());
+    public Object evaluate(Evaluator evaluator) {
+        final Object o = expression.evaluate(evaluator);
+        try {
+            return field.get(o);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("error while evaluating " + this, e);
+        }
     }
 }
 

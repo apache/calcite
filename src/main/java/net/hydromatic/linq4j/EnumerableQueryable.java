@@ -608,13 +608,15 @@ class EnumerableQueryable<T>
             .asQueryable();
     }
 
-    public Queryable<T> where(FunctionExpression<Predicate1<T>> predicate) {
+    public Queryable<T> where(
+        FunctionExpression<? extends Predicate1<T>> predicate)
+    {
         return Extensions.where(getThis(), predicate.getFunction())
             .asQueryable();
     }
 
     public Queryable<T> whereN(
-        FunctionExpression<Predicate2<T, Integer>> predicate)
+        FunctionExpression<? extends Predicate2<T, Integer>> predicate)
     {
         return Extensions.where(getThis(), predicate.getFunction())
             .asQueryable();

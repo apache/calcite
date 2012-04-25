@@ -27,6 +27,10 @@ public class ConstantExpression extends Expression {
         super(ExpressionType.Constant, type);
         this.value = value;
     }
+
+    public Object evaluate(Evaluator evaluator) {
+        return value;
+    }
 }
 
 // End ConstantExpression.java

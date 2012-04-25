@@ -84,10 +84,16 @@ Please let us know if you are starting one.
 Already implemented
 ===================
 
-* For Enumerable: select, selectMany, where;
-  count, longCount;
-  cast, ofType;
-  toMap, toLookup (except variants that require EqualityComparer).
+Methods on Enumerable:
+* select, selectMany, where, groupJoin, join;
+* count, longCount;
+* cast, ofType;
+* toMap, toLookup
+
+Methods on Queryable:
+* where, whereN
+
+(Except methods that involve EqualityComparer.)
 
 More information
 ================
@@ -95,4 +101,5 @@ More information
 * License: Apache License, Version 2.0.
 * Author: Julian Hyde
 * Blog: http://julianhyde.blogspot.com
-
+* Project page: http://www.hydromatic.net/linq4j
+* Source code: http://github.com/julianhyde/linq4j
