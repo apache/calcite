@@ -22,7 +22,7 @@ package net.hydromatic.linq4j.expressions;
  */
 public class TypeBinaryExpression extends Expression {
     public TypeBinaryExpression(ExpressionType nodeType) {
-        super(nodeType);
+        super(nodeType, Boolean.TYPE);
     }
 }
 

@@ -22,8 +22,8 @@ package net.hydromatic.linq4j.expressions;
  * to a Java method body.
  */
 public class LambdaExpression extends Expression {
-    public LambdaExpression(ExpressionType nodeType) {
-        super(nodeType);
+    public LambdaExpression(ExpressionType nodeType, Class type) {
+        super(nodeType, type);
     }
 }
 

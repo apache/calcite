@@ -17,12 +17,26 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Field;
+
 /**
  * Represents accessing a field or property.
  */
 public class MemberExpression extends Expression {
-    public MemberExpression(ExpressionType nodeType) {
-        super(nodeType);
+    private final Expression expression;
+    private final Field field;
+
+    public MemberExpression(Expression expression, Field field) {
+        super(ExpressionType.MemberAccess, field.getType());
+        this.expression = expression;
+        this.field = field;
+    }
+
+    @Override
+    void accept(ExpressionCompiler compiler) {
+        expression.accept(compiler);
+        compiler.output(".");
+        compiler.output(field.getName());
     }
 }
 

@@ -22,7 +22,7 @@ package net.hydromatic.linq4j.expressions;
  */
 public class LoopExpression extends Expression {
     public LoopExpression(ExpressionType nodeType) {
-        super(nodeType);
+        super(nodeType, Void.TYPE);
     }
 }
 

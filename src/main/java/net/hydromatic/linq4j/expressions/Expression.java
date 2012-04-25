@@ -19,21 +19,22 @@ package net.hydromatic.linq4j.expressions;
 
 import net.hydromatic.linq4j.Extensions;
 import net.hydromatic.linq4j.function.DynamicFunction;
-import net.hydromatic.linq4j.function.Function;
 
 /**
  * <p>Analogous to LINQ's System.Linq.Expression.</p>
  */
 public abstract class Expression {
     public final ExpressionType nodeType;
+    public final Class type;
 
     /**
      * Creates an Expression.
      *
      * @param nodeType Node type
      */
-    public Expression(ExpressionType nodeType) {
+    public Expression(ExpressionType nodeType, Class type) {
         this.nodeType = nodeType;
+        this.type = type;
     }
 
     /** Indicates that the node can be reduced to a simpler node. If this
@@ -50,7 +51,7 @@ public abstract class Expression {
     /** Gets the static type of the expression that this Expression
      * represents. */
     public Class getType() {
-        throw Extensions.todo();
+        return type;
     }
 
     public DynamicFunction compile() {

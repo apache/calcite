@@ -23,7 +23,7 @@ package net.hydromatic.linq4j.expressions;
  */
 public class BlockExpression extends Expression {
     public BlockExpression(ExpressionType nodeType) {
-        super(nodeType);
+        super(nodeType, Void.TYPE);
     }
 }
 

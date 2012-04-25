@@ -2542,6 +2542,7 @@ public class Extensions {
         final Enumerable<TSource> source,
         final Predicate1<TSource> predicate)
     {
+        assert predicate != null;
         return new AbstractEnumerable<TSource>() {
             public Enumerator<TSource> enumerator() {
                 final Enumerator<TSource> enumerator = source.enumerator();

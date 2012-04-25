@@ -24,8 +24,8 @@ package net.hydromatic.linq4j.expressions;
 public class GotoExpression extends Expression {
     public final GotoExpressionKind kind;
 
-    public GotoExpression(GotoExpressionKind kind, ExpressionType nodeType) {
-        super(nodeType);
+    public GotoExpression(GotoExpressionKind kind) {
+        super(ExpressionType.Goto, Void.TYPE);
         this.kind = kind;
     }
 }

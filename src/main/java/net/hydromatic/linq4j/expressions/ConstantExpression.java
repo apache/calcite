@@ -21,8 +21,11 @@ package net.hydromatic.linq4j.expressions;
  * Represents an expression that has a constant value.
  */
 public class ConstantExpression extends Expression {
-    public ConstantExpression(ExpressionType nodeType) {
-        super(nodeType);
+    final Object value;
+
+    public ConstantExpression(Class type, Object value) {
+        super(ExpressionType.Constant, type);
+        this.value = value;
     }
 }
 

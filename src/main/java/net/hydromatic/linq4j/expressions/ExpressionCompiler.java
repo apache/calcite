@@ -25,6 +25,7 @@ import net.hydromatic.linq4j.function.Function;
  */
 class ExpressionCompiler implements ExpressionVisitor {
     final DynamicFunction function = null;
+    final StringBuilder buf = new StringBuilder();
 
     /**
      * Returns an invokable function that is the result of compilation.
@@ -38,6 +39,10 @@ class ExpressionCompiler implements ExpressionVisitor {
     public <T extends Function<?>> void visitLambda(
         FunctionExpression<T> expression)
     {
+    }
+
+    public void output(String s) {
+        buf.append(s);
     }
 }
 

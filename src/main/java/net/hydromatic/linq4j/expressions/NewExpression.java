@@ -21,8 +21,8 @@ package net.hydromatic.linq4j.expressions;
  * Represents a constructor call.
  */
 public class NewExpression extends Expression {
-    public NewExpression(ExpressionType nodeType) {
-        super(nodeType);
+    public NewExpression(ExpressionType nodeType, Class type) {
+        super(nodeType, type);
     }
 }
 

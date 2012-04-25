@@ -21,8 +21,17 @@ package net.hydromatic.linq4j.expressions;
  * Represents a named parameter expression.
  */
 public class ParameterExpression extends Expression {
-    public ParameterExpression(ExpressionType nodeType) {
-        super(nodeType);
+    private static int seq = 0;
+
+    final String name;
+
+    public ParameterExpression(Class type) {
+        this(type, "p" + seq++);
+    }
+
+    public ParameterExpression(Class type, String name) {
+        super(ExpressionType.Parameter, type);
+        this.name = name;
     }
 }
 

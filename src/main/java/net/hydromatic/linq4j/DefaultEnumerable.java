@@ -42,6 +42,14 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         return this;
     }
 
+    public <R> R foreach(Function1<T, R> func) {
+        R result = null;
+        for (T t : this) {
+            result = func.apply(t);
+        }
+        return result;
+    }
+
     public Queryable<T> asQueryable() {
         return this instanceof Queryable
             ? ((Queryable<T>) this)

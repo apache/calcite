@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.function.Function;
 
 import java.lang.reflect.*;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 
 /**
@@ -628,7 +629,7 @@ public class Expressions {
     /** Creates a ConstantExpression that has the Value property set
      * to the specified value. */
     public static ConstantExpression constant(Object value) {
-        throw Extensions.todo();
+        return new ConstantExpression(value.getClass(), value);
     }
 
     /** Creates a ConstantExpression that has the Value and Type
@@ -851,7 +852,7 @@ public class Expressions {
     public static BinaryExpression equal(
         Expression expression0, Expression expression1)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.Equal, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents an equality
@@ -931,7 +932,12 @@ public class Expressions {
     public static MemberExpression field(
         Expression expression, Class type, String fieldName)
     {
-        throw Extensions.todo();
+        try {
+            Field field = type.getField(fieldName);
+            return makeMemberAccess(expression, field);
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException("Unknown field '" + fieldName + "' in class " + type);
+        }
     }
 
     /** Creates a Type object that represents a generic System.Action
@@ -1127,31 +1133,43 @@ public class Expressions {
     }
 
     /** Creates a FunctionExpression from an actual function. */
-    public static <T, F extends Function<? extends T>>
+    public static <T, F extends Function<T>>
     FunctionExpression<F> lambda(F function) {
         // REVIEW: Check that that function class is non-inner, has a public
         // default constructor, etc.?
 
         //noinspection unchecked
         return new FunctionExpression<F>(
-            ExpressionType.Lambda,
-            null, // (Class<F>) (Class) function.getClass(),
-            null); // (Function<?>) function);
+            (Class<F>) function.getClass(),
+            function,
+            null,
+            Collections.<ParameterExpression>emptyList());
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
     public static <T, F extends Function<? extends T>>
     FunctionExpression<F> lambda(
-        Expression body, Iterable<ParameterExpression> parameters)
+        Expression body,
+        Iterable<ParameterExpression> parameters)
     {
-        throw Extensions.todo();
+        return new FunctionExpression<F>(null, null, body, parameters);
+    }
+
+    /** Creates an Expression<TDelegate> where the delegate type is
+     * known at compile time. */
+    public static <TDelegate extends Function<?>>
+    FunctionExpression<TDelegate> lambda(
+        Expression body,
+        ParameterExpression... parameters)
+    {
+        return lambda(body, Arrays.asList(parameters));
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
     public static <T, F extends Function<? extends T>>
-    FunctionExpression<F> lambdaE(
+    FunctionExpression<F> lambda(
         Expression body,
         boolean tailCall,
         Iterable<ParameterExpression> parameters)
@@ -1186,7 +1204,9 @@ public class Expressions {
      * compile time. */
     public static <T, F extends Function<? extends T>>
     FunctionExpression<F> lambda(
-        Class type, Expression body, Iterable<ParameterExpression> parameters)
+        Class type,
+        Expression body,
+        Iterable<ParameterExpression> parameters)
     {
         throw Extensions.todo();
     }
@@ -1198,7 +1218,7 @@ public class Expressions {
     FunctionExpression<F> lambda(
         Class type,
         Expression body,
-        ParameterExpression[] parameters)
+        ParameterExpression... parameters)
     {
         return lambda(type, body, Arrays.asList(parameters));
     }
@@ -1267,46 +1287,10 @@ public class Expressions {
     /** Creates an Expression<TDelegate> where the delegate type is
      * known at compile time. */
     public static <TDelegate extends Function<?>>
-    FunctionExpression<TDelegate> lambdaE(
-        Expression body, Iterable<ParameterExpression> parameters)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates an Expression<TDelegate> where the delegate type is
-     * known at compile time. */
-    public static <TDelegate extends Function<?>>
-    FunctionExpression<TDelegate> lambda(
-        Expression body, ParameterExpression... parameters)
-    {
-        return lambdaE(body, Arrays.asList(parameters));
-    }
-
-    /** Creates an Expression<TDelegate> where the delegate type is
-     * known at compile time. */
-    public static <TDelegate extends Function<?>>
     FunctionExpression<TDelegate> lambda(
         Expression body,
-        boolean tailCall,
+        String name,
         Iterable<ParameterExpression> parameters)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates an Expression<TDelegate> where the delegate type is
-     * known at compile time. */
-    public static <TDelegate extends Function<?>>
-    FunctionExpression<TDelegate> lambdaT(
-        Expression body, boolean tailCall, ParameterExpression... parameters)
-    {
-        return lambda(body, tailCall, Arrays.asList(parameters));
-    }
-
-    /** Creates an Expression<TDelegate> where the delegate type is
-     * known at compile time. */
-    public static <TDelegate extends Function<?>>
-    FunctionExpression<TDelegate> lambda(
-        Expression body, String name, Iterable<ParameterExpression> parameters)
     {
         throw Extensions.todo();
     }
@@ -1513,7 +1497,8 @@ public class Expressions {
         Expression expression0,
         Expression expression1)
     {
-        throw Extensions.todo();
+        return new BinaryExpression(
+            binaryType, expression0.getType(), expression0, expression1);
     }
 
     /** Creates a BinaryExpression, given the left operand, right
@@ -1640,12 +1625,12 @@ public class Expressions {
         throw Extensions.todo();
     }
 
-    /** Creates a MemberExpression that represents accessing either a
-     * field or a property. */
+    /** Creates a MemberExpression that represents accessing a field. */
     public static MemberExpression makeMemberAccess(
-        Expression expression, Member member)
+        Expression expression,
+        Field member)
     {
-        throw Extensions.todo();
+        return new MemberExpression(expression, member);
     }
 
     /** Creates a TryExpression representing a try block with the
@@ -2175,13 +2160,13 @@ public class Expressions {
     /** Creates a ParameterExpression node that can be used to
      * identify a parameter or a variable in an expression tree. */
     public static ParameterExpression parameter(Class type) {
-        throw Extensions.todo();
+        return new ParameterExpression(type);
     }
 
     /** Creates a ParameterExpression node that can be used to
      * identify a parameter or a variable in an expression tree. */
     public static ParameterExpression parameter(Class type, String name) {
-        throw Extensions.todo();
+        return new ParameterExpression(type, name);
     }
 
     /** Creates a UnaryExpression that represents the assignment of

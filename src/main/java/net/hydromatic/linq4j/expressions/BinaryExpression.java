@@ -21,8 +21,18 @@ package net.hydromatic.linq4j.expressions;
  * Represents an expression that has a binary operator.
  */
 public class BinaryExpression extends Expression {
-    public BinaryExpression(ExpressionType nodeType) {
-        super(nodeType);
+    final Expression expression0;
+    final Expression expression1;
+
+    BinaryExpression(
+        ExpressionType nodeType,
+        Class type,
+        Expression expression0,
+        Expression expression1)
+    {
+        super(nodeType, type);
+        this.expression0 = expression0;
+        this.expression1 = expression1;
     }
 }
 

@@ -28,7 +28,7 @@ public class LabelExpression extends Expression {
     public final Expression defaultValue;
 
     public LabelExpression(Expression defaultValue, ExpressionType nodeType) {
-        super(nodeType);
+        super(nodeType, Void.TYPE);
         this.defaultValue = defaultValue;
     }
 }

@@ -22,7 +22,7 @@ package net.hydromatic.linq4j.expressions;
  */
 public class TryExpression extends Expression {
     public TryExpression(ExpressionType nodeType) {
-        super(nodeType);
+        super(nodeType, Void.TYPE);
     }
 }
 

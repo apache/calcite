@@ -26,16 +26,15 @@ import net.hydromatic.linq4j.function.Function;
 public final class FunctionExpression<F extends Function<?>>
     extends LambdaExpression
 {
-    private final Class<F> clazz;
     private final F function;
 
     public FunctionExpression(
-        ExpressionType nodeType,
-        Class<F> clazz,
-        F function)
+        Class<F> type,
+        F function,
+        Expression body,
+        Iterable<ParameterExpression> parameters)
     {
-        super(nodeType);
-        this.clazz = clazz;
+        super(ExpressionType.Lambda, type);
         this.function = function;
     }
 

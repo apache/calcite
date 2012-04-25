@@ -21,8 +21,8 @@ package net.hydromatic.linq4j.expressions;
  * Represents a call to either static or an instance method.
  */
 public class MethodCallExpression extends Expression {
-    public MethodCallExpression(ExpressionType nodeType) {
-        super(nodeType);
+    public MethodCallExpression(Class type) {
+        super(ExpressionType.Call, type);
     }
 }
 

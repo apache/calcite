@@ -21,8 +21,8 @@ package net.hydromatic.linq4j.expressions;
  * Represents indexing a property or array.
  */
 public class IndexExpression extends Expression {
-    public IndexExpression(ExpressionType nodeType) {
-        super(nodeType);
+    public IndexExpression(ExpressionType nodeType, Class type) {
+        super(nodeType, type);
     }
 }
 

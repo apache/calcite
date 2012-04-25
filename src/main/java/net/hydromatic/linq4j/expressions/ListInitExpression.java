@@ -21,8 +21,8 @@ package net.hydromatic.linq4j.expressions;
  * Represents a constructor call that has a collection initializer.
  */
 public class ListInitExpression extends Expression {
-    public ListInitExpression(ExpressionType nodeType) {
-        super(nodeType);
+    public ListInitExpression(ExpressionType nodeType, Class type) {
+        super(nodeType, type);
     }
 }
 

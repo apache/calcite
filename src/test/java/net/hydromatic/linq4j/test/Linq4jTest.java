@@ -438,21 +438,24 @@ public class Linq4jTest extends TestCase {
             .count();
         assertEquals(4, n);
 
-        FunctionExpression<Predicate1<Employee>> y =
-            Expressions.<Predicate1<Employee>>lambda(
-                (Predicate1<Employee>)
-                new Predicate1<Employee>() {
-                    public boolean apply(Employee v1) {
-                        return v1.deptno == 10;
-                    }
-                });
-
         // "where" is a Queryable method
         // first, use a lambda
-        final Queryable<Employee> nh =
+            ParameterExpression parameter =
+                Expressions.parameter(Employee.class);
+            final Queryable<Employee> nh =
             Linq4j.asEnumerable(emps)
                 .asQueryable()
-                .where(y);
+                .where(
+                    (FunctionExpression<Predicate1<Employee>>)
+                        (FunctionExpression)
+                            Expressions.lambda(
+                                Expressions.equal(
+                                    Expressions.field(
+                                        parameter,
+                                        Employee.class,
+                                        "deptno"),
+                                    Expressions.constant(10)),
+                                parameter));
         assertEquals(3, nh.count());
 
         // second, use an expression
@@ -460,22 +463,22 @@ public class Linq4jTest extends TestCase {
             Linq4j.asEnumerable(emps)
                 .asQueryable()
                 .where(
+                    (FunctionExpression<Predicate1<Employee>>)
+                        (FunctionExpression)
                     Expressions.lambda(
-                        (Predicate1<Boolean>) null /*
-                            (Function)
                             new Predicate1<Employee>() {
                                 public boolean apply(Employee v1) {
                                     return v1.deptno == 10;
                                 }
                             }
-                    */));
-        assertEquals(3, nh.count());
+                    ));
+        assertEquals(3, nh2.count());
     }
 
     public static class Employee {
-        final int empno;
-        final String name;
-        final int deptno;
+        public final int empno;
+        public final String name;
+        public final int deptno;
 
         public Employee(int empno, String name, int deptno) {
             this.empno = empno;
@@ -489,9 +492,9 @@ public class Linq4jTest extends TestCase {
     }
 
     public static class Department {
-        final String name;
-        final int deptno;
-        final List<Employee> employees;
+        public final String name;
+        public final int deptno;
+        public final List<Employee> employees;
 
         public Department(String name, int deptno, List<Employee> employees) {
             this.name = name;

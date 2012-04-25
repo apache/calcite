@@ -22,8 +22,8 @@ package net.hydromatic.linq4j.expressions;
  * new array.
  */
 public class NewArrayExpression extends Expression {
-    public NewArrayExpression(ExpressionType nodeType) {
-        super(nodeType);
+    public NewArrayExpression(ExpressionType nodeType, Class type) {
+        super(nodeType, type);
     }
 }
 

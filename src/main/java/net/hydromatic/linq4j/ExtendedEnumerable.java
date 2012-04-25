@@ -27,6 +27,13 @@ import java.util.*;
  */
 interface ExtendedEnumerable<TSource> {
 
+    /**
+     * Performs an operation for each member of the enumeration.
+     * @param func Operation
+     * @param <R> Return type
+     */
+    <R> R foreach(Function1<TSource, R> func);
+
     /** Applies an accumulator function over a
      * sequence. */
     TSource aggregate(Function2<TSource, TSource, TSource> func);

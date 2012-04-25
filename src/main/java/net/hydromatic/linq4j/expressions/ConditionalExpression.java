@@ -21,8 +21,8 @@ package net.hydromatic.linq4j.expressions;
  * Represents an expression that has a conditional operator.
  */
 public class ConditionalExpression extends Expression {
-    public ConditionalExpression(ExpressionType nodeType) {
-        super(nodeType);
+    public ConditionalExpression(ExpressionType nodeType, Class type) {
+        super(nodeType, type);
     }
 }
 

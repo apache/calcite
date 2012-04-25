@@ -23,7 +23,7 @@ package net.hydromatic.linq4j.expressions;
  */
 public class SwitchExpression extends Expression {
     public SwitchExpression(ExpressionType nodeType) {
-        super(nodeType);
+        super(nodeType, Void.TYPE);
     }
 }
 

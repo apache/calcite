@@ -22,8 +22,8 @@ package net.hydromatic.linq4j.expressions;
  * new object.
  */
 public class MemberInitExpression extends Expression {
-    public MemberInitExpression(ExpressionType nodeType) {
-        super(nodeType);
+    public MemberInitExpression() {
+        super(ExpressionType.MemberInit, Void.TYPE);
     }
 }
 
