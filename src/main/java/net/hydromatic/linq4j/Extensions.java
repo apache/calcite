@@ -523,8 +523,8 @@ public class Extensions {
         Enumerable<TSource> enumerable,
         TSource element)
     {
-        // TODO: Optimize if the enumerable has random access (e.g. is a
-        // HashSet)
+        // Implementations of Enumerable backed by a Collection call
+        // Collection.contains, which may be more efficient, not this method.
         for (TSource o : enumerable) {
             if (o.equals(element)) {
                 return true;

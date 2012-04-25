@@ -89,18 +89,51 @@ public class Linq4j {
     }
 
     /**
-     * Adapter that converts an iterable into an enumerable.
+     * Adapter that converts an {@link List} into an {@link Enumerable}.
+     *
+     * @param list List
+     * @param <T> Element type
+     * @return enumerable
+     */
+    public static <T> Enumerable<T> asEnumerable(final List<T> list) {
+        return new ListEnumerable<T>(list);
+    }
+
+    /**
+     * Adapter that converts an {@link Collection} into an {@link Enumerable}.
+     *
+     * <p>It uses more efficient implementations if the iterable happens to
+     * be a {@link List}.</p>
+     *
+     * @param collection Collection
+     * @param <T> Element type
+     * @return enumerable
+     */
+    public static <T> Enumerable<T> asEnumerable(final Collection<T> collection)
+    {
+        if (collection instanceof List) {
+            //noinspection unchecked
+            return asEnumerable((List) collection);
+        }
+        return new CollectionEnumerable<T>(collection);
+    }
+
+    /**
+     * Adapter that converts an {@link Iterable} into an {@link Enumerable}.
+     *
+     * <p>It uses more efficient implementations if the iterable happens to
+     * be a {@link Collection} or a {@link List}.</p>
      *
      * @param iterable Iterable
      * @param <T> Element type
      * @return enumerable
      */
     public static <T> Enumerable<T> asEnumerable(final Iterable<T> iterable) {
-        return new AbstractEnumerable<T>() {
-            public Enumerator<T> enumerator() {
-                return iterableEnumerator(iterable);
-            }
-        };
+        if (iterable instanceof Collection) {
+            //noinspection unchecked
+            return asEnumerable((Collection) iterable);
+        }
+        return new IterableEnumerable<T>(iterable);
     }
 
     /**
@@ -111,7 +144,7 @@ public class Linq4j {
      * @return enumerable
      */
     public static <T> Enumerable<T> asEnumerable(final T[] ts) {
-        return asEnumerable(Arrays.asList(ts));
+        return new ListEnumerable<T>(Arrays.asList(ts));
     }
 
     /**
@@ -278,8 +311,7 @@ public class Linq4j {
         private final Enumerator<Enumerable<E>> enumerableEnumerator;
 
         CompositeEnumerator(List<Enumerable<E>> enumerableList) {
-            enumerableEnumerator =
-                Linq4j.asEnumerable(enumerableList).enumerator();
+            enumerableEnumerator = iterableEnumerator(enumerableList);
         }
 
         public Enumerator<E> enumerator() {
@@ -307,6 +339,81 @@ public class Linq4j {
                     current = emptyEnumerator();
                 }
             };
+        }
+    }
+
+    static class IterableEnumerable<T> extends AbstractEnumerable<T> {
+        protected final Iterable<T> iterable;
+
+        IterableEnumerable(Iterable<T> iterable) {
+            this.iterable = iterable;
+        }
+
+        public Enumerator<T> enumerator() {
+            return iterableEnumerator(iterable);
+        }
+
+        @Override
+        public boolean any() {
+            return iterable.iterator().hasNext();
+        }
+    }
+
+    static class CollectionEnumerable<T> extends IterableEnumerable<T> {
+        CollectionEnumerable(Collection<T> iterable) {
+            super(iterable);
+        }
+
+        protected Collection<T> getCollection() {
+            return (Collection<T>) iterable;
+        }
+
+        @Override
+        public int count() {
+            return getCollection().size();
+        }
+
+        @Override
+        public long longCount() {
+            return getCollection().size();
+        }
+
+        @Override
+        public boolean contains(T element) {
+            return getCollection().contains(element);
+        }
+
+        @Override
+        public boolean any() {
+            return !getCollection().isEmpty();
+        }
+    }
+
+    static class ListEnumerable<T> extends CollectionEnumerable<T> {
+        ListEnumerable(Collection<T> iterable) {
+            super(iterable);
+        }
+
+        @Override
+        public List<T> toList() {
+            return (List<T>) iterable;
+        }
+
+        @Override
+        public Enumerable<T> skip(int count) {
+            final List<T> list = toList();
+            return new ListEnumerable<T>(list.subList(count, list.size()));
+        }
+
+        @Override
+        public Enumerable<T> take(int count) {
+            final List<T> list = toList();
+            return new ListEnumerable<T>(list.subList(0, count));
+        }
+
+        @Override
+        public T elementAt(int index) {
+            return toList().get(index);
         }
     }
 }
