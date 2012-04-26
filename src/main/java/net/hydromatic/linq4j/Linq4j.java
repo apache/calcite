@@ -266,11 +266,33 @@ public class Linq4j {
     public static <E> Enumerable<E> concat(
         final List<Enumerable<E>> enumerableList)
     {
-        return new CompositeEnumerator<E>(enumerableList);
+        return new CompositeEnumerable<E>(enumerableList);
     }
 
-    public static <T> Enumerator<List<T>> product(List<Enumerator<T>> lists) {
-        return new CartesianProductEnumerator<T>(lists);
+    /**
+     * Returns an enumerator that is the cartesian product of the given
+     * enumerators.
+     *
+     * <p>For example, given enumerator A that returns {"a", "b", "c"} and
+     * enumerator B that returns {"x", "y"}, product(List(A, B)) will return
+     * {List("a", "x"), List("a", "y"),
+     * List("b", "x"), List("b", "y"),
+     * List("c", "x"), List("c", "y")}.</p>
+     *
+     * <p>Notice that the cardinality of the result is the product of the
+     * cardinality of the inputs. The enumerators A and B have 3 and 2
+     * elements respectively, and the result has 3 * 2 = 6 elements.
+     * This is always the case. In
+     * particular, if any of the enumerators is empty, the result is empty.</p>
+     *
+     * @param enumerators List of enumerators
+     * @param <T> Element type
+     * @return Enumerator over the cartesian product
+     */
+    public static <T> Enumerator<List<T>> product(
+        List<Enumerator<T>> enumerators)
+    {
+        return new CartesianProductEnumerator<T>(enumerators);
     }
 
     @SuppressWarnings("unchecked")
@@ -307,10 +329,10 @@ public class Linq4j {
         }
     }
 
-    static class CompositeEnumerator<E> extends AbstractEnumerable<E> {
+    static class CompositeEnumerable<E> extends AbstractEnumerable<E> {
         private final Enumerator<Enumerable<E>> enumerableEnumerator;
 
-        CompositeEnumerator(List<Enumerable<E>> enumerableList) {
+        CompositeEnumerable(List<Enumerable<E>> enumerableList) {
             enumerableEnumerator = iterableEnumerator(enumerableList);
         }
 
@@ -342,15 +364,15 @@ public class Linq4j {
         }
     }
 
-    static class IterableEnumerable<T> extends AbstractEnumerable<T> {
+    static class IterableEnumerable<T> extends AbstractEnumerable2<T> {
         protected final Iterable<T> iterable;
 
         IterableEnumerable(Iterable<T> iterable) {
             this.iterable = iterable;
         }
 
-        public Enumerator<T> enumerator() {
-            return iterableEnumerator(iterable);
+        public Iterator<T> iterator() {
+            return iterable.iterator();
         }
 
         @Override
