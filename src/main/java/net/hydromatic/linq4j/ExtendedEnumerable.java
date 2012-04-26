@@ -608,8 +608,7 @@ interface ExtendedEnumerable<TSource> {
      * specified condition is true and then returns the remaining
      * elements. The element's index is used in the logic of the
      * predicate function. */
-    Enumerable<TSource> skipWhile(
-        Function2<TSource, Integer, Boolean> predicate);
+    Enumerable<TSource> skipWhile(Predicate2<TSource, Integer> predicate);
 
     /** Computes the sum of the sequence of Decimal values
      * that are obtained by invoking a transform function on each
@@ -672,8 +671,7 @@ interface ExtendedEnumerable<TSource> {
     /** Returns elements from a sequence as long as a
      * specified condition is true. The element's index is used in the
      * logic of the predicate function. */
-    Enumerable<TSource> takeWhile(
-        Function2<TSource, Integer, Boolean> predicate);
+    Enumerable<TSource> takeWhile(Predicate2<TSource, Integer> predicate);
 
     /** Creates a Dictionary<TKey, TValue> from an
      * Enumerable<TSource> according to a specified key selector

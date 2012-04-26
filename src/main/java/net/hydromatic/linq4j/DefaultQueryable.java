@@ -439,7 +439,7 @@ abstract class DefaultQueryable<T>
     }
 
     public Queryable<T> skipWhileN(
-        FunctionExpression<Function2<T, Integer, Boolean>> predicate)
+        FunctionExpression<Predicate2<T, Integer>> predicate)
     {
         return Extensions.skipWhileN(getThis(), predicate);
     }
@@ -501,7 +501,7 @@ abstract class DefaultQueryable<T>
     }
 
     public Queryable<T> takeWhileN(
-        FunctionExpression<Function2<T, Integer, Boolean>> predicate)
+        FunctionExpression<Predicate2<T, Integer>> predicate)
     {
         return Extensions.takeWhileN(getThis(), predicate);
     }
@@ -521,7 +521,7 @@ abstract class DefaultQueryable<T>
         //noinspection unchecked
         return Extensions.whereN(
             getThis(),
-            (FunctionExpression<Predicate2<T,Integer>>) predicate);
+            (FunctionExpression<Predicate2<T, Integer>>) predicate);
     }
 
     public <T1, TResult> Queryable<TResult> zip(

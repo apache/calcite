@@ -90,6 +90,42 @@ public class Functions {
             }
         };
     }
+
+    public static <T1, T2> Predicate2<T1, T2> toPredicate2(
+        final Predicate1<T1> p1)
+    {
+        return new Predicate2<T1, T2>() {
+            public boolean apply(T1 v1, T2 v2) {
+                return p1.apply(v1);
+            }
+        };
+    }
+
+    /**
+     * Converts a 2-parameter function to a predicate.
+     */
+    public static <T1, T2> Predicate2<T1, T2> toPredicate(
+        final Function2<T1, T2, Boolean> function)
+    {
+        return new Predicate2<T1, T2>() {
+            public boolean apply(T1 v1, T2 v2) {
+                return function.apply(v1, v2);
+            }
+        };
+    }
+
+    /**
+     * Converts a 1-parameter function to a predicate.
+     */
+    private static <T> Predicate1<T> toPredicate(
+        final Function1<T, Boolean> function)
+    {
+        return new Predicate1<T>() {
+            public boolean apply(T v1) {
+                return function.apply(v1);
+            }
+        };
+    }
 }
 
 // End Functions.java

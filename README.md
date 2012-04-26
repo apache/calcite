@@ -26,19 +26,13 @@ Please let us know if you are starting one.
   implement a method, add a test similar to Linq4jTest.testWhere.
   Try to refactor out some helper (named inner) classes, rather than creating
   2 or 3 anonymous classes per method.
-  First tranche: implement take, takeWhile, skip, skipWhile for Enumerable.
-
-* Second tranche: implement remaining select, selectMany, where methods for
-  Enumerable.
 
 * Third tranche: implement groupBy for Enumerable.
 
 * Fourth tranche: implement any, all, aggregate, sum, min, max, average
   for Enumerable.
 
-* Fifth tranche: implement groupJoin and join methods for Enumerable.
-
-* Sixth tranche: implement union, intersect, except, distinct, concat methods
+* Sixth tranche: implement union, intersect, except, distinct methods
   for Enumerable.
 
 * Seventh tranche: first, last, defaultIfEmpty, elementAtOrDefault,
@@ -50,9 +44,6 @@ Please let us know if you are starting one.
 * Ninth tranche: implement methods that require EqualityComparer.
 
 * Last tranche: all remaining methods for Enumerable.
-
-* Hand-write some examples of calls to Queryable methods, including expression
-  trees.
 
 * Parser support. Either modify a Java parser (e.g. OpenJDK), or write a
   pre-processor. Generate Java code that includes expression trees.
@@ -88,10 +79,11 @@ Methods on Enumerable:
 * select, selectMany, where, groupJoin, join;
 * count, longCount;
 * cast, ofType;
-* toMap, toLookup
+* toMap, toLookup, skip, skipWhile, take, takeWhile.
 
 Methods on Queryable:
 * where, whereN
+* skip, skipWhile, skipWhileN, take, takeWhile, takeWhileN.
 
 (Except methods that involve EqualityComparer.)
 

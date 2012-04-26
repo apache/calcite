@@ -538,7 +538,7 @@ class EnumerableQueryable<T>
     }
 
     public Queryable<T> skipWhileN(
-        FunctionExpression<Function2<T, Integer, Boolean>> predicate)
+        FunctionExpression<Predicate2<T, Integer>> predicate)
     {
         return Extensions.skipWhile(getThis(), predicate.getFunction())
             .asQueryable();
@@ -602,7 +602,7 @@ class EnumerableQueryable<T>
     }
 
     public Queryable<T> takeWhileN(
-        FunctionExpression<Function2<T, Integer, Boolean>> predicate)
+        FunctionExpression<Predicate2<T, Integer>> predicate)
     {
         return Extensions.takeWhile(getThis(), predicate.getFunction())
             .asQueryable();

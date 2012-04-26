@@ -521,7 +521,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      * elements. The element's index is used in the logic of the
      * predicate function. */
     Queryable<TSource> skipWhileN(
-        FunctionExpression<Function2<TSource, Integer, Boolean>> predicate);
+        FunctionExpression<Predicate2<TSource, Integer>> predicate);
 
     /** Computes the sum of the sequence of Decimal values
      * that is obtained by invoking a projection function on each
@@ -592,7 +592,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      * specified condition is true. The element's index is used in the
      * logic of the predicate function. */
     Queryable<TSource> takeWhileN(
-        FunctionExpression<Function2<TSource, Integer, Boolean>> predicate);
+        FunctionExpression<Predicate2<TSource, Integer>> predicate);
 
     /** Produces the set union of two sequences by using
      * the default equality comparer. */

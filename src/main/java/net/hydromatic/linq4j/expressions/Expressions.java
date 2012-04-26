@@ -91,7 +91,8 @@ public class Expressions {
         Expression expression0,
         Expression expression1)
     {
-        return makeBinary(ExpressionType.AddAssignChecked, expression0, expression1);
+        return makeBinary(
+            ExpressionType.AddAssignChecked, expression0, expression1);
     }
 
     /** Creates a BinaryExpression that represents an addition
@@ -1169,7 +1170,7 @@ public class Expressions {
     }
 
     /** Creates a FunctionExpression from an actual function. */
-    public static <T, F extends Function<T>>
+    public static <F extends Function<?>>
     FunctionExpression<F> lambda(F function) {
         // REVIEW: Check that that function class is non-inner, has a public
         // default constructor, etc.?

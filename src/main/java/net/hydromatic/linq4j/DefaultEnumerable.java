@@ -571,7 +571,7 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         return Extensions.skipWhile(getThis(), predicate);
     }
 
-    public Enumerable<T> skipWhile(Function2<T, Integer, Boolean> predicate) {
+    public Enumerable<T> skipWhile(Predicate2<T, Integer> predicate) {
         return Extensions.skipWhile(getThis(), predicate);
     }
 
@@ -623,9 +623,7 @@ abstract class DefaultEnumerable<T> implements Enumerable<T> {
         return Extensions.takeWhile(getThis(), predicate);
     }
 
-    public Enumerable<T> takeWhile(
-        Function2<T, Integer, Boolean> predicate)
-    {
+    public Enumerable<T> takeWhile(Predicate2<T, Integer> predicate) {
         return Extensions.takeWhile(getThis(), predicate);
     }
 

@@ -17,8 +17,7 @@
 */
 package net.hydromatic.linq4j;
 
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.FunctionExpression;
+import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.*;
 
 import java.math.BigDecimal;
@@ -2084,9 +2083,17 @@ public class Extensions {
     /** Bypasses a specified number of elements in a
      * sequence and then returns the remaining elements. */
     public static <TSource> Enumerable<TSource> skip(
-        Enumerable<TSource> source, int count)
+        Enumerable<TSource> source,
+        final int count)
     {
-        throw Extensions.todo();
+        return skipWhile(
+            source,
+            new Predicate2<TSource, Integer>() {
+                public boolean apply(TSource v1, Integer v2) {
+                    // Count is 1-based
+                    return v2 < count;
+                }
+            });
     }
 
     /** Bypasses a specified number of elements in a
@@ -2094,7 +2101,7 @@ public class Extensions {
     public static <TSource> Queryable<TSource> skip(
         Queryable<TSource> source, int count)
     {
-        throw Extensions.todo();
+        return skip(source.asEnumerable(), count).asQueryable();
     }
 
     /** Bypasses elements in a sequence as long as a
@@ -2103,7 +2110,8 @@ public class Extensions {
     public static <TSource> Enumerable<TSource> skipWhile(
         Enumerable<TSource> source, Predicate1<TSource> predicate)
     {
-        throw Extensions.todo();
+        return skipWhile(
+            source, Functions.<TSource, Integer>toPredicate2(predicate));
     }
 
     /** Bypasses elements in a sequence as long as a
@@ -2113,7 +2121,10 @@ public class Extensions {
         Queryable<TSource> source,
         FunctionExpression<Predicate1<TSource>> predicate)
     {
-        throw Extensions.todo();
+        return skipWhileN(
+            source, Expressions.lambda(
+                Functions.<TSource, Integer>toPredicate2(
+                    predicate.getFunction())));
     }
 
     /** Bypasses elements in a sequence as long as a
@@ -2121,10 +2132,15 @@ public class Extensions {
      * elements. The element's index is used in the logic of the
      * predicate function. */
     public static <TSource> Enumerable<TSource> skipWhile(
-        Enumerable<TSource> source,
-        Function2<TSource, Integer, Boolean> predicate)
+        final Enumerable<TSource> source,
+        final Predicate2<TSource, Integer> predicate)
     {
-        throw Extensions.todo();
+        return new AbstractEnumerable<TSource>() {
+            public Enumerator<TSource> enumerator() {
+                return new SkipWhileEnumerator<TSource>(
+                    source.enumerator(), predicate);
+            }
+        };
     }
 
     /** Bypasses elements in a sequence as long as a
@@ -2132,10 +2148,19 @@ public class Extensions {
      * elements. The element's index is used in the logic of the
      * predicate function. */
     public static <TSource> Queryable<TSource> skipWhileN(
-        Queryable<TSource> source,
-        FunctionExpression<Function2<TSource, Integer, Boolean>> predicate)
+        final Queryable<TSource> source,
+        final FunctionExpression<Predicate2<TSource, Integer>> predicate)
     {
-        throw Extensions.todo();
+        return new AbstractQueryable2<TSource>(
+            source.getElementType(),
+            source.getExpression(),
+            source.getProvider())
+        {
+            public Enumerator<TSource> enumerator() {
+                return new SkipWhileEnumerator<TSource>(
+                    source.enumerator(), predicate.getFunction());
+            }
+        };
     }
 
     /** Computes the sum of the sequence of Decimal values
@@ -2331,13 +2356,16 @@ public class Extensions {
 
     /** Returns a specified number of contiguous elements
      * from the start of a sequence. */
-    public static <TSource> Enumerable<TSource> take(Enumerable<TSource> source, final int count) {
-        return takeWhile(source, new Function2<TSource, Integer, Boolean>() {
-            public Boolean apply(TSource v1, Integer v2) {
-                // Count is 1-based
-                return v2 < count;
-            }
-        });
+    public static <TSource>
+    Enumerable<TSource> take(Enumerable<TSource> source, final int count) {
+        return takeWhile(
+            source,
+            new Predicate2<TSource, Integer>() {
+                public boolean apply(TSource v1, Integer v2) {
+                    // Count is 1-based
+                    return v2 < count;
+                }
+            });
     }
 
     /** Returns a specified number of contiguous elements
@@ -2351,13 +2379,11 @@ public class Extensions {
     /** Returns elements from a sequence as long as a
      * specified condition is true. */
     public static <TSource> Enumerable<TSource> takeWhile(
-        Enumerable<TSource> source, final Predicate1<TSource> predicate)
+        Enumerable<TSource> source,
+        final Predicate1<TSource> predicate)
     {
-        return takeWhile(source, new Function2<TSource, Integer, Boolean>() {
-            public Boolean apply(TSource v1, Integer v2) {
-                return predicate.apply(v1);
-            }
-        });
+        return takeWhile(
+            source, Functions.<TSource, Integer>toPredicate2(predicate));
     }
 
     /** Returns elements from a sequence as long as a
@@ -2366,23 +2392,26 @@ public class Extensions {
         Queryable<TSource> source,
         FunctionExpression<Predicate1<TSource>> predicate)
     {
-        final Predicate1<TSource> p1 = predicate.getFunction();
-        Function2<TSource, Integer, Boolean> f2 = new Function2<TSource, Integer, Boolean>() {
-            public Boolean apply(TSource v1, Integer v2) {
-                return p1.apply(v1);
-            }
-        };
-        return takeWhileN(source, new FunctionExpression<Function2<TSource, Integer, Boolean>>(f2));
+        return takeWhileN(
+            source,
+            Expressions.lambda(
+                Functions.<TSource, Integer>toPredicate2(
+                    predicate.getFunction())));
     }
 
     /** Returns elements from a sequence as long as a
      * specified condition is true. The element's index is used in the
      * logic of the predicate function. */
     public static <TSource> Enumerable<TSource> takeWhile(
-        Enumerable<TSource> source,
-        Function2<TSource, Integer, Boolean> predicate)
+        final Enumerable<TSource> source,
+        final Predicate2<TSource, Integer> predicate)
     {
-        return takeWhileN(source.asQueryable(), new FunctionExpression<Function2<TSource, Integer, Boolean>>(predicate));
+        return new AbstractEnumerable<TSource>() {
+            public Enumerator<TSource> enumerator() {
+                return new TakeWhileEnumerator<TSource>(
+                    source.enumerator(), predicate);
+            }
+        };
     }
 
     /** Returns elements from a sequence as long as a
@@ -2390,48 +2419,16 @@ public class Extensions {
      * logic of the predicate function. */
     public static <TSource> Queryable<TSource> takeWhileN(
         final Queryable<TSource> source,
-        FunctionExpression<Function2<TSource, Integer, Boolean>> predicate)
+        final FunctionExpression<Predicate2<TSource, Integer>> predicate)
     {
-        final Function2<TSource, Integer, Boolean> function = predicate.getFunction();
-        return new AbstractQueryable<TSource>() {
-            public Class<TSource> getElementType() {
-                return source.getElementType();
-            }
-
-            public Expression getExpression() {
-                return source.getExpression();
-            }
-
-            public QueryProvider getProvider() {
-                return source.getProvider();
-            }
-
-            public Iterator<TSource> iterator() {
-                return Linq4j.enumeratorIterator(enumerator());
-            }
-
+        return new AbstractQueryable2<TSource>(
+            source.getElementType(),
+            source.getExpression(),
+            source.getProvider())
+        {
             public Enumerator<TSource> enumerator() {
-                return new Enumerator<TSource>() {
-                    Enumerator<TSource> enumerator = source.enumerator();
-                    int i = -1;
-                    public TSource current() {
-                        return enumerator.current();
-                    }
-
-                    public boolean moveNext() {
-                        while(enumerator.moveNext()) {
-                            if (function.apply(enumerator.current(), ++i)) {
-                                return true;
-                            }
-                        }
-                        return false;
-                    }
-
-                    public void reset() {
-                        enumerator.reset();
-                        i = -1;
-                    }
-                };
+                return new TakeWhileEnumerator<TSource>(
+                    source.enumerator(), predicate.getFunction());
             }
         };
     }
@@ -2699,6 +2696,123 @@ public class Extensions {
         throw Extensions.todo();
     }
 
+    private static class TakeWhileEnumerator<TSource>
+        implements Enumerator<TSource>
+    {
+        private final Enumerator<TSource> enumerator;
+        private final Predicate2<TSource, Integer> predicate;
+
+        boolean done = false;
+        int n = -1;
+
+        public TakeWhileEnumerator(
+            Enumerator<TSource> enumerator,
+            Predicate2<TSource, Integer> predicate)
+        {
+            this.enumerator = enumerator;
+            this.predicate = predicate;
+        }
+
+        public TSource current() {
+            return enumerator.current();
+        }
+
+        public boolean moveNext() {
+            if (!done) {
+                if (enumerator.moveNext()
+                    && predicate.apply(enumerator.current(), ++n))
+                {
+                    return true;
+                } else {
+                    done = true;
+                }
+            }
+            return false;
+        }
+
+        public void reset() {
+            enumerator.reset();
+            done = false;
+            n = -1;
+        }
+    }
+
+    private static class SkipWhileEnumerator<TSource>
+        implements Enumerator<TSource>
+    {
+        private final Enumerator<TSource> enumerator;
+        private final Predicate2<TSource, Integer> predicate;
+
+        boolean started = false;
+        int n = -1;
+
+        public SkipWhileEnumerator(
+            Enumerator<TSource> enumerator,
+            Predicate2<TSource, Integer> predicate)
+        {
+            this.enumerator = enumerator;
+            this.predicate = predicate;
+        }
+
+        public TSource current() {
+            return enumerator.current();
+        }
+
+        public boolean moveNext() {
+            for (;;) {
+                if (!enumerator.moveNext()) {
+                    return false;
+                }
+                if (started) {
+                    return true;
+                }
+                if (!predicate.apply(enumerator.current(), ++n)) {
+                    started = true;
+                    return true;
+                }
+            }
+        }
+
+        public void reset() {
+            enumerator.reset();
+            started = false;
+            n = -1;
+        }
+    }
+
+    private static abstract class AbstractQueryable2<TSource>
+        extends AbstractQueryable<TSource>
+    {
+        private final Class<TSource> elementType;
+        private final Expression expression;
+        private final QueryProvider provider;
+
+        public AbstractQueryable2(
+            Class<TSource> elementType,
+            Expression expression,
+            QueryProvider provider)
+        {
+            this.elementType = elementType;
+            this.expression = expression;
+            this.provider = provider;
+        }
+
+        public Class<TSource> getElementType() {
+            return elementType;
+        }
+
+        public Expression getExpression() {
+            return expression;
+        }
+
+        public QueryProvider getProvider() {
+            return provider;
+        }
+
+        public Iterator<TSource> iterator() {
+            return Linq4j.enumeratorIterator(enumerator());
+        }
+    }
 }
 
 // End Extensions.java
