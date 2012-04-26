@@ -17,6 +17,7 @@
 */
 package net.hydromatic.linq4j;
 
+import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.FunctionExpression;
 import net.hydromatic.linq4j.function.*;
 
@@ -248,7 +249,7 @@ public class Extensions {
     public static <TSource> Enumerable<TSource> asEnumerable(
         Enumerable<TSource> enumerable)
     {
-        throw Extensions.todo();
+        return enumerable;
     }
 
     /**
@@ -2330,10 +2331,13 @@ public class Extensions {
 
     /** Returns a specified number of contiguous elements
      * from the start of a sequence. */
-    public static <TSource> Enumerable<TSource> take(
-        Enumerable<TSource> source, int count)
-    {
-        throw Extensions.todo();
+    public static <TSource> Enumerable<TSource> take(Enumerable<TSource> source, final int count) {
+        return takeWhile(source, new Function2<TSource, Integer, Boolean>() {
+            public Boolean apply(TSource v1, Integer v2) {
+                // Count is 1-based
+                return v2 < count;
+            }
+        });
     }
 
     /** Returns a specified number of contiguous elements
@@ -2341,15 +2345,19 @@ public class Extensions {
     public static <TSource> Queryable<TSource> take(
         Queryable<TSource> source, int count)
     {
-        throw Extensions.todo();
+        return take(source.asEnumerable(), count).asQueryable();
     }
 
     /** Returns elements from a sequence as long as a
      * specified condition is true. */
     public static <TSource> Enumerable<TSource> takeWhile(
-        Enumerable<TSource> source, Predicate1<TSource> predicate)
+        Enumerable<TSource> source, final Predicate1<TSource> predicate)
     {
-        throw Extensions.todo();
+        return takeWhile(source, new Function2<TSource, Integer, Boolean>() {
+            public Boolean apply(TSource v1, Integer v2) {
+                return predicate.apply(v1);
+            }
+        });
     }
 
     /** Returns elements from a sequence as long as a
@@ -2358,7 +2366,13 @@ public class Extensions {
         Queryable<TSource> source,
         FunctionExpression<Predicate1<TSource>> predicate)
     {
-        throw Extensions.todo();
+        final Predicate1<TSource> p1 = predicate.getFunction();
+        Function2<TSource, Integer, Boolean> f2 = new Function2<TSource, Integer, Boolean>() {
+            public Boolean apply(TSource v1, Integer v2) {
+                return p1.apply(v1);
+            }
+        };
+        return takeWhileN(source, new FunctionExpression<Function2<TSource, Integer, Boolean>>(f2));
     }
 
     /** Returns elements from a sequence as long as a
@@ -2368,17 +2382,58 @@ public class Extensions {
         Enumerable<TSource> source,
         Function2<TSource, Integer, Boolean> predicate)
     {
-        throw Extensions.todo();
+        return takeWhileN(source.asQueryable(), new FunctionExpression<Function2<TSource, Integer, Boolean>>(predicate));
     }
 
     /** Returns elements from a sequence as long as a
      * specified condition is true. The element's index is used in the
      * logic of the predicate function. */
     public static <TSource> Queryable<TSource> takeWhileN(
-        Queryable<TSource> source,
+        final Queryable<TSource> source,
         FunctionExpression<Function2<TSource, Integer, Boolean>> predicate)
     {
-        throw Extensions.todo();
+        final Function2<TSource, Integer, Boolean> function = predicate.getFunction();
+        return new AbstractQueryable<TSource>() {
+            public Class<TSource> getElementType() {
+                return source.getElementType();
+            }
+
+            public Expression getExpression() {
+                return source.getExpression();
+            }
+
+            public QueryProvider getProvider() {
+                return source.getProvider();
+            }
+
+            public Iterator<TSource> iterator() {
+                return Linq4j.enumeratorIterator(enumerator());
+            }
+
+            public Enumerator<TSource> enumerator() {
+                return new Enumerator<TSource>() {
+                    Enumerator<TSource> enumerator = source.enumerator();
+                    int i = -1;
+                    public TSource current() {
+                        return enumerator.current();
+                    }
+
+                    public boolean moveNext() {
+                        while(enumerator.moveNext()) {
+                            if (function.apply(enumerator.current(), ++i)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+
+                    public void reset() {
+                        enumerator.reset();
+                        i = -1;
+                    }
+                };
+            }
+        };
     }
 
     /** Creates a Map&lt;TKey, TValue&gt; from an
