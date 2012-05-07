@@ -1,0 +1,71 @@
+-- for manual testing of the tool 'mtsql'
+-- expects to connect to farrago
+-- $Id$
+
+@var N=7
+@var S=bagel bag
+@var HOSTNAME
+@var USER
+@var WHO=$USER@$HOSTNAME
+@var RecursiveVar=$N $S $HOSTNAME $WHO
+
+@setup
+ create schema foo;
+ create view foo.crossview as (
+   select * from sales.depts x 
+   cross join sales.emps y
+   cross join sales.emps z
+ );
+@end
+
+@cleanup
+  drop schema foo cascade;
+@end
+
+@thread reader
+  @shell pwd
+  @shell echo mtsql*
+  @shell hostname; whoami
+  @shell head -1 < package.html | cat | cat > foo; cat foo
+  @echo $$N is $N and $$S is $S.
+  @echo The $$HOSTNAME is $HOSTNAME.
+  @echo The $$HOSTNAME is $HOSTNAME, ${HOSTNAME}, "$HOSTNAME", "${HOSTNAME}", '$HOSTNAME', '${HOSTNAME}'.
+  @echo The $$HOSTNAME is "$HOSTNAME, ${HOSTNAME}".
+  @echo $$WHO is $WHO
+  @echo $$RecursiveVar is $RecursiveVar
+
+  values (1,2,3);
+  values (4, '$HOSTNAME', '$USER@$HOSTNAME');
+  values ($N, '$S');
+  select * from sales.depts;
+  @sync
+@end
+
+@thread printer
+  @prepare select * from foo.crossview;
+  @sync
+
+  @echo printing all
+  @print all
+  @fetch 
+
+  @echo printing none
+  @print none
+  @fetch 
+
+  @echo printing every 5th row
+  @print count every 5
+  @fetch 
+
+  @echo printing every ${N}th row
+  @print count every $N
+  @fetch 
+
+  @echo printing every other row
+  @print count every 2
+  @fetch 
+  
+  @close
+@end
+
+

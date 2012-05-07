@@ -1,0 +1,14 @@
+#! /bin/bash
+# $Id$
+# Command-line tool to run an mtsql script.
+# Usage: mtlsql [-vg] -u URL -d DRIVER [-n USER] [-p PASSWORD] SCRIPT [SCRIPT]...
+#   -u URL : sets the server connected to; argument is a jdbc URL. Required.
+#   -d DRIVER : specifies the jdbc driver class. Required.
+#   -v : print sql results to stdout
+#   -g : print some trace messages to stderr
+
+# TODO: handle -g and -d here, not in java code.
+
+JFLAGS="-client -ea -esa -Djava.util.logging.config.file=$(dirname $0)/mtsql.loggers"
+java $JFLAGS -cp $CLASSPATH org.eigenbase.test.concurrent.ConcurrentTestCommandScript "$@"
+exit $?

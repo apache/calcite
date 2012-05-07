@@ -1,0 +1,138 @@
+/*
+// Licensed to DynamoBI Corporation (DynamoBI) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  DynamoBI licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+
+//   http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+*/
+package org.eigenbase.sql.validate;
+
+import java.util.*;
+
+import org.eigenbase.reltype.*;
+import org.eigenbase.resource.*;
+import org.eigenbase.sql.*;
+import org.eigenbase.sql.fun.*;
+
+
+/**
+ * Namespace for an <code>AS t(c1, c2, ...)</code> clause.
+ *
+ * <p>A namespace is necessary only if there is a column list, in order to
+ * re-map column names; a <code>relation AS t</code> clause just uses the same
+ * namespace as <code>relation</code>.
+ *
+ * @author jhyde
+ * @version $Id$
+ * @since October 9, 2008
+ */
+public class AliasNamespace
+    extends AbstractNamespace
+{
+    //~ Instance fields --------------------------------------------------------
+
+    protected final SqlCall call;
+
+    //~ Constructors -----------------------------------------------------------
+
+    /**
+     * Creates an AliasNamespace.
+     *
+     * @param validator Validator
+     * @param call Call to AS operator
+     * @param enclosingNode Enclosing node
+     */
+    protected AliasNamespace(
+        SqlValidatorImpl validator,
+        SqlCall call,
+        SqlNode enclosingNode)
+    {
+        super(validator, enclosingNode);
+        this.call = call;
+        assert call.getOperator() == SqlStdOperatorTable.asOperator;
+    }
+
+    //~ Methods ----------------------------------------------------------------
+
+    protected RelDataType validateImpl()
+    {
+        final List<String> nameList = new ArrayList<String>();
+        final SqlValidatorNamespace childNs =
+            validator.getNamespace(call.getOperands()[0]);
+        final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
+        for (int i = 2; i < call.getOperands().length; ++i) {
+            final SqlNode operand = call.getOperands()[i];
+            String name = ((SqlIdentifier) operand).getSimple();
+            if (nameList.contains(name)) {
+                throw validator.newValidationError(
+                    operand,
+                    EigenbaseResource.instance().AliasListDuplicate.ex(
+                        name));
+            }
+            nameList.add(name);
+        }
+        if (nameList.size() != rowType.getFieldCount()) {
+            StringBuilder buf = new StringBuilder();
+            buf.append("(");
+            int k = 0;
+            for (RelDataTypeField field : rowType.getFieldList()) {
+                if (k++ > 0) {
+                    buf.append(", ");
+                }
+                buf.append("'");
+                buf.append(field.getName());
+                buf.append("'");
+            }
+            buf.append(")");
+
+            // Position error at first name in list.
+            throw validator.newValidationError(
+                call.getOperands()[2],
+                EigenbaseResource.instance().AliasListDegree.ex(
+                    rowType.getFieldCount(),
+                    buf.toString(),
+                    nameList.size()));
+        }
+        final List<RelDataType> typeList = new ArrayList<RelDataType>();
+        for (RelDataTypeField field : rowType.getFieldList()) {
+            typeList.add(field.getType());
+        }
+        return validator.getTypeFactory().createStructType(
+            typeList,
+            nameList);
+    }
+
+    public SqlNode getNode()
+    {
+        return call;
+    }
+
+    public String translate(String name)
+    {
+        final RelDataType underlyingRowType =
+            validator.getValidatedNodeType(call.getOperands()[0]);
+        int i = 0;
+        for (RelDataTypeField field : rowType.getFieldList()) {
+            if (field.getName().equals(name)) {
+                return underlyingRowType.getFieldList().get(i).getName();
+            }
+            ++i;
+        }
+        throw new AssertionError(
+            "unknown field '" + name
+            + "' in rowtype " + underlyingRowType);
+    }
+}
+
+// End AliasNamespace.java

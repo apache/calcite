@@ -1,0 +1,133 @@
+/*
+// Licensed to DynamoBI Corporation (DynamoBI) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  DynamoBI licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+
+//   http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+*/
+package org.eigenbase.sql.type;
+
+import java.util.*;
+
+import org.eigenbase.reltype.*;
+import org.eigenbase.resource.*;
+import org.eigenbase.sql.*;
+
+
+/**
+ * Operand type-checking strategy which checks operands for inclusion in type
+ * families.
+ *
+ * @author John V. Sichi
+ * @version $Id$
+ */
+public class FamilyOperandTypeChecker
+    implements SqlSingleOperandTypeChecker
+{
+    //~ Instance fields --------------------------------------------------------
+
+    protected SqlTypeFamily [] families;
+
+    //~ Constructors -----------------------------------------------------------
+
+    public FamilyOperandTypeChecker(SqlTypeFamily ... families)
+    {
+        this.families = families;
+    }
+
+    //~ Methods ----------------------------------------------------------------
+
+    // implement SqlSingleOperandTypeChecker
+    public boolean checkSingleOperandType(
+        SqlCallBinding callBinding,
+        SqlNode node,
+        int iFormalOperand,
+        boolean throwOnFailure)
+    {
+        SqlTypeFamily family = families[iFormalOperand];
+        if (family == SqlTypeFamily.ANY) {
+            // no need to check
+            return true;
+        }
+        if (SqlUtil.isNullLiteral(node, false)) {
+            if (throwOnFailure) {
+                throw callBinding.getValidator().newValidationError(
+                    node,
+                    EigenbaseResource.instance().NullIllegal.ex());
+            } else {
+                return false;
+            }
+        }
+        RelDataType type =
+            callBinding.getValidator().deriveType(
+                callBinding.getScope(),
+                node);
+        SqlTypeName typeName = type.getSqlTypeName();
+        if (!family.getTypeNames().contains(typeName)) {
+            if (throwOnFailure) {
+                throw callBinding.newValidationSignatureError();
+            }
+            return false;
+        }
+        return true;
+    }
+
+    // implement SqlOperandTypeChecker
+    public boolean checkOperandTypes(
+        SqlCallBinding callBinding,
+        boolean throwOnFailure)
+    {
+        if (families.length != callBinding.getOperandCount()) {
+            // assume this is an inapplicable sub-rule of a composite rule;
+            // don't throw
+            return false;
+        }
+
+        for (int i = 0; i < callBinding.getOperandCount(); i++) {
+            SqlNode operand = callBinding.getCall().operands[i];
+            if (!checkSingleOperandType(
+                    callBinding,
+                    operand,
+                    i,
+                    throwOnFailure))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // implement SqlOperandTypeChecker
+    public SqlOperandCountRange getOperandCountRange()
+    {
+        return new SqlOperandCountRange(families.length);
+    }
+
+    // implement SqlOperandTypeChecker
+    public String getAllowedSignatures(SqlOperator op, String opName)
+    {
+        return SqlUtil.getAliasedSignature(
+            op,
+            opName,
+            Arrays.asList(families));
+    }
+
+    // hack for FarragoCalcSystemTest
+    public SqlTypeFamily [] getFamilies()
+    {
+        return families;
+    }
+}
+
+// End FamilyOperandTypeChecker.java

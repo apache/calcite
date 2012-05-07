@@ -1,0 +1,203 @@
+<?xml version="1.0" ?>
+<Root>
+    <TestCase name="testReplaceCommonSubexpression">
+        <Resource name="sql">
+            <![CDATA[select d1.deptno from (select * from dept) d1, (select * from dept) d2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(DEPTNO=[$0])
+  JoinRel(condition=[true], joinType=[inner])
+    ProjectRel(DEPTNO=[$0], NAME=[$1])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+    ProjectRel(DEPTNO=[$0], NAME=[$1])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(DEPTNO=[$0])
+  JoinRel(condition=[true], joinType=[inner])
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testMatchUntilFixpoint">
+        <Resource name="sql">
+            <![CDATA[(select name from dept union select ename from emp) union (select ename from bonus)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+UnionRel(all=[false])
+  UnionRel(all=[false])
+    ProjectRel(NAME=[$1])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+    ProjectRel(ENAME=[$1])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+  ProjectRel(ENAME=[$0])
+    TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+AggregateRel(groupCount=[1])
+  UnionRel(all=[true])
+    AggregateRel(groupCount=[1])
+      UnionRel(all=[true])
+        ProjectRel(NAME=[$1])
+          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+        ProjectRel(ENAME=[$1])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    ProjectRel(ENAME=[$0])
+      TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testMatchLimitOneTopDown">
+        <Resource name="sql">
+            <![CDATA[(select name from dept union select ename from emp) union (select ename from bonus)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+UnionRel(all=[false])
+  UnionRel(all=[false])
+    ProjectRel(NAME=[$1])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+    ProjectRel(ENAME=[$1])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+  ProjectRel(ENAME=[$0])
+    TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+AggregateRel(groupCount=[1])
+  UnionRel(all=[true])
+    UnionRel(all=[false])
+      ProjectRel(NAME=[$1])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      ProjectRel(ENAME=[$1])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    ProjectRel(ENAME=[$0])
+      TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testMatchLimitOneBottomUp">
+        <Resource name="sql">
+            <![CDATA[(select name from dept union select ename from emp) union (select ename from bonus)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+UnionRel(all=[false])
+  UnionRel(all=[false])
+    ProjectRel(NAME=[$1])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+    ProjectRel(ENAME=[$1])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+  ProjectRel(ENAME=[$0])
+    TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+UnionRel(all=[false])
+  AggregateRel(groupCount=[1])
+    UnionRel(all=[true])
+      ProjectRel(NAME=[$1])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+      ProjectRel(ENAME=[$1])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+  ProjectRel(ENAME=[$0])
+    TableAccessRel(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testRuleClass">
+        <Resource name="sql">
+            <![CDATA[(select name from dept union select ename from emp) intersect (select fname from customer.contact)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+IntersectRel(all=[false])
+  UnionRel(all=[false])
+    ProjectRel(NAME=[$1])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+    ProjectRel(ENAME=[$1])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+  ProjectRel(FNAME=[$1])
+    TableAccessRel(table=[[CATALOG, CUSTOMER, CONTACT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+IntersectRel(all=[false])
+  UnionRel(all=[false])
+    ProjectRel(NAME=[CAST($0):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL])
+      ProjectRel(NAME=[$1])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+    ProjectRel(ENAME=[$1])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+  ProjectRel(FNAME=[CAST($0):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL])
+    ProjectRel(FNAME=[$1])
+      TableAccessRel(table=[[CATALOG, CUSTOMER, CONTACT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSubprogram">
+        <Resource name="sql">
+            <![CDATA[select upper(ename) from (select lower(ename) as ename from emp)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[UPPER($0)])
+  ProjectRel(ENAME=[LOWER($1)])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+CalcRel(expr#0..8=[{inputs}], expr#9=[LOWER($t1)], expr#10=[UPPER($t9)], EXPR$0=[$t10])
+  TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testRuleDescription">
+        <Resource name="sql">
+            <![CDATA[select name from sales.dept where deptno=12]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(NAME=[$1])
+  FilterRel(condition=[=($0, 12)])
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(NAME=[$1])
+  CalcRel(expr#0..1=[{inputs}], expr#2=[12], expr#3=[=($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGroup">
+        <Resource name="sql">
+            <![CDATA[select upper(name) from dept where deptno=20]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[UPPER($1)])
+  FilterRel(condition=[=($0, 20)])
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+CalcRel(expr#0..1=[{inputs}], expr#2=[UPPER($t1)], expr#3=[20], expr#4=[=($t0, $t3)], EXPR$0=[$t2], $condition=[$t4])
+  TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+</Root>
