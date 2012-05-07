@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule="true" type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="false">
+    <output url="file://$MODULE_DIR$/target/classes" />
+    <output-test url="file://$MODULE_DIR$/target/test-classes" />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Maven: junit:junit:3.8.1" level="project" />
+    <orderEntry type="library" name="Maven: eigenbase:eigenbase-xom:1.3.0.13768" level="project" />
+    <orderEntry type="library" name="Maven: eigenbase:eigenbase-properties:1.1.0.10924" level="project" />
+    <orderEntry type="library" name="Maven: eigenbase:eigenbase-resgen:1.3.0.13768" level="project" />
+    <orderEntry type="library" name="Maven: openjava:openjava:20050715" level="project" />
+    <orderEntry type="library" name="Maven: net.hydromatic:linq4j:0.1-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.jgrapht:jgrapht-jdk1.5:0.7.3" level="project" />
+    <orderEntry type="library" name="Maven: janino:janino:2.5.10" level="project" />
+    <orderEntry type="library" name="Maven: org.incava:java-diff:1.1" level="project" />
+  </component>
+</module>
+
