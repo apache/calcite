@@ -1,0 +1,157 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- The basics. -->
+  <groupId>net.hydromatic</groupId>
+  <artifactId>optiq</artifactId>
+  <version>0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <!-- More project information. -->
+  <name>optiq</name>
+  <description>optiq is a query brokering framework.</description>
+  <url>http://github.com/julianhyde/optiq</url>
+  <inceptionYear>2012</inceptionYear>
+  <organization>
+    <name>Julian Hyde</name>
+    <url>http://www.hydromatic.net</url>
+  </organization>
+  <licenses>
+    <license>
+      <name>Apache 2</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>julianhyde</id>
+      <name>Julian Hyde</name>
+      <email>julianhyde@gmail.com</email>
+      <url>https://github.com/julianhyde</url>
+      <roles>
+        <role>architect</role>
+        <role>developer</role>
+      </roles>
+      <timezone>-8</timezone>
+      <properties/>
+    </developer>
+  </developers>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <!-- Environment settings. -->
+  <issueManagement/>
+  <mailingLists/>
+  <scm/>
+
+  <!-- Dependencies. -->
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+    </dependency>
+    <dependency>
+      <groupId>eigenbase</groupId>
+      <artifactId>eigenbase-xom</artifactId>
+      <version>1.3.0.13768</version>
+    </dependency>
+    <dependency>
+      <groupId>eigenbase</groupId>
+      <artifactId>eigenbase-properties</artifactId>
+      <version>1.1.0.10924</version>
+    </dependency>
+    <dependency>
+      <groupId>eigenbase</groupId>
+      <artifactId>eigenbase-resgen</artifactId>
+      <version>1.3.0.13768</version>
+    </dependency>
+    <dependency>
+      <groupId>openjava</groupId>
+      <artifactId>openjava</artifactId>
+      <version>20050715</version>
+    </dependency>
+    <dependency>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>linq4j</artifactId>
+      <version>0.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jgrapht</groupId>
+      <artifactId>jgrapht-jdk1.5</artifactId>
+      <version>0.7.3</version>
+    </dependency>
+    <dependency>
+      <groupId>janino</groupId>
+      <artifactId>janino</artifactId>
+      <version>2.5.10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.incava</groupId>
+      <artifactId>java-diff</artifactId>
+      <version>1.1</version>
+    </dependency>
+  </dependencies>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.8.1</version>
+        <configuration>
+          <links>
+            <link>http://docs.oracle.com/javase/7/docs/api/</link>
+          </links>
+        </configuration>
+      </plugin>
+    </plugins>
+  </reporting>
+
+  <repositories>
+    <repository>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+        <checksumPolicy>warn</checksumPolicy>
+      </releases>
+      <id>pentaho</id>
+      <name>Pentaho</name>
+      <url>http://repo.pentaho.org/artifactory/repo</url>
+      <layout>default</layout>
+    </repository>
+<!--
+    <repository>
+      <id>scala-tools.org</id>
+      <name>Scala-tools Maven2 Repository</name>
+      <url>http://scala-tools.org/repo-releases</url>
+    </repository>
+-->
+  </repositories>
+
+<!--
+  <pluginRepositories>
+    <pluginRepository>
+      <id>scala-tools.org</id>
+      <name>Scala-tools Maven2 Repository</name>
+      <url>http://scala-tools.org/repo-releases</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <build>
+    <sourceDirectory>src/main/scala</sourceDirectory>
+    <testSourceDirectory>src/test/scala</testSourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>org.scala-tools</groupId>
+        <artifactId>maven-scala-plugin</artifactId>
+        <version>2.15.2</version>
+      </plugin>
+    </plugins>
+  </build>
+ -->
+
+</project>
