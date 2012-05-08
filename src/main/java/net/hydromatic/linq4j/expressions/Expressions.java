@@ -499,10 +499,24 @@ public class Expressions {
     public static MethodCallExpression call(
         Expression expression,
         String methodName,
-        Class[] typeArguments,
-        Expression[] arguments)
+        Iterable<Class> typeArguments,
+        Iterable<Expression> arguments)
     {
-        throw Extensions.todo();
+        List<Class> classes = new ArrayList<Class>();
+        for (Expression argument : arguments) {
+            classes.add(argument.getType());
+        }
+        Method method;
+        try {
+            method = expression.getType().getMethod(
+                methodName, toArray(classes, new Class[0]));
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(
+                "while resolving method '" + methodName + "' in class "
+                + expression.getType(),
+                e);
+        }
+        return call(expression, method, arguments);
     }
 
     /** Creates a MethodCallExpression that represents a call to a
@@ -525,8 +539,8 @@ public class Expressions {
     public static MethodCallExpression call(
         Class clazz,
         String methodName,
-        Class[] typeArguments,
-        Expression[] arguments)
+        Iterable<Class> typeArguments,
+        Iterable<Expression> arguments)
     {
         throw Extensions.todo();
     }
@@ -544,6 +558,22 @@ public class Expressions {
             method,
             expression,
             Arrays.asList(argument0, argument1, argument2));
+    }
+
+    /** Creates a MethodCallExpression that represents a call to a
+     * method that takes four arguments. */
+    public static MethodCallExpression call(
+        Expression expression,
+        Method method,
+        Expression argument0,
+        Expression argument1,
+        Expression argument2,
+        Expression argument3)
+    {
+        return new MethodCallExpression(
+            method,
+            expression,
+            Arrays.asList(argument0, argument1, argument2, argument3));
     }
 
     /** Creates a MethodCallExpression that represents a call to a
@@ -948,10 +978,9 @@ public class Expressions {
         throw Extensions.todo();
     }
 
-    /** Creates a MemberExpression that represents accessing a
-     * field. */
+    /** Creates a MemberExpression that represents accessing a field. */
     public static MemberExpression field(Expression expression, Field field) {
-        throw Extensions.todo();
+        return makeMemberAccess(expression, field);
     }
 
     /** Creates a MemberExpression that represents accessing a field
@@ -959,11 +988,19 @@ public class Expressions {
     public static MemberExpression field(
         Expression expression, String fieldName)
     {
-        throw Extensions.todo();
+        Field field;
+        try {
+            field = expression.getType().getField(fieldName);
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(
+                "while resolving field '" + fieldName + "' in class "
+                + expression.getType(),
+                e);
+        }
+        return makeMemberAccess(expression, field);
     }
 
-    /** Creates a MemberExpression that represents accessing a
-     * field. */
+    /** Creates a MemberExpression that represents accessing a field. */
     public static MemberExpression field(
         Expression expression, Class type, String fieldName)
     {
@@ -972,7 +1009,7 @@ public class Expressions {
             return makeMemberAccess(expression, field);
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(
-                "Unknown field '" + fieldName + "' in class " + type);
+                "Unknown field '" + fieldName + "' in class " + type, e);
         }
     }
 
@@ -1181,7 +1218,7 @@ public class Expressions {
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
-    public static <T, F extends Function<? extends T>>
+    public static <F extends Function<?>>
     FunctionExpression<F> lambda(
         Expression body,
         Iterable<ParameterExpression> parameters)
@@ -1213,6 +1250,17 @@ public class Expressions {
             list.add(parameter);
         }
         return list;
+    }
+
+    private static <T> Collection<T> toCollection(Iterable<T> iterable) {
+        if (iterable instanceof Collection) {
+            return (Collection<T>) iterable;
+        }
+        return toList(iterable);
+    }
+
+    private static <T> T[] toArray(Iterable<T> iterable, T[] a) {
+        return toCollection(iterable).toArray(a);
     }
 
     /** Creates an Expression<TDelegate> where the delegate type is
@@ -2962,7 +3010,7 @@ public class Expressions {
     /** Creates a ParameterExpression node that can be used to
      * identify a parameter or a variable in an expression tree. */
     public static ParameterExpression variable(Class type, String name) {
-        throw Extensions.todo();
+        return new ParameterExpression(type, name);
     }
 
     /** Reduces the node and then calls the visitor delegate on the

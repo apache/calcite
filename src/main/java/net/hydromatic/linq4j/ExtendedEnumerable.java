@@ -25,7 +25,7 @@ import java.util.*;
 /**
  * Extension methods in {@link Enumerable}.
  */
-interface ExtendedEnumerable<TSource> {
+public interface ExtendedEnumerable<TSource> {
 
     /**
      * Performs an operation for each member of the enumeration.
