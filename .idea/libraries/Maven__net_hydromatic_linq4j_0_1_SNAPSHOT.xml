@@ -8,6 +8,7 @@
     </JAVADOC>
     <SOURCES>
       <root url="jar://$MAVEN_REPOSITORY$/net/hydromatic/linq4j/0.1-SNAPSHOT/linq4j-0.1-SNAPSHOT-sources.jar!/" />
+      <root url="file://$PROJECT_DIR$/../linq4j/src/main/java" />
     </SOURCES>
   </library>
 </component>

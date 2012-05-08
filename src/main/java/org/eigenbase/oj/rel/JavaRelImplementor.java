@@ -29,7 +29,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
-import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
 
@@ -42,42 +41,17 @@ import org.eigenbase.util.*;
  * Java variable holds their row. They can bind 'lazily', so that the variable
  * is only declared and initialized if it is actually used in another
  * expression.</p>
- *
- * <p>TODO jvs 14-June-2004: some of JavaRelImplementor is specific to the JAVA
- * calling convention; those portions should probably be factored out into a
- * subclass.</p>
  */
-public class JavaRelImplementor
-    implements RelImplementor
-{
-    //~ Static fields/initializers ---------------------------------------------
-
-    private static final Logger tracer =
-        EigenbaseTrace.getRelImplementorTracer();
-
-    //~ Instance fields --------------------------------------------------------
-
-    /**
-     * Maps a {@link String} to the {@link Frame} whose {@link
-     * Frame#rel}.correlVariable == correlName.
-     */
-    final Map<String, Frame> mapCorrel2Frame = new HashMap<String, Frame>();
+public class JavaRelImplementor extends RelImplementorImpl {
 
     final HashMap<String, Variable> mapCorrelNameToVariable =
         new HashMap<String, Variable>();
-
-    /**
-     * Maps a {@link RelNode} to the unique frame whose {@link Frame#rel} is
-     * that relational expression.
-     */
-    final Map<RelNode, Frame> mapRel2Frame = new HashMap<RelNode, Frame>();
 
     /**
      * Stack of {@link StatementList} objects.
      */
     final Stack<StatementList> stmtListStack = new Stack<StatementList>();
     Statement exitStatement;
-    private final RexBuilder rexBuilder;
     private int nextVariableId;
     protected final OJRexImplementorTable implementorTable;
 
@@ -94,9 +68,9 @@ public class JavaRelImplementor
         RexBuilder rexBuilder,
         OJRexImplementorTable implementorTable)
     {
+        super(rexBuilder);
         Util.pre(rexBuilder != null, "rexBuilder != null");
         Util.pre(implementorTable != null, "implementorTable != null");
-        this.rexBuilder = rexBuilder;
         this.implementorTable = implementorTable;
         nextVariableId = 0;
     }
@@ -118,16 +92,6 @@ public class JavaRelImplementor
         return stmtListStack.peek();
     }
 
-    public RexBuilder getRexBuilder()
-    {
-        return rexBuilder;
-    }
-
-    public RelDataTypeFactory getTypeFactory()
-    {
-        return rexBuilder.getTypeFactory();
-    }
-
     /**
      * Records the fact that instances of <code>rel</code> are available in
      * <code>variable</code>.
@@ -137,8 +101,7 @@ public class JavaRelImplementor
         Variable variable)
     {
         bind(
-            rel,
-            new EagerBind(variable));
+            rel, new EagerBind(variable));
     }
 
     /**
@@ -288,7 +251,7 @@ public class JavaRelImplementor
         if (stmtList != null) {
             pushStatementList(stmtList);
         }
-        Frame frame = mapRel2Frame.get(rel);
+        JavaFrame frame = (JavaFrame) mapRel2Frame.get(rel);
         bindDeferred(frame, rel);
         ((JavaLoopRel) frame.parent).implementJavaParent(this, frame.ordinal);
         if (stmtList != null) {
@@ -297,7 +260,7 @@ public class JavaRelImplementor
     }
 
     private void bindDeferred(
-        Frame frame,
+        JavaFrame frame,
         final RelNode rel)
     {
         final StatementList statementList = getStatementList();
@@ -349,43 +312,8 @@ public class JavaRelImplementor
         return (Expression) visitChild(parent, ordinal, child);
     }
 
-    public final Object visitChild(
-        RelNode parent,
-        int ordinal,
-        RelNode child)
-    {
-        if (parent != null) {
-            assert child == parent.getInputs().get(ordinal);
-        }
-        createFrame(parent, ordinal, child);
-        return visitChildInternal(child, ordinal);
-    }
-
-    protected void createFrame(RelNode parent, int ordinal, RelNode child)
-    {
-        Frame frame = new Frame();
-        frame.rel = child;
-        frame.parent = parent;
-        frame.ordinal = ordinal;
-        mapRel2Frame.put(child, frame);
-        String correl = child.getCorrelVariable();
-        if (correl != null) {
-            // Record that this frame is responsible for setting this
-            // variable. But if another frame is already doing the job --
-            // this frame's parent, which belongs to the same set -- don't
-            // override it.
-            if (mapCorrel2Frame.get(correl) == null) {
-                mapCorrel2Frame.put(correl, frame);
-            }
-        }
-    }
-
-    public Object visitChildInternal(RelNode child)
-    {
-        return visitChildInternal(child, 0);
-    }
-
-    public Object visitChildInternal(RelNode child, int ordinal)
+    @Override
+    public ParseTree visitChildInternal(RelNode child, int ordinal)
     {
         final CallingConvention convention = child.getConvention();
         if (!(child instanceof JavaRel)) {
@@ -427,11 +355,9 @@ public class JavaRelImplementor
         String correlName,
         RelNode rel)
     {
-        Frame frame = (Frame) mapCorrel2Frame.get(correlName);
+        JavaFrame frame = (JavaFrame) mapCorrel2Frame.get(correlName);
         assert (frame != null);
-        assert (Util.equal(
-            frame.rel.getCorrelVariable(),
-            correlName));
+        assert Util.equal(frame.rel.getCorrelVariable(), correlName);
         assert (frame.hasVariable());
         return frame.getVariable();
     }
@@ -703,7 +629,7 @@ public class JavaRelImplementor
         Bind bind)
     {
         tracer.log(Level.FINE, "Bind " + rel.toString() + " to " + bind);
-        Frame frame = mapRel2Frame.get(rel);
+        JavaFrame frame = (JavaFrame) mapRel2Frame.get(rel);
         frame.bind = bind;
         boolean stupid = SaffronProperties.instance().stupid.get();
         if (stupid) {
@@ -711,38 +637,6 @@ public class JavaRelImplementor
             // may not be used
             Util.discard(bind.getVariable());
         }
-    }
-
-    private RelNode findInputRel(
-        RelNode rel,
-        int offset)
-    {
-        return findInputRel(
-            rel,
-            offset,
-            new int[] { 0 });
-    }
-
-    private RelNode findInputRel(
-        RelNode rel,
-        int offset,
-        int [] offsets)
-    {
-        if (rel instanceof JoinRel) {
-            // no variable here -- go deeper
-            List<RelNode> inputs = rel.getInputs();
-            for (int i = 0; i < inputs.size(); i++) {
-                RelNode result = findInputRel(inputs.get(i), offset, offsets);
-                if (result != null) {
-                    return result;
-                }
-            }
-        } else if (offset == offsets[0]) {
-            return rel;
-        } else {
-            offsets[0]++;
-        }
-        return null; // not found
     }
 
     /**
@@ -755,7 +649,7 @@ public class JavaRelImplementor
     public Variable findInputVariable(RelNode rel)
     {
         while (true) {
-            Frame frame = mapRel2Frame.get(rel);
+            JavaFrame frame = (JavaFrame) mapRel2Frame.get(rel);
             if ((frame != null) && frame.hasVariable()) {
                 return frame.getVariable();
             }
@@ -806,31 +700,6 @@ public class JavaRelImplementor
         OJAggImplementor aggImplementor =
             implementorTable.get(call.getAggregation());
         return aggImplementor.implementResult(this, accumulator, call);
-    }
-
-    /**
-     * Returns a list of the relational expressions which are ancestors of the
-     * current one.
-     *
-     * @pre // rel must be on the implementation stack
-     */
-    public List<RelNode> getAncestorRels(RelNode rel)
-    {
-        final List<RelNode> ancestorList = new ArrayList<RelNode>();
-        Frame frame = mapRel2Frame.get(rel);
-        Util.pre(
-            frame != null,
-            "rel must be on the current implementation stack");
-        while (true) {
-            ancestorList.add(frame.rel);
-            final RelNode parentRel = frame.parent;
-            if (parentRel == null) {
-                break;
-            }
-            frame = mapRel2Frame.get(parentRel);
-            Util.permAssert(frame != null, "ancestor rel must have frame");
-        }
-        return ancestorList;
     }
 
     //~ Inner Interfaces -------------------------------------------------------
@@ -895,15 +764,15 @@ public class JavaRelImplementor
 
         public Variable getVariable()
         {
-            final Frame frame = findFrame();
+            final JavaFrame frame = findFrame();
             return frame.getVariable();
         }
 
-        private Frame findFrame()
+        private JavaFrame findFrame()
         {
             RelNode previous = rel;
             while (true) {
-                Frame frame = mapRel2Frame.get(previous);
+                JavaFrame frame = (JavaFrame) mapRel2Frame.get(previous);
                 if (frame.bind != null) {
                     tracer.log(
                         Level.FINE,
@@ -917,46 +786,6 @@ public class JavaRelImplementor
                 assert (inputs.size() == 1) : "input is not bound";
                 previous = inputs.get(0);
             }
-        }
-    }
-
-    private static class Frame
-    {
-        /**
-         * <code>rel</code>'s parent
-         */
-        RelNode parent;
-
-        /**
-         * relation which is being implemented in this frame
-         */
-        RelNode rel;
-
-        /**
-         * ordinal of <code>rel</code> within <code>parent</code>
-         */
-        int ordinal;
-
-        /**
-         * Holds variable which hasn't been declared yet.
-         */
-        private Bind bind;
-
-        /**
-         * Retrieves the variable, executing the lazy bind if necessary.
-         */
-        Variable getVariable()
-        {
-            assert (hasVariable());
-            return bind.getVariable();
-        }
-
-        /**
-         * Returns whether the frame has, or potentially has, a variable.
-         */
-        boolean hasVariable()
-        {
-            return bind != null;
         }
     }
 
@@ -1103,6 +932,30 @@ public class JavaRelImplementor
             public CannotTranslate()
             {
             }
+        }
+    }
+
+    private static class JavaFrame extends Frame {
+        /**
+         * Holds variable which hasn't been declared yet.
+         */
+        protected JavaRelImplementor.Bind bind;
+
+        /**
+         * Retrieves the variable, executing the lazy bind if necessary.
+         */
+        Variable getVariable()
+        {
+            assert (hasVariable());
+            return bind.getVariable();
+        }
+
+        /**
+         * Returns whether the frame has, or potentially has, a variable.
+         */
+        boolean hasVariable()
+        {
+            return bind != null;
         }
     }
 }

@@ -15,17 +15,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
+package net.hydromatic.optiq.rules.java;
+
+import net.hydromatic.linq4j.expressions.Expression;
+
+import org.eigenbase.rel.RelNode;
+
 
 /**
- * Replica of LINQ's Enumerator interface.
+ * A relational expression of one of the
+ * {@link org.eigenbase.relopt.CallingConvention#ENUMERABLE} calling convention.
  *
- * <p>Package-protected; not part of JDBC.</p>
+ * @author jhyde
  */
-interface OptiqEnumerator<T> {
-    boolean moveNext();
-    T current();
-    void reset();
+public interface EnumerableRel
+    extends RelNode
+{
+    //~ Methods ----------------------------------------------------------------
+
+    /**
+     * Creates a plan for this expression according to a calling convention.
+     *
+     * @param implementor implementor
+     */
+    Expression implement(EnumerableRelImplementor implementor);
 }
 
-// End OptiqEnumerator.java
+// End EnumerableRel.java

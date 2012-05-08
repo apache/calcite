@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.function.Function1;
@@ -111,7 +112,7 @@ class OptiqPrepare {
             this.resultSetMetaData = resultSetMetaData;
         }
 
-        public OptiqEnumerator<Object> execute() {
+        public Enumerator<Object> execute() {
             return null;
         }
     }

@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.Enumerator;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -32,7 +34,7 @@ import java.util.*;
  */
 public class OptiqResultSet implements ResultSet {
     private final OptiqStatement statement;
-    private OptiqEnumerator<Object> enumerator;
+    private Enumerator<Object> enumerator;
     private boolean wasNull;
     private final List<Accessor> accessorList = new ArrayList<Accessor>();
     private Map<String, Accessor> accessorMap = new HashMap<String, Accessor>();
@@ -187,7 +189,7 @@ public class OptiqResultSet implements ResultSet {
     }
 
     public void close() {
-        throw new UnsupportedOperationException();
+        closed = true;
     }
 
     // not JDBC

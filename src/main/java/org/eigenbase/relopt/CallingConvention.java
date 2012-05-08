@@ -21,6 +21,8 @@ import org.eigenbase.oj.rel.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.rules.java.EnumerableRel;
+
 
 /**
  * <code>CallingConvention</code> enumerates the calling conventions built in to
@@ -153,7 +155,7 @@ public class CallingConvention
         new CallingConvention(
             "ENUMERABLE",
             ENUMERABLE_ORDINAL,
-            JavaRel.class);
+            EnumerableRel.class);
 
     public static final CallingConvention [] values =
         new CallingConvention[] {

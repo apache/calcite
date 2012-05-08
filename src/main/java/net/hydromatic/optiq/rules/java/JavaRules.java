@@ -18,26 +18,26 @@
 package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.Enumerable;
+import net.hydromatic.linq4j.ExtendedEnumerable;
+import net.hydromatic.linq4j.expressions.*;
+import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Function2;
 
 import openjava.mop.OJClass;
 import openjava.ptree.*;
 
-import openjava.ptree.Expression;
-
-import org.eigenbase.oj.rel.JavaRel;
-import org.eigenbase.oj.rel.JavaRelImplementor;
-import org.eigenbase.oj.util.OJUtil;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.rex.RexLocalRef;
 import org.eigenbase.rex.RexMultisetUtil;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.rex.RexProgram;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -49,7 +49,7 @@ import java.util.Set;
  */
 public class JavaRules {
     // not used
-    public static final RelOptRule JAVA_PROJECT_ROLE =
+    public static final RelOptRule JAVA_PROJECT_RULE =
         new RelOptRule(
             new RelOptRuleOperand(
                 ProjectRel.class,
@@ -89,8 +89,25 @@ public class JavaRules {
             }
         };
 
-    public static class EnumerableJoinRel extends JoinRelBase implements JavaRel
+    public static class EnumerableJoinRel
+        extends JoinRelBase
+        implements EnumerableRel
     {
+        static final Method join;
+
+        static {
+            try {
+                join = ExtendedEnumerable.class.getMethod(
+                    "join",
+                    Enumerable.class,
+                    Function1.class,
+                    Function1.class,
+                    Function2.class);
+            } catch (NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         protected EnumerableJoinRel(
             RelOptCluster cluster,
             RelTraitSet traits,
@@ -123,7 +140,7 @@ public class JavaRules {
                 variablesStopped);
         }
 
-        public ParseTree implement(JavaRelImplementor implementor) {
+        public Expression implement(EnumerableRelImplementor implementor) {
             final List<Integer> leftKeys = new ArrayList<Integer>();
             final List<Integer> rightKeys = new ArrayList<Integer>();
             RexNode remaining =
@@ -135,23 +152,14 @@ public class JavaRules {
                     rightKeys);
             assert remaining.isAlwaysTrue()
                 : "EnumerableJoin is equi only"; // TODO: stricter pre-check
-            return new MethodCall(
-                implementor.visitJavaChild(this, 0, (JavaRel) left),
-                "join",
-                OJUtil.expressionList(
-                    implementor.visitJavaChild(this, 1, (JavaRel) right),
-                    EnumUtil.generateAccessor(left.getRowType(), leftKeys),
-                    EnumUtil.generateAccessor(right.getRowType(), rightKeys),
-                    EnumUtil.generateSelector(rowType)));
-
-            /*
-            input1.join(
-
-            input2,
-
-             */
+            return Expressions.call(
+                implementor.visitChild(this, 0, (EnumerableRel) left),
+                join,
+                implementor.visitChild(this, 1, (EnumerableRel) right),
+                EnumUtil.generateAccessor(left.getRowType(), leftKeys),
+                EnumUtil.generateAccessor(right.getRowType(), rightKeys),
+                EnumUtil.generateSelector(rowType));
         }
-
     }
 
     /**
@@ -167,38 +175,27 @@ public class JavaRules {
             assert fields.size() == 1
                 : "composite keys not implemented yet";
             int field = fields.get(0);
-            return new AllocationExpression(
-                TypeName.forOJClass(OJClass.forClass(Function1.class)),
-                new ExpressionList(),
-                new MemberDeclarationList(
-                    new MethodDeclaration(
-                        new ModifierList(ModifierList.PUBLIC),
-                        EnumUtil.toTypeName(
-                            rowType.getFields()[field].getType()),
-                        "apply",
-                        new ParameterList(
-                            new Parameter(
-                                EnumUtil.toTypeName(rowType),
-                                "v1")),
-                        new TypeName[0],
-                        new StatementList(
-                            new ReturnStatement()
-                        )
-
-                        )
-                    )
-                );
-
             /*
-            return new Function1<Employee, Integer>() {
-                public Integer apply(Employee p0) {
-                    return
+            new Function1<Employee, Res> {
+                public Res apply(Employee v1) {
+                    return v1.<fieldN>;
                 }
             }
-            */
+             */
+            ParameterExpression v1 =
+                Expressions.parameter(EnumUtil.toTypeName(rowType), "v1");
+            return Expressions.lambda(
+                Function1.class,
+                Expressions.return_(
+                    null,
+                    Expressions.field(v1, nthField(field, v1.getType()))));
         }
 
-        private static TypeName toTypeName(RelDataType type) {
+        private static Field nthField(int ordinal, Class clazz) {
+            return clazz.getFields()[ordinal];
+        }
+
+        private static Class toTypeName(RelDataType type) {
             return null;
         }
 
@@ -209,7 +206,7 @@ public class JavaRules {
 
     public static class EnumerableTableAccessRel
         extends TableAccessRelBase
-        implements JavaRel
+        implements EnumerableRel
     {
         public EnumerableTableAccessRel(
             RelOptCluster cluster,
@@ -223,8 +220,8 @@ public class JavaRules {
                 connection);
         }
 
-        public ParseTree implement(JavaRelImplementor implementor) {
-            throw new UnsupportedOperationException();
+        public Expression implement(EnumerableRelImplementor implementor) {
+            return null;
         }
     }
 
@@ -266,18 +263,6 @@ public class JavaRules {
                 return null;
             }
 
-            // REVIEW: want to move canTranslate into RelImplementor
-            // and implement it for Java & C++ calcs.
-            final JavaRelImplementor relImplementor =
-                rel.getCluster().getPlanner().getJavaRelImplementor(rel);
-            if (!relImplementor.canTranslate(
-                    convertedChild,
-                    calc.getProgram()))
-            {
-                // Some of the expressions cannot be translated into Java
-                return null;
-            }
-
             return new EnumerableCalcRel(
                 rel.getCluster(),
                 rel.getTraitSet(),
@@ -289,7 +274,7 @@ public class JavaRules {
 
     public static class EnumerableCalcRel
         extends SingleRel
-        implements JavaRel
+        implements EnumerableRel
     {
         private final RexProgram program;
 
@@ -319,14 +304,12 @@ public class JavaRules {
             program.explainCalc(this, pw);
         }
 
-        public double getRows()
-        {
+        public double getRows() {
             return FilterRel.estimateFilteredRows(
                 getChild(), program);
         }
 
-        public RelOptCost computeSelfCost(RelOptPlanner planner)
-        {
+        public RelOptCost computeSelfCost(RelOptPlanner planner) {
             double dRows = RelMetadataQuery.getRowCount(this);
             double dCpu =
                 RelMetadataQuery.getRowCount(getChild())
@@ -356,40 +339,12 @@ public class JavaRules {
                    == ProjectRelBase.Flags.Boxed;
         }
 
-        /**
-         * Burrows into a synthetic record and returns the underlying relation
-         * which provides the field called <code>fieldName</code>.
-         */
-        public JavaRel implementFieldAccess(
-            JavaRelImplementor implementor,
-            String fieldName)
-        {
-            if (!isBoxed()) {
-                return implementor.implementFieldAccess(
-                    (JavaRel) getChild(),
-                    fieldName);
-            }
-            RelDataType type = getRowType();
-            int field = type.getFieldOrdinal(fieldName);
-            RexLocalRef ref = program.getProjectList().get(field);
-            final int index = ref.getIndex();
-            return implementor.findRel(
-                this,
-                program.getExprList().get(index));
-        }
 
-        public ParseTree implement(JavaRelImplementor implementor)
-        {
+        public Expression implement(EnumerableRelImplementor implementor) {
             Expression childExp =
-                implementor.visitJavaChild(this, 0, (JavaRel) getChild());
+                implementor.visitChild(this, 0, (EnumerableRel) getChild());
             RelDataType outputRowType = getRowType();
             RelDataType inputRowType = getChild().getRowType();
-
-            Variable varInputRow = implementor.newVariable();
-            implementor.bind(
-                getChild(),
-                varInputRow);
-
             return null /* implementAbstract(
                 implementor,
                 this,
