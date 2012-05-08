@@ -26,28 +26,43 @@ import java.util.Properties;
  * <p>There is an implementation for each supported JDBC version.</p>
  */
 interface Factory {
+    int getJdbcMajorVersion();
+
+    int getJdbcMinorVersion();
+
     OptiqConnectionImpl newConnection(
         UnregisteredDriver driver,
         Factory factory,
         String url,
         Properties info);
 
-    OptiqStatement newStatement(OptiqConnectionImpl connection);
+    OptiqStatement newStatement(
+        OptiqConnectionImpl connection,
+        int resultSetType,
+        int resultSetConcurrency,
+        int resultSetHoldability);
 
     OptiqPreparedStatement newPreparedStatement(
-        OptiqConnectionImpl connection, String sql) throws SQLException;
+        OptiqConnectionImpl connection,
+        String sql,
+        int resultSetType,
+        int resultSetConcurrency,
+        int resultSetHoldability) throws SQLException;
 
     /**
      * Creates a result set. You will then need to call
      * {@link net.hydromatic.optiq.jdbc.OptiqResultSet#execute()} on it.
      *
-     * @param optiqStatement Statement
+     * @param statement Statement
      * @param prepareResult Result
      * @return Result set
      */
     OptiqResultSet newResultSet(
-        OptiqStatement optiqStatement,
+        OptiqStatement statement,
         OptiqPrepare.PrepareResult prepareResult);
+
+    OptiqDatabaseMetaData newDatabaseMetaData(
+        OptiqConnectionImpl connection);
 }
 
 // End Factory.java

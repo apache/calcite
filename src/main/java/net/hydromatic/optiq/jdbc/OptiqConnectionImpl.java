@@ -37,6 +37,8 @@ import java.util.concurrent.Executor;
  */
 abstract class OptiqConnectionImpl implements OptiqConnection {
     public static final String CONNECT_STRING_PREFIX = "jdbc:optiq:";
+    static final Helper HELPER = new Helper();
+
     public final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
 
     private boolean autoCommit;
@@ -48,11 +50,12 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     private String catalog;
 
     final MutableSchema rootSchema = new MapSchema();
-    private final UnregisteredDriver driver;
+    final UnregisteredDriver driver;
     final Factory factory;
     private final String url;
     private final Properties info;
-    final Helper helper = new Helper();
+    private String schema;
+    private final OptiqDatabaseMetaData metaData;
 
     final OptiqServer server = new OptiqServer() {
         final List<OptiqServerStatement> statementList =
@@ -74,6 +77,8 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         this.factory = factory;
         this.url = url;
         this.info = info;
+        this.metaData = factory.newDatabaseMetaData(this);
+        this.holdability = metaData.getResultSetHoldability();
     }
 
     public MutableSchema getRootSchema() {
@@ -85,13 +90,17 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     }
 
     public Statement createStatement() throws SQLException {
-        OptiqStatement statement = factory.newStatement(this);
-        server.addStatement(statement);
-        return statement;
+        //noinspection MagicConstant
+        return createStatement(
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+            holdability);
     }
 
     public PreparedStatement prepareStatement(String sql) throws SQLException {
-        throw new UnsupportedOperationException();
+        //noinspection MagicConstant
+        return prepareStatement(
+            sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+            holdability);
     }
 
     public CallableStatement prepareCall(String sql) throws SQLException {
@@ -127,7 +136,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     }
 
     public DatabaseMetaData getMetaData() throws SQLException {
-        throw new UnsupportedOperationException();
+        return metaData;
     }
 
     public void setReadOnly(boolean readOnly) throws SQLException {
@@ -165,7 +174,9 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     public Statement createStatement(
         int resultSetType, int resultSetConcurrency) throws SQLException
     {
-        throw new UnsupportedOperationException();
+        //noinspection MagicConstant
+        return createStatement(
+            resultSetType, resultSetConcurrency, holdability);
     }
 
     public PreparedStatement prepareStatement(
@@ -173,7 +184,9 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         int resultSetType,
         int resultSetConcurrency) throws SQLException
     {
-        throw new UnsupportedOperationException();
+        //noinspection MagicConstant
+        return prepareStatement(
+            sql, resultSetType, resultSetConcurrency, holdability);
     }
 
     public CallableStatement prepareCall(
@@ -193,6 +206,11 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     }
 
     public void setHoldability(int holdability) throws SQLException {
+        if (!(holdability == ResultSet.CLOSE_CURSORS_AT_COMMIT
+              || holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT))
+        {
+            throw new SQLException("invalid value");
+        }
         this.holdability = holdability;
     }
 
@@ -221,7 +239,14 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         int resultSetConcurrency,
         int resultSetHoldability) throws SQLException
     {
-        throw new UnsupportedOperationException();
+        OptiqStatement statement =
+            factory.newStatement(
+                this,
+                resultSetType,
+                resultSetConcurrency,
+                resultSetHoldability);
+        server.addStatement(statement);
+        return statement;
     }
 
     public PreparedStatement prepareStatement(
@@ -230,7 +255,15 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         int resultSetConcurrency,
         int resultSetHoldability) throws SQLException
     {
-        throw new UnsupportedOperationException();
+        OptiqPreparedStatement statement =
+            factory.newPreparedStatement(
+                this,
+                sql,
+                resultSetType,
+                resultSetConcurrency,
+                resultSetHoldability);
+        server.addStatement(statement);
+        return statement;
     }
 
     public CallableStatement prepareCall(
@@ -313,11 +346,11 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     }
 
     public void setSchema(String schema) throws SQLException {
-        throw new UnsupportedOperationException();
+        this.schema = schema;
     }
 
     public String getSchema() throws SQLException {
-        throw new UnsupportedOperationException();
+        return schema;
     }
 
     public void abort(Executor executor) throws SQLException {
@@ -338,7 +371,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         if (iface.isInstance(this)) {
             return iface.cast(this);
         }
-        throw helper.createException(
+        throw HELPER.createException(
             "does not implement '" + iface + "'");
     }
 
@@ -351,9 +384,14 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     }
 
     static class Helper {
+        public RuntimeException todo() {
+            return new RuntimeException("todo: implement this method");
+        }
+
         public SQLException createException(String message, Exception e) {
             return new SQLException(message, e);
         }
+
         public SQLException createException(String message) {
             return new SQLException(message);
         }

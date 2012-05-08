@@ -28,25 +28,54 @@ import java.util.Properties;
 /**
  * Implementation of {@link Factory} for JDBC 4.1 (corresponds to JDK 1.7).
  */
+@SuppressWarnings("UnusedDeclaration")
 class FactoryJdbc41 implements Factory {
+    public int getJdbcMajorVersion() {
+        return 4;
+    }
+
+    public int getJdbcMinorVersion() {
+        return 1;
+    }
+
     public OptiqConnectionImpl newConnection(
         UnregisteredDriver driver, Factory factory, String url, Properties info)
     {
         return new OptiqConnectionJdbc41(driver, factory, url, info);
     }
 
-    public OptiqStatement newStatement(OptiqConnectionImpl connection) {
-        return new OptiqStatementJdbc41(connection);
+    public OptiqDatabaseMetaData newDatabaseMetaData(
+        OptiqConnectionImpl connection)
+    {
+        return new OptiqDatabaseMetaDataJdbc41(connection);
+    }
+
+    public OptiqStatement newStatement(
+        OptiqConnectionImpl connection,
+        int resultSetType,
+        int resultSetConcurrency,
+        int resultSetHoldability)
+    {
+        return new OptiqStatementJdbc41(
+            connection, resultSetType, resultSetConcurrency,
+            resultSetHoldability);
     }
 
     public OptiqPreparedStatement newPreparedStatement(
-        OptiqConnectionImpl connection, String sql) throws SQLException
+        OptiqConnectionImpl connection,
+        String sql,
+        int resultSetType,
+        int resultSetConcurrency,
+        int resultSetHoldability) throws SQLException
     {
-        return new OptiqPreparedStatementJdbc41(connection, sql);
+        return new OptiqPreparedStatementJdbc41(
+            connection, sql, resultSetType, resultSetConcurrency,
+            resultSetHoldability);
     }
 
     public OptiqResultSet newResultSet(
-        OptiqStatement statement, OptiqPrepare.PrepareResult prepareResult)
+        OptiqStatement statement,
+        OptiqPrepare.PrepareResult prepareResult)
     {
         return new OptiqResultSet(statement, prepareResult);
     }
@@ -63,8 +92,15 @@ class FactoryJdbc41 implements Factory {
     }
 
     private static class OptiqStatementJdbc41 extends OptiqStatement {
-        public OptiqStatementJdbc41(OptiqConnectionImpl connection) {
-            super(connection);
+        public OptiqStatementJdbc41(
+            OptiqConnectionImpl connection,
+            int resultSetType,
+            int resultSetConcurrency,
+            int resultSetHoldability)
+        {
+            super(
+                connection, resultSetType, resultSetConcurrency,
+                resultSetHoldability);
         }
 
         public void closeOnCompletion() throws SQLException {
@@ -80,9 +116,15 @@ class FactoryJdbc41 implements Factory {
         extends OptiqPreparedStatement
     {
         OptiqPreparedStatementJdbc41(
-            OptiqConnectionImpl connection, String sql) throws SQLException
+            OptiqConnectionImpl connection,
+            String sql,
+            int resultSetType,
+            int resultSetConcurrency,
+            int resultSetHoldability) throws SQLException
         {
-            super(connection, sql);
+            super(
+                connection, sql, resultSetType, resultSetConcurrency,
+                resultSetHoldability);
         }
 
         public void setRowId(
@@ -216,6 +258,14 @@ class FactoryJdbc41 implements Factory {
 
         public boolean isCloseOnCompletion() throws SQLException {
             return closeOnCompletion;
+        }
+    }
+
+    private static class OptiqDatabaseMetaDataJdbc41
+        extends OptiqDatabaseMetaData
+    {
+        OptiqDatabaseMetaDataJdbc41(OptiqConnectionImpl connection) {
+            super(connection);
         }
     }
 }

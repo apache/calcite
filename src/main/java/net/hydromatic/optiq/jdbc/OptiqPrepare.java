@@ -20,7 +20,6 @@ package net.hydromatic.optiq.jdbc;
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.optiq.Function;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.SchemaLink;
@@ -54,6 +53,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Shit just got real.
+ *
  * @author jhyde
  */
 class OptiqPrepare {

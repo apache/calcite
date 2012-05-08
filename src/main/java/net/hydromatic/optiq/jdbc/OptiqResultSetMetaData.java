@@ -136,7 +136,7 @@ class OptiqResultSetMetaData implements ResultSetMetaData {
         if (iface.isInstance(this)) {
             return iface.cast(this);
         }
-        throw this.statement.connection.helper.createException(
+        throw OptiqConnectionImpl.HELPER.createException(
             "does not implement '" + iface + "'");
     }
 

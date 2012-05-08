@@ -42,7 +42,7 @@ public class OptiqResultSet implements ResultSet {
         new HashMap<String, Integer>();
     private int row = -1;
     private boolean afterLast;
-    private int direction;
+    private int fetchDirection;
     private int fetchSize;
     private int type;
     private int concurrency;
@@ -56,6 +56,11 @@ public class OptiqResultSet implements ResultSet {
     {
         this.statement = statement;
         this.prepareResult = prepareResult;
+        this.type = statement.resultSetType;
+        this.concurrency = statement.resultSetConcurrency;
+        this.holdability = statement.resultSetHoldability;
+        this.fetchSize = statement.getFetchSize();
+        this.fetchDirection = statement.getFetchDirection();
 
         for (OptiqResultSetMetaData.ColumnMetaData columnMetaData
             : prepareResult.resultSetMetaData.columnMetaDataList)
@@ -449,15 +454,15 @@ public class OptiqResultSet implements ResultSet {
     }
 
     public void setFetchDirection(int direction) throws SQLException {
-        this.direction = direction;
+        this.fetchDirection = direction;
     }
 
     public int getFetchDirection() throws SQLException {
-        return direction;
+        return fetchDirection;
     }
 
-    public void setFetchSize(int rows) throws SQLException {
-        fetchSize = rows;
+    public void setFetchSize(int fetchSize) throws SQLException {
+        this.fetchSize = fetchSize;
     }
 
     public int getFetchSize() throws SQLException {
@@ -691,87 +696,87 @@ public class OptiqResultSet implements ResultSet {
     }
 
     public Statement getStatement() throws SQLException {
-        throw new UnsupportedOperationException();
+        return statement;
     }
 
     public Object getObject(
         int columnIndex, Map<String, Class<?>> map) throws SQLException
     {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getObject(map);
     }
 
     public Ref getRef(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getRef();
     }
 
     public Blob getBlob(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getBlob();
     }
 
     public Clob getClob(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getClob();
     }
 
     public Array getArray(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getArray();
     }
 
     public Object getObject(
         String columnLabel, Map<String, Class<?>> map) throws SQLException
     {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getObject(map);
     }
 
     public Ref getRef(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getRef();
     }
 
     public Blob getBlob(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getBlob();
     }
 
     public Clob getClob(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getClob();
     }
 
     public Array getArray(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getArray();
     }
 
     public Date getDate(int columnIndex, Calendar cal) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getDate(cal);
     }
 
     public Date getDate(String columnLabel, Calendar cal) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getDate(cal);
     }
 
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getTime(cal);
     }
 
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getTime(cal);
     }
 
     public Timestamp getTimestamp(
         int columnIndex, Calendar cal) throws SQLException
     {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getTimestamp(cal);
     }
 
     public Timestamp getTimestamp(
         String columnLabel, Calendar cal) throws SQLException
     {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getTimestamp(cal);
     }
 
     public URL getURL(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getURL();
     }
 
     public URL getURL(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getURL();
     }
 
     public void updateRef(int columnIndex, Ref x) throws SQLException {
@@ -853,19 +858,19 @@ public class OptiqResultSet implements ResultSet {
     }
 
     public NClob getNClob(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getNClob();
     }
 
     public NClob getNClob(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getNClob();
     }
 
     public SQLXML getSQLXML(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getSQLXML();
     }
 
     public SQLXML getSQLXML(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getSQLXML();
     }
 
     public void updateSQLXML(
@@ -881,19 +886,19 @@ public class OptiqResultSet implements ResultSet {
     }
 
     public String getNString(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getNString();
     }
 
     public String getNString(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getNString();
     }
 
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getNCharacterStream();
     }
 
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getNCharacterStream();
     }
 
     public void updateNCharacterStream(
@@ -1067,20 +1072,20 @@ public class OptiqResultSet implements ResultSet {
     }
 
     public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnIndex - 1).getObject(type);
     }
 
     public <T> T getObject(
         String columnLabel, Class<T> type) throws SQLException
     {
-        throw new UnsupportedOperationException();
+        return getAccessor(columnLabel).getObject(type);
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
         if (iface.isInstance(this)) {
             return iface.cast(this);
         }
-        throw statement.connection.helper.createException(
+        throw OptiqConnectionImpl.HELPER.createException(
             "does not implement '" + iface + "'");
     }
 
@@ -1171,6 +1176,62 @@ public class OptiqResultSet implements ResultSet {
 
         protected boolean isNull() {
             return getObject() == null;
+        }
+
+        public Object getObject(Map<String, Class<?>> map) {
+            throw cannotConvert("Object (with map)");
+        }
+
+        public Ref getRef() {
+            throw cannotConvert("Ref");
+        }
+
+        public Blob getBlob() {
+            throw cannotConvert("Blob");
+        }
+
+        public Clob getClob() {
+            throw cannotConvert("Clob");
+        }
+
+        public Array getArray() {
+            throw cannotConvert("Array");
+        }
+
+        public Date getDate(Calendar cal) {
+            throw cannotConvert("Date (with Calendar)");
+        }
+
+        public Time getTime(Calendar cal) {
+            throw cannotConvert("Time (with Calendar)");
+        }
+
+        public Timestamp getTimestamp(Calendar cal) {
+            throw cannotConvert("Timestamp (with Calendar)");
+        }
+
+        public URL getURL() {
+            throw cannotConvert("URL");
+        }
+
+        public NClob getNClob() {
+            throw cannotConvert("NClob");
+        }
+
+        public SQLXML getSQLXML() {
+            throw cannotConvert("SQLXML");
+        }
+
+        public String getNString() {
+            throw cannotConvert("NString");
+        }
+
+        public Reader getNCharacterStream() {
+            throw cannotConvert("NCharacterStream");
+        }
+
+        public <T> T getObject(Class<T> type) {
+            throw cannotConvert("Object (with type)");
         }
     }
 

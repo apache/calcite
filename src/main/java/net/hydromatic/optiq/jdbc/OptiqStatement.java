@@ -44,11 +44,22 @@ abstract class OptiqStatement
     OptiqResultSet openResultSet;
 
     private int queryTimeoutMillis;
+    final int resultSetType;
+    final int resultSetConcurrency;
+    final int resultSetHoldability;
+    private int fetchSize;
+    private int fetchDirection;
 
     OptiqStatement(
-        OptiqConnectionImpl connection)
+        OptiqConnectionImpl connection,
+        int resultSetType,
+        int resultSetConcurrency,
+        int resultSetHoldability)
     {
         assert connection != null;
+        this.resultSetType = resultSetType;
+        this.resultSetConcurrency = resultSetConcurrency;
+        this.resultSetHoldability = resultSetHoldability;
         this.connection = connection;
         this.closed = false;
     }
@@ -114,7 +125,7 @@ abstract class OptiqStatement
 
     public void setQueryTimeout(int seconds) throws SQLException {
         if (seconds < 0) {
-            throw connection.helper.createException(
+            throw OptiqConnectionImpl.HELPER.createException(
                 "illegal timeout value " + seconds);
         }
         setQueryTimeoutMillis(seconds * 1000);
@@ -165,19 +176,19 @@ abstract class OptiqStatement
     }
 
     public void setFetchDirection(int direction) throws SQLException {
-        throw new UnsupportedOperationException();
+        this.fetchDirection = direction;
     }
 
-    public int getFetchDirection() throws SQLException {
-        throw new UnsupportedOperationException();
+    public int getFetchDirection() {
+        return fetchDirection;
     }
 
     public void setFetchSize(int rows) throws SQLException {
-        throw new UnsupportedOperationException();
+        this.fetchSize = rows;
     }
 
-    public int getFetchSize() throws SQLException {
-        throw new UnsupportedOperationException();
+    public int getFetchSize() {
+        return fetchSize;
     }
 
     public int getResultSetConcurrency() throws SQLException {
@@ -270,7 +281,7 @@ abstract class OptiqStatement
         if (iface.isInstance(this)) {
             return iface.cast(this);
         }
-        throw connection.helper.createException(
+        throw OptiqConnectionImpl.HELPER.createException(
             "does not implement '" + iface + "'");
     }
 
@@ -296,7 +307,7 @@ abstract class OptiqStatement
                 try {
                     cs.close();
                 } catch (Exception e) {
-                    throw connection.helper.createException(
+                    throw OptiqConnectionImpl.HELPER.createException(
                         "Error while closing previous result set", e);
                 }
             }
@@ -308,7 +319,7 @@ abstract class OptiqStatement
         try {
             openResultSet.execute();
         } catch (Exception e) {
-            throw connection.helper.createException(
+            throw OptiqConnectionImpl.HELPER.createException(
                 "exception while executing query", e);
         }
         return openResultSet;

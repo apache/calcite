@@ -26,8 +26,12 @@ package net.hydromatic.optiq.jdbc;
 class DriverVersion {
     final int majorVersion = 0;
     final int minorVersion = 1;
-    final String name = "OPTIQ JDBC Driver";
+    final String name = "Optiq JDBC Driver";
     final String versionString = "0.1";
+    final String productName = "Optiq";
+    final String productVersion = "0.1";
+    public int databaseMajorVersion = 0;
+    public int databaseMinorVersion = 1;
 }
 
 // End DriverVersion.java

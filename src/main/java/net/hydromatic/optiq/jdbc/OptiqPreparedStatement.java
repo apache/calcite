@@ -52,10 +52,15 @@ abstract class OptiqPreparedStatement
      */
     protected OptiqPreparedStatement(
         OptiqConnectionImpl connection,
-        String sql)
+        String sql,
+        int resultSetType,
+        int resultSetConcurrency,
+        int resultSetHoldability)
         throws SQLException
     {
-        super(connection);
+        super(
+            connection, resultSetType, resultSetConcurrency,
+            resultSetHoldability);
         this.prepareResult = parseQuery(sql);
     }
 
@@ -253,8 +258,8 @@ abstract class OptiqPreparedStatement
             return prepareResult.parameterList.get(param - 1);
         } catch (IndexOutOfBoundsException e) {
             //noinspection ThrowableResultOfMethodCallIgnored
-            throw this.connection.helper.toSQLException(
-                this.connection.helper.createException(
+            throw OptiqConnectionImpl.HELPER.toSQLException(
+                OptiqConnectionImpl.HELPER.createException(
                     "parameter ordinal " + param + " out of range"));
         }
     }
