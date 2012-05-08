@@ -3711,7 +3711,6 @@ public class SqlValidatorImpl
         if (call.getInsertCall() != null) {
             validateInsert(call.getInsertCall());
         }
-
     }
 
     /**

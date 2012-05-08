@@ -54,6 +54,16 @@ public class JdbcExample {
                 + "from \"foodmart\".\"sales_fact_1997\" as s\n"
                 + "join \"hr\".\"emps\" as e\n"
                 + "on e.\"empid\" = s.\"cust_id\"");
+        while (resultSet.next()) {
+            int n = resultSet.getMetaData().getColumnCount();
+            for (int i = 1; i <= n; i++) {
+                System.out.print(
+                    resultSet.getMetaData().getColumnLabel(i)
+                    + "="
+                    + resultSet.getObject(i));
+            }
+            System.out.println();
+        }
         resultSet.close();
         statement.close();
         connection.close();
@@ -61,7 +71,6 @@ public class JdbcExample {
 
     public static class HrSchema {
         public final Employee[] emps = {
-
         };
     }
 
@@ -75,7 +84,6 @@ public class JdbcExample {
 
     public static class FoodmartSchema {
         public final SalesFact[] sales_fact_1997 = {
-
         };
     }
 

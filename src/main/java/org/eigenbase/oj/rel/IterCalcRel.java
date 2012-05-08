@@ -495,7 +495,6 @@ public class IterCalcRel
             final List<RexLocalRef> projectRefList = program.getProjectList();
             int i = -1;
             for (RexLocalRef rhs : projectRefList) {
-
                 // NOTE jvs 14-Sept-2006:  Put complicated project expressions
                 // into their own method, otherwise a big select list can easily
                 // blow the 64K Java limit on method bytecode size.  Make

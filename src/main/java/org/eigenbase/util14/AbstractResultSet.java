@@ -36,7 +36,7 @@ import java.util.TimeZone;
  * @version $Id$
  * @since Jan 8, 2006
  */
-abstract public class AbstractResultSet
+public abstract class AbstractResultSet
     extends Unwrappable
     implements ResultSet
 {
@@ -59,7 +59,7 @@ abstract public class AbstractResultSet
      *
      * @param columnIndex Column index, 1-based
      */
-    abstract protected Object getRaw(int columnIndex)
+    protected abstract Object getRaw(int columnIndex)
         throws SQLException;
 
     /**

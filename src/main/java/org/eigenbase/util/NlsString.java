@@ -197,7 +197,7 @@ public class NlsString
      *
      * @param args array of {@link NlsString} to be concatenated
      */
-    static public NlsString concat(NlsString [] args)
+    public static NlsString concat(NlsString [] args)
     {
         if (args.length < 2) {
             return args[0];

@@ -209,7 +209,7 @@ public class OJRexImplementorTableImpl
 
     //~ Inner Classes ----------------------------------------------------------
 
-    public abstract static class OJBasicAggImplementor
+    public static abstract class OJBasicAggImplementor
         implements OJAggImplementor
     {
         // implement Aggregation

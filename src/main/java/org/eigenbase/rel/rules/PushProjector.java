@@ -47,10 +47,10 @@ public class PushProjector
 {
     //~ Instance fields --------------------------------------------------------
 
-    final private ProjectRel origProj;
-    final private RexNode origFilter;
-    final private RelNode childRel;
-    final private ExprCondition preserveExprCondition;
+    private final ProjectRel origProj;
+    private final RexNode origFilter;
+    private final RelNode childRel;
+    private final ExprCondition preserveExprCondition;
 
     /**
      * Original projection expressions

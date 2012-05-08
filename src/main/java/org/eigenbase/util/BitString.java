@@ -197,7 +197,7 @@ public class BitString
      *
      * @param args BitString[]
      */
-    static public BitString concat(BitString [] args)
+    public static BitString concat(BitString [] args)
     {
         if (args.length < 2) {
             return args[0];

@@ -54,8 +54,8 @@ public class CompoundParallelTupleIter
 {
     //~ Instance fields --------------------------------------------------------
 
-    final private TupleIter [] in;
-    final private boolean [] endOfData;
+    private final TupleIter [] in;
+    private final boolean [] endOfData;
     private int i;
 
     //~ Constructors -----------------------------------------------------------

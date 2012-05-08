@@ -2087,7 +2087,7 @@ public class ConcurrentTestCommandScript
 
 
     // Inner class: stand-alone client test tool
-    static private class Tool
+    private static class Tool
     {
         boolean quiet = false;          // -q
         boolean verbose = false;        // -v
@@ -2214,7 +2214,7 @@ public class ConcurrentTestCommandScript
      * <p>Usage: mtsql [-vgq] -u SERVER -d DRIVER [-n USER][-p PASSWORD]
      * [VAR=VAL]...  SCRIPT [SCRIPT]...
      */
-    static public void main(String[] args)
+    public static void main(String[] args)
     {
         int status = new Tool().run(args);
         System.exit(status);

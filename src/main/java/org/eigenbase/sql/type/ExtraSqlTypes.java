@@ -33,12 +33,12 @@ package org.eigenbase.sql.type;
 public interface ExtraSqlTypes
 {
     // From JDK 1.6
-    public final static int ROWID = -8;
-    public final static int NCHAR = -15;
-    public final static int NVARCHAR = -9;
-    public final static int LONGNVARCHAR = -16;
-    public final static int NCLOB = 2011;
-    public final static int SQLXML = 2009;
+    int ROWID = -8;
+    int NCHAR = -15;
+    int NVARCHAR = -9;
+    int LONGNVARCHAR = -16;
+    int NCLOB = 2011;
+    int SQLXML = 2009;
 }
 
 // End ExtraSqlTypes.java

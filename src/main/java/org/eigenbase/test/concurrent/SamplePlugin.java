@@ -34,8 +34,8 @@ import java.util.Arrays;
  */
 public class SamplePlugin extends ConcurrentTestPlugin
 {
+    private static final String DESCRIBE_RESULT_SET_CMD = "@describeResultSet";
 
-    private final static String DESCRIBE_RESULT_SET_CMD = "@describeResultSet";
     public ConcurrentTestPluginCommand getCommandFor(String name, String params)
     {
         if (name.equals(DESCRIBE_RESULT_SET_CMD)) {

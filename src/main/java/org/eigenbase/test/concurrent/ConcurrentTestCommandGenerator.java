@@ -79,7 +79,7 @@ public class ConcurrentTestCommandGenerator
     private TreeMap<Integer, String> threadNameMap;
 
     /** Describes a thread that failed */
-    static public class FailedThread {
+    public static class FailedThread {
         public final String name;
         public final String location;
         public final Throwable failure;

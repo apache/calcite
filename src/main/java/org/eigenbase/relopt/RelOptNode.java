@@ -17,9 +17,9 @@
 */
 package org.eigenbase.relopt;
 
-import org.eigenbase.reltype.RelDataType;
-
 import java.util.List;
+
+import org.eigenbase.reltype.RelDataType;
 
 /**
  * Node in a planner.
@@ -81,4 +81,4 @@ public interface RelOptNode {
     RelOptCluster getCluster();
 }
 
-// End RelNode.java
+// End RelOptNode.java
