@@ -4034,7 +4034,7 @@ public class SqlValidatorImpl
         final ArrayList<List<String>> list = new ArrayList<List<String>>();
         for (int i = 0; i < fieldCount; i++) {
             List<String> origin = getFieldOrigin(sqlQuery, i);
-            assert origin == null || origin.size() >= 4 : origin;
+//            assert origin == null || origin.size() >= 4 : origin;
             list.add(origin);
         }
         return list;

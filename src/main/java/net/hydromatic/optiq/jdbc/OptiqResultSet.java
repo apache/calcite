@@ -30,7 +30,7 @@ import java.util.*;
 
 /**
  * Implementation of {@link ResultSet}
- * for the OPTIQ engine.
+ * for the Optiq engine.
  */
 public class OptiqResultSet implements ResultSet {
     private final OptiqStatement statement;
@@ -75,111 +75,29 @@ public class OptiqResultSet implements ResultSet {
     private Accessor createAccessor(
         OptiqResultSetMetaData.ColumnMetaData columnMetaData)
     {
+        // Create an accessor appropriate to the underlying type; the accessor
+        // can convert to any type in the same family.
         switch (columnMetaData.type) {
         case Types.TINYINT:
-            return new LongAccessor() {
-                public byte getByte() {
-                    Object o = enumerator.current();
-                    if (o == null) {
-                        wasNull = true;
-                        return 0;
-                    }
-                    return (Byte) o;
-                }
-
-                public long getLong() {
-                    return getByte();
-                }
-            };
+            return new ByteAccessor();
         case Types.SMALLINT:
-            return new LongAccessor() {
-                public short getShort() {
-                    Object o = enumerator.current();
-                    if (o == null) {
-                        wasNull = true;
-                        return 0;
-                    }
-                    return (Short) o;
-                }
-
-                public long getLong() {
-                    return getShort();
-                }
-            };
+            return new ShortAccessor();
         case Types.INTEGER:
-            return new LongAccessor() {
-                public int getInt() {
-                    Object o = enumerator.current();
-                    if (o == null) {
-                        wasNull = true;
-                        return 0;
-                    }
-                    return (Integer) o;
-                }
-
-                public long getLong() {
-                    return getInt();
-                }
-            };
+            return new IntAccessor();
         case Types.BIGINT:
-            return new LongAccessor() {
-                public long getLong() {
-                    Object o = enumerator.current();
-                    if (o == null) {
-                        wasNull = true;
-                        return 0;
-                    }
-                    return (Long) o;
-                }
-            };
+            return new LongAccessor();
         case Types.BOOLEAN:
-            return new LongAccessor() {
-                public boolean getBoolean() {
-                    Object o = enumerator.current();
-                    if (o == null) {
-                        wasNull = true;
-                        return false;
-                    }
-                    return (Boolean) o;
-                }
-
-                public long getLong() {
-                    return getBoolean() ? 1 : 0;
-                }
-
-                public String getString() {
-                    return isNull() ? null : Boolean.toString(getBoolean());
-                }
-            };
+            return new BooleanAccessor();
         case Types.FLOAT:
-            return new DoubleAccessor() {
-                public float getFloat() {
-                    Object o = enumerator.current();
-                    if (o == null) {
-                        wasNull = true;
-                        return 0;
-                    }
-                    return (Float) o;
-                }
-
-                public double getDouble() {
-                    return getFloat();
-                }
-            };
+            return new FloatAccessor();
+        case Types.DOUBLE:
+            return new DoubleAccessor();
         case Types.CHAR:
         case Types.VARCHAR:
-            return new Accessor() {
-                public String getString() {
-                    return (String) getObject();
-                }
-            };
+            return new StringAccessor();
         case Types.BINARY:
         case Types.VARBINARY:
-            return new Accessor() {
-                public byte[] getBytes() {
-                    return (byte[]) getObject();
-                }
-            };
+            return new BinaryAccessor();
         default:
             throw new RuntimeException("unknown type " + columnMetaData.type);
         }
@@ -210,7 +128,7 @@ public class OptiqResultSet implements ResultSet {
      * locked, to make sure that execute/cancel don't happen at the same
      * time.</p>
      */
-    public void execute() {
+    void execute() {
         enumerator = prepareResult.execute();
     }
 
@@ -1085,7 +1003,7 @@ public class OptiqResultSet implements ResultSet {
         if (iface.isInstance(this)) {
             return iface.cast(this);
         }
-        throw OptiqConnectionImpl.HELPER.createException(
+        throw statement.connection.helper.createException(
             "does not implement '" + iface + "'");
     }
 
@@ -1236,18 +1154,21 @@ public class OptiqResultSet implements ResultSet {
     }
 
     /**
-     * Accessor of values that are {@link Long} or null.
+     * Accessor of exact numeric values. The subclass must implement the
+     * {@link #getLong()} method.
      */
-    private class LongAccessor extends Accessor {
+    private abstract class ExactNumericAccessor extends Accessor {
         public BigDecimal getBigDecimal(int scale) {
-            return isNull()
+            final long v = getLong();
+            return v == 0 && wasNull
                 ? null
-                : BigDecimal.valueOf(getDouble())
+                : BigDecimal.valueOf(v)
                     .setScale(scale, RoundingMode.DOWN);
         }
 
         public BigDecimal getBigDecimal() {
-            return isNull() ? null : BigDecimal.valueOf(getLong());
+            final long val = getLong();
+            return val == 0 && wasNull ? null : BigDecimal.valueOf(val);
         }
 
         public double getDouble() {
@@ -1258,13 +1179,7 @@ public class OptiqResultSet implements ResultSet {
             return getLong();
         }
 
-        public long getLong() {
-            Object o = getObject();
-            if (o == null) {
-                return 0;
-            }
-            return (Long) o;
-        }
+        public abstract long getLong();
 
         public int getInt() {
             return (int) getLong();
@@ -1279,36 +1194,129 @@ public class OptiqResultSet implements ResultSet {
         }
 
         public boolean getBoolean() {
-            return getLong() != 0;
+            return getLong() != 0d;
         }
 
         public String getString() {
-            return isNull() ? null : String.valueOf(getLong());
+            final Object o = getObject();
+            return o == null ? null : String.valueOf(o);
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a {@link Boolean};
+     * corresponds to {@link Types#BOOLEAN}.
+     */
+    private class BooleanAccessor extends ExactNumericAccessor {
+        public boolean getBoolean() {
+            Object o = getObject();
+            if (o == null) {
+                wasNull = true;
+                return false;
+            }
+            return (Boolean) o;
+        }
+
+        public long getLong() {
+            return getBoolean() ? 1 : 0;
+        }
+
+        public String getString() {
+            final boolean b = getBoolean();
+            return wasNull ? null : Boolean.toString(b);
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a {@link Byte};
+     * corresponds to {@link Types#TINYINT}.
+     */
+    private class ByteAccessor extends ExactNumericAccessor {
+        public byte getByte() {
+            Object o = getObject();
+            if (o == null) {
+                wasNull = true;
+                return 0;
+            }
+            return (Byte) o;
+        }
+
+        public long getLong() {
+            return getByte();
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a {@link Short};
+     * corresponds to {@link Types#SMALLINT}.
+     */
+    private class ShortAccessor extends ExactNumericAccessor {
+        public short getShort() {
+            Object o = getObject();
+            if (o == null) {
+                wasNull = true;
+                return 0;
+            }
+            return (Short) o;
+        }
+
+        public long getLong() {
+            return getShort();
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is an {@link Integer};
+     * corresponds to {@link Types#INTEGER}.
+     */
+    private class IntAccessor extends ExactNumericAccessor {
+        public int getInt() {
+            Object o = getObject();
+            if (o == null) {
+                wasNull = true;
+                return 0;
+            }
+            return (Integer) o;
+        }
+
+        public long getLong() {
+            return getInt();
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a {@link Long};
+     * corresponds to {@link Types#BIGINT}.
+     */
+    private class LongAccessor extends ExactNumericAccessor {
+        public long getLong() {
+            Object o = getObject();
+            if (o == null) {
+                wasNull = true;
+                return 0;
+            }
+            return (Long) o;
         }
     }
 
     /**
      * Accessor of values that are {@link Double} or null.
      */
-    private class DoubleAccessor extends Accessor {
+    private abstract class ApproximateNumericAccessor extends Accessor {
         public BigDecimal getBigDecimal(int scale) {
-            return isNull()
+            final double v = getDouble();
+            return v == 0d && wasNull
                 ? null
-                : BigDecimal.valueOf(getDouble())
+                : BigDecimal.valueOf(v)
                     .setScale(scale, RoundingMode.DOWN);
         }
 
         public BigDecimal getBigDecimal() {
-            return isNull() ? null : BigDecimal.valueOf(getDouble());
+            final double v = getDouble();
+            return v == 0 && wasNull ? null : BigDecimal.valueOf(v);
         }
 
-        public double getDouble() {
-            Object o = getObject();
-            if (o == null) {
-                return 0;
-            }
-            return (Double) o;
-        }
+        public abstract double getDouble();
 
         public float getFloat() {
             return (float) getDouble();
@@ -1335,7 +1343,68 @@ public class OptiqResultSet implements ResultSet {
         }
 
         public String getString() {
-            return isNull() ? null : String.valueOf(getDouble());
+            final Object o = getObject();
+            return o == null ? null : String.valueOf(o);
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a {@link Float};
+     * corresponds to {@link Types#FLOAT}.
+     */
+    private class FloatAccessor extends ApproximateNumericAccessor {
+        public float getFloat() {
+            Object o = getObject();
+            if (o == null) {
+                wasNull = true;
+                return 0;
+            }
+            return (Float) o;
+        }
+
+        public double getDouble() {
+            return getFloat();
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a {@link Float};
+     * corresponds to {@link Types#FLOAT}.
+     */
+    private class DoubleAccessor extends ApproximateNumericAccessor {
+        public double getDouble() {
+            Object o = getObject();
+            if (o == null) {
+                wasNull = true;
+                return 0;
+            }
+            return (Double) o;
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a {@link String};
+     * corresponds to {@link Types#CHAR} and {@link Types#VARCHAR}.
+     */
+    private class StringAccessor extends Accessor {
+        public String getString() {
+            return (String) getObject();
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is an array of
+     * {@code byte} values;
+     * corresponds to {@link Types#BINARY} and {@link Types#VARBINARY}.
+     */
+    private class BinaryAccessor extends Accessor {
+        public byte[] getBytes() {
+            return (byte[]) getObject();
+        }
+
+        @Override
+        public String getString() {
+            return ByteString.toString(getBytes());
         }
     }
 }

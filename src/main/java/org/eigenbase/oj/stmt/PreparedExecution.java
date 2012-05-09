@@ -47,7 +47,7 @@ public class PreparedExecution
 
     //~ Constructors -----------------------------------------------------------
 
-    PreparedExecution(
+    protected PreparedExecution(
         ParseTree parseTree,
         RelNode rootRel,
         RelDataType rowType,

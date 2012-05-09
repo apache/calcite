@@ -23,7 +23,7 @@ import java.util.List;
 
 /**
  * Implementation of {@link ResultSetMetaData}
- * for the OPTIQ engine.
+ * for the Optiq engine.
  */
 class OptiqResultSetMetaData implements ResultSetMetaData {
     final OptiqStatement statement;
@@ -136,7 +136,7 @@ class OptiqResultSetMetaData implements ResultSetMetaData {
         if (iface.isInstance(this)) {
             return iface.cast(this);
         }
-        throw OptiqConnectionImpl.HELPER.createException(
+        throw statement.connection.helper.createException(
             "does not implement '" + iface + "'");
     }
 

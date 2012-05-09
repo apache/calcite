@@ -48,6 +48,10 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
     {
         return ((EnumerableRel) child).implement(this);
     }
+
+    public Expression implementRoot(EnumerableRel rootRel) {
+        return rootRel.implement(this);
+    }
 }
 
 // End EnumerableRelImplementor.java

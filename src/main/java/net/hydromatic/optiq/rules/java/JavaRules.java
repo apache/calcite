@@ -24,6 +24,8 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Function2;
 
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+
 import openjava.mop.OJClass;
 import openjava.ptree.*;
 
@@ -152,13 +154,17 @@ public class JavaRules {
                     rightKeys);
             assert remaining.isAlwaysTrue()
                 : "EnumerableJoin is equi only"; // TODO: stricter pre-check
+            final JavaTypeFactory typeFactory =
+                (JavaTypeFactory) left.getCluster().getTypeFactory();
             return Expressions.call(
                 implementor.visitChild(this, 0, (EnumerableRel) left),
                 join,
                 implementor.visitChild(this, 1, (EnumerableRel) right),
-                EnumUtil.generateAccessor(left.getRowType(), leftKeys),
-                EnumUtil.generateAccessor(right.getRowType(), rightKeys),
-                EnumUtil.generateSelector(rowType));
+                EnumUtil.generateAccessor(
+                    typeFactory, left.getRowType(), leftKeys),
+                EnumUtil.generateAccessor(
+                    typeFactory, right.getRowType(), rightKeys),
+                EnumUtil.generateSelector(typeFactory, rowType));
         }
     }
 
@@ -169,6 +175,7 @@ public class JavaRules {
     public static class EnumUtil
     {
         static Expression generateAccessor(
+            JavaTypeFactory typeFactory,
             RelDataType rowType,
             List<Integer> fields)
         {
@@ -183,7 +190,7 @@ public class JavaRules {
             }
              */
             ParameterExpression v1 =
-                Expressions.parameter(EnumUtil.toTypeName(rowType), "v1");
+                Expressions.parameter(typeFactory.getJavaClass(rowType), "v1");
             return Expressions.lambda(
                 Function1.class,
                 Expressions.return_(
@@ -195,11 +202,10 @@ public class JavaRules {
             return clazz.getFields()[ordinal];
         }
 
-        private static Class toTypeName(RelDataType type) {
-            return null;
-        }
-
-        public static Expression generateSelector(RelDataType rowType) {
+        public static Expression generateSelector(
+            JavaTypeFactory typeFactory,
+            RelDataType rowType)
+        {
             return null;
         }
     }
@@ -208,20 +214,24 @@ public class JavaRules {
         extends TableAccessRelBase
         implements EnumerableRel
     {
+        private Expression expression;
+
         public EnumerableTableAccessRel(
             RelOptCluster cluster,
             RelOptTable table,
-            RelOptConnection connection)
+            RelOptConnection connection,
+            Expression expression)
         {
             super(
                 cluster,
                 cluster.traitSetOf(CallingConvention.ENUMERABLE),
                 table,
                 connection);
+            this.expression = expression;
         }
 
         public Expression implement(EnumerableRelImplementor implementor) {
-            return null;
+            return expression;
         }
     }
 
@@ -345,7 +355,7 @@ public class JavaRules {
                 implementor.visitChild(this, 0, (EnumerableRel) getChild());
             RelDataType outputRowType = getRowType();
             RelDataType inputRowType = getChild().getRowType();
-            return null /* implementAbstract(
+            return childExp /* implementAbstract(
                 implementor,
                 this,
                 childExp,

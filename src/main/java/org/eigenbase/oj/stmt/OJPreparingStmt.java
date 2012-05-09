@@ -421,6 +421,7 @@ public abstract class OJPreparingStmt
         assert containsJava;
         javaCompiler = createCompiler();
         JavaRelImplementor relImplementor =
+            (JavaRelImplementor)
             getRelImplementor(rootRel.getCluster().getRexBuilder());
         Expression expr = relImplementor.implementRoot((JavaRel) rootRel);
         BoundMethod boundMethod;
@@ -438,7 +439,7 @@ public abstract class OJPreparingStmt
      * @param args argument list of the generated result.
      * @return an executable plan, a {@link PreparedExecution}.
      */
-    private PreparedExecution implement(
+    protected PreparedExecution implement(
         RelDataType rowType,
         RelNode rootRel,
         SqlKind sqlKind,
@@ -452,6 +453,7 @@ public abstract class OJPreparingStmt
         if (containsJava) {
             javaCompiler = createCompiler();
             JavaRelImplementor relImplementor =
+                (JavaRelImplementor)
                 getRelImplementor(rootRel.getCluster().getRexBuilder());
             Expression expr = relImplementor.implementRoot((JavaRel) rootRel);
 
@@ -505,9 +507,8 @@ public abstract class OJPreparingStmt
         return plan;
     }
 
-    private TableModificationRel.Operation mapTableModOp(
-        boolean isDml,
-        SqlKind sqlKind)
+    protected TableModificationRel.Operation mapTableModOp(
+        boolean isDml, SqlKind sqlKind)
     {
         if (!isDml) {
             return null;
@@ -568,10 +569,9 @@ public abstract class OJPreparingStmt
 
     /**
      * Protected method to allow subclasses to override construction of
-     * JavaRelImplementor.
+     * RelImplementor.
      */
-    protected abstract JavaRelImplementor getRelImplementor(
-        RexBuilder rexBuilder);
+    protected abstract RelImplementor getRelImplementor(RexBuilder rexBuilder);
 
     protected abstract String getClassRoot();
 

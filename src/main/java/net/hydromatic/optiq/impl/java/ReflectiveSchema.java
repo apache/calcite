@@ -24,8 +24,6 @@ import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.reltype.RelDataTypeFieldImpl;
 import org.eigenbase.sql.type.SqlTypeUtil;
 
 import java.lang.reflect.Field;
@@ -47,9 +45,9 @@ public class ReflectiveSchema
      */
     public ReflectiveSchema(
         Object o,
-        RelDataTypeFactory typeFactory)
+        JavaTypeFactory typeFactory)
     {
-        Class<? extends Object> clazz = o.getClass();
+        Class<?> clazz = o.getClass();
         for (Field field : clazz.getFields()) {
             map.put(field.getName(), fieldRelation(o, field, typeFactory));
         }
@@ -188,9 +186,9 @@ public class ReflectiveSchema
     private SchemaObject fieldRelation(
         Object o,
         final Field field,
-        RelDataTypeFactory typeFactory)
+        JavaTypeFactory typeFactory)
     {
-        final RelDataType type = createType(typeFactory, field.getType());
+        final RelDataType type = typeFactory.createType(field.getType());
         return new FunctionPlus() {
             public List<Parameter> getParameters() {
                 return Collections.emptyList();
@@ -214,29 +212,6 @@ public class ReflectiveSchema
         };
     }
 
-    private RelDataType createType(
-        RelDataTypeFactory typeFactory, Class<?> type)
-    {
-        if (type.isPrimitive()) {
-            return typeFactory.createJavaType(type);
-        } else if (type.isArray()) {
-            return typeFactory.createMultisetType(
-                createType(typeFactory, type.getComponentType()),
-                -1);
-        } else {
-            List<RelDataTypeField> list = new ArrayList<RelDataTypeField>();
-            for (Field field : type.getFields()) {
-                // FIXME: watch out for recursion
-                list.add(
-                    new RelDataTypeFieldImpl(
-                        field.getName(),
-                        list.size(),
-                        createType(typeFactory, field.getType())));
-            }
-            return typeFactory.createStructType(
-                new RelDataTypeFactory.ListFieldInfo(list));
-        }
-    }
 }
 
 // End ReflectiveSchema.java

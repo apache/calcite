@@ -18,28 +18,29 @@
 package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.optiq.MutableSchema;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
-import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.SqlTypeFactoryImpl;
 
+import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
 
 /**
  * Implementation of JDBC connection
- * in the OPTIQ engine.
+ * in the Optiq engine.
  *
  * <p>Abstract to allow newer versions of JDBC to add methods.</p>
  */
 abstract class OptiqConnectionImpl implements OptiqConnection {
     public static final String CONNECT_STRING_PREFIX = "jdbc:optiq:";
-    static final Helper HELPER = new Helper();
 
-    public final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
+    public final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
 
     private boolean autoCommit;
     private boolean closed;
@@ -56,6 +57,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     private final Properties info;
     private String schema;
     private final OptiqDatabaseMetaData metaData;
+    final Helper helper = Helper.INSTANCE;
 
     final OptiqServer server = new OptiqServer() {
         final List<OptiqServerStatement> statementList =
@@ -85,14 +87,15 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         return rootSchema;
     }
 
-    public RelDataTypeFactory getTypeFactory() {
+    public JavaTypeFactory getTypeFactory() {
         return typeFactory;
     }
 
     public Statement createStatement() throws SQLException {
         //noinspection MagicConstant
         return createStatement(
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_READ_ONLY,
             holdability);
     }
 
@@ -241,9 +244,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     {
         OptiqStatement statement =
             factory.newStatement(
-                this,
-                resultSetType,
-                resultSetConcurrency,
+                this, resultSetType, resultSetConcurrency,
                 resultSetHoldability);
         server.addStatement(statement);
         return statement;
@@ -371,7 +372,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         if (iface.isInstance(this)) {
             return iface.cast(this);
         }
-        throw HELPER.createException(
+        throw helper.createException(
             "does not implement '" + iface + "'");
     }
 
@@ -383,21 +384,53 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         return url.startsWith(CONNECT_STRING_PREFIX);
     }
 
-    static class Helper {
-        public RuntimeException todo() {
-            return new RuntimeException("todo: implement this method");
+    private static class JavaTypeFactoryImpl
+        extends SqlTypeFactoryImpl
+        implements JavaTypeFactory
+    {
+        public RelDataType createStructType(Class type) {
+            List<RelDataTypeField> list = new ArrayList<RelDataTypeField>();
+            for (Field field : type.getFields()) {
+                // FIXME: watch out for recursion
+                list.add(
+                    new RelDataTypeFieldImpl(
+                        field.getName(),
+                        list.size(),
+                        createType(field.getType())));
+            }
+            return canonize(
+                new JavaRecordType(
+                    list.toArray(new RelDataTypeField[list.size()]),
+                    type));
         }
 
-        public SQLException createException(String message, Exception e) {
-            return new SQLException(message, e);
+        public RelDataType createType(Class type) {
+            if (type.isPrimitive()) {
+                return createJavaType(type);
+            } else if (type.isArray()) {
+                return createMultisetType(
+                    createType(type.getComponentType()), -1);
+            } else {
+                return createStructType(type);
+            }
         }
 
-        public SQLException createException(String message) {
-            return new SQLException(message);
+        public Class getJavaClass(RelDataType type) {
+            if (type instanceof JavaRecordType) {
+                JavaRecordType javaRecordType = (JavaRecordType) type;
+                return javaRecordType.clazz;
+            }
+            return null;
         }
+    }
 
-        public SQLException toSQLException(SQLException exception) {
-            return exception;
+    private static class JavaRecordType extends RelRecordType {
+        private final Class clazz;
+
+        public JavaRecordType(RelDataTypeField[] fields, Class clazz) {
+            super(fields);
+            this.clazz = clazz;
+            assert clazz != null;
         }
     }
 }

@@ -18,7 +18,7 @@
 package net.hydromatic.optiq.jdbc;
 
 /**
- * OPTIQ JDBC driver.
+ * Optiq JDBC driver.
  */
 public class Driver extends UnregisteredDriver {
     static {

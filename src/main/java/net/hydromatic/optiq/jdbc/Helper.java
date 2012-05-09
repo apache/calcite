@@ -17,33 +17,38 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.reltype.RelDataTypeFactory;
-
-import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
- * Extension to Optiq's implementation of
- * {@link java.sql.Connection JDBC connection} allows schemas to be defined
- * dynamically.
+ * Utility methods, mainly concerning error-handling.
  *
- * <p>You can start off with an empty connection (no schemas), define one
- * or two schemas, and start querying them.</p>
+ * @author jhyde
  */
-public interface OptiqConnection extends Connection {
-    /**
-     * Returns the root schema.
-     *
-     * <p>You can define objects (such as relations) in this schema, and
-     * also nested schemas.</p>
-     *
-     * @return Root schema
-     */
-    MutableSchema getRootSchema();
+class Helper {
+    static final Helper INSTANCE = new Helper();
 
-    JavaTypeFactory getTypeFactory();
+    private Helper() {
+    }
+
+    public RuntimeException todo() {
+        return new RuntimeException("todo: implement this method");
+    }
+
+    public RuntimeException wrap(String message, Exception e) {
+        return new RuntimeException(message, e);
+    }
+
+    public SQLException createException(String message, Exception e) {
+        return new SQLException(message, e);
+    }
+
+    public SQLException createException(String message) {
+        return new SQLException(message);
+    }
+
+    public SQLException toSQLException(SQLException exception) {
+        return exception;
+    }
 }
 
-// End OptiqConnection.java
+// End Helper.java

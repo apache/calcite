@@ -25,7 +25,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 /**
- * Implementation of OPTIQ JDBC driver that does not register itself.
+ * Implementation of Optiq JDBC driver that does not register itself.
  */
 class UnregisteredDriver implements java.sql.Driver {
     final DriverVersion version = new DriverVersion();

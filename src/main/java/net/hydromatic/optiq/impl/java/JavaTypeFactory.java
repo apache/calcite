@@ -15,35 +15,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
+package net.hydromatic.optiq.impl.java;
 
-import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 
-import java.sql.Connection;
-
 /**
- * Extension to Optiq's implementation of
- * {@link java.sql.Connection JDBC connection} allows schemas to be defined
- * dynamically.
+ * Type factory that can register Java classes as record types.
  *
- * <p>You can start off with an empty connection (no schemas), define one
- * or two schemas, and start querying them.</p>
+ * @author jhyde
  */
-public interface OptiqConnection extends Connection {
+public interface JavaTypeFactory extends RelDataTypeFactory {
     /**
-     * Returns the root schema.
+     * Creates a record type based upon the public fields of a Java class.
      *
-     * <p>You can define objects (such as relations) in this schema, and
-     * also nested schemas.</p>
-     *
-     * @return Root schema
+     * @param clazz Java class
+     * @return Record type that remembers its Java class
      */
-    MutableSchema getRootSchema();
+    RelDataType createStructType(Class clazz);
 
-    JavaTypeFactory getTypeFactory();
+
+    /**
+     * Creates a type, deducing whether a record, scalar or primitive type
+     * is needed.
+     *
+     * @param type Java class
+     * @return Record or scalar type
+     */
+    RelDataType createType(Class type);
+
+    Class getJavaClass(RelDataType type);
 }
 
-// End OptiqConnection.java
+// End JavaTypeFactory.java

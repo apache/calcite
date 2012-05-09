@@ -17,19 +17,20 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.optiq.Function;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.SchemaLink;
 import net.hydromatic.optiq.SchemaObject;
-import net.hydromatic.optiq.rules.java.JavaRules;
+import net.hydromatic.optiq.rules.java.*;
 
-import org.eigenbase.oj.rel.JavaRelImplementor;
-import org.eigenbase.oj.rex.OJRexImplementorTableImpl;
-import org.eigenbase.oj.stmt.OJPreparingStmt;
-import org.eigenbase.oj.stmt.PreparedResult;
+import openjava.ptree.ClassDeclaration;
+
+import org.codehaus.janino.*;
+
+import org.eigenbase.oj.stmt.*;
 import org.eigenbase.rel.RelCollation;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.*;
@@ -37,9 +38,7 @@ import org.eigenbase.relopt.volcano.VolcanoPlanner;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.rex.RexBuilder;
-import org.eigenbase.sql.SqlAccessType;
-import org.eigenbase.sql.SqlIdentifier;
-import org.eigenbase.sql.SqlNode;
+import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParseException;
 import org.eigenbase.sql.parser.SqlParser;
@@ -47,6 +46,7 @@ import org.eigenbase.sql.type.MultisetSqlType;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -83,7 +83,7 @@ class OptiqPrepare {
             new SqlValidatorImpl(
                 SqlStdOperatorTable.instance(), catalogReader, typeFactory,
                 SqlConformance.Default) { };
-        PreparedResult preparedResult =
+        final PreparedResult preparedResult =
             preparingStmt.prepareSql(
                 sqlNode, Object.class, validator, true);
         // TODO: parameters
@@ -94,27 +94,37 @@ class OptiqPrepare {
         final OptiqResultSetMetaData resultSetMetaData =
             new OptiqResultSetMetaData(statement, null, columns);
         return new PrepareResult(
-            sql, parameters, resultSetMetaData);
+            sql,
+            parameters,
+            resultSetMetaData,
+            new RawEnumerable() {
+                public Enumerator enumerator() {
+                    return (Enumerator) preparedResult.execute();
+                }
+            });
     }
 
     static class PrepareResult {
         final String sql; // for debug
         final List<OptiqParameter> parameterList;
         final OptiqResultSetMetaData resultSetMetaData;
+        final RawEnumerable enumerable;
 
         public PrepareResult(
             String sql,
             List<OptiqParameter> parameterList,
-            OptiqResultSetMetaData resultSetMetaData)
+            OptiqResultSetMetaData resultSetMetaData,
+            RawEnumerable enumerable)
         {
             super();
             this.sql = sql;
             this.parameterList = parameterList;
             this.resultSetMetaData = resultSetMetaData;
+            this.enumerable = enumerable;
         }
 
-        public Enumerator<Object> execute() {
-            return null;
+        public Enumerator execute() {
+            return enumerable.enumerator();
         }
     }
 
@@ -147,9 +157,10 @@ class OptiqPrepare {
         }
 
         @Override
-        protected JavaRelImplementor getRelImplementor(RexBuilder rexBuilder) {
-            return new JavaRelImplementor(
-                rexBuilder, OJRexImplementorTableImpl.instance());
+        protected EnumerableRelImplementor getRelImplementor(
+            RexBuilder rexBuilder)
+        {
+            return new EnumerableRelImplementor(rexBuilder);
         }
 
         @Override
@@ -204,6 +215,58 @@ class OptiqPrepare {
         protected RelNode decorrelate(SqlNode query, RelNode rootRel) {
             return rootRel;
         }
+
+        @Override
+        protected PreparedExecution implement(
+            RelDataType rowType,
+            RelNode rootRel,
+            SqlKind sqlKind,
+            ClassDeclaration decl,
+            Argument[] args)
+        {
+            RelDataType resultType = rootRel.getRowType();
+            boolean isDml = sqlKind.belongsTo(SqlKind.DML);
+            javaCompiler = createCompiler();
+            EnumerableRelImplementor relImplementor =
+                getRelImplementor(rootRel.getCluster().getRexBuilder());
+            Expression expr =
+                relImplementor.implementRoot((EnumerableRel) rootRel);
+            String s = Expressions.toString(expr);
+            final ExpressionEvaluator ee;
+            try {
+                ee = new ExpressionEvaluator(
+                    s, Enumerable.class, new String[0], new Class[0]);
+            } catch (Exception e) {
+                throw Helper.INSTANCE.wrap(
+                    "Error while compiling generated Java code", e);
+            }
+
+            if (timingTracer != null) {
+                timingTracer.traceTime("end codegen");
+            }
+
+            if (timingTracer != null) {
+                timingTracer.traceTime("end compilation");
+            }
+
+            return new PreparedExecution(
+                null,
+                rootRel,
+                resultType,
+                isDml,
+                mapTableModOp(isDml, sqlKind),
+                null)
+            {
+                public Object execute() {
+                    try {
+                        return ee.evaluate(new Object[0]);
+                    } catch (InvocationTargetException e) {
+                        throw Helper.INSTANCE.wrap(
+                            "Error while executing", e);
+                    }
+                }
+            };
+        }
     }
 
     private static class Table
@@ -212,18 +275,18 @@ class OptiqPrepare {
         private final RelOptSchema schema;
         private final RelDataType rowType;
         private final String[] names;
-        private final List<PathElement> pathElements;
+        private final Expression expression;
 
         public Table(
             RelOptSchema schema,
             RelDataType rowType,
             String[] names,
-            List<PathElement> pathElements)
+            Expression expression)
         {
             this.schema = schema;
             this.rowType = rowType;
             this.names = names;
-            this.pathElements = pathElements;
+            this.expression = expression;
         }
 
         public double getRowCount() {
@@ -239,7 +302,7 @@ class OptiqPrepare {
             RelOptConnection connection)
         {
             return new JavaRules.EnumerableTableAccessRel(
-                cluster, this, connection);
+                cluster, this, connection, expression);
         }
 
         public List<RelCollation> getCollationList() {
@@ -252,10 +315,6 @@ class OptiqPrepare {
 
         public String[] getQualifiedName() {
             return names;
-        }
-
-        public List<PathElement> getPathElements() {
-            return pathElements;
         }
 
         public SqlMonotonicity getMonotonicity(String columnName) {
@@ -284,16 +343,17 @@ class OptiqPrepare {
         }
 
         public Table getTable(final String[] names) {
-            final List<PathElement> pathElements = new ArrayList<PathElement>();
             Schema schema2 = schema;
+            Expression expression = rootExpression;
             for (int i = 0; i < names.length; i++) {
                 final String name = names[i];
                 final SchemaObject schemaObject = schema2.get(name);
-                pathElements.add(
-                    PathElement.of(
-                        schemaObject,
-                        name,
-                        Collections.<Expression>emptyList()));
+                final List<Expression> arguments = Collections.emptyList();
+                expression = schema2.getExpression(
+                    expression,
+                    schemaObject,
+                    name,
+                    arguments);
                 if (schemaObject instanceof Function) {
                     if (i != names.length - 1) {
                         return null;
@@ -304,7 +364,7 @@ class OptiqPrepare {
                             this,
                             type.getComponentType(),
                             names,
-                            pathElements);
+                            expression);
                     }
                 }
                 if (schemaObject instanceof SchemaLink) {
@@ -337,30 +397,6 @@ class OptiqPrepare {
         }
 
         public void registerRules(RelOptPlanner planner) throws Exception {
-        }
-    }
-
-    private static class PathElement {
-        private final SchemaObject schemaObject;
-        private final String name;
-        private final List<Expression> expressions;
-
-        private PathElement(
-            SchemaObject schemaObject,
-            String name,
-            List<Expression> expressions)
-        {
-            this.schemaObject = schemaObject;
-            this.name = name;
-            this.expressions = expressions;
-        }
-
-        public static PathElement of(
-            SchemaObject schemaObject,
-            String name,
-            List<Expression> expressions)
-        {
-            return new PathElement(schemaObject, name, expressions);
         }
     }
 

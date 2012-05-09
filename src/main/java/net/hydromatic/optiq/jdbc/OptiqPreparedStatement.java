@@ -28,13 +28,12 @@ import java.util.Calendar;
 
 /**
  * Implementation of {@link java.sql.PreparedStatement}
- * for the OPTIQ engine.
+ * for the Optiq engine.
  *
  * <p>This class has sub-classes which implement JDBC 3.0 and JDBC 4.0 APIs;
  * it is instantiated using {@link Factory#newPreparedStatement}.</p>
  *
  * @author jhyde
- * @since Jun 12, 2007
  */
 abstract class OptiqPreparedStatement
     extends OptiqStatement
@@ -43,7 +42,7 @@ abstract class OptiqPreparedStatement
     private OptiqPrepare.PrepareResult prepareResult;
 
     /**
-     * Creates a OptiqPreparedStatement.
+     * Creates an OptiqPreparedStatement.
      *
      * @param connection Connection
      * @param sql MDX query string
@@ -258,8 +257,8 @@ abstract class OptiqPreparedStatement
             return prepareResult.parameterList.get(param - 1);
         } catch (IndexOutOfBoundsException e) {
             //noinspection ThrowableResultOfMethodCallIgnored
-            throw OptiqConnectionImpl.HELPER.toSQLException(
-                OptiqConnectionImpl.HELPER.createException(
+            throw connection.helper.toSQLException(
+                connection.helper.createException(
                     "parameter ordinal " + param + " out of range"));
         }
     }

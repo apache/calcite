@@ -18,7 +18,7 @@
 package net.hydromatic.optiq.server;
 
 /**
- * Statement within a OPTIQ server.
+ * Statement within an Optiq server.
  */
 public interface OptiqServerStatement {
 }

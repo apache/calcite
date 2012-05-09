@@ -23,7 +23,7 @@ import java.sql.*;
 
 /**
  * Implementation of {@link java.sql.Statement}
- * for the OPTIQ engine.
+ * for the Optiq engine.
  */
 abstract class OptiqStatement
     implements Statement, OptiqServerStatement
@@ -125,7 +125,7 @@ abstract class OptiqStatement
 
     public void setQueryTimeout(int seconds) throws SQLException {
         if (seconds < 0) {
-            throw OptiqConnectionImpl.HELPER.createException(
+            throw connection.helper.createException(
                 "illegal timeout value " + seconds);
         }
         setQueryTimeoutMillis(seconds * 1000);
@@ -281,7 +281,7 @@ abstract class OptiqStatement
         if (iface.isInstance(this)) {
             return iface.cast(this);
         }
-        throw OptiqConnectionImpl.HELPER.createException(
+        throw connection.helper.createException(
             "does not implement '" + iface + "'");
     }
 
@@ -307,7 +307,7 @@ abstract class OptiqStatement
                 try {
                     cs.close();
                 } catch (Exception e) {
-                    throw OptiqConnectionImpl.HELPER.createException(
+                    throw connection.helper.createException(
                         "Error while closing previous result set", e);
                 }
             }
@@ -319,7 +319,7 @@ abstract class OptiqStatement
         try {
             openResultSet.execute();
         } catch (Exception e) {
-            throw OptiqConnectionImpl.HELPER.createException(
+            throw connection.helper.createException(
                 "exception while executing query", e);
         }
         return openResultSet;

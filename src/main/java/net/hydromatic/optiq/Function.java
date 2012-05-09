@@ -28,7 +28,7 @@ import java.util.List;
  *
  * <p>Several kinds of functions crop up in real life. They all implement the
  * {@code Function} interface, but tend to be treated differently by the
- * back-end system if not by OPTIQ.</p>
+ * back-end system if not by Optiq.</p>
  *
  * <p>A function that has zero arguments and a type that is a collection of
  * records is referred to as a <i>relation</i>. In schemas backed by a
