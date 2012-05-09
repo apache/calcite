@@ -26,9 +26,6 @@ import net.hydromatic.linq4j.function.Function2;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
-import openjava.mop.OJClass;
-import openjava.ptree.*;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
@@ -40,9 +37,7 @@ import org.eigenbase.rex.RexProgram;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Rules and relational operators for the {@link Enumerable} calling convention.
@@ -164,8 +159,28 @@ public class JavaRules {
                     typeFactory, left.getRowType(), leftKeys),
                 EnumUtil.generateAccessor(
                     typeFactory, right.getRowType(), rightKeys),
-                EnumUtil.generateSelector(typeFactory, rowType));
+                generateSelector(typeFactory, rowType));
         }
+
+        public Expression generateSelector(
+            JavaTypeFactory typeFactory,
+            RelDataType rowType)
+        {
+            // A parameter for each input.
+            final List<ParameterExpression> parameters =
+                Arrays.asList(
+                    Expressions.parameter(
+                        EnumUtil.javaClass(typeFactory, left.getRowType()),
+                        "left"),
+                    Expressions.parameter(
+                        EnumUtil.javaClass(typeFactory, right.getRowType()),
+                        "right"));
+
+            // Generate all fields.
+            final List<Expression>
+            return null;
+        }
+
     }
 
     /**
@@ -202,11 +217,11 @@ public class JavaRules {
             return clazz.getFields()[ordinal];
         }
 
-        public static Expression generateSelector(
-            JavaTypeFactory typeFactory,
-            RelDataType rowType)
+        static Class javaClass(
+            JavaTypeFactory typeFactory, RelDataType type)
         {
-            return null;
+            final Class clazz = typeFactory.getJavaClass(type);
+            return clazz == null ? Object[].class : clazz;
         }
     }
 
@@ -370,19 +385,6 @@ public class JavaRules {
             return program;
         }
 
-        private static Statement assignInputRow(
-            OJClass inputRowClass,
-            Variable varInputRow,
-            Variable varInputObj)
-        {
-            return new ExpressionStatement(
-                new AssignmentExpression(
-                    varInputRow,
-                    AssignmentExpression.EQUALS,
-                    new CastExpression(
-                        TypeName.forOJClass(inputRowClass),
-                        varInputObj)));
-        }
     }
 
 }
