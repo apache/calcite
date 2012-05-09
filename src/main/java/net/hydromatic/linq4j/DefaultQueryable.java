@@ -111,7 +111,7 @@ abstract class DefaultQueryable<T>
         return this;
     }
 
-    public <T2> Enumerable<T2> cast(Class<T2> clazz) {
+    public <T2> Queryable<T2> cast(Class<T2> clazz) {
         return Extensions.cast(getThis(), clazz);
     }
 

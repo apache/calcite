@@ -99,6 +99,36 @@ public final class FunctionExpression<F extends Function<?>>
         return dynamicFunction;
     }
 
+    @Override
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        /*
+        "new Function1() {
+            Result apply(T1 p1, ...) {
+                <body>
+            }
+        }
+         */
+        writer.append("new ")
+            .append(type)
+            .append("()");
+        writer.begin(" {\n")
+            .append(body.getType())
+            .append(" apply(");
+        int k = 0;
+        for (ParameterExpression parameterExpression : parameterList) {
+            if (k++ > 0) {
+                writer.append(", ");
+            }
+            writer.append(parameterExpression.type)
+                .append(" ")
+                .append(parameterExpression.name);
+        }
+        writer.begin(") {\n");
+        body.accept0(writer);
+        writer.end("}\n");
+        writer.end("}\n");
+    }
+
     public interface Invokable {
         Object dynamicInvoke(Object... args);
     }

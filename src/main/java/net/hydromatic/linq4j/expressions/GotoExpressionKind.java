@@ -22,16 +22,22 @@ package net.hydromatic.linq4j.expressions;
  */
 public enum GotoExpressionKind {
     /** A GotoExpression that represents a jump to some location. */
-    Goto,
+    Goto("goto"),
 
     /** A GotoExpression that represents a return statement. */
-    Return,
+    Return("return"),
 
     /** A GotoExpression that represents a break statement. */
-    Break,
+    Break("break"),
 
     /** A GotoExpression that represents a continue statement. */
-    Continue,
+    Continue("continue");
+
+    final String s;
+
+    GotoExpressionKind(String s) {
+        this.s = s;
+    }
 }
 
 // End GotoExpressionKind.java

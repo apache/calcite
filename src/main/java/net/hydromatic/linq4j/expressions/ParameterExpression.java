@@ -37,6 +37,11 @@ public class ParameterExpression extends Expression {
     public Object evaluate(Evaluator evaluator) {
         return evaluator.peek(this);
     }
+
+    @Override
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        writer.append(name);
+    }
 }
 
 // End ParameterExpression.java

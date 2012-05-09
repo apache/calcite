@@ -31,6 +31,45 @@ public class ConstantExpression extends Expression {
     public Object evaluate(Evaluator evaluator) {
         return value;
     }
+
+    @Override
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        if (value instanceof String) {
+            escapeString(writer.getBuf(), (String) value);
+        } else {
+            writer.append(value);
+        }
+    }
+
+    private static void escapeString(StringBuilder buf, String s) {
+        buf.append('"');
+        int n = s.length();
+        char lastChar = 0;
+        for (int i = 0; i < n; ++i) {
+            char c = s.charAt(i);
+            switch  (c) {
+            case '\\':
+                buf.append("\\\\");
+                break;
+            case '"':
+                buf.append("\\\"");
+                break;
+            case '\n':
+                buf.append("\\n");
+                break;
+            case '\r':
+                if (lastChar != '\n') {
+                    buf.append("\\r");
+                }
+                break;
+            default:
+                buf.append(c);
+                break;
+            }
+            lastChar = c;
+        }
+        buf.append('"');
+    }
 }
 
 // End ConstantExpression.java

@@ -30,6 +30,8 @@ public abstract class Expression {
      * @param nodeType Node type
      */
     public Expression(ExpressionType nodeType, Class type) {
+        assert nodeType != null;
+        assert type != null;
         this.nodeType = nodeType;
         this.type = type;
     }
@@ -54,6 +56,15 @@ public abstract class Expression {
     public Object evaluate(Evaluator evaluator) {
         throw new RuntimeException(
             "evaluation not supported: " + this + ":" + nodeType);
+    }
+
+    void accept0(ExpressionWriter writer) {
+        accept(writer, 0, 0);
+    }
+
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        throw new RuntimeException(
+            "un-parse not supported: " + this + ":" + nodeType);
     }
 }
 

@@ -384,6 +384,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      */
     <TResult> Queryable<TResult> ofType(Class<TResult> clazz);
 
+    <T2> Queryable<T2> cast(Class<T2> clazz);
 
     /** Sorts the elements of a sequence in ascending
      * order according to a key. */

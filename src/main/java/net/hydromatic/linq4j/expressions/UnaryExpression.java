@@ -21,8 +21,23 @@ package net.hydromatic.linq4j.expressions;
  * Represents an expression that has a unary operator.
  */
 public class UnaryExpression extends Expression {
-    public UnaryExpression(ExpressionType nodeType, Class type) {
+    private final Expression expression;
+
+    public UnaryExpression(
+        ExpressionType nodeType, Class type, Expression expression)
+    {
         super(nodeType, type);
+        this.expression = expression;
+    }
+
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        if (nodeType.postfix) {
+            expression.accept(writer, lprec, rprec);
+            writer.append(nodeType.op);
+        } else {
+            writer.append(nodeType.op);
+            expression.accept(writer, lprec, rprec);
+        }
     }
 }
 

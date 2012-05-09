@@ -17,11 +17,11 @@
 */
 package net.hydromatic.linq4j.test;
 
-import junit.framework.TestCase;
-
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.*;
+
+import junit.framework.TestCase;
 
 import java.util.*;
 

@@ -17,9 +17,10 @@
 */
 package net.hydromatic.linq4j.test;
 
-import junit.framework.TestCase;
-
 import net.hydromatic.linq4j.expressions.*;
+import net.hydromatic.linq4j.function.Function1;
+
+import junit.framework.TestCase;
 
 import java.util.*;
 
@@ -81,6 +82,97 @@ public class ExpressionTest extends TestCase {
             (String) lambdaExpr.compile().dynamicInvoke("hello world", 3, 7);
 
         assertEquals("lo w", s);
+    }
+
+    public void testWrite() {
+        assertEquals(
+            "1 + 2 + 3",
+            Expressions.toString(
+                Expressions.add(
+                    Expressions.add(
+                        Expressions.constant(1),
+                        Expressions.constant(2)),
+                    Expressions.constant(3))));
+
+        // Parentheses needed, to override the left-associativity of +.
+        assertEquals(
+            "1 + (2 + 3)",
+            Expressions.toString(
+                Expressions.add(
+                    Expressions.constant(1),
+                    Expressions.add(
+                        Expressions.constant(2),
+                        Expressions.constant(3)))));
+
+        // No parentheses needed; higher precedence of * achieves the desired
+        // effect.
+        assertEquals(
+            "1 + 2 * 3",
+            Expressions.toString(
+                Expressions.add(
+                    Expressions.constant(1),
+                    Expressions.multiply(
+                        Expressions.constant(2),
+                        Expressions.constant(3)))));
+
+        assertEquals(
+            "1 * (2 + 3)",
+            Expressions.toString(
+                Expressions.multiply(
+                    Expressions.constant(1),
+                    Expressions.add(
+                        Expressions.constant(2),
+                        Expressions.constant(3)))));
+
+        // Parentheses needed, to overcome right-associativity of =.
+        assertEquals(
+            "(1 = 2) = 3",
+            Expressions.toString(
+                Expressions.assign(
+                    Expressions.assign(
+                        Expressions.constant(1), Expressions.constant(2)),
+                    Expressions.constant(3))));
+
+        assertEquals(
+            "0 + (2 + 3).compareTo(1)",
+            Expressions.toString(
+                Expressions.add(
+                    Expressions.constant(0),
+                    Expressions.call(
+                        Expressions.add(
+                            Expressions.constant(2),
+                            Expressions.constant(3)),
+                        "compareTo",
+                        Collections.<Class>emptyList(),
+                        Arrays.<Expression>asList(
+                            Expressions.constant(1))))));
+
+        assertEquals(
+            "a.empno",
+            Expressions.toString(
+                Expressions.field(
+                    Expressions.parameter(Linq4jTest.Employee.class, "a"),
+                    "empno")));
+
+        final ParameterExpression paramX =
+            Expressions.parameter(String.class, "x");
+        assertEquals(
+            "new net.hydromatic.linq4j.function.Function1() {\n"
+            + "  void apply(String x) {\n"
+            + "    return x.length();\n"
+            + "  }\n"
+            + "}\n",
+            Expressions.toString(
+                Expressions.lambda(
+                    Function1.class,
+                    Expressions.return_(
+                        null,
+                        Expressions.call(
+                            paramX,
+                            "length",
+                            Collections.<Class>emptyList(),
+                            Collections.<Expression>emptyList())),
+                    Arrays.asList(paramX))));
     }
 }
 

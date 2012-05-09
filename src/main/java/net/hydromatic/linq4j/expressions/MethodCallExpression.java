@@ -38,6 +38,9 @@ public class MethodCallExpression extends Expression {
         this.method = method;
         this.targetExpression = targetExpression;
         this.expressions = expressions;
+        assert targetExpression != null;
+        assert method != null;
+        assert expressions != null;
     }
 
     @Override
@@ -60,6 +63,25 @@ public class MethodCallExpression extends Expression {
         } catch (InvocationTargetException e) {
             throw new RuntimeException("error while evaluating " + this, e);
         }
+    }
+
+    @Override
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        if (writer.requireParentheses(this, lprec, rprec)) {
+            return;
+        }
+        targetExpression.accept(writer, lprec, nodeType.lprec);
+        writer.append('.')
+            .append(method.getName())
+            .append('(');
+        int k = 0;
+        for (Expression expression : expressions) {
+            if (k++ > 0) {
+                writer.append(", ");
+            }
+            expression.accept(writer, 0, 0);
+        }
+        writer.append(')');
     }
 }
 

@@ -27,6 +27,13 @@ import java.util.*;
  * Utility methods for expressions, including a lot of factory methods.
  */
 public class Expressions {
+    /** Converts an expression to Java source code. */
+    public static String toString(Expression expression) {
+        final ExpressionWriter writer = new ExpressionWriter();
+        writer.write(expression);
+        return writer.toString();
+    }
+
     /** Dispatches to the specific visit method for this node
      * type. For example, MethodCallExpression calls the
      * VisitMethodCall. */
@@ -37,18 +44,17 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an arithmetic
      * addition operation that does not have overflow checking. */
     public static BinaryExpression add(
-        Expression expression0,
-        Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.Add, expression0, expression1);
+        return makeBinary(ExpressionType.Add, left, right);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
      * addition operation that does not have overflow checking. The
      * implementing method can be specified. */
     public static BinaryExpression add(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         throw Extensions.todo();
@@ -57,17 +63,17 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an addition
      * assignment operation that does not have overflow checking. */
     public static BinaryExpression addAssign(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
-        return makeBinary(ExpressionType.AddAssign, expression0, expression1);
+        return makeBinary(ExpressionType.AddAssign, left, right);
     }
 
     /** Creates a BinaryExpression that represents an addition
      * assignment operation that does not have overflow checking. */
     public static BinaryExpression addAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         throw Extensions.todo();
@@ -76,11 +82,11 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an addition
      * assignment operation that does not have overflow checking. */
     public static BinaryExpression addAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
-        LambdaExpression lambdaExpression0,
-        LambdaExpression lambdaExpression1)
+        LambdaExpression lambdaleft,
+        LambdaExpression lambdaright)
     {
         throw Extensions.todo();
     }
@@ -88,18 +94,17 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an addition
      * assignment operation that has overflow checking. */
     public static BinaryExpression addAssignChecked(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
-        return makeBinary(
-            ExpressionType.AddAssignChecked, expression0, expression1);
+        return makeBinary(ExpressionType.AddAssignChecked, left, right);
     }
 
     /** Creates a BinaryExpression that represents an addition
      * assignment operation that has overflow checking. */
     public static BinaryExpression addAssignChecked(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         throw Extensions.todo();
@@ -108,8 +113,8 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an addition
      * assignment operation that has overflow checking. */
     public static BinaryExpression addAssignChecked(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
@@ -119,17 +124,17 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an arithmetic
      * addition operation that has overflow checking. */
     public static BinaryExpression addChecked(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
-        return makeBinary(ExpressionType.AddChecked, expression0, expression1);
+        return makeBinary(ExpressionType.AddChecked, left, right);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
      * addition operation that has overflow checking. The implementing
      * method can be specified. */
     public static BinaryExpression addChecked(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         throw Extensions.todo();
     }
@@ -137,17 +142,17 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a bitwise AND
      * operation. */
     public static BinaryExpression and(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
-        return makeBinary(ExpressionType.And, expression0, expression1);
+        return makeBinary(ExpressionType.And, left, right);
     }
 
     /** Creates a BinaryExpression that represents a bitwise AND
      * operation. The implementing method can be specified. */
     public static BinaryExpression and(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         throw Extensions.todo();
@@ -157,9 +162,9 @@ public class Expressions {
      * operation that evaluates the second operand only if the first
      * operand evaluates to true. */
     public static BinaryExpression andAlso(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.AndAlso, expression0, expression1);
+        return makeBinary(ExpressionType.AndAlso, left, right);
     }
 
     /** Creates a BinaryExpression that represents a conditional AND
@@ -167,7 +172,7 @@ public class Expressions {
      * operand is resolved to true. The implementing method can be
      * specified. */
     public static BinaryExpression andAlso(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         throw Extensions.todo();
     }
@@ -175,7 +180,15 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a bitwise AND
      * assignment operation. */
     public static BinaryExpression andAssign(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
+    {
+        return makeBinary(ExpressionType.AndAssign, left, right);
+    }
+
+    /** Creates a BinaryExpression that represents a bitwise AND
+     * assignment operation. */
+    public static BinaryExpression andAssign(
+        Expression left, Expression right, Method method)
     {
         throw Extensions.todo();
     }
@@ -183,16 +196,8 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a bitwise AND
      * assignment operation. */
     public static BinaryExpression andAssign(
-        Expression expression0, Expression expression1, Method method)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates a BinaryExpression that represents a bitwise AND
-     * assignment operation. */
-    public static BinaryExpression andAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
@@ -245,7 +250,7 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an assignment
      * operation. */
     public static BinaryExpression assign(Expression left, Expression right) {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.Assign, left, right);
     }
 
     /** Creates a MemberAssignment that represents the initialization
@@ -275,7 +280,7 @@ public class Expressions {
     /** Creates a BlockExpression that contains two expressions and
      * has no variables. */
     public static BlockExpression block(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
         throw Extensions.todo();
     }
@@ -654,8 +659,8 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a coalescing
      * operation. */
     public static BinaryExpression coalesce(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
         throw Extensions.todo();
     }
@@ -663,8 +668,8 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a coalescing
      * operation, given a conversion function. */
     public static BinaryExpression coalesce(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         LambdaExpression lambdaExpression)
     {
         throw Extensions.todo();
@@ -784,18 +789,42 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an arithmetic
      * division operation. */
     public static BinaryExpression divide(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.Divide, left, right);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
      * division operation. The implementing method can be
      * specified. */
     public static BinaryExpression divide(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
+        Method method)
+    {
+        return makeBinary(
+            ExpressionType.Divide,
+            left,
+            right,
+            shouldLift(left, right, method),
+            method);
+    }
+
+    /** Creates a BinaryExpression that represents a division
+     * assignment operation that does not have overflow checking. */
+    public static BinaryExpression divideAssign(
+        Expression left,
+        Expression right)
+    {
+        return makeBinary(ExpressionType.DivideAssign, left, right);
+    }
+
+    /** Creates a BinaryExpression that represents a division
+     * assignment operation that does not have overflow checking. */
+    public static BinaryExpression divideAssign(
+        Expression left,
+        Expression right,
         Method method)
     {
         throw Extensions.todo();
@@ -804,27 +833,8 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a division
      * assignment operation that does not have overflow checking. */
     public static BinaryExpression divideAssign(
-        Expression expression0,
-        Expression expression1)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates a BinaryExpression that represents a division
-     * assignment operation that does not have overflow checking. */
-    public static BinaryExpression divideAssign(
-        Expression expression0,
-        Expression expression1,
-        Method method)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates a BinaryExpression that represents a division
-     * assignment operation that does not have overflow checking. */
-    public static BinaryExpression divideAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
@@ -860,8 +870,8 @@ public class Expressions {
     public static DynamicExpression dynamic(
         CallSiteBinder binary,
         Class type,
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
         throw Extensions.todo();
     }
@@ -915,9 +925,9 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an equality
      * comparison. */
     public static BinaryExpression equal(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.Equal, expression0, expression1);
+        return makeBinary(ExpressionType.Equal, left, right);
     }
 
     /** Creates a BinaryExpression that represents an equality
@@ -934,16 +944,16 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a bitwise XOR
      * operation, using op_ExclusiveOr for user-defined types. */
     public static BinaryExpression exclusiveOr(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.ExclusiveOr, left, right);
     }
 
     /** Creates a BinaryExpression that represents a bitwise XOR
      * operation, using op_ExclusiveOr for user-defined types. The
      * implementing method can be specified. */
     public static BinaryExpression exclusiveOr(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         throw Extensions.todo();
     }
@@ -952,7 +962,16 @@ public class Expressions {
      * assignment operation, using op_ExclusiveOr for user-defined
      * types. */
     public static BinaryExpression exclusiveOrAssign(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
+    {
+        return makeBinary(ExpressionType.ExclusiveOrAssign, left, right);
+    }
+
+    /** Creates a BinaryExpression that represents a bitwise XOR
+     * assignment operation, using op_ExclusiveOr for user-defined
+     * types. */
+    public static BinaryExpression exclusiveOrAssign(
+        Expression left, Expression right, Method method)
     {
         throw Extensions.todo();
     }
@@ -961,17 +980,8 @@ public class Expressions {
      * assignment operation, using op_ExclusiveOr for user-defined
      * types. */
     public static BinaryExpression exclusiveOrAssign(
-        Expression expression0, Expression expression1, Method method)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates a BinaryExpression that represents a bitwise XOR
-     * assignment operation, using op_ExclusiveOr for user-defined
-     * types. */
-    public static BinaryExpression exclusiveOrAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
@@ -1064,17 +1074,17 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a "greater than"
      * numeric comparison. */
     public static BinaryExpression greaterThan(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.GreaterThan, expression0, expression1);
+        return makeBinary(ExpressionType.GreaterThan, left, right);
     }
 
     /** Creates a BinaryExpression that represents a "greater than"
      * numeric comparison. The implementing method can be
      * specified. */
     public static BinaryExpression greaterThan(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         boolean liftToNull,
         Method method)
     {
@@ -1084,17 +1094,16 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a "greater than or
      * equal" numeric comparison. */
     public static BinaryExpression greaterThanOrEqual(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(
-            ExpressionType.GreaterThanOrEqual, expression0, expression1);
+        return makeBinary(ExpressionType.GreaterThanOrEqual, left, right);
     }
 
     /** Creates a BinaryExpression that represents a "greater than or
      * equal" numeric comparison. */
     public static BinaryExpression greaterThanOrEqual(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         boolean liftToNull,
         Method method)
     {
@@ -1417,15 +1426,15 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a bitwise
      * left-shift operation. */
     public static BinaryExpression leftShift(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        throw Extensions.todo();
+        return makeBinary(ExpressionType.LeftShift, left, right);
     }
 
     /** Creates a BinaryExpression that represents a bitwise
      * left-shift operation. */
     public static BinaryExpression leftShift(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         throw Extensions.todo();
     }
@@ -1433,7 +1442,15 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a bitwise
      * left-shift assignment operation. */
     public static BinaryExpression leftShiftAssign(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
+    {
+        return makeBinary(ExpressionType.LeftShiftAssign, left, right);
+    }
+
+    /** Creates a BinaryExpression that represents a bitwise
+     * left-shift assignment operation. */
+    public static BinaryExpression leftShiftAssign(
+        Expression left, Expression right, Method method)
     {
         throw Extensions.todo();
     }
@@ -1441,16 +1458,8 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a bitwise
      * left-shift assignment operation. */
     public static BinaryExpression leftShiftAssign(
-        Expression expression0, Expression expression1, Method method)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates a BinaryExpression that represents a bitwise
-     * left-shift assignment operation. */
-    public static BinaryExpression leftShiftAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
@@ -1460,16 +1469,16 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a "less than"
      * numeric comparison. */
     public static BinaryExpression lessThan(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.LessThan, expression0, expression1);
+        return makeBinary(ExpressionType.LessThan, left, right);
     }
 
     /** Creates a BinaryExpression that represents a "less than"
      * numeric comparison. */
     public static BinaryExpression lessThan(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         boolean liftToNull,
         Method method)
     {
@@ -1479,17 +1488,16 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a " less than or
      * equal" numeric comparison. */
     public static BinaryExpression lessThanOrEqual(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(
-            ExpressionType.LessThanOrEqual, expression0, expression1);
+        return makeBinary(ExpressionType.LessThanOrEqual, left, right);
     }
 
     /** Creates a BinaryExpression that represents a "less than or
      * equal" numeric comparison. */
     public static BinaryExpression lessThanOrEqual(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         boolean liftToNull,
         Method method)
     {
@@ -1602,8 +1610,8 @@ public class Expressions {
      * by calling an appropriate factory method. */
     public static BinaryExpression makeBinary(
         ExpressionType binaryType,
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
         final Class type;
         switch (binaryType) {
@@ -1616,11 +1624,11 @@ public class Expressions {
             type = Boolean.TYPE;
             break;
         default:
-            type = expression0.getType();
+            type = left.getType();
             break;
         }
         return new BinaryExpression(
-            binaryType, type, expression0, expression1);
+            binaryType, type, left, right);
     }
 
     /** Creates a BinaryExpression, given the left operand, right
@@ -1628,8 +1636,8 @@ public class Expressions {
      * factory method. */
     public static BinaryExpression makeBinary(
         ExpressionType binaryType,
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         boolean liftToNull,
         Method method)
     {
@@ -1641,8 +1649,8 @@ public class Expressions {
      * calling the appropriate factory method. */
     public static BinaryExpression makeBinary(
         ExpressionType binaryType,
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         boolean liftToNull,
         Method method,
         LambdaExpression lambdaExpression)
@@ -1692,8 +1700,8 @@ public class Expressions {
     public static DynamicExpression makeDynamic(
         Class type,
         CallSiteBinder binder,
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
         throw Extensions.todo();
     }
@@ -1772,7 +1780,7 @@ public class Expressions {
     public static UnaryExpression makeUnary(
         ExpressionType expressionType, Expression expression, Class type)
     {
-        throw Extensions.todo();
+        return new UnaryExpression(expressionType, type, expression);
     }
 
     /** Creates a UnaryExpression, given an operand and implementing
@@ -1839,26 +1847,26 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an arithmetic
      * remainder operation. */
     public static BinaryExpression modulo(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.Modulo, expression0, expression1);
+        return makeBinary(ExpressionType.Modulo, left, right);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
      * remainder operation. */
     public static BinaryExpression modulo(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         return makeBinary(
             ExpressionType.Modulo,
-            expression0,
-            expression1,
-            shouldLift(expression0, expression1, method),
+            left,
+            right,
+            shouldLift(left, right, method),
             method);
     }
 
     private static boolean shouldLift(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         // FIXME: Implement the rules in modulo
         return true;
@@ -1867,24 +1875,20 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a remainder
      * assignment operation. */
     public static BinaryExpression moduloAssign(
-        Expression expression0,
-        Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(
-            ExpressionType.ModuloAssign,
-            expression0,
-            expression1);
+        return makeBinary(ExpressionType.ModuloAssign, left, right);
     }
 
     /** Creates a BinaryExpression that represents a remainder
      * assignment operation. */
     public static BinaryExpression moduloAssign(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         return makeBinary(
             ExpressionType.ModuloAssign,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method);
     }
@@ -1892,15 +1896,15 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a remainder
      * assignment operation. */
     public static BinaryExpression moduloAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
         return makeBinary(
             ExpressionType.ModuloAssign,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method,
             lambdaExpression);
@@ -1910,45 +1914,44 @@ public class Expressions {
      * multiplication operation that does not have overflow
      * checking. */
     public static BinaryExpression multiply(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.Multiply, expression0, expression1);
+        return makeBinary(ExpressionType.Multiply, left, right);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
      * multiplication operation that does not have overflow
      * checking. */
     public static BinaryExpression multiply(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         return makeBinary(
             ExpressionType.Multiply,
-            expression0,
-            expression1,
-            shouldLift(expression0, expression1, method),
+            left,
+            right,
+            shouldLift(left, right, method),
             method);
     }
 
     /** Creates a BinaryExpression that represents a multiplication
      * assignment operation that does not have overflow checking. */
     public static BinaryExpression multiplyAssign(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(
-            ExpressionType.MultiplyAssign, expression0, expression1);
+        return makeBinary(ExpressionType.MultiplyAssign, left, right);
     }
 
     /** Creates a BinaryExpression that represents a multiplication
      * assignment operation that does not have overflow checking. */
     public static BinaryExpression multiplyAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         return makeBinary(
             ExpressionType.MultiplyAssign,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method);
     }
@@ -1956,15 +1959,15 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a multiplication
      * assignment operation that does not have overflow checking. */
     public static BinaryExpression multiplyAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
         return makeBinary(
             ExpressionType.MultiplyAssign,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method,
             lambdaExpression);
@@ -1973,24 +1976,23 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a multiplication
      * assignment operation that has overflow checking. */
     public static BinaryExpression multiplyAssignChecked(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
-        return makeBinary(
-            ExpressionType.MultiplyAssignChecked, expression0, expression1);
+        return makeBinary(ExpressionType.MultiplyAssignChecked, left, right);
     }
 
     /** Creates a BinaryExpression that represents a multiplication
      * assignment operation that has overflow checking. */
     public static BinaryExpression multiplyAssignChecked(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         return makeBinary(
             ExpressionType.MultiplyAssignChecked,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method);
     }
@@ -1998,15 +2000,15 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a multiplication
      * assignment operation that has overflow checking. */
     public static BinaryExpression multiplyAssignChecked(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
         return makeBinary(
             ExpressionType.MultiplyAssignChecked,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method,
             lambdaExpression);
@@ -2015,25 +2017,25 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an arithmetic
      * multiplication operation that has overflow checking. */
     public static BinaryExpression multiplyChecked(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
         return makeBinary(
-            ExpressionType.MultiplyChecked, expression0, expression1);
+            ExpressionType.MultiplyChecked, left, right);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
      * multiplication operation that has overflow checking. */
     public static BinaryExpression multiplyChecked(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         return makeBinary(
             ExpressionType.MultiplyChecked,
-            expression0,
-            expression1,
-            shouldLift(expression0, expression1, method),
+            left,
+            right,
+            shouldLift(left, right, method),
             method);
     }
 
@@ -2169,23 +2171,23 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an inequality
      * comparison. */
     public static BinaryExpression notEqual(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.NotEqual, expression0,  expression1);
+        return makeBinary(ExpressionType.NotEqual, left,  right);
     }
 
     /** Creates a BinaryExpression that represents an inequality
      * comparison. */
     public static BinaryExpression notEqual(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         boolean liftToNull,
         Method method)
     {
         return makeBinary(
             ExpressionType.NotEqual,
-            expression0,
-            expression1,
+            left,
+            right,
             liftToNull,
             method);
     }
@@ -2211,48 +2213,48 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a bitwise OR
      * operation. */
     public static BinaryExpression or(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.Or, expression0, expression1);
+        return makeBinary(ExpressionType.Or, left, right);
     }
 
     /** Creates a BinaryExpression that represents a bitwise OR
      * operation. */
     public static BinaryExpression or(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         return makeBinary(
-            ExpressionType.Or, expression0, expression1, false, method);
+            ExpressionType.Or, left, right, false, method);
     }
 
     /** Creates a BinaryExpression that represents a bitwise OR
      * assignment operation. */
     public static BinaryExpression orAssign(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.OrAssign, expression0, expression1);
+        return makeBinary(ExpressionType.OrAssign, left, right);
     }
 
     /** Creates a BinaryExpression that represents a bitwise OR
      * assignment operation. */
     public static BinaryExpression orAssign(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
-        return makeBinary(ExpressionType.OrAssign, expression0, expression1);
+        return makeBinary(ExpressionType.OrAssign, left, right);
     }
 
     /** Creates a BinaryExpression that represents a bitwise OR
      * assignment operation. */
     public static BinaryExpression orAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
         return makeBinary(
             ExpressionType.OrAssign,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method,
             lambdaExpression);
@@ -2262,21 +2264,21 @@ public class Expressions {
      * operation that evaluates the second operand only if the first
      * operand evaluates to false. */
     public static BinaryExpression orElse(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.OrElse, expression0, expression1);
+        return makeBinary(ExpressionType.OrElse, left, right);
     }
 
     /** Creates a BinaryExpression that represents a conditional OR
      * operation that evaluates the second operand only if the first
      * operand evaluates to false. */
     public static BinaryExpression orElse(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         return makeBinary(
-            ExpressionType.OrElse, expression0, expression1, false, method);
+            ExpressionType.OrElse, left, right, false, method);
     }
 
     /** Creates a ParameterExpression node that can be used to
@@ -2340,7 +2342,7 @@ public class Expressions {
      * a power. */
     // REVIEW: In Java this is a call to a lib function, Math.pow.
     public static BinaryExpression power(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
         throw Extensions.todo();
     }
@@ -2349,7 +2351,7 @@ public class Expressions {
      * a power. */
     // REVIEW: In Java this is a call to a lib function, Math.pow.
     public static BinaryExpression power(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         throw Extensions.todo();
     }
@@ -2359,7 +2361,7 @@ public class Expressions {
      * expression. */
     // REVIEW: In Java this is a call to a lib function, Math.pow.
     public static BinaryExpression powerAssign(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
         throw Extensions.todo();
     }
@@ -2369,7 +2371,7 @@ public class Expressions {
      * expression. */
     // REVIEW: In Java this is a call to a lib function, Math.pow.
     public static BinaryExpression powerAssign(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         throw Extensions.todo();
     }
@@ -2378,8 +2380,8 @@ public class Expressions {
      * expression to a power and assigning the result back to the
      * expression. */
     public static BinaryExpression powerAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
@@ -2388,7 +2390,7 @@ public class Expressions {
 
     /** Creates a UnaryExpression that decrements the expression by 1
      * and assigns the result back to the expression. */
-    public static UnaryExpression PreDecrementAssign(Expression expression) {
+    public static UnaryExpression preDecrementAssign(Expression expression) {
         return makeUnary(
             ExpressionType.PreDecrementAssign,
             expression,
@@ -2533,17 +2535,17 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a reference
      * equality comparison. */
     public static Expression referenceEqual(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.Equal, expression0, expression1);
+        return makeBinary(ExpressionType.Equal, left, right);
     }
 
     /** Creates a BinaryExpression that represents a reference
      * inequality comparison. */
     public static Expression referenceNotEqual(
-        Expression expression0, Expression expression1)
+        Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.NotEqual, expression0, expression1);
+        return makeBinary(ExpressionType.NotEqual, left, right);
     }
 
     /** Creates a UnaryExpression that represents a rethrowing of an
@@ -2568,7 +2570,8 @@ public class Expressions {
     public static GotoExpression return_(
         LabelTarget labelTarget, Expression expression)
     {
-        throw Extensions.todo();
+        return new GotoExpression(
+            GotoExpressionKind.Return, labelTarget, expression);
     }
 
     /** Creates a GotoExpression representing a return statement with
@@ -2589,42 +2592,41 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a bitwise
      * right-shift operation. */
     public static BinaryExpression rightShift(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
-        return makeBinary(ExpressionType.RightShift, expression0, expression1);
+        return makeBinary(ExpressionType.RightShift, left, right);
     }
 
     /** Creates a BinaryExpression that represents a bitwise
      * right-shift operation. */
     public static BinaryExpression rightShift(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         return makeBinary(
-            ExpressionType.RightShift, expression0, expression1, false, method);
+            ExpressionType.RightShift, left, right, false, method);
     }
 
     /** Creates a BinaryExpression that represents a bitwise
      * right-shift assignment operation. */
     public static BinaryExpression rightShiftAssign(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
-        return makeBinary(
-            ExpressionType.RightShiftAssign, expression0, expression1);
+        return makeBinary(ExpressionType.RightShiftAssign, left, right);
     }
 
     /** Creates a BinaryExpression that represents a bitwise
      * right-shift assignment operation. */
     public static BinaryExpression rightShiftAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         return makeBinary(
             ExpressionType.RightShiftAssign,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method);
     }
@@ -2632,15 +2634,15 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a bitwise
      * right-shift assignment operation. */
     public static BinaryExpression rightShiftAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
         return makeBinary(
             ExpressionType.RightShiftAssign,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method,
             lambdaExpression);
@@ -2663,46 +2665,45 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an arithmetic
      * subtraction operation that does not have overflow checking. */
     public static BinaryExpression subtract(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
-        return makeBinary(ExpressionType.Subtract, expression0, expression1);
+        return makeBinary(ExpressionType.Subtract, left, right);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
      * subtraction operation that does not have overflow checking. */
     public static BinaryExpression subtract(
-        Expression expression0, Expression expression1, Method method)
+        Expression left, Expression right, Method method)
     {
         return makeBinary(
             ExpressionType.Subtract,
-            expression0,
-            expression1,
-            shouldLift(expression0, expression1, method),
+            left,
+            right,
+            shouldLift(left, right, method),
             method);
     }
 
     /** Creates a BinaryExpression that represents a subtraction
      * assignment operation that does not have overflow checking. */
     public static BinaryExpression subtractAssign(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
-        return makeBinary(
-            ExpressionType.SubtractAssign, expression0, expression1);
+        return makeBinary(ExpressionType.SubtractAssign, left, right);
     }
 
     /** Creates a BinaryExpression that represents a subtraction
      * assignment operation that does not have overflow checking. */
     public static BinaryExpression subtractAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         return makeBinary(
             ExpressionType.SubtractAssign,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method);
     }
@@ -2710,15 +2711,15 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a subtraction
      * assignment operation that does not have overflow checking. */
     public static BinaryExpression subtractAssign(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
         return makeBinary(
             ExpressionType.SubtractAssign,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method,
             lambdaExpression);
@@ -2727,24 +2728,24 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a subtraction
      * assignment operation that has overflow checking. */
     public static BinaryExpression subtractAssignChecked(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
         return makeBinary(
-            ExpressionType.SubtractAssignChecked, expression0, expression1);
+            ExpressionType.SubtractAssignChecked, left, right);
     }
 
     /** Creates a BinaryExpression that represents a subtraction
      * assignment operation that has overflow checking. */
     public static BinaryExpression subtractAssignChecked(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         return makeBinary(
             ExpressionType.SubtractAssignChecked,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method);
     }
@@ -2752,15 +2753,15 @@ public class Expressions {
     /** Creates a BinaryExpression that represents a subtraction
      * assignment operation that has overflow checking. */
     public static BinaryExpression subtractAssignChecked(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method,
         LambdaExpression lambdaExpression)
     {
         return makeBinary(
             ExpressionType.SubtractAssignChecked,
-            expression0,
-            expression1,
+            left,
+            right,
             false,
             method,
             lambdaExpression);
@@ -2769,27 +2770,27 @@ public class Expressions {
     /** Creates a BinaryExpression that represents an arithmetic
      * subtraction operation that has overflow checking. */
     public static BinaryExpression subtractChecked(
-        Expression expression0,
-        Expression expression1)
+        Expression left,
+        Expression right)
     {
         return makeBinary(
             ExpressionType.SubtractChecked,
-            expression0,
-            expression1);
+            left,
+            right);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
      * subtraction operation that has overflow checking. */
     public static BinaryExpression subtractChecked(
-        Expression expression0,
-        Expression expression1,
+        Expression left,
+        Expression right,
         Method method)
     {
         return makeBinary(
             ExpressionType.SubtractChecked,
-            expression0,
-            expression1,
-            shouldLift(expression0, expression1, method),
+            left,
+            right,
+            shouldLift(left, right, method),
             method);
     }
 

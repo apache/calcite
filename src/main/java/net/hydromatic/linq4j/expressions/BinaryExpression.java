@@ -157,6 +157,15 @@ public class BinaryExpression extends Expression {
         }
     }
 
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        if (writer.requireParentheses(this, lprec, rprec)) {
+            return;
+        }
+        expression0.accept(writer, lprec, nodeType.lprec);
+        writer.append(nodeType.op);
+        expression1.accept(writer, nodeType.rprec, rprec);
+    }
+
     private RuntimeException cannotEvaluate() {
         return new RuntimeException(
             "cannot evaluate " + this

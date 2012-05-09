@@ -40,6 +40,16 @@ public class MemberExpression extends Expression {
             throw new RuntimeException("error while evaluating " + this, e);
         }
     }
+
+    @Override
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        if (writer.requireParentheses(this, lprec, rprec)) {
+            return;
+        }
+        expression.accept(writer, lprec, nodeType.lprec);
+        writer.append('.')
+            .append(field.getName());
+    }
 }
 
 // End MemberExpression.java

@@ -477,25 +477,32 @@ public class Extensions {
      * @return Collection of T2
      */
     public static <TSource, T2> Enumerable<T2> cast(
-        final Enumerable<TSource> enumerable,
+        final Enumerable<TSource> source,
         final Class<T2> clazz)
     {
         return new AbstractEnumerable<T2>() {
             public Enumerator<T2> enumerator() {
-                final Enumerator<TSource> enumerator = enumerable.enumerator();
-                return new Enumerator<T2>() {
-                    public T2 current() {
-                        return clazz.cast(enumerator.current());
-                    }
+                return new CastingEnumerator<T2>(source.enumerator(), clazz);
+            }
+        };
+    }
 
-                    public boolean moveNext() {
-                        return enumerator.moveNext();
-                    }
-
-                    public void reset() {
-                        enumerator.reset();
-                    }
-                };
+    /**
+     * <p>Analogous to LINQ's Enumerable.Cast extension method.</p>
+     *
+     * @param clazz Target type
+     * @param <T2> Target type
+     * @return Collection of T2
+     */
+    public static <TSource, T2> Queryable<T2> cast(
+        final Queryable<TSource> source,
+        final Class<T2> clazz)
+    {
+        return new AbstractQueryable2<T2>(
+            clazz, source.getExpression(), source.getProvider())
+        {
+            public Enumerator<T2> enumerator() {
+                return new CastingEnumerator<T2>(source.enumerator(), clazz);
             }
         };
     }
@@ -2811,6 +2818,28 @@ public class Extensions {
 
         public Iterator<TSource> iterator() {
             return Linq4j.enumeratorIterator(enumerator());
+        }
+    }
+
+    private static class CastingEnumerator<T> implements Enumerator<T> {
+        private final Enumerator<?> enumerator;
+        private final Class<T> clazz;
+
+        public CastingEnumerator(Enumerator<?> enumerator, Class<T> clazz) {
+            this.enumerator = enumerator;
+            this.clazz = clazz;
+        }
+
+        public T current() {
+            return clazz.cast(enumerator.current());
+        }
+
+        public boolean moveNext() {
+            return enumerator.moveNext();
+        }
+
+        public void reset() {
+            enumerator.reset();
         }
     }
 }
