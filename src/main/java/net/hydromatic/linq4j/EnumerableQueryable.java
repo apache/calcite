@@ -437,37 +437,37 @@ class EnumerableQueryable<T>
         return Extensions.min(getThis(), selector.getFunction());
     }
 
-    public <TKey extends Comparable> Queryable<T> orderBy(
+    public <TKey extends Comparable> OrderedQueryable<T> orderBy(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
-        return Extensions.orderBy(getThis(), keySelector.getFunction())
-            .asQueryable();
+        return Extensions.asOrderedQueryable(
+            Extensions.orderBy(getThis(), keySelector.getFunction()));
     }
 
-    public <TKey> Queryable<T> orderBy(
+    public <TKey> OrderedQueryable<T> orderBy(
         FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
-        return Extensions
-            .orderBy(getThis(), keySelector.getFunction(), comparator)
-            .asQueryable();
+        return Extensions.asOrderedQueryable(
+            Extensions.orderBy(
+                getThis(), keySelector.getFunction(), comparator));
     }
 
-    public <TKey extends Comparable> Queryable<T> orderByDescending(
+    public <TKey extends Comparable> OrderedQueryable<T> orderByDescending(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
-        return Extensions
-            .orderByDescending(getThis(), keySelector.getFunction())
-            .asQueryable();
+        return Extensions.asOrderedQueryable(
+            Extensions.orderByDescending(
+                getThis(), keySelector.getFunction()));
     }
 
-    public <TKey> Queryable<T> orderByDescending(
+    public <TKey> OrderedQueryable<T> orderByDescending(
         FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
-        return Extensions
-            .orderByDescending(getThis(), keySelector.getFunction(), comparator)
-            .asQueryable();
+        return Extensions.asOrderedQueryable(
+            Extensions.orderByDescending(
+                getThis(), keySelector.getFunction(), comparator));
     }
 
     public <TResult> Queryable<TResult> select(

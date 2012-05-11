@@ -20,12 +20,26 @@ package net.hydromatic.linq4j;
 import net.hydromatic.linq4j.expressions.Expression;
 
 /**
- * Provides functionality to evaluate queries against a specific data source
- * wherein the type of the data is known.
+ * Core methods that define a {@link Queryable}.
  *
- * <p>Analogous to LINQ's System.Linq.IQueryable.</p>
+ * <p>The other methods in {@link Queryable}, defined in
+ * {@link ExtendedQueryable}, can easily be implemented by calling the
+ * corresponding static methods in {@link Extensions}.
+ *
+ * @author jhyde
  */
-public interface Queryable<T> extends RawQueryable<T>, ExtendedQueryable<T> {
+public interface RawQueryable<T> extends Enumerable<T> {
+    /**
+     * Gets the type of the element(s) that are returned when the expression
+     * tree associated with this Queryable is executed.
+     */
+    Class<T> getElementType();
+
+    /** Gets the expression tree that is associated with this Queryable. */
+    Expression getExpression();
+
+    /** Gets the query provider that is associated with this data source. */
+    QueryProvider getProvider();
 }
 
-// End Queryable.java
+// End RawQueryable.java

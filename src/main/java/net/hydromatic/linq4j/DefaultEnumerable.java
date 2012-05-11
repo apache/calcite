@@ -51,10 +51,12 @@ public abstract class DefaultEnumerable<T> implements Enumerable<T> {
     }
 
     public Queryable<T> asQueryable() {
-        return this instanceof Queryable
-            ? ((Queryable<T>) this)
-            : new EnumerableQueryable<T>(
-                this, (Class) Object.class, null, null);
+        return Extensions.asQueryable(this);
+    }
+
+    // NOTE: Not part of the Queryable interface.
+    protected OrderedQueryable<T> asOrderedQueryable() {
+        return Extensions.asOrderedQueryable(this);
     }
 
     public T aggregate(Function2<T, T, T> func) {

@@ -388,23 +388,23 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
     /** Sorts the elements of a sequence in ascending
      * order according to a key. */
-    <TKey extends Comparable> Queryable<TSource> orderBy(
+    <TKey extends Comparable> OrderedQueryable<TSource> orderBy(
         FunctionExpression<Function1<TSource, TKey>> keySelector);
 
     /** Sorts the elements of a sequence in ascending
      * order by using a specified comparer. */
-    <TKey> Queryable<TSource> orderBy(
+    <TKey> OrderedQueryable<TSource> orderBy(
         FunctionExpression<Function1<TSource, TKey>> keySelector,
         Comparator<TKey> comparator);
 
     /** Sorts the elements of a sequence in descending
      * order according to a key. */
-    <TKey extends Comparable> Queryable<TSource> orderByDescending(
+    <TKey extends Comparable> OrderedQueryable<TSource> orderByDescending(
         FunctionExpression<Function1<TSource, TKey>> keySelector);
 
     /** Sorts the elements of a sequence in descending
      * order by using a specified comparer. */
-    <TKey> Queryable<TSource> orderByDescending(
+    <TKey> OrderedQueryable<TSource> orderByDescending(
         FunctionExpression<Function1<TSource, TKey>> keySelector,
         Comparator<TKey> comparator);
 

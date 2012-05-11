@@ -1668,8 +1668,11 @@ public class Extensions {
     }
 
     /** Sorts the elements of a sequence in ascending
-     * order according to a key. */
-    public static <TSource, TKey extends Comparable> Queryable<TSource> orderBy(
+     * order according to a key.
+     *
+     * @see #thenBy */
+    public static <TSource, TKey extends Comparable>
+    OrderedQueryable<TSource> orderBy(
         Queryable<TSource> source,
         FunctionExpression<Function1<TSource, TKey>> keySelector)
     {
@@ -1688,7 +1691,7 @@ public class Extensions {
 
     /** Sorts the elements of a sequence in ascending
      * order by using a specified comparer. */
-    public static <TSource, TKey> Queryable<TSource> orderBy(
+    public static <TSource, TKey> OrderedQueryable<TSource> orderBy(
         Queryable<TSource> source,
         FunctionExpression<Function1<TSource, TKey>> keySelector,
         Comparator<TKey> comparator)
@@ -1708,7 +1711,7 @@ public class Extensions {
     /** Sorts the elements of a sequence in descending
      * order according to a key. */
     public static <TSource, TKey extends Comparable>
-    Queryable<TSource> orderByDescending(
+    OrderedQueryable<TSource> orderByDescending(
         Queryable<TSource> source,
         FunctionExpression<Function1<TSource, TKey>> keySelector)
     {
@@ -1727,7 +1730,7 @@ public class Extensions {
 
     /** Sorts the elements of a sequence in descending
      * order by using a specified comparer. */
-    public static <TSource, TKey> Queryable<TSource> orderByDescending(
+    public static <TSource, TKey> OrderedQueryable<TSource> orderByDescending(
         Queryable<TSource> source,
         FunctionExpression<Function1<TSource, TKey>> keySelector,
         Comparator<TKey> comparator)
@@ -2132,7 +2135,8 @@ public class Extensions {
         FunctionExpression<Predicate1<TSource>> predicate)
     {
         return skipWhileN(
-            source, Expressions.lambda(
+            source,
+            Expressions.lambda(
                 Functions.<TSource, Integer>toPredicate2(
                     predicate.getFunction())));
     }
@@ -2443,6 +2447,46 @@ public class Extensions {
         };
     }
 
+    /** Performs a subsequent ordering of the elements in a sequence in
+     * ascending order according to a key. */
+    public static <TSource, TKey extends Comparable<TKey>>
+    OrderedQueryable<TSource> thenBy(
+        OrderedQueryable<TSource> source,
+        FunctionExpression<Function1<TSource, TKey>> keySelector)
+    {
+        throw Extensions.todo();
+    }
+
+    /** Performs a subsequent ordering of the elements in a sequence in
+     * ascending order according to a key, using a specified comparator. */
+    public static <TSource, TKey> OrderedQueryable<TSource> thenBy(
+        OrderedQueryable<TSource> source,
+        FunctionExpression<Function1<TSource, TKey>> keySelector,
+        Comparator<TKey> comparator)
+    {
+        throw Extensions.todo();
+    }
+
+    /** Performs a subsequent ordering of the elements in a sequence in
+     * descending order according to a key. */
+    public static <TSource, TKey extends Comparable<TKey>>
+    OrderedQueryable<TSource> thenByDescending(
+        OrderedQueryable<TSource> source,
+        FunctionExpression<Function1<TSource, TKey>> keySelector)
+    {
+        throw Extensions.todo();
+    }
+
+    /** Performs a subsequent ordering of the elements in a sequence in
+     * dscending order according to a key, using a specified comparator. */
+    public static <TSource, TKey> OrderedQueryable<TSource> thenByDescending(
+        OrderedQueryable<TSource> source,
+        FunctionExpression<Function1<TSource, TKey>> keySelector,
+        Comparator<TKey> comparator)
+    {
+        throw Extensions.todo();
+    }
+
     /** Creates a Map&lt;TKey, TValue&gt; from an
      * Enumerable&lt;TSource&gt; according to a specified key selector
      * function.
@@ -2706,6 +2750,24 @@ public class Extensions {
         throw Extensions.todo();
     }
 
+    public static <T> Queryable<T> asQueryable(DefaultEnumerable<T> source) {
+        //noinspection unchecked
+        return source instanceof Queryable
+            ? ((Queryable<T>) source)
+            : new EnumerableQueryable<T>(
+                source, (Class) Object.class, null, null);
+    }
+
+    public static <T> OrderedQueryable<T> asOrderedQueryable(
+        Enumerable<T> source)
+    {
+        //noinspection unchecked
+        return source instanceof OrderedQueryable
+            ? ((OrderedQueryable<T>) source)
+            : new EnumerableOrderedQueryable<T>(
+                source, (Class) Object.class, null, null);
+    }
+
     private static class TakeWhileEnumerator<TSource>
         implements Enumerator<TSource>
     {
@@ -2790,7 +2852,7 @@ public class Extensions {
         }
     }
 
-    private static abstract class AbstractQueryable2<TSource>
+    public static abstract class AbstractQueryable2<TSource>
         extends AbstractQueryable<TSource>
     {
         private final Class<TSource> elementType;

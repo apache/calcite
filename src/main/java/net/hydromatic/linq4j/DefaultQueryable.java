@@ -30,10 +30,14 @@ import java.util.Comparator;
  */
 abstract class DefaultQueryable<T>
     extends DefaultEnumerable<T>
-    implements Queryable<T>
+    implements Queryable<T>, OrderedQueryable<T>
 {
     protected Queryable<T> getThis() {
         return this;
+    }
+
+    protected OrderedQueryable<T> getThisOrdered() {
+        return (OrderedQueryable<T>) this;
     }
 
     // Disambiguate
@@ -358,26 +362,26 @@ abstract class DefaultQueryable<T>
         return Extensions.min(getThis(), selector);
     }
 
-    public <TKey extends Comparable> Queryable<T> orderBy(
+    public <TKey extends Comparable> OrderedQueryable<T> orderBy(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
         return Extensions.orderBy(getThis(), keySelector);
     }
 
-    public <TKey> Queryable<T> orderBy(
+    public <TKey> OrderedQueryable<T> orderBy(
         FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
         return Extensions.orderBy(getThis(), keySelector, comparator);
     }
 
-    public <TKey extends Comparable> Queryable<T> orderByDescending(
+    public <TKey extends Comparable> OrderedQueryable<T> orderByDescending(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
         return Extensions.orderByDescending(getThis(), keySelector);
     }
 
-    public <TKey> Queryable<T> orderByDescending(
+    public <TKey> OrderedQueryable<T> orderByDescending(
         FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
@@ -504,6 +508,33 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Predicate2<T, Integer>> predicate)
     {
         return Extensions.takeWhileN(getThis(), predicate);
+    }
+
+    public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(
+        FunctionExpression<Function1<T, TKey>> keySelector)
+    {
+        return Extensions.thenBy(getThisOrdered(), keySelector);
+    }
+
+    public <TKey> OrderedQueryable<T> thenBy(
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        Comparator<TKey> comparator)
+    {
+        return Extensions.thenByDescending(
+            getThisOrdered(), keySelector, comparator);
+    }
+
+    public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenByDescending(
+        FunctionExpression<Function1<T, TKey>> keySelector)
+    {
+        return Extensions.thenByDescending(getThisOrdered(), keySelector);
+    }
+
+    public <TKey> OrderedQueryable<T> thenByDescending(
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        Comparator<TKey> comparator)
+    {
+        return Extensions.thenBy(getThisOrdered(), keySelector, comparator);
     }
 
     public Queryable<T> where(
