@@ -26,12 +26,14 @@ public class GotoExpression extends Expression {
     private final LabelTarget labelTarget;
     private final Expression expression;
 
-    public GotoExpression(
+    GotoExpression(
         GotoExpressionKind kind,
         LabelTarget labelTarget,
         Expression expression)
     {
-        super(ExpressionType.Goto, Void.TYPE);
+        super(
+            ExpressionType.Goto,
+            expression == null ? Void.TYPE : expression.getType());
         this.kind = kind;
         this.labelTarget = labelTarget;
         this.expression = expression;

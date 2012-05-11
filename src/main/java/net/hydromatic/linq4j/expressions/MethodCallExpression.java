@@ -22,14 +22,14 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 /**
- * Represents a call to either static or an instance method.
+ * Represents a call to either a static or an instance method.
  */
 public class MethodCallExpression extends Expression {
     private final Method method;
-    private final Expression targetExpression;
+    private final Expression targetExpression; // null for call to static method
     private final List<Expression> expressions;
 
-    public MethodCallExpression(
+    MethodCallExpression(
         Method method,
         Expression targetExpression,
         List<Expression> expressions)
@@ -38,8 +38,6 @@ public class MethodCallExpression extends Expression {
         this.method = method;
         this.targetExpression = targetExpression;
         this.expressions = expressions;
-        assert targetExpression != null;
-        assert method != null;
         assert expressions != null;
     }
 
@@ -70,7 +68,13 @@ public class MethodCallExpression extends Expression {
         if (writer.requireParentheses(this, lprec, rprec)) {
             return;
         }
-        targetExpression.accept(writer, lprec, nodeType.lprec);
+        if (targetExpression != null) {
+            // instance method
+            targetExpression.accept(writer, lprec, nodeType.lprec);
+        } else {
+            // static method
+            writer.append(method.getDeclaringClass());
+        }
         writer.append('.')
             .append(method.getName())
             .append('(');

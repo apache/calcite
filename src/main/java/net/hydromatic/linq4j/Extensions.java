@@ -62,16 +62,16 @@ import java.util.*;
  *
  * <li>Java erases type parameters from argument types before resolving
  * overloading. Therefore similar methods have the same erasure. Methods
- * {@link #averageDouble(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)},
- * {@link #averageInteger(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)},
- * {@link #groupByK(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression)},
- * {@link #groupByK(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.function.EqualityComparer)},
- * {@link #selectN(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)},
- * {@link #selectManyN(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)},
- * {@link #selectManyN(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression)},
- * {@link #skipWhileN(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)},
- * {@link #sumBigDecimal(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)},
- * {@link #sumNullableBigDecimal(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)},
+ * {@link #averageDouble(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression) averageDouble},
+ * {@link #averageInteger(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression) averageInteger},
+ * {@link #groupByK(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression) groupByK},
+ * {@link #groupByK(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.function.EqualityComparer) groupByK},
+ * {@link #selectN(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression) selectN},
+ * {@link #selectManyN(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression) selectManyN},
+ * {@link #selectManyN(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression) selectManyN},
+ * {@link #skipWhileN(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression) skipWhileN},
+ * {@link #sumBigDecimal(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression) sumBigDecimal},
+ * {@link #sumNullableBigDecimal(Queryable, net.hydromatic.linq4j.expressions.FunctionExpression) sumNullableBigDecimal},
  * {@link #whereN}
  * have been renamed from {@code average}, {@code groupBy}, {@code max},
  * {@code min}, {@code select}, {@code selectMany}, {@code skipWhile} and
@@ -87,9 +87,10 @@ import java.util.*;
  * providing an abstract base class that implements the extension methods
  * in the interface. Hence {@link AbstractEnumerable} and
  * {@link AbstractQueryable} call methods in {@link Extensions}.</li>
- * </ul>
  *
- * <li>.NET Func becomes {@link net.hydromatic.linq4j.function.Function0}, {@link net.hydromatic.linq4j.function.Function1}, {@link net.hydromatic.linq4j.function.Function2}, depending
+ * <li>.NET Func becomes {@link net.hydromatic.linq4j.function.Function0},
+ * {@link net.hydromatic.linq4j.function.Function1},
+ * {@link net.hydromatic.linq4j.function.Function2}, depending
  * on the number of arguments to the function, because Java types cannot be
  * overloaded based on the number of type parameters.</li>
  *
@@ -105,6 +106,8 @@ import java.util.*;
  * boxed types in LINQ4J. For example, a predicate function
  * {@code Func&lt;T, bool&gt;} becomes {@code Func1&lt;T, Boolean&gt;}.
  * It would be wrong to infer that the function is allowed to return null.</li>
+ *
+ * </ul>
  */
 public class Extensions {
 

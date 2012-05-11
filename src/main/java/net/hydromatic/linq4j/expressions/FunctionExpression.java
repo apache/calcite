@@ -103,30 +103,58 @@ public final class FunctionExpression<F extends Function<?>>
     void accept(ExpressionWriter writer, int lprec, int rprec) {
         /*
         "new Function1() {
-            Result apply(T1 p1, ...) {
+            public Result apply(T1 p1, ...) {
                 <body>
+            }
+            // bridge method
+            public Object apply(Object p1, ...) {
+                return apply((T1) p1, ...);
             }
         }
          */
+        List<String> params = new ArrayList<String>();
+        List<String> bridgeParams = new ArrayList<String>();
+        List<String> bridgeArgs = new ArrayList<String>();
+        for (ParameterExpression parameterExpression : parameterList) {
+            params.add(
+                ExpressionWriter.boxClassName(parameterExpression.getType())
+                + " "
+                + parameterExpression.name);
+            bridgeParams.add(
+                "Object "
+                + parameterExpression.name);
+            bridgeArgs.add(
+                "("
+                + ExpressionWriter.boxClassName(parameterExpression.getType())
+                + ") "
+                + parameterExpression.name);
+        }
         writer.append("new ")
             .append(type)
-            .append("()");
-        writer.begin(" {\n")
-            .append(body.getType())
-            .append(" apply(");
-        int k = 0;
-        for (ParameterExpression parameterExpression : parameterList) {
-            if (k++ > 0) {
-                writer.append(", ");
-            }
-            writer.append(parameterExpression.type)
-                .append(" ")
-                .append(parameterExpression.name);
+            .append("()")
+            .begin(" {\n")
+            .append("public ")
+            .append(ExpressionWriter.boxClassName(body.getType()))
+            .list(" apply(", ", ", ") ", params)
+            .append(toBlock(body));
+        if (true) {
+            writer.list("public Object apply(", ", ", ") ", bridgeParams)
+                .begin("{\n")
+                .list("return apply(\n", ",\n", ");\n", bridgeArgs)
+                .end("}\n");
         }
-        writer.begin(") {\n");
-        body.accept0(writer);
         writer.end("}\n");
-        writer.end("}\n");
+    }
+
+    private BlockExpression toBlock(Expression body) {
+        if (body instanceof BlockExpression) {
+            return (BlockExpression) body;
+        }
+        if (!(body instanceof GotoExpression)) {
+            body = Expressions.return_(null, body);
+        }
+        return Expressions.block(
+            Collections.singletonList(body));
     }
 
     public interface Invokable {

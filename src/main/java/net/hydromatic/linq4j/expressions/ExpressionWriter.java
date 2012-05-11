@@ -82,9 +82,9 @@ class ExpressionWriter {
     }
 
     public ExpressionWriter begin(String s) {
+        append(s);
         begin();
-        buf.append(s);
-        indentPending = true;
+        indentPending = s.endsWith("\n");
         return this;
     }
 
@@ -103,13 +103,47 @@ class ExpressionWriter {
 
     public ExpressionWriter append(Class o) {
         checkIndent();
+        buf.append(className(o));
+        return this;
+    }
+
+    private static final Map<Class, String> PRIMITIVES =
+        new HashMap<Class, String>();
+    static {
+        PRIMITIVES.put(Boolean.TYPE, "Boolean");
+        PRIMITIVES.put(Byte.TYPE, "Byte");
+        PRIMITIVES.put(Character.TYPE, "Character");
+        PRIMITIVES.put(Short.TYPE, "Short");
+        PRIMITIVES.put(Integer.TYPE, "Integer");
+        PRIMITIVES.put(Long.TYPE, "Long");
+        PRIMITIVES.put(Float.TYPE, "Float");
+        PRIMITIVES.put(Double.TYPE, "Double");
+        PRIMITIVES.put(Void.TYPE, "Void");
+    }
+
+    static String boxClassName(Class o) {
+        if (o.isPrimitive()) {
+            return PRIMITIVES.get(o);
+        } else {
+            return className(o);
+        }
+    }
+
+    static String className(Class o) {
+        if (o.isArray()) {
+            return className(o.getComponentType()) + "[]";
+        }
         String className = o.getName();
         if (o.getPackage() == Package.getPackage("java.lang")
             && !o.isPrimitive())
         {
-            className = className.substring("java.lang.".length());
+            return className.substring("java.lang.".length());
         }
-        buf.append(className);
+        return className;
+    }
+
+    public ExpressionWriter append(Expression o) {
+        o.accept0(this);
         return this;
     }
 
@@ -135,6 +169,28 @@ class ExpressionWriter {
     public StringBuilder getBuf() {
         checkIndent();
         return buf;
+    }
+
+    public ExpressionWriter list(
+        String begin, String sep, String end, Iterable<?> list)
+    {
+        begin(begin);
+        int k = 0;
+        for (Object o : list) {
+            if (k++ > 0) {
+                buf.append(sep);
+                if (sep.endsWith("\n")) {
+                    indentPending = true;
+                }
+            }
+            if (o instanceof Expression) {
+                ((Expression) o).accept(this, 0, 0);
+            } else {
+                append(o);
+            }
+        }
+        end(end);
+        return this;
     }
 
     private static class Indent extends ArrayList<String> {

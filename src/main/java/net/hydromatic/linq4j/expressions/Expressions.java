@@ -268,13 +268,20 @@ public class Expressions {
     /** Creates a BlockExpression that contains the given expressions
      * and has no variables. */
     public static BlockExpression block(Expression[] expressions) {
-        throw Extensions.todo();
+        return block(Arrays.asList(expressions));
     }
 
     /** Creates a BlockExpression that contains the given expressions
      * and has no variables. */
     public static BlockExpression block(Iterable<Expression> expressions) {
-        throw Extensions.todo();
+        List<Expression> list = toList(expressions);
+        Class type;
+        if (list.size() > 0) {
+            type = list.get(list.size() - 1).getType();
+        } else {
+            type = Void.TYPE;
+        }
+        return new BlockExpression(list, type);
     }
 
     /** Creates a BlockExpression that contains two expressions and
@@ -282,7 +289,7 @@ public class Expressions {
     public static BlockExpression block(
         Expression left, Expression right)
     {
-        throw Extensions.todo();
+        return block(Arrays.asList(left, right));
     }
 
     /** Creates a BlockExpression that contains the given variables
@@ -291,7 +298,10 @@ public class Expressions {
         Iterable<ParameterExpression> variables,
         Iterable<Expression> expressions)
     {
-        throw Extensions.todo();
+        List<Expression> list = new ArrayList<Expression>();
+        list.addAll(toList(variables));
+        list.addAll(toList(expressions));
+        return block(list);
     }
 
     /** Creates a BlockExpression that contains the given variables
@@ -299,7 +309,7 @@ public class Expressions {
     public static BlockExpression block(
         Iterable<ParameterExpression> variables, Expression[] expressions)
     {
-        throw Extensions.todo();
+        return block(variables, Arrays.asList(expressions));
     }
 
     /** Creates a BlockExpression that contains the given expressions,
@@ -321,7 +331,7 @@ public class Expressions {
     public static BlockExpression block(
         Expression expression0, Expression expression1, Expression expression2)
     {
-        throw Extensions.todo();
+        return block(Arrays.asList(expression0, expression1, expression2));
     }
 
     /** Creates a BlockExpression that contains the given variables
@@ -547,7 +557,60 @@ public class Expressions {
         Iterable<Class> typeArguments,
         Iterable<Expression> arguments)
     {
-        throw Extensions.todo();
+        List<Class> classes = new ArrayList<Class>();
+        for (Expression argument : arguments) {
+            classes.add(argument.getType());
+        }
+        Method method =
+            lookupMethod(
+                clazz, methodName, classes.toArray(new Class[classes.size()]));
+        return new MethodCallExpression(method, null, toList(arguments));
+    }
+
+    /**
+     * Finds a method of a given name that accepts a given set of arguments.
+     * Includes in its search inherited methods and methods with wider argument
+     * types.
+     *
+     * @param clazz Class against which method is invoked
+     * @param methodName Name of method
+     * @param argumentTypes Types of arguments
+     * @return A method with the given name that matches the arguments given
+     *
+     * @throws RuntimeException if method not found
+     */
+    private static Method lookupMethod(
+        Class clazz, String methodName, Class[] argumentTypes)
+    {
+        try {
+            return clazz.getMethod(methodName, argumentTypes);
+        } catch (NoSuchMethodException e) {
+            for (Method method : clazz.getMethods()) {
+                if (method.getName().equals(methodName)
+                    && allAssignable(method.getParameterTypes(), argumentTypes))
+                {
+                    return method;
+                }
+            }
+            throw new RuntimeException(
+                "while resolving static method '" + methodName + "' in class "
+                + clazz,
+                e);
+        }
+    }
+
+    private static boolean allAssignable(
+        Class[] parameterTypes, Class[] argumentTypes)
+    {
+        if (parameterTypes.length != argumentTypes.length) {
+            return false;
+        }
+        for (int i = 0; i < parameterTypes.length; i++) {
+            if (!parameterTypes[i].isAssignableFrom(argumentTypes[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Creates a MethodCallExpression that represents a call to a
@@ -699,7 +762,9 @@ public class Expressions {
     /** Creates a ConstantExpression that has the Value property set
      * to the specified value. */
     public static ConstantExpression constant(Object value) {
-        return new ConstantExpression(value.getClass(), value);
+        return new ConstantExpression(
+            value == null ? Object.class : value.getClass(),
+            value);
     }
 
     /** Creates a ConstantExpression that has the Value and Type
@@ -725,7 +790,7 @@ public class Expressions {
     /** Creates a UnaryExpression that represents a type conversion
      * operation. */
     public static UnaryExpression convert_(Expression expression, Class clazz) {
-        throw Extensions.todo();
+        return new UnaryExpression(ExpressionType.Convert, clazz, expression);
     }
 
     /** Creates a UnaryExpression that represents a conversion
@@ -1295,14 +1360,14 @@ public class Expressions {
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
-    public static <T, F extends Function<? extends T>>
-    FunctionExpression<F> lambda(
-        Expression body,
-        boolean tailCall,
-        ParameterExpression... parameters)
-    {
-        return lambda(body, tailCall, Arrays.asList(parameters));
-    }
+//    public static <T, F extends Function<? extends T>>
+//    FunctionExpression<F> lambda(
+//        Expression body,
+//        boolean tailCall,
+//        ParameterExpression... parameters)
+//    {
+//        return lambda(body, tailCall, Arrays.asList(parameters));
+//    }
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
@@ -1365,15 +1430,15 @@ public class Expressions {
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
-    public static <T, F extends Function<? extends T>>
-    FunctionExpression<F> lambda(
-        Class type,
-        Expression body,
-        boolean tailCall,
-        ParameterExpression... parameters)
-    {
-        return lambda(type, body, tailCall, Arrays.asList(parameters));
-    }
+//    public static <T, F extends Function<? extends T>>
+//    FunctionExpression<F> lambda(
+//        Class type,
+//        Expression body,
+//        boolean tailCall,
+//        ParameterExpression... parameters)
+//    {
+//        return lambda(type, body, tailCall, Arrays.asList(parameters));
+//    }
 
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
@@ -2140,11 +2205,14 @@ public class Expressions {
 
     /** Creates a NewArrayExpression that represents creating a
      * one-dimensional array and initializing it from a list of
-     * elements. */
+     * elements.
+     *
+     * @param type Element type of the array.
+     */
     public static NewArrayExpression newArrayInit(
         Class type, Iterable<Expression> expressions)
     {
-        throw Extensions.todo();
+        return new NewArrayExpression(type, toList(expressions));
     }
 
     /** Creates a NewArrayExpression that represents creating a
@@ -2153,7 +2221,7 @@ public class Expressions {
     public static NewArrayExpression newArrayInit(
         Class type, Expression[] expressions)
     {
-        throw Extensions.todo();
+        return newArrayInit(type, Arrays.asList(expressions));
     }
 
     /** Creates a UnaryExpression that represents a bitwise complement
@@ -2173,7 +2241,7 @@ public class Expressions {
     public static BinaryExpression notEqual(
         Expression left, Expression right)
     {
-        return makeBinary(ExpressionType.NotEqual, left,  right);
+        return makeBinary(ExpressionType.NotEqual, left, right);
     }
 
     /** Creates a BinaryExpression that represents an inequality

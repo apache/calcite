@@ -23,7 +23,7 @@ package net.hydromatic.linq4j.expressions;
 public class UnaryExpression extends Expression {
     private final Expression expression;
 
-    public UnaryExpression(
+    UnaryExpression(
         ExpressionType nodeType, Class type, Expression expression)
     {
         super(nodeType, type);
@@ -31,6 +31,16 @@ public class UnaryExpression extends Expression {
     }
 
     void accept(ExpressionWriter writer, int lprec, int rprec) {
+        switch (nodeType) {
+        case Convert:
+            if (!writer.requireParentheses(this, lprec, rprec)) {
+                writer.append("(")
+                    .append(type)
+                    .append(") ");
+                expression.accept(writer, nodeType.rprec, rprec);
+            }
+            return;
+        }
         if (nodeType.postfix) {
             expression.accept(writer, lprec, rprec);
             writer.append(nodeType.op);
@@ -38,6 +48,8 @@ public class UnaryExpression extends Expression {
             writer.append(nodeType.op);
             expression.accept(writer, lprec, rprec);
         }
+
+//        (String) ((Object) "foo").
     }
 }
 

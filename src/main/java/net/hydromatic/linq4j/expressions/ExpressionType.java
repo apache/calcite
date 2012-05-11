@@ -107,7 +107,7 @@ public enum ExpressionType {
      * C#or CType(obj, SampleType) in Visual Basic. For a numeric
      * conversion, if the converted value is too large for the
      * destination type, no exception is thrown. */
-    Convert,
+    Convert(null, false, 2, true),
 
     /** A cast or conversion operation, such as (SampleType)obj in
      * C#or CType(obj, SampleType) in Visual Basic. For a numeric

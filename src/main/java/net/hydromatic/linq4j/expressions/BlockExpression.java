@@ -17,13 +17,23 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.util.List;
+
 /**
  * Represents a block that contains a sequence of expressions where variables
  * can be defined.
  */
 public class BlockExpression extends Expression {
-    public BlockExpression(ExpressionType nodeType) {
-        super(nodeType, Void.TYPE);
+    private final List<Expression> expressions;
+
+    BlockExpression(List<Expression> expressions, Class type) {
+        super(ExpressionType.Block, type);
+        this.expressions = expressions;
+    }
+
+    @Override
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        writer.list("{\n", ";\n", "}\n", expressions);
     }
 }
 

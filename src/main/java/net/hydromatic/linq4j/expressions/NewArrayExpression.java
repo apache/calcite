@@ -17,13 +17,32 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Array;
+import java.util.List;
+
 /**
  * Represents creating a new array and possibly initializing the elements of the
  * new array.
  */
 public class NewArrayExpression extends Expression {
-    public NewArrayExpression(ExpressionType nodeType, Class type) {
-        super(nodeType, type);
+    private final List<Expression> expressions;
+
+    public NewArrayExpression(Class type, List<Expression> expressions) {
+        super(ExpressionType.NewArrayInit, arrayClass(type));
+        this.expressions = expressions;
+    }
+
+    private static Class arrayClass(Class clazz) {
+        // REVIEW: Is there a way to do this without creating an instance? We
+        //  just need the inverse of Class.getComponentType().
+        return Array.newInstance(clazz, 0).getClass();
+    }
+
+    @Override
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        writer.append("new ")
+            .append(type)
+            .list(" {\n", ",\n", "}", expressions);
     }
 }
 

@@ -32,7 +32,7 @@ import java.util.*;
  * The derived class can implement each separately, or implement one in terms of
  * the other.</p>
  */
-abstract class DefaultEnumerable<T> implements Enumerable<T> {
+public abstract class DefaultEnumerable<T> implements Enumerable<T> {
 
     /**
      * Derived classes might wish to override this method to return the "outer"

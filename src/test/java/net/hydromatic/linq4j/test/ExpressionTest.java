@@ -43,7 +43,18 @@ public class ExpressionTest extends TestCase {
             Arrays.asList(paramExpr));
 
         // Print out the expression.
-        String s = lambdaExpr.toString();
+        String s = Expressions.toString(lambdaExpr);
+        assertEquals(
+            "new net.hydromatic.linq4j.function.Function1() {\n"
+            + "  public Integer apply(Integer arg) {\n"
+            + "    return arg + 2;\n"
+            + "  }\n"
+            + "  public Object apply(Object arg) {\n"
+            + "    return apply(\n"
+            + "      (Integer) arg);\n"
+            + "  }\n"
+            + "}\n",
+            s);
 
         // Compile and run the lambda expression.
         // The value of the parameter is 1.
@@ -158,8 +169,12 @@ public class ExpressionTest extends TestCase {
             Expressions.parameter(String.class, "x");
         assertEquals(
             "new net.hydromatic.linq4j.function.Function1() {\n"
-            + "  void apply(String x) {\n"
+            + "  public Integer apply(String x) {\n"
             + "    return x.length();\n"
+            + "  }\n"
+            + "  public Object apply(Object x) {\n"
+            + "    return apply(\n"
+            + "      (String) x);\n"
             + "  }\n"
             + "}\n",
             Expressions.toString(
@@ -173,6 +188,43 @@ public class ExpressionTest extends TestCase {
                             Collections.<Class>emptyList(),
                             Collections.<Expression>emptyList())),
                     Arrays.asList(paramX))));
+
+        assertEquals(
+            "new String[] {\n"
+            + "  \"foo\",\n"
+            + "  null,\n"
+            + "  \"bar\\\"baz\"}",
+            Expressions.toString(
+                Expressions.newArrayInit(
+                    String.class,
+                    Arrays.<Expression>asList(
+                        Expressions.constant("foo"),
+                        Expressions.constant(null),
+                        Expressions.constant("bar\"baz")))));
+
+        assertEquals(
+            "(int) ((String) (Object) \"foo\").length()",
+            Expressions.toString(
+                Expressions.convert_(
+                    Expressions.call(
+                        Expressions.convert_(
+                            Expressions.convert_(
+                                Expressions.constant("foo"), Object.class),
+                            String.class),
+                        "length",
+                        Collections.<Class>emptyList(),
+                        Collections.<Expression>emptyList()), Integer.TYPE)));
+
+        // resolving a static method
+        assertEquals(
+            "Integer.valueOf(\"0123\")",
+            Expressions.toString(
+                Expressions.call(
+                    Integer.class,
+                    "valueOf",
+                    Collections.<Class>emptyList(),
+                    Collections.<Expression>singletonList(
+                        Expressions.constant("0123")))));
     }
 }
 
