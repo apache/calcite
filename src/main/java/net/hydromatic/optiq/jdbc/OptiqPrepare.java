@@ -134,13 +134,13 @@ class OptiqPrepare {
         final String sql; // for debug
         final List<OptiqParameter> parameterList;
         final OptiqResultSetMetaData resultSetMetaData;
-        final RawEnumerable enumerable;
+        final RawEnumerable<Object[]> enumerable;
 
         public PrepareResult(
             String sql,
             List<OptiqParameter> parameterList,
             OptiqResultSetMetaData resultSetMetaData,
-            RawEnumerable enumerable)
+            RawEnumerable<Object[]> enumerable)
         {
             super();
             this.sql = sql;
@@ -149,7 +149,7 @@ class OptiqPrepare {
             this.enumerable = enumerable;
         }
 
-        public Enumerator execute() {
+        public Enumerator<Object[]> execute() {
             return enumerable.enumerator();
         }
     }

@@ -17,12 +17,12 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.optiq.runtime.ArrayEnumeratorCursor;
+import net.hydromatic.optiq.runtime.Cursor;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
@@ -34,10 +34,11 @@ import java.util.*;
  */
 public class OptiqResultSet implements ResultSet {
     private final OptiqStatement statement;
-    private Enumerator<Object> enumerator;
-    private boolean wasNull;
-    private final List<Accessor> accessorList = new ArrayList<Accessor>();
-    private Map<String, Accessor> accessorMap = new HashMap<String, Accessor>();
+    private final boolean[] wasNull = {false};
+    private Cursor cursor;
+    private List<Cursor.Accessor> accessorList;
+    private Map<String, Cursor.Accessor> accessorMap =
+        new HashMap<String, Cursor.Accessor>();
     private final Map<String, Integer> columnNameMap =
         new HashMap<String, Integer>();
     private int row = -1;
@@ -65,49 +66,15 @@ public class OptiqResultSet implements ResultSet {
         for (OptiqResultSetMetaData.ColumnMetaData columnMetaData
             : prepareResult.resultSetMetaData.columnMetaDataList)
         {
-            Accessor accessor = createAccessor(columnMetaData);
-            accessorList.add(accessor);
-            accessorMap.put(columnMetaData.label, accessor);
             columnNameMap.put(columnMetaData.label, columnNameMap.size());
         }
     }
 
-    private Accessor createAccessor(
-        OptiqResultSetMetaData.ColumnMetaData columnMetaData)
-    {
-        // Create an accessor appropriate to the underlying type; the accessor
-        // can convert to any type in the same family.
-        switch (columnMetaData.type) {
-        case Types.TINYINT:
-            return new ByteAccessor(columnMetaData.ordinal);
-        case Types.SMALLINT:
-            return new ShortAccessor(columnMetaData.ordinal);
-        case Types.INTEGER:
-            return new IntAccessor(columnMetaData.ordinal);
-        case Types.BIGINT:
-            return new LongAccessor(columnMetaData.ordinal);
-        case Types.BOOLEAN:
-            return new BooleanAccessor(columnMetaData.ordinal);
-        case Types.FLOAT:
-            return new FloatAccessor(columnMetaData.ordinal);
-        case Types.DOUBLE:
-            return new DoubleAccessor(columnMetaData.ordinal);
-        case Types.CHAR:
-        case Types.VARCHAR:
-            return new StringAccessor(columnMetaData.ordinal);
-        case Types.BINARY:
-        case Types.VARBINARY:
-            return new BinaryAccessor(columnMetaData.ordinal);
-        default:
-            throw new RuntimeException("unknown type " + columnMetaData.type);
-        }
-    }
-
-    private Accessor getAccessor(int columnIndex) {
+    private Cursor.Accessor getAccessor(int columnIndex) {
         return accessorList.get(columnIndex);
     }
 
-    private Accessor getAccessor(String columnLabel) {
+    private Cursor.Accessor getAccessor(String columnLabel) {
         return accessorMap.get(columnLabel);
     }
 
@@ -123,17 +90,34 @@ public class OptiqResultSet implements ResultSet {
     /**
      * Executes this result set. (Not a JDBC method.)
      *
-     * <p>Note that execute cannot occur in the
-     * constructor, because the constructor occurs while the statement is
-     * locked, to make sure that execute/cancel don't happen at the same
-     * time.</p>
+     * <p>Note that execute cannot occur in the constructor, because the
+     * constructor occurs while the statement is locked, to make sure that
+     * execute/cancel don't happen at the same time.</p>
      */
     void execute() {
-        enumerator = prepareResult.execute();
+        this.cursor = new ArrayEnumeratorCursor(prepareResult.execute());
+        final List<OptiqResultSetMetaData.ColumnMetaData> columnMetaDataList =
+            prepareResult.resultSetMetaData.columnMetaDataList;
+        this.accessorList =
+            cursor.createAccessors(
+                new boolean[1],
+                new AbstractList<Integer>() {
+                    public Integer get(int index) {
+                        return columnMetaDataList.get(index).type;
+                    }
+
+                    public int size() {
+                        return columnMetaDataList.size();
+                    }
+                });
+        accessorMap.clear();
+        for (Map.Entry<String, Integer> entry : columnNameMap.entrySet()) {
+            accessorMap.put(entry.getKey(), accessorList.get(entry.getValue()));
+        }
     }
 
     public boolean next() throws SQLException {
-        if (enumerator.moveNext()) {
+        if (cursor.next()) {
             ++row;
             return true;
         } else {
@@ -143,7 +127,7 @@ public class OptiqResultSet implements ResultSet {
     }
 
     public boolean wasNull() throws SQLException {
-        return wasNull;
+        return wasNull[0];
     }
 
     public String getString(int columnIndex) throws SQLException {
@@ -1009,453 +993,6 @@ public class OptiqResultSet implements ResultSet {
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return iface.isInstance(this);
-    }
-
-    class Accessor {
-        private final int field;
-
-        public Accessor(int field) {
-            this.field = field;
-        }
-
-        public String getString() {
-            throw cannotConvert("String");
-        }
-
-        public boolean getBoolean() {
-            throw cannotConvert("boolean");
-        }
-
-        public byte getByte() {
-            throw cannotConvert("byte");
-        }
-
-        public short getShort() {
-            throw cannotConvert("short");
-        }
-
-        public int getInt() {
-            throw cannotConvert("int");
-        }
-
-        public long getLong() {
-            throw cannotConvert("long");
-        }
-
-        public float getFloat() {
-            throw cannotConvert("float");
-        }
-
-        public double getDouble() {
-            throw cannotConvert("double");
-        }
-
-        public BigDecimal getBigDecimal() {
-            throw cannotConvert("BigDecimal");
-        }
-
-        public BigDecimal getBigDecimal(int scale) {
-            throw cannotConvert("BigDecimal with scale");
-        }
-
-        public byte[] getBytes() {
-            throw cannotConvert("byte[]");
-        }
-
-        public Date getDate() {
-            throw cannotConvert("Date");
-        }
-
-        public Time getTime() {
-            throw cannotConvert("Time");
-        }
-
-        public Timestamp getTimestamp() {
-            throw cannotConvert("Timestamp");
-        }
-
-        public InputStream getAsciiStream() {
-            throw cannotConvert("InputStream (ascii)");
-        }
-
-        public InputStream getUnicodeStream() {
-            throw cannotConvert("InputStream (unicode)");
-        }
-
-        public InputStream getBinaryStream() {
-            throw cannotConvert("InputStream (binary)");
-        }
-
-        public Object getObject() {
-            return ((Object[]) enumerator.current())[field];
-        }
-
-        public Reader getCharacterStream() {
-            throw cannotConvert("Reader");
-        }
-
-        private RuntimeException cannotConvert(String targetType) {
-            return new RuntimeException("cannot convert to " + targetType);
-        }
-
-        protected boolean isNull() {
-            return getObject() == null;
-        }
-
-        public Object getObject(Map<String, Class<?>> map) {
-            throw cannotConvert("Object (with map)");
-        }
-
-        public Ref getRef() {
-            throw cannotConvert("Ref");
-        }
-
-        public Blob getBlob() {
-            throw cannotConvert("Blob");
-        }
-
-        public Clob getClob() {
-            throw cannotConvert("Clob");
-        }
-
-        public Array getArray() {
-            throw cannotConvert("Array");
-        }
-
-        public Date getDate(Calendar cal) {
-            throw cannotConvert("Date (with Calendar)");
-        }
-
-        public Time getTime(Calendar cal) {
-            throw cannotConvert("Time (with Calendar)");
-        }
-
-        public Timestamp getTimestamp(Calendar cal) {
-            throw cannotConvert("Timestamp (with Calendar)");
-        }
-
-        public URL getURL() {
-            throw cannotConvert("URL");
-        }
-
-        public NClob getNClob() {
-            throw cannotConvert("NClob");
-        }
-
-        public SQLXML getSQLXML() {
-            throw cannotConvert("SQLXML");
-        }
-
-        public String getNString() {
-            throw cannotConvert("NString");
-        }
-
-        public Reader getNCharacterStream() {
-            throw cannotConvert("NCharacterStream");
-        }
-
-        public <T> T getObject(Class<T> type) {
-            throw cannotConvert("Object (with type)");
-        }
-    }
-
-    /**
-     * Accessor of exact numeric values. The subclass must implement the
-     * {@link #getLong()} method.
-     */
-    private abstract class ExactNumericAccessor extends Accessor {
-        public ExactNumericAccessor(int field) {
-            super(field);
-        }
-
-        public BigDecimal getBigDecimal(int scale) {
-            final long v = getLong();
-            return v == 0 && wasNull
-                ? null
-                : BigDecimal.valueOf(v)
-                    .setScale(scale, RoundingMode.DOWN);
-        }
-
-        public BigDecimal getBigDecimal() {
-            final long val = getLong();
-            return val == 0 && wasNull ? null : BigDecimal.valueOf(val);
-        }
-
-        public double getDouble() {
-            return getLong();
-        }
-
-        public float getFloat() {
-            return getLong();
-        }
-
-        public abstract long getLong();
-
-        public int getInt() {
-            return (int) getLong();
-        }
-
-        public short getShort() {
-            return (short) getLong();
-        }
-
-        public byte getByte() {
-            return (byte) getLong();
-        }
-
-        public boolean getBoolean() {
-            return getLong() != 0d;
-        }
-
-        public String getString() {
-            final Object o = getObject();
-            return o == null ? null : String.valueOf(o);
-        }
-    }
-
-    /**
-     * Accessor that assumes that the underlying value is a {@link Boolean};
-     * corresponds to {@link Types#BOOLEAN}.
-     */
-    private class BooleanAccessor extends ExactNumericAccessor {
-        public BooleanAccessor(int field) {
-            super(field);
-        }
-
-        public boolean getBoolean() {
-            Object o = getObject();
-            if (o == null) {
-                wasNull = true;
-                return false;
-            }
-            return (Boolean) o;
-        }
-
-        public long getLong() {
-            return getBoolean() ? 1 : 0;
-        }
-
-        public String getString() {
-            final boolean b = getBoolean();
-            return wasNull ? null : Boolean.toString(b);
-        }
-    }
-
-    /**
-     * Accessor that assumes that the underlying value is a {@link Byte};
-     * corresponds to {@link Types#TINYINT}.
-     */
-    private class ByteAccessor extends ExactNumericAccessor {
-        public ByteAccessor(int field) {
-            super(field);
-        }
-
-        public byte getByte() {
-            Object o = getObject();
-            if (o == null) {
-                wasNull = true;
-                return 0;
-            }
-            return (Byte) o;
-        }
-
-        public long getLong() {
-            return getByte();
-        }
-    }
-
-    /**
-     * Accessor that assumes that the underlying value is a {@link Short};
-     * corresponds to {@link Types#SMALLINT}.
-     */
-    private class ShortAccessor extends ExactNumericAccessor {
-        public ShortAccessor(int field) {
-            super(field);
-        }
-
-        public short getShort() {
-            Object o = getObject();
-            if (o == null) {
-                wasNull = true;
-                return 0;
-            }
-            return (Short) o;
-        }
-
-        public long getLong() {
-            return getShort();
-        }
-    }
-
-    /**
-     * Accessor that assumes that the underlying value is an {@link Integer};
-     * corresponds to {@link Types#INTEGER}.
-     */
-    private class IntAccessor extends ExactNumericAccessor {
-        public IntAccessor(int field) {
-            super(field);
-        }
-
-        public int getInt() {
-            Object o = getObject();
-            if (o == null) {
-                wasNull = true;
-                return 0;
-            }
-            return (Integer) o;
-        }
-
-        public long getLong() {
-            return getInt();
-        }
-    }
-
-    /**
-     * Accessor that assumes that the underlying value is a {@link Long};
-     * corresponds to {@link Types#BIGINT}.
-     */
-    private class LongAccessor extends ExactNumericAccessor {
-        public LongAccessor(int field) {
-            super(field);
-        }
-
-        public long getLong() {
-            Object o = getObject();
-            if (o == null) {
-                wasNull = true;
-                return 0;
-            }
-            return (Long) o;
-        }
-    }
-
-    /**
-     * Accessor of values that are {@link Double} or null.
-     */
-    private abstract class ApproximateNumericAccessor extends Accessor {
-        public ApproximateNumericAccessor(int field) {
-            super(field);
-        }
-
-        public BigDecimal getBigDecimal(int scale) {
-            final double v = getDouble();
-            return v == 0d && wasNull
-                ? null
-                : BigDecimal.valueOf(v)
-                    .setScale(scale, RoundingMode.DOWN);
-        }
-
-        public BigDecimal getBigDecimal() {
-            final double v = getDouble();
-            return v == 0 && wasNull ? null : BigDecimal.valueOf(v);
-        }
-
-        public abstract double getDouble();
-
-        public float getFloat() {
-            return (float) getDouble();
-        }
-
-        public long getLong() {
-            return (long) getDouble();
-        }
-
-        public int getInt() {
-            return (int) getDouble();
-        }
-
-        public short getShort() {
-            return (short) getDouble();
-        }
-
-        public byte getByte() {
-            return (byte) getDouble();
-        }
-
-        public boolean getBoolean() {
-            return getDouble() != 0;
-        }
-
-        public String getString() {
-            final Object o = getObject();
-            return o == null ? null : String.valueOf(o);
-        }
-    }
-
-    /**
-     * Accessor that assumes that the underlying value is a {@link Float};
-     * corresponds to {@link Types#FLOAT}.
-     */
-    private class FloatAccessor extends ApproximateNumericAccessor {
-        public FloatAccessor(int field) {
-            super(field);
-        }
-
-        public float getFloat() {
-            Object o = getObject();
-            if (o == null) {
-                wasNull = true;
-                return 0;
-            }
-            return (Float) o;
-        }
-
-        public double getDouble() {
-            return getFloat();
-        }
-    }
-
-    /**
-     * Accessor that assumes that the underlying value is a {@link Float};
-     * corresponds to {@link Types#FLOAT}.
-     */
-    private class DoubleAccessor extends ApproximateNumericAccessor {
-        public DoubleAccessor(int field) {
-            super(field);
-        }
-
-        public double getDouble() {
-            Object o = getObject();
-            if (o == null) {
-                wasNull = true;
-                return 0;
-            }
-            return (Double) o;
-        }
-    }
-
-    /**
-     * Accessor that assumes that the underlying value is a {@link String};
-     * corresponds to {@link Types#CHAR} and {@link Types#VARCHAR}.
-     */
-    private class StringAccessor extends Accessor {
-        public StringAccessor(int field) {
-            super(field);
-        }
-
-        public String getString() {
-            return (String) getObject();
-        }
-    }
-
-    /**
-     * Accessor that assumes that the underlying value is an array of
-     * {@code byte} values;
-     * corresponds to {@link Types#BINARY} and {@link Types#VARBINARY}.
-     */
-    private class BinaryAccessor extends Accessor {
-        public BinaryAccessor(int field) {
-            super(field);
-        }
-
-        public byte[] getBytes() {
-            return (byte[]) getObject();
-        }
-
-        @Override
-        public String getString() {
-            return ByteString.toString(getBytes());
-        }
     }
 }
 

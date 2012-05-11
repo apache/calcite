@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
+package net.hydromatic.optiq.runtime;
 
 import java.io.Serializable;
 import java.util.Arrays;

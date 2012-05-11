@@ -17,11 +17,17 @@
 */
 package net.hydromatic.optiq.test;
 
-import junit.framework.TestCase;
+import net.hydromatic.linq4j.function.Function1;
+
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
+import junit.framework.Assert;
+import junit.framework.TestCase;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.*;
 
 /**
@@ -78,17 +84,60 @@ public class JdbcTest extends TestCase {
             buf.toString());
     }
 
+    public void testWhereBad() throws Exception {
+        assertQueryThrows(
+            "select *\n" + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "where empid > 120", "Column 'EMPID' not found in any table");
+    }
+
     public void _testWhere() throws Exception {
         assertQueryReturns(
-            "select *\n"
-            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-            + "where empid > 120",
+            "select *\n" + "from \"hr\".\"emps\" as e\n"
+            + "where e.\"empid\" > 120 and e.\"name\" like 'B%'",
             "cust_id=100; prod_id=10; empid=100; name=Bill\n"
             + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n");
     }
 
+    private Function1<String, Void> checkResult(final String expected) {
+        return new Function1<String, Void>() {
+            public Void apply(String p0) {
+                Assert.assertEquals(expected, p0);
+                return null;
+            }
+        };
+    }
+
+    private Function1<Exception, Void> checkException(final String expected) {
+        return new Function1<Exception, Void>() {
+            public Void apply(Exception p0) {
+                StringWriter stringWriter = new StringWriter();
+                PrintWriter printWriter = new PrintWriter(stringWriter);
+                p0.printStackTrace(printWriter);
+                printWriter.flush();
+                String stack = stringWriter.toString();
+                Assert.assertTrue(stack, stack.contains(expected));
+                return null;
+            }
+        };
+    }
+
     private void assertQueryReturns(String sql, String expected)
-        throws ClassNotFoundException, SQLException
+        throws Exception
+    {
+        assertQuery(sql, checkResult(expected), null);
+    }
+
+    private void assertQueryThrows(String sql, String message)
+        throws Exception
+    {
+        assertQuery(sql, null, checkException(message));
+    }
+
+    private void assertQuery(
+        String sql,
+        Function1<String, Void> resultChecker,
+        Function1<Exception, Void> exceptionChecker)
+        throws Exception
     {
         Class.forName("net.hydromatic.optiq.jdbc.Driver");
         Connection connection =
@@ -103,8 +152,20 @@ public class JdbcTest extends TestCase {
             "foodmart",
             new ReflectiveSchema(new FoodmartSchema(), typeFactory));
         Statement statement = connection.createStatement();
-        ResultSet resultSet =
-            statement.executeQuery(sql);
+        ResultSet resultSet;
+        try {
+            resultSet = statement.executeQuery(sql);
+            if (exceptionChecker != null) {
+                exceptionChecker.apply(null);
+                return;
+            }
+        } catch (Exception e) {
+            if (exceptionChecker != null) {
+                exceptionChecker.apply(e);
+                return;
+            }
+            throw e;
+        }
         StringBuilder buf = new StringBuilder();
         while (resultSet.next()) {
             int n = resultSet.getMetaData().getColumnCount();
@@ -121,7 +182,9 @@ public class JdbcTest extends TestCase {
         statement.close();
         connection.close();
 
-        assertEquals(expected, buf.toString());
+        if (resultChecker != null) {
+            resultChecker.apply(buf.toString());
+        }
     }
 
     public static class HrSchema {
