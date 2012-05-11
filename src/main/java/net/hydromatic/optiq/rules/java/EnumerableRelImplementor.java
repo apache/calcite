@@ -17,12 +17,17 @@
 */
 package net.hydromatic.optiq.rules.java;
 
+import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
+import net.hydromatic.linq4j.expressions.Expressions;
 
 import org.eigenbase.rel.RelImplementorImpl;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelImplementor;
 import org.eigenbase.rex.RexBuilder;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Subclass of {@link RelImplementor} for relational operators
@@ -32,6 +37,8 @@ import org.eigenbase.rex.RexBuilder;
  * @author jhyde
  */
 public class EnumerableRelImplementor extends RelImplementorImpl {
+    public Map<String, Queryable> map = new LinkedHashMap<String, Queryable>();
+
     public EnumerableRelImplementor(RexBuilder rexBuilder) {
         super(rexBuilder);
     }
@@ -44,13 +51,18 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
         return (Expression) super.visitChild(parent, ordinal, child);
     }
 
-    public Expression visitChildInternal(RelNode child, int ordinal)
-    {
+    public Expression visitChildInternal(RelNode child, int ordinal) {
         return ((EnumerableRel) child).implement(this);
     }
 
     public Expression implementRoot(EnumerableRel rootRel) {
         return rootRel.implement(this);
+    }
+
+    public Expression register(Queryable queryable) {
+        String name = "v" + map.size();
+        map.put(name, queryable);
+        return Expressions.variable(queryable.getClass(), name);
     }
 }
 

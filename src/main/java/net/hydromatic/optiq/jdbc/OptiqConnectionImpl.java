@@ -50,7 +50,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     private int networkTimeout;
     private String catalog;
 
-    final MutableSchema rootSchema = new MapSchema();
+    final MutableSchema rootSchema = new MapSchema(typeFactory);
     final UnregisteredDriver driver;
     final Factory factory;
     private final String url;
@@ -406,6 +406,10 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
 
         public RelDataType createType(Class type) {
             if (type.isPrimitive()) {
+                return createJavaType(type);
+            } else if (type == String.class) {
+                // TODO: similar special treatment for BigDecimal, BigInteger,
+                //  Date, Time, Timestamp, Double etc.
                 return createJavaType(type);
             } else if (type.isArray()) {
                 return createMultisetType(

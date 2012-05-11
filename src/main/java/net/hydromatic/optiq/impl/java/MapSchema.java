@@ -19,10 +19,10 @@ package net.hydromatic.optiq.impl.java;
 
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.SchemaLink;
-import net.hydromatic.optiq.SchemaObject;
+import net.hydromatic.linq4j.expressions.MethodCallExpression;
+import net.hydromatic.optiq.*;
+
+import org.eigenbase.reltype.RelDataType;
 
 import java.lang.reflect.Method;
 import java.util.*;
@@ -45,8 +45,10 @@ public class MapSchema implements MutableSchema {
 
     protected final Map<String, SchemaObject> map =
         new HashMap<String, SchemaObject>();
+    private final JavaTypeFactory typeFactory;
 
-    public MapSchema() {
+    public MapSchema(JavaTypeFactory typeFactory) {
+        this.typeFactory = typeFactory;
     }
 
     public SchemaObject get(String name) {
@@ -71,11 +73,43 @@ public class MapSchema implements MutableSchema {
         String name,
         List<Expression> arguments)
     {
-        // schemaExpression.get("name")
-        return Expressions.call(
-            schemaExpression, MAP_GET_METHOD,
-            Arrays.<Expression>asList(
-                (Expression) Expressions.constant(name)));
+        // (Type) schemaExpression.get("name")
+        Expression call =
+            Expressions.call(
+                schemaExpression,
+                MAP_GET_METHOD,
+                Collections.<Expression>singletonList(
+                    Expressions.constant(name)));
+        Object o = schemaObject;
+        if (schemaObject instanceof SchemaLink) {
+            o = ((SchemaLink) schemaObject).schema;
+            call =
+                Expressions.field(
+                    Expressions.convert_(
+                        call,
+                        SchemaLink.class),
+                    "schema");
+        }
+        Class clazz = deduceClass(o);
+        if (clazz != null && clazz != Object.class) {
+            return Expressions.convert_(call, clazz);
+        }
+        return call;
+    }
+
+    private Class deduceClass(Object schemaObject) {
+        // REVIEW: Can we remove the dependency on RelDataType and work in
+        //   terms of Class?
+        if (schemaObject instanceof Function) {
+            RelDataType type = ((Function) schemaObject).getType();
+            return typeFactory.getJavaClass(type);
+        }
+        if (schemaObject instanceof ReflectiveSchema) {
+            RelDataType type =
+                ((ReflectiveSchema) schemaObject).getType();
+            return typeFactory.getJavaClass(type);
+        }
+        return null;
     }
 }
 

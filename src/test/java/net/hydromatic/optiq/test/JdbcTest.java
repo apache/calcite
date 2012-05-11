@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.examples.foodmart.java;
+package net.hydromatic.optiq.test;
 
+import junit.framework.TestCase;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
@@ -24,16 +25,18 @@ import net.hydromatic.optiq.jdbc.OptiqConnection;
 import java.sql.*;
 
 /**
- * Example of using Optiq via JDBC.
+ * Tests for using Optiq via JDBC.
  *
- * <p>Schema is specified programmatically.</p>
+ * @author jhyde
  */
-public class JdbcExample {
-    public static void main(String[] args) throws Exception {
-        new JdbcExample().run();
-    }
+public class JdbcTest extends TestCase {
 
-    public void run() throws ClassNotFoundException, SQLException {
+    /**
+     * Runs a simple query that joins between two in-memory schemas.
+     *
+     * @throws Exception on error
+     */
+    public void testJoin() throws Exception {
         Class.forName("net.hydromatic.optiq.jdbc.Driver");
         Connection connection =
             DriverManager.getConnection("jdbc:optiq:");
@@ -53,20 +56,72 @@ public class JdbcExample {
                 + "from \"foodmart\".\"sales_fact_1997\" as s\n"
                 + "join \"hr\".\"emps\" as e\n"
                 + "on e.\"empid\" = s.\"cust_id\"");
+        StringBuilder buf = new StringBuilder();
         while (resultSet.next()) {
             int n = resultSet.getMetaData().getColumnCount();
             for (int i = 1; i <= n; i++) {
-                new StringBuilder().append(
+                buf.append(
                     (i > 1 ? "; " : "")
                     + resultSet.getMetaData().getColumnLabel(i)
                     + "="
                     + resultSet.getObject(i));
             }
-            System.out.println();
+            buf.append("\n");
         }
         resultSet.close();
         statement.close();
         connection.close();
+
+        assertEquals(
+            "cust_id=100; prod_id=10; empid=100; name=Bill\n"
+            + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n",
+            buf.toString());
+    }
+
+    public void _testWhere() throws Exception {
+        assertQueryReturns(
+            "select *\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "where empid > 120",
+            "cust_id=100; prod_id=10; empid=100; name=Bill\n"
+            + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n");
+    }
+
+    private void assertQueryReturns(String sql, String expected)
+        throws ClassNotFoundException, SQLException
+    {
+        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+        Connection connection =
+            DriverManager.getConnection("jdbc:optiq:");
+        OptiqConnection optiqConnection =
+            connection.unwrap(OptiqConnection.class);
+        JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
+        optiqConnection.getRootSchema().add(
+            "hr",
+            new ReflectiveSchema(new HrSchema(), typeFactory));
+        optiqConnection.getRootSchema().add(
+            "foodmart",
+            new ReflectiveSchema(new FoodmartSchema(), typeFactory));
+        Statement statement = connection.createStatement();
+        ResultSet resultSet =
+            statement.executeQuery(sql);
+        StringBuilder buf = new StringBuilder();
+        while (resultSet.next()) {
+            int n = resultSet.getMetaData().getColumnCount();
+            for (int i = 1; i <= n; i++) {
+                buf.append(
+                    (i > 1 ? "; " : "")
+                    + resultSet.getMetaData().getColumnLabel(i)
+                    + "="
+                    + resultSet.getObject(i));
+            }
+            buf.append("\n");
+        }
+        resultSet.close();
+        statement.close();
+        connection.close();
+
+        assertEquals(expected, buf.toString());
     }
 
     public static class HrSchema {
@@ -105,4 +160,4 @@ public class JdbcExample {
     }
 }
 
-// End JdbcExample.java
+// End JdbcTest.java

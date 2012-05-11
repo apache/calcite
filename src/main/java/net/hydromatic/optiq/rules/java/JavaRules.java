@@ -19,6 +19,7 @@ package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.Enumerable;
 import net.hydromatic.linq4j.ExtendedEnumerable;
+import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.function.Function1;
@@ -31,6 +32,7 @@ import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.RexMultisetUtil;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.rex.RexProgram;
@@ -159,13 +161,10 @@ public class JavaRules {
                     typeFactory, left.getRowType(), leftKeys),
                 EnumUtil.generateAccessor(
                     typeFactory, right.getRowType(), rightKeys),
-                generateSelector(typeFactory, rowType));
+                generateSelector(typeFactory));
         }
 
-        public Expression generateSelector(
-            JavaTypeFactory typeFactory,
-            RelDataType rowType)
-        {
+        Expression generateSelector(JavaTypeFactory typeFactory) {
             // A parameter for each input.
             final List<ParameterExpression> parameters =
                 Arrays.asList(
@@ -177,10 +176,38 @@ public class JavaRules {
                         "right"));
 
             // Generate all fields.
-            final List<Expression>
-            return null;
+            final List<Expression> expressions =
+                new ArrayList<Expression>();
+            int i = 0;
+            for (RelNode rel : getInputs()) {
+                RelDataType inputRowType = rel.getRowType();
+                final ParameterExpression parameter = parameters.get(i++);
+                for (RelDataTypeField field : inputRowType.getFields()) {
+                    expressions.add(fieldReference(parameter, field));
+                }
+            }
+            return Expressions.lambda(
+                Function2.class,
+                Expressions.return_(
+                    null,
+                    Expressions.newArrayInit(
+                        Object.class,
+                        expressions)),
+                parameters);
         }
 
+        private Expression fieldReference(
+            ParameterExpression parameter,
+            RelDataTypeField field)
+        {
+            return parameter.getClass().isArray()
+                ? Expressions.arrayIndex(
+                    parameter,
+                    Expressions.constant(field.getIndex()))
+                : Expressions.field(
+                    parameter,
+                    field.getName());
+        }
     }
 
     /**
@@ -210,7 +237,8 @@ public class JavaRules {
                 Function1.class,
                 Expressions.return_(
                     null,
-                    Expressions.field(v1, nthField(field, v1.getType()))));
+                    Expressions.field(v1, nthField(field, v1.getType()))),
+                v1);
         }
 
         private static Field nthField(int ordinal, Class clazz) {
@@ -229,13 +257,15 @@ public class JavaRules {
         extends TableAccessRelBase
         implements EnumerableRel
     {
-        private Expression expression;
+        private final Expression expression;
+        private final Queryable queryable;
 
         public EnumerableTableAccessRel(
             RelOptCluster cluster,
             RelOptTable table,
             RelOptConnection connection,
-            Expression expression)
+            Expression expression,
+            Queryable queryable)
         {
             super(
                 cluster,
@@ -243,10 +273,11 @@ public class JavaRules {
                 table,
                 connection);
             this.expression = expression;
+            this.queryable = queryable;
         }
 
         public Expression implement(EnumerableRelImplementor implementor) {
-            return expression;
+            return implementor.register(queryable);
         }
     }
 
@@ -384,9 +415,7 @@ public class JavaRules {
         public RexProgram getProgram() {
             return program;
         }
-
     }
-
 }
 
 // End JavaRules.java

@@ -51,7 +51,7 @@ class OptiqResultSetMetaData implements ResultSetMetaData {
     }
 
     private ColumnMetaData getColumnMetaData(int column) {
-        return columnMetaDataList.get(column);
+        return columnMetaDataList.get(column - 1);
     }
 
     public boolean isCaseSensitive(int column) throws SQLException {
@@ -144,7 +144,8 @@ class OptiqResultSetMetaData implements ResultSetMetaData {
         return iface.isInstance(this);
     }
 
-    class ColumnMetaData {
+    static class ColumnMetaData {
+        final int ordinal; // 0-based
         final boolean autoIncrement;
         final boolean caseSensitive;
         final boolean searchable;
@@ -167,6 +168,7 @@ class OptiqResultSetMetaData implements ResultSetMetaData {
         final String columnClassName;
 
         public ColumnMetaData(
+            int ordinal,
             boolean autoIncrement,
             boolean caseSensitive,
             boolean searchable,
@@ -188,6 +190,7 @@ class OptiqResultSetMetaData implements ResultSetMetaData {
             boolean definitelyWritable,
             String columnClassName)
         {
+            this.ordinal = ordinal;
             this.autoIncrement = autoIncrement;
             this.caseSensitive = caseSensitive;
             this.searchable = searchable;

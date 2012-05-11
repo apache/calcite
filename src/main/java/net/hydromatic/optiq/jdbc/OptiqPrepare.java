@@ -20,10 +20,7 @@ package net.hydromatic.optiq.jdbc;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.optiq.Function;
-import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.SchemaLink;
-import net.hydromatic.optiq.SchemaObject;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.rules.java.*;
 
 import openjava.ptree.ClassDeclaration;
@@ -37,6 +34,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.volcano.VolcanoPlanner;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
@@ -69,7 +67,8 @@ class OptiqPrepare {
         final OptiqPreparingStmt preparingStmt =
             new OptiqPreparingStmt(
                 relOptConnection,
-                typeFactory);
+                typeFactory,
+                statement.connection.rootSchema);
         preparingStmt.setResultCallingConvention(CallingConvention.ENUMERABLE);
 
         SqlParser parser = new SqlParser(sql);
@@ -89,19 +88,46 @@ class OptiqPrepare {
         // TODO: parameters
         final List<OptiqParameter> parameters = Collections.emptyList();
         // TODO: column meta data
+        RelDataType x = validator.getValidatedNodeType(sqlNode);
         final List<OptiqResultSetMetaData.ColumnMetaData> columns =
-            Collections.emptyList();
+            new ArrayList<OptiqResultSetMetaData.ColumnMetaData>();
+        for (RelDataTypeField field : x.getFields()) {
+            RelDataType type = field.getType();
+            columns.add(
+                new OptiqResultSetMetaData.ColumnMetaData(
+                    columns.size(),
+                    false,
+                    true,
+                    false,
+                    false,
+                    type.isNullable() ? 1 : 0,
+                    true,
+                    0,
+                    field.getName(),
+                    null,
+                    null,
+                    type.getSqlTypeName().allowsPrec() && false
+                        ? type.getPrecision()
+                        : -1,
+                    type.getSqlTypeName().allowsScale()
+                        ? type.getScale()
+                        : -1,
+                    null,
+                    null,
+                    type.getSqlTypeName().getJdbcOrdinal(),
+                    type.getSqlTypeName().getName(),
+                    true,
+                    false,
+                    false,
+                    null));
+        }
         final OptiqResultSetMetaData resultSetMetaData =
             new OptiqResultSetMetaData(statement, null, columns);
         return new PrepareResult(
             sql,
             parameters,
             resultSetMetaData,
-            new RawEnumerable() {
-                public Enumerator enumerator() {
-                    return (Enumerator) preparedResult.execute();
-                }
-            });
+            (Enumerable) preparedResult.execute());
     }
 
     static class PrepareResult {
@@ -131,11 +157,15 @@ class OptiqPrepare {
     private static class OptiqPreparingStmt extends OJPreparingStmt {
         private final RelOptPlanner planner;
         private final RexBuilder rexBuilder;
+        private final Schema schema;
 
         public OptiqPreparingStmt(
-            RelOptConnection connection, RelDataTypeFactory typeFactory)
+            RelOptConnection connection,
+            RelDataTypeFactory typeFactory,
+            Schema schema)
         {
             super(connection);
+            this.schema = schema;
             planner = new VolcanoPlanner();
             planner.addRelTraitDef(CallingConventionTraitDef.instance);
             RelOptUtil.registerAbstractRels(planner);
@@ -232,13 +262,23 @@ class OptiqPrepare {
             Expression expr =
                 relImplementor.implementRoot((EnumerableRel) rootRel);
             String s = Expressions.toString(expr);
+            System.out.println(s);
+
+            final Map<String, Queryable> map = relImplementor.map;
+            final List<Class> classList = new ArrayList<Class>();
+            for (Map.Entry<String, Queryable> entry : map.entrySet()) {
+                classList.add(entry.getValue().getClass());
+            }
             final ExpressionEvaluator ee;
             try {
                 ee = new ExpressionEvaluator(
-                    s, Enumerable.class, new String[0], new Class[0]);
+                    s,
+                    Enumerable.class,
+                    map.keySet().toArray(new String[map.size()]),
+                    classList.toArray(new Class[map.size()]));
             } catch (Exception e) {
                 throw Helper.INSTANCE.wrap(
-                    "Error while compiling generated Java code", e);
+                    "Error while compiling generated Java code:\n" + s, e);
             }
 
             if (timingTracer != null) {
@@ -259,7 +299,8 @@ class OptiqPrepare {
             {
                 public Object execute() {
                     try {
-                        return ee.evaluate(new Object[0]);
+                        return ee.evaluate(
+                            map.values().toArray(new Object[map.size()]));
                     } catch (InvocationTargetException e) {
                         throw Helper.INSTANCE.wrap(
                             "Error while executing", e);
@@ -276,17 +317,20 @@ class OptiqPrepare {
         private final RelDataType rowType;
         private final String[] names;
         private final Expression expression;
+        private final Queryable queryable;
 
         public Table(
             RelOptSchema schema,
             RelDataType rowType,
             String[] names,
-            Expression expression)
+            Expression expression,
+            Queryable queryable)
         {
             this.schema = schema;
             this.rowType = rowType;
             this.names = names;
             this.expression = expression;
+            this.queryable = queryable;
         }
 
         public double getRowCount() {
@@ -302,7 +346,7 @@ class OptiqPrepare {
             RelOptConnection connection)
         {
             return new JavaRules.EnumerableTableAccessRel(
-                cluster, this, connection, expression);
+                cluster, this, connection, expression, queryable);
         }
 
         public List<RelCollation> getCollationList() {
@@ -360,11 +404,23 @@ class OptiqPrepare {
                     }
                     RelDataType type = ((Function) schemaObject).getType();
                     if (type instanceof MultisetSqlType) {
+                        Object o = ((Function) schemaObject).evaluate(null);
+                        Enumerable<Object> enumerable;
+                        if (o instanceof Object[]) {
+                            enumerable = Linq4j.asEnumerable((Object []) o);
+                        } else if (o instanceof Enumerable) {
+                            enumerable = (Enumerable<Object>) o;
+                        } else {
+                            throw new RuntimeException(
+                                "Cannot convert to Enumerable");
+                        }
+                        Queryable queryable = enumerable.asQueryable();
                         return new Table(
                             this,
                             type.getComponentType(),
                             names,
-                            expression);
+                            toEnumerable(expression),
+                            queryable);
                     }
                 }
                 if (schemaObject instanceof SchemaLink) {
@@ -374,6 +430,22 @@ class OptiqPrepare {
                 return null;
             }
             return null;
+        }
+
+        private Expression toEnumerable(Expression expression) {
+            Class type = expression.getType();
+            if (Enumerable.class.isAssignableFrom(type)) {
+                return expression;
+            }
+            if (type.isArray()) {
+                return Expressions.call(
+                    Linq4j.class,
+                    "asEnumerable",
+                    Collections.<Class>emptyList(),
+                    Collections.singletonList(expression));
+            }
+            throw new RuntimeException(
+                "cannot convert expression [" + expression + "] to enumerable");
         }
 
         public RelDataType getNamedType(SqlIdentifier typeName) {

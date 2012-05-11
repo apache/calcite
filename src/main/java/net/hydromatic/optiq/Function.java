@@ -60,6 +60,12 @@ public interface Function extends SchemaObject {
      * @return Type of result; never null
      */
     RelDataType getType();
+
+    /**
+     * Evaluates to yield a result. Typically the result will be a
+     * {@link net.hydromatic.linq4j.Queryable}.
+     */
+    Object evaluate(List<Object> arguments);
 }
 
 // End Function.java

@@ -79,25 +79,25 @@ public class OptiqResultSet implements ResultSet {
         // can convert to any type in the same family.
         switch (columnMetaData.type) {
         case Types.TINYINT:
-            return new ByteAccessor();
+            return new ByteAccessor(columnMetaData.ordinal);
         case Types.SMALLINT:
-            return new ShortAccessor();
+            return new ShortAccessor(columnMetaData.ordinal);
         case Types.INTEGER:
-            return new IntAccessor();
+            return new IntAccessor(columnMetaData.ordinal);
         case Types.BIGINT:
-            return new LongAccessor();
+            return new LongAccessor(columnMetaData.ordinal);
         case Types.BOOLEAN:
-            return new BooleanAccessor();
+            return new BooleanAccessor(columnMetaData.ordinal);
         case Types.FLOAT:
-            return new FloatAccessor();
+            return new FloatAccessor(columnMetaData.ordinal);
         case Types.DOUBLE:
-            return new DoubleAccessor();
+            return new DoubleAccessor(columnMetaData.ordinal);
         case Types.CHAR:
         case Types.VARCHAR:
-            return new StringAccessor();
+            return new StringAccessor(columnMetaData.ordinal);
         case Types.BINARY:
         case Types.VARBINARY:
-            return new BinaryAccessor();
+            return new BinaryAccessor(columnMetaData.ordinal);
         default:
             throw new RuntimeException("unknown type " + columnMetaData.type);
         }
@@ -1012,6 +1012,12 @@ public class OptiqResultSet implements ResultSet {
     }
 
     class Accessor {
+        private final int field;
+
+        public Accessor(int field) {
+            this.field = field;
+        }
+
         public String getString() {
             throw cannotConvert("String");
         }
@@ -1081,7 +1087,7 @@ public class OptiqResultSet implements ResultSet {
         }
 
         public Object getObject() {
-            return enumerator.current();
+            return ((Object[]) enumerator.current())[field];
         }
 
         public Reader getCharacterStream() {
@@ -1158,6 +1164,10 @@ public class OptiqResultSet implements ResultSet {
      * {@link #getLong()} method.
      */
     private abstract class ExactNumericAccessor extends Accessor {
+        public ExactNumericAccessor(int field) {
+            super(field);
+        }
+
         public BigDecimal getBigDecimal(int scale) {
             final long v = getLong();
             return v == 0 && wasNull
@@ -1208,6 +1218,10 @@ public class OptiqResultSet implements ResultSet {
      * corresponds to {@link Types#BOOLEAN}.
      */
     private class BooleanAccessor extends ExactNumericAccessor {
+        public BooleanAccessor(int field) {
+            super(field);
+        }
+
         public boolean getBoolean() {
             Object o = getObject();
             if (o == null) {
@@ -1232,6 +1246,10 @@ public class OptiqResultSet implements ResultSet {
      * corresponds to {@link Types#TINYINT}.
      */
     private class ByteAccessor extends ExactNumericAccessor {
+        public ByteAccessor(int field) {
+            super(field);
+        }
+
         public byte getByte() {
             Object o = getObject();
             if (o == null) {
@@ -1251,6 +1269,10 @@ public class OptiqResultSet implements ResultSet {
      * corresponds to {@link Types#SMALLINT}.
      */
     private class ShortAccessor extends ExactNumericAccessor {
+        public ShortAccessor(int field) {
+            super(field);
+        }
+
         public short getShort() {
             Object o = getObject();
             if (o == null) {
@@ -1270,6 +1292,10 @@ public class OptiqResultSet implements ResultSet {
      * corresponds to {@link Types#INTEGER}.
      */
     private class IntAccessor extends ExactNumericAccessor {
+        public IntAccessor(int field) {
+            super(field);
+        }
+
         public int getInt() {
             Object o = getObject();
             if (o == null) {
@@ -1289,6 +1315,10 @@ public class OptiqResultSet implements ResultSet {
      * corresponds to {@link Types#BIGINT}.
      */
     private class LongAccessor extends ExactNumericAccessor {
+        public LongAccessor(int field) {
+            super(field);
+        }
+
         public long getLong() {
             Object o = getObject();
             if (o == null) {
@@ -1303,6 +1333,10 @@ public class OptiqResultSet implements ResultSet {
      * Accessor of values that are {@link Double} or null.
      */
     private abstract class ApproximateNumericAccessor extends Accessor {
+        public ApproximateNumericAccessor(int field) {
+            super(field);
+        }
+
         public BigDecimal getBigDecimal(int scale) {
             final double v = getDouble();
             return v == 0d && wasNull
@@ -1353,6 +1387,10 @@ public class OptiqResultSet implements ResultSet {
      * corresponds to {@link Types#FLOAT}.
      */
     private class FloatAccessor extends ApproximateNumericAccessor {
+        public FloatAccessor(int field) {
+            super(field);
+        }
+
         public float getFloat() {
             Object o = getObject();
             if (o == null) {
@@ -1372,6 +1410,10 @@ public class OptiqResultSet implements ResultSet {
      * corresponds to {@link Types#FLOAT}.
      */
     private class DoubleAccessor extends ApproximateNumericAccessor {
+        public DoubleAccessor(int field) {
+            super(field);
+        }
+
         public double getDouble() {
             Object o = getObject();
             if (o == null) {
@@ -1387,6 +1429,10 @@ public class OptiqResultSet implements ResultSet {
      * corresponds to {@link Types#CHAR} and {@link Types#VARCHAR}.
      */
     private class StringAccessor extends Accessor {
+        public StringAccessor(int field) {
+            super(field);
+        }
+
         public String getString() {
             return (String) getObject();
         }
@@ -1398,6 +1444,10 @@ public class OptiqResultSet implements ResultSet {
      * corresponds to {@link Types#BINARY} and {@link Types#VARBINARY}.
      */
     private class BinaryAccessor extends Accessor {
+        public BinaryAccessor(int field) {
+            super(field);
+        }
+
         public byte[] getBytes() {
             return (byte[]) getObject();
         }

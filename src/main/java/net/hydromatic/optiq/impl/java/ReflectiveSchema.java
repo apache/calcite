@@ -27,6 +27,7 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.type.SqlTypeUtil;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -37,6 +38,8 @@ import java.util.*;
 public class ReflectiveSchema
     extends MapSchema
 {
+    private final RelDataType type;
+
     /**
      * Creates a ReflectiveSchema.
      *
@@ -47,6 +50,8 @@ public class ReflectiveSchema
         Object o,
         JavaTypeFactory typeFactory)
     {
+        super(typeFactory);
+        this.type = typeFactory.createType(o.getClass());
         Class<?> clazz = o.getClass();
         for (Field field : clazz.getFields()) {
             map.put(field.getName(), fieldRelation(o, field, typeFactory));
@@ -56,6 +61,10 @@ public class ReflectiveSchema
                 method.getName(),
                 methodFunction(o, method, typeFactory));
         }
+    }
+
+    public RelDataType getType() {
+        return type;
     }
 
     private void putMulti(String name, Function function) {
@@ -134,7 +143,7 @@ public class ReflectiveSchema
     }
 
     private Function methodFunction(
-        Object o,
+        final Object o,
         final Method method,
         final RelDataTypeFactory typeFactory)
     {
@@ -169,6 +178,18 @@ public class ReflectiveSchema
                 return typeFactory.createJavaType(method.getReturnType());
             }
 
+            public Object evaluate(List<Object> arguments) {
+                try {
+                    return method.invoke(o, arguments.toArray());
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(
+                        "Error while invoking method " + method, e);
+                } catch (InvocationTargetException e) {
+                    throw new RuntimeException(
+                        "Error while invoking method " + method, e);
+                }
+            }
+
             public String getName() {
                 return method.getName();
             }
@@ -184,7 +205,7 @@ public class ReflectiveSchema
     }
 
     private SchemaObject fieldRelation(
-        Object o,
+        final Object o,
         final Field field,
         JavaTypeFactory typeFactory)
     {
@@ -196,6 +217,16 @@ public class ReflectiveSchema
 
             public RelDataType getType() {
                 return type;
+            }
+
+            public Object evaluate(List<Object> arguments) {
+                assert arguments == null || arguments.isEmpty();
+                try {
+                    return field.get(o);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(
+                        "Error while accessing field " + field, e);
+                }
             }
 
             public String getName() {
