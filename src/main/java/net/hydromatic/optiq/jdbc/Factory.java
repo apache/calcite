@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -63,6 +64,10 @@ interface Factory {
 
     OptiqDatabaseMetaData newDatabaseMetaData(
         OptiqConnectionImpl connection);
+
+    ResultSetMetaData newResultSetMetaData(
+        OptiqStatement statement,
+        OptiqPrepare.PrepareResult prepareResult);
 }
 
 // End Factory.java

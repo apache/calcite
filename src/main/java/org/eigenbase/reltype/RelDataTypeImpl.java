@@ -115,14 +115,14 @@ public abstract class RelDataTypeImpl
     // implement RelDataType
     public RelDataTypeField [] getFields()
     {
-        assert (isStruct());
+        assert isStruct() : this;
         return fields;
     }
 
     // implement RelDataType
     public int getFieldCount()
     {
-        assert isStruct();
+        assert isStruct() : this;
         return fields.length;
     }
 

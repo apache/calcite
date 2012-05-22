@@ -20,6 +20,8 @@ package net.hydromatic.optiq.jdbc;
 import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
+import net.hydromatic.linq4j.QueryProvider;
+
 import org.eigenbase.reltype.RelDataTypeFactory;
 
 import java.sql.Connection;
@@ -31,8 +33,12 @@ import java.sql.Connection;
  *
  * <p>You can start off with an empty connection (no schemas), define one
  * or two schemas, and start querying them.</p>
+ *
+ * <p>Since an {@code OptiqConnection} implements the linq4j
+ * {@link QueryProvider} interface, you can use a connection to execute
+ * expression trees as queries.</p>
  */
-public interface OptiqConnection extends Connection {
+public interface OptiqConnection extends Connection, QueryProvider {
     /**
      * Returns the root schema.
      *
@@ -43,6 +49,11 @@ public interface OptiqConnection extends Connection {
      */
     MutableSchema getRootSchema();
 
+    /**
+     * Returns the type factory.
+     *
+     * @return Type factory
+     */
     JavaTypeFactory getTypeFactory();
 }
 

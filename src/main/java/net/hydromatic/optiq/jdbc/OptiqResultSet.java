@@ -35,6 +35,9 @@ import java.util.*;
 public class OptiqResultSet implements ResultSet {
     private final OptiqStatement statement;
     private final boolean[] wasNull = {false};
+    private final OptiqPrepare.PrepareResult prepareResult;
+    private final ResultSetMetaData resultSetMetaData;
+
     private Cursor cursor;
     private List<Cursor.Accessor> accessorList;
     private Map<String, Cursor.Accessor> accessorMap =
@@ -49,7 +52,6 @@ public class OptiqResultSet implements ResultSet {
     private int concurrency;
     private int holdability;
     private boolean closed;
-    private OptiqPrepare.PrepareResult prepareResult;
 
     OptiqResultSet(
         OptiqStatement statement,
@@ -62,11 +64,12 @@ public class OptiqResultSet implements ResultSet {
         this.holdability = statement.resultSetHoldability;
         this.fetchSize = statement.getFetchSize();
         this.fetchDirection = statement.getFetchDirection();
+        this.resultSetMetaData =
+            statement.connection.factory.newResultSetMetaData(
+                statement, prepareResult);
 
-        for (OptiqResultSetMetaData.ColumnMetaData columnMetaData
-            : prepareResult.resultSetMetaData.columnMetaDataList)
-        {
-            columnNameMap.put(columnMetaData.label, columnNameMap.size());
+        for (OptiqPrepare.ColumnMetaData column : prepareResult.columnList) {
+            columnNameMap.put(column.label, columnNameMap.size());
         }
     }
 
@@ -96,8 +99,8 @@ public class OptiqResultSet implements ResultSet {
      */
     void execute() {
         this.cursor = new ArrayEnumeratorCursor(prepareResult.execute());
-        final List<OptiqResultSetMetaData.ColumnMetaData> columnMetaDataList =
-            prepareResult.resultSetMetaData.columnMetaDataList;
+        final List<OptiqPrepare.ColumnMetaData> columnMetaDataList =
+            prepareResult.columnList;
         this.accessorList =
             cursor.createAccessors(
                 new boolean[1],
@@ -276,7 +279,7 @@ public class OptiqResultSet implements ResultSet {
     }
 
     public ResultSetMetaData getMetaData() throws SQLException {
-        return prepareResult.resultSetMetaData;
+        return resultSetMetaData;
     }
 
     public Object getObject(int columnIndex) throws SQLException {

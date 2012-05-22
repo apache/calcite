@@ -15,40 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
+package net.hydromatic.optiq.prepare;
 
-import java.sql.SQLException;
+import net.hydromatic.optiq.jdbc.OptiqPrepare;
 
 /**
- * Utility methods, mainly concerning error-handling.
+ * Creates an implementation of {@link OptiqPrepare}.
  *
  * @author jhyde
- */
-public class Helper {
-    public static final Helper INSTANCE = new Helper();
-
-    private Helper() {
-    }
-
-    public RuntimeException todo() {
-        return new RuntimeException("todo: implement this method");
-    }
-
-    public RuntimeException wrap(String message, Exception e) {
-        return new RuntimeException(message, e);
-    }
-
-    public SQLException createException(String message, Exception e) {
-        return new SQLException(message, e);
-    }
-
-    public SQLException createException(String message) {
-        return new SQLException(message);
-    }
-
-    public SQLException toSQLException(SQLException exception) {
-        return exception;
+*/
+public class Factory {
+    public static OptiqPrepare implement() {
+        return new OptiqPrepareImpl();
     }
 }
 
-// End Helper.java
+// End Factory.java

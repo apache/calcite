@@ -39,7 +39,8 @@ abstract class OptiqPreparedStatement
     extends OptiqStatement
     implements PreparedStatement, ParameterMetaData
 {
-    private OptiqPrepare.PrepareResult prepareResult;
+    private final OptiqPrepare.PrepareResult prepareResult;
+    private final ResultSetMetaData resultSetMetaData;
 
     /**
      * Creates an OptiqPreparedStatement.
@@ -61,6 +62,8 @@ abstract class OptiqPreparedStatement
             connection, resultSetType, resultSetConcurrency,
             resultSetHoldability);
         this.prepareResult = parseQuery(sql);
+        this.resultSetMetaData =
+            connection.factory.newResultSetMetaData(this, prepareResult);
     }
 
     // implement PreparedStatement
@@ -200,7 +203,7 @@ abstract class OptiqPreparedStatement
     }
 
     public ResultSetMetaData getMetaData() {
-        return prepareResult.resultSetMetaData;
+        return resultSetMetaData;
     }
 
     public void setDate(
@@ -252,7 +255,8 @@ abstract class OptiqPreparedStatement
         return getParameter(index).isSet();
     }
 
-    protected OptiqParameter getParameter(int param) throws SQLException {
+    protected OptiqPrepare.Parameter getParameter(int param) throws SQLException
+    {
         try {
             return prepareResult.parameterList.get(param - 1);
         } catch (IndexOutOfBoundsException e) {
@@ -296,7 +300,7 @@ abstract class OptiqPreparedStatement
     }
 
     public int getParameterMode(int param) throws SQLException {
-        OptiqParameter paramDef =
+        OptiqPrepare.Parameter paramDef =
             getParameter(param); // forces param range check
         Util.discard(paramDef);
         return ParameterMetaData.parameterModeIn;

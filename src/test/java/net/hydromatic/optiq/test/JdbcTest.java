@@ -17,7 +17,15 @@
 */
 package net.hydromatic.optiq.test;
 
+import net.hydromatic.linq4j.Enumerable;
+import net.hydromatic.linq4j.Linq4j;
+import net.hydromatic.linq4j.QueryProvider;
+import net.hydromatic.linq4j.expressions.Expression;
+import net.hydromatic.linq4j.expressions.Expressions;
+import net.hydromatic.linq4j.expressions.ParameterExpression;
+import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Predicate1;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
@@ -28,7 +36,11 @@ import junit.framework.TestCase;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Method;
 import java.sql.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Tests for using Optiq via JDBC.
@@ -37,24 +49,19 @@ import java.sql.*;
  */
 public class JdbcTest extends TestCase {
 
+    public static final Method LINQ4J_AS_ENUMERABLE_METHOD =
+        Types.lookupMethod(
+            Linq4j.class,
+            "asEnumerable",
+            Object[].class);
+
     /**
      * Runs a simple query that joins between two in-memory schemas.
      *
      * @throws Exception on error
      */
     public void testJoin() throws Exception {
-        Class.forName("net.hydromatic.optiq.jdbc.Driver");
-        Connection connection =
-            DriverManager.getConnection("jdbc:optiq:");
-        OptiqConnection optiqConnection =
-            connection.unwrap(OptiqConnection.class);
-        JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        optiqConnection.getRootSchema().add(
-            "hr",
-            new ReflectiveSchema(new HrSchema(), typeFactory));
-        optiqConnection.getRootSchema().add(
-            "foodmart",
-            new ReflectiveSchema(new FoodmartSchema(), typeFactory));
+        Connection connection = getConnectionWithHrFoodmart();
         Statement statement = connection.createStatement();
         ResultSet resultSet =
             statement.executeQuery(
@@ -98,6 +105,52 @@ public class JdbcTest extends TestCase {
             + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n");
     }
 
+    public void testQueryProvider() throws Exception {
+        Connection connection = getConnectionWithHrFoodmart();
+        QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
+        ParameterExpression e = Expressions.parameter(Employee.class, "e");
+
+        // "Enumerable<T> asEnumerable(final T[] ts)"
+        List<Integer> list =
+            queryProvider.createQuery(
+                Expressions.call(
+                    Expressions.call(
+                        Types.of(
+                            Enumerable.class,
+                            Employee.class),
+                        null,
+                        LINQ4J_AS_ENUMERABLE_METHOD,
+                        Arrays.<Expression>asList(
+                            Expressions.constant(new HrSchema().emps))),
+                    "asQueryable",
+                    Collections.<Expression>emptyList()),
+                Employee.class)
+                .where(
+                    Expressions.<Predicate1<Employee>>lambda(
+                        Expressions.lessThan(
+                            Expressions.field(
+                                e, "empid"),
+                            Expressions.constant(160)),
+                        Arrays.asList(e)))
+                .where(
+                    Expressions.<Predicate1<Employee>>lambda(
+                        Expressions.greaterThan(
+                            Expressions.field(
+                                e, "empid"),
+                            Expressions.constant(140)),
+                        Arrays.asList(e)))
+                .select(
+                    Expressions.<Function1<Employee, Integer>>lambda(
+                        Expressions.new_(
+                            AnInt.class,
+                            Arrays.<Expression>asList(
+                                Expressions.field(
+                                    e, "empid"))),
+                        Arrays.asList(e)))
+                .toList();
+        System.out.println(list);
+    }
+
     private Function1<String, Void> checkResult(final String expected) {
         return new Function1<String, Void>() {
             public Void apply(String p0) {
@@ -139,18 +192,7 @@ public class JdbcTest extends TestCase {
         Function1<Exception, Void> exceptionChecker)
         throws Exception
     {
-        Class.forName("net.hydromatic.optiq.jdbc.Driver");
-        Connection connection =
-            DriverManager.getConnection("jdbc:optiq:");
-        OptiqConnection optiqConnection =
-            connection.unwrap(OptiqConnection.class);
-        JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        optiqConnection.getRootSchema().add(
-            "hr",
-            new ReflectiveSchema(new HrSchema(), typeFactory));
-        optiqConnection.getRootSchema().add(
-            "foodmart",
-            new ReflectiveSchema(new FoodmartSchema(), typeFactory));
+        Connection connection = getConnectionWithHrFoodmart();
         Statement statement = connection.createStatement();
         ResultSet resultSet;
         try {
@@ -187,6 +229,24 @@ public class JdbcTest extends TestCase {
         }
     }
 
+    private Connection getConnectionWithHrFoodmart()
+        throws ClassNotFoundException, SQLException
+    {
+        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+        Connection connection =
+            DriverManager.getConnection("jdbc:optiq:");
+        OptiqConnection optiqConnection =
+            connection.unwrap(OptiqConnection.class);
+        JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
+        optiqConnection.getRootSchema().add(
+            "hr",
+            new ReflectiveSchema(new HrSchema(), typeFactory));
+        optiqConnection.getRootSchema().add(
+            "foodmart",
+            new ReflectiveSchema(new FoodmartSchema(), typeFactory));
+        return connection;
+    }
+
     public static class HrSchema {
         public final Employee[] emps = {
             new Employee(100, "Bill"),
@@ -219,6 +279,14 @@ public class JdbcTest extends TestCase {
         public SalesFact(int cust_id, int prod_id) {
             this.cust_id = cust_id;
             this.prod_id = prod_id;
+        }
+    }
+
+    public static class AnInt {
+        public final int n;
+
+        public AnInt(int n) {
+            this.n = n;
         }
     }
 }

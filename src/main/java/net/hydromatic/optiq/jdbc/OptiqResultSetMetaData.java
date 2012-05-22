@@ -28,16 +28,20 @@ import java.util.List;
 class OptiqResultSetMetaData implements ResultSetMetaData {
     final OptiqStatement statement;
     final Object query;
-    final List<ColumnMetaData> columnMetaDataList;
+    final List<OptiqPrepare.ColumnMetaData> columnMetaDataList;
 
     OptiqResultSetMetaData(
         OptiqStatement statement,
         Object query,
-        List<ColumnMetaData> columnMetaDataList)
+        List<OptiqPrepare.ColumnMetaData> columnMetaDataList)
     {
         this.statement = statement;
         this.query = query;
         this.columnMetaDataList = columnMetaDataList;
+    }
+
+    private OptiqPrepare.ColumnMetaData getColumnMetaData(int column) {
+        return columnMetaDataList.get(column - 1);
     }
 
     // implement ResultSetMetaData
@@ -48,10 +52,6 @@ class OptiqResultSetMetaData implements ResultSetMetaData {
 
     public boolean isAutoIncrement(int column) throws SQLException {
         return getColumnMetaData(column).autoIncrement;
-    }
-
-    private ColumnMetaData getColumnMetaData(int column) {
-        return columnMetaDataList.get(column - 1);
     }
 
     public boolean isCaseSensitive(int column) throws SQLException {
@@ -142,76 +142,6 @@ class OptiqResultSetMetaData implements ResultSetMetaData {
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return iface.isInstance(this);
-    }
-
-    static class ColumnMetaData {
-        final int ordinal; // 0-based
-        final boolean autoIncrement;
-        final boolean caseSensitive;
-        final boolean searchable;
-        final boolean currency;
-        final int nullable;
-        final boolean signed;
-        final int displaySize;
-        final String label;
-        final String columnName;
-        final String schemaName;
-        final int precision;
-        final int scale;
-        final String tableName;
-        final String catalogName;
-        final int type;
-        final String typeName;
-        final boolean readOnly;
-        final boolean writable;
-        final boolean definitelyWritable;
-        final String columnClassName;
-
-        public ColumnMetaData(
-            int ordinal,
-            boolean autoIncrement,
-            boolean caseSensitive,
-            boolean searchable,
-            boolean currency,
-            int nullable,
-            boolean signed,
-            int displaySize,
-            String label,
-            String columnName,
-            String schemaName,
-            int precision,
-            int scale,
-            String tableName,
-            String catalogName,
-            int type,
-            String typeName,
-            boolean readOnly,
-            boolean writable,
-            boolean definitelyWritable,
-            String columnClassName)
-        {
-            this.ordinal = ordinal;
-            this.autoIncrement = autoIncrement;
-            this.caseSensitive = caseSensitive;
-            this.searchable = searchable;
-            this.currency = currency;
-            this.nullable = nullable;
-            this.signed = signed;
-            this.displaySize = displaySize;
-            this.label = label;
-            this.columnName = columnName;
-            this.schemaName = schemaName;
-            this.precision = precision;
-            this.scale = scale;
-            this.tableName = tableName;
-            this.catalogName = catalogName;
-            this.type = type;
-            this.typeName = typeName;
-            this.readOnly = readOnly;
-            this.writable = writable;
-            this.definitelyWritable = definitelyWritable;
-            this.columnClassName = columnClassName;
-        }
     }
 }
 

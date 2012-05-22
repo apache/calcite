@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import java.sql.*;
@@ -337,7 +339,16 @@ abstract class OptiqStatement
     }
 
     protected OptiqPrepare.PrepareResult parseQuery(String sql) {
-        return OptiqPrepare.prepare(this, sql);
+        return net.hydromatic.optiq.prepare.Factory.implement().prepare(
+            new OptiqPrepare.Statement() {
+                public JavaTypeFactory getTypeFactory() {
+                    return connection.typeFactory;
+                }
+
+                public Schema getRootSchema() {
+                    return connection.getRootSchema();
+                }
+            }, sql, null, null);
     }
 
 }

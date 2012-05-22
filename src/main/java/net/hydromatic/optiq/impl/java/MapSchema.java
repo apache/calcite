@@ -19,7 +19,6 @@ package net.hydromatic.optiq.impl.java;
 
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.MethodCallExpression;
 import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;

@@ -19,7 +19,6 @@ package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.Enumerable;
 import net.hydromatic.linq4j.ExtendedEnumerable;
-import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.function.Function1;
@@ -37,7 +36,6 @@ import org.eigenbase.rex.RexMultisetUtil;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.rex.RexProgram;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -224,25 +222,20 @@ public class JavaRules {
             assert fields.size() == 1
                 : "composite keys not implemented yet";
             int field = fields.get(0);
-            /*
-            new Function1<Employee, Res> {
-                public Res apply(Employee v1) {
-                    return v1.<fieldN>;
-                }
-            }
-             */
+
+            // new Function1<Employee, Res> {
+            //    public Res apply(Employee v1) {
+            //        return v1.<fieldN>;
+            //    }
+            // }
             ParameterExpression v1 =
                 Expressions.parameter(typeFactory.getJavaClass(rowType), "v1");
             return Expressions.lambda(
                 Function1.class,
                 Expressions.return_(
                     null,
-                    Expressions.field(v1, nthField(field, v1.getType()))),
+                    Expressions.field(v1, Types.nthField(field, v1.getType()))),
                 v1);
-        }
-
-        private static Field nthField(int ordinal, Class clazz) {
-            return clazz.getFields()[ordinal];
         }
 
         static Class javaClass(
@@ -258,14 +251,12 @@ public class JavaRules {
         implements EnumerableRel
     {
         private final Expression expression;
-        private final Queryable queryable;
 
         public EnumerableTableAccessRel(
             RelOptCluster cluster,
             RelOptTable table,
             RelOptConnection connection,
-            Expression expression,
-            Queryable queryable)
+            Expression expression)
         {
             super(
                 cluster,
@@ -273,11 +264,10 @@ public class JavaRules {
                 table,
                 connection);
             this.expression = expression;
-            this.queryable = queryable;
         }
 
         public Expression implement(EnumerableRelImplementor implementor) {
-            return implementor.register(queryable);
+            return expression;
         }
     }
 
