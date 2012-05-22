@@ -88,7 +88,12 @@ public interface ExtendedEnumerable<TSource> {
     Enumerable<TSource> asEnumerable();
 
     /**
-     * Converts an Enumerable to an IQueryable.
+     * Converts an Enumerable to a {@link Queryable}.
+     *
+     * <p>If the type of source implements {@code Queryable}, this method
+     * returns it directly. Otherwise, it returns a {@code Queryable} that
+     * executes queries by calling the equivalent query operator methods in
+     * {@code Enumerable} instead of those in {@code Queryable}.</p>
      *
      * <p>Analogous to the LINQ's Enumerable.AsQueryable extension method.</p>
      *

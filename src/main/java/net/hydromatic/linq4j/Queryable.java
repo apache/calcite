@@ -17,8 +17,6 @@
 */
 package net.hydromatic.linq4j;
 
-import net.hydromatic.linq4j.expressions.Expression;
-
 /**
  * Provides functionality to evaluate queries against a specific data source
  * wherein the type of the data is known.

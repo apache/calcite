@@ -22,46 +22,44 @@ package net.hydromatic.linq4j.expressions;
  */
 public enum ExpressionType {
 
-    /*
-    Operator precedence and associativity is as follows.
-
-        Priority Operators  Operation
-        ======== ========== ========================================
-        1 left   [ ]        array index
-                 ()         method call
-                 .          member access
-        2 right  ++         pre- or postfix increment
-                 --         pre- or postfix decrement
-                 + -        unary plus, minus
-                 ~          bitwise NOT
-                 !          boolean (logical) NOT
-                 (type)     type cast
-                 new        object creation
-        3 left   * / %      multiplication, division, remainder
-        4 left   + -        addition, subtraction
-                 +          string concatenation
-        5 left   <<         signed bit shift left
-                 >>         signed bit shift right
-                 >>>        unsigned bit shift right
-        6 left   < <=       less than, less than or equal to
-                 > >=       greater than, greater than or equal to
-                 instanceof reference test
-        7 left   ==         equal to
-                 !=         not equal to
-        8 left   &          bitwise AND
-                 &          boolean (logical) AND
-        9 left   ^          bitwise XOR
-                 ^          boolean (logical) XOR
-        10 left  |          bitwise OR
-                 |          boolean (logical) OR
-        11 left  &&         boolean (logical) AND
-        12 left  ||         boolean (logical) OR
-        13 right ? :        conditional right
-        14 right =          assignment
-                 *= /= += -= %=
-                 <<= >>= >>>=
-                 &= ^= |=   combined assignment
-     */
+    // Operator precedence and associativity is as follows.
+    //
+    //  Priority Operators  Operation
+    //  ======== ========== ========================================
+    //  1 left   [ ]        array index
+    //           ()         method call
+    //           .          member access
+    //  2 right  ++         pre- or postfix increment
+    //           --         pre- or postfix decrement
+    //           + -        unary plus, minus
+    //           ~          bitwise NOT
+    //           !          boolean (logical) NOT
+    //           (type)     type cast
+    //           new        object creation
+    //  3 left   * / %      multiplication, division, remainder
+    //  4 left   + -        addition, subtraction
+    //           +          string concatenation
+    //  5 left   <<         signed bit shift left
+    //           >>         signed bit shift right
+    //           >>>        unsigned bit shift right
+    //  6 left   < <=       less than, less than or equal to
+    //           > >=       greater than, greater than or equal to
+    //           instanceof reference test
+    //  7 left   ==         equal to
+    //           !=         not equal to
+    //  8 left   &          bitwise AND
+    //           &          boolean (logical) AND
+    //  9 left   ^          bitwise XOR
+    //           ^          boolean (logical) XOR
+    //  10 left  |          bitwise OR
+    //           |          boolean (logical) OR
+    //  11 left  &&         boolean (logical) AND
+    //  12 left  ||         boolean (logical) OR
+    //  13 right ? :        conditional right
+    //  14 right =          assignment
+    //           *= /= += -= %=
+    //           <<= >>= >>>=
+    //           &= ^= |=   combined assignment
 
     /** An addition operation, such as a + b, without overflow
      * checking, for numeric operands. */

@@ -17,6 +17,7 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Type;
 import java.util.List;
 
 /**
@@ -26,7 +27,7 @@ import java.util.List;
 public class BlockExpression extends Expression {
     private final List<Expression> expressions;
 
-    BlockExpression(List<Expression> expressions, Class type) {
+    BlockExpression(List<Expression> expressions, Type type) {
         super(ExpressionType.Block, type);
         this.expressions = expressions;
     }

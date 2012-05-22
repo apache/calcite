@@ -20,6 +20,8 @@ package net.hydromatic.linq4j;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.*;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -1617,12 +1619,13 @@ public class Extensions {
     /** Filters the elements of an IQueryable based on a
      * specified type.
      *
-     * <p>The OfType method generates a
-     * {@link net.hydromatic.linq4j.expressions.MethodCallExpression} that represents
-     * calling OfType itself as a constructed generic method. It then passes the
-     * MethodCallExpression to the CreateQuery(Expression) method of the
+     * <p>This method generates a
+     * {@link net.hydromatic.linq4j.expressions.MethodCallExpression} that
+     * represents calling {@code ofType} itself as a constructed generic method.
+     * It then passes the {@code MethodCallExpression} to the
+     * {@link QueryProvider#createQuery createQuery} method of the
      * {@link QueryProvider} represented by the Provider property of the source
-     * parameter.
+     * parameter.</p>
      *
      * <p>The query behavior that occurs as a result of executing an expression
      * tree that represents calling OfType depends on the implementation of the
@@ -1818,7 +1821,37 @@ public class Extensions {
         Queryable<TSource> source,
         FunctionExpression<Function1<TSource, TResult>> selector)
     {
-        throw Extensions.todo();
+        return source.getProvider().createQuery(
+            call(
+                source.getExpression(),
+                "select",
+                selector),
+            functionResultType(selector));
+    }
+
+    private static <P0, R> Type functionResultType(
+        FunctionExpression<Function1<P0, R>> selector)
+    {
+        return selector.body.getType();
+    }
+
+    private static MethodCallExpression call(
+        Expression target,
+        String methodName,
+        Expression... selectors)
+    {
+        return Expressions.call(
+            target,
+            methodName, Arrays.<Expression>asList(selectors));
+    }
+
+    private static MethodCallExpression call(
+        Class clazz,
+        String methodName,
+        Expression... selectors)
+    {
+        return Expressions.call(
+            clazz, methodName, Arrays.<Expression>asList(selectors));
     }
 
     /** Projects each element of a sequence into a new
@@ -2447,6 +2480,62 @@ public class Extensions {
         };
     }
 
+    /** Performs a subsequent ordering of the elements in a sequence according
+     * to a key. */
+    public static <TSource, TKey>
+    OrderedEnumerable<TSource> createOrderedEnumerable(
+        OrderedEnumerable<TSource> source,
+        Function1<TSource, TKey> keySelector,
+        Comparator<TKey> comparator,
+        boolean descending)
+    {
+        throw Extensions.todo();
+    }
+
+    /** Performs a subsequent ordering of the elements in a sequence in
+     * ascending order according to a key. */
+    public static <TSource, TKey extends Comparable<TKey>>
+    OrderedEnumerable<TSource> thenBy(
+        OrderedEnumerable<TSource> source,
+        Function1<TSource, TKey> keySelector)
+    {
+        return createOrderedEnumerable(
+            source, keySelector, Extensions.<TKey>comparableComparator(),
+            false);
+    }
+
+    /** Performs a subsequent ordering of the elements in a sequence in
+     * ascending order according to a key, using a specified comparator. */
+    public static <TSource, TKey> OrderedEnumerable<TSource> thenBy(
+        OrderedEnumerable<TSource> source,
+        Function1<TSource, TKey> keySelector,
+        Comparator<TKey> comparator)
+    {
+        return createOrderedEnumerable(source, keySelector, comparator, false);
+    }
+
+    /** Performs a subsequent ordering of the elements in a sequence in
+     * descending order according to a key. */
+    public static <TSource, TKey extends Comparable<TKey>>
+    OrderedEnumerable<TSource> thenByDescending(
+        OrderedEnumerable<TSource> source,
+        Function1<TSource, TKey> keySelector)
+    {
+        return createOrderedEnumerable(
+            source, keySelector, Extensions.<TKey>comparableComparator(),
+            true);
+    }
+
+    /** Performs a subsequent ordering of the elements in a sequence in
+     * descending order according to a key, using a specified comparator. */
+    public static <TSource, TKey> OrderedEnumerable<TSource> thenByDescending(
+        OrderedEnumerable<TSource> source,
+        Function1<TSource, TKey> keySelector,
+        Comparator<TKey> comparator)
+    {
+        return createOrderedEnumerable(source, keySelector, comparator, true);
+    }
+
     /** Performs a subsequent ordering of the elements in a sequence in
      * ascending order according to a key. */
     public static <TSource, TKey extends Comparable<TKey>>
@@ -2680,7 +2769,12 @@ public class Extensions {
         Queryable<TSource> source,
         FunctionExpression<Predicate1<TSource>> predicate)
     {
-        throw Extensions.todo();
+        return source.getProvider().createQuery(
+            call(
+                source.getExpression(),
+                "where",
+                predicate),
+            source.getElementType());
     }
 
     /** Filters a sequence of values based on a
@@ -2855,12 +2949,12 @@ public class Extensions {
     public static abstract class AbstractQueryable2<TSource>
         extends AbstractQueryable<TSource>
     {
-        private final Class<TSource> elementType;
-        private final Expression expression;
-        private final QueryProvider provider;
+        protected final Type elementType;
+        protected final Expression expression;
+        protected final QueryProvider provider;
 
         public AbstractQueryable2(
-            Class<TSource> elementType,
+            Type elementType,
             Expression expression,
             QueryProvider provider)
         {
@@ -2869,7 +2963,7 @@ public class Extensions {
             this.provider = provider;
         }
 
-        public Class<TSource> getElementType() {
+        public Type getElementType() {
             return elementType;
         }
 
@@ -2906,6 +3000,20 @@ public class Extensions {
         public void reset() {
             enumerator.reset();
         }
+    }
+
+    private static final Comparator<Comparable> COMPARABLE_COMPARATOR =
+        new Comparator<Comparable>() {
+            public int compare(Comparable o1, Comparable o2) {
+                //noinspection unchecked
+                return o1.compareTo(o2);
+            }
+        };
+
+    private static <T extends Comparable<T>>
+    Comparator<T> comparableComparator() {
+        //noinspection unchecked
+        return (Comparator<T>) (Comparator) COMPARABLE_COMPARATOR;
     }
 }
 

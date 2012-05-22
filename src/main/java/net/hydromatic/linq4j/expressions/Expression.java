@@ -17,19 +17,27 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Type;
+
 /**
  * <p>Analogous to LINQ's System.Linq.Expression.</p>
  */
 public abstract class Expression {
     public final ExpressionType nodeType;
-    public final Class type;
+    public final Type type;
 
     /**
      * Creates an Expression.
      *
+     * <p>The type of the expression may, at the caller's discretion, be a
+     * regular class (because {@link Class} implements {@link Type}) or it may
+     * be a different implementation that retains information about type
+     * parameters.</p>
+     *
      * @param nodeType Node type
+     * @param type Type of the expression
      */
-    public Expression(ExpressionType nodeType, Class type) {
+    public Expression(ExpressionType nodeType, Type type) {
         assert nodeType != null;
         assert type != null;
         this.nodeType = nodeType;
@@ -49,7 +57,7 @@ public abstract class Expression {
 
     /** Gets the static type of the expression that this Expression
      * represents. */
-    public Class getType() {
+    public Type getType() {
         return type;
     }
 

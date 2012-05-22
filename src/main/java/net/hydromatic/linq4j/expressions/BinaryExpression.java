@@ -17,17 +17,19 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Type;
+
 /**
  * Represents an expression that has a binary operator.
  */
 public class BinaryExpression extends Expression {
-    final Expression expression0;
-    final Expression expression1;
+    public final Expression expression0;
+    public final Expression expression1;
     private final Primitive primitive;
 
     BinaryExpression(
         ExpressionType nodeType,
-        Class type,
+        Type type,
         Expression expression0,
         Expression expression1)
     {

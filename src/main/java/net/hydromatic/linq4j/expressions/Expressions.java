@@ -275,7 +275,7 @@ public class Expressions {
      * and has no variables. */
     public static BlockExpression block(Iterable<Expression> expressions) {
         List<Expression> list = toList(expressions);
-        Class type;
+        Type type;
         if (list.size() > 0) {
             type = list.get(list.size() - 1).getType();
         } else {
@@ -408,18 +408,6 @@ public class Expressions {
         throw Extensions.todo();
     }
 
-    /** Creates a MethodCallExpression that represents a call to an
-     * instance method that takes no arguments. */
-    public static MethodCallExpression call(
-        Expression expression,
-        Method method)
-    {
-        return new MethodCallExpression(
-            method,
-            expression,
-            Collections.<Expression>emptyList());
-    }
-
     /** Creates a MethodCallExpression that represents a call to a
      * static method. */
     public static MethodCallExpression call(
@@ -433,22 +421,10 @@ public class Expressions {
     }
 
     /** Creates a MethodCallExpression that represents a call to a
-     * static method that takes one argument. */
-    public static MethodCallExpression call(
-        Method method,
-        Expression expression)
-    {
-        return new MethodCallExpression(
-            method,
-            null,
-            Collections.singletonList(expression));
-    }
-
-    /** Creates a MethodCallExpression that represents a call to a
      * static method that has arguments. */
     public static MethodCallExpression call(
         Method method,
-        Expression[] arguments)
+        Expression... arguments)
     {
         return new MethodCallExpression(
             method,
@@ -470,11 +446,33 @@ public class Expressions {
     }
 
     /** Creates a MethodCallExpression that represents a call to a
+     * method that takes arguments, with an explicit return type.
+     *
+     * <p>The return type must be consistent with the return type of the method,
+     * but may contain extra information, such as type parameters.</p>
+     *
+     * <p>The {@code expression} argument may be null if and only if the method
+     * is static.</p>
+     */
+    public static MethodCallExpression call(
+        Type returnType,
+        Expression expression,
+        Method method,
+        Iterable<Expression> arguments)
+    {
+        return new MethodCallExpression(
+            returnType,
+            method,
+            expression,
+            toList(arguments));
+    }
+
+    /** Creates a MethodCallExpression that represents a call to a
      * method that takes arguments. */
     public static MethodCallExpression call(
         Expression expression,
         Method method,
-        Expression[] arguments)
+        Expression... arguments)
     {
         return new MethodCallExpression(
             method,
@@ -482,49 +480,17 @@ public class Expressions {
             Arrays.asList(arguments));
     }
 
-    /** Creates a MethodCallExpression that represents a call to a
-     * static method that takes two arguments. */
-    public static MethodCallExpression call(
-        Method method,
-        Expression argument0,
-        Expression argument1)
-    {
-        return new MethodCallExpression(
-            method,
-            null,
-            Arrays.asList(argument0, argument1));
-    }
-
-    /** Creates a MethodCallExpression that represents a call to an
-     * instance method that takes two arguments. */
-    public static MethodCallExpression call(
-        Expression expression,
-        Method method,
-        Expression argument0,
-        Expression argument1)
-    {
-        return new MethodCallExpression(
-            method,
-            expression,
-            Arrays.asList(argument0, argument1));
-    }
-
     /** Creates a MethodCallExpression that represents a call to an
      * instance method by calling the appropriate factory method. */
     public static MethodCallExpression call(
         Expression expression,
         String methodName,
-        Iterable<Class> typeArguments,
         Iterable<Expression> arguments)
     {
-        List<Class> classes = new ArrayList<Class>();
-        for (Expression argument : arguments) {
-            classes.add(argument.getType());
-        }
         Method method;
         try {
-            method = expression.getType().getMethod(
-                methodName, toArray(classes, new Class[0]));
+            method = Types.toClass(expression.getType()).getMethod(
+                methodName, Types.toClassArray(arguments));
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(
                 "while resolving method '" + methodName + "' in class "
@@ -535,145 +501,17 @@ public class Expressions {
     }
 
     /** Creates a MethodCallExpression that represents a call to a
-     * static method that takes three arguments. */
-    public static MethodCallExpression call(
-        Method method,
-        Expression expression0,
-        Expression expression1,
-        Expression expression2)
-    {
-        return new MethodCallExpression(
-            method,
-            null,
-            Arrays.asList(expression0, expression1, expression2));
-    }
-
-    /** Creates a MethodCallExpression that represents a call to a
-     * static (Shared in Visual Basic) method by calling the
+     * static method by calling the
      * appropriate factory method. */
     public static MethodCallExpression call(
         Class clazz,
         String methodName,
-        Iterable<Class> typeArguments,
         Iterable<Expression> arguments)
     {
-        List<Class> classes = new ArrayList<Class>();
-        for (Expression argument : arguments) {
-            classes.add(argument.getType());
-        }
         Method method =
-            lookupMethod(
-                clazz, methodName, classes.toArray(new Class[classes.size()]));
+            Types.lookupMethod(
+                clazz, methodName, Types.toClassArray(arguments));
         return new MethodCallExpression(method, null, toList(arguments));
-    }
-
-    /**
-     * Finds a method of a given name that accepts a given set of arguments.
-     * Includes in its search inherited methods and methods with wider argument
-     * types.
-     *
-     * @param clazz Class against which method is invoked
-     * @param methodName Name of method
-     * @param argumentTypes Types of arguments
-     * @return A method with the given name that matches the arguments given
-     *
-     * @throws RuntimeException if method not found
-     */
-    private static Method lookupMethod(
-        Class clazz, String methodName, Class[] argumentTypes)
-    {
-        try {
-            return clazz.getMethod(methodName, argumentTypes);
-        } catch (NoSuchMethodException e) {
-            for (Method method : clazz.getMethods()) {
-                if (method.getName().equals(methodName)
-                    && allAssignable(method.getParameterTypes(), argumentTypes))
-                {
-                    return method;
-                }
-            }
-            throw new RuntimeException(
-                "while resolving static method '" + methodName + "' in class "
-                + clazz,
-                e);
-        }
-    }
-
-    private static boolean allAssignable(
-        Class[] parameterTypes, Class[] argumentTypes)
-    {
-        if (parameterTypes.length != argumentTypes.length) {
-            return false;
-        }
-        for (int i = 0; i < parameterTypes.length; i++) {
-            if (!parameterTypes[i].isAssignableFrom(argumentTypes[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /** Creates a MethodCallExpression that represents a call to a
-     * method that takes three arguments. */
-    public static MethodCallExpression call(
-        Expression expression,
-        Method method,
-        Expression argument0,
-        Expression argument1,
-        Expression argument2)
-    {
-        return new MethodCallExpression(
-            method,
-            expression,
-            Arrays.asList(argument0, argument1, argument2));
-    }
-
-    /** Creates a MethodCallExpression that represents a call to a
-     * method that takes four arguments. */
-    public static MethodCallExpression call(
-        Expression expression,
-        Method method,
-        Expression argument0,
-        Expression argument1,
-        Expression argument2,
-        Expression argument3)
-    {
-        return new MethodCallExpression(
-            method,
-            expression,
-            Arrays.asList(argument0, argument1, argument2, argument3));
-    }
-
-    /** Creates a MethodCallExpression that represents a call to a
-     * static method that takes four arguments. */
-    public static MethodCallExpression call(
-        Method method,
-        Expression argument0,
-        Expression argument1,
-        Expression argument2,
-        Expression argument3)
-    {
-        return new MethodCallExpression(
-            method,
-            null,
-            Arrays.asList(argument0, argument1, argument2, argument3));
-    }
-
-    /** Creates a MethodCallExpression that represents a call to a
-     * static method that takes five arguments. */
-    public static MethodCallExpression call(
-        Method method,
-        Expression argument0,
-        Expression argument1,
-        Expression argument2,
-        Expression argument3,
-        Expression argument4)
-    {
-        return new MethodCallExpression(
-            method,
-            null,
-            Arrays.asList(
-                argument0, argument1, argument2, argument3, argument4));
     }
 
     /** Creates a CatchBlock representing a catch statement with a
@@ -1063,15 +901,7 @@ public class Expressions {
     public static MemberExpression field(
         Expression expression, String fieldName)
     {
-        Field field;
-        try {
-            field = expression.getType().getField(fieldName);
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(
-                "while resolving field '" + fieldName + "' in class "
-                + expression.getType(),
-                e);
-        }
+        Field field = Types.getField(fieldName, expression.getType());
         return makeMemberAccess(expression, field);
     }
 
@@ -1298,18 +1128,21 @@ public class Expressions {
         Iterable<ParameterExpression> parameters)
     {
         final List<ParameterExpression> parameterList = toList(parameters);
-        Class<F> type = deduceType(parameterList);
+        Class<F> type = deduceType(parameterList, body.getType());
         return new FunctionExpression<F>(type, body, parameterList);
     }
 
-    private static Class deduceType(List<ParameterExpression> parameterList) {
+    private static Class deduceType(
+        List<ParameterExpression> parameterList,
+        Type type)
+    {
         switch (parameterList.size()) {
         case 0:
             return Function0.class;
         case 1:
-            return Function1.class;
+            return type == Boolean.TYPE ? Predicate1.class : Function1.class;
         case 2:
-            return Function2.class;
+            return type == Boolean.TYPE ? Predicate2.class : Function2.class;
         default:
             return Function.class;
         }
@@ -1678,7 +1511,7 @@ public class Expressions {
         Expression left,
         Expression right)
     {
-        final Class type;
+        final Type type;
         switch (binaryType) {
         case Equal:
         case NotEqual:
@@ -1843,7 +1676,7 @@ public class Expressions {
     /** Creates a UnaryExpression, given an operand, by calling the
      * appropriate factory method. */
     public static UnaryExpression makeUnary(
-        ExpressionType expressionType, Expression expression, Class type)
+        ExpressionType expressionType, Expression expression, Type type)
     {
         return new UnaryExpression(expressionType, type, expression);
     }
@@ -1853,7 +1686,7 @@ public class Expressions {
     public static UnaryExpression makeUnary(
         ExpressionType expressionType,
         Expression expression,
-        Class type,
+        Type type,
         Method method)
     {
         assert type != null;
@@ -2148,12 +1981,24 @@ public class Expressions {
         throw Extensions.todo();
     }
 
+    /** Creates a NewExpression that represents calling the constructor of the
+     * specified type whose parameters are assignable from the specified
+     * arguments. */
+    public static NewExpression new_(
+        Class type, Iterable<Expression> arguments)
+    {
+        final Constructor constructor =
+            Types.lookupConstructor(
+                type, Types.toClassArray(arguments));
+        return new_(constructor, arguments);
+    }
+
     /** Creates a NewExpression that represents calling the specified
      * constructor with the specified arguments. */
     public static NewExpression new_(
         Constructor constructor, Iterable<Expression> expressions)
     {
-        throw Extensions.todo();
+        return new NewExpression(constructor, toList(expressions));
     }
 
     /** Creates a NewExpression that represents calling the specified

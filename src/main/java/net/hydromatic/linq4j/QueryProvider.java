@@ -19,6 +19,8 @@ package net.hydromatic.linq4j;
 
 import net.hydromatic.linq4j.expressions.Expression;
 
+import java.lang.reflect.Type;
+
 /**
  * Defines methods to create and execute queries that are described by a
  * {@link Queryable} object.
@@ -29,7 +31,7 @@ import net.hydromatic.linq4j.expressions.Expression;
  */
 public interface QueryProvider {
     /**
-     * Constructs an {@link Queryable} object that can evaluate the query
+     * Constructs a {@link Queryable} object that can evaluate the query
      * represented by a specified expression tree.
      *
      * @param expression Expression
@@ -38,6 +40,18 @@ public interface QueryProvider {
      * @return Queryable
      */
     <T> Queryable<T> createQuery(Expression expression, Class<T> rowType);
+
+    /**
+     * Constructs a {@link Queryable} object that can evaluate the query
+     * represented by a specified expression tree. The row type may contain
+     * generic information.
+     *
+     * @param expression Expression
+     * @param rowType Row type
+     * @param <T> Row type
+     * @return Queryable
+     */
+    <T> Queryable<T> createQuery(Expression expression, Type rowType);
 
     /**
      * Executes the query represented by a specified expression tree.
@@ -54,6 +68,12 @@ public interface QueryProvider {
      * that represents a linq4j query.
      */
     <T> T execute(Expression expression, Class<T> type);
+
+    /**
+     * Executes the query represented by a specified expression tree.
+     * The row type may contain type parameters.
+     */
+    <T> T execute(Expression expression, Type type);
 }
 
 // End QueryProvider.java
