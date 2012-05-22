@@ -29,9 +29,9 @@ import java.util.*;
 public final class FunctionExpression<F extends Function<?>>
     extends LambdaExpression
 {
-    private final F function;
-    private final Expression body;
-    private final List<ParameterExpression> parameterList;
+    public final F function;
+    public final Expression body;
+    public final List<ParameterExpression> parameterList;
     private F dynamicFunction;
 
     private FunctionExpression(
@@ -84,7 +84,7 @@ public final class FunctionExpression<F extends Function<?>>
             //noinspection unchecked
             dynamicFunction = (F) Proxy.newProxyInstance(
                 getClass().getClassLoader(),
-                new Class[] {type},
+                new Class[] {Types.toClass(type)},
                 new InvocationHandler() {
                     public Object invoke(
                         Object proxy,
@@ -101,23 +101,21 @@ public final class FunctionExpression<F extends Function<?>>
 
     @Override
     void accept(ExpressionWriter writer, int lprec, int rprec) {
-        /*
-        "new Function1() {
-            public Result apply(T1 p1, ...) {
-                <body>
-            }
-            // bridge method
-            public Object apply(Object p1, ...) {
-                return apply((T1) p1, ...);
-            }
-        }
-         */
+        // "new Function1() {
+        //    public Result apply(T1 p1, ...) {
+        //        <body>
+        //    }
+        //    // bridge method
+        //    public Object apply(Object p1, ...) {
+        //        return apply((T1) p1, ...);
+        //    }
+        // }
         List<String> params = new ArrayList<String>();
         List<String> bridgeParams = new ArrayList<String>();
         List<String> bridgeArgs = new ArrayList<String>();
         for (ParameterExpression parameterExpression : parameterList) {
             params.add(
-                ExpressionWriter.boxClassName(parameterExpression.getType())
+                Types.boxClassName(parameterExpression.getType())
                 + " "
                 + parameterExpression.name);
             bridgeParams.add(
@@ -125,7 +123,7 @@ public final class FunctionExpression<F extends Function<?>>
                 + parameterExpression.name);
             bridgeArgs.add(
                 "("
-                + ExpressionWriter.boxClassName(parameterExpression.getType())
+                + Types.boxClassName(parameterExpression.getType())
                 + ") "
                 + parameterExpression.name);
         }
@@ -134,7 +132,7 @@ public final class FunctionExpression<F extends Function<?>>
             .append("()")
             .begin(" {\n")
             .append("public ")
-            .append(ExpressionWriter.boxClassName(body.getType()))
+            .append(Types.boxClassName(body.getType()))
             .list(" apply(", ", ", ") ", params)
             .append(toBlock(body));
         if (true) {

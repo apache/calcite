@@ -154,7 +154,6 @@ public class ExpressionTest extends TestCase {
                             Expressions.constant(2),
                             Expressions.constant(3)),
                         "compareTo",
-                        Collections.<Class>emptyList(),
                         Arrays.<Expression>asList(
                             Expressions.constant(1))))));
 
@@ -185,7 +184,6 @@ public class ExpressionTest extends TestCase {
                         Expressions.call(
                             paramX,
                             "length",
-                            Collections.<Class>emptyList(),
                             Collections.<Expression>emptyList())),
                     Arrays.asList(paramX))));
 
@@ -209,11 +207,12 @@ public class ExpressionTest extends TestCase {
                     Expressions.call(
                         Expressions.convert_(
                             Expressions.convert_(
-                                Expressions.constant("foo"), Object.class),
+                                Expressions.constant("foo"),
+                                Object.class),
                             String.class),
                         "length",
-                        Collections.<Class>emptyList(),
-                        Collections.<Expression>emptyList()), Integer.TYPE)));
+                        Collections.<Expression>emptyList()),
+                    Integer.TYPE)));
 
         // resolving a static method
         assertEquals(
@@ -222,9 +221,72 @@ public class ExpressionTest extends TestCase {
                 Expressions.call(
                     Integer.class,
                     "valueOf",
-                    Collections.<Class>emptyList(),
                     Collections.<Expression>singletonList(
                         Expressions.constant("0123")))));
+    }
+
+    public void testWriteConstant() {
+        // primitives
+        assertEquals(
+            "new int[] {\n"
+            + "  1,\n"
+            + "  2,\n"
+            + "  -1}",
+            Expressions.toString(
+                Expressions.constant(new int[]{1, 2, -1})));
+
+        // objects and nulls
+        assertEquals(
+            "new String[] {\n"
+            + "  \"foo\",\n"
+            + "  null}",
+            Expressions.toString(
+                Expressions.constant(new String[] {"foo", null})));
+
+        // automatically call constructor if it matches fields
+        assertEquals(
+            "new net.hydromatic.linq4j.test.Linq4jTest$Employee[] {\n"
+            + "  new net.hydromatic.linq4j.test.Linq4jTest$Employee(\n"
+            + "    100,\n"
+            + "    \"Fred\",\n"
+            + "    10),\n"
+            + "  new net.hydromatic.linq4j.test.Linq4jTest$Employee(\n"
+            + "    110,\n"
+            + "    \"Bill\",\n"
+            + "    30),\n"
+            + "  new net.hydromatic.linq4j.test.Linq4jTest$Employee(\n"
+            + "    120,\n"
+            + "    \"Eric\",\n"
+            + "    10),\n"
+            + "  new net.hydromatic.linq4j.test.Linq4jTest$Employee(\n"
+            + "    130,\n"
+            + "    \"Jane\",\n"
+            + "    10)}",
+            Expressions.toString(
+                Expressions.constant(Linq4jTest.emps)));
+    }
+
+    public void testCompile() throws NoSuchMethodException {
+        // Creating a parameter for the expression tree.
+        ParameterExpression param = Expressions.parameter(String.class);
+
+        // Creating an expression for the method call and specifying its
+        // parameter.
+        MethodCallExpression methodCall =
+            Expressions.call(
+                Integer.class,
+                "valueOf",
+                Collections.<Expression>singletonList(param));
+
+        // The following statement first creates an expression tree,
+        // then compiles it, and then runs it.
+        int x =
+            Expressions.<Function1<String, Integer>>lambda(
+                methodCall,
+                new ParameterExpression[] { param })
+                .getFunction()
+                .apply("1234");
+        assertEquals(1234, x);
     }
 }
 

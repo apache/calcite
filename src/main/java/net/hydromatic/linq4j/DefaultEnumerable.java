@@ -32,13 +32,21 @@ import java.util.*;
  * The derived class can implement each separately, or implement one in terms of
  * the other.</p>
  */
-public abstract class DefaultEnumerable<T> implements Enumerable<T> {
+public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
 
     /**
      * Derived classes might wish to override this method to return the "outer"
      * enumerable.
      */
     protected Enumerable<T> getThis() {
+        return this;
+    }
+
+    /**
+     * Derived classes might wish to override this method to return the "outer"
+     * ordered-enumerable.
+     */
+    protected OrderedEnumerable<T> getThisOrdered() {
         return this;
     }
 
@@ -157,6 +165,15 @@ public abstract class DefaultEnumerable<T> implements Enumerable<T> {
         return Extensions.count(getThis(), predicate);
     }
 
+    public <TKey> OrderedEnumerable<T> createOrderedEnumerable(
+        Function1<T, TKey> keySelector,
+        Comparator<TKey> comparator,
+        boolean descending)
+    {
+        return Extensions.createOrderedEnumerable(
+            getThisOrdered(), keySelector, comparator, descending);
+    }
+
     public Enumerable<T> defaultIfEmpty() {
         return Extensions.defaultIfEmpty(getThis());
     }
@@ -272,11 +289,7 @@ public abstract class DefaultEnumerable<T> implements Enumerable<T> {
         EqualityComparer<TKey> comparer)
     {
         return Extensions.groupBy(
-            getThis(),
-            keySelector,
-            elementSelector,
-            resultSelector,
-            comparer);
+            getThis(), keySelector, elementSelector, resultSelector, comparer);
     }
 
     public <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
@@ -286,7 +299,10 @@ public abstract class DefaultEnumerable<T> implements Enumerable<T> {
         Function2<T, Enumerable<TInner>, TResult> resultSelector)
     {
         return Extensions.groupJoin(
-            getThis(), inner, outerKeySelector, innerKeySelector,
+            getThis(),
+            inner,
+            outerKeySelector,
+            innerKeySelector,
             resultSelector);
     }
 
@@ -324,7 +340,10 @@ public abstract class DefaultEnumerable<T> implements Enumerable<T> {
         Function2<T, TInner, TResult> resultSelector)
     {
         return Extensions.join(
-            getThis(), inner, outerKeySelector, innerKeySelector,
+            getThis(),
+            inner,
+            outerKeySelector,
+            innerKeySelector,
             resultSelector);
     }
 
@@ -533,9 +552,7 @@ public abstract class DefaultEnumerable<T> implements Enumerable<T> {
         Function2<T, TCollection, TResult> resultSelector)
     {
         return Extensions.selectMany(
-            getThis(),
-            collectionSelector,
-            resultSelector);
+            getThis(), collectionSelector, resultSelector);
     }
 
     public boolean sequenceEqual(Enumerable<T> enumerable1) {
@@ -627,6 +644,34 @@ public abstract class DefaultEnumerable<T> implements Enumerable<T> {
 
     public Enumerable<T> takeWhile(Predicate2<T, Integer> predicate) {
         return Extensions.takeWhile(getThis(), predicate);
+    }
+
+    public <TKey extends Comparable<TKey>> OrderedEnumerable<T> thenBy(
+        Function1<T, TKey> keySelector)
+    {
+        return Extensions.thenBy(getThisOrdered(), keySelector);
+    }
+
+    public <TKey> OrderedEnumerable<T> thenBy(
+        Function1<T, TKey> keySelector,
+        Comparator<TKey> comparator)
+    {
+        return Extensions.thenByDescending(
+            getThisOrdered(), keySelector, comparator);
+    }
+
+    public <TKey extends Comparable<TKey>>
+    OrderedEnumerable<T> thenByDescending(
+        Function1<T, TKey> keySelector)
+    {
+        return Extensions.thenByDescending(getThisOrdered(), keySelector);
+    }
+
+    public <TKey> OrderedEnumerable<T> thenByDescending(
+        Function1<T, TKey> keySelector,
+        Comparator<TKey> comparator)
+    {
+        return Extensions.thenBy(getThisOrdered(), keySelector, comparator);
     }
 
     public <TKey> Map<TKey, T> toMap(Function1<T, TKey> keySelector) {

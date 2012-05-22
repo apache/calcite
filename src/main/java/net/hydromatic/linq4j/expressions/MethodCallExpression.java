@@ -19,26 +19,41 @@ package net.hydromatic.linq4j.expressions;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.util.List;
 
 /**
  * Represents a call to either a static or an instance method.
  */
 public class MethodCallExpression extends Expression {
-    private final Method method;
-    private final Expression targetExpression; // null for call to static method
-    private final List<Expression> expressions;
+    public final Method method;
+    public final Expression targetExpression; // null for call to static method
+    public final List<Expression> expressions;
+
+    MethodCallExpression(
+        Type returnType,
+        Method method,
+        Expression targetExpression,
+        List<Expression> expressions)
+    {
+        super(ExpressionType.Call, returnType);
+        this.method = method;
+        this.targetExpression = targetExpression;
+        this.expressions = expressions;
+        assert expressions != null;
+        assert returnType != null;
+        assert (targetExpression == null)
+               == Modifier.isStatic(method.getModifiers());
+        assert Types.toClass(returnType) == method.getReturnType();
+    }
 
     MethodCallExpression(
         Method method,
         Expression targetExpression,
         List<Expression> expressions)
     {
-        super(ExpressionType.Call, method.getReturnType());
-        this.method = method;
-        this.targetExpression = targetExpression;
-        this.expressions = expressions;
-        assert expressions != null;
+        this(method.getReturnType(), method, targetExpression, expressions);
     }
 
     @Override

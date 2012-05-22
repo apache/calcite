@@ -36,8 +36,8 @@ abstract class DefaultQueryable<T>
         return this;
     }
 
-    protected OrderedQueryable<T> getThisOrdered() {
-        return (OrderedQueryable<T>) this;
+    protected OrderedQueryable<T> getThisOrderedQueryable() {
+        return this;
     }
 
     // Disambiguate
@@ -513,7 +513,7 @@ abstract class DefaultQueryable<T>
     public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
-        return Extensions.thenBy(getThisOrdered(), keySelector);
+        return Extensions.thenBy(getThisOrderedQueryable(), keySelector);
     }
 
     public <TKey> OrderedQueryable<T> thenBy(
@@ -521,20 +521,22 @@ abstract class DefaultQueryable<T>
         Comparator<TKey> comparator)
     {
         return Extensions.thenByDescending(
-            getThisOrdered(), keySelector, comparator);
+            getThisOrderedQueryable(), keySelector, comparator);
     }
 
     public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenByDescending(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
-        return Extensions.thenByDescending(getThisOrdered(), keySelector);
+        return Extensions.thenByDescending(
+            getThisOrderedQueryable(), keySelector);
     }
 
     public <TKey> OrderedQueryable<T> thenByDescending(
         FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
-        return Extensions.thenBy(getThisOrdered(), keySelector, comparator);
+        return Extensions.thenBy(
+            getThisOrderedQueryable(), keySelector, comparator);
     }
 
     public Queryable<T> where(

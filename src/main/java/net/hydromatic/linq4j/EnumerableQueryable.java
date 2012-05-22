@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.FunctionExpression;
 import net.hydromatic.linq4j.function.*;
 
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -146,7 +147,7 @@ class EnumerableQueryable<T>
 
     // Queryable methods
 
-    public Class<T> getElementType() {
+    public Type getElementType() {
         return rowType;
     }
 

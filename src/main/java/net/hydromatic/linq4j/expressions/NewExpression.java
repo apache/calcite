@@ -17,12 +17,23 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Constructor;
+import java.util.List;
+
 /**
  * Represents a constructor call.
  */
 public class NewExpression extends Expression {
-    public NewExpression(ExpressionType nodeType, Class type) {
-        super(nodeType, type);
+    public final Constructor constructor;
+    public final List<Expression> arguments;
+
+    public NewExpression(
+        Constructor constructor,
+        List<Expression> arguments)
+    {
+        super(ExpressionType.New, constructor.getDeclaringClass());
+        this.constructor = constructor;
+        this.arguments = arguments;
     }
 }
 

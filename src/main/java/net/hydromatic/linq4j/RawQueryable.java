@@ -19,6 +19,8 @@ package net.hydromatic.linq4j;
 
 import net.hydromatic.linq4j.expressions.Expression;
 
+import java.lang.reflect.Type;
+
 /**
  * Core methods that define a {@link Queryable}.
  *
@@ -33,7 +35,7 @@ public interface RawQueryable<T> extends Enumerable<T> {
      * Gets the type of the element(s) that are returned when the expression
      * tree associated with this Queryable is executed.
      */
-    Class<T> getElementType();
+    Type getElementType();
 
     /** Gets the expression tree that is associated with this Queryable. */
     Expression getExpression();

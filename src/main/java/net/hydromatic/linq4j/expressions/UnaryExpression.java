@@ -17,6 +17,8 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Type;
+
 /**
  * Represents an expression that has a unary operator.
  */
@@ -24,7 +26,7 @@ public class UnaryExpression extends Expression {
     private final Expression expression;
 
     UnaryExpression(
-        ExpressionType nodeType, Class type, Expression expression)
+        ExpressionType nodeType, Type type, Expression expression)
     {
         super(nodeType, type);
         this.expression = expression;
@@ -48,8 +50,6 @@ public class UnaryExpression extends Expression {
             writer.append(nodeType.op);
             expression.accept(writer, lprec, rprec);
         }
-
-//        (String) ((Object) "foo").
     }
 }
 

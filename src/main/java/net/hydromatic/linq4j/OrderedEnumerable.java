@@ -15,27 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.linq4j.expressions;
-
-import java.lang.reflect.Type;
-import java.util.List;
+package net.hydromatic.linq4j;
 
 /**
- * Represents a block that contains a sequence of expressions where variables
- * can be defined.
+ * Represents the result of applying a sorting operation to an
+ * {@link net.hydromatic.linq4j.Enumerable}.
+ *
+ * @author jhyde
  */
-public class BlockExpression extends Expression {
-    private final List<Expression> expressions;
-
-    BlockExpression(List<Expression> expressions, Type type) {
-        super(ExpressionType.Block, type);
-        this.expressions = expressions;
-    }
-
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        writer.list("{\n", ";\n", "}\n", expressions);
-    }
+public interface OrderedEnumerable<T>
+    extends Enumerable<T>, ExtendedOrderedEnumerable<T>
+{
 }
 
-// End BlockExpression.java
+// End OrderedEnumerable.java

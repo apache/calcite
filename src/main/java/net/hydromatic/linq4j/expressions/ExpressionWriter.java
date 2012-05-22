@@ -17,6 +17,7 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Type;
 import java.util.*;
 
 /**
@@ -101,45 +102,10 @@ class ExpressionWriter {
         return this;
     }
 
-    public ExpressionWriter append(Class o) {
+    public ExpressionWriter append(Type type) {
         checkIndent();
-        buf.append(className(o));
+        buf.append(Types.className(type));
         return this;
-    }
-
-    private static final Map<Class, String> PRIMITIVES =
-        new HashMap<Class, String>();
-    static {
-        PRIMITIVES.put(Boolean.TYPE, "Boolean");
-        PRIMITIVES.put(Byte.TYPE, "Byte");
-        PRIMITIVES.put(Character.TYPE, "Character");
-        PRIMITIVES.put(Short.TYPE, "Short");
-        PRIMITIVES.put(Integer.TYPE, "Integer");
-        PRIMITIVES.put(Long.TYPE, "Long");
-        PRIMITIVES.put(Float.TYPE, "Float");
-        PRIMITIVES.put(Double.TYPE, "Double");
-        PRIMITIVES.put(Void.TYPE, "Void");
-    }
-
-    static String boxClassName(Class o) {
-        if (o.isPrimitive()) {
-            return PRIMITIVES.get(o);
-        } else {
-            return className(o);
-        }
-    }
-
-    static String className(Class o) {
-        if (o.isArray()) {
-            return className(o.getComponentType()) + "[]";
-        }
-        String className = o.getName();
-        if (o.getPackage() == Package.getPackage("java.lang")
-            && !o.isPrimitive())
-        {
-            return className.substring("java.lang.".length());
-        }
-        return className;
     }
 
     public ExpressionWriter append(Expression o) {

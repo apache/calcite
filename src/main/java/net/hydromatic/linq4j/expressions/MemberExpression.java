@@ -18,22 +18,28 @@
 package net.hydromatic.linq4j.expressions;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 /**
  * Represents accessing a field or property.
  */
 public class MemberExpression extends Expression {
-    private final Expression expression;
-    private final Field field;
+    public final Expression expression;
+    public final Field field;
 
     public MemberExpression(Expression expression, Field field) {
         super(ExpressionType.MemberAccess, field.getType());
         this.expression = expression;
         this.field = field;
+        assert expression != null || Modifier.isStatic(field.getModifiers())
+            : "must specify expression if field is not static";
     }
 
     public Object evaluate(Evaluator evaluator) {
-        final Object o = expression.evaluate(evaluator);
+        final Object o =
+            expression == null
+                ? null
+                : expression.evaluate(evaluator);
         try {
             return field.get(o);
         } catch (IllegalAccessException e) {
