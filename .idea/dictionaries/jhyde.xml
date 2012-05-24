@@ -5,7 +5,10 @@
       <w>deptno</w>
       <w>depts</w>
       <w>emps</w>
+      <w>lprec</w>
+      <w>multi</w>
       <w>nullable</w>
+      <w>rprec</w>
     </words>
   </dictionary>
 </component>

@@ -22,6 +22,8 @@ import net.hydromatic.linq4j.function.Function1;
 
 import junit.framework.TestCase;
 
+import java.lang.reflect.Member;
+import java.lang.reflect.Modifier;
 import java.util.*;
 
 /**
@@ -264,6 +266,70 @@ public class ExpressionTest extends TestCase {
             + "    10)}",
             Expressions.toString(
                 Expressions.constant(Linq4jTest.emps)));
+    }
+
+    public void testWriteAnonymousClass() {
+        // final List<String> baz = Arrays.asList("foo", "bar");
+        // new AbstractList<String>() {
+        //     public int size() {
+        //         return baz.size();
+        //     }
+        //     public String get(int index) {
+        //         return ((String) baz.get(index)).toUpperCase();
+        //     }
+        // }
+        final ParameterExpression bazParameter =
+            Expressions.parameter(
+                Types.of(List.class, String.class),
+                "baz");
+        final ParameterExpression indexParameter =
+            Expressions.parameter(
+                Integer.TYPE,
+                "index");
+        Expression e =
+            Expressions.block(
+                Arrays.<Expression>asList(
+                    Expressions.declare(
+                        Modifier.FINAL, bazParameter,
+                        Expressions.call(
+                            Arrays.class,
+                            "asList",
+                            Arrays.<Expression>asList(
+                                Expressions.constant("foo"),
+                                Expressions.constant("bar")))),
+                    Expressions.new_(
+                        Types.of(AbstractList.class, String.class),
+                        Collections.<Expression>emptyList(),
+                        Collections.<Member>emptyList(),
+                        Arrays.<MemberDeclaration>asList(
+                            Expressions.methodDecl(
+                                Modifier.PUBLIC,
+                                Integer.TYPE,
+                                "size",
+                                Collections.<ParameterExpression>emptyList(),
+                                Expressions.call(
+                                    bazParameter,
+                                    "size",
+                                    Collections.<Expression>emptyList())),
+                            Expressions.methodDecl(
+                                Modifier.PUBLIC,
+                                String.class,
+                                "get",
+                                Arrays.asList(
+                                    indexParameter),
+                                Expressions.call(
+                                    Expressions.convert_(
+                                        Expressions.call(
+                                            bazParameter,
+                                            "get",
+                                            Arrays.<Expression>asList(
+                                                indexParameter)),
+                                        String.class),
+                                    "toUpperCase",
+                                    Collections.<Expression>emptyList()))))));
+        assertEquals(
+            "xxx",
+            Expressions.toString(e));
     }
 
     public void testCompile() throws NoSuchMethodException {

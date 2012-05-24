@@ -1742,6 +1742,18 @@ public class Expressions {
         return memberInit(newExpression, Arrays.asList(bindings));
     }
 
+    /** Declares a method. */
+    public static MethodDeclaration methodDecl(
+        int modifier,
+        Type resultType,
+        String name,
+        Iterable<ParameterExpression> parameters,
+        Expression body)
+    {
+        return new MethodDeclaration(
+            modifier, name, resultType, toList(parameters), body);
+    }
+
     /** Creates a BinaryExpression that represents an arithmetic
      * remainder operation. */
     public static BinaryExpression modulo(
@@ -1977,15 +1989,15 @@ public class Expressions {
 
     /** Creates a NewExpression that represents calling the
      * parameterless constructor of the specified type. */
-    public static NewExpression new_(Class type) {
-        throw Extensions.todo();
+    public static NewExpression new_(Type type) {
+        return new_(type, Collections.<Expression>emptyList());
     }
 
     /** Creates a NewExpression that represents calling the constructor of the
      * specified type whose parameters are assignable from the specified
      * arguments. */
     public static NewExpression new_(
-        Class type, Iterable<Expression> arguments)
+        Type type, Iterable<Expression> arguments)
     {
         final Constructor constructor =
             Types.lookupConstructor(
@@ -1993,18 +2005,35 @@ public class Expressions {
         return new_(constructor, arguments);
     }
 
-    /** Creates a NewExpression that represents calling the specified
-     * constructor with the specified arguments. */
+    /** Creates a NewExpression that represents calling the constructor of the
+     * specified type whose parameters are assignable from the specified
+     * arguments. */
     public static NewExpression new_(
-        Constructor constructor, Iterable<Expression> expressions)
+        Type type,
+        Iterable<Expression> arguments,
+        Iterable<Member> members,
+        Iterable<MemberDeclaration> memberDeclarations)
     {
-        return new NewExpression(constructor, toList(expressions));
+        final Constructor constructor =
+            Types.lookupConstructor(
+                type, Types.toClassArray(arguments));
+        return new_(constructor, arguments, members, memberDeclarations);
     }
 
     /** Creates a NewExpression that represents calling the specified
      * constructor with the specified arguments. */
     public static NewExpression new_(
-        Constructor constructor, Expression[] expressions)
+        Constructor constructor, Iterable<Expression> expressions)
+    {
+        return new_(
+            constructor, expressions, Collections.<Member>emptyList(),
+            Collections.<MemberDeclaration>emptyList());
+    }
+
+    /** Creates a NewExpression that represents calling the specified
+     * constructor with the specified arguments. */
+    public static NewExpression new_(
+        Constructor constructor, Expression... expressions)
     {
         return new_(constructor, Arrays.asList(expressions));
     }
@@ -2015,9 +2044,12 @@ public class Expressions {
     public static NewExpression new_(
         Constructor constructor,
         Iterable<Expression> expressions,
-        Iterable<Member> members)
+        Iterable<Member> members,
+        Iterable<MemberDeclaration> memberDeclarations)
     {
-        throw Extensions.todo();
+        return new NewExpression(
+            constructor, toList(expressions), toList(members),
+            toList(memberDeclarations));
     }
 
     /** Creates a NewExpression that represents calling the specified
@@ -2029,7 +2061,9 @@ public class Expressions {
         Iterable<Expression> expressions,
         Member[] members)
     {
-        return new_(constructor, expressions, Arrays.asList(members));
+        return new_(
+            constructor, expressions, Arrays.asList(members),
+            Collections.<MemberDeclaration>emptyList());
     }
 
     /** Creates a NewArrayExpression that represents creating an array
@@ -2196,13 +2230,13 @@ public class Expressions {
 
     /** Creates a ParameterExpression node that can be used to
      * identify a parameter or a variable in an expression tree. */
-    public static ParameterExpression parameter(Class type) {
+    public static ParameterExpression parameter(Type type) {
         return new ParameterExpression(type);
     }
 
     /** Creates a ParameterExpression node that can be used to
      * identify a parameter or a variable in an expression tree. */
-    public static ParameterExpression parameter(Class type, String name) {
+    public static ParameterExpression parameter(Type type, String name) {
         return new ParameterExpression(type, name);
     }
 
@@ -2932,6 +2966,13 @@ public class Expressions {
      * is not reducible.*/
     public static Expression VisitChildren(ExpressionVisitor visitor) {
         throw Extensions.todo();
+    }
+
+    /** Creates an expression that declares a variable. */
+    public static DeclarationExpression declare(
+        int modifiers, ParameterExpression parameter, Expression initializer)
+    {
+        return new DeclarationExpression(modifiers, parameter, initializer);
     }
 
     // Some interfaces we'd rather not implement yet. They don't seem relevant

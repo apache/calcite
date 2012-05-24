@@ -173,13 +173,23 @@ public class Types {
     }
 
     static boolean allAssignable(
-        Class[] parameterTypes, Class[] argumentTypes)
+        boolean varArgs, Class[] parameterTypes, Class[] argumentTypes)
     {
-        if (parameterTypes.length != argumentTypes.length) {
-            return false;
+        if (varArgs) {
+            if (argumentTypes.length < parameterTypes.length - 1) {
+                return false;
+            }
+        } else {
+            if (parameterTypes.length != argumentTypes.length) {
+                return false;
+            }
         }
-        for (int i = 0; i < parameterTypes.length; i++) {
-            if (!parameterTypes[i].isAssignableFrom(argumentTypes[i])) {
+        for (int i = 0; i < argumentTypes.length; i++) {
+            Class parameterType =
+                !varArgs || i < parameterTypes.length - 1
+                    ? parameterTypes[i]
+                    : Object.class;
+            if (!parameterType.isAssignableFrom(argumentTypes[i])) {
                 return false;
             }
         }
@@ -207,6 +217,7 @@ public class Types {
             for (Method method : clazz.getMethods()) {
                 if (method.getName().equals(methodName)
                     && allAssignable(
+                        method.isVarArgs(),
                         method.getParameterTypes(),
                         argumentTypes))
                 {
@@ -224,25 +235,28 @@ public class Types {
      * Finds a constructor of a given class that accepts a given set of
      * arguments. Includes in its search methods with wider argument types.
      *
-     *
-     * @param clazz Class against which method is invoked
+     * @param type Class against which method is invoked
      * @param argumentTypes Types of arguments
      * @return A method with the given name that matches the arguments given
      *
      * @throws RuntimeException if method not found
      */
     public static Constructor lookupConstructor(
-        Class clazz, Class... argumentTypes)
+        Type type, Class... argumentTypes)
     {
+        final Class clazz = toClass(type);
         for (Constructor constructor : clazz.getConstructors()) {
             if (allAssignable(
-                    constructor.getParameterTypes(), argumentTypes))
+                constructor.isVarArgs(),
+                constructor.getParameterTypes(),
+                argumentTypes))
             {
                 return constructor;
             }
         }
         throw new RuntimeException(
-            "while resolving static constructor in class " + clazz);
+            "while resolving constructor in class " + type + " with types "
+            + Arrays.toString(argumentTypes));
     }
 
     static class ParameterizedTypeImpl implements ParameterizedType {
@@ -257,6 +271,22 @@ public class Types {
             this.rawType = rawType;
             this.typeArguments = typeArguments;
             this.ownerType = ownerType;
+        }
+
+        @Override
+        public String toString() {
+            final StringBuilder buf = new StringBuilder();
+            buf.append(className(rawType));
+            buf.append("<");
+            int i = 0;
+            for (Type typeArgument : typeArguments) {
+                if (i++ > 0) {
+                    buf.append(", ");
+                }
+                buf.append(className(typeArgument));
+            }
+            buf.append(">");
+            return buf.toString();
         }
 
         public Type[] getActualTypeArguments() {

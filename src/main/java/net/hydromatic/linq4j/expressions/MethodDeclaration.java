@@ -18,32 +18,31 @@
 package net.hydromatic.linq4j.expressions;
 
 import java.lang.reflect.Type;
+import java.util.List;
 
 /**
- * Represents a named parameter expression.
+ * Declaration of a method.
  */
-public class ParameterExpression extends Expression {
-    private static int seq = 0;
+public class MethodDeclaration extends MemberDeclaration {
+    public final int modifier;
+    public final String name;
+    public final Type resultType;
+    public final List<ParameterExpression> parameters;
+    public final Expression body;
 
-    final String name;
-
-    public ParameterExpression(Type type) {
-        this(type, "p" + seq++);
-    }
-
-    public ParameterExpression(Type type, String name) {
-        super(ExpressionType.Parameter, type);
+    public MethodDeclaration(
+        int modifier,
+        String name,
+        Type resultType,
+        List<ParameterExpression> parameters,
+        Expression body)
+    {
+        this.modifier = modifier;
         this.name = name;
-    }
-
-    public Object evaluate(Evaluator evaluator) {
-        return evaluator.peek(this);
-    }
-
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        writer.append(name);
+        this.resultType = resultType;
+        this.parameters = parameters;
+        this.body = body;
     }
 }
 
-// End ParameterExpression.java
+// End MethodDeclaration.java

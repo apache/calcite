@@ -18,22 +18,30 @@
 package net.hydromatic.linq4j.expressions;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Member;
 import java.util.List;
 
 /**
  * Represents a constructor call.
+ *
+ * <p>If {@link #memberDeclarations} is not null (even if empty) represents
+ * an anonymous class.</p>
  */
 public class NewExpression extends Expression {
     public final Constructor constructor;
     public final List<Expression> arguments;
+    public final List<MemberDeclaration> memberDeclarations;
 
     public NewExpression(
         Constructor constructor,
-        List<Expression> arguments)
+        List<Expression> arguments,
+        List<Member> members, // not used
+        List<MemberDeclaration> memberDeclarations)
     {
         super(ExpressionType.New, constructor.getDeclaringClass());
         this.constructor = constructor;
         this.arguments = arguments;
+        this.memberDeclarations = memberDeclarations;
     }
 }
 

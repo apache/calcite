@@ -405,7 +405,10 @@ public enum ExpressionType {
     IsTrue,
 
     /** A false condition value. */
-    IsFalse;
+    IsFalse,
+
+    /** Declaration of a variable. */
+    Declaration;
 
     final String op;
     final boolean postfix;

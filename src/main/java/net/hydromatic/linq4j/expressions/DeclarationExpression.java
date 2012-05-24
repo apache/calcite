@@ -20,30 +20,23 @@ package net.hydromatic.linq4j.expressions;
 import java.lang.reflect.Type;
 
 /**
- * Represents a named parameter expression.
+ * Expression that declares and optionally initializes a variable.
+ *
+ * @author jhyde
  */
-public class ParameterExpression extends Expression {
-    private static int seq = 0;
+public class DeclarationExpression extends Expression {
+    public final int modifiers;
+    public final ParameterExpression parameter;
+    public final Expression initializer;
 
-    final String name;
-
-    public ParameterExpression(Type type) {
-        this(type, "p" + seq++);
-    }
-
-    public ParameterExpression(Type type, String name) {
-        super(ExpressionType.Parameter, type);
-        this.name = name;
-    }
-
-    public Object evaluate(Evaluator evaluator) {
-        return evaluator.peek(this);
-    }
-
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        writer.append(name);
+    public DeclarationExpression(
+        int modifiers, ParameterExpression parameter, Expression initializer)
+    {
+        super(ExpressionType.Declaration, Void.TYPE);
+        this.modifiers = modifiers;
+        this.parameter = parameter;
+        this.initializer = initializer;
     }
 }
 
-// End ParameterExpression.java
+// End DeclarationExpression.java
