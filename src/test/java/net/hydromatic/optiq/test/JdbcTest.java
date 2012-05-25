@@ -74,10 +74,12 @@ public class JdbcTest extends TestCase {
             int n = resultSet.getMetaData().getColumnCount();
             for (int i = 1; i <= n; i++) {
                 buf.append(
-                    (i > 1 ? "; " : "")
-                    + resultSet.getMetaData().getColumnLabel(i)
-                    + "="
-                    + resultSet.getObject(i));
+                    i > 1
+                        ? "; "
+                        : "")
+                    .append(resultSet.getMetaData().getColumnLabel(i))
+                    .append("=")
+                    .append(resultSet.getObject(i));
             }
             buf.append("\n");
         }

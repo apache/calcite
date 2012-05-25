@@ -17,8 +17,9 @@
 */
 package net.hydromatic.optiq.rules.java;
 
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.ExtendedEnumerable;
+import com.sun.java.util.jar.pack.*;
+import com.sun.java.util.jar.pack.Package;
+import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.function.Function1;
@@ -36,6 +37,7 @@ import org.eigenbase.rex.RexMultisetUtil;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.rex.RexProgram;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -45,6 +47,9 @@ import java.util.*;
  * @author jhyde
  */
 public class JavaRules {
+    private static final Constructor ABSTRACT_ENUMERABLE_CTOR =
+        Types.lookupConstructor(AbstractEnumerable.class);
+
     // not used
     public static final RelOptRule JAVA_PROJECT_RULE =
         new RelOptRule(
@@ -391,20 +396,74 @@ public class JavaRules {
                 implementor.visitChild(this, 0, (EnumerableRel) getChild());
             RelDataType outputRowType = getRowType();
             RelDataType inputRowType = getChild().getRowType();
-            return childExp /* implementAbstract(
-                implementor,
-                this,
-                childExp,
-                varInputRow,
-                inputRowType,
-                outputRowType,
-                program,
-                null) */;
+
+            // With calc:
+            //
+            // new Enumerable<IntString>() {
+            //     final Enumerator<Employee> child
+            //     Enumerator<IntString> enumerator() {
+            //         public void reset() {
+
+            return Expressions.new_(
+                ABSTRACT_ENUMERABLE_CTOR,
+                // Collections.singletonList(inputRowType),
+                Collections.<Expression>emptyList(),
+
+                Arrays.<com.sun.java.util.jar.pack.Package.Class.Member>asList())
+
         }
 
         public RexProgram getProgram() {
             return program;
         }
+    }
+
+    void foo() {
+        new AbstractEnumerable<IntString>() {
+            final Enumerable<Employee> inputable = Linq4j.emptyEnumerable();
+            public Enumerator<IntString> enumerator() {
+                final Enumerator<Employee> input = inputable.enumerator();
+                return new Enumerator<IntString>() {
+                    public IntString current() {
+                        int v0 = input.current().empid * 2;
+                        String v1 = input.current().name;
+                        return new IntString(v0, v1);
+                    }
+
+                    public boolean moveNext() {
+                        while (input.moveNext()) {
+                            int v0 = input.current().empid;
+                            boolean v1 = v0 < 200;
+                            boolean v2 = v0 > 150;
+                            boolean v3 = v1 && v2;
+                            if (v3) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+
+                    public void reset() {
+                        input.reset();
+                    }
+                };
+            }
+        };
+    }
+
+    static class IntString {
+        int n;
+        String s;
+
+        IntString(int n, String s) {
+            this.n = n;
+            this.s = s;
+        }
+    }
+
+    static class Employee {
+        int empid;
+        String name;
     }
 }
 
