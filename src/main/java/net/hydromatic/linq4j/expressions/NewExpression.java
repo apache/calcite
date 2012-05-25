@@ -43,6 +43,16 @@ public class NewExpression extends Expression {
         this.arguments = arguments;
         this.memberDeclarations = memberDeclarations;
     }
+
+    @Override
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        writer.append("new ")
+            .append(constructor.getDeclaringClass())
+            .list("(\n", ",\n", ")", arguments);
+        if (memberDeclarations != null) {
+            writer.list("{\n", "\n\n", "}", memberDeclarations);
+        }
+    }
 }
 
 // End NewExpression.java

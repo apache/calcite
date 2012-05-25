@@ -21,6 +21,7 @@ package net.hydromatic.linq4j.expressions;
  * Declaration of a member of a class.
  */
 public abstract class MemberDeclaration {
+    public abstract void accept(ExpressionWriter expressionWriter);
 }
 
 // End MemberDeclaration.java

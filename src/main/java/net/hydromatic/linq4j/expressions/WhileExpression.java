@@ -18,34 +18,25 @@
 package net.hydromatic.linq4j.expressions;
 
 /**
- * Expression that declares and optionally initializes a variable.
- *
- * @author jhyde
+ * Represents a "while" statement.
  */
-public class DeclarationExpression extends Expression {
-    public final int modifiers;
-    public final ParameterExpression parameter;
-    public final Expression initializer;
+public class WhileExpression extends Expression {
+    public final Expression condition;
+    public final Expression body;
 
-    public DeclarationExpression(
-        int modifiers, ParameterExpression parameter, Expression initializer)
-    {
-        super(ExpressionType.Declaration, Void.TYPE);
-        this.modifiers = modifiers;
-        this.parameter = parameter;
-        this.initializer = initializer;
+    public WhileExpression(Expression condition, Expression body) {
+        super(ExpressionType.While, Void.TYPE);
+        this.condition = condition;
+        this.body = body;
     }
 
     @Override
     void accept(ExpressionWriter writer, int lprec, int rprec) {
-        writer.append(parameter.type)
-            .append(' ')
-            .append(parameter.name);
-        if (initializer != null) {
-            writer.append(" = ")
-                .append(initializer);
-        }
+        writer.append("while (")
+            .append(condition)
+            .append(") ")
+            .append(FunctionExpression.toBlock(body));
     }
 }
 
-// End DeclarationExpression.java
+// End WhileExpression.java

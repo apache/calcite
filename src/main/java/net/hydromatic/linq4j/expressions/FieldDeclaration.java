@@ -17,27 +17,32 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Modifier;
+
 /**
- * Expression that declares and optionally initializes a variable.
- *
- * @author jhyde
+ * Declaration of a field.
  */
-public class DeclarationExpression extends Expression {
-    public final int modifiers;
+public class FieldDeclaration extends MemberDeclaration {
+    public final int modifier;
     public final ParameterExpression parameter;
     public final Expression initializer;
 
-    public DeclarationExpression(
-        int modifiers, ParameterExpression parameter, Expression initializer)
+    public FieldDeclaration(
+        int modifier,
+        ParameterExpression parameter,
+        Expression initializer)
     {
-        super(ExpressionType.Declaration, Void.TYPE);
-        this.modifiers = modifiers;
+        this.modifier = modifier;
         this.parameter = parameter;
         this.initializer = initializer;
     }
 
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
+    public void accept(ExpressionWriter writer) {
+        String modifiers = Modifier.toString(modifier);
+        writer.append(modifiers);
+        if (!modifiers.isEmpty()) {
+            writer.append(' ');
+        }
         writer.append(parameter.type)
             .append(' ')
             .append(parameter.name);
@@ -45,7 +50,8 @@ public class DeclarationExpression extends Expression {
             writer.append(" = ")
                 .append(initializer);
         }
+        writer.append(';');
     }
 }
 
-// End DeclarationExpression.java
+// End FieldDeclaration.java

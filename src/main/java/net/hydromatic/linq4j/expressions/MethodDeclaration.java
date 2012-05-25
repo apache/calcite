@@ -17,7 +17,9 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.AbstractList;
 import java.util.List;
 
 /**
@@ -42,6 +44,33 @@ public class MethodDeclaration extends MemberDeclaration {
         this.resultType = resultType;
         this.parameters = parameters;
         this.body = body;
+    }
+
+    public void accept(ExpressionWriter writer) {
+        String modifiers = Modifier.toString(modifier);
+        writer.append(modifiers);
+        if (!modifiers.isEmpty()) {
+            writer.append(' ');
+        }
+        writer.append(resultType)
+            .append(' ')
+            .append(name)
+            .list(
+                "(", ", ", ")",
+                new AbstractList<String>() {
+                    public String get(int index) {
+                        ParameterExpression parameter = parameters.get(index);
+                        return Types.className(parameter.getType())
+                            + " "
+                            + parameter.name;
+                    }
+
+                    public int size() {
+                        return parameters.size();
+                    }
+                })
+            .append(' ')
+            .append(FunctionExpression.toFunctionBlock(body));
     }
 }
 

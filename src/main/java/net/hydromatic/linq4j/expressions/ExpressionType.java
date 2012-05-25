@@ -408,7 +408,9 @@ public enum ExpressionType {
     IsFalse,
 
     /** Declaration of a variable. */
-    Declaration;
+    Declaration,
+
+    While;
 
     final String op;
     final boolean postfix;

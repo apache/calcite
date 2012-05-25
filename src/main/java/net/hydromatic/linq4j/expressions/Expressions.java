@@ -267,7 +267,7 @@ public class Expressions {
 
     /** Creates a BlockExpression that contains the given expressions
      * and has no variables. */
-    public static BlockExpression block(Expression[] expressions) {
+    public static BlockExpression block(Expression... expressions) {
         return block(Arrays.asList(expressions));
     }
 
@@ -282,14 +282,6 @@ public class Expressions {
             type = Void.TYPE;
         }
         return new BlockExpression(list, type);
-    }
-
-    /** Creates a BlockExpression that contains two expressions and
-     * has no variables. */
-    public static BlockExpression block(
-        Expression left, Expression right)
-    {
-        return block(Arrays.asList(left, right));
     }
 
     /** Creates a BlockExpression that contains the given variables
@@ -1754,6 +1746,15 @@ public class Expressions {
             modifier, name, resultType, toList(parameters), body);
     }
 
+    /** Declares a field. */
+    public static FieldDeclaration fieldDecl(
+        int modifier,
+        ParameterExpression parameter,
+        Expression initializer)
+    {
+        return new FieldDeclaration(modifier, parameter, initializer);
+    }
+
     /** Creates a BinaryExpression that represents an arithmetic
      * remainder operation. */
     public static BinaryExpression modulo(
@@ -2964,8 +2965,16 @@ public class Expressions {
     /** Reduces the node and then calls the visitor delegate on the
      * reduced expression. The method throws an exception if the node
      * is not reducible.*/
-    public static Expression VisitChildren(ExpressionVisitor visitor) {
+    public static Expression visitChildren(ExpressionVisitor visitor) {
         throw Extensions.todo();
+    }
+
+    /** Creates a LoopExpression representing a while loop. */
+    public static WhileExpression while_(
+        Expression condition,
+        Expression body)
+    {
+        return new WhileExpression(condition, body);
     }
 
     /** Creates an expression that declares a variable. */

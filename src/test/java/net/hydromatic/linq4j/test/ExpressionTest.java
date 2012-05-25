@@ -302,6 +302,12 @@ public class ExpressionTest extends TestCase {
                         Collections.<Expression>emptyList(),
                         Collections.<Member>emptyList(),
                         Arrays.<MemberDeclaration>asList(
+                            Expressions.fieldDecl(
+                                Modifier.PUBLIC | Modifier.FINAL,
+                                Expressions.parameter(
+                                    String.class,
+                                    "qux"),
+                                Expressions.constant("xyzzy")),
                             Expressions.methodDecl(
                                 Modifier.PUBLIC,
                                 Integer.TYPE,
@@ -328,7 +334,20 @@ public class ExpressionTest extends TestCase {
                                     "toUpperCase",
                                     Collections.<Expression>emptyList()))))));
         assertEquals(
-            "xxx",
+            "{\n"
+            + "  java.util.List<String> baz = java.util.Arrays.asList(\"foo\", \"bar\");\n"
+            + "  new java.util.AbstractList(){\n"
+            + "    public final String qux = \"xyzzy\";\n"
+            + "\n"
+            + "    public int size() {\n"
+            + "      return baz.size();\n"
+            + "    }\n"
+            + "\n"
+            + "\n"
+            + "    public String get(int index) {\n"
+            + "      return ((String) baz.get(index)).toUpperCase();\n"
+            + "    }\n"
+            + "  }}\n",
             Expressions.toString(e));
     }
 

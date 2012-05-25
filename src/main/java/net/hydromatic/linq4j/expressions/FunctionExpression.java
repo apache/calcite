@@ -134,7 +134,7 @@ public final class FunctionExpression<F extends Function<?>>
             .append("public ")
             .append(Types.boxClassName(body.getType()))
             .list(" apply(", ", ", ") ", params)
-            .append(toBlock(body));
+            .append(toFunctionBlock(body));
         if (true) {
             writer.list("public Object apply(", ", ", ") ", bridgeParams)
                 .begin("{\n")
@@ -144,15 +144,21 @@ public final class FunctionExpression<F extends Function<?>>
         writer.end("}\n");
     }
 
-    private BlockExpression toBlock(Expression body) {
+    static BlockExpression toFunctionBlock(Expression body) {
         if (body instanceof BlockExpression) {
             return (BlockExpression) body;
         }
         if (!(body instanceof GotoExpression)) {
             body = Expressions.return_(null, body);
         }
-        return Expressions.block(
-            Collections.singletonList(body));
+        return Expressions.block(body);
+    }
+
+    static BlockExpression toBlock(Expression body) {
+        if (body instanceof BlockExpression) {
+            return (BlockExpression) body;
+        }
+        return Expressions.block(body);
     }
 
     public interface Invokable {

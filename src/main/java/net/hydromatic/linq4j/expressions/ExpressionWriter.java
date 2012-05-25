@@ -140,22 +140,33 @@ class ExpressionWriter {
     public ExpressionWriter list(
         String begin, String sep, String end, Iterable<?> list)
     {
-        begin(begin);
-        int k = 0;
-        for (Object o : list) {
-            if (k++ > 0) {
+        final Iterator<?> iterator = list.iterator();
+        if (iterator.hasNext()) {
+            begin(begin);
+            for (;;) {
+                Object o = iterator.next();
+                if (o instanceof Expression) {
+                    ((Expression) o).accept(this, 0, 0);
+                } else if (o instanceof MemberDeclaration) {
+                    ((MemberDeclaration) o).accept(this);
+                } else {
+                    append(o);
+                }
+                if (!iterator.hasNext()) {
+                    break;
+                }
                 buf.append(sep);
                 if (sep.endsWith("\n")) {
                     indentPending = true;
                 }
             }
-            if (o instanceof Expression) {
-                ((Expression) o).accept(this, 0, 0);
-            } else {
-                append(o);
+            end(end);
+        } else {
+            while (begin.endsWith("\n")) {
+                begin = begin.substring(0, begin.length() - 1);
             }
+            buf.append(begin).append(end);
         }
-        end(end);
         return this;
     }
 
