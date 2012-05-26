@@ -17,8 +17,6 @@
 */
 package net.hydromatic.optiq.rules.java;
 
-import com.sun.java.util.jar.pack.*;
-import com.sun.java.util.jar.pack.Package;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Expression;
@@ -37,8 +35,7 @@ import org.eigenbase.rex.RexMultisetUtil;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.rex.RexProgram;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -392,6 +389,8 @@ public class JavaRules {
 
 
         public Expression implement(EnumerableRelImplementor implementor) {
+            final JavaTypeFactory typeFactory =
+                (JavaTypeFactory) implementor.getTypeFactory();
             Expression childExp =
                 implementor.visitChild(this, 0, (EnumerableRel) getChild());
             RelDataType outputRowType = getRowType();
@@ -400,16 +399,95 @@ public class JavaRules {
             // With calc:
             //
             // new Enumerable<IntString>() {
-            //     final Enumerator<Employee> child
+            //     final Enumerator<Employee> child = <<child impl>>
             //     Enumerator<IntString> enumerator() {
-            //         public void reset() {
+            //         return new Enumerator<IntString() {
+            //             public void reset() {
+
+            final Type enumeratorType =
+                Types.of(
+                    Enumerator.class,
+                    typeFactory.getJavaClass(outputRowType));
+            Type inputEnumeratorType =
+                Types.of(
+                    Enumerator.class,
+                    typeFactory.getJavaClass(inputRowType));
+            ParameterExpression childEnumerator =
+                Expressions.parameter(
+                    inputEnumeratorType,
+                "childEnumerator");
+
+            Expression moveNextBody;
+            if (program.getCondition() == null) {
+                moveNextBody =
+                    Expressions.call(
+                        childEnumerator,
+                        "moveNext",
+                        Collections.<Expression>emptyList());
+            } else  {
+                final List<Expression> list = new ArrayList<Expression>();
+                Expression condition =
+                    RexToLixTranslator.translateCondition(
+                        Collections.singletonList(childEnumerator),
+                        program,
+                        list);
+                moveNextBody =
+                    Expressions.block(
+                    Expressions.while_(
+                        Expressions.call(
+                            childEnumerator,
+                            "moveNext",
+                            Collections.<Expression>emptyList()),
+                        Expressions.block(list)),
+                        Expressions.return_(
+                            null,
+                            Expressions.constant(false)));
+            }
+
+            Expression currentBody =
+                Expressions.constant(null); // FIXME
 
             return Expressions.new_(
                 ABSTRACT_ENUMERABLE_CTOR,
-                // Collections.singletonList(inputRowType),
+                // Collections.singletonList(inputRowType), // TODO: generics
                 Collections.<Expression>emptyList(),
-
-                Arrays.<com.sun.java.util.jar.pack.Package.Class.Member>asList())
+                Collections.<Member>emptyList(),
+                Arrays.<MemberDeclaration>asList(
+                    Expressions.fieldDecl(
+                        Modifier.FINAL,
+                        childEnumerator,
+                        childExp),
+                    Expressions.methodDecl(
+                        Modifier.PUBLIC,
+                        enumeratorType,
+                        "enumerator",
+                        Collections.<ParameterExpression>emptyList(),
+                        Expressions.new_(
+                            enumeratorType,
+                            Collections.<Expression>emptyList(),
+                            Collections.<Member>emptyList(),
+                            Arrays.<MemberDeclaration>asList(
+                                Expressions.methodDecl(
+                                    Modifier.PUBLIC,
+                                    Void.TYPE,
+                                    "reset",
+                                    Collections.<ParameterExpression>emptyList(),
+                                    Expressions.call(
+                                        childEnumerator,
+                                        "reset",
+                                        Collections.<Expression>emptyList())),
+                                Expressions.methodDecl(
+                                    Modifier.PUBLIC,
+                                    Boolean.TYPE,
+                                    "moveNext",
+                                    Collections.<ParameterExpression>emptyList(),
+                                    moveNextBody),
+                                Expressions.methodDecl(
+                                    Modifier.PUBLIC,
+                                    typeFactory.getJavaClass(outputRowType),
+                                    "current",
+                                    Collections.<ParameterExpression>emptyList(),
+                                    currentBody))))));
 
         }
 
