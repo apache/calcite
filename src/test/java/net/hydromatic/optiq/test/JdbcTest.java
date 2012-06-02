@@ -113,7 +113,7 @@ public class JdbcTest extends TestCase {
         ParameterExpression e = Expressions.parameter(Employee.class, "e");
 
         // "Enumerable<T> asEnumerable(final T[] ts)"
-        List<Integer> list =
+        List<Object[]> list =
             queryProvider.createQuery(
                 Expressions.call(
                     Expressions.call(
@@ -142,6 +142,44 @@ public class JdbcTest extends TestCase {
                             Expressions.constant(140)),
                         Arrays.asList(e)))
                 .select(
+                    Expressions.<Function1<Employee, Object[]>>lambda(
+                        Expressions.new_(
+                            Object[].class,
+                            Arrays.<Expression>asList(
+                                Expressions.field(
+                                    e, "empid"),
+                                Expressions.call(
+                                    Expressions.field(
+                                        e, "name"),
+                                    "toUpperCase",
+                                    Collections.<Expression>emptyList()))),
+                        Arrays.asList(e)))
+                .toList();
+        assertEquals(1, list.size());
+        assertEquals(2, list.get(0).length);
+        assertEquals(150, list.get(0)[0]);
+        assertEquals("Xxx", list.get(0)[1]);
+    }
+
+    public void testQueryProviderSingleColumn() throws Exception {
+        Connection connection = getConnectionWithHrFoodmart();
+        QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
+        ParameterExpression e = Expressions.parameter(Employee.class, "e");
+
+        // "Enumerable<T> asEnumerable(final T[] ts)"
+        List<Integer> list =
+            queryProvider.createQuery(
+                Expressions.call(
+                    Expressions.call(
+                        Types.of(
+                            Enumerable.class, Employee.class),
+                        null,
+                        LINQ4J_AS_ENUMERABLE_METHOD,
+                        Arrays.<Expression>asList(
+                            Expressions.constant(new HrSchema().emps))),
+                    "asQueryable",
+                    Collections.<Expression>emptyList()), Employee.class)
+                .select(
                     Expressions.<Function1<Employee, Integer>>lambda(
                         Expressions.new_(
                             AnInt.class,
@@ -150,7 +188,7 @@ public class JdbcTest extends TestCase {
                                     e, "empid"))),
                         Arrays.asList(e)))
                 .toList();
-        System.out.println(list);
+        assertEquals(Arrays.asList(100, 200, 150), list);
     }
 
     private Function1<String, Void> checkResult(final String expected) {

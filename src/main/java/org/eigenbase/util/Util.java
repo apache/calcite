@@ -1875,6 +1875,35 @@ public class Util
     }
 
     /**
+     * Returns a hashmap with given contents.
+     *
+     * <p>Use this method in initializers. Type parameters are inferred from
+     * context, and the contents are initialized declaratively. For example,
+     *
+     * <blockquote><code>Map&lt;String, Integer&gt; population =<br/>
+     * &nbsp;&nbsp;Olap4jUtil.mapOf(<br/>
+     * &nbsp;&nbsp;&nbsp;&nbsp;"UK", 65000000,<br/>
+     * &nbsp;&nbsp;&nbsp;&nbsp;"USA", 300000000);</code></blockquote>
+     *
+     * @param key First key
+     * @param value First value
+     * @param keyValues Second and sequent key/value pairs
+     * @param <K> Key type
+     * @param <V> Value type
+     * @return Map with given contents
+     */
+    public static <K, V> Map<K, V> mapOf(K key, V value, Object... keyValues)
+    {
+        final Map<K, V> map = new LinkedHashMap<K, V>(1 + keyValues.length);
+        map.put(key, value);
+        for (int i = 0; i < keyValues.length;) {
+            //noinspection unchecked
+            map.put((K) keyValues[i++], (V) keyValues[i++]);
+        }
+        return map;
+    }
+
+    /**
      * Returns an exception indicating that we didn't expect to find this
      * enumeration here.
      *

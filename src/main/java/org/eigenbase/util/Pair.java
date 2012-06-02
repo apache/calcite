@@ -27,7 +27,7 @@ import java.util.*;
  * @version $Id$
  * @since Oct 17, 2007
  */
-public class Pair<T1, T2>
+public class Pair<T1, T2> implements Map.Entry<T1, T2>
 {
     //~ Instance fields --------------------------------------------------------
 
@@ -79,6 +79,18 @@ public class Pair<T1, T2>
     {
         int h1 = Util.hash(0, left);
         return Util.hash(h1, right);
+    }
+
+    public T1 getKey() {
+        return left;
+    }
+
+    public T2 getValue() {
+        return right;
+    }
+
+    public T2 setValue(T2 value) {
+        throw new UnsupportedOperationException();
     }
 
     /**

@@ -468,6 +468,13 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
                 JavaRecordType javaRecordType = (JavaRecordType) type;
                 return javaRecordType.clazz;
             }
+            if (type instanceof JavaType) {
+                JavaType javaType = (JavaType) type;
+                return javaType.getJavaClass();
+            }
+            if (type.isStruct() && type.getFieldCount() == 1) {
+                return getJavaClass(type.getFieldList().get(0).getType());
+            }
             return null;
         }
     }

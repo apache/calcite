@@ -87,6 +87,7 @@ public class JavaRules {
                     join.getVariablesStopped());
             }
         };
+    public static final boolean BRIDGE_METHODS = true;
 
     public static class EnumerableJoinRel
         extends JoinRelBase
@@ -387,7 +388,6 @@ public class JavaRules {
                    == ProjectRelBase.Flags.Boxed;
         }
 
-
         public Expression implement(EnumerableRelImplementor implementor) {
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) implementor.getTypeFactory();
@@ -403,49 +403,89 @@ public class JavaRules {
             //     Enumerator<IntString> enumerator() {
             //         return new Enumerator<IntString() {
             //             public void reset() {
-
+            // ...
+            Class outputJavaType = typeFactory.getJavaClass(outputRowType);
+            if (outputJavaType == null) {
+                if (outputRowType.getFieldCount() == 1) {
+                    outputJavaType =
+                        typeFactory.getJavaClass(
+                            outputRowType.getFieldList().get(0).getType());
+                }
+                if (outputJavaType == null) {
+                    outputJavaType = Object.class;
+                }
+            }
             final Type enumeratorType =
                 Types.of(
-                    Enumerator.class,
-                    typeFactory.getJavaClass(outputRowType));
-            Type inputEnumeratorType =
-                Types.of(
-                    Enumerator.class,
-                    typeFactory.getJavaClass(inputRowType));
-            ParameterExpression childEnumerator =
+                    Enumerator.class, outputJavaType);
+            Class inputJavaType = typeFactory.getJavaClass(inputRowType);
+            ParameterExpression inputEnumerable =
                 Expressions.parameter(
-                    inputEnumeratorType,
-                "childEnumerator");
+                    Types.of(
+                        Enumerable.class,
+                        inputJavaType),
+                    "inputEnumerable");
+            ParameterExpression inputEnumerator =
+                Expressions.parameter(
+                    Types.of(
+                        Enumerator.class, inputJavaType),
+                "inputEnumerator");
+            Expression input =
+                Expressions.convert_(
+                    Expressions.call(
+                        inputEnumerator,
+                        "current",
+                        Collections.<Expression>emptyList()),
+                    inputJavaType);
 
             Expression moveNextBody;
             if (program.getCondition() == null) {
                 moveNextBody =
                     Expressions.call(
-                        childEnumerator,
+                        inputEnumerator,
                         "moveNext",
                         Collections.<Expression>emptyList());
-            } else  {
-                final List<Expression> list = new ArrayList<Expression>();
+            } else {
+                final List<Expression> list = Expressions.list();
                 Expression condition =
                     RexToLixTranslator.translateCondition(
-                        Collections.singletonList(childEnumerator),
+                        Collections.<Expression>singletonList(input),
                         program,
                         list);
+                list.add(
+                    Expressions.ifThen(
+                        condition,
+                        Expressions.return_(
+                            null, Expressions.constant(true))));
                 moveNextBody =
                     Expressions.block(
-                    Expressions.while_(
-                        Expressions.call(
-                            childEnumerator,
-                            "moveNext",
-                            Collections.<Expression>emptyList()),
-                        Expressions.block(list)),
+                        Expressions.while_(
+                            Expressions.call(
+                                inputEnumerator,
+                                "moveNext",
+                                Collections.<Expression>emptyList()),
+                            Expressions.block(list)),
                         Expressions.return_(
                             null,
                             Expressions.constant(false)));
             }
 
+            final List<Expression> list = Expressions.list();
+            List<Expression> expressions =
+                RexToLixTranslator.translateProjects(
+                    Collections.<Expression>singletonList(input),
+                    program,
+                    list);
+            list.add(
+                Expressions.return_(
+                    null,
+                    expressions.size() == 1
+                        ? expressions.get(0)
+                        : Expressions.newArrayInit(
+                            Object.class,
+                            expressions)));
             Expression currentBody =
-                Expressions.constant(null); // FIXME
+                Expressions.block(list);
 
             return Expressions.new_(
                 ABSTRACT_ENUMERABLE_CTOR,
@@ -455,7 +495,7 @@ public class JavaRules {
                 Arrays.<MemberDeclaration>asList(
                     Expressions.fieldDecl(
                         Modifier.FINAL,
-                        childEnumerator,
+                        inputEnumerable,
                         childExp),
                     Expressions.methodDecl(
                         Modifier.PUBLIC,
@@ -466,29 +506,40 @@ public class JavaRules {
                             enumeratorType,
                             Collections.<Expression>emptyList(),
                             Collections.<Member>emptyList(),
-                            Arrays.<MemberDeclaration>asList(
+                            Expressions.<MemberDeclaration>list(
+                                Expressions.fieldDecl(
+                                    Modifier.PUBLIC | Modifier.FINAL,
+                                    inputEnumerator,
+                                    Expressions.call(
+                                        inputEnumerable,
+                                        "enumerator",
+                                        Collections.<Expression>emptyList())),
                                 Expressions.methodDecl(
                                     Modifier.PUBLIC,
                                     Void.TYPE,
                                     "reset",
-                                    Collections.<ParameterExpression>emptyList(),
+                                    Collections
+                                        .<ParameterExpression>emptyList(),
                                     Expressions.call(
-                                        childEnumerator,
+                                        inputEnumerator,
                                         "reset",
                                         Collections.<Expression>emptyList())),
                                 Expressions.methodDecl(
                                     Modifier.PUBLIC,
                                     Boolean.TYPE,
                                     "moveNext",
-                                    Collections.<ParameterExpression>emptyList(),
+                                    Collections
+                                        .<ParameterExpression>emptyList(),
                                     moveNextBody),
                                 Expressions.methodDecl(
                                     Modifier.PUBLIC,
-                                    typeFactory.getJavaClass(outputRowType),
+                                    BRIDGE_METHODS
+                                        ? Object.class
+                                        : outputJavaType,
                                     "current",
-                                    Collections.<ParameterExpression>emptyList(),
+                                    Collections
+                                        .<ParameterExpression>emptyList(),
                                     currentBody))))));
-
         }
 
         public RexProgram getProgram() {
@@ -498,9 +549,10 @@ public class JavaRules {
 
     void foo() {
         new AbstractEnumerable<IntString>() {
-            final Enumerable<Employee> inputable = Linq4j.emptyEnumerable();
+            final Enumerable<Employee> childEnumerable =
+                Linq4j.emptyEnumerable();
             public Enumerator<IntString> enumerator() {
-                final Enumerator<Employee> input = inputable.enumerator();
+                final Enumerator<Employee> input = childEnumerable.enumerator();
                 return new Enumerator<IntString>() {
                     public IntString current() {
                         int v0 = input.current().empid * 2;

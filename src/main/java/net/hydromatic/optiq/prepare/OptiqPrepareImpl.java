@@ -50,6 +50,7 @@ import org.eigenbase.sql.parser.SqlParser;
 import org.eigenbase.sql.type.MultisetSqlType;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
+import org.eigenbase.util.Util;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -342,7 +343,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 getRelImplementor(rootRel.getCluster().getRexBuilder());
             Expression expr =
                 relImplementor.implementRoot((EnumerableRel) rootRel);
-            String s = Expressions.toString(expr);
+            String s = Expressions.toString(expr, false);
             System.out.println(s);
 
             final Map<String, Queryable> map = relImplementor.map;
@@ -579,7 +580,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                             child,
                             (FunctionExpression) call.expressions.get(0)),
                         null,
-                        0);
+                        ProjectRel.Flags.Boxed);
                 }
                 if (call.method.equals(METHOD_ENUMERABLE_WHERE)) {
                     RelNode child = translate(call.targetExpression);
@@ -686,6 +687,20 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 return binary(expression, SqlStdOperatorTable.lessThanOperator);
             case Parameter:
                 return parameter((ParameterExpression) expression);
+            case Call:
+                MethodCallExpression call = (MethodCallExpression) expression;
+                SqlOperator operator =
+                    RexToLixTranslator.JAVA_TO_SQL_METHOD_MAP.get(call.method);
+                if (operator != null) {
+                    return rexBuilder.makeCall(
+                        operator,
+                        toRex(
+                            Expressions.<Expression>list()
+                                .appendIfNotNull(call.targetExpression)
+                                .appendAll(call.expressions)));
+                }
+                throw new RuntimeException(
+                    "Could translate call to method " + call.method);
             case Constant:
                 final ConstantExpression constant =
                     (ConstantExpression) expression;
@@ -708,7 +723,8 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 }
             default:
                 throw new UnsupportedOperationException(
-                    "unknown expression type " + expression.getNodeType());
+                    "unknown expression type " + expression.getNodeType() + " "
+                    + expression);
             }
         }
 
@@ -718,12 +734,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 op, toRex(Arrays.asList(call.expression0, call.expression1)));
         }
 
-        private RexNode call(Expression expression, SqlOperator op) {
-            MethodCallExpression call = (MethodCallExpression) expression;
-            return rexBuilder.makeCall(op, toRex(call.expressions));
-        }
-
-        private ArrayList<RexNode> toRex(List<Expression> expressions) {
+        private List<RexNode> toRex(List<Expression> expressions) {
             ArrayList<RexNode> list = new ArrayList<RexNode>();
             for (Expression expression : expressions) {
                 list.add(toRex(expression));

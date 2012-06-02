@@ -18,10 +18,18 @@
 package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.expressions.*;
-import org.eigenbase.rex.*;
 
+import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.rex.*;
+import org.eigenbase.sql.SqlOperator;
+import org.eigenbase.util.Util;
+
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
+
+import static net.hydromatic.linq4j.expressions.ExpressionType.*;
+import static org.eigenbase.sql.fun.SqlStdOperatorTable.*;
 
 /**
  * Translates {@link org.eigenbase.rex.RexNode REX expressions} to
@@ -30,14 +38,55 @@ import java.util.*;
  * @author jhyde
  */
 public class RexToLixTranslator {
+    public static final Map<Method, SqlOperator> JAVA_TO_SQL_METHOD_MAP =
+        Util.<Method, SqlOperator>mapOf(
+            findMethod(String.class, "toUpperCase"), upperFunc);
+
+    private static final Map<SqlOperator, ExpressionType>
+        SQL_TO_LINQ_OPERATOR_MAP = Util.<SqlOperator, ExpressionType>mapOf(
+            andOperator, AndAlso,
+            orOperator, OrElse,
+            lessThanOperator, LessThan,
+            lessThanOrEqualOperator, LessThanOrEqual,
+            greaterThanOperator, GreaterThan,
+            greaterThanOrEqualOperator, GreaterThanOrEqual,
+            equalsOperator, Equal,
+            notEqualsOperator, NotEqual,
+            notOperator, Not);
+
+    public static final Map<SqlOperator, Method> SQL_OP_TO_JAVA_METHOD_MAP =
+        new HashMap<SqlOperator, Method>();
+
+    static {
+        for (Map.Entry<Method, SqlOperator> entry
+            : JAVA_TO_SQL_METHOD_MAP.entrySet())
+        {
+            SQL_OP_TO_JAVA_METHOD_MAP.put(entry.getValue(), entry.getKey());
+        }
+    }
+
     private final Map<RexNode, Slot> map = new HashMap<RexNode, Slot>();
     private final RexProgram program;
-    private final List<ParameterExpression> inputs;
+    private final List<Expression> inputs;
+
+    /** Set of expressions which are to be translated inline. That is, they
+     * should not be assigned to variables on first use. At present, the
+     * algorithm is to use a first pass to determine how many times each
+     * expression is used, and expressions are marked for inlining if they are
+     * used at most once. */
+    private final Set<RexNode> inlineRexSet = new HashSet<RexNode>();
+
     private List<Expression> list;
 
-    private RexToLixTranslator(
-        RexProgram program, List<ParameterExpression> inputs)
-    {
+    private static Method findMethod(Class<String> clazz, String name) {
+        try {
+            return clazz.getMethod(name);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private RexToLixTranslator(RexProgram program, List<Expression> inputs) {
         this.program = program;
         this.inputs = inputs;
     }
@@ -52,7 +101,7 @@ public class RexToLixTranslator {
      * @return Sequence of expressions, optional condition
      */
     public static List<Expression> translateProjects(
-        List<ParameterExpression> inputs,
+        List<Expression> inputs,
         RexProgram program,
         List<Expression> list)
     {
@@ -60,27 +109,46 @@ public class RexToLixTranslator {
             .translate(list, program.getProjectList());
     }
 
-    private ParameterExpression define(RexNode rexExpr) {
-        Slot pair = map.get(rexExpr);
-        if (pair != null) {
-            pair.count++;
-            return pair.parameterExpression;
+    private Expression translate(RexNode expr) {
+        Slot slot = map.get(expr);
+        if (slot == null) {
+            Expression expression = translate0(expr);
+            assert expression != null;
+            final ParameterExpression parameter;
+            if (!inlineRexSet.contains(expr)) {
+                parameter =
+                    Expressions.parameter(
+                        expression.getType(),
+                        "v" + map.size());
+            } else {
+                parameter = null;
+            }
+            slot = new Slot(
+                parameter,
+                expression);
+            if (parameter != null && list != null) {
+                list.add(
+                    Expressions.declare(
+                        Modifier.FINAL,
+                        slot.parameterExpression,
+                        slot.expression));
+            }
+            map.put(expr, slot);
         }
-        final Expression expression = translate(rexExpr);
-        String variableName = "v" + map.size();
-        final ParameterExpression parameter =
-            Expressions.parameter(
-                expression.getType(),
-                variableName);
-        pair = new Slot(parameter, expression);
-        pair.count = 1;
-        map.put(rexExpr, pair);
-        return parameter;
+        slot.count++;
+        return slot.parameterExpression != null
+            ? slot.parameterExpression
+            : slot.expression;
     }
 
     private Expression translate0(RexNode expr) {
         if (expr instanceof RexInputRef) {
-            return inputs.get(((RexInputRef) expr).getIndex());
+            // TODO: multiple inputs, e.g. joins
+            final Expression input = inputs.get(0);
+            final int index = ((RexInputRef) expr).getIndex();
+            RelDataTypeField field =
+                program.getInputRowType().getFieldList().get(index);
+            return Expressions.field(input, field.getName());
         }
         if (expr instanceof RexLocalRef) {
             return translate(
@@ -90,60 +158,52 @@ public class RexToLixTranslator {
             return Expressions.constant(((RexLiteral) expr).getValue());
         }
         if (expr instanceof RexCall) {
-            RexCall call = (RexCall) expr;
+            final RexCall call = (RexCall) expr;
+            final SqlOperator operator = call.getOperator();
+            final ExpressionType expressionType =
+                SQL_TO_LINQ_OPERATOR_MAP.get(operator);
+            if (expressionType != null) {
+                switch (operator.getSyntax()) {
+                case Binary:
+                    return Expressions.makeBinary(
+                        expressionType,
+                        translate(call.getOperands()[0]),
+                        translate(call.getOperands()[1]));
+                case Postfix:
+                case Prefix:
+                    return Expressions.makeUnary(
+                        expressionType, translate(call.getOperands()[0]));
+                default:
+                    throw new RuntimeException(
+                        "unknown syntax " + operator.getSyntax());
+                }
+            }
+
+            Method method = SQL_OP_TO_JAVA_METHOD_MAP.get(operator);
+            if (method != null) {
+                List<Expression> exprs =
+                    translateList(Arrays.asList(call.operands));
+                return !Modifier.isStatic(method.getModifiers())
+                    ? Expressions.call(
+                        exprs.get(0), method, exprs.subList(1, exprs.size()))
+                    : Expressions.call(method, exprs);
+            }
+
             switch (expr.getKind()) {
-            case And:
-                return Expressions.andAlso(
-                    translate(call.getOperands()[0]),
-                    translate(call.getOperands()[1]));
-            case LessThan:
-                return Expressions.lessThan(
-                    translate(call.getOperands()[0]),
-                    translate(call.getOperands()[1]));
-            case GreaterThan:
-                return Expressions.greaterThan(
-                    translate(call.getOperands()[0]),
-                    translate(call.getOperands()[1]));
             default:
-                throw new RuntimeException("cannot translate expression " + expr);
+                throw new RuntimeException(
+                    "cannot translate expression " + expr);
             }
         }
         throw new RuntimeException("cannot translate expression " + expr);
     }
 
-    private Expression translate(RexNode expr) {
-        Slot slot = map.get(expr);
-        if (slot != null) {
-            if (list == null) {
-                ++slot.count;
-                return slot.parameterExpression;
-            } else {
-                if (slot.count > 1) {
-                    list.add(
-                        Expressions.declare(
-                            Modifier.FINAL,
-                            slot.parameterExpression,
-                            slot.expression));
-                    slot.count = 0; // prevent further declaration
-                    return slot.parameterExpression;
-                }
-                if (slot.count == 1) {
-                    return slot.expression;
-                } else {
-                    return slot.parameterExpression;
-                }
-            }
-        } else {
-            Expression expression = translate0(expr);
-            slot = new Slot(
-                Expressions.parameter(
-                    expression.getType(),
-                    "v" + map.size()),
-                expression);
-            slot.count++;
-            map.put(expr, slot);
-            return slot.parameterExpression;
+    private List<Expression> translateList(List<RexNode> operandList) {
+        final List<Expression> list = new ArrayList<Expression>();
+        for (RexNode rex : operandList) {
+            list.add(translate(rex));
         }
+        return list;
     }
 
     private List<Expression> translate(
@@ -153,21 +213,30 @@ public class RexToLixTranslator {
         // First pass. Count how many times each sub-expression is used.
         this.list = null;
         for (RexNode rexExpr : rexList) {
-            define(rexExpr);
+            translate(rexExpr);
         }
+
+        // Mark expressions as inline if they are not used more than once.
+        for (Map.Entry<RexNode, Slot> entry : map.entrySet()) {
+            if (entry.getValue().count < 2) {
+                inlineRexSet.add(entry.getKey());
+            }
+        }
+
         // Second pass. When translating each expression, if it is used more
         // than once, the first time it is encountered, add a declaration to the
         // list and set its usage count to 0.
         this.list = list;
+        this.map.clear();
         List<Expression> translateds = new ArrayList<Expression>();
         for (RexNode rexExpr : rexList) {
-            translateds.add(define(rexExpr));
+            translateds.add(translate(rexExpr));
         }
         return translateds;
     }
 
     public static Expression translateCondition(
-        List<ParameterExpression> inputs,
+        List<Expression> inputs,
         RexProgram program,
         List<Expression> list)
     {
