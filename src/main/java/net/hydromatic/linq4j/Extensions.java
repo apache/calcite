@@ -20,7 +20,6 @@ package net.hydromatic.linq4j;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.*;
 
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
@@ -1822,10 +1821,7 @@ public class Extensions {
         FunctionExpression<Function1<TSource, TResult>> selector)
     {
         return source.getProvider().createQuery(
-            call(
-                source.getExpression(),
-                "select",
-                selector),
+            Expressions.call(source.getExpression(), "select", selector),
             functionResultType(selector));
     }
 
@@ -1833,25 +1829,6 @@ public class Extensions {
         FunctionExpression<Function1<P0, R>> selector)
     {
         return selector.body.getType();
-    }
-
-    private static MethodCallExpression call(
-        Expression target,
-        String methodName,
-        Expression... selectors)
-    {
-        return Expressions.call(
-            target,
-            methodName, Arrays.<Expression>asList(selectors));
-    }
-
-    private static MethodCallExpression call(
-        Class clazz,
-        String methodName,
-        Expression... selectors)
-    {
-        return Expressions.call(
-            clazz, methodName, Arrays.<Expression>asList(selectors));
     }
 
     /** Projects each element of a sequence into a new
@@ -2770,10 +2747,7 @@ public class Extensions {
         FunctionExpression<Predicate1<TSource>> predicate)
     {
         return source.getProvider().createQuery(
-            call(
-                source.getExpression(),
-                "where",
-                predicate),
+            Expressions.call(source.getExpression(), "where", predicate),
             source.getElementType());
     }
 

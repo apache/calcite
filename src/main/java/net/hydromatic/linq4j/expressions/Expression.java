@@ -44,6 +44,13 @@ public abstract class Expression {
         this.type = type;
     }
 
+    @Override
+    public String toString() {
+        ExpressionWriter writer = new ExpressionWriter(true);
+        accept(writer, 0, 0);
+        return writer.toString();
+    }
+
     /** Indicates that the node can be reduced to a simpler node. If this
      * returns true, Reduce() can be called to produce the reduced form. */
     public boolean canReduce() {

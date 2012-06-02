@@ -28,7 +28,11 @@ import java.util.*;
 public interface ExtendedEnumerable<TSource> {
 
     /**
-     * Performs an operation for each member of the enumeration.
+     * Performs an operation for each member of this enumeration.
+     *
+     * <p>Returns the value returned by the function for the last element in
+     * this enumeration, or null if this enumeration is empty.</p>
+     *
      * @param func Operation
      * @param <R> Return type
      */

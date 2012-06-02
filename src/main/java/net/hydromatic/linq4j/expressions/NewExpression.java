@@ -17,8 +17,8 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Member;
+import java.lang.reflect.Type;
 import java.util.List;
 
 /**
@@ -28,26 +28,27 @@ import java.util.List;
  * an anonymous class.</p>
  */
 public class NewExpression extends Expression {
-    public final Constructor constructor;
+    public final Type type;
     public final List<Expression> arguments;
     public final List<MemberDeclaration> memberDeclarations;
 
     public NewExpression(
-        Constructor constructor,
+        Type type,
         List<Expression> arguments,
         List<Member> members, // not used
         List<MemberDeclaration> memberDeclarations)
     {
-        super(ExpressionType.New, constructor.getDeclaringClass());
-        this.constructor = constructor;
+        super(ExpressionType.New, type);
+        this.type = type;
         this.arguments = arguments;
+        Types.discard(members);
         this.memberDeclarations = memberDeclarations;
     }
 
     @Override
     void accept(ExpressionWriter writer, int lprec, int rprec) {
         writer.append("new ")
-            .append(constructor.getDeclaringClass())
+            .append(type)
             .list("(\n", ",\n", ")", arguments);
         if (memberDeclarations != null) {
             writer.list("{\n", "\n\n", "}", memberDeclarations);

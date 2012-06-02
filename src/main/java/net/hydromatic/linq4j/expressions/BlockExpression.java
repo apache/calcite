@@ -34,7 +34,23 @@ public class BlockExpression extends Expression {
 
     @Override
     void accept(ExpressionWriter writer, int lprec, int rprec) {
-        writer.list("{\n", ";\n", "}\n", expressions);
+        if (expressions.isEmpty()) {
+            writer.append("{}");
+            return;
+        }
+        writer.begin("{\n");
+        for (Expression expression : expressions) {
+            expression.accept(writer, 0, 0);
+            if (expression instanceof WhileExpression
+                || expression instanceof ConditionalExpression
+                || expression instanceof BlockExpression)
+            {
+                // contain blocks, therefore do not need semicolon
+            } else {
+                writer.append(';').newlineAndIndent();
+            }
+        }
+        writer.end("}\n");
     }
 }
 

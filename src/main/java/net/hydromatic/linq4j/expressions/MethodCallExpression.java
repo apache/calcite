@@ -53,7 +53,9 @@ public class MethodCallExpression extends Expression {
         Expression targetExpression,
         List<Expression> expressions)
     {
-        this(method.getReturnType(), method, targetExpression, expressions);
+        this(
+            method.getGenericReturnType(), method, targetExpression,
+            expressions);
     }
 
     @Override

@@ -110,17 +110,19 @@ public class Types {
         if (type instanceof ParameterizedType) {
             return toClass(((ParameterizedType) type).getRawType());
         }
-        throw new RuntimeException("unsupported type type " + type); // TODO:
+        if (type instanceof TypeVariable) {
+            TypeVariable typeVariable = (TypeVariable) type;
+            return toClass(typeVariable.getBounds()[0]);
+        }
+        throw new RuntimeException("unsupported type " + type); // TODO:
     }
 
     static Class[] toClassArray(Collection<Type> types) {
-        Class[] classes = new Class[types.size()];
-        int i = 0;
-        for (Iterator<Type> iterator = types.iterator(); iterator.hasNext();) {
-            Type type = iterator.next();
-            classes[i++] = toClass(type);
+        List<Class> classes = new ArrayList<Class>();
+        for (Type type : types) {
+            classes.add(toClass(type));
         }
-        return classes;
+        return classes.toArray(new Class[classes.size()]);
     }
 
     static Class[] toClassArray(Iterable<Expression> arguments) {
@@ -245,7 +247,8 @@ public class Types {
         Type type, Class... argumentTypes)
     {
         final Class clazz = toClass(type);
-        for (Constructor constructor : clazz.getDeclaredConstructors()) {
+        Constructor[] constructors = clazz.getDeclaredConstructors();
+        for (Constructor constructor : constructors) {
             if (allAssignable(
                     constructor.isVarArgs(),
                     constructor.getParameterTypes(),
@@ -254,9 +257,40 @@ public class Types {
                 return constructor;
             }
         }
+        if (constructors.length == 0
+            && argumentTypes.length == 0)
+        {
+            Constructor[] constructors1 = clazz.getConstructors();
+            try {
+                return clazz.getConstructor();
+            } catch (NoSuchMethodException e) {
+                // ignore
+            }
+        }
         throw new RuntimeException(
             "while resolving constructor in class " + type + " with types "
             + Arrays.toString(argumentTypes));
+    }
+
+    public static void discard(Object o) {
+        if (false) {
+            discard(o);
+        }
+    }
+
+    /** Returns the most restrictive type that is assignable from all given
+     * types. */
+    static Type gcd(Type... types) {
+        // TODO: improve this
+        if (types.length == 0) {
+            return Object.class;
+        }
+        for (int i = 1; i < types.length; i++) {
+            if (types[i] != types[0]) {
+                return Object.class;
+            }
+        }
+        return types[0];
     }
 
     static class ParameterizedTypeImpl implements ParameterizedType {
@@ -271,6 +305,10 @@ public class Types {
             this.rawType = rawType;
             this.typeArguments = typeArguments;
             this.ownerType = ownerType;
+            assert rawType != null;
+            for (Type typeArgument : typeArguments) {
+                assert typeArgument != null;
+            }
         }
 
         @Override

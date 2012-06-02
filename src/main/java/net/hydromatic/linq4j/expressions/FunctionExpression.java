@@ -148,7 +148,9 @@ public final class FunctionExpression<F extends Function<?>>
         if (body instanceof BlockExpression) {
             return (BlockExpression) body;
         }
-        if (!(body instanceof GotoExpression)) {
+        if (!(body instanceof GotoExpression)
+            && Types.toClass(body.getType()) != Void.TYPE)
+        {
             body = Expressions.return_(null, body);
         }
         return Expressions.block(body);

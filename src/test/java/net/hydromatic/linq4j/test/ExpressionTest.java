@@ -336,7 +336,7 @@ public class ExpressionTest extends TestCase {
         assertEquals(
             "{\n"
             + "  java.util.List<String> baz = java.util.Arrays.asList(\"foo\", \"bar\");\n"
-            + "  new java.util.AbstractList(){\n"
+            + "  new java.util.AbstractList<String>(){\n"
             + "    public final String qux = \"xyzzy\";\n"
             + "\n"
             + "    public int size() {\n"
@@ -347,7 +347,8 @@ public class ExpressionTest extends TestCase {
             + "    public String get(int index) {\n"
             + "      return ((String) baz.get(index)).toUpperCase();\n"
             + "    }\n"
-            + "  }}\n",
+            + "  };\n"
+            + "}\n",
             Expressions.toString(e));
     }
 

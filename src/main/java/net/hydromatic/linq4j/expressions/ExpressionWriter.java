@@ -30,8 +30,14 @@ class ExpressionWriter {
     private int level;
     private String indent;
     private boolean indentPending;
+    private final boolean generics;
 
     public ExpressionWriter() {
+        this(true);
+    }
+
+    public ExpressionWriter(boolean generics) {
+        this.generics = generics;
     }
 
     public void write(Expression expression) {
@@ -104,7 +110,11 @@ class ExpressionWriter {
 
     public ExpressionWriter append(Type type) {
         checkIndent();
-        buf.append(Types.className(type));
+        if (generics) {
+            buf.append(Types.className(type));
+        } else {
+            buf.append(Types.className(Types.toClass(type)));
+        }
         return this;
     }
 

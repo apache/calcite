@@ -68,8 +68,6 @@ public class GotoExpression extends Expression {
             expression.accept(writer, 0, 0);
             writer.end();
         }
-        writer.append(';');
-        writer.newlineAndIndent();
     }
 }
 

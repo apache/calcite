@@ -20,6 +20,7 @@ package net.hydromatic.linq4j.expressions;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.util.AbstractList;
 import java.util.List;
 
@@ -29,7 +30,7 @@ import java.util.List;
 public class ConstantExpression extends Expression {
     public final Object value;
 
-    public ConstantExpression(Class type, Object value) {
+    public ConstantExpression(Type type, Object value) {
         super(ExpressionType.Constant, type);
         this.value = value;
     }
