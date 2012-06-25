@@ -159,7 +159,7 @@ public class Types {
         {
             return className.substring("java.lang.".length());
         }
-        return className;
+        return className.replace('$', '.');
     }
 
     public static boolean isAssignableFrom(Class clazz, Type type) {

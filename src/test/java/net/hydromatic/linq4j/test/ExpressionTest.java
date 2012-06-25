@@ -83,12 +83,10 @@ public class ExpressionTest extends TestCase {
         FunctionExpression lambdaExpr =
             Expressions.lambda(
                 Expressions.call(
-                    paramS,
-                    String.class.getMethod(
-                        "substring", Integer.TYPE, Integer.TYPE),
+                    paramS, String.class.getMethod(
+                    "substring", Integer.TYPE, Integer.TYPE),
                     paramBegin,
-                    paramEnd),
-                paramS, paramBegin, paramEnd);
+                    paramEnd), paramS, paramBegin, paramEnd);
 
         // Compile and run the lambda expression.
         String s =
@@ -247,25 +245,38 @@ public class ExpressionTest extends TestCase {
 
         // automatically call constructor if it matches fields
         assertEquals(
-            "new net.hydromatic.linq4j.test.Linq4jTest$Employee[] {\n"
-            + "  new net.hydromatic.linq4j.test.Linq4jTest$Employee(\n"
+            "new net.hydromatic.linq4j.test.Linq4jTest.Employee[] {\n"
+            + "  new net.hydromatic.linq4j.test.Linq4jTest.Employee(\n"
             + "    100,\n"
             + "    \"Fred\",\n"
             + "    10),\n"
-            + "  new net.hydromatic.linq4j.test.Linq4jTest$Employee(\n"
+            + "  new net.hydromatic.linq4j.test.Linq4jTest.Employee(\n"
             + "    110,\n"
             + "    \"Bill\",\n"
             + "    30),\n"
-            + "  new net.hydromatic.linq4j.test.Linq4jTest$Employee(\n"
+            + "  new net.hydromatic.linq4j.test.Linq4jTest.Employee(\n"
             + "    120,\n"
             + "    \"Eric\",\n"
             + "    10),\n"
-            + "  new net.hydromatic.linq4j.test.Linq4jTest$Employee(\n"
+            + "  new net.hydromatic.linq4j.test.Linq4jTest.Employee(\n"
             + "    130,\n"
             + "    \"Jane\",\n"
             + "    10)}",
             Expressions.toString(
                 Expressions.constant(Linq4jTest.emps)));
+    }
+
+    public void testWriteArray() {
+        assertEquals(
+            "1 + integers[2 + index]",
+            Expressions.toString(
+                Expressions.add(
+                    Expressions.constant(1),
+                Expressions.arrayAccess(
+                    Expressions.variable(int[].class, "integers"),
+                    Expressions.add(
+                        Expressions.constant(2),
+                        Expressions.variable(int.class, "index"))))));
     }
 
     public void testWriteAnonymousClass() {
@@ -290,7 +301,8 @@ public class ExpressionTest extends TestCase {
             Expressions.block(
                 Arrays.<Expression>asList(
                     Expressions.declare(
-                        Modifier.FINAL, bazParameter,
+                        Modifier.FINAL,
+                        bazParameter,
                         Expressions.call(
                             Arrays.class,
                             "asList",
@@ -335,7 +347,7 @@ public class ExpressionTest extends TestCase {
                                     Collections.<Expression>emptyList()))))));
         assertEquals(
             "{\n"
-            + "  java.util.List<String> baz = java.util.Arrays.asList(\"foo\", \"bar\");\n"
+            + "  final java.util.List<String> baz = java.util.Arrays.asList(\"foo\", \"bar\");\n"
             + "  new java.util.AbstractList<String>(){\n"
             + "    public final String qux = \"xyzzy\";\n"
             + "\n"

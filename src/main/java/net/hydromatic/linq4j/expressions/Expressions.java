@@ -215,15 +215,15 @@ public class Expressions {
     public static IndexExpression arrayAccess(
         Expression array, Expression... indexExpressions)
     {
-        throw Extensions.todo();
+        return new IndexExpression(array, Arrays.asList(indexExpressions));
     }
 
     /** Creates a MethodCallExpression that represents applying an
      * array index operator to an array of rank more than one. */
-    public static MethodCallExpression arrayIndex(
+    public static IndexExpression arrayIndex(
         Expression array, Iterable<Expression> indexExpressions)
     {
-        throw Extensions.todo();
+        return new IndexExpression(array, toList(indexExpressions));
     }
 
     /** Creates a BinaryExpression that represents applying an array

@@ -17,12 +17,27 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.util.List;
+
 /**
  * Represents indexing a property or array.
  */
 public class IndexExpression extends Expression {
-    public IndexExpression(ExpressionType nodeType, Class type) {
-        super(nodeType, type);
+    private final Expression array;
+    private final List<Expression> indexExpressions;
+
+    public IndexExpression(Expression array, List<Expression> indexExpressions) {
+        super(
+            ExpressionType.ArrayIndex, Types.getComponentType(array.getType()));
+        this.array = array;
+        this.indexExpressions = indexExpressions;
+        assert indexExpressions.size() >= 1;
+    }
+
+    @Override
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        array.accept(writer, lprec, nodeType.lprec);
+        writer.list("[", ", ", "]", indexExpressions);
     }
 }
 

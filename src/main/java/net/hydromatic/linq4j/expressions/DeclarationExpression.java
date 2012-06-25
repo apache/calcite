@@ -17,6 +17,8 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Modifier;
+
 /**
  * Expression that declares and optionally initializes a variable.
  *
@@ -38,6 +40,10 @@ public class DeclarationExpression extends Expression {
 
     @Override
     void accept(ExpressionWriter writer, int lprec, int rprec) {
+        final String modifiers = Modifier.toString(this.modifiers);
+        if (!modifiers.isEmpty()) {
+            writer.append(modifiers).append(' ');
+        }
         writer.append(parameter.type)
             .append(' ')
             .append(parameter.name);
