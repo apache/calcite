@@ -17,12 +17,16 @@
 */
 package net.hydromatic.optiq;
 
+import java.util.Map;
+
 /**
  * Schema that can be modified.
  */
 public interface MutableSchema extends Schema {
     void add(SchemaObject schemaObject);
-    void add(String name, Schema schema);
+    void add(String name, Schema schema, Object o);
+    void add(String name, Object o);
+    Map getInstanceMap();
 }
 
 // End MutableSchema.java

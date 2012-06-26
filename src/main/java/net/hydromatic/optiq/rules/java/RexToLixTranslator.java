@@ -19,6 +19,8 @@ package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.expressions.*;
 
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlOperator;
@@ -66,8 +68,9 @@ public class RexToLixTranslator {
     }
 
     private final Map<RexNode, Slot> map = new HashMap<RexNode, Slot>();
+    private final JavaTypeFactory typeFactory;
     private final RexProgram program;
-    private final List<Expression> inputs;
+    private final List<Slot> inputSlots = new ArrayList<Slot>();
 
     /** Set of expressions which are to be translated inline. That is, they
      * should not be assigned to variables on first use. At present, the
@@ -86,9 +89,16 @@ public class RexToLixTranslator {
         }
     }
 
-    private RexToLixTranslator(RexProgram program, List<Expression> inputs) {
+    private RexToLixTranslator(
+        RexProgram program,
+        JavaTypeFactory typeFactory,
+        List<Expression> inputs)
+    {
         this.program = program;
-        this.inputs = inputs;
+        this.typeFactory = typeFactory;
+        for (Expression input : inputs) {
+            inputSlots.add(new Slot(null, input));
+        }
     }
 
     /**
@@ -103,9 +113,10 @@ public class RexToLixTranslator {
     public static List<Expression> translateProjects(
         List<Expression> inputs,
         RexProgram program,
+        JavaTypeFactory typeFactory,
         List<Expression> list)
     {
-        return new RexToLixTranslator(program, inputs)
+        return new RexToLixTranslator(program, typeFactory, inputs)
             .translate(list, program.getProjectList());
     }
 
@@ -144,11 +155,20 @@ public class RexToLixTranslator {
     private Expression translate0(RexNode expr) {
         if (expr instanceof RexInputRef) {
             // TODO: multiple inputs, e.g. joins
-            final Expression input = inputs.get(0);
+            final Expression input = getInput(0);
             final int index = ((RexInputRef) expr).getIndex();
             RelDataTypeField field =
                 program.getInputRowType().getFieldList().get(index);
-            return Expressions.field(input, field.getName());
+            if (input.getType() == Object[].class) {
+                return Expressions.convert_(
+                    Expressions.arrayAccess(
+                        input, Expressions.constant(field.getIndex())),
+                    Types.box(
+                        JavaRules.EnumUtil.javaClass(
+                            typeFactory, field.getType())));
+            } else {
+                return Expressions.field(input, field.getName());
+            }
         }
         if (expr instanceof RexLocalRef) {
             return translate(
@@ -198,6 +218,33 @@ public class RexToLixTranslator {
         throw new RuntimeException("cannot translate expression " + expr);
     }
 
+    /**
+     * Gets the expression for an input and counts it.
+     *
+     * @param index Input ordinal
+     * @return Expression to which an input should be translated
+     */
+    private Expression getInput(int index) {
+        Slot slot = inputSlots.get(index);
+        if (list == null) {
+            slot.count++;
+        } else {
+            if (slot.count > 1 && slot.parameterExpression == null) {
+                slot.parameterExpression =
+                    Expressions.parameter(
+                        slot.expression.type, "current" + index);
+                list.add(
+                    Expressions.declare(
+                        Modifier.FINAL,
+                        slot.parameterExpression,
+                        slot.expression));
+            }
+        }
+        return slot.parameterExpression != null
+            ? slot.parameterExpression
+            : slot.expression;
+    }
+
     private List<Expression> translateList(List<RexNode> operandList) {
         final List<Expression> list = new ArrayList<Expression>();
         for (RexNode rex : operandList) {
@@ -238,10 +285,13 @@ public class RexToLixTranslator {
     public static Expression translateCondition(
         List<Expression> inputs,
         RexProgram program,
+        JavaTypeFactory typeFactory,
         List<Expression> list)
     {
-        List<Expression> x = new RexToLixTranslator(program, inputs)
-            .translate(list, Collections.singletonList(program.getCondition()));
+        List<Expression> x =
+            new RexToLixTranslator(program, typeFactory, inputs)
+                .translate(
+                    list, Collections.singletonList(program.getCondition()));
         assert x.size() == 1;
         return x.get(0);
     }

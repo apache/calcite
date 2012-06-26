@@ -31,6 +31,7 @@ import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 
 /**
  * API for a service that prepares statements for execution.
@@ -53,6 +54,8 @@ public interface OptiqPrepare {
         JavaTypeFactory getTypeFactory();
 
         Schema getRootSchema();
+
+        Map getRoot();
     }
 
     public static class PrepareResult {

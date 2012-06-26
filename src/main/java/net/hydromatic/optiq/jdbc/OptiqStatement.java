@@ -22,6 +22,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import java.sql.*;
+import java.util.Map;
 
 /**
  * Implementation of {@link java.sql.Statement}
@@ -347,6 +348,10 @@ abstract class OptiqStatement
 
                 public Schema getRootSchema() {
                     return connection.getRootSchema();
+                }
+
+                public Map getRoot() {
+                    return connection.getRootSchema().getInstanceMap();
                 }
             }, sql, null, null);
     }

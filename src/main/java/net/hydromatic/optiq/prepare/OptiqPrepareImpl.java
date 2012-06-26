@@ -48,12 +48,12 @@ import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParseException;
 import org.eigenbase.sql.parser.SqlParser;
 import org.eigenbase.sql.type.MultisetSqlType;
+import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
-import org.eigenbase.util.Util;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
@@ -116,7 +116,8 @@ class OptiqPrepareImpl implements OptiqPrepare {
             new OptiqPreparingStmt(
                 relOptConnection,
                 typeFactory,
-                statement.getRootSchema());
+                statement.getRootSchema(),
+                statement.getRoot());
         preparingStmt.setResultCallingConvention(CallingConvention.ENUMERABLE);
 
         final RelDataType x;
@@ -150,8 +151,10 @@ class OptiqPrepareImpl implements OptiqPrepare {
         // TODO: column meta data
         final List<ColumnMetaData> columns =
             new ArrayList<ColumnMetaData>();
-        for (RelDataTypeField field : x.getFields()) {
+        RelDataType jdbcType = makeStruct(typeFactory, x);
+        for (RelDataTypeField field : jdbcType.getFields()) {
             RelDataType type = field.getType();
+            SqlTypeName sqlTypeName = type.getSqlTypeName();
             columns.add(
                 new ColumnMetaData(
                     columns.size(),
@@ -165,16 +168,14 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     field.getName(),
                     null,
                     null,
-                    type.getSqlTypeName().allowsPrec() && false
+                    sqlTypeName.allowsPrec() && false
                         ? type.getPrecision()
                         : -1,
-                    type.getSqlTypeName().allowsScale()
-                        ? type.getScale()
-                        : -1,
+                    sqlTypeName.allowsScale() ? type.getScale() : -1,
                     null,
                     null,
-                    type.getSqlTypeName().getJdbcOrdinal(),
-                    type.getSqlTypeName().getName(),
+                    sqlTypeName.getJdbcOrdinal(),
+                    sqlTypeName.getName(),
                     true,
                     false,
                     false,
@@ -187,18 +188,32 @@ class OptiqPrepareImpl implements OptiqPrepare {
             (Enumerable) preparedResult.execute());
     }
 
+    private static RelDataType makeStruct(
+        RelDataTypeFactory typeFactory,
+        RelDataType type)
+    {
+        if (type.isStruct()) {
+            return type;
+        }
+        return typeFactory.createStructType(
+            RelDataTypeFactory.FieldInfoBuilder.of("$0", type));
+    }
+
     private static class OptiqPreparingStmt extends OJPreparingStmt {
         private final RelOptPlanner planner;
         private final RexBuilder rexBuilder;
         private final Schema schema;
+        private final Map root;
 
         public OptiqPreparingStmt(
             RelOptConnection connection,
             RelDataTypeFactory typeFactory,
-            Schema schema)
+            Schema schema,
+            Map root)
         {
             super(connection);
             this.schema = schema;
+            this.root = root;
             planner = new VolcanoPlanner();
             planner.addRelTraitDef(CallingConventionTraitDef.instance);
             RelOptUtil.registerAbstractRels(planner);
@@ -235,8 +250,9 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 timingTracer.traceTime("end sql2rel");
             }
 
-            fieldOrigins =
-                Collections.nCopies(resultType.getFieldCount(), null);
+            final RelDataType jdbcType =
+                makeStruct(rexBuilder.getTypeFactory(), resultType);
+            fieldOrigins = Collections.nCopies(jdbcType.getFieldCount(), null);
 
             // Structured type flattening, view expansion, and plugging in
             // physical storage.
@@ -343,21 +359,22 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 getRelImplementor(rootRel.getCluster().getRexBuilder());
             Expression expr =
                 relImplementor.implementRoot((EnumerableRel) rootRel);
-            String s = Expressions.toString(expr, false);
+            ParameterExpression root0 =
+                Expressions.parameter(Map.class, "root0");
+            String s = Expressions.toString(
+                Expressions.block(
+                    Expressions.declare(
+                        Modifier.FINAL,
+                        OptiqCatalogReader.rootExpression,
+                        root0),
+                    Expressions.return_(null, expr)),
+                false);
             System.out.println(s);
 
-            final Map<String, Queryable> map = relImplementor.map;
-            final List<Class> classList = new ArrayList<Class>();
-            for (Map.Entry<String, Queryable> entry : map.entrySet()) {
-                classList.add(entry.getValue().getClass());
-            }
-            final ExpressionEvaluator ee;
+            final Xxx ee;
             try {
-                ee = new ExpressionEvaluator(
-                    s,
-                    Enumerable.class,
-                    map.keySet().toArray(new String[map.size()]),
-                    classList.toArray(new Class[map.size()]));
+                ee = (Xxx) ExpressionEvaluator.createFastScriptEvaluator(
+                    s, Xxx.class, new String[]{"root0"});
             } catch (Exception e) {
                 throw Helper.INSTANCE.wrap(
                     "Error while compiling generated Java code:\n" + s, e);
@@ -380,13 +397,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 null)
             {
                 public Object execute() {
-                    try {
-                        return ee.evaluate(
-                            map.values().toArray(new Object[map.size()]));
-                    } catch (InvocationTargetException e) {
-                        throw Helper.INSTANCE.wrap(
-                            "Error while executing", e);
-                    }
+                    return ee.yyy(root);
                 }
             };
         }
@@ -454,7 +465,8 @@ class OptiqPrepareImpl implements OptiqPrepare {
     {
         private final Schema schema;
         private final RelDataTypeFactory typeFactory;
-        private final Expression rootExpression =
+
+        private static final ParameterExpression rootExpression =
             Expressions.variable(Map.class, "root");
 
         public OptiqCatalogReader(
@@ -507,7 +519,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             if (Types.isArray(type)) {
                 return Expressions.call(
                     Linq4j.class,
-                    "asEnumerable",
+                    "asEnumerable3", // FIXME
                     Collections.singletonList(expression));
             }
             throw new RuntimeException(

@@ -365,6 +365,68 @@ public interface RelDataTypeFactory
             return fieldList.get(index).getType();
         }
     }
+
+    /**
+     * Implementation of {@link FieldInfo} that provides a fluid API to build
+     * a list of fields.
+     */
+    public static class FieldInfoBuilder implements FieldInfo {
+        private final List<RelDataTypeField> fields =
+            new ArrayList<RelDataTypeField>();
+
+        /**
+         * Creates a FieldInfoBuilder with one field.
+         *
+         * @param name Field name
+         * @param type Field type
+         * @return A FieldInfoBuilder
+         */
+        public static FieldInfoBuilder of(String name, RelDataType type) {
+            return new FieldInfoBuilder().add(name, type);
+        }
+
+        /**
+         * Creates a FieldInfoBuilder with the given fields.
+         *
+         * @param fields Field
+         * @return A FieldInfoBuilder
+         */
+        public static FieldInfoBuilder of(Iterable<RelDataTypeField> fields) {
+            return new FieldInfoBuilder().addAll(fields);
+        }
+
+        public int getFieldCount() {
+            return fields.size();
+        }
+
+        public String getFieldName(int index) {
+            return fields.get(index).getName();
+        }
+
+        public RelDataType getFieldType(int index) {
+            return fields.get(index).getType();
+        }
+
+        /** Adds a field with given name and type. */
+        public FieldInfoBuilder add(String name, RelDataType type) {
+            fields.add(new RelDataTypeFieldImpl(name, fields.size(), type));
+            return this;
+        }
+
+        /** Adds a field. Field's ordinal is ignored. */
+        public FieldInfoBuilder add(RelDataTypeField field) {
+            add(field.getName(), field.getType());
+            return this;
+        }
+
+        /** Adds a field. */
+        public FieldInfoBuilder addAll(Iterable<RelDataTypeField> fields) {
+            for (RelDataTypeField field : fields) {
+                add(field);
+            }
+            return this;
+        }
+    }
 }
 
 // End RelDataTypeFactory.java

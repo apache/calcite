@@ -418,7 +418,7 @@ public class JavaRules {
             final Type enumeratorType =
                 Types.of(
                     Enumerator.class, outputJavaType);
-            Class inputJavaType = typeFactory.getJavaClass(inputRowType);
+            Class inputJavaType = EnumUtil.javaClass(typeFactory, inputRowType);
             ParameterExpression inputEnumerable =
                 Expressions.parameter(
                     Types.of(
@@ -451,6 +451,7 @@ public class JavaRules {
                     RexToLixTranslator.translateCondition(
                         Collections.<Expression>singletonList(input),
                         program,
+                        typeFactory,
                         list);
                 list.add(
                     Expressions.ifThen(
@@ -475,6 +476,7 @@ public class JavaRules {
                 RexToLixTranslator.translateProjects(
                     Collections.<Expression>singletonList(input),
                     program,
+                    typeFactory,
                     list);
             list.add(
                 Expressions.return_(
@@ -496,7 +498,11 @@ public class JavaRules {
                     Expressions.fieldDecl(
                         Modifier.FINAL,
                         inputEnumerable,
-                        childExp),
+                        false
+                        ? Expressions.convert_(
+                            Expressions.constant(null),
+                            Enumerable.class)
+                        : childExp),
                     Expressions.methodDecl(
                         Modifier.PUBLIC,
                         enumeratorType,
@@ -547,7 +553,11 @@ public class JavaRules {
         }
     }
 
-    void foo() {
+    /**
+     * Sample code. Not used; just here as a scratch pad, to make sure that what
+     * we generate will compile. Feel free to modify.
+     */
+    private void foo() {
         new AbstractEnumerable<IntString>() {
             final Enumerable<Employee> childEnumerable =
                 Linq4j.emptyEnumerable();

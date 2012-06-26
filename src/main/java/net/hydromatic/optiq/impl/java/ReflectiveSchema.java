@@ -29,6 +29,7 @@ import org.eigenbase.sql.type.SqlTypeUtil;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.*;
 
 /**
@@ -39,6 +40,7 @@ public class ReflectiveSchema
     extends MapSchema
 {
     private final RelDataType type;
+    private final Object o;
 
     /**
      * Creates a ReflectiveSchema.
@@ -51,6 +53,7 @@ public class ReflectiveSchema
         JavaTypeFactory typeFactory)
     {
         super(typeFactory);
+        this.o = o;
         this.type = typeFactory.createType(o.getClass());
         Class<?> clazz = o.getClass();
         for (Field field : clazz.getFields()) {
@@ -89,6 +92,14 @@ public class ReflectiveSchema
     {
         return ((FunctionPlus) schemaObject).getExpression(
             schemaExpression, arguments);
+    }
+
+    @Override
+    public Object getSubSchema(
+        Object schema, String name, List<Type> parameterTypes)
+    {
+        SchemaObject schemaObject = get(name);
+        throw new UnsupportedOperationException(); // TODO:
     }
 
     private interface FunctionPlus extends Function {
@@ -142,7 +153,7 @@ public class ReflectiveSchema
         }
     }
 
-    private Function methodFunction(
+    public static Function methodFunction(
         final Object o,
         final Method method,
         final RelDataTypeFactory typeFactory)

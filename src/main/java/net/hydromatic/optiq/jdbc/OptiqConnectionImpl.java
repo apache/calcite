@@ -109,6 +109,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         return rootSchema;
     }
 
+
     public JavaTypeFactory getTypeFactory() {
         return typeFactory;
     }
@@ -513,6 +514,11 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
 
                             public Schema getRootSchema() {
                                 return connection.getRootSchema();
+                            }
+
+                            public Map getRoot() {
+                                return connection.getRootSchema()
+                                    .getInstanceMap();
                             }
                         },
                         expression,

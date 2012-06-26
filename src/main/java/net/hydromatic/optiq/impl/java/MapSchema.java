@@ -24,6 +24,7 @@ import net.hydromatic.optiq.*;
 import org.eigenbase.reltype.RelDataType;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.*;
 
 /**
@@ -46,6 +47,9 @@ public class MapSchema implements MutableSchema {
         new HashMap<String, SchemaObject>();
     private final JavaTypeFactory typeFactory;
 
+    private final Map<String, Object> instanceMap =
+        new HashMap<String, Object>();
+
     public MapSchema(JavaTypeFactory typeFactory) {
         this.typeFactory = typeFactory;
     }
@@ -58,8 +62,18 @@ public class MapSchema implements MutableSchema {
         map.put(schemaObject.getName(), schemaObject);
     }
 
-    public void add(final String name, Schema schema) {
+    public void add(String name, Schema schema, Object o) {
         map.put(name, new SchemaLink(name, schema));
+        instanceMap.put(name, o);
+    }
+
+    public void add(final String name, Object o) {
+        Schema schema = new ReflectiveSchema(o, typeFactory);
+        add(name, schema, o);
+    }
+
+    public Map getInstanceMap() {
+        return Collections.unmodifiableMap(instanceMap);
     }
 
     public Map<String, SchemaObject> asMap() {
@@ -82,18 +96,34 @@ public class MapSchema implements MutableSchema {
         Object o = schemaObject;
         if (schemaObject instanceof SchemaLink) {
             o = ((SchemaLink) schemaObject).schema;
-            call =
-                Expressions.field(
-                    Expressions.convert_(
-                        call,
-                        SchemaLink.class),
-                    "schema");
+            if (false) {
+                call =
+                    Expressions.field(
+                        Expressions.convert_(
+                            call,
+                            SchemaLink.class),
+                        "schema");
+            }
         }
         Class clazz = deduceClass(o);
         if (clazz != null && clazz != Object.class) {
             return Expressions.convert_(call, clazz);
         }
         return call;
+    }
+
+    public Object getSubSchema(
+        Object schema, String name, List<Type> parameterTypes)
+    {
+        return ((Map) schema).get(name);
+    }
+
+    private List<RelDataType> convert(List<Type> types) {
+        ArrayList<RelDataType> list = new ArrayList<RelDataType>();
+        for (Type type : types) {
+            list.add(typeFactory.createJavaType((Class) type));
+        }
+        return list;
     }
 
     private Class deduceClass(Object schemaObject) {

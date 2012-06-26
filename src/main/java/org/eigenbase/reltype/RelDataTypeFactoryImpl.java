@@ -599,7 +599,12 @@ public abstract class RelDataTypeFactoryImpl
 
         public SqlTypeName getSqlTypeName()
         {
-            return JavaToSqlTypeConversionRules.instance().lookup(clazz);
+            final SqlTypeName typeName =
+                JavaToSqlTypeConversionRules.instance().lookup(clazz);
+            if (typeName == null) {
+                return SqlTypeName.OTHER;
+            }
+            return typeName;
         }
     }
 }

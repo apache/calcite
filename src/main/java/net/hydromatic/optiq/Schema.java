@@ -19,6 +19,7 @@ package net.hydromatic.optiq;
 
 import net.hydromatic.linq4j.expressions.Expression;
 
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 
@@ -46,8 +47,22 @@ import java.util.Map;
  * be nested within schemas.</p>
  */
 public interface Schema {
+    /**
+     * Returns a sub-object with the given name, or null if there is no such
+     * object. The sub-object might be a {@link Schema}, or a {@link Function},
+     * or a {@link Overload} if there are several functions with the same name
+     * but different signatures.
+     *
+     * @param name Name of sub-object
+     * @return Sub-object, or null
+     */
     SchemaObject get(String name);
 
+    /**
+     * Returns a map whose keys are the names of available sub-objects.
+     *
+     * @return Map from sub-object names to sub-objects.
+     */
     Map<String, SchemaObject> asMap();
 
     /**
@@ -70,6 +85,21 @@ public interface Schema {
         SchemaObject schemaObject,
         String name,
         List<Expression> arguments);
+
+    /**
+     * Given an object that is an instance of this schema,
+     * returns an object that is an instance of the named sub-object of this
+     * schema.
+     *
+     * @param schema Schema
+     * @param name Name of sub-object
+     * @param parameterTypes Parameter types (to resolve overloaded functions)
+     * @return Sub-object
+     */
+    Object getSubSchema(
+        Object schema,
+        String name,
+        List<Type> parameterTypes);
 }
 
 // End Schema.java

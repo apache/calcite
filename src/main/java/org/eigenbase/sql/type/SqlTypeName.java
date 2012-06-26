@@ -34,10 +34,10 @@ import org.eigenbase.util.*;
  * java.sql.Type ordinals):
  *
  * <ul>
- * <li>java.sql.Type does not include all SQL2003 datatypes
- * <li>SqlTypeName provides a type-safe enumeration
+ * <li>{@link java.sql.Types} does not include all SQL2003 data-types;
+ * <li>SqlTypeName provides a type-safe enumeration;
  * <li>SqlTypeName provides a place to hang extra information such as whether
- * the type carries precision and scale
+ * the type carries precision and scale.
  * </ul>
  *
  * @author jhyde
@@ -80,6 +80,7 @@ public enum SqlTypeName
     DISTINCT(PrecScale.NoNo, false, Types.DISTINCT),
     STRUCTURED(PrecScale.NoNo, false, Types.STRUCT),
     ROW(PrecScale.NoNo, false, Types.STRUCT),
+    OTHER(PrecScale.NoNo, false, Types.OTHER),
     CURSOR(PrecScale.NoNo, false, Types.OTHER + 1),
     COLUMN_LIST(PrecScale.NoNo, false, Types.OTHER + 2);
 

@@ -18,7 +18,8 @@
     <orderEntry type="library" name="Maven: openjava:openjava:20050715" level="project" />
     <orderEntry type="library" name="Maven: net.hydromatic:linq4j:0.1-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.jgrapht:jgrapht-jdk1.5:0.7.3" level="project" />
-    <orderEntry type="library" name="Maven: janino:janino:2.5.10" level="project" />
+    <orderEntry type="library" name="Maven: org.codehaus.janino:janino:2.6.1" level="project" />
+    <orderEntry type="library" name="Maven: org.codehaus.janino:commons-compiler:2.6.1" level="project" />
     <orderEntry type="library" name="Maven: org.incava:java-diff:1.1" level="project" />
   </component>
 </module>
