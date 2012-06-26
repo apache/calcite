@@ -147,6 +147,14 @@ public class Linq4j {
         return new ListEnumerable<T>(Arrays.asList(ts));
     }
 
+    public static String asEnumerable2(final Object[] ts) {
+        return asEnumerable(ts).toString();
+    }
+
+    public static Enumerable asEnumerable3(final Object[] ts) {
+        return asEnumerable(ts);
+    }
+
     /**
      * Adapter that converts a collection into an enumerator.
      *

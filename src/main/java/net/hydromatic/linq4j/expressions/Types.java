@@ -29,19 +29,18 @@ import java.util.*;
  * @author jhyde
  */
 public class Types {
-    static final Map<Class, String> PRIMITIVES =
-        new HashMap<Class, String>();
+    static final Map<Class, Class> PRIMITIVES = new HashMap<Class, Class>();
 
     static {
-        PRIMITIVES.put(Boolean.TYPE, "Boolean");
-        PRIMITIVES.put(Byte.TYPE, "Byte");
-        PRIMITIVES.put(Character.TYPE, "Character");
-        PRIMITIVES.put(Short.TYPE, "Short");
-        PRIMITIVES.put(Integer.TYPE, "Integer");
-        PRIMITIVES.put(Long.TYPE, "Long");
-        PRIMITIVES.put(Float.TYPE, "Float");
-        PRIMITIVES.put(Double.TYPE, "Double");
-        PRIMITIVES.put(Void.TYPE, "Void");
+        PRIMITIVES.put(Boolean.TYPE, Boolean.class);
+        PRIMITIVES.put(Byte.TYPE, Byte.class);
+        PRIMITIVES.put(Character.TYPE, Character.class);
+        PRIMITIVES.put(Short.TYPE, Short.class);
+        PRIMITIVES.put(Integer.TYPE, Integer.class);
+        PRIMITIVES.put(Long.TYPE, Long.class);
+        PRIMITIVES.put(Float.TYPE, Float.class);
+        PRIMITIVES.put(Double.TYPE, Double.class);
+        PRIMITIVES.put(Void.TYPE, Void.class);
     }
 
     /** Creates a type with generic parameters. */
@@ -139,9 +138,19 @@ public class Types {
         }
         Class clazz = (Class) type;
         if (clazz.isPrimitive()) {
-            return PRIMITIVES.get(clazz);
+            return PRIMITIVES.get(clazz).getSimpleName();
         } else {
             return className(clazz);
+        }
+    }
+
+    public static Type box(Type type) {
+        if (type instanceof Class
+            && ((Class) type).isPrimitive())
+        {
+            return PRIMITIVES.get(type);
+        } else {
+            return type;
         }
     }
 
