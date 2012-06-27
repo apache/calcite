@@ -272,7 +272,7 @@ public class ExpressionTest extends TestCase {
             Expressions.toString(
                 Expressions.add(
                     Expressions.constant(1),
-                Expressions.arrayAccess(
+                Expressions.arrayIndex(
                     Expressions.variable(int[].class, "integers"),
                     Expressions.add(
                         Expressions.constant(2),

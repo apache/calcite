@@ -203,43 +203,12 @@ public class Expressions {
         throw Extensions.todo();
     }
 
-    /** Creates an IndexExpression to access a multidimensional
-     * array. */
-    public static IndexExpression arrayAccess(
-        Expression array, Iterable<Expression> indexExpressions)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates an IndexExpression to access an array. */
-    public static IndexExpression arrayAccess(
-        Expression array, Expression... indexExpressions)
-    {
-        return new IndexExpression(array, Arrays.asList(indexExpressions));
-    }
-
-    /** Creates a MethodCallExpression that represents applying an
-     * array index operator to an array of rank more than one. */
-    public static IndexExpression arrayIndex(
-        Expression array, Iterable<Expression> indexExpressions)
-    {
-        return new IndexExpression(array, toList(indexExpressions));
-    }
-
-    /** Creates a BinaryExpression that represents applying an array
+    /** Creates an expression that represents applying an array
      * index operator to an array of rank one. */
-    public static BinaryExpression arrayIndex(
-        Expression array, Expression indexExpressions)
+    public static IndexExpression arrayIndex(
+        Expression array, Expression indexExpression)
     {
-        throw Extensions.todo();
-    }
-
-    /** Creates a MethodCallExpression that represents applying an
-     * array index operator to a multidimensional array. */
-    public static MethodCallExpression arrayIndex(
-        Expression array, Expression... indexExpressions)
-    {
-        throw Extensions.todo();
+        return new IndexExpression(array, Collections.singletonList(indexExpression));
     }
 
     /** Creates a UnaryExpression that represents an expression for
@@ -269,7 +238,7 @@ public class Expressions {
     /** Creates a BlockExpression that contains the given expressions
      * and has no variables. */
     public static BlockExpression block(Expression... expressions) {
-        return block(Arrays.asList(expressions));
+        return block(toList(expressions));
     }
 
     /** Creates a BlockExpression that contains the given expressions
@@ -292,7 +261,7 @@ public class Expressions {
     public static BlockExpression block(
         Iterable<ParameterExpression> variables, Expression... expressions)
     {
-        return block(variables, Arrays.asList(expressions));
+        return block(variables, toList(expressions));
     }
 
     /** Creates a BlockExpression that contains the given expressions,
@@ -392,7 +361,7 @@ public class Expressions {
         return new MethodCallExpression(
             method,
             null,
-            Arrays.asList(arguments));
+            toList(arguments));
     }
 
     /** Creates a MethodCallExpression that represents a call to a
@@ -440,7 +409,7 @@ public class Expressions {
         return new MethodCallExpression(
             method,
             expression,
-            Arrays.asList(arguments));
+            toList(arguments));
     }
 
     /** Creates a MethodCallExpression that represents a call to an
@@ -468,9 +437,9 @@ public class Expressions {
     public static MethodCallExpression call(
         Expression target,
         String methodName,
-        Expression... selectors)
+        Expression... arguments)
     {
-        return call(target, methodName, Arrays.<Expression>asList(selectors));
+        return call(target, methodName, Arrays.<Expression>asList(arguments));
     }
 
     /** Creates a MethodCallExpression that represents a call to a
@@ -1123,6 +1092,14 @@ public class Expressions {
         return list;
     }
 
+    private static <T> List<T> toList(T[] ts) {
+        if (ts.length == 0) {
+            return Collections.emptyList();
+        } else {
+            return Arrays.asList(ts);
+        }
+    }
+
     private static <T> Collection<T> toCollection(Iterable<T> iterable) {
         if (iterable instanceof Collection) {
             return (Collection<T>) iterable;
@@ -1141,7 +1118,7 @@ public class Expressions {
         Expression body,
         ParameterExpression... parameters)
     {
-        return lambda(body, Arrays.asList(parameters));
+        return lambda(body, toList(parameters));
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
@@ -1163,7 +1140,7 @@ public class Expressions {
 //        boolean tailCall,
 //        ParameterExpression... parameters)
 //    {
-//        return lambda(body, tailCall, Arrays.asList(parameters));
+//        return lambda(body, tailCall, toList(parameters));
 //    }
 
     /** Creates a LambdaExpression by first constructing a delegate
@@ -1198,7 +1175,7 @@ public class Expressions {
         Expression body,
         ParameterExpression... parameters)
     {
-        return lambda(type, body, Arrays.asList(parameters));
+        return lambda(type, body, toList(parameters));
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
@@ -1234,7 +1211,7 @@ public class Expressions {
 //        boolean tailCall,
 //        ParameterExpression... parameters)
 //    {
-//        return lambda(type, body, tailCall, Arrays.asList(parameters));
+//        return lambda(type, body, tailCall, toList(parameters));
 //    }
 
     /** Creates a LambdaExpression by first constructing a delegate
@@ -1632,7 +1609,7 @@ public class Expressions {
     public static MemberMemberBinding memberBind(
         Member member, MemberBinding... bindings)
     {
-        return memberBind(member, Arrays.asList(bindings));
+        return memberBind(member, toList(bindings));
     }
 
     /** Creates a MemberMemberBinding that represents the recursive
@@ -1650,7 +1627,7 @@ public class Expressions {
     public static MemberMemberBinding memberBind(
         Method method, MemberBinding... bindings)
     {
-        return memberBind(method, Arrays.asList(bindings));
+        return memberBind(method, toList(bindings));
     }
 
     /** Represents an expression that creates a new object and
@@ -1665,7 +1642,7 @@ public class Expressions {
     public static MemberInitExpression memberInit(
         NewExpression newExpression, MemberBinding... bindings)
     {
-        return memberInit(newExpression, Arrays.asList(bindings));
+        return memberInit(newExpression, toList(bindings));
     }
 
     /** Declares a method. */
@@ -1970,7 +1947,7 @@ public class Expressions {
     public static NewExpression new_(
         Constructor constructor, Expression... expressions)
     {
-        return new_(constructor, Arrays.asList(expressions));
+        return new_(constructor, toList(expressions));
     }
 
     /** Creates a NewExpression that represents calling the specified
@@ -2001,7 +1978,7 @@ public class Expressions {
         return new_(
             constructor,
             expressions,
-            Arrays.asList(members),
+            toList(members),
             Collections.<MemberDeclaration>emptyList());
     }
 
@@ -2018,7 +1995,7 @@ public class Expressions {
     public static NewArrayExpression newArrayBounds(
         Type type, Expression... expressions)
     {
-        return newArrayBounds(type, Arrays.asList(expressions));
+        return newArrayBounds(type, toList(expressions));
     }
 
     /** Creates a NewArrayExpression that represents creating a
@@ -2039,7 +2016,7 @@ public class Expressions {
     public static NewArrayExpression newArrayInit(
         Type type, Expression... expressions)
     {
-        return newArrayInit(type, Arrays.asList(expressions));
+        return newArrayInit(type, toList(expressions));
     }
 
     /** Creates a UnaryExpression that represents a bitwise complement
@@ -2675,7 +2652,7 @@ public class Expressions {
     public static SwitchExpression switch_(
         Expression switchValue, SwitchCase... cases)
     {
-        return switch_(switchValue, null, null, Arrays.asList(cases));
+        return switch_(switchValue, null, null, toList(cases));
     }
 
     /** Creates a SwitchExpression that represents a switch statement
@@ -2683,7 +2660,7 @@ public class Expressions {
     public static SwitchExpression switch_(
         Expression switchValue, Expression defaultBody, SwitchCase... cases)
     {
-        return switch_(switchValue, defaultBody, null, Arrays.asList(cases));
+        return switch_(switchValue, defaultBody, null, toList(cases));
     }
 
     /** Creates a SwitchExpression that represents a switch statement
@@ -2705,7 +2682,7 @@ public class Expressions {
         Method method,
         SwitchCase... cases)
     {
-        return switch_(switchValue, defaultBody, method, Arrays.asList(cases));
+        return switch_(switchValue, defaultBody, method, toList(cases));
     }
 
     /** Creates a SwitchExpression that represents a switch statement
@@ -2730,7 +2707,7 @@ public class Expressions {
         SwitchCase... cases)
     {
         return switch_(
-            type, switchValue, defaultBody, method, Arrays.asList(cases));
+            type, switchValue, defaultBody, method, toList(cases));
     }
 
     /** Creates a SwitchCase object to be used in a SwitchExpression
@@ -2745,7 +2722,7 @@ public class Expressions {
     public static SwitchCase switchCase(
         Expression expression, Expression ... body)
     {
-        return switchCase(expression, Arrays.asList(body));
+        return switchCase(expression, toList(body));
     }
 
     /** Creates an instance of SymbolDocumentInfo. */
@@ -2910,6 +2887,16 @@ public class Expressions {
         int modifiers, ParameterExpression parameter, Expression initializer)
     {
         return new DeclarationExpression(modifiers, parameter, initializer);
+    }
+
+    /** Creates an expression that declares and initializes a variable. No
+     * type is required; it is assumed that the variable is the same type as
+     * the initializer. */
+    public static DeclarationExpression declare(
+        int modifiers, String name, Expression initializer)
+    {
+        return declare(
+            modifiers, parameter(initializer.getType(), name), initializer);
     }
 
     /** Creates an empty fluent list. */
