@@ -23,6 +23,7 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Function2;
 
+import net.hydromatic.linq4j.function.IntegerFunction1;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.rel.*;
@@ -34,6 +35,7 @@ import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.RexMultisetUtil;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.rex.RexProgram;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -46,6 +48,27 @@ import java.util.*;
 public class JavaRules {
     private static final Constructor ABSTRACT_ENUMERABLE_CTOR =
         Types.lookupConstructor(AbstractEnumerable.class);
+
+    private static final Method JOIN_METHOD =
+        Types.lookupMethod(
+            ExtendedEnumerable.class,
+            "join",
+            Enumerable.class,
+            Function1.class,
+            Function1.class,
+            Function2.class);
+
+    private static final Method GROUP_BY_METHOD =
+        Types.lookupMethod(
+            ExtendedEnumerable.class,
+            "groupBy",
+            Function1.class);
+
+    private static final Method SELECT_METHOD =
+        Types.lookupMethod(
+            ExtendedEnumerable.class,
+            "select",
+            Function1.class);
 
     // not used
     public static final RelOptRule JAVA_PROJECT_RULE =
@@ -89,25 +112,16 @@ public class JavaRules {
         };
     public static final boolean BRIDGE_METHODS = true;
 
+    private static final List<ParameterExpression> NO_PARAMS =
+        Collections.emptyList();
+
+    private static final List<Expression> NO_EXPRS =
+        Collections.emptyList();
+
     public static class EnumerableJoinRel
         extends JoinRelBase
         implements EnumerableRel
     {
-        static final Method join;
-
-        static {
-            try {
-                join = ExtendedEnumerable.class.getMethod(
-                    "join",
-                    Enumerable.class,
-                    Function1.class,
-                    Function1.class,
-                    Function2.class);
-            } catch (NoSuchMethodException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
         protected EnumerableJoinRel(
             RelOptCluster cluster,
             RelTraitSet traits,
@@ -156,7 +170,7 @@ public class JavaRules {
                 (JavaTypeFactory) left.getCluster().getTypeFactory();
             return Expressions.call(
                 implementor.visitChild(this, 0, (EnumerableRel) left),
-                join,
+                JOIN_METHOD,
                 implementor.visitChild(this, 1, (EnumerableRel) right),
                 EnumUtil.generateAccessor(
                     typeFactory, left.getRowType(), leftKeys),
@@ -184,7 +198,7 @@ public class JavaRules {
                 RelDataType inputRowType = rel.getRowType();
                 final ParameterExpression parameter = parameters.get(i++);
                 for (RelDataTypeField field : inputRowType.getFields()) {
-                    expressions.add(fieldReference(parameter, field));
+                    expressions.add(EnumUtil.fieldReference(parameter, field));
                 }
             }
             return Expressions.lambda(
@@ -195,19 +209,6 @@ public class JavaRules {
                         Object.class,
                         expressions)),
                 parameters);
-        }
-
-        private Expression fieldReference(
-            ParameterExpression parameter,
-            RelDataTypeField field)
-        {
-            return parameter.getClass().isArray()
-                ? Expressions.arrayIndex(
-                    parameter,
-                    Expressions.constant(field.getIndex()))
-                : Expressions.field(
-                    parameter,
-                    field.getName());
         }
     }
 
@@ -232,7 +233,7 @@ public class JavaRules {
             //    }
             // }
             ParameterExpression v1 =
-                Expressions.parameter(typeFactory.getJavaClass(rowType), "v1");
+                Expressions.parameter(javaClass(typeFactory, rowType), "v1");
             return Expressions.lambda(
                 Function1.class,
                 Expressions.return_(
@@ -246,6 +247,36 @@ public class JavaRules {
         {
             final Class clazz = typeFactory.getJavaClass(type);
             return clazz == null ? Object[].class : clazz;
+        }
+
+        static Class computeOutputJavaType(
+            JavaTypeFactory typeFactory, RelDataType outputRowType)
+        {
+            Class outputJavaType = typeFactory.getJavaClass(outputRowType);
+            if (outputJavaType == null) {
+                if (outputRowType.getFieldCount() == 1) {
+                    outputJavaType =
+                        typeFactory.getJavaClass(
+                            outputRowType.getFieldList().get(0).getType());
+                }
+                if (outputJavaType == null) {
+                    outputJavaType = Object.class;
+                }
+            }
+            return outputJavaType;
+        }
+
+        static Expression fieldReference(
+            Expression parameter,
+            RelDataTypeField field)
+        {
+            return Types.isArray(parameter.getType())
+                ? Expressions.arrayIndex(
+                    parameter,
+                    Expressions.constant(field.getIndex()))
+                : Expressions.field(
+                    parameter,
+                    field.getName());
         }
     }
 
@@ -404,17 +435,8 @@ public class JavaRules {
             //         return new Enumerator<IntString() {
             //             public void reset() {
             // ...
-            Class outputJavaType = typeFactory.getJavaClass(outputRowType);
-            if (outputJavaType == null) {
-                if (outputRowType.getFieldCount() == 1) {
-                    outputJavaType =
-                        typeFactory.getJavaClass(
-                            outputRowType.getFieldList().get(0).getType());
-                }
-                if (outputJavaType == null) {
-                    outputJavaType = Object.class;
-                }
-            }
+            Class outputJavaType =
+                EnumUtil.computeOutputJavaType(typeFactory, outputRowType);
             final Type enumeratorType =
                 Types.of(
                     Enumerator.class, outputJavaType);
@@ -435,7 +457,7 @@ public class JavaRules {
                     Expressions.call(
                         inputEnumerator,
                         "current",
-                        Collections.<Expression>emptyList()),
+                        NO_EXPRS),
                     inputJavaType);
 
             Expression moveNextBody;
@@ -444,7 +466,7 @@ public class JavaRules {
                     Expressions.call(
                         inputEnumerator,
                         "moveNext",
-                        Collections.<Expression>emptyList());
+                        NO_EXPRS);
             } else {
                 final List<Expression> list = Expressions.list();
                 Expression condition =
@@ -464,7 +486,7 @@ public class JavaRules {
                             Expressions.call(
                                 inputEnumerator,
                                 "moveNext",
-                                Collections.<Expression>emptyList()),
+                                NO_EXPRS),
                             Expressions.block(list)),
                         Expressions.return_(
                             null,
@@ -492,7 +514,7 @@ public class JavaRules {
             return Expressions.new_(
                 ABSTRACT_ENUMERABLE_CTOR,
                 // Collections.singletonList(inputRowType), // TODO: generics
-                Collections.<Expression>emptyList(),
+                NO_EXPRS,
                 Collections.<Member>emptyList(),
                 Arrays.<MemberDeclaration>asList(
                     Expressions.fieldDecl(
@@ -507,10 +529,10 @@ public class JavaRules {
                         Modifier.PUBLIC,
                         enumeratorType,
                         "enumerator",
-                        Collections.<ParameterExpression>emptyList(),
+                        NO_PARAMS,
                         Expressions.new_(
                             enumeratorType,
-                            Collections.<Expression>emptyList(),
+                            NO_EXPRS,
                             Collections.<Member>emptyList(),
                             Expressions.<MemberDeclaration>list(
                                 Expressions.fieldDecl(
@@ -519,23 +541,21 @@ public class JavaRules {
                                     Expressions.call(
                                         inputEnumerable,
                                         "enumerator",
-                                        Collections.<Expression>emptyList())),
+                                        NO_EXPRS)),
                                 Expressions.methodDecl(
                                     Modifier.PUBLIC,
                                     Void.TYPE,
                                     "reset",
-                                    Collections
-                                        .<ParameterExpression>emptyList(),
+                                    NO_PARAMS,
                                     Expressions.call(
                                         inputEnumerator,
                                         "reset",
-                                        Collections.<Expression>emptyList())),
+                                        NO_EXPRS)),
                                 Expressions.methodDecl(
                                     Modifier.PUBLIC,
                                     Boolean.TYPE,
                                     "moveNext",
-                                    Collections
-                                        .<ParameterExpression>emptyList(),
+                                    NO_PARAMS,
                                     moveNextBody),
                                 Expressions.methodDecl(
                                     Modifier.PUBLIC,
@@ -543,8 +563,7 @@ public class JavaRules {
                                         ? Object.class
                                         : outputJavaType,
                                     "current",
-                                    Collections
-                                        .<ParameterExpression>emptyList(),
+                                    NO_PARAMS,
                                     currentBody))))));
         }
 
@@ -553,42 +572,246 @@ public class JavaRules {
         }
     }
 
+    public static final EnumerableAggregateRule ENUMERABLE_AGGREGATE_RULE =
+        new EnumerableAggregateRule();
+
+    /**
+     * Rule to convert an {@link org.eigenbase.rel.AggregateRel} to an
+     * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableAggregateRel}.
+     */
+    private static class EnumerableAggregateRule
+        extends ConverterRule
+    {
+        private EnumerableAggregateRule()
+        {
+            super(
+                AggregateRel.class,
+                CallingConvention.NONE,
+                CallingConvention.ENUMERABLE,
+                "EnumerableAggregateRule");
+        }
+
+        public RelNode convert(RelNode rel)
+        {
+            final AggregateRel agg = (AggregateRel) rel;
+            final RelNode convertedChild =
+                mergeTraitsAndConvert(
+                    agg.getTraitSet(),
+                    CallingConvention.ENUMERABLE,
+                    agg.getChild());
+            if (convertedChild == null) {
+                // We can't convert the child, so we can't convert rel.
+                return null;
+            }
+
+            return new EnumerableAggregateRel(
+                rel.getCluster(),
+                rel.getTraitSet(),
+                convertedChild,
+                agg.getAggCallList(),
+                agg.getGroupCount());
+        }
+    }
+
+    public static class EnumerableAggregateRel
+        extends AggregateRelBase
+        implements EnumerableRel
+    {
+        public EnumerableAggregateRel(
+            RelOptCluster cluster,
+            RelTraitSet traitSet,
+            RelNode child,
+            List<AggregateCall> aggCalls,
+            int groupCount)
+        {
+            super(
+                cluster,
+                traitSet.plus(CallingConvention.ENUMERABLE),
+                child,
+                groupCount,
+                aggCalls);
+        }
+
+        public EnumerableAggregateRel copy(
+            RelTraitSet traitSet, List<RelNode> inputs)
+        {
+            return new EnumerableAggregateRel(
+                getCluster(),
+                traitSet,
+                sole(inputs),
+                aggCalls,
+                groupCount);
+        }
+
+        public Expression implement(EnumerableRelImplementor implementor) {
+            final JavaTypeFactory typeFactory =
+                (JavaTypeFactory) implementor.getTypeFactory();
+            Expression childExp =
+                implementor.visitChild(this, 0, (EnumerableRel) getChild());
+            RelDataType outputRowType = getRowType();
+            RelDataType inputRowType = getChild().getRowType();
+
+            // final Enumerable<Employee> child = <<child impl>>;
+            // Function1<Employee, Integer> keySelector =
+            //     new Function1<Employee, Integer>() {
+            //         public Integer apply(Employee a0) {
+            //             return a0.deptno;
+            //         }
+            //     };
+            // Function1<Grouping<Integer, Employee>, Object[]> selector =
+            //     new Function1<Grouping<Integer, Employee>, Object[]>() {
+            //         public Object[] apply(Grouping<Integer, Employee> a0) {
+            //             return new Object[] {
+            //                 a0.getKey(),
+            //                 a0.sum(
+            //                     new IntegerFunction1<Employee>() {
+            //                         public int apply(Employee a0) {
+            //                             return a0.empid;
+            //                         }
+            //                     }
+            //                 ),
+            //                 a0.count()
+            //             };
+            //         }
+            //     };
+            // return childEnumerable.groupBy(keySelector)
+            //     .select(selector);
+            Class outputJavaType =
+                EnumUtil.computeOutputJavaType(typeFactory, outputRowType);
+            Class inputJavaType = EnumUtil.javaClass(typeFactory, inputRowType);
+
+            ParameterExpression parameter =
+                Expressions.parameter(inputJavaType, "a0");
+            final List<Expression> keyExpressions = Expressions.list();
+            for (int i = 0; i < groupCount; i++) {
+                keyExpressions.add(
+                    EnumUtil.fieldReference(
+                        parameter, inputRowType.getFieldList().get(i)));
+            }
+            final Expression keySelector =
+                Expressions.declare(
+                    Modifier.FINAL,
+                    "keySelector",
+                    Expressions.lambda(
+                        Function1.class,
+                        Expressions.return_(
+                            null,
+                            keyExpressions.size() == 1
+                                ? keyExpressions.get(0)
+                                : Expressions.newArrayInit(
+                                    Object.class, keyExpressions)),
+                        parameter));
+
+            ParameterExpression grouping =
+                Expressions.parameter(Grouping.class, "grouping");
+            Expressions.FluentList<Expression> list = Expressions.list();
+            final List<Expression> expressions = Expressions.list();
+            if (groupCount == 1) {
+                expressions.add(
+                    Expressions.call(
+                        grouping, "getKey"));
+            } else {
+                DeclarationExpression declare =
+                    Expressions.declare(
+                        Modifier.FINAL,
+                        "key",
+                        Expressions.convert_(
+                            Expressions.call(
+                                grouping, "getKey"),
+                            Object[].class));
+                list.append(declare);
+                for (int i = 0; i < groupCount; i++) {
+                    expressions.add(
+                        Expressions.arrayIndex(
+                            declare.parameter,
+                            Expressions.constant(i)));
+                }
+            }
+            for (AggregateCall aggCall : aggCalls) {
+                expressions.add(
+                    translate(typeFactory, inputRowType, grouping, aggCall));
+            }
+            list.append(
+                Expressions.return_(
+                    null,
+                    expressions.size() == 1
+                        ? expressions.get(0)
+                        : Expressions.newArrayInit(
+                            Object.class, expressions)));
+
+            final Expression selector =
+                Expressions.declare(
+                    Modifier.FINAL,
+                    "selector",
+                    Expressions.lambda(
+                        Function1.class,
+                        Expressions.block(list),
+                        grouping));
+            return Expressions.call(
+                Expressions.call(
+                    childExp,
+                    GROUP_BY_METHOD,
+                    keySelector),
+                SELECT_METHOD,
+                selector);
+        }
+
+        private Expression translate(
+            JavaTypeFactory typeFactory,
+            RelDataType rowType,
+            Expression grouping,
+            AggregateCall aggCall)
+        {
+            final Aggregation aggregation = aggCall.getAggregation();
+            if (aggregation == SqlStdOperatorTable.countOperator) {
+                return Expressions.call(
+                    grouping,
+                    "count");
+            } else if (aggregation == SqlStdOperatorTable.sumOperator) {
+                return Expressions.call(
+                    grouping,
+                    "sum",
+                    EnumUtil.generateAccessor(
+                        typeFactory,
+                        rowType,
+                        aggCall.getArgList()));
+            } else {
+                throw new AssertionError("unknown agg " + aggregation);
+            }
+        }
+    }
+
     /**
      * Sample code. Not used; just here as a scratch pad, to make sure that what
      * we generate will compile. Feel free to modify.
      */
-    private void foo() {
-        new AbstractEnumerable<IntString>() {
-            final Enumerable<Employee> childEnumerable =
-                Linq4j.emptyEnumerable();
-            public Enumerator<IntString> enumerator() {
-                final Enumerator<Employee> input = childEnumerable.enumerator();
-                return new Enumerator<IntString>() {
-                    public IntString current() {
-                        int v0 = input.current().empid * 2;
-                        String v1 = input.current().name;
-                        return new IntString(v0, v1);
-                    }
-
-                    public boolean moveNext() {
-                        while (input.moveNext()) {
-                            int v0 = input.current().empid;
-                            boolean v1 = v0 < 200;
-                            boolean v2 = v0 > 150;
-                            boolean v3 = v1 && v2;
-                            if (v3) {
-                                return true;
+    private Enumerable<Object[]> foo() {
+        final Enumerable<Employee> childEnumerable =
+            Linq4j.emptyEnumerable();
+        Function1<Employee, Integer> keySelector =
+            new Function1<Employee, Integer>() {
+                public Integer apply(Employee a0) {
+                    return a0.deptno;
+                }
+            };
+        Function1<Grouping<Integer, Employee>, Object[]> selector =
+            new Function1<Grouping<Integer, Employee>, Object[]>() {
+                public Object[] apply(Grouping<Integer, Employee> a0) {
+                    return new Object[] {
+                        a0.getKey(),
+                        a0.sum(
+                            new IntegerFunction1<Employee>() {
+                                public int apply(Employee a0) {
+                                    return a0.empid;
+                                }
                             }
-                        }
-                        return false;
-                    }
-
-                    public void reset() {
-                        input.reset();
-                    }
-                };
-            }
-        };
+                        ),
+                        a0.count()
+                    };
+                }
+            };
+        return childEnumerable.groupBy(keySelector)
+            .select(selector);
     }
 
     static class IntString {
@@ -603,6 +826,7 @@ public class JavaRules {
 
     static class Employee {
         int empid;
+        int deptno;
         String name;
     }
 }

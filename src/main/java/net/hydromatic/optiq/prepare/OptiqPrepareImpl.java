@@ -28,6 +28,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.Helper;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.rules.java.*;
+import net.hydromatic.optiq.runtime.Executable;
 
 import openjava.ptree.ClassDeclaration;
 
@@ -219,6 +220,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             RelOptUtil.registerAbstractRels(planner);
             planner.addRule(JavaRules.ENUMERABLE_JOIN_RULE);
             planner.addRule(JavaRules.ENUMERABLE_CALC_RULE);
+            planner.addRule(JavaRules.ENUMERABLE_AGGREGATE_RULE);
             planner.addRule(TableAccessRule.instance);
 
             rexBuilder = new RexBuilder(typeFactory);
@@ -371,10 +373,11 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 false);
             System.out.println(s);
 
-            final Xxx ee;
+            final Executable executable;
             try {
-                ee = (Xxx) ExpressionEvaluator.createFastScriptEvaluator(
-                    s, Xxx.class, new String[]{"root0"});
+                executable = (Executable)
+                    ExpressionEvaluator.createFastScriptEvaluator(
+                        s, Executable.class, new String[]{"root0"});
             } catch (Exception e) {
                 throw Helper.INSTANCE.wrap(
                     "Error while compiling generated Java code:\n" + s, e);
@@ -397,7 +400,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 null)
             {
                 public Object execute() {
-                    return ee.yyy(root);
+                    return executable.execute(root);
                 }
             };
         }

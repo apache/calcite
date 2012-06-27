@@ -111,6 +111,30 @@ public class JdbcTest extends TestCase {
         connection.close();
 
         assertEquals(
+            "cust_id=100; prod_id=10; empid=100; deptno=10; name=Bill\n"
+            + "cust_id=150; prod_id=20; empid=150; deptno=10; name=Sebastian\n",
+            actual);
+    }
+
+    /**
+     * Simple GROUP BY.
+     *
+     * @throws Exception on error
+     */
+    public void testGroupBy() throws Exception {
+        Connection connection = getConnectionWithHrFoodmart();
+        Statement statement = connection.createStatement();
+        ResultSet resultSet =
+            statement.executeQuery(
+                "select \"deptno\", sum(\"empid\"), count(*)\n"
+                + "from \"hr\".\"emps\" as e\n"
+                + "group by \"deptno\"");
+        String actual = toString(resultSet);
+        resultSet.close();
+        statement.close();
+        connection.close();
+
+        assertEquals(
             "cust_id=100; prod_id=10; empid=100; name=Bill\n"
             + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n",
             actual);
@@ -136,13 +160,16 @@ public class JdbcTest extends TestCase {
 
     public void testWhereBad() throws Exception {
         assertQueryThrows(
-            "select *\n" + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-            + "where empid > 120", "Column 'EMPID' not found in any table");
+            "select *\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "where empid > 120",
+            "Column 'EMPID' not found in any table");
     }
 
     public void _testWhere() throws Exception {
         assertQueryReturns(
-            "select *\n" + "from \"hr\".\"emps\" as e\n"
+            "select *\n"
+            + "from \"hr\".\"emps\" as e\n"
             + "where e.\"empid\" > 120 and e.\"name\" like 'B%'",
             "cust_id=100; prod_id=10; empid=100; name=Bill\n"
             + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n");
@@ -474,18 +501,20 @@ public class JdbcTest extends TestCase {
 
     public static class HrSchema {
         public final Employee[] emps = {
-            new Employee(100, "Bill"),
-            new Employee(200, "Eric"),
-            new Employee(150, "Sebastian"),
+            new Employee(100, 10, "Bill"),
+            new Employee(200, 20, "Eric"),
+            new Employee(150, 10, "Sebastian"),
         };
     }
 
     public static class Employee {
         public final int empid;
+        public final int deptno;
         public final String name;
 
-        public Employee(int empid, String name) {
+        public Employee(int empid, int deptno, String name) {
             this.empid = empid;
+            this.deptno = deptno;
             this.name = name;
         }
     }

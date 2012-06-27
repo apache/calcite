@@ -161,7 +161,7 @@ public class RexToLixTranslator {
                 program.getInputRowType().getFieldList().get(index);
             if (input.getType() == Object[].class) {
                 return Expressions.convert_(
-                    Expressions.arrayAccess(
+                    Expressions.arrayIndex(
                         input, Expressions.constant(field.getIndex())),
                     Types.box(
                         JavaRules.EnumUtil.javaClass(
