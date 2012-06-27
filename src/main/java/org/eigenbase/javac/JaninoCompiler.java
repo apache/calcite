@@ -21,7 +21,6 @@ import java.util.*;
 
 import org.codehaus.janino.*;
 import org.codehaus.janino.util.*;
-import org.codehaus.janino.util.enumerator.*;
 import org.codehaus.janino.util.resource.*;
 
 import org.eigenbase.util.*;
@@ -81,8 +80,7 @@ public class JaninoCompiler
             new AccountingClassLoader(
                 parentClassLoader,
                 sourceFinder,
-                null,
-                DebuggingInformation.DEFAULT_DEBUGGING_INFORMATION);
+                null);
         try {
             classLoader.loadClass(args.fullClassName);
         } catch (ClassNotFoundException ex) {
@@ -156,14 +154,12 @@ public class JaninoCompiler
         public AccountingClassLoader(
             ClassLoader parentClassLoader,
             ResourceFinder sourceFinder,
-            String optionalCharacterEncoding,
-            EnumeratorSet debuggingInformation)
+            String optionalCharacterEncoding)
         {
             super(
                 parentClassLoader,
                 sourceFinder,
-                optionalCharacterEncoding,
-                debuggingInformation);
+                optionalCharacterEncoding);
         }
 
         int getTotalByteCodeSize()
