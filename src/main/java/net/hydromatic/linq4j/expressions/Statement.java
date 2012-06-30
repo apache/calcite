@@ -17,13 +17,22 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Type;
+
 /**
- * Represents an infinite loop. It can be exited with "break".
+ * <p>Statement.</p>
  */
-public class LoopExpression extends Statement {
-    public LoopExpression(ExpressionType nodeType) {
-        super(nodeType, Void.TYPE);
+public abstract class Statement extends Node {
+    protected Statement(ExpressionType nodeType, Type type) {
+        super(nodeType, type);
+    }
+
+    @Override
+    final void accept(ExpressionWriter writer, int lprec, int rprec) {
+        assert lprec == 0;
+        assert rprec == 0;
+        accept0(writer);
     }
 }
 
-// End LoopExpression.java
+// End Statement.java

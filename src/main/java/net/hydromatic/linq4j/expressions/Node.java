@@ -18,42 +18,44 @@
 package net.hydromatic.linq4j.expressions;
 
 import java.lang.reflect.Type;
-import java.util.List;
 
 /**
- * Represents a block that contains a sequence of expressions where variables
- * can be defined.
+* <p>Parse tree node.</p>
  */
-public class BlockExpression extends Statement {
-    public final List<Statement> statements;
+public abstract class Node {
+    public final ExpressionType nodeType;
+    public final Type type;
 
-    BlockExpression(List<Statement> statements, Type type) {
-        super(ExpressionType.Block, type);
-        this.statements = statements;
+    public Node(ExpressionType nodeType, Type type)
+    {
+        this.type = type;
+        this.nodeType = nodeType;
     }
 
-    @Override
+    /** Gets the node type of this Expression. */
+    public ExpressionType getNodeType() {
+        return nodeType;
+    }
+
+    /** Gets the static type of the expression that this Expression
+     * represents. */
+    public Type getType() {
+        return type;
+    }
+
     void accept0(ExpressionWriter writer) {
-        if (statements.isEmpty()) {
-            writer.append("{}");
-            return;
-        }
-        writer.begin("{\n");
-        for (Node node : statements) {
-            assert node instanceof Statement : node; // if not, need semicolon
-            node.accept(writer, 0, 0);
-        }
-        writer.end("}\n");
+        accept(writer, 0, 0);
     }
 
-    @Override
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        throw new RuntimeException(
+            "un-parse not supported: " + this + ":" + nodeType);
+    }
+
     public Object evaluate(Evaluator evaluator) {
-        Object o = null;
-        for (Statement statement : statements) {
-            o = statement.evaluate(evaluator);
-        }
-        return o;
+        throw new RuntimeException(
+            "evaluation not supported: " + this + ":" + nodeType);
     }
 }
 
-// End BlockExpression.java
+// End Node.java

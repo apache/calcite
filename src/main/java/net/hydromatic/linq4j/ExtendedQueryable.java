@@ -37,7 +37,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Applies an accumulator function over a
      * sequence. The specified seed value is used as the initial
      * accumulator value. */
-    <TAccumulate> TSource aggregate(
+    <TAccumulate> TAccumulate aggregate(
         TAccumulate seed,
         FunctionExpression<Function2<TAccumulate, TSource, TAccumulate>>
             selector);
@@ -351,7 +351,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Invokes a projection function on each element of a
      * generic IQueryable<TSource> and returns the maximum resulting
      * value. */
-    <TResult> TResult max(
+    <TResult extends Comparable<TResult>> TResult max(
         FunctionExpression<Function1<TSource, TResult>> selector);
 
     /** Returns the minimum value in a generic
@@ -361,7 +361,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Invokes a projection function on each element of a
      * generic IQueryable<TSource> and returns the minimum resulting
      * value. */
-    <TResult> TResult min(
+    <TResult extends Comparable<TResult>> TResult min(
         FunctionExpression<Function1<TSource, TResult>> selector);
 
     /** Filters the elements of an IQueryable based on a

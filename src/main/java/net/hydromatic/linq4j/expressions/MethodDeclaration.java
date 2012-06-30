@@ -30,14 +30,14 @@ public class MethodDeclaration extends MemberDeclaration {
     public final String name;
     public final Type resultType;
     public final List<ParameterExpression> parameters;
-    public final Expression body;
+    public final BlockExpression body;
 
     public MethodDeclaration(
         int modifier,
         String name,
         Type resultType,
         List<ParameterExpression> parameters,
-        Expression body)
+        BlockExpression body)
     {
         this.modifier = modifier;
         this.name = name;
@@ -70,7 +70,7 @@ public class MethodDeclaration extends MemberDeclaration {
                     }
                 })
             .append(' ')
-            .append(FunctionExpression.toFunctionBlock(body));
+            .append(body);
     }
 }
 

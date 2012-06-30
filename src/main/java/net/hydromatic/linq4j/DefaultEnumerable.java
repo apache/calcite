@@ -71,7 +71,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         return Extensions.aggregate(getThis(), func);
     }
 
-    public <TAccumulate> T aggregate(
+    public <TAccumulate> TAccumulate aggregate(
         TAccumulate seed, Function2<TAccumulate, T, TAccumulate> func)
     {
         return Extensions.aggregate(getThis(), seed, func);
@@ -388,7 +388,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     }
 
     public T max() {
-        return Extensions.max(getThis());
+        return (T) Extensions.max((Enumerable) getThis());
     }
 
     public BigDecimal max(BigDecimalFunction1<T> selector) {
@@ -431,12 +431,14 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         return Extensions.max(getThis(), selector);
     }
 
-    public <TResult> TResult max(Function1<T, TResult> selector) {
+    public <TResult extends Comparable<TResult>> TResult max(
+        Function1<T, TResult> selector)
+    {
         return Extensions.max(getThis(), selector);
     }
 
     public T min() {
-        return Extensions.min(getThis());
+        return (T) Extensions.min(((Enumerable) getThis()));
     }
 
     public BigDecimal min(BigDecimalFunction1<T> selector) {
@@ -479,7 +481,9 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         return Extensions.min(getThis(), selector);
     }
 
-    public <TResult> TResult min(Function1<T, TResult> selector) {
+    public <TResult extends Comparable<TResult>> TResult min(
+        Function1<T, TResult> selector)
+    {
         return Extensions.min(getThis(), selector);
     }
 
@@ -594,7 +598,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         return Extensions.skipWhile(getThis(), predicate);
     }
 
-    public BigDecimal sum(Function1<T, BigDecimal> selector) {
+    public BigDecimal sum(BigDecimalFunction1<T> selector) {
         return Extensions.sum(getThis(), selector);
     }
 

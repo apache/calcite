@@ -40,8 +40,8 @@ class ExpressionWriter {
         this.generics = generics;
     }
 
-    public void write(Expression expression) {
-        expression.accept(this, -1, -1);
+    public void write(Node expression) {
+        expression.accept(this, 0, 0);
     }
 
     @Override
@@ -58,7 +58,7 @@ class ExpressionWriter {
             return false;
         }
         buf.append("(");
-        expression.accept(this, -1, -1);
+        expression.accept(this, 0, 0);
         buf.append(")");
         return true;
     }
@@ -118,7 +118,7 @@ class ExpressionWriter {
         return this;
     }
 
-    public ExpressionWriter append(Expression o) {
+    public ExpressionWriter append(Node o) {
         o.accept0(this);
         return this;
     }

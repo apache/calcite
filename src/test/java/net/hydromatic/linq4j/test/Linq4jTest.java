@@ -59,9 +59,23 @@ public class Linq4jTest extends TestCase {
             }
         };
 
+    public static final Function1<Department, String> DEPT_NAME_SELECTOR =
+        new Function1<Department, String>() {
+            public String apply(Department department) {
+                return department.name;
+            }
+        };
+
     public static final Function1<Department, Integer> DEPT_DEPTNO_SELECTOR =
         new Function1<Department, Integer>() {
             public Integer apply(Department department) {
+                return department.deptno;
+            }
+        };
+
+    public static final IntegerFunction1<Department> DEPT_DEPTNO_SELECTOR2 =
+        new IntegerFunction1<Department>() {
+            public int apply(Department department) {
                 return department.deptno;
             }
         };
@@ -126,8 +140,7 @@ public class Linq4jTest extends TestCase {
                         public String apply(Employee v1, Integer v2) {
                             return "#" + v2 + ": " + v1.name;
                         }
-                    }
-                )
+                    })
                 .toList();
         assertEquals(
             "[#0: Fred, #1: Eric, #2: Jane, #3: Bill]", nameSeqs.toString());
@@ -163,6 +176,64 @@ public class Linq4jTest extends TestCase {
                     }
                 });
         assertEquals(2, count);
+    }
+
+    public void testAverageSelector() {
+        assertEquals(
+            20,
+            Linq4j.asEnumerable(depts).average(DEPT_DEPTNO_SELECTOR2));
+    }
+
+    public void testMin() {
+        assertEquals(
+            10,
+            (int) Linq4j.asEnumerable(depts).select(DEPT_DEPTNO_SELECTOR)
+                .min());
+    }
+
+    public void testMinSelector() {
+        assertEquals(
+            10,
+            (int) Linq4j.asEnumerable(depts).min(DEPT_DEPTNO_SELECTOR));
+    }
+
+    public void testMinSelector2() {
+        assertEquals(
+            10,
+            Linq4j.asEnumerable(depts).min(DEPT_DEPTNO_SELECTOR2));
+    }
+
+    public void testMax() {
+        assertEquals(
+            30,
+            (int) Linq4j.asEnumerable(depts).select(DEPT_DEPTNO_SELECTOR)
+                .max());
+    }
+
+    public void testMaxSelector() {
+        assertEquals(
+            30,
+            (int) Linq4j.asEnumerable(depts).max(DEPT_DEPTNO_SELECTOR));
+    }
+
+    public void testMaxSelector2() {
+        assertEquals(
+            30,
+            Linq4j.asEnumerable(depts).max(DEPT_DEPTNO_SELECTOR2));
+    }
+
+    public void testAggregate() {
+        assertEquals(
+            "Sales,HR,Marketing",
+            Linq4j.asEnumerable(depts)
+                .select(DEPT_NAME_SELECTOR)
+                .aggregate(
+                    null,
+                    new Function2<String, String, String>() {
+                        public String apply(String v1, String v2) {
+                            return v1 == null ? v2 : v1 + "," + v2;
+                        }
+                    }));
     }
 
     public void testToMap() {

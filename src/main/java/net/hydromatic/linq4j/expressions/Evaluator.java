@@ -53,7 +53,7 @@ class Evaluator {
         throw new RuntimeException("parameter " + param + " not on stack");
     }
 
-    Object evaluate(Expression expression) {
+    Object evaluate(Node expression) {
         return expression.evaluate(this);
     }
 

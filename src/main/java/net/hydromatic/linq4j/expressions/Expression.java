@@ -22,9 +22,7 @@ import java.lang.reflect.Type;
 /**
  * <p>Analogous to LINQ's System.Linq.Expression.</p>
  */
-public abstract class Expression {
-    public final ExpressionType nodeType;
-    public final Type type;
+public abstract class Expression extends Node {
 
     /**
      * Creates an Expression.
@@ -38,10 +36,9 @@ public abstract class Expression {
      * @param type Type of the expression
      */
     public Expression(ExpressionType nodeType, Type type) {
+        super(nodeType, type);
         assert nodeType != null;
         assert type != null;
-        this.nodeType = nodeType;
-        this.type = type;
     }
 
     @Override
@@ -55,31 +52,6 @@ public abstract class Expression {
      * returns true, Reduce() can be called to produce the reduced form. */
     public boolean canReduce() {
         return false;
-    }
-
-    /** Gets the node type of this Expression. */
-    public ExpressionType getNodeType() {
-        return nodeType;
-    }
-
-    /** Gets the static type of the expression that this Expression
-     * represents. */
-    public Type getType() {
-        return type;
-    }
-
-    public Object evaluate(Evaluator evaluator) {
-        throw new RuntimeException(
-            "evaluation not supported: " + this + ":" + nodeType);
-    }
-
-    void accept0(ExpressionWriter writer) {
-        accept(writer, 0, 0);
-    }
-
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        throw new RuntimeException(
-            "un-parse not supported: " + this + ":" + nodeType);
     }
 }
 

@@ -17,7 +17,7 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import net.hydromatic.linq4j.function.Function;
+import net.hydromatic.linq4j.function.*;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -30,14 +30,14 @@ public final class FunctionExpression<F extends Function<?>>
     extends LambdaExpression
 {
     public final F function;
-    public final Expression body;
+    public final BlockExpression body;
     public final List<ParameterExpression> parameterList;
     private F dynamicFunction;
 
     private FunctionExpression(
         Class<F> type,
         F function,
-        Expression body,
+        BlockExpression body,
         List<ParameterExpression> parameterList)
     {
         super(ExpressionType.Lambda, type);
@@ -56,7 +56,7 @@ public final class FunctionExpression<F extends Function<?>>
 
     public FunctionExpression(
         Class<F> type,
-        Expression body,
+        BlockExpression body,
         List<ParameterExpression> parameters)
     {
         this(type, null, body, parameters);
@@ -127,40 +127,35 @@ public final class FunctionExpression<F extends Function<?>>
                 + ") "
                 + parameterExpression.name);
         }
+        Type bridgeResultType = Functions.FUNCTION_RESULT_TYPES.get(this.type);
+        if (bridgeResultType == null) {
+            bridgeResultType = body.getType();
+        }
+        Type resultType2 = bridgeResultType;
+        if (bridgeResultType == Object.class
+            && !params.equals(bridgeParams))
+        {
+            resultType2 = body.getType();
+        }
         writer.append("new ")
             .append(type)
             .append("()")
             .begin(" {\n")
             .append("public ")
-            .append(Types.boxClassName(body.getType()))
+            .append(Types.className(resultType2))
             .list(" apply(", ", ", ") ", params)
-            .append(toFunctionBlock(body));
-        if (true) {
-            writer.list("public Object apply(", ", ", ") ", bridgeParams)
-                .begin("{\n")
-                .list("return apply(\n", ",\n", ");\n", bridgeArgs)
-                .end("}\n");
-        }
+            .append(Blocks.toFunctionBlock(body));
+
+        // Generate a bridge method. Argument types are looser (as if every
+        // type parameter is set to 'Object')
+        writer.append("public ")
+            .append(Types.className(bridgeResultType))
+            .list(" apply(", ", ", ") ", bridgeParams)
+            .begin("{\n")
+            .list("return apply(\n", ",\n", ");\n", bridgeArgs)
+            .end("}\n");
+
         writer.end("}\n");
-    }
-
-    static BlockExpression toFunctionBlock(Expression body) {
-        if (body instanceof BlockExpression) {
-            return (BlockExpression) body;
-        }
-        if (!(body instanceof GotoExpression)
-            && Types.toClass(body.getType()) != Void.TYPE)
-        {
-            body = Expressions.return_(null, body);
-        }
-        return Expressions.block(body);
-    }
-
-    static BlockExpression toBlock(Expression body) {
-        if (body instanceof BlockExpression) {
-            return (BlockExpression) body;
-        }
-        return Expressions.block(body);
     }
 
     public interface Invokable {

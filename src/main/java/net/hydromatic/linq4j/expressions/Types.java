@@ -30,6 +30,7 @@ import java.util.*;
  */
 public class Types {
     static final Map<Class, Class> PRIMITIVES = new HashMap<Class, Class>();
+    static final Map<Class, Class> UNPRIMITIVES = new HashMap<Class, Class>();
 
     static {
         PRIMITIVES.put(Boolean.TYPE, Boolean.class);
@@ -41,6 +42,9 @@ public class Types {
         PRIMITIVES.put(Float.TYPE, Float.class);
         PRIMITIVES.put(Double.TYPE, Double.class);
         PRIMITIVES.put(Void.TYPE, Void.class);
+        for (Map.Entry<Class, Class> entry : PRIMITIVES.entrySet()) {
+            UNPRIMITIVES.put(entry.getValue(), entry.getKey());
+        }
     }
 
     /** Creates a type with generic parameters. */
@@ -132,6 +136,17 @@ public class Types {
         return classes.toArray(new Class[classes.size()]);
     }
 
+    /**
+     * Boxes a type, if it is primitive, and returns the type name.
+     * The type is abbreviated if it is in the "java.lang" package.
+     *
+     * <p>For example,
+     * boxClassName(int) returns "Integer";
+     * boxClassName(List&lt;String&gt;) returns "List&lt;String&gt;"</p>
+     *
+     * @param type Type
+     * @return Class name
+     */
     static String boxClassName(Type type) {
         if (!(type instanceof Class)) {
             return type.toString();
@@ -152,6 +167,14 @@ public class Types {
         } else {
             return type;
         }
+    }
+
+    /**
+     * If a class is a wrapper for a primitive, returns the primitive. For
+     * example, {@code toPrimitive(Boolean.class)} returns {@code Boolean.TYPE}.
+     */
+    public static Class toPrimitive(Class clazz) {
+        return UNPRIMITIVES.get(clazz);
     }
 
     static String className(Type type) {
@@ -279,6 +302,11 @@ public class Types {
         throw new RuntimeException(
             "while resolving constructor in class " + type + " with types "
             + Arrays.toString(argumentTypes));
+    }
+
+    public static boolean isPrimitive(Type type) {
+        return type instanceof Class
+            && ((Class) type).isPrimitive();
     }
 
     public static void discard(Object o) {

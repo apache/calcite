@@ -29,14 +29,14 @@ import java.util.*;
 public class Expressions {
     /** Converts an expression to Java source code, optionally omitting
      * extra type information in generics. */
-    public static String toString(Expression expression, boolean generics) {
+    public static String toString(Node expression, boolean generics) {
         final ExpressionWriter writer = new ExpressionWriter(generics);
         writer.write(expression);
         return writer.toString();
     }
 
     /** Converts an expression to Java source code. */
-    public static String toString(Expression expression) {
+    public static String toString(Node expression) {
         return toString(expression, true);
     }
 
@@ -206,9 +206,11 @@ public class Expressions {
     /** Creates an expression that represents applying an array
      * index operator to an array of rank one. */
     public static IndexExpression arrayIndex(
-        Expression array, Expression indexExpression)
+        Expression array,
+        Expression indexExpression)
     {
-        return new IndexExpression(array, Collections.singletonList(indexExpression));
+        return new IndexExpression(
+            array, Collections.singletonList(indexExpression));
     }
 
     /** Creates a UnaryExpression that represents an expression for
@@ -235,41 +237,24 @@ public class Expressions {
         throw Extensions.todo();
     }
 
-    /** Creates a BlockExpression that contains the given expressions
-     * and has no variables. */
-    public static BlockExpression block(Expression... expressions) {
-        return block(toList(expressions));
+    /** Creates a BlockExpression that contains the given statements. */
+    public static BlockExpression block(Statement... statements) {
+        return block(toList(statements));
     }
 
-    /** Creates a BlockExpression that contains the given expressions
-     * and has no variables. */
-    public static BlockExpression block(Iterable<Expression> expressions) {
-        return block((Type) null, expressions);
-    }
-
-    /** Creates a BlockExpression that contains the given variables
-     * and expressions. */
+    /** Creates a BlockExpression that contains the given statements. */
     public static BlockExpression block(
-        Iterable<ParameterExpression> variables,
-        Iterable<Expression> expressions)
+        Iterable<? extends Statement> statements)
     {
-        return block(null, variables, expressions);
-    }
-
-    /** Creates a BlockExpression that contains the given variables
-     * and expressions. */
-    public static BlockExpression block(
-        Iterable<ParameterExpression> variables, Expression... expressions)
-    {
-        return block(variables, toList(expressions));
+        return block((Type) null, statements);
     }
 
     /** Creates a BlockExpression that contains the given expressions,
      * has no variables and has specific result type. */
     public static BlockExpression block(
-        Type type, Iterable<Expression> expressions)
+        Type type, Iterable<? extends Statement> expressions)
     {
-        List<Expression> list = toList(expressions);
+        List<Statement> list = toList(expressions);
         if (type == null) {
             if (list.size() > 0) {
                 type = list.get(list.size() - 1).getType();
@@ -280,33 +265,10 @@ public class Expressions {
         return new BlockExpression(list, type);
     }
 
-    /** Creates a BlockExpression that contains the given expressions,
-     * has no variables and has specific result type. */
-    public static BlockExpression block(Type type, Expression... expressions) {
-        return block(type, Arrays.<Expression>asList(expressions));
-    }
-
-    /** Creates a BlockExpression that contains the given variables
-     * and expressions. */
-    public static BlockExpression block(
-        Type type,
-        Iterable<ParameterExpression> variables,
-        Iterable<Expression> expressions)
-    {
-        List<Expression> list = new ArrayList<Expression>();
-        list.addAll(toList(variables));
-        list.addAll(toList(expressions));
-        return block(type, list);
-    }
-
-    /** Creates a BlockExpression that contains the given variables
-     * and expressions. */
-    public static BlockExpression block(
-        Type type,
-        Iterable<ParameterExpression> variables,
-        Expression... expressions)
-    {
-        return block(type, variables, Arrays.<Expression>asList(expressions));
+    /** Creates a BlockExpression that contains the given statements
+     * and has a specific result type. */
+    public static BlockExpression block(Type type, Statement... statements) {
+        return block(type, toList(statements));
     }
 
     /** Creates a GotoExpression representing a break statement. */
@@ -537,7 +499,7 @@ public class Expressions {
         Expression ifFalse)
     {
         return new ConditionalExpression(
-            Arrays.<Expression>asList(test, ifFalse, ifTrue),
+            Arrays.<Node>asList(test, ifFalse, ifTrue),
             Types.gcd(ifTrue.getType(), ifFalse.getType()));
     }
 
@@ -556,15 +518,25 @@ public class Expressions {
         Type type)
     {
         return new ConditionalExpression(
-            Arrays.<Expression>asList(test, ifFalse, ifTrue), type);
+            Arrays.<Node>asList(test, ifFalse, ifTrue), type);
     }
 
     /** Creates a ConstantExpression that has the Value property set
      * to the specified value. */
     public static ConstantExpression constant(Object value) {
-        return new ConstantExpression(
-            value == null ? Object.class : value.getClass(),
-            value);
+        Class type;
+        if (value == null) {
+            type = Object.class;
+        } else {
+            final Class clazz = value.getClass();
+            final Class primitiveType = Types.toPrimitive(clazz);
+            if (primitiveType != null) {
+                type = primitiveType;
+            } else {
+                type = clazz;
+            }
+        }
+        return new ConstantExpression(type, value);
     }
 
     /** Creates a ConstantExpression that has the Value and Type
@@ -933,21 +905,20 @@ public class Expressions {
 
     /** Creates a ConditionalExpression that represents a conditional
      * block with an if statement. */
-    public static ConditionalExpression ifThen(
-        Expression test, Expression ifTrue)
+    public static ConditionalStatement ifThen(
+        Expression test, Node ifTrue)
     {
-        return new ConditionalExpression(
-            Arrays.asList(test, ifTrue), Void.TYPE);
+        return new ConditionalStatement(
+            Arrays.<Node>asList(test, ifTrue));
     }
 
     /** Creates a ConditionalExpression that represents a conditional
      * block with if and else statements. */
-    public static ConditionalExpression ifThenElse(
-        Expression test, Expression ifTrue, Expression ifFalse)
+    public static ConditionalStatement ifThenElse(
+        Expression test, Node ifTrue, Node ifFalse)
     {
-        return new ConditionalExpression(
-            Arrays.asList(test, ifTrue, ifFalse),
-            Void.TYPE);
+        return new ConditionalStatement(
+            Arrays.<Node>asList(test, ifTrue, ifFalse));
     }
 
     /** Creates a UnaryExpression that represents the incrementing of
@@ -1054,7 +1025,7 @@ public class Expressions {
      * type. */
     public static <F extends Function<?>>
     FunctionExpression<F> lambda(
-        Expression body,
+        BlockExpression body,
         Iterable<ParameterExpression> parameters)
     {
         final List<ParameterExpression> parameterList = toList(parameters);
@@ -1062,53 +1033,24 @@ public class Expressions {
         return new FunctionExpression<F>(type, body, parameterList);
     }
 
-    private static Class deduceType(
-        List<ParameterExpression> parameterList,
-        Type type)
+    /** Creates a LambdaExpression by first constructing a delegate
+     * type. */
+    public static <F extends Function<?>>
+    FunctionExpression<F> lambda(
+        Expression body,
+        Iterable<ParameterExpression> parameters)
     {
-        switch (parameterList.size()) {
-        case 0:
-            return Function0.class;
-        case 1:
-            return type == Boolean.TYPE ? Predicate1.class : Function1.class;
-        case 2:
-            return type == Boolean.TYPE ? Predicate2.class : Function2.class;
-        default:
-            return Function.class;
-        }
+        return lambda(Blocks.toFunctionBlock(body), parameters);
     }
 
-    private static <T> List<T> toList(Iterable<T> iterable) {
-        if (iterable == null) {
-            return null;
-        }
-        if (iterable instanceof List) {
-            return (List<T>) iterable;
-        }
-        final List<T> list = new ArrayList<T>();
-        for (T parameter : iterable) {
-            list.add(parameter);
-        }
-        return list;
-    }
-
-    private static <T> List<T> toList(T[] ts) {
-        if (ts.length == 0) {
-            return Collections.emptyList();
-        } else {
-            return Arrays.asList(ts);
-        }
-    }
-
-    private static <T> Collection<T> toCollection(Iterable<T> iterable) {
-        if (iterable instanceof Collection) {
-            return (Collection<T>) iterable;
-        }
-        return toList(iterable);
-    }
-
-    private static <T> T[] toArray(Iterable<T> iterable, T[] a) {
-        return toCollection(iterable).toArray(a);
+    /** Creates an Expression<TDelegate> where the delegate type is
+     * known at compile time. */
+    public static <TDelegate extends Function<?>>
+    FunctionExpression<TDelegate> lambda(
+        BlockExpression body,
+        ParameterExpression... parameters)
+    {
+        return lambda(body, toList(parameters));
     }
 
     /** Creates an Expression<TDelegate> where the delegate type is
@@ -1118,40 +1060,19 @@ public class Expressions {
         Expression body,
         ParameterExpression... parameters)
     {
-        return lambda(body, toList(parameters));
+        return lambda(Blocks.toFunctionBlock(body), toList(parameters));
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
-     * type. */
+     * type. It can be used when the delegate type is not known at
+     * compile time. */
     public static <T, F extends Function<? extends T>>
     FunctionExpression<F> lambda(
-        Expression body,
-        boolean tailCall,
+        Class<F> type,
+        BlockExpression body,
         Iterable<ParameterExpression> parameters)
     {
-        throw Extensions.todo();
-    }
-
-    /** Creates a LambdaExpression by first constructing a delegate
-     * type. */
-//    public static <T, F extends Function<? extends T>>
-//    FunctionExpression<F> lambda(
-//        Expression body,
-//        boolean tailCall,
-//        ParameterExpression... parameters)
-//    {
-//        return lambda(body, tailCall, toList(parameters));
-//    }
-
-    /** Creates a LambdaExpression by first constructing a delegate
-     * type. */
-    public static <T, F extends Function<? extends T>>
-    FunctionExpression<F> lambdaE(
-        Expression body,
-        String name,
-        Iterable<ParameterExpression> parameters)
-    {
-        throw Extensions.todo();
+        return new FunctionExpression<F>(type, body, toList(parameters));
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
@@ -1163,7 +1084,19 @@ public class Expressions {
         Expression body,
         Iterable<ParameterExpression> parameters)
     {
-        return new FunctionExpression<F>(type, body, toList(parameters));
+        return lambda(type, Blocks.toFunctionBlock(body), toList(parameters));
+    }
+
+    /** Creates a LambdaExpression by first constructing a delegate
+     * type. It can be used when the delegate type is not known at
+     * compile time. */
+    public static <T, F extends Function<? extends T>>
+    FunctionExpression<F> lambda(
+        Class<F> type,
+        BlockExpression body,
+        ParameterExpression... parameters)
+    {
+        return lambda(type, body, toList(parameters));
     }
 
     /** Creates a LambdaExpression by first constructing a delegate
@@ -1181,82 +1114,10 @@ public class Expressions {
     /** Creates a LambdaExpression by first constructing a delegate
      * type. */
     public static <T, F extends Function<? extends T>>
-    FunctionExpression<F> lambdaE(
-        Expression body,
-        String name,
-        boolean tailCall,
-        Iterable<ParameterExpression> parameters)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates a LambdaExpression by first constructing a delegate
-     * type. */
-    public static <T, F extends Function<? extends T>>
     FunctionExpression<F> lambda(
         Type type,
-        Expression expression,
-        boolean tailCall,
-        Iterable<ParameterExpression> parameters)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates a LambdaExpression by first constructing a delegate
-     * type. */
-//    public static <T, F extends Function<? extends T>>
-//    FunctionExpression<F> lambda(
-//        Type type,
-//        Expression body,
-//        boolean tailCall,
-//        ParameterExpression... parameters)
-//    {
-//        return lambda(type, body, tailCall, toList(parameters));
-//    }
-
-    /** Creates a LambdaExpression by first constructing a delegate
-     * type. */
-    public static <T, F extends Function<? extends T>>
-    FunctionExpression<F> lambda(
-        Type type,
-        Expression body,
+        BlockExpression body,
         String name,
-        Iterable<ParameterExpression> parameters)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates a LambdaExpression lambdaExpression by first constructing a
-     * delegate type. */
-    public static <T, F extends Function<? extends T>>
-    FunctionExpression<F> lambda(
-        Type type,
-        Expression body,
-        String name,
-        boolean tailCall,
-        Iterable<ParameterExpression> parameters)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates an Expression<TDelegate> where the delegate type is
-     * known at compile time. */
-    public static <TDelegate extends Function<?>>
-    FunctionExpression<TDelegate> lambda(
-        Expression body,
-        String name,
-        Iterable<ParameterExpression> parameters)
-    {
-        throw Extensions.todo();
-    }
-
-    /** Creates an Expression<TDelegate> where the delegate type is
-     * known at compile time. */
-    public static <TDelegate extends Function<?>>
-    FunctionExpression<TDelegate> lambda(
-        Expression body,
-        String name,
-        boolean tailCall,
         Iterable<ParameterExpression> parameters)
     {
         throw Extensions.todo();
@@ -1651,7 +1512,7 @@ public class Expressions {
         Type resultType,
         String name,
         Iterable<ParameterExpression> parameters,
-        Expression body)
+        BlockExpression body)
     {
         return new MethodDeclaration(
             modifier, name, resultType, toList(parameters), body);
@@ -1685,13 +1546,6 @@ public class Expressions {
             right,
             shouldLift(left, right, method),
             method);
-    }
-
-    private static boolean shouldLift(
-        Expression left, Expression right, Method method)
-    {
-        // FIXME: Implement the rules in modulo
-        return true;
     }
 
     /** Creates a BinaryExpression that represents a remainder
@@ -2874,29 +2728,40 @@ public class Expressions {
         throw Extensions.todo();
     }
 
-    /** Creates a LoopExpression representing a while loop. */
+    /** Creates a WhileExpression representing a while loop. */
     public static WhileExpression while_(
         Expression condition,
-        Expression body)
+        Statement body)
     {
         return new WhileExpression(condition, body);
     }
 
-    /** Creates an expression that declares a variable. */
+    /** Creates a statement that declares a variable. */
     public static DeclarationExpression declare(
-        int modifiers, ParameterExpression parameter, Expression initializer)
+        int modifiers,
+        ParameterExpression parameter,
+        Expression initializer)
     {
         return new DeclarationExpression(modifiers, parameter, initializer);
     }
 
     /** Creates an expression that declares and initializes a variable. No
      * type is required; it is assumed that the variable is the same type as
-     * the initializer. */
+     * the initializer. You can retrieve the {@link ParameterExpression} from
+     * the {@link DeclarationExpression#parameter} field of the result. */
     public static DeclarationExpression declare(
-        int modifiers, String name, Expression initializer)
+        int modifiers,
+        String name,
+        Expression initializer)
     {
         return declare(
             modifiers, parameter(initializer.getType(), name), initializer);
+    }
+
+    /** Creates a statement that executes an expression. */
+    public static Statement statement(Expression expression) {
+        return new GotoExpression(
+            GotoExpressionKind.Sequence, null, expression);
     }
 
     /** Creates an empty fluent list. */
@@ -2908,6 +2773,71 @@ public class Expressions {
     public static <T> FluentList<T> list(T... ts) {
         return new FluentArrayList<T>(Arrays.asList(ts));
     }
+
+    /** Creates a fluent list with given elements. */
+    public static <T> FluentList<T> list(Iterable<T> ts) {
+        return new FluentArrayList<T>(toList(ts));
+    }
+
+    // ~ Private helper methods ------------------------------------------------
+
+    private static boolean shouldLift(
+        Expression left, Expression right, Method method)
+    {
+        // FIXME: Implement the rules in modulo
+        return true;
+    }
+
+    private static Class deduceType(
+        List<ParameterExpression> parameterList,
+        Type type)
+    {
+        switch (parameterList.size()) {
+        case 0:
+            return Function0.class;
+        case 1:
+            return type == Boolean.TYPE ? Predicate1.class : Function1.class;
+        case 2:
+            return type == Boolean.TYPE ? Predicate2.class : Function2.class;
+        default:
+            return Function.class;
+        }
+    }
+
+    private static <T> List<T> toList(Iterable<? extends T> iterable) {
+        if (iterable == null) {
+            return null;
+        }
+        if (iterable instanceof List) {
+            return (List<T>) iterable;
+        }
+        final List<T> list = new ArrayList<T>();
+        for (T parameter : iterable) {
+            list.add(parameter);
+        }
+        return list;
+    }
+
+    private static <T> List<T> toList(T[] ts) {
+        if (ts.length == 0) {
+            return Collections.emptyList();
+        } else {
+            return Arrays.asList(ts);
+        }
+    }
+
+    private static <T> Collection<T> toCollection(Iterable<T> iterable) {
+        if (iterable instanceof Collection) {
+            return (Collection<T>) iterable;
+        }
+        return toList(iterable);
+    }
+
+    private static <T> T[] toArray(Iterable<T> iterable, T[] a) {
+        return toCollection(iterable).toArray(a);
+    }
+
+    // ~ Classes and interfaces ------------------------------------------------
 
     // Some interfaces we'd rather not implement yet. They don't seem relevant
     // in the Java world.

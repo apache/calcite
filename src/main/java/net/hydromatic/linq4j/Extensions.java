@@ -24,6 +24,9 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
 
+import static net.hydromatic.linq4j.function.Functions.*;
+import static net.hydromatic.linq4j.function.Functions.adapt;
+
 /**
  * Contains what, in LINQ.NET, would be extension methods.
  *
@@ -112,17 +115,127 @@ import java.util.*;
  */
 public class Extensions {
 
+    private static final Function2<BigDecimal, BigDecimal, BigDecimal>
+        BIG_DECIMAL_SUM =
+        new Function2<BigDecimal, BigDecimal, BigDecimal>() {
+            public BigDecimal apply(BigDecimal v1, BigDecimal v2) {
+                return v1.add(v2);
+            }
+        };
+
+    private static final Function2<Float, Float, Float> FLOAT_SUM =
+        new Function2<Float, Float, Float>() {
+            public Float apply(Float v1, Float v2) {
+                return v1 + v2;
+            }
+        };
+
+    private static final Function2<Double, Double, Double> DOUBLE_SUM =
+        new Function2<Double, Double, Double>() {
+            public Double apply(Double v1, Double v2) {
+                return v1 + v2;
+            }
+        };
+
+    private static final Function2<Integer, Integer, Integer> INTEGER_SUM =
+        new Function2<Integer, Integer, Integer>() {
+            public Integer apply(Integer v1, Integer v2) {
+                return v1 + v2;
+            }
+        };
+
+    private static final Function2<Long, Long, Long> LONG_SUM =
+        new Function2<Long, Long, Long>() {
+            public Long apply(Long v1, Long v2) {
+                return v1 + v2;
+            }
+        };
+
+    private static final Function2 COMPARABLE_MIN =
+        new Function2<Comparable, Comparable, Comparable>() {
+            public Comparable apply(Comparable v1, Comparable v2) {
+                return v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
+            }
+        };
+
+    private static final Function2 COMPARABLE_MAX =
+        new Function2<Comparable, Comparable, Comparable>() {
+            public Comparable apply(Comparable v1, Comparable v2) {
+                return v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
+            }
+        };
+
+    private static final Function2<Float, Float, Float> FLOAT_MIN =
+        new Function2<Float, Float, Float>() {
+            public Float apply(Float v1, Float v2) {
+                return v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
+            }
+        };
+
+    private static final Function2<Float, Float, Float> FLOAT_MAX =
+        new Function2<Float, Float, Float>() {
+            public Float apply(Float v1, Float v2) {
+                return v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
+            }
+        };
+
+    private static final Function2<Double, Double, Double> DOUBLE_MIN =
+        new Function2<Double, Double, Double>() {
+            public Double apply(Double v1, Double v2) {
+                return v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
+            }
+        };
+
+    private static final Function2<Double, Double, Double> DOUBLE_MAX =
+        new Function2<Double, Double, Double>() {
+            public Double apply(Double v1, Double v2) {
+                return v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
+            }
+        };
+
+    private static final Function2<Integer, Integer, Integer> INTEGER_MIN =
+        new Function2<Integer, Integer, Integer>() {
+            public Integer apply(Integer v1, Integer v2) {
+                return v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
+            }
+        };
+
+    private static final Function2<Integer, Integer, Integer> INTEGER_MAX =
+        new Function2<Integer, Integer, Integer>() {
+            public Integer apply(Integer v1, Integer v2) {
+                return v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
+            }
+        };
+
+    private static final Function2<Long, Long, Long> LONG_MIN =
+        new Function2<Long, Long, Long>() {
+            public Long apply(Long v1, Long v2) {
+                return v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
+            }
+        };
+
+    private static final Function2<Long, Long, Long> LONG_MAX =
+        new Function2<Long, Long, Long>() {
+            public Long apply(Long v1, Long v2) {
+                return v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
+            }
+        };
+
     // flags a piece of code we're yet to implement
     public static RuntimeException todo() {
         return new RuntimeException();
     }
 
-    /** Applies an accumulator function over a
-     * sequence. */
+    /** Applies an accumulator function over a sequence. */
     public static <TSource> TSource aggregate(
-        Enumerable<?> enumerable, Function2<TSource, TSource, TSource> func)
+        Enumerable<TSource> source,
+        Function2<TSource, TSource, TSource> func)
     {
-        throw Extensions.todo();
+        TSource result = null;
+        for (TSource o : source) {
+            result = func.apply(result, o);
+        }
+        return result;
     }
 
     /** Applies an accumulator function over a
@@ -137,18 +250,22 @@ public class Extensions {
     /** Applies an accumulator function over a
      * sequence. The specified seed value is used as the initial
      * accumulator value. */
-    public static <TSource, TAccumulate> TSource aggregate(
-        Enumerable<?> enumerable,
+    public static <TSource, TAccumulate> TAccumulate aggregate(
+        Enumerable<TSource> source,
         TAccumulate seed,
         Function2<TAccumulate, TSource, TAccumulate> func)
     {
-        throw Extensions.todo();
+        TAccumulate result = seed;
+        for (TSource o : source) {
+            result = func.apply(result, o);
+        }
+        return result;
     }
 
     /** Applies an accumulator function over a
      * sequence. The specified seed value is used as the initial
      * accumulator value. */
-    public static <TSource, TAccumulate> TSource aggregate(
+    public static <TSource, TAccumulate> TAccumulate aggregate(
         Queryable<TSource> queryable,
         TAccumulate seed,
         FunctionExpression<Function2<TAccumulate, TSource, TAccumulate>> func)
@@ -161,12 +278,16 @@ public class Extensions {
      * accumulator value, and the specified function is used to select
      * the result value. */
     public static <TSource, TAccumulate, TResult> TResult aggregate(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         TAccumulate seed,
         Function2<TAccumulate, TSource, TAccumulate> func,
         Function1<TAccumulate, TResult> selector)
     {
-        throw Extensions.todo();
+        TAccumulate accumulate = seed;
+        for (TSource o : source) {
+            accumulate = func.apply(accumulate, o);
+        }
+        return selector.apply(accumulate);
     }
 
     /** Applies an accumulator function over a
@@ -282,20 +403,22 @@ public class Extensions {
      * values that are obtained by invoking a transform function on
      * each element of the input sequence. */
     public static <TSource> BigDecimal average(
-        Enumerable<TSource> enumerable,
-        Function1<TSource, BigDecimal> selector)
+        Enumerable<TSource> source,
+        BigDecimalFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return sum(source, selector)
+            .divide(BigDecimal.valueOf(longCount(source)));
     }
 
     /** Computes the average of a sequence of nullable
      * Decimal values that are obtained by invoking a transform
      * function on each element of the input sequence. */
     public static <TSource> BigDecimal average(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableBigDecimalFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return sum(source, selector)
+            .divide(BigDecimal.valueOf(longCount(source)));
     }
 
     /** Computes the average of a sequence of Decimal
@@ -322,19 +445,19 @@ public class Extensions {
      * values that are obtained by invoking a transform function on
      * each element of the input sequence. */
     public static <TSource> double average(
-        Enumerable<TSource> enumerable, DoubleFunction1<TSource> selector)
+        Enumerable<TSource> source, DoubleFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return sum(source, selector) / longCount(source);
     }
 
     /** Computes the average of a sequence of nullable
      * Double values that are obtained by invoking a transform
      * function on each element of the input sequence. */
     public static <TSource> Double average(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableDoubleFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return sum(source, selector) / longCount(source);
     }
 
     /** Computes the average of a sequence of Double
@@ -361,56 +484,56 @@ public class Extensions {
      * that are obtained by invoking a transform function on each
      * element of the input sequence. */
     public static <TSource> int average(
-        Enumerable<TSource> enumerable, IntegerFunction1<TSource> selector)
+        Enumerable<TSource> source, IntegerFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return sum(source, selector) / count(source);
     }
 
     /** Computes the average of a sequence of nullable
      * int values that are obtained by invoking a transform function
      * on each element of the input sequence. */
     public static <TSource> Integer average(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableIntegerFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return sum(source, selector) / count(source);
     }
 
     /** Computes the average of a sequence of long values
      * that are obtained by invoking a transform function on each
      * element of the input sequence. */
     public static <TSource> long average(
-        Enumerable<TSource> enumerable, LongFunction1<TSource> selector)
+        Enumerable<TSource> source, LongFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return sum(source, selector) / longCount(source);
     }
 
     /** Computes the average of a sequence of nullable
      * long values that are obtained by invoking a transform function
      * on each element of the input sequence. */
     public static <TSource> Long average(
-        Enumerable<TSource> enumerable, NullableLongFunction1<TSource> selector)
+        Enumerable<TSource> source, NullableLongFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return sum(source, selector) / longCount(source);
     }
 
     /** Computes the average of a sequence of Float
      * values that are obtained by invoking a transform function on
      * each element of the input sequence. */
     public static <TSource> float average(
-        Enumerable<TSource> enumerable, FloatFunction1<TSource> selector)
+        Enumerable<TSource> source, FloatFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return sum(source, selector) / longCount(source);
     }
 
     /** Computes the average of a sequence of nullable
      * Float values that are obtained by invoking a transform
      * function on each element of the input sequence. */
     public static <TSource> Float average(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableFloatFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return sum(source, selector) / longCount(source);
     }
 
     /** Computes the average of a sequence of int values
@@ -817,9 +940,10 @@ public class Extensions {
     /** Groups the elements of a sequence according to a
      * specified key selector function. */
     public static <TSource, TKey> Enumerable<Grouping<TKey, TSource>> groupBy(
-        Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector)
+        final Enumerable<TSource> enumerable,
+        final Function1<TSource, TKey> keySelector)
     {
-        throw Extensions.todo();
+        return enumerable.toLookup(keySelector);
     }
 
     /** Groups the elements of a sequence according to a
@@ -1373,8 +1497,11 @@ public class Extensions {
 
     /** Returns the maximum value in a generic
      * sequence. */
-    public static <TSource> TSource max(Enumerable<TSource> enumerable) {
-        throw Extensions.todo();
+    public static <TSource extends Comparable<TSource>> TSource max(
+        Enumerable<TSource> source)
+    {
+        Function2<TSource, TSource, TSource> max = maxFunction();
+        return aggregate(source, null, max);
     }
 
     /** Returns the maximum value in a generic
@@ -1386,99 +1513,109 @@ public class Extensions {
     /** Invokes a transform function on each element of a
      * sequence and returns the maximum Decimal value. */
     public static <TSource> BigDecimal max(
-        Enumerable<TSource> enumerable, BigDecimalFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        BigDecimalFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        Function2<BigDecimal, BigDecimal, BigDecimal> max = maxFunction();
+        return aggregate(source.select(selector), null, max);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the maximum nullable Decimal
      * value. */
     public static <TSource> BigDecimal max(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableBigDecimalFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        Function2<BigDecimal, BigDecimal, BigDecimal> max = maxFunction();
+        return aggregate(source.select(selector), null, max);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the maximum Double value. */
     public static <TSource> double max(
-        Enumerable<TSource> enumerable, DoubleFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        DoubleFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), null, DOUBLE_MAX);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the maximum nullable Double
      * value. */
     public static <TSource> Double max(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableDoubleFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), null, DOUBLE_MAX);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the maximum int value. */
     public static <TSource> int max(
-        Enumerable<TSource> enumerable, IntegerFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        IntegerFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), null, INTEGER_MAX);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the maximum nullable int value. (Defined
      * by Enumerable.) */
     public static <TSource> Integer max(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableIntegerFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), null, INTEGER_MAX);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the maximum long value. */
     public static <TSource> long max(
-        Enumerable<TSource> enumerable, LongFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        LongFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), null, LONG_MAX);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the maximum nullable long value. (Defined
      * by Enumerable.) */
     public static <TSource> Long max(
-        Enumerable<TSource> enumerable, NullableLongFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        NullableLongFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), null, LONG_MAX);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the maximum Float value. */
     public static <TSource> float max(
-        Enumerable<TSource> enumerable, FloatFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        FloatFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), null, FLOAT_MAX);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the maximum nullable Float
      * value. */
     public static <TSource> Float max(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableFloatFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), null, FLOAT_MAX);
     }
 
     /** Invokes a transform function on each element of a
      * generic sequence and returns the maximum resulting
      * value. */
-    public static <TSource, TResult> TResult max(
-        Enumerable<TSource> enumerable, Function1<TSource, TResult> selector)
+    public static <TSource, TResult extends Comparable<TResult>> TResult max(
+        Enumerable<TSource> source,
+        Function1<TSource, TResult> selector)
     {
-        throw Extensions.todo();
+        Function2<TResult, TResult, TResult> max = maxFunction();
+        return aggregate(source.select(selector), null, max);
     }
 
     /** Invokes a projection function on each element of a
@@ -1493,10 +1630,23 @@ public class Extensions {
 
     /** Returns the minimum value in a generic
      * sequence. */
-    public static <TSource> TSource min(
-        Enumerable<TSource> enumerable)
+    public static <TSource extends Comparable<TSource>> TSource min(
+        Enumerable<TSource> source)
     {
-        throw Extensions.todo();
+        Function2<TSource, TSource, TSource> min = minFunction();
+        return aggregate(source, null, min);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <TSource extends Comparable<TSource>>
+    Function2<TSource, TSource, TSource> minFunction() {
+        return (Function2<TSource, TSource, TSource>) COMPARABLE_MIN;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <TSource extends Comparable<TSource>>
+    Function2<TSource, TSource, TSource> maxFunction() {
+        return (Function2<TSource, TSource, TSource>) COMPARABLE_MAX;
     }
 
     /** Returns the minimum value in a generic
@@ -1510,99 +1660,109 @@ public class Extensions {
     /** Invokes a transform function on each element of a
      * sequence and returns the minimum Decimal value. */
     public static <TSource> BigDecimal min(
-        Enumerable<TSource> enumerable, BigDecimalFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        BigDecimalFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        Function2<BigDecimal, BigDecimal, BigDecimal> min = minFunction();
+        return aggregate(source.select(selector), null, min);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the minimum nullable Decimal
      * value. */
     public static <TSource> BigDecimal min(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableBigDecimalFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        Function2<BigDecimal, BigDecimal, BigDecimal> min = minFunction();
+        return aggregate(source.select(selector), null, min);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the minimum Double value. */
     public static <TSource> double min(
-        Enumerable<TSource> enumerable, DoubleFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        DoubleFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), null, DOUBLE_MIN);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the minimum nullable Double
      * value. */
     public static <TSource> Double min(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableDoubleFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), null, DOUBLE_MIN);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the minimum int value. */
     public static <TSource> int min(
-        Enumerable<TSource> enumerable, IntegerFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        IntegerFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), null, INTEGER_MIN);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the minimum nullable int value. (Defined
      * by Enumerable.) */
     public static <TSource> Integer min(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableIntegerFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), null, INTEGER_MIN);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the minimum long value. */
     public static <TSource> long min(
-        Enumerable<TSource> enumerable, LongFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        LongFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), null, LONG_MIN);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the minimum nullable long value. (Defined
      * by Enumerable.) */
     public static <TSource> Long min(
-        Enumerable<TSource> enumerable, NullableLongFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        NullableLongFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), null, LONG_MIN);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the minimum Float value. */
     public static <TSource> float min(
-        Enumerable<TSource> enumerable, FloatFunction1<TSource> selector)
+        Enumerable<TSource> source,
+        FloatFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), null, FLOAT_MIN);
     }
 
     /** Invokes a transform function on each element of a
      * sequence and returns the minimum nullable Float
      * value. */
     public static <TSource> Float min(
-        Enumerable<TSource> enumerable,
+        Enumerable<TSource> source,
         NullableFloatFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), null, FLOAT_MIN);
     }
 
     /** Invokes a transform function on each element of a
      * generic sequence and returns the minimum resulting
      * value. */
-    public static <TSource, TResult> TResult min(
-        Enumerable<TSource> enumerable, Function1<TSource, TResult> selector)
+    public static <TSource, TResult extends Comparable<TResult>> TResult min(
+        Enumerable<TSource> source,
+        Function1<TSource, TResult> selector)
     {
-        throw Extensions.todo();
+        Function2<TResult, TResult, TResult> min = minFunction();
+        return aggregate(source.select(selector), null, min);
     }
 
     /** Invokes a projection function on each element of a
@@ -2191,9 +2351,11 @@ public class Extensions {
      * that are obtained by invoking a transform function on each
      * element of the input sequence. */
     public static <TSource> BigDecimal sum(
-        Enumerable<TSource> source, Function1<TSource, BigDecimal> selector)
+        Enumerable<TSource> source,
+        BigDecimalFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(
+            source.select(selector), BigDecimal.ZERO, BIG_DECIMAL_SUM);
     }
 
     /** Computes the sum of the sequence of nullable
@@ -2203,7 +2365,8 @@ public class Extensions {
         Enumerable<TSource> source,
         NullableBigDecimalFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(
+            source.select(selector), BigDecimal.ZERO, BIG_DECIMAL_SUM);
     }
 
     /** Computes the sum of the sequence of Decimal values
@@ -2232,7 +2395,7 @@ public class Extensions {
     public static <TSource> double sum(
         Enumerable<TSource> source, DoubleFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), 0d, DOUBLE_SUM);
     }
 
     /** Computes the sum of the sequence of nullable
@@ -2241,7 +2404,7 @@ public class Extensions {
     public static <TSource> Double sum(
         Enumerable<TSource> source, NullableDoubleFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), 0d, DOUBLE_SUM);
     }
 
     /** Computes the sum of the sequence of Double values
@@ -2270,16 +2433,16 @@ public class Extensions {
     public static <TSource> int sum(
         Enumerable<TSource> source, IntegerFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), 0, INTEGER_SUM);
     }
 
     /** Computes the sum of the sequence of nullable int
      * values that are obtained by invoking a transform function on
      * each element of the input sequence. */
     public static <TSource> Integer sum(
-        Enumerable<TSource> sources, NullableIntegerFunction1<TSource> selector)
+        Enumerable<TSource> source, NullableIntegerFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), 0, INTEGER_SUM);
     }
 
     /** Computes the sum of the sequence of long values
@@ -2288,7 +2451,7 @@ public class Extensions {
     public static <TSource> long sum(
         Enumerable<TSource> source, LongFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), 0L, LONG_SUM);
     }
 
     /** Computes the sum of the sequence of nullable long
@@ -2297,7 +2460,7 @@ public class Extensions {
     public static <TSource> Long sum(
         Enumerable<TSource> source, NullableLongFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), 0L, LONG_SUM);
     }
 
     /** Computes the sum of the sequence of Float values
@@ -2306,7 +2469,7 @@ public class Extensions {
     public static <TSource> float sum(
         Enumerable<TSource> source, FloatFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(adapt(selector)), 0F, FLOAT_SUM);
     }
 
     /** Computes the sum of the sequence of nullable
@@ -2315,7 +2478,7 @@ public class Extensions {
     public static <TSource> Float sum(
         Enumerable<TSource> source, NullableFloatFunction1<TSource> selector)
     {
-        throw Extensions.todo();
+        return aggregate(source.select(selector), 0F, FLOAT_SUM);
     }
 
     /** Computes the sum of the sequence of int values

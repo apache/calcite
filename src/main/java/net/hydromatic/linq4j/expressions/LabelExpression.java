@@ -24,7 +24,7 @@ package net.hydromatic.linq4j.expressions;
  * {@link #defaultValue}. If the Type equals {@link Void}, no value should be
  * provided.
  */
-public class LabelExpression extends Expression {
+public class LabelExpression extends Statement {
     public final Expression defaultValue;
 
     public LabelExpression(Expression defaultValue, ExpressionType nodeType) {

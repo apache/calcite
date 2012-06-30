@@ -21,10 +21,10 @@ package net.hydromatic.linq4j.expressions;
  * Represents an unconditional jump. This includes return statements, break and
  * continue statements, and other jumps.
  */
-public class GotoExpression extends Expression {
+public class GotoExpression extends Statement {
     public final GotoExpressionKind kind;
     private final LabelTarget labelTarget;
-    private final Expression expression;
+    public final Expression expression;
 
     GotoExpression(
         GotoExpressionKind kind,
@@ -48,6 +48,7 @@ public class GotoExpression extends Expression {
             assert labelTarget != null;
             break;
         case Return:
+        case Sequence:
             assert labelTarget == null;
             break;
         default:
@@ -56,17 +57,37 @@ public class GotoExpression extends Expression {
     }
 
     @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        writer.append(kind.s);
+    void accept0(ExpressionWriter writer) {
+        writer.append(kind.prefix);
         if (labelTarget != null) {
-            writer.append(' ')
-                .append(labelTarget.name);
+            writer.append(labelTarget.name)
+                .append(' ');
         }
         if (expression != null) {
-            writer.append(' ');
-            writer.begin();
-            expression.accept(writer, 0, 0);
-            writer.end();
+            switch (kind) {
+            case Sequence:
+                // don't indent for sequence
+                expression.accept(writer, 0, 0);
+                break;
+            default:
+                writer.begin();
+                expression.accept(writer, 0, 0);
+                writer.end();
+            }
+        }
+        writer.append(';').newlineAndIndent();
+    }
+
+    @Override
+    public Object evaluate(Evaluator evaluator) {
+        switch (kind) {
+        case Return:
+        case Sequence:
+            // NOTE: We ignore control flow. This is only correct if "return"
+            // is the last statement in the block.
+            return expression.evaluate(evaluator);
+        default:
+            throw new AssertionError("evaluate not implemented");
         }
     }
 }

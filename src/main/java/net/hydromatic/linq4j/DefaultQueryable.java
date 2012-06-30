@@ -125,7 +125,7 @@ abstract class DefaultQueryable<T>
         return Extensions.aggregate(getThis(), selector);
     }
 
-    public <TAccumulate> T aggregate(
+    public <TAccumulate> TAccumulate aggregate(
         TAccumulate seed,
         FunctionExpression<Function2<TAccumulate, T, TAccumulate>> selector)
     {
@@ -350,13 +350,13 @@ abstract class DefaultQueryable<T>
         return Extensions.longCount(getThis(), predicate);
     }
 
-    public <TResult> TResult max(
+    public <TResult extends Comparable<TResult>> TResult max(
         FunctionExpression<Function1<T, TResult>> selector)
     {
         return Extensions.max(getThis(), selector);
     }
 
-    public <TResult> TResult min(
+    public <TResult extends Comparable<TResult>> TResult min(
         FunctionExpression<Function1<T, TResult>> selector)
     {
         return Extensions.min(getThis(), selector);
@@ -568,7 +568,7 @@ abstract class DefaultQueryable<T>
         return Extensions.aggregate(getThis(), func);
     }
 
-    public <TAccumulate> T aggregate(
+    public <TAccumulate> TAccumulate aggregate(
         TAccumulate seed, Function2<TAccumulate, T, TAccumulate> func)
     {
         return Extensions.aggregate(getThis(), seed, func);

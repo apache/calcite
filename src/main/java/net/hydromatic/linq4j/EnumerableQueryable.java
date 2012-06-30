@@ -165,7 +165,7 @@ class EnumerableQueryable<T>
         return Extensions.aggregate(getThis(), selector.getFunction());
     }
 
-    public <TAccumulate> T aggregate(
+    public <TAccumulate> TAccumulate aggregate(
         TAccumulate seed,
         FunctionExpression<Function2<TAccumulate, T, TAccumulate>> selector)
     {
@@ -426,13 +426,13 @@ class EnumerableQueryable<T>
         return Extensions.longCount(getThis(), predicate.getFunction());
     }
 
-    public <TResult> TResult max(
+    public <TResult extends Comparable<TResult>> TResult max(
         FunctionExpression<Function1<T, TResult>> selector)
     {
         return Extensions.max(getThis(), selector.getFunction());
     }
 
-    public <TResult> TResult min(
+    public <TResult extends Comparable<TResult>> TResult min(
         FunctionExpression<Function1<T, TResult>> selector)
     {
         return Extensions.min(getThis(), selector.getFunction());

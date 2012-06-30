@@ -48,7 +48,7 @@ public class ExpressionTest extends TestCase {
         String s = Expressions.toString(lambdaExpr);
         assertEquals(
             "new net.hydromatic.linq4j.function.Function1() {\n"
-            + "  public Integer apply(Integer arg) {\n"
+            + "  public int apply(Integer arg) {\n"
             + "    return arg + 2;\n"
             + "  }\n"
             + "  public Object apply(Object arg) {\n"
@@ -83,8 +83,9 @@ public class ExpressionTest extends TestCase {
         FunctionExpression lambdaExpr =
             Expressions.lambda(
                 Expressions.call(
-                    paramS, String.class.getMethod(
-                    "substring", Integer.TYPE, Integer.TYPE),
+                    paramS,
+                    String.class.getMethod(
+                        "substring", Integer.TYPE, Integer.TYPE),
                     paramBegin,
                     paramEnd), paramS, paramBegin, paramEnd);
 
@@ -145,17 +146,14 @@ public class ExpressionTest extends TestCase {
                     Expressions.constant(3))));
 
         assertEquals(
-            "0 + (2 + 3).compareTo(1)",
+            "0 + (double) (2 + 3)",
             Expressions.toString(
                 Expressions.add(
                     Expressions.constant(0),
-                    Expressions.call(
+                    Expressions.convert_(
                         Expressions.add(
-                            Expressions.constant(2),
-                            Expressions.constant(3)),
-                        "compareTo",
-                        Arrays.<Expression>asList(
-                            Expressions.constant(1))))));
+                            Expressions.constant(2), Expressions.constant(3)),
+                        Double.TYPE))));
 
         assertEquals(
             "a.empno",
@@ -168,7 +166,7 @@ public class ExpressionTest extends TestCase {
             Expressions.parameter(String.class, "x");
         assertEquals(
             "new net.hydromatic.linq4j.function.Function1() {\n"
-            + "  public Integer apply(String x) {\n"
+            + "  public int apply(String x) {\n"
             + "    return x.length();\n"
             + "  }\n"
             + "  public Object apply(Object x) {\n"
@@ -179,12 +177,8 @@ public class ExpressionTest extends TestCase {
             Expressions.toString(
                 Expressions.lambda(
                     Function1.class,
-                    Expressions.return_(
-                        null,
-                        Expressions.call(
-                            paramX,
-                            "length",
-                            Collections.<Expression>emptyList())),
+                    Expressions.call(
+                        paramX, "length", Collections.<Expression>emptyList()),
                     Arrays.asList(paramX))));
 
         assertEquals(
@@ -297,18 +291,18 @@ public class ExpressionTest extends TestCase {
             Expressions.parameter(
                 Integer.TYPE,
                 "index");
-        Expression e =
+        BlockExpression e =
             Expressions.block(
-                Arrays.<Expression>asList(
-                    Expressions.declare(
-                        Modifier.FINAL,
-                        bazParameter,
-                        Expressions.call(
-                            Arrays.class,
-                            "asList",
-                            Arrays.<Expression>asList(
-                                Expressions.constant("foo"),
-                                Expressions.constant("bar")))),
+                Expressions.declare(
+                    Modifier.FINAL,
+                    bazParameter,
+                    Expressions.call(
+                        Arrays.class,
+                        "asList",
+                        Arrays.<Expression>asList(
+                            Expressions.constant("foo"),
+                            Expressions.constant("bar")))),
+                Expressions.statement(
                     Expressions.new_(
                         Types.of(AbstractList.class, String.class),
                         Collections.<Expression>emptyList(),
@@ -325,26 +319,28 @@ public class ExpressionTest extends TestCase {
                                 Integer.TYPE,
                                 "size",
                                 Collections.<ParameterExpression>emptyList(),
-                                Expressions.call(
-                                    bazParameter,
-                                    "size",
-                                    Collections.<Expression>emptyList())),
+                                Blocks.toFunctionBlock(
+                                    Expressions.call(
+                                        bazParameter,
+                                        "size",
+                                        Collections.<Expression>emptyList()))),
                             Expressions.methodDecl(
                                 Modifier.PUBLIC,
                                 String.class,
                                 "get",
-                                Arrays.asList(
-                                    indexParameter),
-                                Expressions.call(
-                                    Expressions.convert_(
-                                        Expressions.call(
-                                            bazParameter,
-                                            "get",
-                                            Arrays.<Expression>asList(
-                                                indexParameter)),
-                                        String.class),
-                                    "toUpperCase",
-                                    Collections.<Expression>emptyList()))))));
+                                Arrays.asList(indexParameter),
+                                Blocks.toFunctionBlock(
+                                    Expressions.call(
+                                        Expressions.convert_(
+                                            Expressions.call(
+                                                bazParameter,
+                                                "get",
+                                                Arrays.<Expression>asList(
+                                                    indexParameter)),
+                                            String.class),
+                                        "toUpperCase",
+                                        Collections
+                                            .<Expression>emptyList())))))));
         assertEquals(
             "{\n"
             + "  final java.util.List<String> baz = java.util.Arrays.asList(\"foo\", \"bar\");\n"
@@ -362,6 +358,35 @@ public class ExpressionTest extends TestCase {
             + "  };\n"
             + "}\n",
             Expressions.toString(e));
+    }
+
+    public void testWriteWhile() {
+        DeclarationExpression xDecl, yDecl;
+        Node node =
+            Expressions.block(
+                xDecl = Expressions.declare(
+                    0,
+                    "x",
+                    Expressions.constant(10)),
+                yDecl = Expressions.declare(
+                    0,
+                    "y",
+                    Expressions.constant(0)),
+                Expressions.while_(
+                    Expressions.lessThan(
+                        xDecl.parameter,
+                        Expressions.constant(5)),
+                    Expressions.statement(
+                        Expressions.preIncrementAssign(yDecl.parameter))));
+        assertEquals(
+            "{\n"
+            + "  int x = 10;\n"
+            + "  int y = 0;\n"
+            + "  while (x < 5) {\n"
+            + "    ++y;\n"
+            + "  }\n"
+            + "}\n",
+            Expressions.toString(node));
     }
 
     public void testCompile() throws NoSuchMethodException {

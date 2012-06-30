@@ -24,7 +24,7 @@ import java.lang.reflect.Modifier;
  *
  * @author jhyde
  */
-public class DeclarationExpression extends Expression {
+public class DeclarationExpression extends Statement {
     public final int modifiers;
     public final ParameterExpression parameter;
     public final Expression initializer;
@@ -39,7 +39,7 @@ public class DeclarationExpression extends Expression {
     }
 
     @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
+    void accept0(ExpressionWriter writer) {
         final String modifiers = Modifier.toString(this.modifiers);
         if (!modifiers.isEmpty()) {
             writer.append(modifiers).append(' ');
@@ -51,6 +51,8 @@ public class DeclarationExpression extends Expression {
             writer.append(" = ")
                 .append(initializer);
         }
+        writer.append(';');
+        writer.newlineAndIndent();
     }
 }
 

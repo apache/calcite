@@ -20,22 +20,22 @@ package net.hydromatic.linq4j.expressions;
 /**
  * Represents a "while" statement.
  */
-public class WhileExpression extends Expression {
+public class WhileExpression extends Statement {
     public final Expression condition;
-    public final Expression body;
+    public final Statement body;
 
-    public WhileExpression(Expression condition, Expression body) {
+    public WhileExpression(Expression condition, Statement body) {
         super(ExpressionType.While, Void.TYPE);
         this.condition = condition;
         this.body = body;
     }
 
     @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
+    void accept0(ExpressionWriter writer) {
         writer.append("while (")
             .append(condition)
             .append(") ")
-            .append(FunctionExpression.toBlock(body));
+            .append(Blocks.toBlock(body));
     }
 }
 

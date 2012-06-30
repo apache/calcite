@@ -17,7 +17,6 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import java.lang.reflect.Type;
 import java.util.List;
 
 /**
@@ -32,18 +31,16 @@ import java.util.List;
  * "if (c0) e0 else if (c1) e1 ... else if (c<sub>n-1</sub>) e<sub>n-1</sub>".
  * </p>
  */
-public class ConditionalExpression extends Node {
+public class ConditionalStatement extends Statement {
     private final List<Node> expressionList;
 
-    public ConditionalExpression(
-        List<Node> expressionList, Type type)
-    {
-        super(ExpressionType.Conditional, type);
+    public ConditionalStatement(List<Node> expressionList) {
+        super(ExpressionType.Conditional, Void.TYPE);
         this.expressionList = expressionList;
     }
 
     @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
+    void accept0(ExpressionWriter writer) {
         for (int i = 0; i < expressionList.size(); i += 2) {
             writer.append(i > 0 ? " else if (" : "if (")
                 .append(expressionList.get(i))
@@ -60,4 +57,4 @@ public class ConditionalExpression extends Node {
     }
 }
 
-// End ConditionalExpression.java
+// End ConditionalStatement.java

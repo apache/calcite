@@ -45,7 +45,7 @@ public interface ExtendedEnumerable<TSource> {
     /** Applies an accumulator function over a
      * sequence. The specified seed value is used as the initial
      * accumulator value. */
-    <TAccumulate> TSource aggregate(
+    <TAccumulate> TAccumulate aggregate(
         TAccumulate seed,
         Function2<TAccumulate, TSource, TAccumulate> func);
 
@@ -440,7 +440,8 @@ public interface ExtendedEnumerable<TSource> {
     /** Invokes a transform function on each element of a
      * generic sequence and returns the maximum resulting
      * value. */
-    <TResult> TResult max(Function1<TSource, TResult> selector);
+    <TResult extends Comparable<TResult>> TResult max(
+        Function1<TSource, TResult> selector);
 
     /** Returns the minimum value in a generic
      * sequence. */
@@ -494,7 +495,8 @@ public interface ExtendedEnumerable<TSource> {
     /** Invokes a transform function on each element of a
      * generic sequence and returns the minimum resulting
      * value. */
-    <TResult> TResult min(Function1<TSource, TResult> selector);
+    <TResult extends Comparable<TResult>> TResult min(
+        Function1<TSource, TResult> selector);
 
     /**
      * Filters the elements of an Enumerable based on a
@@ -622,7 +624,7 @@ public interface ExtendedEnumerable<TSource> {
     /** Computes the sum of the sequence of Decimal values
      * that are obtained by invoking a transform function on each
      * element of the input sequence. */
-    java.math.BigDecimal sum(Function1<TSource, BigDecimal> selector);
+    BigDecimal sum(BigDecimalFunction1<TSource> selector);
 
     /** Computes the sum of the sequence of nullable
      * Decimal values that are obtained by invoking a transform
