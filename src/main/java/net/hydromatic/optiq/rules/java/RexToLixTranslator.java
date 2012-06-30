@@ -79,7 +79,7 @@ public class RexToLixTranslator {
      * used at most once. */
     private final Set<RexNode> inlineRexSet = new HashSet<RexNode>();
 
-    private List<Expression> list;
+    private List<Statement> list;
 
     private static Method findMethod(Class<String> clazz, String name) {
         try {
@@ -114,7 +114,7 @@ public class RexToLixTranslator {
         List<Expression> inputs,
         RexProgram program,
         JavaTypeFactory typeFactory,
-        List<Expression> list)
+        List<Statement> list)
     {
         return new RexToLixTranslator(program, typeFactory, inputs)
             .translate(list, program.getProjectList());
@@ -254,7 +254,7 @@ public class RexToLixTranslator {
     }
 
     private List<Expression> translate(
-        List<Expression> list,
+        List<Statement> list,
         List<RexLocalRef> rexList)
     {
         // First pass. Count how many times each sub-expression is used.
@@ -286,7 +286,7 @@ public class RexToLixTranslator {
         List<Expression> inputs,
         RexProgram program,
         JavaTypeFactory typeFactory,
-        List<Expression> list)
+        List<Statement> list)
     {
         List<Expression> x =
             new RexToLixTranslator(program, typeFactory, inputs)

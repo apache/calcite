@@ -18,8 +18,7 @@
 package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
+import net.hydromatic.linq4j.expressions.*;
 
 import org.eigenbase.rel.RelImplementorImpl;
 import org.eigenbase.rel.RelNode;
@@ -43,19 +42,19 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
         super(rexBuilder);
     }
 
-    public Expression visitChild(
+    public BlockExpression visitChild(
         EnumerableRel parent,
         int ordinal,
         EnumerableRel child)
     {
-        return (Expression) super.visitChild(parent, ordinal, child);
+        return (BlockExpression) super.visitChild(parent, ordinal, child);
     }
 
-    public Expression visitChildInternal(RelNode child, int ordinal) {
+    public BlockExpression visitChildInternal(RelNode child, int ordinal) {
         return ((EnumerableRel) child).implement(this);
     }
 
-    public Expression implementRoot(EnumerableRel rootRel) {
+    public BlockExpression implementRoot(EnumerableRel rootRel) {
         return rootRel.implement(this);
     }
 

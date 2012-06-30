@@ -17,7 +17,7 @@
 */
 package net.hydromatic.optiq.rules.java;
 
-import net.hydromatic.linq4j.expressions.Expression;
+import net.hydromatic.linq4j.expressions.BlockExpression;
 
 import org.eigenbase.rel.RelNode;
 
@@ -38,7 +38,7 @@ public interface EnumerableRel
      *
      * @param implementor implementor
      */
-    Expression implement(EnumerableRelImplementor implementor);
+    BlockExpression implement(EnumerableRelImplementor implementor);
 }
 
 // End EnumerableRel.java

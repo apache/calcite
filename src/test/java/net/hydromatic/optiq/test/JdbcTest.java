@@ -126,7 +126,7 @@ public class JdbcTest extends TestCase {
         Statement statement = connection.createStatement();
         ResultSet resultSet =
             statement.executeQuery(
-                "select \"deptno\", sum(\"empid\"), count(*)\n"
+                "select \"deptno\", sum(\"empid\") as s, count(*) as c\n"
                 + "from \"hr\".\"emps\" as e\n"
                 + "group by \"deptno\"");
         String actual = toString(resultSet);
@@ -135,8 +135,8 @@ public class JdbcTest extends TestCase {
         connection.close();
 
         assertEquals(
-            "cust_id=100; prod_id=10; empid=100; name=Bill\n"
-            + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n",
+            "deptno=20; S=200; C=1\n"
+            + "deptno=10; S=250; C=2\n",
             actual);
     }
 

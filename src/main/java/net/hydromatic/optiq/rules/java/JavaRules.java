@@ -20,10 +20,8 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Function2;
+import net.hydromatic.linq4j.function.*;
 
-import net.hydromatic.linq4j.function.IntegerFunction1;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.rel.*;
@@ -69,20 +67,6 @@ public class JavaRules {
             ExtendedEnumerable.class,
             "select",
             Function1.class);
-
-    // not used
-    public static final RelOptRule JAVA_PROJECT_RULE =
-        new RelOptRule(
-            new RelOptRuleOperand(
-                ProjectRel.class,
-                CallingConvention.NONE,
-                new RelOptRuleOperand(
-                    RelNode.class, RelOptRuleOperand.Dummy.ANY)),
-            "JavaProjectRule")
-        {
-            public void onMatch(RelOptRuleCall call) {
-            }
-        };
 
     public static final RelOptRule ENUMERABLE_JOIN_RULE =
         new ConverterRule(
@@ -154,7 +138,7 @@ public class JavaRules {
                 variablesStopped);
         }
 
-        public Expression implement(EnumerableRelImplementor implementor) {
+        public BlockExpression implement(EnumerableRelImplementor implementor) {
             final List<Integer> leftKeys = new ArrayList<Integer>();
             final List<Integer> rightKeys = new ArrayList<Integer>();
             RexNode remaining =
@@ -168,15 +152,31 @@ public class JavaRules {
                 : "EnumerableJoin is equi only"; // TODO: stricter pre-check
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) left.getCluster().getTypeFactory();
-            return Expressions.call(
-                implementor.visitChild(this, 0, (EnumerableRel) left),
-                JOIN_METHOD,
-                implementor.visitChild(this, 1, (EnumerableRel) right),
-                EnumUtil.generateAccessor(
-                    typeFactory, left.getRowType(), leftKeys),
-                EnumUtil.generateAccessor(
-                    typeFactory, right.getRowType(), rightKeys),
-                generateSelector(typeFactory));
+            Expressions.FluentList<Statement> list = Expressions.list();
+            Expression leftExpression =
+                Blocks.append(
+                    list,
+                    "left",
+                    implementor.visitChild(this, 0, (EnumerableRel) left));
+            Expression rightExpression =
+                Blocks.append(
+                    list,
+                    "right",
+                    implementor.visitChild(this, 1, (EnumerableRel) right));
+            return Expressions.block(
+                list.append(
+                    Expressions.statement(
+                        Expressions.call(
+                            leftExpression,
+                            JOIN_METHOD,
+                            rightExpression,
+                            EnumUtil.generateAccessor(
+                                typeFactory, left.getRowType(), leftKeys,
+                                false),
+                            EnumUtil.generateAccessor(
+                                typeFactory, right.getRowType(), rightKeys,
+                                false),
+                            generateSelector(typeFactory)))));
         }
 
         Expression generateSelector(JavaTypeFactory typeFactory) {
@@ -203,11 +203,9 @@ public class JavaRules {
             }
             return Expressions.lambda(
                 Function2.class,
-                Expressions.return_(
-                    null,
-                    Expressions.newArrayInit(
-                        Object.class,
-                        expressions)),
+                Expressions.newArrayInit(
+                    Object.class,
+                    expressions),
                 parameters);
         }
     }
@@ -221,7 +219,8 @@ public class JavaRules {
         static Expression generateAccessor(
             JavaTypeFactory typeFactory,
             RelDataType rowType,
-            List<Integer> fields)
+            List<Integer> fields,
+            boolean primitive)
         {
             assert fields.size() == 1
                 : "composite keys not implemented yet";
@@ -234,12 +233,39 @@ public class JavaRules {
             // }
             ParameterExpression v1 =
                 Expressions.parameter(javaClass(typeFactory, rowType), "v1");
-            return Expressions.lambda(
-                Function1.class,
-                Expressions.return_(
-                    null,
-                    Expressions.field(v1, Types.nthField(field, v1.getType()))),
-                v1);
+            Class returnType =
+                javaClass(
+                    typeFactory, rowType.getFieldList().get(field).getType());
+            if (primitive) {
+                return Expressions.lambda(
+                    Functions.functionClass(returnType),
+                    castIfNecessary(returnType, fieldReference(v1, field)),
+                    v1);
+            } else {
+                return Expressions.lambda(
+                    Function1.class,
+                    castIfNecessary(returnType, fieldReference(v1, field)),
+                    v1);
+            }
+        }
+
+        private static Expression castIfNecessary(
+            Class returnType,
+            Expression expression)
+        {
+            if (Types.isAssignableFrom(returnType, expression.getType())) {
+                return expression;
+            }
+            if (returnType.isPrimitive()
+                && !Types.isPrimitive(expression.getType()))
+            {
+                // E.g.
+                //   int foo(Object o) {
+                //     return (Integer) o;
+                //   }
+                return Expressions.convert_(expression, Types.box(returnType));
+            }
+            return Expressions.convert_(expression, returnType);
         }
 
         static Class javaClass(
@@ -267,16 +293,30 @@ public class JavaRules {
         }
 
         static Expression fieldReference(
-            Expression parameter,
+            Expression expression,
             RelDataTypeField field)
         {
-            return Types.isArray(parameter.getType())
-                ? Expressions.arrayIndex(
-                    parameter,
-                    Expressions.constant(field.getIndex()))
-                : Expressions.field(
-                    parameter,
-                    field.getName());
+            if (Types.isArray(expression.getType())) {
+                return Expressions.arrayIndex(
+                    expression, Expressions.constant(field.getIndex()));
+            } else {
+                return Expressions.field(
+                    expression, field.getName());
+            }
+        }
+
+        static Expression fieldReference(
+            Expression expression, int field)
+        {
+            final Type type = expression.getType();
+            if (Types.isArray(type)) {
+                return Expressions.arrayIndex(
+                    expression, Expressions.constant(field));
+            } else {
+                return Expressions.field(
+                    expression,
+                    Types.nthField(field, type));
+            }
         }
     }
 
@@ -300,8 +340,8 @@ public class JavaRules {
             this.expression = expression;
         }
 
-        public Expression implement(EnumerableRelImplementor implementor) {
-            return expression;
+        public BlockExpression implement(EnumerableRelImplementor implementor) {
+            return Blocks.toBlock(expression);
         }
     }
 
@@ -413,26 +453,17 @@ public class JavaRules {
             return flags;
         }
 
-        public boolean isBoxed()
-        {
-            return (flags & ProjectRelBase.Flags.Boxed)
-                   == ProjectRelBase.Flags.Boxed;
-        }
-
-        public Expression implement(EnumerableRelImplementor implementor) {
+        public BlockExpression implement(EnumerableRelImplementor implementor) {
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) implementor.getTypeFactory();
-            Expression childExp =
-                implementor.visitChild(this, 0, (EnumerableRel) getChild());
+            final List<Statement> statements = Expressions.list();
             RelDataType outputRowType = getRowType();
             RelDataType inputRowType = getChild().getRowType();
 
-            // With calc:
-            //
-            // new Enumerable<IntString>() {
-            //     final Enumerator<Employee> child = <<child impl>>
+            // final Enumerable<Employee> inputEnumerable = <<child impl>>;
+            // return new Enumerable<IntString>() {
             //     Enumerator<IntString> enumerator() {
-            //         return new Enumerator<IntString() {
+            //         return new Enumerator<IntString>() {
             //             public void reset() {
             // ...
             Class outputJavaType =
@@ -441,12 +472,6 @@ public class JavaRules {
                 Types.of(
                     Enumerator.class, outputJavaType);
             Class inputJavaType = EnumUtil.javaClass(typeFactory, inputRowType);
-            ParameterExpression inputEnumerable =
-                Expressions.parameter(
-                    Types.of(
-                        Enumerable.class,
-                        inputJavaType),
-                    "inputEnumerable");
             ParameterExpression inputEnumerator =
                 Expressions.parameter(
                     Types.of(
@@ -460,15 +485,16 @@ public class JavaRules {
                         NO_EXPRS),
                     inputJavaType);
 
-            Expression moveNextBody;
+            BlockExpression moveNextBody;
             if (program.getCondition() == null) {
                 moveNextBody =
-                    Expressions.call(
-                        inputEnumerator,
-                        "moveNext",
-                        NO_EXPRS);
+                    Blocks.toFunctionBlock(
+                        Expressions.call(
+                            inputEnumerator,
+                            "moveNext",
+                            NO_EXPRS));
             } else {
-                final List<Expression> list = Expressions.list();
+                final List<Statement> list = Expressions.list();
                 Expression condition =
                     RexToLixTranslator.translateCondition(
                         Collections.<Expression>singletonList(input),
@@ -493,7 +519,7 @@ public class JavaRules {
                             Expressions.constant(false)));
             }
 
-            final List<Expression> list = Expressions.list();
+            final List<Statement> list = Expressions.list();
             List<Expression> expressions =
                 RexToLixTranslator.translateProjects(
                     Collections.<Expression>singletonList(input),
@@ -508,63 +534,69 @@ public class JavaRules {
                         : Expressions.newArrayInit(
                             Object.class,
                             expressions)));
-            Expression currentBody =
+            BlockExpression currentBody =
                 Expressions.block(list);
 
-            return Expressions.new_(
-                ABSTRACT_ENUMERABLE_CTOR,
-                // Collections.singletonList(inputRowType), // TODO: generics
-                NO_EXPRS,
-                Collections.<Member>emptyList(),
-                Arrays.<MemberDeclaration>asList(
-                    Expressions.fieldDecl(
-                        Modifier.FINAL,
-                        inputEnumerable,
-                        false
-                        ? Expressions.convert_(
-                            Expressions.constant(null),
-                            Enumerable.class)
-                        : childExp),
-                    Expressions.methodDecl(
-                        Modifier.PUBLIC,
-                        enumeratorType,
-                        "enumerator",
-                        NO_PARAMS,
-                        Expressions.new_(
-                            enumeratorType,
-                            NO_EXPRS,
-                            Collections.<Member>emptyList(),
-                            Expressions.<MemberDeclaration>list(
-                                Expressions.fieldDecl(
-                                    Modifier.PUBLIC | Modifier.FINAL,
-                                    inputEnumerator,
-                                    Expressions.call(
-                                        inputEnumerable,
-                                        "enumerator",
-                                        NO_EXPRS)),
-                                Expressions.methodDecl(
-                                    Modifier.PUBLIC,
-                                    Void.TYPE,
-                                    "reset",
-                                    NO_PARAMS,
-                                    Expressions.call(
-                                        inputEnumerator,
-                                        "reset",
-                                        NO_EXPRS)),
-                                Expressions.methodDecl(
-                                    Modifier.PUBLIC,
-                                    Boolean.TYPE,
-                                    "moveNext",
-                                    NO_PARAMS,
-                                    moveNextBody),
-                                Expressions.methodDecl(
-                                    Modifier.PUBLIC,
-                                    BRIDGE_METHODS
-                                        ? Object.class
-                                        : outputJavaType,
-                                    "current",
-                                    NO_PARAMS,
-                                    currentBody))))));
+            final Expression inputEnumerable =
+                Blocks.append(
+                    statements,
+                    "inputEnumerable",
+                    implementor.visitChild(
+                        this, 0, (EnumerableRel) getChild()));
+            statements.add(
+                Expressions.return_(
+                    null,
+                    Expressions.new_(
+                        ABSTRACT_ENUMERABLE_CTOR,
+                        // TODO: generics
+                        //   Collections.singletonList(inputRowType),
+                        NO_EXPRS,
+                        Collections.<Member>emptyList(),
+                        Arrays.<MemberDeclaration>asList(
+                            Expressions.methodDecl(
+                                Modifier.PUBLIC,
+                                enumeratorType,
+                                "enumerator",
+                                NO_PARAMS,
+                                Blocks.toFunctionBlock(
+                                    Expressions.new_(
+                                        enumeratorType,
+                                        NO_EXPRS,
+                                        Collections.<Member>emptyList(),
+                                        Expressions.<MemberDeclaration>list(
+                                            Expressions.fieldDecl(
+                                                Modifier.PUBLIC
+                                                    | Modifier.FINAL,
+                                                inputEnumerator,
+                                                Expressions.call(
+                                                    inputEnumerable,
+                                                    "enumerator",
+                                                    NO_EXPRS)),
+                                            Expressions.methodDecl(
+                                                Modifier.PUBLIC,
+                                                Void.TYPE,
+                                                "reset",
+                                                NO_PARAMS,
+                                                Blocks.toFunctionBlock(
+                                                    Expressions.call(
+                                                        inputEnumerator,
+                                                        "reset",
+                                                        NO_EXPRS))),
+                                            Expressions.methodDecl(
+                                                Modifier.PUBLIC,
+                                                Boolean.TYPE,
+                                                "moveNext",
+                                                NO_PARAMS,
+                                                moveNextBody),
+                                            Expressions.methodDecl(
+                                                Modifier.PUBLIC,
+                                                BRIDGE_METHODS
+                                                    ? Object.class
+                                                    : outputJavaType,
+                                                "current",
+                                                NO_PARAMS,
+                                                currentBody)))))))));
+            return Expressions.block(statements);
         }
 
         public RexProgram getProgram() {
@@ -643,11 +675,17 @@ public class JavaRules {
                 groupCount);
         }
 
-        public Expression implement(EnumerableRelImplementor implementor) {
+        public BlockExpression implement(EnumerableRelImplementor implementor) {
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) implementor.getTypeFactory();
+            final Expressions.FluentList<Statement> statements =
+                Expressions.list();
             Expression childExp =
-                implementor.visitChild(this, 0, (EnumerableRel) getChild());
+                Blocks.append(
+                    statements,
+                    "child",
+                    implementor.visitChild(
+                        this, 0, (EnumerableRel) getChild()));
             RelDataType outputRowType = getRowType();
             RelDataType inputRowType = getChild().getRowType();
 
@@ -682,6 +720,7 @@ public class JavaRules {
 
             ParameterExpression parameter =
                 Expressions.parameter(inputJavaType, "a0");
+
             final List<Expression> keyExpressions = Expressions.list();
             for (int i = 0; i < groupCount; i++) {
                 keyExpressions.add(
@@ -689,29 +728,28 @@ public class JavaRules {
                         parameter, inputRowType.getFieldList().get(i)));
             }
             final Expression keySelector =
-                Expressions.declare(
-                    Modifier.FINAL,
+                Blocks.append(
+                    statements,
                     "keySelector",
                     Expressions.lambda(
                         Function1.class,
-                        Expressions.return_(
-                            null,
-                            keyExpressions.size() == 1
-                                ? keyExpressions.get(0)
-                                : Expressions.newArrayInit(
-                                    Object.class, keyExpressions)),
+                        keyExpressions.size() == 1
+                            ? keyExpressions.get(0)
+                            : Expressions.newArrayInit(
+                                Object.class, keyExpressions),
                         parameter));
 
             ParameterExpression grouping =
                 Expressions.parameter(Grouping.class, "grouping");
-            Expressions.FluentList<Expression> list = Expressions.list();
+            final Expressions.FluentList<Statement> statements2 =
+                Expressions.list();
             final List<Expression> expressions = Expressions.list();
             if (groupCount == 1) {
                 expressions.add(
                     Expressions.call(
                         grouping, "getKey"));
             } else {
-                DeclarationExpression declare =
+                DeclarationExpression keyDeclaration =
                     Expressions.declare(
                         Modifier.FINAL,
                         "key",
@@ -719,19 +757,18 @@ public class JavaRules {
                             Expressions.call(
                                 grouping, "getKey"),
                             Object[].class));
-                list.append(declare);
+                statements2.append(keyDeclaration);
                 for (int i = 0; i < groupCount; i++) {
                     expressions.add(
                         Expressions.arrayIndex(
-                            declare.parameter,
-                            Expressions.constant(i)));
+                            keyDeclaration.parameter, Expressions.constant(i)));
                 }
             }
             for (AggregateCall aggCall : aggCalls) {
                 expressions.add(
                     translate(typeFactory, inputRowType, grouping, aggCall));
             }
-            list.append(
+            statements2.add(
                 Expressions.return_(
                     null,
                     expressions.size() == 1
@@ -740,20 +777,22 @@ public class JavaRules {
                             Object.class, expressions)));
 
             final Expression selector =
-                Expressions.declare(
-                    Modifier.FINAL,
+                Blocks.append(
+                    statements,
                     "selector",
                     Expressions.lambda(
                         Function1.class,
-                        Expressions.block(list),
+                        Expressions.block(statements2),
                         grouping));
-            return Expressions.call(
-                Expressions.call(
-                    childExp,
-                    GROUP_BY_METHOD,
-                    keySelector),
-                SELECT_METHOD,
-                selector);
+            statements.add(
+                Expressions.return_(
+                    null,
+                    Expressions.call(
+                        Expressions.call(
+                            childExp, GROUP_BY_METHOD, keySelector),
+                        SELECT_METHOD,
+                        selector)));
+            return Expressions.block(statements);
         }
 
         private Expression translate(
@@ -774,7 +813,8 @@ public class JavaRules {
                     EnumUtil.generateAccessor(
                         typeFactory,
                         rowType,
-                        aggCall.getArgList()));
+                        aggCall.getArgList(),
+                        true));
             } else {
                 throw new AssertionError("unknown agg " + aggregation);
             }

@@ -359,17 +359,17 @@ class OptiqPrepareImpl implements OptiqPrepare {
             javaCompiler = createCompiler();
             EnumerableRelImplementor relImplementor =
                 getRelImplementor(rootRel.getCluster().getRexBuilder());
-            Expression expr =
+            BlockExpression expr =
                 relImplementor.implementRoot((EnumerableRel) rootRel);
             ParameterExpression root0 =
                 Expressions.parameter(Map.class, "root0");
             String s = Expressions.toString(
-                Expressions.block(
+                Blocks.create(
                     Expressions.declare(
                         Modifier.FINAL,
                         OptiqCatalogReader.rootExpression,
                         root0),
-                    Expressions.return_(null, expr)),
+                    expr),
                 false);
             System.out.println(s);
 
@@ -638,8 +638,9 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 EmptyScalarTranslator
                     .empty(rexBuilder)
                     .bind(expression.parameterList, list);
-            List<RexNode> rexList = new ArrayList<RexNode>();
-            for (Expression expression1 : fieldExpressions(expression.body)) {
+            final List<RexNode> rexList = new ArrayList<RexNode>();
+            final Expression simple = Blocks.simple(expression.body);
+            for (Expression expression1 : fieldExpressions(simple)) {
                 rexList.add(translator.toRex(expression1));
             }
             return rexList.toArray(new RexNode[rexList.size()]);
@@ -671,8 +672,8 @@ class OptiqPrepareImpl implements OptiqPrepare {
     }
 
     private interface ScalarTranslator {
+        RexNode toRex(BlockExpression expression);
         RexNode toRex(Expression expression);
-
         ScalarTranslator bind(
             List<ParameterExpression> parameterList, List<RexNode> values);
     }
@@ -686,6 +687,10 @@ class OptiqPrepareImpl implements OptiqPrepare {
 
         public static ScalarTranslator empty(RexBuilder builder) {
             return new EmptyScalarTranslator(builder);
+        }
+
+        public RexNode toRex(BlockExpression expression) {
+            return toRex(Blocks.simple(expression));
         }
 
         public RexNode toRex(Expression expression) {
