@@ -643,9 +643,9 @@ public class SqlToRelConverter
         bb.setRoot(
             new SortRel(
                 cluster,
+                cluster.traitSetOf(CallingConvention.NONE),
                 bb.root,
-                collationList.toArray(
-                    new RelFieldCollation[collationList.size()])),
+                collationList),
             false);
 
         // If extra exressions were added to the project list for sorting,

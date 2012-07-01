@@ -140,6 +140,31 @@ public class JdbcTest extends TestCase {
             actual);
     }
 
+    /**
+     * Simple ORDER BY.
+     *
+     * @throws Exception on error
+     */
+    public void testOrderBy() throws Exception {
+        Connection connection = getConnectionWithHrFoodmart();
+        Statement statement = connection.createStatement();
+        ResultSet resultSet =
+            statement.executeQuery(
+                "select upper(\"name\") as un, \"deptno\"\n"
+                + "from \"hr\".\"emps\" as e\n"
+                + "order by \"deptno\", \"name\" desc");
+        String actual = toString(resultSet);
+        resultSet.close();
+        statement.close();
+        connection.close();
+
+        assertEquals(
+            "UN=SEBASTIAN; deptno=10\n"
+            + "UN=BILL; deptno=10\n"
+            + "UN=ERIC; deptno=20\n",
+            actual);
+    }
+
     private String toString(ResultSet resultSet) throws SQLException {
         StringBuilder buf = new StringBuilder();
         while (resultSet.next()) {

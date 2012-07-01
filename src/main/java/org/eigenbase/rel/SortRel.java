@@ -33,7 +33,7 @@ public class SortRel
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected final RelFieldCollation [] collations;
+    protected final List<RelFieldCollation> collations;
     protected final RexNode [] fieldExps;
 
     //~ Constructors -----------------------------------------------------------
@@ -41,26 +41,24 @@ public class SortRel
     /**
      * Creates a sorter.
      *
-     * @param cluster {@link RelOptCluster}  this relational expression belongs
-     * to
+     * @param cluster Cluster this relational expression belongs to
+     * @param traits Traits
      * @param child input relational expression
      * @param collations array of sort specifications
      */
     public SortRel(
         RelOptCluster cluster,
+        RelTraitSet traits,
         RelNode child,
-        RelFieldCollation [] collations)
+        List<RelFieldCollation> collations)
     {
-        super(
-            cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
-            child);
+        super(cluster, traits, child);
         this.collations = collations;
 
-        fieldExps = new RexNode[collations.length];
+        fieldExps = new RexNode[collations.size()];
         final RelDataTypeField [] fields = getRowType().getFields();
-        for (int i = 0; i < collations.length; ++i) {
-            int iField = collations[i].getFieldIndex();
+        for (int i = 0; i < collations.size(); ++i) {
+            int iField = collations.get(i).getFieldIndex();
             fieldExps[i] =
                 cluster.getRexBuilder().makeInputRef(
                     fields[iField].getType(),
@@ -74,6 +72,7 @@ public class SortRel
         assert traitSet.comprises(CallingConvention.NONE);
         return new SortRel(
             getCluster(),
+            getCluster().traitSetOf(CallingConvention.NONE),
             sole(inputs),
             collations);
     }
@@ -87,23 +86,23 @@ public class SortRel
      * @return array of RelFieldCollations, from most significant to least
      * significant
      */
-    public RelFieldCollation [] getCollations()
+    public List<RelFieldCollation> getCollations()
     {
         return collations;
     }
 
     public void explain(RelOptPlanWriter pw)
     {
-        String [] terms = new String[1 + (collations.length * 2)];
-        Object [] values = new Object[collations.length];
+        String [] terms = new String[1 + (collations.size() * 2)];
+        Object [] values = new Object[collations.size()];
         int i = 0;
         terms[i++] = "child";
-        for (int j = 0; j < collations.length; ++j) {
+        for (int j = 0; j < collations.size(); ++j) {
             terms[i++] = "sort" + j;
         }
-        for (int j = 0; j < collations.length; ++j) {
+        for (int j = 0; j < collations.size(); ++j) {
             terms[i++] = "dir" + j;
-            values[j] = collations[j].getDirection();
+            values[j] = collations.get(j).getDirection();
         }
         pw.explain(this, terms, values);
     }

@@ -278,23 +278,21 @@ public class RelDecorrelator
             mapNewRelToMapOldToNewOutputPos.get(newChildRel);
         assert (childMapOldToNewOutputPos != null);
 
-        RelFieldCollation [] oldCollations = rel.getCollations();
-        RelFieldCollation [] newCollations =
-            new RelFieldCollation[oldCollations.length];
+        List<RelFieldCollation> oldCollations = rel.getCollations();
+        List<RelFieldCollation> newCollations =
+            new ArrayList<RelFieldCollation>(oldCollations.size());
 
-        int oldInputPos;
-        for (int i = 0; i < oldCollations.length; ++i) {
-            oldInputPos = oldCollations[i].getFieldIndex();
-
-            newCollations[i] =
+        for (RelFieldCollation oldCollation : oldCollations) {
+            newCollations.add(
                 new RelFieldCollation(
-                    childMapOldToNewOutputPos.get(oldInputPos),
-                    oldCollations[i].getDirection());
+                    childMapOldToNewOutputPos.get(oldCollation.getFieldIndex()),
+                    oldCollation.getDirection()));
         }
 
         SortRel newRel =
             new SortRel(
                 rel.getCluster(),
+                rel.getCluster().traitSetOf(CallingConvention.NONE),
                 newChildRel,
                 newCollations);
 

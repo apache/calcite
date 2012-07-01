@@ -330,25 +330,26 @@ public class RelStructuredTypeFlattener
 
     public void rewriteRel(SortRel rel)
     {
-        RelFieldCollation [] oldCollations = rel.getCollations();
-        RelFieldCollation [] newCollations =
-            new RelFieldCollation[oldCollations.length];
-        for (int i = 0; i < oldCollations.length; ++i) {
-            int oldInput = oldCollations[i].getFieldIndex();
+        List<RelFieldCollation> oldCollations = rel.getCollations();
+        List<RelFieldCollation> newCollations =
+            new ArrayList<RelFieldCollation>(oldCollations.size());
+        for (RelFieldCollation oldCollation : oldCollations) {
+            int oldInput = oldCollation.getFieldIndex();
             RelDataType sortFieldType =
                 rel.getChild().getRowType().getFields()[oldInput].getType();
             if (sortFieldType.isStruct()) {
                 // TODO jvs 10-Feb-2005
                 throw Util.needToImplement("sorting on structured types");
             }
-            newCollations[i] =
+            newCollations.add(
                 new RelFieldCollation(
                     getNewForOldInput(oldInput),
-                    oldCollations[i].getDirection());
+                    oldCollation.getDirection()));
         }
         SortRel newRel =
             new SortRel(
                 rel.getCluster(),
+                rel.getCluster().traitSetOf(CallingConvention.NONE),
                 getNewForOldRel(rel.getChild()),
                 newCollations);
         setNewForOldRel(rel, newRel);

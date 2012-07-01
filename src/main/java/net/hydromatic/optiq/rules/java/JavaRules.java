@@ -17,12 +17,13 @@
 */
 package net.hydromatic.optiq.rules.java;
 
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.runtime.ArrayComparator;
+
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.function.*;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
@@ -56,17 +57,22 @@ public class JavaRules {
             Function1.class,
             Function2.class);
 
+    private static final Method SELECT_METHOD =
+        Types.lookupMethod(
+            ExtendedEnumerable.class, "select", Function1.class);
+
     private static final Method GROUP_BY_METHOD =
         Types.lookupMethod(
             ExtendedEnumerable.class,
             "groupBy",
             Function1.class);
 
-    private static final Method SELECT_METHOD =
+    private static final Method ORDER_BY_METHOD =
         Types.lookupMethod(
             ExtendedEnumerable.class,
-            "select",
-            Function1.class);
+            "orderBy",
+            Function1.class,
+            Comparator.class);
 
     public static final RelOptRule ENUMERABLE_JOIN_RULE =
         new ConverterRule(
@@ -152,31 +158,26 @@ public class JavaRules {
                 : "EnumerableJoin is equi only"; // TODO: stricter pre-check
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) left.getCluster().getTypeFactory();
-            Expressions.FluentList<Statement> list = Expressions.list();
+            BlockBuilder list = new BlockBuilder();
             Expression leftExpression =
-                Blocks.append(
-                    list,
+                list.append(
                     "left",
                     implementor.visitChild(this, 0, (EnumerableRel) left));
             Expression rightExpression =
-                Blocks.append(
-                    list,
+                list.append(
                     "right",
                     implementor.visitChild(this, 1, (EnumerableRel) right));
-            return Expressions.block(
-                list.append(
-                    Expressions.statement(
-                        Expressions.call(
-                            leftExpression,
-                            JOIN_METHOD,
-                            rightExpression,
-                            EnumUtil.generateAccessor(
-                                typeFactory, left.getRowType(), leftKeys,
-                                false),
-                            EnumUtil.generateAccessor(
-                                typeFactory, right.getRowType(), rightKeys,
-                                false),
-                            generateSelector(typeFactory)))));
+            return list.append(
+                Expressions.call(
+                    leftExpression,
+                    JOIN_METHOD,
+                    rightExpression,
+                    EnumUtil.generateAccessor(
+                        typeFactory, left.getRowType(), leftKeys, false),
+                    EnumUtil.generateAccessor(
+                        typeFactory, right.getRowType(), rightKeys, false),
+                    generateSelector(typeFactory)))
+                .toBlock();
         }
 
         Expression generateSelector(JavaTypeFactory typeFactory) {
@@ -456,7 +457,7 @@ public class JavaRules {
         public BlockExpression implement(EnumerableRelImplementor implementor) {
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) implementor.getTypeFactory();
-            final List<Statement> statements = Expressions.list();
+            final BlockBuilder statements = new BlockBuilder();
             RelDataType outputRowType = getRowType();
             RelDataType inputRowType = getChild().getRowType();
 
@@ -538,8 +539,7 @@ public class JavaRules {
                 Expressions.block(list);
 
             final Expression inputEnumerable =
-                Blocks.append(
-                    statements,
+                statements.append(
                     "inputEnumerable",
                     implementor.visitChild(
                         this, 0, (EnumerableRel) getChild()));
@@ -596,7 +596,7 @@ public class JavaRules {
                                                 "current",
                                                 NO_PARAMS,
                                                 currentBody)))))))));
-            return Expressions.block(statements);
+            return statements.toBlock();
         }
 
         public RexProgram getProgram() {
@@ -678,11 +678,9 @@ public class JavaRules {
         public BlockExpression implement(EnumerableRelImplementor implementor) {
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) implementor.getTypeFactory();
-            final Expressions.FluentList<Statement> statements =
-                Expressions.list();
+            final BlockBuilder statements = new BlockBuilder();
             Expression childExp =
-                Blocks.append(
-                    statements,
+                statements.append(
                     "child",
                     implementor.visitChild(
                         this, 0, (EnumerableRel) getChild()));
@@ -714,8 +712,6 @@ public class JavaRules {
             //     };
             // return childEnumerable.groupBy(keySelector)
             //     .select(selector);
-            Class outputJavaType =
-                EnumUtil.computeOutputJavaType(typeFactory, outputRowType);
             Class inputJavaType = EnumUtil.javaClass(typeFactory, inputRowType);
 
             ParameterExpression parameter =
@@ -728,8 +724,7 @@ public class JavaRules {
                         parameter, inputRowType.getFieldList().get(i)));
             }
             final Expression keySelector =
-                Blocks.append(
-                    statements,
+                statements.append(
                     "keySelector",
                     Expressions.lambda(
                         Function1.class,
@@ -777,8 +772,7 @@ public class JavaRules {
                             Object.class, expressions)));
 
             final Expression selector =
-                Blocks.append(
-                    statements,
+                statements.append(
                     "selector",
                     Expressions.lambda(
                         Function1.class,
@@ -792,7 +786,7 @@ public class JavaRules {
                             childExp, GROUP_BY_METHOD, keySelector),
                         SELECT_METHOD,
                         selector)));
-            return Expressions.block(statements);
+            return statements.toBlock();
         }
 
         private Expression translate(
@@ -818,6 +812,157 @@ public class JavaRules {
             } else {
                 throw new AssertionError("unknown agg " + aggregation);
             }
+        }
+    }
+
+    public static final EnumerableSortRule ENUMERABLE_SORT_RULE =
+        new EnumerableSortRule();
+
+    /**
+     * Rule to convert an {@link org.eigenbase.rel.SortRel} to an
+     * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableSortRel}.
+     */
+    private static class EnumerableSortRule
+        extends ConverterRule
+    {
+        private EnumerableSortRule()
+        {
+            super(
+                SortRel.class,
+                CallingConvention.NONE,
+                CallingConvention.ENUMERABLE,
+                "EnumerableSortRule");
+        }
+
+        public RelNode convert(RelNode rel)
+        {
+            final SortRel sort = (SortRel) rel;
+            final RelNode convertedChild =
+                mergeTraitsAndConvert(
+                    sort.getTraitSet(),
+                    CallingConvention.ENUMERABLE,
+                    sort.getChild());
+            if (convertedChild == null) {
+                // We can't convert the child, so we can't convert rel.
+                return null;
+            }
+
+            return new EnumerableSortRel(
+                rel.getCluster(),
+                rel.getTraitSet(),
+                convertedChild,
+                sort.getCollations());
+        }
+    }
+
+    public static class EnumerableSortRel
+        extends SortRel
+        implements EnumerableRel
+    {
+        public EnumerableSortRel(
+            RelOptCluster cluster,
+            RelTraitSet traitSet,
+            RelNode child,
+            List<RelFieldCollation> collations)
+        {
+            super(
+                cluster,
+                traitSet.plus(CallingConvention.ENUMERABLE),
+                child,
+                collations);
+        }
+
+        public EnumerableSortRel copy(
+            RelTraitSet traitSet, List<RelNode> inputs)
+        {
+            return new EnumerableSortRel(
+                getCluster(),
+                traitSet,
+                sole(inputs),
+                collations);
+        }
+
+        public BlockExpression implement(EnumerableRelImplementor implementor) {
+            final JavaTypeFactory typeFactory =
+                (JavaTypeFactory) implementor.getTypeFactory();
+            final BlockBuilder statements = new BlockBuilder();
+            Expression childExp =
+                statements.append(
+                    "child",
+                    implementor.visitChild(
+                        this, 0, (EnumerableRel) getChild()));
+
+            RelDataType inputRowType = getChild().getRowType();
+            Class inputJavaType = EnumUtil.javaClass(typeFactory, inputRowType);
+
+            ParameterExpression parameter =
+                Expressions.parameter(inputJavaType, "a0");
+            final List<Expression> keyExpressions = Expressions.list();
+            for (RelFieldCollation collation : collations) {
+                keyExpressions.add(
+                    EnumUtil.fieldReference(
+                        parameter,
+                        inputRowType.getFieldList().get(
+                            collation.getFieldIndex())));
+            }
+            final Expression keySelector =
+                statements.append(
+                    "keySelector",
+                    Expressions.lambda(
+                        Function1.class,
+                        keyExpressions.size() == 1
+                            ? keyExpressions.get(0)
+                            : Expressions.newArrayInit(
+                                Object.class, keyExpressions),
+                        parameter));
+
+            Expression comparatorExp;
+            if (collations.size() == 1) {
+                RelFieldCollation collation = collations.get(0);
+                switch (collation.getDirection()) {
+                case Ascending:
+                    comparatorExp = Expressions.constant(null);
+                    break;
+                default:
+                    comparatorExp =
+                        Expressions.call(
+                            Collections.class,
+                            "reverseOrder");
+                }
+            } else {
+                List<Expression> directions =
+                    new AbstractList<Expression>() {
+                        public Expression get(int index) {
+                            return Expressions.constant(
+                                collations.get(index).getDirection()
+                                == RelFieldCollation.Direction.Descending);
+                        }
+                        public int size() {
+                            return collations.size();
+                        }
+                    };
+                comparatorExp =
+                    Expressions.new_(
+                        ArrayComparator.class,
+                        Collections.<Expression>singletonList(
+                            Expressions.newArrayInit(
+                                Boolean.TYPE,
+                                directions)));
+            }
+            final Expression comparator =
+                statements.append(
+                    "comparator",
+                    comparatorExp);
+
+            statements.add(
+                Expressions.return_(
+                    null,
+                    Expressions.call(
+                        childExp,
+                        ORDER_BY_METHOD,
+                        keySelector,
+                        comparator)));
+            return statements.toBlock();
         }
     }
 
