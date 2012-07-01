@@ -17,17 +17,17 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import java.lang.reflect.Modifier;
-import java.util.List;
-
 /**
  * <p>Helper methods concerning {@link BlockExpression}s.</p>
+ *
+ * @see BlockBuilder
+ *
+ * @author jhyde
  */
 public final class Blocks {
     private Blocks() {
         throw new AssertionError("no blocks for you!");
     }
-
 
     private static BlockExpression toFunctionBlock(Node body, boolean function)
     {
@@ -68,113 +68,6 @@ public final class Blocks {
             Expressions.list(statement)
                 .appendAll(block.statements));
     }
-
-    /** Prepends a list of statements to a block. */
-    public static BlockExpression create(
-        Iterable<Statement> statements,
-        BlockExpression block)
-    {
-        return Expressions.block(
-            Expressions.list(statements)
-                .appendAll(block.statements));
-    }
-
-    /** Creates a block from a list of nodes. Nodes that are expressions are
-     * converted to statements; nodes that are blocks are merged into the
-     * greater block. */
-    public static BlockExpression create(Node... nodes) {
-        Expressions.FluentList<Statement> list = Expressions.list();
-        for (Node node : nodes) {
-            add(list, node);
-        }
-        return Expressions.block(list);
-    }
-
-    private static void add(Expressions.FluentList<Statement> list, Node node) {
-        if (node instanceof BlockExpression) {
-            for (Statement statement : ((BlockExpression) node).statements) {
-                add(list, statement);
-            }
-        } else if (node instanceof Expression) {
-            list.add(Expressions.statement((Expression) node));
-        } else {
-            list.add((Statement) node);
-        }
-    }
-
-    /** Appends a block to a list of statements and returns an expression
-     * (possibly a variable) that represents the result of the newly added
-     * block. */
-    public static Expression append(
-        List<Statement> statements,
-        String name,
-        BlockExpression block)
-    {
-        if (statements.size() > 0) {
-            Statement lastStatement = statements.get(statements.size() - 1);
-            if (lastStatement instanceof GotoExpression) {
-                // convert "return expr;" into "expr;"
-                statements.set(
-                    statements.size() - 1,
-                    Expressions.statement(
-                        ((GotoExpression) lastStatement).expression));
-            }
-        }
-        Expression result = null;
-        for (int i = 0; i < block.statements.size(); i++) {
-            Statement statement = block.statements.get(i);
-            statements.add(statement);
-            if (i == block.statements.size() - 1) {
-                if (statement instanceof DeclarationExpression) {
-                    result = ((DeclarationExpression) statement).parameter;
-                } else if (statement instanceof GotoExpression) {
-                    statements.remove(statements.size() - 1);
-                    result = ((GotoExpression) statement).expression;
-                    if (result instanceof ParameterExpression
-                        || result instanceof ConstantExpression)
-                    {
-                        // already simple; no need to declare a variable or even
-                        // to evaluate the expression
-                    } else {
-                        DeclarationExpression declare =
-                            Expressions.declare(
-                                Modifier.FINAL, name, result);
-                        statements.add(declare);
-                        result = declare.parameter;
-                    }
-                } else {
-                    // not an expression -- result remains null
-                }
-            }
-        }
-        return result;
-    }
-
-    /** Appends an expression to a list of statements, and returns an expression
-     * (possibly a variable) that represents the result of the newly added
-     * block. */
-    public static Expression append(
-        List<Statement> statements,
-        String name,
-        Expression block)
-    {
-        if (statements.size() > 0) {
-            Statement lastStatement = statements.get(statements.size() - 1);
-            if (lastStatement instanceof GotoExpression) {
-                // convert "return expr;" into "expr;"
-                statements.set(
-                    statements.size() - 1,
-                    Expressions.statement(
-                        ((GotoExpression) lastStatement).expression));
-            }
-        }
-        DeclarationExpression declare =
-            Expressions.declare(
-                Modifier.FINAL, name, block);
-        statements.add(declare);
-        return block;
-    }
-
 
     /** Converts a simple "{ return expr; }" block into "expr"; otherwise
      * throws. */

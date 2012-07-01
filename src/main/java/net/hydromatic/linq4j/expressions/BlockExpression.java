@@ -18,7 +18,9 @@
 package net.hydromatic.linq4j.expressions;
 
 import java.lang.reflect.Type;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Represents a block that contains a sequence of expressions where variables
@@ -30,6 +32,22 @@ public class BlockExpression extends Statement {
     BlockExpression(List<Statement> statements, Type type) {
         super(ExpressionType.Block, type);
         this.statements = statements;
+        assert distinctVariables(true);
+    }
+
+    private boolean distinctVariables(boolean fail) {
+        Set<String> names = new HashSet<String>();
+        for (Statement statement : statements) {
+            if (statement instanceof DeclarationExpression) {
+                String name =
+                    ((DeclarationExpression) statement).parameter.name;
+                if (!names.add(name)) {
+                    assert !fail : "duplicate variable " + name;
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     @Override

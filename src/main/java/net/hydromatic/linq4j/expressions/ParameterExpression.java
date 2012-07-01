@@ -25,7 +25,7 @@ import java.lang.reflect.Type;
 public class ParameterExpression extends Expression {
     private static int seq = 0;
 
-    final String name;
+    public final String name;
 
     public ParameterExpression(Type type) {
         this(type, "p" + seq++);

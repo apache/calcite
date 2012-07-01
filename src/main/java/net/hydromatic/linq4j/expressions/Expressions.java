@@ -424,9 +424,9 @@ public class Expressions {
     public static MethodCallExpression call(
         Type type,
         String methodName,
-        Expression... selectors)
+        Expression... arguments)
     {
-        return call(type, methodName, Arrays.<Expression>asList(selectors));
+        return call(type, methodName, Arrays.<Expression>asList(arguments));
     }
 
     /** Creates a CatchBlock representing a catch statement with a
