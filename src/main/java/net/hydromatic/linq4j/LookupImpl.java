@@ -194,6 +194,41 @@ class LookupImpl<K, V>
             }
         };
     }
+
+    /** Returns an enumerable over the values in this lookup, in map order.
+     * If the map is sorted, the values will be emitted sorted by key. */
+    public Enumerable<V> valuesEnumerable() {
+        return new AbstractEnumerable<V>() {
+            public Enumerator<V> enumerator() {
+                final Enumerator<Enumerable<V>> listEnumerator =
+                    Linq4j.iterableEnumerator(values());
+                return new Enumerator<V>() {
+                    Enumerator<V> enumerator = Linq4j.emptyEnumerator();
+
+                    public V current() {
+                        return enumerator.current();
+                    }
+
+                    public boolean moveNext() {
+                        for (;;) {
+                            if (enumerator.moveNext()) {
+                                return true;
+                            }
+                            if (!listEnumerator.moveNext()) {
+                                return false;
+                            }
+                            enumerator = listEnumerator.current().enumerator();
+                        }
+                    }
+
+                    public void reset() {
+                        listEnumerator.reset();
+                        enumerator = Linq4j.emptyEnumerator();
+                    }
+                };
+            }
+        };
+    }
 }
 
 // End LookupImpl.java

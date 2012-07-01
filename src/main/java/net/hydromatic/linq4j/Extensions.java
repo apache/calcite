@@ -24,8 +24,8 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
 
-import static net.hydromatic.linq4j.function.Functions.*;
 import static net.hydromatic.linq4j.function.Functions.adapt;
+import static net.hydromatic.linq4j.function.Functions.identitySelector;
 
 /**
  * Contains what, in LINQ.NET, would be extension methods.
@@ -1826,7 +1826,7 @@ public class Extensions {
     Enumerable<TSource> orderBy(
         Enumerable<TSource> source, Function1<TSource, TKey> keySelector)
     {
-        throw Extensions.todo();
+        return orderBy(source, keySelector, null);
     }
 
     /** Sorts the elements of a sequence in ascending
@@ -1848,7 +1848,15 @@ public class Extensions {
         Function1<TSource, TKey> keySelector,
         Comparator<TKey> comparator)
     {
-        throw Extensions.todo();
+        // NOTE: TreeMap allows null comparator. But I'm not sure that orderBy
+        // should.
+        final Map<TKey, List<TSource>> map =
+            new TreeMap<TKey, List<TSource>>(comparator);
+        LookupImpl<TKey, TSource> lookup =
+            toLookup(
+                map, source, keySelector,
+                Functions.<TSource>identitySelector());
+        return lookup.valuesEnumerable();
     }
 
     /** Sorts the elements of a sequence in ascending
@@ -2811,6 +2819,14 @@ public class Extensions {
     {
         final Map<TKey, List<TElement>> map =
             new HashMap<TKey, List<TElement>>();
+        return toLookup(map, source, keySelector, elementSelector);
+    }
+
+    static <TSource, TKey, TElement> LookupImpl<TKey, TElement> toLookup(
+        Map<TKey, List<TElement>> map, Enumerable<TSource> source,
+        Function1<TSource, TKey> keySelector,
+        Function1<TSource, TElement> elementSelector)
+    {
         for (TSource o : source) {
             final TKey key = keySelector.apply(o);
             List<TElement> list = map.get(key);

@@ -781,6 +781,43 @@ public class Linq4jTest extends TestCase {
                     })).count());
     }
 
+    public void testOrderBy() {
+        // Note: sort is stable. Records occur Fred, Eric, Jane in input.
+        assertEquals(
+            "[Employee(name: Fred, deptno:10),"
+            + " Employee(name: Eric, deptno:10),"
+            + " Employee(name: Jane, deptno:10),"
+            + " Employee(name: Bill, deptno:30)]",
+            Linq4j.asEnumerable(emps).orderBy(EMP_DEPTNO_SELECTOR)
+                .toList().toString());
+    }
+
+    public void testOrderByComparator() {
+        assertEquals(
+            "[Employee(name: Bill, deptno:30),"
+            + " Employee(name: Eric, deptno:10),"
+            + " Employee(name: Fred, deptno:10),"
+            + " Employee(name: Jane, deptno:10)]",
+            Linq4j.asEnumerable(emps)
+                .orderBy(EMP_NAME_SELECTOR)
+                .orderBy(
+                    EMP_DEPTNO_SELECTOR, Collections.<Integer>reverseOrder())
+                .toList().toString());
+    }
+
+    public void testOrderByInSeries() {
+        // OrderBy in series works because sort is stable.
+        assertEquals(
+            "[Employee(name: Eric, deptno:10),"
+            + " Employee(name: Fred, deptno:10),"
+            + " Employee(name: Jane, deptno:10),"
+            + " Employee(name: Bill, deptno:30)]",
+            Linq4j.asEnumerable(emps)
+                .orderBy(EMP_NAME_SELECTOR)
+                .orderBy(EMP_DEPTNO_SELECTOR)
+                .toList().toString());
+    }
+
     public static class Employee {
         public final int empno;
         public final String name;
