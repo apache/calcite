@@ -24,6 +24,11 @@ public class DynamicExpression extends Expression {
     public DynamicExpression(Class type) {
         super(ExpressionType.Dynamic, type);
     }
+
+    @Override
+    public Expression accept(Visitor visitor) {
+        return visitor.visit(this);
+    }
 }
 
 // End DynamicExpression.java

@@ -24,6 +24,11 @@ public class DefaultExpression extends Expression {
     public DefaultExpression(Class type) {
         super(ExpressionType.Default, type);
     }
+
+    @Override
+    public Expression accept(Visitor visitor) {
+        return visitor.visit(this);
+    }
 }
 
 // End DefaultExpression.java

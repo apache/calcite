@@ -31,6 +31,11 @@ public class LabelExpression extends Statement {
         super(nodeType, Void.TYPE);
         this.defaultValue = defaultValue;
     }
+
+    @Override
+    public LabelExpression accept(Visitor visitor) {
+        return visitor.visit(this);
+    }
 }
 
 // End LabelExpression.java

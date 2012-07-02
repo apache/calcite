@@ -48,6 +48,10 @@ public abstract class Expression extends Node {
         return writer.toString();
     }
 
+    @Override
+    // More specific return type.
+    public abstract Expression accept(Visitor visitor);
+
     /** Indicates that the node can be reduced to a simpler node. If this
      * returns true, Reduce() can be called to produce the reduced form. */
     public boolean canReduce() {

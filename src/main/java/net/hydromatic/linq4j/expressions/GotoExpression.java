@@ -23,7 +23,7 @@ package net.hydromatic.linq4j.expressions;
  */
 public class GotoExpression extends Statement {
     public final GotoExpressionKind kind;
-    private final LabelTarget labelTarget;
+    public final LabelTarget labelTarget;
     public final Expression expression;
 
     GotoExpression(
@@ -54,6 +54,12 @@ public class GotoExpression extends Statement {
         default:
             throw new RuntimeException("unexpected: " + kind);
         }
+    }
+
+    @Override
+    public Statement accept(Visitor visitor) {
+        Expression expression = this.expression.accept(visitor);
+        return visitor.visit(this, expression);
     }
 
     @Override

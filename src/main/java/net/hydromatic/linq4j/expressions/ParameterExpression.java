@@ -36,6 +36,11 @@ public class ParameterExpression extends Expression {
         this.name = name;
     }
 
+    @Override
+    public ParameterExpression accept(Visitor visitor) {
+        return this;
+    }
+
     public Object evaluate(Evaluator evaluator) {
         return evaluator.peek(this);
     }

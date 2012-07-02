@@ -52,6 +52,11 @@ public abstract class Node {
             "un-parse not supported: " + this + ":" + nodeType);
     }
 
+    public Node accept(Visitor visitor) {
+        throw new RuntimeException(
+            "visit not supported: " + this + ":" + nodeType);
+    }
+
     public Object evaluate(Evaluator evaluator) {
         throw new RuntimeException(
             "evaluation not supported: " + this + ":" + nodeType);

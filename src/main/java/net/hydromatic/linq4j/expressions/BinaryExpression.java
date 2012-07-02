@@ -52,6 +52,13 @@ public class BinaryExpression extends Expression {
         return Primitive.OTHER;
     }
 
+    @Override
+    public Expression accept(Visitor visitor) {
+        Expression expression0 = this.expression0.accept(visitor);
+        Expression expression1 = this.expression1.accept(visitor);
+        return visitor.visit(this, expression0, expression1);
+    }
+
     public Object evaluate(Evaluator evaluator) {
         switch (nodeType) {
         case AndAlso:

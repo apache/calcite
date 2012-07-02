@@ -51,6 +51,13 @@ public class BlockExpression extends Statement {
     }
 
     @Override
+    public BlockExpression accept(Visitor visitor) {
+        List<Statement> newStatements =
+            Expressions.acceptStatements(statements, visitor);
+        return visitor.visit(this, newStatements);
+    }
+
+    @Override
     void accept0(ExpressionWriter writer) {
         if (statements.isEmpty()) {
             writer.append("{}");

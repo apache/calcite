@@ -62,6 +62,14 @@ public final class FunctionExpression<F extends Function<?>>
         this(type, null, body, parameters);
     }
 
+    @Override
+    public Expression accept(Visitor visitor) {
+        BlockExpression body = this.body.accept(visitor);
+        List<ParameterExpression> parameterList =
+            Expressions.acceptParameterExpressions(this.parameterList, visitor);
+        return visitor.visit(this, body, parameterList);
+    }
+
     public Invokable compile() {
         return new Invokable() {
             public Object dynamicInvoke(Object... args) {

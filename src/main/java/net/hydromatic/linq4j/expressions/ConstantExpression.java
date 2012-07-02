@@ -40,6 +40,11 @@ public class ConstantExpression extends Expression {
     }
 
     @Override
+    public ConstantExpression accept(Visitor visitor) {
+        return this;
+    }
+
+    @Override
     void accept(ExpressionWriter writer, int lprec, int rprec) {
         write(writer, value);
     }

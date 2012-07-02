@@ -33,6 +33,11 @@ public abstract class Statement extends Node {
         assert rprec == 0;
         accept0(writer);
     }
+
+    @Override
+    // Make return type more specific. A statement can only become a different
+    // kind of statement; it can't become an expression.
+    public abstract Statement accept(Visitor visitor);
 }
 
 // End Statement.java

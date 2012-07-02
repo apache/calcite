@@ -39,6 +39,13 @@ public class DeclarationExpression extends Statement {
     }
 
     @Override
+    public Statement accept(Visitor visitor) {
+        ParameterExpression parameter = this.parameter.accept(visitor);
+        Expression initializer = this.initializer.accept(visitor);
+        return visitor.visit(this, parameter, initializer);
+    }
+
+    @Override
     void accept0(ExpressionWriter writer) {
         final String modifiers = Modifier.toString(this.modifiers);
         if (!modifiers.isEmpty()) {

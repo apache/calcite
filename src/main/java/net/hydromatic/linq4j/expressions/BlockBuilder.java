@@ -18,10 +18,7 @@
 package net.hydromatic.linq4j.expressions;
 
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Builder for {@link BlockExpression}.
@@ -52,9 +49,34 @@ public class BlockBuilder {
             }
         }
         Expression result = null;
+        Map<ParameterExpression, ParameterExpression> replacements =
+            new HashMap<ParameterExpression, ParameterExpression>();
+        final Visitor visitor =
+            new SubstituteVariableVisitor(replacements);
         for (int i = 0; i < block.statements.size(); i++) {
             Statement statement = block.statements.get(i);
-            add(statement);
+            if (!replacements.isEmpty()) {
+                // Save effort, and only substitute variables if there are some.
+                statement = statement.accept(visitor);
+            }
+            if (statement instanceof DeclarationExpression) {
+                DeclarationExpression declaration =
+                    (DeclarationExpression) statement;
+                if (variables.contains(declaration.parameter.name)) {
+                    append(
+                        newName(declaration.parameter.name),
+                        declaration.initializer);
+                    ParameterExpression parameter2 =
+                        ((DeclarationExpression)
+                            statements.get(statements.size() - 1))
+                        .parameter;
+                    replacements.put(declaration.parameter, parameter2);
+                } else {
+                    add(statement);
+                }
+            } else {
+                add(statement);
+            }
             if (i == block.statements.size() - 1) {
                 if (statement instanceof DeclarationExpression) {
                     result = ((DeclarationExpression) statement).parameter;
@@ -136,6 +158,16 @@ public class BlockBuilder {
     public BlockBuilder append(Expression expression) {
         statements.add(Expressions.statement(expression));
         return this;
+    }
+
+    private static class SubstituteVariableVisitor extends Visitor {
+        private final Map<ParameterExpression, ParameterExpression> map;
+
+        public SubstituteVariableVisitor(
+            Map<ParameterExpression, ParameterExpression> map)
+        {
+            this.map = map;
+        }
     }
 }
 

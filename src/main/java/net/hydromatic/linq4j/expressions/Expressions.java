@@ -2191,7 +2191,7 @@ public class Expressions {
     /** Creates an IndexExpression representing the access to an
      * indexed property. */
     // REVIEW: No equivalent to properties in Java.
-    public static IndexExpression Property(
+    public static IndexExpression property(
         Expression expression, String name, Expression... arguments)
     {
         throw Extensions.todo();
@@ -2835,6 +2835,45 @@ public class Expressions {
 
     private static <T> T[] toArray(Iterable<T> iterable, T[] a) {
         return toCollection(iterable).toArray(a);
+    }
+
+    static List<Statement> acceptStatements(
+        List<Statement> statements, Visitor visitor)
+    {
+        final List<Statement> statements1 = new ArrayList<Statement>();
+        for (Statement statement : statements) {
+            statements1.add(statement.accept(visitor));
+        }
+        return statements1;
+    }
+
+    static List<Node> acceptNodes(List<Node> nodes, Visitor visitor) {
+        final List<Node> statements1 = new ArrayList<Node>();
+        for (Node node : nodes) {
+            statements1.add(node.accept(visitor));
+        }
+        return statements1;
+    }
+
+    static List<ParameterExpression> acceptParameterExpressions(
+        List<ParameterExpression> parameterExpressions, Visitor visitor)
+    {
+        final List<ParameterExpression> parameterExpressions1 =
+            new ArrayList<ParameterExpression>();
+        for (ParameterExpression parameterExpression : parameterExpressions) {
+            parameterExpressions1.add(parameterExpression.accept(visitor));
+        }
+        return parameterExpressions1;
+    }
+
+    static List<Expression> acceptExpressions(
+        List<Expression> expressions, Visitor visitor)
+    {
+        final List<Expression> expressions1 = new ArrayList<Expression>();
+        for (Expression expression : expressions) {
+            expressions1.add(expression.accept(visitor));
+        }
+        return expressions1;
     }
 
     // ~ Classes and interfaces ------------------------------------------------

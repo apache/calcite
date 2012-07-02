@@ -31,6 +31,13 @@ public class WhileExpression extends Statement {
     }
 
     @Override
+    public Statement accept(Visitor visitor) {
+        final Expression condition1 = condition.accept(visitor);
+        final Statement body1 = body.accept(visitor);
+        return visitor.visit(this, condition1, body1);
+    }
+
+    @Override
     void accept0(ExpressionWriter writer) {
         writer.append("while (")
             .append(condition)

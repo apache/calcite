@@ -24,6 +24,11 @@ public class LoopExpression extends Statement {
     public LoopExpression(ExpressionType nodeType) {
         super(nodeType, Void.TYPE);
     }
+
+    @Override
+    public LoopExpression accept(Visitor visitor) {
+        return visitor.visit(this);
+    }
 }
 
 // End LoopExpression.java

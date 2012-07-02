@@ -35,6 +35,12 @@ public class MemberExpression extends Expression {
             : "must specify expression if field is not static";
     }
 
+    @Override
+    public Expression accept(Visitor visitor) {
+        Expression expression = this.expression.accept(visitor);
+        return visitor.visit(this, expression);
+    }
+
     public Object evaluate(Evaluator evaluator) {
         final Object o =
             expression == null

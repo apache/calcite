@@ -23,7 +23,7 @@ import java.lang.reflect.Type;
  * Represents an expression that has a unary operator.
  */
 public class UnaryExpression extends Expression {
-    private final Expression expression;
+    public final Expression expression;
 
     UnaryExpression(
         ExpressionType nodeType, Type type, Expression expression)
@@ -31,6 +31,13 @@ public class UnaryExpression extends Expression {
         super(nodeType, type);
         this.expression = expression;
     }
+
+    @Override
+    public Expression accept(Visitor visitor) {
+        Expression expression = this.expression.accept(visitor);
+        return visitor.visit(this, expression);
+    }
+
 
     void accept(ExpressionWriter writer, int lprec, int rprec) {
         switch (nodeType) {

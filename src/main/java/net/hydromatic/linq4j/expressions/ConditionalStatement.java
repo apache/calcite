@@ -40,6 +40,16 @@ public class ConditionalStatement extends Statement {
     }
 
     @Override
+    public ConditionalStatement accept(Visitor visitor) {
+        List<Node> list =
+            Expressions.acceptNodes(expressionList, visitor);
+        if (!list.equals(expressionList)) {
+            return new ConditionalStatement(list);
+        }
+        return this;
+    }
+
+    @Override
     void accept0(ExpressionWriter writer) {
         for (int i = 0; i < expressionList.size(); i += 2) {
             writer.append(i > 0 ? " else if (" : "if (")
