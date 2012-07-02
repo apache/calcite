@@ -74,32 +74,18 @@ public class JavaRules {
             Function1.class,
             Comparator.class);
 
-    public static final RelOptRule ENUMERABLE_JOIN_RULE =
-        new ConverterRule(
-            JoinRel.class,
-            CallingConvention.NONE,
-            CallingConvention.ENUMERABLE,
-            "IterJoinRule")
-        {
-            @Override
-            public RelNode convert(RelNode rel) {
-                JoinRel join = (JoinRel) rel;
-                List<RelNode> newInputs = convert(
-                    CallingConvention.ENUMERABLE,
-                    join.getInputs());
-                if (newInputs == null) {
-                    return null;
-                }
-                return new EnumerableJoinRel(
-                    join.getCluster(),
-                    join.getTraitSet().replace(CallingConvention.ENUMERABLE),
-                    newInputs.get(0),
-                    newInputs.get(1),
-                    join.getCondition(),
-                    join.getJoinType(),
-                    join.getVariablesStopped());
-            }
-        };
+    private static final Method UNION_METHOD =
+        Types.lookupMethod(
+            ExtendedEnumerable.class,
+            "union",
+            Enumerable.class);
+
+    private static final Method CONCAT_METHOD =
+        Types.lookupMethod(
+            ExtendedEnumerable.class,
+            "concat",
+            Enumerable.class);
+
     public static final boolean BRIDGE_METHODS = true;
 
     private static final List<ParameterExpression> NO_PARAMS =
@@ -107,6 +93,38 @@ public class JavaRules {
 
     private static final List<Expression> NO_EXPRS =
         Collections.emptyList();
+
+    public static final RelOptRule ENUMERABLE_JOIN_RULE =
+        new EnumerableJoinRule();
+
+    private static class EnumerableJoinRule extends ConverterRule {
+        private EnumerableJoinRule() {
+            super(
+                JoinRel.class,
+                CallingConvention.NONE,
+                CallingConvention.ENUMERABLE,
+                "EnumerableJoinRule");
+        }
+
+        @Override
+        public RelNode convert(RelNode rel) {
+            JoinRel join = (JoinRel) rel;
+            List<RelNode> newInputs = convert(
+                CallingConvention.ENUMERABLE,
+                join.getInputs());
+            if (newInputs == null) {
+                return null;
+            }
+            return new EnumerableJoinRel(
+                join.getCluster(),
+                join.getTraitSet().replace(CallingConvention.ENUMERABLE),
+                newInputs.get(0),
+                newInputs.get(1),
+                join.getCondition(),
+                join.getJoinType(),
+                join.getVariablesStopped());
+        }
+    }
 
     public static class EnumerableJoinRel
         extends JoinRelBase
@@ -962,6 +980,111 @@ public class JavaRules {
                         ORDER_BY_METHOD,
                         keySelector,
                         comparator)));
+            return statements.toBlock();
+        }
+    }
+    public static final EnumerableUnionRule ENUMERABLE_UNION_RULE =
+        new EnumerableUnionRule();
+
+    /**
+     * Rule to convert an {@link org.eigenbase.rel.UnionRel} to an
+     * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableUnionRel}.
+     */
+    private static class EnumerableUnionRule
+        extends ConverterRule
+    {
+        private EnumerableUnionRule()
+        {
+            super(
+                UnionRel.class,
+                CallingConvention.NONE,
+                CallingConvention.ENUMERABLE,
+                "EnumerableUnionRule");
+        }
+
+        public RelNode convert(RelNode rel)
+        {
+            final UnionRel union = (UnionRel) rel;
+            if (union.isDistinct()) {
+                // can only translate "UNION ALL"
+                return null;
+            }
+            List<RelNode> convertedChildren = new ArrayList<RelNode>();
+            for (RelNode child : union.getInputs()) {
+                final RelNode convertedChild =
+                    mergeTraitsAndConvert(
+                        union.getTraitSet(),
+                        CallingConvention.ENUMERABLE,
+                        child);
+                if (convertedChild == null) {
+                    // We can't convert the child, so we can't convert rel.
+                    return null;
+                }
+                convertedChildren.add(convertedChild);
+            }
+            return new EnumerableUnionRel(
+                rel.getCluster(),
+                rel.getTraitSet(),
+                convertedChildren,
+                true);
+        }
+    }
+
+    public static class EnumerableUnionRel
+        extends UnionRelBase
+        implements EnumerableRel
+    {
+        public EnumerableUnionRel(
+            RelOptCluster cluster,
+            RelTraitSet traitSet,
+            List<RelNode> inputs,
+            boolean all)
+        {
+            super(
+                cluster,
+                traitSet.plus(CallingConvention.ENUMERABLE),
+                inputs,
+                all);
+        }
+
+        public EnumerableUnionRel copy(
+            RelTraitSet traitSet, List<RelNode> inputs, boolean all)
+        {
+            return new EnumerableUnionRel(
+                getCluster(),
+                traitSet,
+                inputs,
+                all);
+        }
+
+        public BlockExpression implement(EnumerableRelImplementor implementor) {
+            final JavaTypeFactory typeFactory =
+                (JavaTypeFactory) implementor.getTypeFactory();
+            final BlockBuilder statements = new BlockBuilder();
+            Expression unionExp = null;
+            for (int i = 0; i < inputs.size(); i++) {
+                RelNode input = inputs.get(i);
+                Expression childExp =
+                    statements.append(
+                        "child" + i,
+                        implementor.visitChild(
+                            this, i, (EnumerableRel) input));
+
+                if (unionExp == null) {
+                    unionExp = childExp;
+                } else {
+                    unionExp =
+                        Expressions.call(
+                            unionExp,
+                            all ? CONCAT_METHOD : UNION_METHOD,
+                            childExp);
+                }
+            }
+
+            statements.add(
+                Expressions.return_(
+                    null,
+                    unionExp));
             return statements.toBlock();
         }
     }

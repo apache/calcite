@@ -52,12 +52,6 @@ public class IterConcatenateRel
 
     //~ Methods ----------------------------------------------------------------
 
-
-    public IterConcatenateRel copy(RelTraitSet traitSet, List<RelNode> inputs)
-    {
-        return copy(traitSet, inputs, all);
-    }
-
     public IterConcatenateRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {

@@ -222,6 +222,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             planner.addRule(JavaRules.ENUMERABLE_CALC_RULE);
             planner.addRule(JavaRules.ENUMERABLE_AGGREGATE_RULE);
             planner.addRule(JavaRules.ENUMERABLE_SORT_RULE);
+            planner.addRule(JavaRules.ENUMERABLE_UNION_RULE);
             planner.addRule(TableAccessRule.instance);
 
             rexBuilder = new RexBuilder(typeFactory);

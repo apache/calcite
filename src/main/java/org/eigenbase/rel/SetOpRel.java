@@ -58,6 +58,13 @@ public abstract class SetOpRel
         List<RelNode> inputs,
         boolean all);
 
+    public SetOpRel copy(
+        RelTraitSet traitSet,
+        List<RelNode> inputs)
+    {
+        return copy(traitSet, inputs, all);
+    }
+
     public boolean isDistinct()
     {
         return !all;

@@ -49,11 +49,6 @@ public final class UnionRel
 
     //~ Methods ----------------------------------------------------------------
 
-
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return copy(traitSet, inputs, all);
-    }
-
     public UnionRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {

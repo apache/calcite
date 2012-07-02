@@ -165,18 +165,45 @@ public class JdbcTest extends TestCase {
             actual);
     }
 
+    /**
+     * Simple UNION.
+     *
+     * @throws Exception on error
+     */
+    public void testUnion() throws Exception {
+        Connection connection = getConnectionWithHrFoodmart();
+        Statement statement = connection.createStatement();
+        ResultSet resultSet =
+            statement.executeQuery(
+                "select \"name\"\n"
+                + "from \"hr\".\"emps\" as e\n"
+                + "union all\n"
+                + "select \"name\"\n"
+                + "from \"hr\".\"depts\"\n"
+                + "order by 1 desc");
+        String actual = toString(resultSet);
+        resultSet.close();
+        statement.close();
+        connection.close();
+
+        assertEquals(
+            "UN=SEBASTIAN; deptno=10\n"
+            + "UN=BILL; deptno=10\n"
+            + "UN=ERIC; deptno=20\n",
+            actual);
+    }
+
     private String toString(ResultSet resultSet) throws SQLException {
         StringBuilder buf = new StringBuilder();
         while (resultSet.next()) {
             int n = resultSet.getMetaData().getColumnCount();
+            String sep = "";
             for (int i = 1; i <= n; i++) {
-                buf.append(
-                    i > 1
-                        ? "; "
-                        : "")
+                buf.append(sep)
                     .append(resultSet.getMetaData().getColumnLabel(i))
                     .append("=")
                     .append(resultSet.getObject(i));
+                sep = "; ";
             }
             buf.append("\n");
         }
@@ -530,6 +557,11 @@ public class JdbcTest extends TestCase {
             new Employee(200, 20, "Eric"),
             new Employee(150, 10, "Sebastian"),
         };
+        public final Department[] depts = {
+            new Department(10, "Sales"),
+            new Department(30, "Marketing"),
+            new Department(40, "HR"),
+        };
     }
 
     public static class Employee {
@@ -539,6 +571,16 @@ public class JdbcTest extends TestCase {
 
         public Employee(int empid, int deptno, String name) {
             this.empid = empid;
+            this.deptno = deptno;
+            this.name = name;
+        }
+    }
+
+    public static class Department {
+        public final int deptno;
+        public final String name;
+
+        public Department(int deptno, String name) {
             this.deptno = deptno;
             this.name = name;
         }

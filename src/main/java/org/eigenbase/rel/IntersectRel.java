@@ -66,10 +66,6 @@ public final class IntersectRel
         return dRows;
     }
 
-    public IntersectRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return copy(traitSet, inputs, all);
-    }
-
     public IntersectRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {

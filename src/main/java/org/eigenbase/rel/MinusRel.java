@@ -66,11 +66,6 @@ public final class MinusRel
         return dRows;
     }
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs)
-    {
-        return copy(traitSet, inputs, all);
-    }
-
     public MinusRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {
