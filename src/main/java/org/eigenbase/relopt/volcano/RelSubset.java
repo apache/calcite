@@ -267,7 +267,7 @@ public class RelSubset
     RelNode buildCheapestPlan(VolcanoPlanner planner)
     {
         CheapestPlanReplacer replacer = new CheapestPlanReplacer(planner);
-        final RelNode cheapest = replacer.go(this);
+        final RelNode cheapest = replacer.visit(this, -1, null);
 
         if (planner.listener != null) {
             RelOptListener.RelChosenEvent event =
@@ -369,7 +369,6 @@ public class RelSubset
      * with the cheapest implementation of the expression.
      */
     class CheapestPlanReplacer
-        extends RelVisitor
     {
         VolcanoPlanner planner;
 
@@ -379,7 +378,7 @@ public class RelSubset
             this.planner = planner;
         }
 
-        public void visit(
+        public RelNode visit(
             RelNode p,
             int ordinal,
             RelNode parent)
@@ -410,11 +409,6 @@ public class RelSubset
                         e);
                     throw e;
                 }
-                if (parent == null) {
-                    replaceRoot(cheapest);
-                } else {
-                    parent.replaceInput(ordinal, cheapest);
-                }
                 p = cheapest;
             }
 
@@ -428,7 +422,17 @@ public class RelSubset
                 }
             }
 
-            p.childrenAccept(this);
+            List<RelNode> oldInputs = p.getInputs();
+            List<RelNode> inputs = new ArrayList<RelNode>();
+            for (int i = 0; i < oldInputs.size(); i++) {
+                RelNode oldInput = oldInputs.get(i);
+                RelNode input = visit(oldInput, i, p);
+                inputs.add(input);
+            }
+            if (!inputs.equals(oldInputs)) {
+                p = p.copy(p.getTraitSet(), inputs);
+            }
+            return p;
         }
     }
 }

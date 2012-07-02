@@ -157,9 +157,12 @@ public class RexToLixTranslator {
             // TODO: multiple inputs, e.g. joins
             final Expression input = getInput(0);
             final int index = ((RexInputRef) expr).getIndex();
-            RelDataTypeField field =
-                program.getInputRowType().getFieldList().get(index);
-            if (input.getType() == Object[].class) {
+            final List<RelDataTypeField> fields =
+                program.getInputRowType().getFieldList();
+            final RelDataTypeField field = fields.get(index);
+            if (fields.size() == 1) {
+                return input;
+            } else if (input.getType() == Object[].class) {
                 return Expressions.convert_(
                     Expressions.arrayIndex(
                         input, Expressions.constant(field.getIndex())),
