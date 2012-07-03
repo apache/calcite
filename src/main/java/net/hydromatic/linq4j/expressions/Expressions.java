@@ -1767,7 +1767,7 @@ public class Expressions {
     public static NewExpression new_(
         Type type, Iterable<Expression> arguments)
     {
-        return new_(type, arguments, Collections.<Member>emptyList(), null);
+        return new_(type, arguments, null);
     }
 
     /** Creates a NewExpression that represents calling the constructor of the
@@ -1776,12 +1776,10 @@ public class Expressions {
     public static NewExpression new_(
         Type type,
         Iterable<Expression> arguments,
-        Iterable<Member> members,
         Iterable<MemberDeclaration> memberDeclarations)
     {
         return new NewExpression(
-            type, toList(arguments), toList(members),
-            toList(memberDeclarations));
+            type, toList(arguments), toList(memberDeclarations));
     }
 
     /** Creates a NewExpression that represents calling the specified
@@ -1792,7 +1790,6 @@ public class Expressions {
         return new_(
             constructor.getDeclaringClass(),
             expressions,
-            Collections.<Member>emptyList(),
             Collections.<MemberDeclaration>emptyList());
     }
 
@@ -1810,30 +1807,12 @@ public class Expressions {
     public static NewExpression new_(
         Constructor constructor,
         Iterable<Expression> expressions,
-        Iterable<Member> members,
         Iterable<MemberDeclaration> memberDeclarations)
     {
         return new_(
             constructor.getDeclaringClass(),
             toList(expressions),
-            toList(members),
             toList(memberDeclarations));
-    }
-
-    /** Creates a NewExpression that represents calling the specified
-     * constructor with the specified arguments. The members that
-     * access the constructor initialized fields are specified as an
-     * array. */
-    public static NewExpression new_(
-        Constructor constructor,
-        Iterable<Expression> expressions,
-        Member... members)
-    {
-        return new_(
-            constructor,
-            expressions,
-            toList(members),
-            Collections.<MemberDeclaration>emptyList());
     }
 
     /** Creates a NewArrayExpression that represents creating an array
@@ -2864,6 +2843,17 @@ public class Expressions {
             parameterExpressions1.add(parameterExpression.accept(visitor));
         }
         return parameterExpressions1;
+    }
+
+    static List<MemberDeclaration> acceptMemberDeclarations(
+        List<MemberDeclaration> memberDeclarations, Visitor visitor)
+    {
+        final List<MemberDeclaration> memberDeclarations1 =
+            new ArrayList<MemberDeclaration>();
+        for (MemberDeclaration memberDeclaration : memberDeclarations) {
+            memberDeclarations1.add(memberDeclaration.accept(visitor));
+        }
+        return memberDeclarations1;
     }
 
     static List<Expression> acceptExpressions(

@@ -26,7 +26,7 @@ import java.util.List;
  * new array.
  */
 public class NewArrayExpression extends Expression {
-    private final List<Expression> expressions;
+    public final List<Expression> expressions;
 
     public NewArrayExpression(Type type, List<Expression> expressions) {
         super(ExpressionType.NewArrayInit, arrayClass(type));
@@ -37,6 +37,13 @@ public class NewArrayExpression extends Expression {
         // REVIEW: Is there a way to do this without creating an instance? We
         //  just need the inverse of Class.getComponentType().
         return Array.newInstance(Types.toClass(type), 0).getClass();
+    }
+
+    @Override
+    public Expression accept(Visitor visitor) {
+        List<Expression> expressions =
+            Expressions.acceptExpressions(this.expressions, visitor);
+        return visitor.visit(this, expressions);
     }
 
     @Override

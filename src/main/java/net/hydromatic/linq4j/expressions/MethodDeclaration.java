@@ -46,6 +46,14 @@ public class MethodDeclaration extends MemberDeclaration {
         this.body = body;
     }
 
+    @Override
+    public MemberDeclaration accept(Visitor visitor) {
+        final List<ParameterExpression> parameters =
+            Expressions.acceptParameterExpressions(this.parameters, visitor);
+        final BlockExpression body = this.body.accept(visitor);
+        return visitor.visit(this, parameters, body);
+    }
+
     public void accept(ExpressionWriter writer) {
         String modifiers = Modifier.toString(modifier);
         writer.append(modifiers);

@@ -154,6 +154,84 @@ public class Visitor {
             ? memberExpression
             : Expressions.field(expression, memberExpression.field);
     }
+
+    public Expression visit(InvocationExpression invocationExpression) {
+        return invocationExpression;
+    }
+
+    public Expression visit(
+        NewArrayExpression newArrayExpression, List<Expression> expressions)
+    {
+        return expressions.equals(newArrayExpression.expressions)
+            ? newArrayExpression
+            : Expressions.newArrayInit(
+                newArrayExpression.type,
+                expressions);
+    }
+
+    public Expression visit(ListInitExpression listInitExpression) {
+        return listInitExpression;
+    }
+
+    public Expression visit(
+        NewExpression newExpression,
+        List<Expression> arguments,
+        List<MemberDeclaration> memberDeclarations)
+    {
+        return arguments.equals(newExpression.arguments)
+            && memberDeclarations.equals(newExpression.memberDeclarations)
+            ? newExpression
+            : Expressions.new_(
+                newExpression.type,
+                arguments,
+                memberDeclarations);
+    }
+
+    public Statement visit(SwitchExpression switchExpression) {
+        return switchExpression;
+    }
+
+    public Statement visit(TryExpression tryExpression) {
+        return tryExpression;
+    }
+
+    public Expression visit(MemberInitExpression memberInitExpression) {
+        return memberInitExpression;
+    }
+
+    public Expression visit(TypeBinaryExpression typeBinaryExpression) {
+        return typeBinaryExpression;
+    }
+
+    public MemberDeclaration visit(
+        MethodDeclaration methodDeclaration,
+        List<ParameterExpression> parameters,
+        BlockExpression body)
+    {
+        return parameters.equals(methodDeclaration.parameters)
+            && body.equals(methodDeclaration.body)
+            ? methodDeclaration
+            : Expressions.methodDecl(
+                methodDeclaration.modifier,
+                methodDeclaration.resultType,
+                methodDeclaration.name,
+                parameters,
+                body);
+    }
+
+    public MemberDeclaration visit(
+        FieldDeclaration fieldDeclaration,
+        ParameterExpression parameter,
+        Expression initializer)
+    {
+        return parameter.equals(fieldDeclaration.parameter)
+            && initializer.equals(fieldDeclaration.initializer)
+            ? fieldDeclaration
+            : Expressions.fieldDecl(
+                fieldDeclaration.modifier,
+                parameter,
+                initializer);
+    }
 }
 
 // End Visitor.java

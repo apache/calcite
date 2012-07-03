@@ -25,6 +25,11 @@ public class InvocationExpression extends Expression {
     public InvocationExpression(ExpressionType nodeType, Class type) {
         super(nodeType, type);
     }
+
+    @Override
+    public Expression accept(Visitor visitor) {
+        return visitor.visit(this);
+    }
 }
 
 // End InvocationExpression.java

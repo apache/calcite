@@ -21,9 +21,14 @@ package net.hydromatic.linq4j.expressions;
  * Represents a control expression that handles multiple selections by passing
  * control to {@link SwitchCase}.
  */
-public class SwitchExpression extends Expression {
+public class SwitchExpression extends Statement {
     public SwitchExpression(ExpressionType nodeType) {
         super(nodeType, Void.TYPE);
+    }
+
+    @Override
+    public Statement accept(Visitor visitor) {
+        return visitor.visit(this);
     }
 }
 

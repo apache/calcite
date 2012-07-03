@@ -24,6 +24,11 @@ public class ListInitExpression extends Expression {
     public ListInitExpression(ExpressionType nodeType, Class type) {
         super(nodeType, type);
     }
+
+    @Override
+    public Expression accept(Visitor visitor) {
+        return visitor.visit(this);
+    }
 }
 
 // End ListInitExpression.java

@@ -37,6 +37,13 @@ public class FieldDeclaration extends MemberDeclaration {
         this.initializer = initializer;
     }
 
+    @Override
+    public MemberDeclaration accept(Visitor visitor) {
+        final ParameterExpression parameter = this.parameter.accept(visitor);
+        final Expression initializer = this.initializer.accept(visitor);
+        return visitor.visit(this, parameter, initializer);
+    }
+
     public void accept(ExpressionWriter writer) {
         String modifiers = Modifier.toString(modifier);
         writer.append(modifiers);

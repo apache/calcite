@@ -25,6 +25,11 @@ public class MemberInitExpression extends Expression {
     public MemberInitExpression() {
         super(ExpressionType.MemberInit, Void.TYPE);
     }
+
+    @Override
+    public Expression accept(Visitor visitor) {
+        return visitor.visit(this);
+    }
 }
 
 // End MemberInitExpression.java

@@ -24,6 +24,11 @@ public class TypeBinaryExpression extends Expression {
     public TypeBinaryExpression(ExpressionType nodeType) {
         super(nodeType, Boolean.TYPE);
     }
+
+    @Override
+    public Expression accept(Visitor visitor) {
+        return visitor.visit(this);
+    }
 }
 
 // End TypeBinaryExpression.java

@@ -35,14 +35,22 @@ public class NewExpression extends Expression {
     public NewExpression(
         Type type,
         List<Expression> arguments,
-        List<Member> members, // not used
         List<MemberDeclaration> memberDeclarations)
     {
         super(ExpressionType.New, type);
         this.type = type;
         this.arguments = arguments;
-        Types.discard(members);
         this.memberDeclarations = memberDeclarations;
+    }
+
+    @Override
+    public Expression accept(Visitor visitor) {
+        final List<Expression> arguments =
+            Expressions.acceptExpressions(this.arguments, visitor);
+        final List<MemberDeclaration> memberDeclarations =
+            Expressions.acceptMemberDeclarations(
+                this.memberDeclarations, visitor);
+        return visitor.visit(this, arguments, memberDeclarations);
     }
 
     @Override

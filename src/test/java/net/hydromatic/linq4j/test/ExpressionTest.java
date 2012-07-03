@@ -22,7 +22,6 @@ import net.hydromatic.linq4j.function.Function1;
 
 import junit.framework.TestCase;
 
-import java.lang.reflect.Member;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
@@ -306,7 +305,6 @@ public class ExpressionTest extends TestCase {
                     Expressions.new_(
                         Types.of(AbstractList.class, String.class),
                         Collections.<Expression>emptyList(),
-                        Collections.<Member>emptyList(),
                         Arrays.<MemberDeclaration>asList(
                             Expressions.fieldDecl(
                                 Modifier.PUBLIC | Modifier.FINAL,
