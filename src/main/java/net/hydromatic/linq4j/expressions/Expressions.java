@@ -2258,8 +2258,13 @@ public class Expressions {
     public static GotoExpression return_(
         LabelTarget labelTarget, Expression expression)
     {
-        return new GotoExpression(
-            GotoExpressionKind.Return, labelTarget, expression);
+        return makeGoto(GotoExpressionKind.Return, labelTarget, expression);
+    }
+
+    public static GotoExpression makeGoto(
+        GotoExpressionKind kind, LabelTarget labelTarget, Expression expression)
+    {
+        return new GotoExpression(kind, labelTarget, expression);
     }
 
     /** Creates a GotoExpression representing a return statement with
@@ -2819,6 +2824,9 @@ public class Expressions {
     static List<Statement> acceptStatements(
         List<Statement> statements, Visitor visitor)
     {
+        if (statements.isEmpty()) {
+            return statements; // short cut
+        }
         final List<Statement> statements1 = new ArrayList<Statement>();
         for (Statement statement : statements) {
             statements1.add(statement.accept(visitor));
@@ -2827,6 +2835,9 @@ public class Expressions {
     }
 
     static List<Node> acceptNodes(List<Node> nodes, Visitor visitor) {
+        if (nodes.isEmpty()) {
+            return nodes; // short cut
+        }
         final List<Node> statements1 = new ArrayList<Node>();
         for (Node node : nodes) {
             statements1.add(node.accept(visitor));
@@ -2837,6 +2848,9 @@ public class Expressions {
     static List<ParameterExpression> acceptParameterExpressions(
         List<ParameterExpression> parameterExpressions, Visitor visitor)
     {
+        if (parameterExpressions.isEmpty()) {
+            return parameterExpressions; // short cut
+        }
         final List<ParameterExpression> parameterExpressions1 =
             new ArrayList<ParameterExpression>();
         for (ParameterExpression parameterExpression : parameterExpressions) {
@@ -2848,6 +2862,9 @@ public class Expressions {
     static List<MemberDeclaration> acceptMemberDeclarations(
         List<MemberDeclaration> memberDeclarations, Visitor visitor)
     {
+        if (memberDeclarations.isEmpty()) {
+            return memberDeclarations; // short cut
+        }
         final List<MemberDeclaration> memberDeclarations1 =
             new ArrayList<MemberDeclaration>();
         for (MemberDeclaration memberDeclaration : memberDeclarations) {
@@ -2859,6 +2876,9 @@ public class Expressions {
     static List<Expression> acceptExpressions(
         List<Expression> expressions, Visitor visitor)
     {
+        if (expressions.isEmpty()) {
+            return expressions; // short cut
+        }
         final List<Expression> expressions1 = new ArrayList<Expression>();
         for (Expression expression : expressions) {
             expressions1.add(expression.accept(visitor));

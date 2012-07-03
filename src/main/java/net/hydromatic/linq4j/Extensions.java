@@ -2831,10 +2831,18 @@ public class Extensions {
             final TKey key = keySelector.apply(o);
             List<TElement> list = map.get(key);
             if (list == null) {
-                list = new ArrayList<TElement>();
-                map.put(key, list);
+                // for first entry, use a singleton list to save space
+                list = Collections.singletonList(elementSelector.apply(o));
+            } else {
+                if (list.size() == 1) {
+                    // when we go from 1 to 2 elements, switch to array list
+                    TElement element = list.get(0);
+                    list = new ArrayList<TElement>();
+                    list.add(element);
+                }
+                list.add(elementSelector.apply(o));
             }
-            list.add(elementSelector.apply(o));
+            map.put(key, list);
         }
         return new LookupImpl<TKey, TElement>(map);
     }

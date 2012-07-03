@@ -66,10 +66,9 @@ public class BlockBuilder {
                     append(
                         newName(declaration.parameter.name),
                         declaration.initializer);
+                    statement = statements.get(statements.size() - 1);
                     ParameterExpression parameter2 =
-                        ((DeclarationExpression)
-                            statements.get(statements.size() - 1))
-                        .parameter;
+                        ((DeclarationExpression) statement).parameter;
                     replacements.put(declaration.parameter, parameter2);
                 } else {
                     add(statement);
@@ -167,6 +166,17 @@ public class BlockBuilder {
             Map<ParameterExpression, ParameterExpression> map)
         {
             this.map = map;
+        }
+
+        @Override
+        public ParameterExpression visit(
+            ParameterExpression parameterExpression)
+        {
+            ParameterExpression e = map.get(parameterExpression);
+            if (e != null) {
+                return e;
+            }
+            return super.visit(parameterExpression);
         }
     }
 }

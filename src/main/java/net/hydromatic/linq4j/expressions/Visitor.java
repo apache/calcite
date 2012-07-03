@@ -30,10 +30,10 @@ public class Visitor {
         Expression condition,
         Statement body)
     {
-        return (condition != whileExpression.condition
-            || body != whileExpression.body)
-            ? Expressions.while_(condition,  body)
-            : whileExpression;
+        return condition == whileExpression.condition
+                && body == whileExpression.body
+            ? whileExpression
+            : Expressions.while_(condition, body);
     }
 
     public BlockExpression visit(
@@ -47,11 +47,12 @@ public class Visitor {
     public Statement visit(
         GotoExpression gotoExpression, Expression expression)
     {
-        return expression != gotoExpression.expression
-            ? Expressions.goto_(
+        return expression == gotoExpression.expression
+            ? gotoExpression
+            : Expressions.makeGoto(
+                gotoExpression.kind,
                 gotoExpression.labelTarget,
-                gotoExpression.expression)
-            : gotoExpression;
+                expression);
     }
 
     public LabelExpression visit(LabelExpression labelExpression) {
@@ -72,8 +73,8 @@ public class Visitor {
             ? declarationExpression
             : Expressions.declare(
                 declarationExpression.modifiers,
-                declarationExpression.parameter,
-                declarationExpression.initializer);
+                parameter,
+                initializer);
     }
 
     public Expression visit(LambdaExpression lambdaExpression) {
@@ -101,8 +102,8 @@ public class Visitor {
             ? binaryExpression
             : Expressions.makeBinary(
                 binaryExpression.nodeType,
-                binaryExpression.expression0,
-                binaryExpression.expression1);
+                expression0,
+                expression1);
     }
 
     public Expression visit(
@@ -134,9 +135,9 @@ public class Visitor {
             && methodCallExpression.expressions.equals(expressions)
             ? methodCallExpression
             : Expressions.call(
-                methodCallExpression.targetExpression,
+                targetExpression,
                 methodCallExpression.method,
-                methodCallExpression.expressions);
+                expressions);
     }
 
     public Expression visit(DefaultExpression defaultExpression) {
@@ -148,7 +149,8 @@ public class Visitor {
     }
 
     public Expression visit(
-        MemberExpression memberExpression, Expression expression)
+        MemberExpression memberExpression,
+        Expression expression)
     {
         return memberExpression.expression == expression
             ? memberExpression
@@ -160,7 +162,8 @@ public class Visitor {
     }
 
     public Expression visit(
-        NewArrayExpression newArrayExpression, List<Expression> expressions)
+        NewArrayExpression newArrayExpression,
+        List<Expression> expressions)
     {
         return expressions.equals(newArrayExpression.expressions)
             ? newArrayExpression
@@ -231,6 +234,14 @@ public class Visitor {
                 fieldDeclaration.modifier,
                 parameter,
                 initializer);
+    }
+
+    public ParameterExpression visit(ParameterExpression parameterExpression) {
+        return parameterExpression;
+    }
+
+    public ConstantExpression visit(ConstantExpression constantExpression) {
+        return constantExpression;
     }
 }
 

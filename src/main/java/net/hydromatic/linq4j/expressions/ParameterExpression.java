@@ -38,7 +38,7 @@ public class ParameterExpression extends Expression {
 
     @Override
     public ParameterExpression accept(Visitor visitor) {
-        return this;
+        return visitor.visit(this);
     }
 
     public Object evaluate(Evaluator evaluator) {

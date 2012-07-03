@@ -41,7 +41,7 @@ public class ConstantExpression extends Expression {
 
     @Override
     public ConstantExpression accept(Visitor visitor) {
-        return this;
+        return visitor.visit(this);
     }
 
     @Override
