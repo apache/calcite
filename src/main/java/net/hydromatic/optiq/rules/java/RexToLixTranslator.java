@@ -20,6 +20,7 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
@@ -42,7 +43,11 @@ import static org.eigenbase.sql.fun.SqlStdOperatorTable.*;
 public class RexToLixTranslator {
     public static final Map<Method, SqlOperator> JAVA_TO_SQL_METHOD_MAP =
         Util.<Method, SqlOperator>mapOf(
-            findMethod(String.class, "toUpperCase"), upperFunc);
+            findMethod(String.class, "toUpperCase"), upperFunc,
+            findMethod(
+                SqlFunctions.class, "substring", String.class, Integer.TYPE,
+                Integer.TYPE),
+            substringFunc);
 
     private static final Map<SqlOperator, ExpressionType>
         SQL_TO_LINQ_OPERATOR_MAP = Util.<SqlOperator, ExpressionType>mapOf(
@@ -81,9 +86,11 @@ public class RexToLixTranslator {
 
     private List<Statement> list;
 
-    private static Method findMethod(Class<String> clazz, String name) {
+    private static Method findMethod(
+        Class<?> clazz, String name, Class... parameterTypes)
+    {
         try {
-            return clazz.getMethod(name);
+            return clazz.getMethod(name, parameterTypes);
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         }

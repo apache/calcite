@@ -17,8 +17,10 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.optiq.runtime.ArrayEnumeratorCursor;
 import net.hydromatic.optiq.runtime.Cursor;
+import net.hydromatic.optiq.runtime.ObjectEnumeratorCursor;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -98,7 +100,11 @@ public class OptiqResultSet implements ResultSet {
      * execute/cancel don't happen at the same time.</p>
      */
     void execute() {
-        this.cursor = new ArrayEnumeratorCursor(prepareResult.execute());
+        Enumerator enumerator = prepareResult.execute();
+        this.cursor =
+            prepareResult.columnList.size() == 1
+                ? new ObjectEnumeratorCursor(enumerator)
+                : new ArrayEnumeratorCursor(enumerator);
         final List<OptiqPrepare.ColumnMetaData> columnMetaDataList =
             prepareResult.columnList;
         this.accessorList =

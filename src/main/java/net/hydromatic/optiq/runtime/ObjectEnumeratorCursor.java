@@ -20,27 +20,27 @@ package net.hydromatic.optiq.runtime;
 import net.hydromatic.linq4j.Enumerator;
 
 /**
- * Implementation of {@link Cursor} on top of an
+ * Implementation of {@link net.hydromatic.optiq.runtime.Cursor} on top of an
  * {@link net.hydromatic.linq4j.Enumerator} that
  * returns an array of {@link Object} for each row.
  *
  * @author jhyde
  */
-public class ArrayEnumeratorCursor extends AbstractCursor {
-    private final Enumerator<Object[]> enumerator;
+public class ObjectEnumeratorCursor extends AbstractCursor {
+    private final Enumerator<Object> enumerator;
 
     /**
-     * Creates an ArrayEnumeratorCursor.
+     * Creates an ObjectEnumeratorCursor.
      *
      * @param enumerator Enumerator
      */
-    public ArrayEnumeratorCursor(Enumerator<Object[]> enumerator) {
+    public ObjectEnumeratorCursor(Enumerator<Object> enumerator) {
         this.enumerator = enumerator;
     }
 
     @Override
     protected Getter createGetter(int ordinal, boolean[] wasNull) {
-        return new ArrayEnumeratorGetter(ordinal, wasNull);
+        return new ObjectEnumeratorGetter(ordinal, wasNull);
     }
 
     @Override
@@ -48,17 +48,16 @@ public class ArrayEnumeratorCursor extends AbstractCursor {
         return enumerator.moveNext();
     }
 
-    class ArrayEnumeratorGetter implements Getter {
-        protected final int field;
+    class ObjectEnumeratorGetter implements Getter {
         protected final boolean[] wasNull;
 
-        public ArrayEnumeratorGetter(int field, boolean[] wasNull) {
-            this.field = field;
+        public ObjectEnumeratorGetter(int field, boolean[] wasNull) {
+            assert field == 0;
             this.wasNull = wasNull;
         }
 
         public Object getObject() {
-            Object o = enumerator.current()[field];
+            Object o = enumerator.current();
             wasNull[0] = (o == null);
             return o;
         }
@@ -69,4 +68,4 @@ public class ArrayEnumeratorCursor extends AbstractCursor {
     }
 }
 
-// End ArrayEnumeratorCursor.java
+// End ObjectEnumeratorCursor.java

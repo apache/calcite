@@ -84,6 +84,14 @@ public class JavaRules {
         Types.lookupMethod(
             ExtendedEnumerable.class, "concat", Enumerable.class);
 
+    private static final Method INTERSECT_METHOD =
+        Types.lookupMethod(
+            ExtendedEnumerable.class, "intersect", Enumerable.class);
+
+    private static final Method EXCEPT_METHOD =
+        Types.lookupMethod(
+            ExtendedEnumerable.class, "except", Enumerable.class);
+
     public static final boolean BRIDGE_METHODS = true;
 
     private static final List<ParameterExpression> NO_PARAMS =
@@ -940,8 +948,8 @@ public class JavaRules {
                     "keySelector",
                     inputRowType.getFieldCount() == 1
                         ? Expressions.call(
-                        Functions.class,
-                        "identitySelector")
+                            Functions.class,
+                            "identitySelector")
                         : Expressions.lambda(
                             Function1.class,
                             keyExpressions.size() == 1
@@ -1022,10 +1030,6 @@ public class JavaRules {
         public RelNode convert(RelNode rel)
         {
             final UnionRel union = (UnionRel) rel;
-            if (union.isDistinct()) {
-                // can only translate "UNION ALL"
-                return null;
-            }
             List<RelNode> convertedChildren = new ArrayList<RelNode>();
             for (RelNode child : union.getInputs()) {
                 final RelNode convertedChild =
@@ -1043,7 +1047,7 @@ public class JavaRules {
                 rel.getCluster(),
                 rel.getTraitSet(),
                 convertedChildren,
-                true);
+                !union.isDistinct());
         }
     }
 
@@ -1098,10 +1102,213 @@ public class JavaRules {
                 }
             }
 
-            statements.add(
-                Expressions.return_(
-                    null,
-                    unionExp));
+            statements.add(unionExp);
+            return statements.toBlock();
+        }
+    }
+
+    public static final EnumerableIntersectRule ENUMERABLE_INTERSECT_RULE =
+        new EnumerableIntersectRule();
+
+    /**
+     * Rule to convert an {@link org.eigenbase.rel.IntersectRel} to an
+     * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableIntersectRel}.
+     */
+    private static class EnumerableIntersectRule
+        extends ConverterRule
+    {
+        private EnumerableIntersectRule()
+        {
+            super(
+                IntersectRel.class,
+                CallingConvention.NONE,
+                CallingConvention.ENUMERABLE,
+                "EnumerableIntersectRule");
+        }
+
+        public RelNode convert(RelNode rel)
+        {
+            final IntersectRel intersect = (IntersectRel) rel;
+            if (!intersect.isDistinct()) {
+                return null; // INTERSECT ALL not implemented
+            }
+            List<RelNode> convertedChildren = new ArrayList<RelNode>();
+            for (RelNode child : intersect.getInputs()) {
+                final RelNode convertedChild =
+                    mergeTraitsAndConvert(
+                        intersect.getTraitSet(),
+                        CallingConvention.ENUMERABLE,
+                        child);
+                if (convertedChild == null) {
+                    // We can't convert the child, so we can't convert rel.
+                    return null;
+                }
+                convertedChildren.add(convertedChild);
+            }
+            return new EnumerableIntersectRel(
+                rel.getCluster(),
+                rel.getTraitSet(),
+                convertedChildren,
+                !intersect.isDistinct());
+        }
+    }
+
+    public static class EnumerableIntersectRel
+        extends IntersectRelBase
+        implements EnumerableRel
+    {
+        public EnumerableIntersectRel(
+            RelOptCluster cluster,
+            RelTraitSet traitSet,
+            List<RelNode> inputs,
+            boolean all)
+        {
+            super(
+                cluster,
+                traitSet.plus(CallingConvention.ENUMERABLE),
+                inputs,
+                all);
+            assert !all;
+        }
+
+        public EnumerableIntersectRel copy(
+            RelTraitSet traitSet, List<RelNode> inputs, boolean all)
+        {
+            return new EnumerableIntersectRel(
+                getCluster(),
+                traitSet,
+                inputs,
+                all);
+        }
+
+        public BlockExpression implement(EnumerableRelImplementor implementor) {
+            final JavaTypeFactory typeFactory =
+                (JavaTypeFactory) implementor.getTypeFactory();
+            final BlockBuilder statements = new BlockBuilder();
+            Expression intersectExp = null;
+            for (int i = 0; i < inputs.size(); i++) {
+                RelNode input = inputs.get(i);
+                Expression childExp =
+                    statements.append(
+                        "child" + i,
+                        implementor.visitChild(
+                            this, i, (EnumerableRel) input));
+
+                if (intersectExp == null) {
+                    intersectExp = childExp;
+                } else {
+                    intersectExp =
+                        Expressions.call(
+                            intersectExp,
+                            all ? CONCAT_METHOD : INTERSECT_METHOD,
+                            childExp);
+                }
+            }
+
+            statements.add(intersectExp);
+            return statements.toBlock();
+        }
+    }
+
+    public static final EnumerableMinusRule ENUMERABLE_MINUS_RULE =
+        new EnumerableMinusRule();
+
+    /**
+     * Rule to convert an {@link org.eigenbase.rel.MinusRel} to an
+     * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableMinusRel}.
+     */
+    private static class EnumerableMinusRule
+        extends ConverterRule
+    {
+        private EnumerableMinusRule()
+        {
+            super(
+                MinusRel.class,
+                CallingConvention.NONE,
+                CallingConvention.ENUMERABLE,
+                "EnumerableMinusRule");
+        }
+
+        public RelNode convert(RelNode rel)
+        {
+            final MinusRel minus = (MinusRel) rel;
+            if (!minus.isDistinct()) {
+                return null; // EXCEPT ALL not implemented
+            }
+            List<RelNode> convertedChildren = new ArrayList<RelNode>();
+            for (RelNode child : minus.getInputs()) {
+                final RelNode convertedChild =
+                    mergeTraitsAndConvert(
+                        minus.getTraitSet(),
+                        CallingConvention.ENUMERABLE,
+                        child);
+                if (convertedChild == null) {
+                    // We can't convert the child, so we can't convert rel.
+                    return null;
+                }
+                convertedChildren.add(convertedChild);
+            }
+            return new EnumerableMinusRel(
+                rel.getCluster(),
+                rel.getTraitSet(),
+                convertedChildren,
+                !minus.isDistinct());
+        }
+    }
+
+    public static class EnumerableMinusRel
+        extends MinusRelBase
+        implements EnumerableRel
+    {
+        public EnumerableMinusRel(
+            RelOptCluster cluster,
+            RelTraitSet traitSet,
+            List<RelNode> inputs,
+            boolean all)
+        {
+            super(
+                cluster,
+                traitSet.plus(CallingConvention.ENUMERABLE),
+                inputs,
+                all);
+            assert !all;
+        }
+
+        public EnumerableMinusRel copy(
+            RelTraitSet traitSet, List<RelNode> inputs, boolean all)
+        {
+            return new EnumerableMinusRel(
+                getCluster(),
+                traitSet,
+                inputs,
+                all);
+        }
+
+        public BlockExpression implement(EnumerableRelImplementor implementor) {
+            final JavaTypeFactory typeFactory =
+                (JavaTypeFactory) implementor.getTypeFactory();
+            final BlockBuilder statements = new BlockBuilder();
+            Expression minusExp = null;
+            for (int i = 0; i < inputs.size(); i++) {
+                RelNode input = inputs.get(i);
+                Expression childExp =
+                    statements.append(
+                        "child" + i,
+                        implementor.visitChild(
+                            this, i, (EnumerableRel) input));
+
+                if (minusExp == null) {
+                    minusExp = childExp;
+                } else {
+                    minusExp =
+                        Expressions.call(
+                            minusExp,
+                            EXCEPT_METHOD,
+                            childExp);
+                }
+            }
+
+            statements.add(minusExp);
             return statements.toBlock();
         }
     }

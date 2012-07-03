@@ -33,9 +33,7 @@ import org.eigenbase.relopt.*;
  * @version $Id$
  * @since 23 September, 2001
  */
-public final class MinusRel
-    extends SetOpRel
-{
+public final class MinusRel extends MinusRelBase {
     //~ Constructors -----------------------------------------------------------
 
     public MinusRel(
@@ -52,20 +50,7 @@ public final class MinusRel
 
     //~ Methods ----------------------------------------------------------------
 
-    // implement RelNode
-    public double getRows()
-    {
-        // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
-        double dRows = RelMetadataQuery.getRowCount(inputs.get(0));
-        for (int i = 1; i < inputs.size(); i++) {
-            dRows -= 0.5 * RelMetadataQuery.getRowCount(inputs.get(i));
-        }
-        if (dRows < 0) {
-            dRows = 0;
-        }
-        return dRows;
-    }
-
+    @Override
     public MinusRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {

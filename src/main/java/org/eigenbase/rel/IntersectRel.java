@@ -32,9 +32,7 @@ import org.eigenbase.relopt.*;
  * @version $Id$
  * @since 23 September, 2001
  */
-public final class IntersectRel
-    extends SetOpRel
-{
+public final class IntersectRel extends IntersectRelBase {
     //~ Constructors -----------------------------------------------------------
 
     public IntersectRel(
@@ -51,21 +49,7 @@ public final class IntersectRel
 
     //~ Methods ----------------------------------------------------------------
 
-    // implement RelNode
-    public double getRows()
-    {
-        // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
-        double dRows = Double.MAX_VALUE;
-        for (int i = 0; i < inputs.size(); i++) {
-            dRows =
-                Math.min(
-                    dRows,
-                    RelMetadataQuery.getRowCount(inputs.get(i)));
-        }
-        dRows *= 0.25;
-        return dRows;
-    }
-
+    @Override
     public IntersectRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {

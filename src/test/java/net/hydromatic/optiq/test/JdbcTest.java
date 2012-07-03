@@ -53,7 +53,6 @@ import java.util.List;
  * @author jhyde
  */
 public class JdbcTest extends TestCase {
-
     public static final Method LINQ4J_AS_ENUMERABLE_METHOD =
         Types.lookupMethod(
             Linq4j.class,
@@ -74,21 +73,11 @@ public class JdbcTest extends TestCase {
      * @throws Exception on error
      */
     public void testSelect() throws Exception {
-        Connection connection = getConnectionWithHrFoodmart();
-        Statement statement = connection.createStatement();
-        ResultSet resultSet =
-            statement.executeQuery(
-                "select *\n"
-                + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-                + "where s.\"cust_id\" = 100");
-        String actual = toString(resultSet);
-        resultSet.close();
-        statement.close();
-        connection.close();
-
-        assertEquals(
-            "cust_id=100; prod_id=10\n",
-            actual);
+        assertQuery(
+            "select *\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "where s.\"cust_id\" = 100").returns(
+                "cust_id=100; prod_id=10\n");
     }
 
     /**
@@ -97,23 +86,13 @@ public class JdbcTest extends TestCase {
      * @throws Exception on error
      */
     public void testJoin() throws Exception {
-        Connection connection = getConnectionWithHrFoodmart();
-        Statement statement = connection.createStatement();
-        ResultSet resultSet =
-            statement.executeQuery(
-                "select *\n"
-                + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-                + "join \"hr\".\"emps\" as e\n"
-                + "on e.\"empid\" = s.\"cust_id\"");
-        String actual = toString(resultSet);
-        resultSet.close();
-        statement.close();
-        connection.close();
-
-        assertEquals(
-            "cust_id=100; prod_id=10; empid=100; deptno=10; name=Bill\n"
-            + "cust_id=150; prod_id=20; empid=150; deptno=10; name=Sebastian\n",
-            actual);
+        assertQuery(
+            "select *\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"hr\".\"emps\" as e\n"
+            + "on e.\"empid\" = s.\"cust_id\"").returns(
+                "cust_id=100; prod_id=10; empid=100; deptno=10; name=Bill\n"
+                + "cust_id=150; prod_id=20; empid=150; deptno=10; name=Sebastian\n");
     }
 
     /**
@@ -122,78 +101,94 @@ public class JdbcTest extends TestCase {
      * @throws Exception on error
      */
     public void testGroupBy() throws Exception {
-        Connection connection = getConnectionWithHrFoodmart();
-        Statement statement = connection.createStatement();
-        ResultSet resultSet =
-            statement.executeQuery(
-                "select \"deptno\", sum(\"empid\") as s, count(*) as c\n"
-                + "from \"hr\".\"emps\" as e\n"
-                + "group by \"deptno\"");
-        String actual = toString(resultSet);
-        resultSet.close();
-        statement.close();
-        connection.close();
-
-        assertEquals(
-            "deptno=20; S=200; C=1\n"
-            + "deptno=10; S=250; C=2\n",
-            actual);
+        assertQuery(
+            "select \"deptno\", sum(\"empid\") as s, count(*) as c\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "group by \"deptno\"").returns(
+                "deptno=20; S=200; C=1\n"
+                + "deptno=10; S=250; C=2\n");
     }
 
     /**
      * Simple ORDER BY.
-     *
-     * @throws Exception on error
      */
-    public void testOrderBy() throws Exception {
-        Connection connection = getConnectionWithHrFoodmart();
-        Statement statement = connection.createStatement();
-        ResultSet resultSet =
-            statement.executeQuery(
-                "select upper(\"name\") as un, \"deptno\"\n"
-                + "from \"hr\".\"emps\" as e\n"
-                + "order by \"deptno\", \"name\" desc");
-        String actual = toString(resultSet);
-        resultSet.close();
-        statement.close();
-        connection.close();
-
-        assertEquals(
-            "UN=SEBASTIAN; deptno=10\n"
-            + "UN=BILL; deptno=10\n"
-            + "UN=ERIC; deptno=20\n",
-            actual);
+    public void testOrderBy() {
+        assertQuery(
+            "select upper(\"name\") as un, \"deptno\"\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "order by \"deptno\", \"name\" desc").returns(
+                "UN=SEBASTIAN; deptno=10\n"
+                + "UN=BILL; deptno=10\n"
+                + "UN=ERIC; deptno=20\n");
     }
 
     /**
-     * Simple UNION.
+     * Simple UNION, plus ORDER BY.
      *
-     * @throws Exception on error
+     * <p>Also tests a query that returns a single column. We optimize this case
+     * internally, using non-array representations for rows.</p>
      */
-    public void testUnion() throws Exception {
-        Connection connection = getConnectionWithHrFoodmart();
-        Statement statement = connection.createStatement();
-        ResultSet resultSet =
-            statement.executeQuery(
-                "select \"name\"\n"
-                + "from \"hr\".\"emps\" as e\n"
-                + "union all\n"
-                + "select \"name\"\n"
-                + "from \"hr\".\"depts\"\n"
-                + "order by 1 desc");
-        String actual = toString(resultSet);
-        resultSet.close();
-        statement.close();
-        connection.close();
-
-        assertEquals(
-            "UN=SEBASTIAN; deptno=10\n"
-            + "UN=BILL; deptno=10\n"
-            + "UN=ERIC; deptno=20\n",
-            actual);
+    public void testUnionAllOrderBy() {
+        assertQuery(
+            "select \"name\"\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "union all\n"
+            + "select \"name\"\n"
+            + "from \"hr\".\"depts\"\n"
+            + "order by 1 desc").returns(
+                "name=Sebastian\n"
+                + "name=Sales\n"
+                + "name=Marketing\n"
+                + "name=HR\n"
+                + "name=Eric\n"
+                + "name=Bill\n");
     }
 
-    private String toString(ResultSet resultSet) throws SQLException {
+    /**
+     * Tests UNION.
+     */
+    public void testUnion() {
+        assertQuery(
+            "select substring(\"name\" from 1 for 2) as x\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "union\n"
+            + "select substring(\"name\" from 1 for 2) as y\n"
+            + "from \"hr\".\"depts\"").returns(
+                "X=E\n"
+                + "X=S\n"
+                + "X=B\n"
+                + "X=M\n"
+                + "X=H\n");
+    }
+
+    /**
+     * Tests INTERSECT.
+     */
+    public void testIntersect() {
+        assertQuery(
+            "select substring(\"name\" from 1 for 2) as x\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "intersect\n"
+            + "select substring(\"name\" from 1 for 2) as y\n"
+            + "from \"hr\".\"depts\"").returns(
+                "X=S\n");
+    }
+
+    /**
+     * Tests EXCEPT.
+     */
+    public void testExcept() {
+        assertQuery(
+            "select substring(\"name\" from 1 for 2) as x\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "except\n"
+            + "select substring(\"name\" from 1 for 2) as y\n"
+            + "from \"hr\".\"depts\"").returns(
+                "X=E\n"
+                + "X=B\n");
+    }
+
+    static String toString(ResultSet resultSet) throws SQLException {
         StringBuilder buf = new StringBuilder();
         while (resultSet.next()) {
             int n = resultSet.getMetaData().getColumnCount();
@@ -210,21 +205,21 @@ public class JdbcTest extends TestCase {
         return buf.toString();
     }
 
-    public void testWhereBad() throws Exception {
-        assertQueryThrows(
+    public void testWhereBad() {
+        assertQuery(
             "select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-            + "where empid > 120",
-            "Column 'EMPID' not found in any table");
+            + "where empid > 120")
+            .throwz("Column 'EMPID' not found in any table");
     }
 
-    public void _testWhere() throws Exception {
-        assertQueryReturns(
+    public void _testWhere() {
+        assertQuery(
             "select *\n"
             + "from \"hr\".\"emps\" as e\n"
-            + "where e.\"empid\" > 120 and e.\"name\" like 'B%'",
-            "cust_id=100; prod_id=10; empid=100; name=Bill\n"
-            + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n");
+            + "where e.\"empid\" > 120 and e.\"name\" like 'B%'").returns(
+                "cust_id=100; prod_id=10; empid=100; name=Bill\n"
+                + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n");
     }
 
     public void testQueryProvider() throws Exception {
@@ -549,6 +544,44 @@ public class JdbcTest extends TestCase {
         optiqConnection.getRootSchema().add("hr", new HrSchema());
         optiqConnection.getRootSchema().add("foodmart", new FoodmartSchema());
         return connection;
+    }
+
+    public Xxxx assertQuery(String s) {
+        return new Xxxx(s);
+    }
+
+    private class Xxxx {
+        private final String sql;
+
+        Xxxx(String sql) {
+            super();
+            this.sql = sql;
+        }
+
+        void returns(String expected) {
+            try {
+                Connection connection = getConnectionWithHrFoodmart();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(sql);
+
+                String actual = JdbcTest.toString(resultSet);
+                resultSet.close();
+                statement.close();
+                connection.close();
+
+                assertEquals(expected, actual);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public void throwz(String message) {
+            try {
+                assertQueryThrows(sql, message);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public static class HrSchema {
