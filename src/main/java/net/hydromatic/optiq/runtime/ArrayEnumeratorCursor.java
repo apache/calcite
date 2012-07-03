@@ -60,27 +60,28 @@ public class ArrayEnumeratorCursor implements Cursor {
     private Accessor createAccessor(int type, int ordinal, boolean[] wasNull) {
         // Create an accessor appropriate to the underlying type; the accessor
         // can convert to any type in the same family.
+        Getter getter = new ArrayEnumeratorGetter(ordinal, wasNull);
         switch (type) {
         case Types.TINYINT:
-            return new ByteAccessor(ordinal, wasNull);
+            return new ByteAccessor(getter);
         case Types.SMALLINT:
-            return new ShortAccessor(ordinal, wasNull);
+            return new ShortAccessor(getter);
         case Types.INTEGER:
-            return new IntAccessor(ordinal, wasNull);
+            return new IntAccessor(getter);
         case Types.BIGINT:
-            return new LongAccessor(ordinal, wasNull);
+            return new LongAccessor(getter);
         case Types.BOOLEAN:
-            return new BooleanAccessor(ordinal, wasNull);
+            return new BooleanAccessor(getter);
         case Types.FLOAT:
-            return new FloatAccessor(ordinal, wasNull);
+            return new FloatAccessor(getter);
         case Types.DOUBLE:
-            return new DoubleAccessor(ordinal, wasNull);
+            return new DoubleAccessor(getter);
         case Types.CHAR:
         case Types.VARCHAR:
-            return new StringAccessor(ordinal, wasNull);
+            return new StringAccessor(getter);
         case Types.BINARY:
         case Types.VARBINARY:
-            return new BinaryAccessor(ordinal, wasNull);
+            return new BinaryAccessor(getter);
         default:
             throw new RuntimeException("unknown type " + type);
         }
@@ -91,12 +92,10 @@ public class ArrayEnumeratorCursor implements Cursor {
     }
 
     class AccessorImpl implements Cursor.Accessor {
-        protected final int field;
-        protected final boolean[] wasNull;
+        protected final Getter getter;
 
-        public AccessorImpl(int field, boolean[] wasNull) {
-            this.field = field;
-            this.wasNull = wasNull;
+        public AccessorImpl(Getter getter) {
+            this.getter = getter;
         }
 
         public String getString() {
@@ -168,9 +167,7 @@ public class ArrayEnumeratorCursor implements Cursor {
         }
 
         public Object getObject() {
-            Object o = enumerator.current()[field];
-            wasNull[0] = (o == null);
-            return o;
+            return getter.getObject();
         }
 
         public Reader getCharacterStream() {
@@ -243,13 +240,13 @@ public class ArrayEnumeratorCursor implements Cursor {
      * {@link #getLong()} method.
      */
     private abstract class ExactNumericAccessor extends AccessorImpl {
-        public ExactNumericAccessor(int field, boolean[] wasNull) {
-            super(field, wasNull);
+        public ExactNumericAccessor(Getter getter) {
+            super(getter);
         }
 
         public BigDecimal getBigDecimal(int scale) {
             final long v = getLong();
-            return v == 0 && wasNull[0]
+            return v == 0 && getter.wasNull()
                 ? null
                 : BigDecimal.valueOf(v)
                     .setScale(scale, RoundingMode.DOWN);
@@ -257,7 +254,9 @@ public class ArrayEnumeratorCursor implements Cursor {
 
         public BigDecimal getBigDecimal() {
             final long val = getLong();
-            return val == 0 && wasNull[0] ? null : BigDecimal.valueOf(val);
+            return val == 0 && getter.wasNull()
+                ? null
+                : BigDecimal.valueOf(val);
         }
 
         public double getDouble() {
@@ -297,8 +296,8 @@ public class ArrayEnumeratorCursor implements Cursor {
      * corresponds to {@link Types#BOOLEAN}.
      */
     private class BooleanAccessor extends ExactNumericAccessor {
-        public BooleanAccessor(int field, boolean[] wasNull) {
-            super(field, wasNull);
+        public BooleanAccessor(Getter getter) {
+            super(getter);
         }
 
         public boolean getBoolean() {
@@ -321,8 +320,8 @@ public class ArrayEnumeratorCursor implements Cursor {
      * corresponds to {@link Types#TINYINT}.
      */
     private class ByteAccessor extends ExactNumericAccessor {
-        public ByteAccessor(int field, boolean[] wasNull) {
-            super(field, wasNull);
+        public ByteAccessor(Getter getter) {
+            super(getter);
         }
 
         public byte getByte() {
@@ -340,8 +339,8 @@ public class ArrayEnumeratorCursor implements Cursor {
      * corresponds to {@link Types#SMALLINT}.
      */
     private class ShortAccessor extends ExactNumericAccessor {
-        public ShortAccessor(int field, boolean[] wasNull) {
-            super(field, wasNull);
+        public ShortAccessor(Getter getter) {
+            super(getter);
         }
 
         public short getShort() {
@@ -359,8 +358,8 @@ public class ArrayEnumeratorCursor implements Cursor {
      * corresponds to {@link Types#INTEGER}.
      */
     private class IntAccessor extends ExactNumericAccessor {
-        public IntAccessor(int field, boolean[] wasNull) {
-            super(field, wasNull);
+        public IntAccessor(Getter getter) {
+            super(getter);
         }
 
         public int getInt() {
@@ -378,8 +377,8 @@ public class ArrayEnumeratorCursor implements Cursor {
      * corresponds to {@link Types#BIGINT}.
      */
     private class LongAccessor extends ExactNumericAccessor {
-        public LongAccessor(int field, boolean[] wasNull) {
-            super(field, wasNull);
+        public LongAccessor(Getter getter) {
+            super(getter);
         }
 
         public long getLong() {
@@ -392,13 +391,13 @@ public class ArrayEnumeratorCursor implements Cursor {
      * Accessor of values that are {@link Double} or null.
      */
     private abstract class ApproximateNumericAccessor extends AccessorImpl {
-        public ApproximateNumericAccessor(int field, boolean[] wasNull) {
-            super(field, wasNull);
+        public ApproximateNumericAccessor(Getter getter) {
+            super(getter);
         }
 
         public BigDecimal getBigDecimal(int scale) {
             final double v = getDouble();
-            return v == 0d && wasNull[0]
+            return v == 0d && getter.wasNull()
                 ? null
                 : BigDecimal.valueOf(v)
                     .setScale(scale, RoundingMode.DOWN);
@@ -406,7 +405,7 @@ public class ArrayEnumeratorCursor implements Cursor {
 
         public BigDecimal getBigDecimal() {
             final double v = getDouble();
-            return v == 0 && wasNull[0] ? null : BigDecimal.valueOf(v);
+            return v == 0 && getter.wasNull() ? null : BigDecimal.valueOf(v);
         }
 
         public abstract double getDouble();
@@ -446,8 +445,8 @@ public class ArrayEnumeratorCursor implements Cursor {
      * corresponds to {@link Types#FLOAT}.
      */
     private class FloatAccessor extends ApproximateNumericAccessor {
-        public FloatAccessor(int field, boolean[] wasNull) {
-            super(field, wasNull);
+        public FloatAccessor(Getter getter) {
+            super(getter);
         }
 
         public float getFloat() {
@@ -465,8 +464,8 @@ public class ArrayEnumeratorCursor implements Cursor {
      * corresponds to {@link Types#FLOAT}.
      */
     private class DoubleAccessor extends ApproximateNumericAccessor {
-        public DoubleAccessor(int field, boolean[] wasNull) {
-            super(field, wasNull);
+        public DoubleAccessor(Getter getter) {
+            super(getter);
         }
 
         public double getDouble() {
@@ -480,8 +479,8 @@ public class ArrayEnumeratorCursor implements Cursor {
      * corresponds to {@link Types#CHAR} and {@link Types#VARCHAR}.
      */
     private class StringAccessor extends AccessorImpl {
-        public StringAccessor(int field, boolean[] wasNull) {
-            super(field, wasNull);
+        public StringAccessor(Getter getter) {
+            super(getter);
         }
 
         public String getString() {
@@ -495,8 +494,8 @@ public class ArrayEnumeratorCursor implements Cursor {
      * corresponds to {@link Types#BINARY} and {@link Types#VARBINARY}.
      */
     private class BinaryAccessor extends AccessorImpl {
-        public BinaryAccessor(int field, boolean[] wasNull) {
-            super(field, wasNull);
+        public BinaryAccessor(Getter getter) {
+            super(getter);
         }
 
         public byte[] getBytes() {
@@ -507,6 +506,31 @@ public class ArrayEnumeratorCursor implements Cursor {
         public String getString() {
             byte[] bytes = getBytes();
             return bytes == null ? null : ByteString.toString(bytes);
+        }
+    }
+
+    private interface Getter {
+        Object getObject();
+        boolean wasNull();
+    }
+
+    class ArrayEnumeratorGetter implements Getter {
+        protected final int field;
+        protected final boolean[] wasNull;
+
+        public ArrayEnumeratorGetter(int field, boolean[] wasNull) {
+            this.field = field;
+            this.wasNull = wasNull;
+        }
+
+        public Object getObject() {
+            Object o = enumerator.current()[field];
+            wasNull[0] = (o == null);
+            return o;
+        }
+
+        public boolean wasNull() {
+            return wasNull[0];
         }
     }
 }

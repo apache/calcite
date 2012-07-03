@@ -82,9 +82,7 @@ public class JavaRules {
 
     private static final Method CONCAT_METHOD =
         Types.lookupMethod(
-            ExtendedEnumerable.class,
-            "concat",
-            Enumerable.class);
+            ExtendedEnumerable.class, "concat", Enumerable.class);
 
     public static final boolean BRIDGE_METHODS = true;
 
@@ -337,6 +335,20 @@ public class JavaRules {
                     Types.nthField(field, type));
             }
         }
+
+        static Expression inputFieldReference(
+            RelDataType inputRowType,
+            Expression expression,
+            int field)
+        {
+            List<RelDataTypeField> fieldList = inputRowType.getFieldList();
+            if (fieldList.size() == 1) {
+                assert field == 0;
+                return expression;
+            }
+            return EnumUtil.fieldReference(
+                expression, fieldList.get(field));
+        }
     }
 
     public static class EnumerableTableAccessRel
@@ -569,7 +581,6 @@ public class JavaRules {
                         // TODO: generics
                         //   Collections.singletonList(inputRowType),
                         NO_EXPRS,
-                        Collections.<Member>emptyList(),
                         Arrays.<MemberDeclaration>asList(
                             Expressions.methodDecl(
                                 Modifier.PUBLIC,
@@ -580,7 +591,6 @@ public class JavaRules {
                                     Expressions.new_(
                                         enumeratorType,
                                         NO_EXPRS,
-                                        Collections.<Member>emptyList(),
                                         Expressions.<MemberDeclaration>list(
                                             Expressions.fieldDecl(
                                                 Modifier.PUBLIC
@@ -744,13 +754,17 @@ public class JavaRules {
             final Expression keySelector =
                 statements.append(
                     "keySelector",
-                    Expressions.lambda(
-                        Function1.class,
-                        keyExpressions.size() == 1
-                            ? keyExpressions.get(0)
-                            : Expressions.newArrayInit(
-                                Object.class, keyExpressions),
-                        parameter));
+                    inputRowType.getFieldCount() == 1
+                        ? Expressions.call(
+                            Functions.class,
+                            "identitySelector")
+                        : Expressions.lambda(
+                            Function1.class,
+                            keyExpressions.size() == 1
+                                ? keyExpressions.get(0)
+                                : Expressions.newArrayInit(
+                                    Object.class, keyExpressions),
+                            parameter));
 
             ParameterExpression grouping =
                 Expressions.parameter(Grouping.class, "grouping");
@@ -918,21 +932,23 @@ public class JavaRules {
             final List<Expression> keyExpressions = Expressions.list();
             for (RelFieldCollation collation : collations) {
                 keyExpressions.add(
-                    EnumUtil.fieldReference(
-                        parameter,
-                        inputRowType.getFieldList().get(
-                            collation.getFieldIndex())));
+                    EnumUtil.inputFieldReference(
+                        inputRowType, parameter, collation.getFieldIndex()));
             }
             final Expression keySelector =
                 statements.append(
                     "keySelector",
-                    Expressions.lambda(
-                        Function1.class,
-                        keyExpressions.size() == 1
-                            ? keyExpressions.get(0)
-                            : Expressions.newArrayInit(
-                                Object.class, keyExpressions),
-                        parameter));
+                    inputRowType.getFieldCount() == 1
+                        ? Expressions.call(
+                        Functions.class,
+                        "identitySelector")
+                        : Expressions.lambda(
+                            Function1.class,
+                            keyExpressions.size() == 1
+                                ? keyExpressions.get(0)
+                                : Expressions.newArrayInit(
+                                    Object.class, keyExpressions),
+                            parameter));
 
             Expression comparatorExp;
             if (collations.size() == 1) {
@@ -983,6 +999,7 @@ public class JavaRules {
             return statements.toBlock();
         }
     }
+
     public static final EnumerableUnionRule ENUMERABLE_UNION_RULE =
         new EnumerableUnionRule();
 
