@@ -174,7 +174,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      * using the specified EqualityComparer<TSource> to compare
      * values. */
     Queryable<TSource> except(
-        Enumerable<TSource> enumerable, EqualityComparer comparer);
+        Enumerable<TSource> enumerable, EqualityComparer<TSource> comparer);
 
     /** Returns the first element of a sequence. (Defined
      * by Queryable.) */

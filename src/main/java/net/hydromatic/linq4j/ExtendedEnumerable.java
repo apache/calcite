@@ -232,7 +232,7 @@ public interface ExtendedEnumerable<TSource> {
      * values. */
     Enumerable<TSource> except(
         Enumerable<TSource> enumerable1,
-        EqualityComparer comparer);
+        EqualityComparer<TSource> comparer);
 
     /** Returns the first element of a sequence. (Defined
      * by Enumerable.) */
@@ -343,6 +343,9 @@ public interface ExtendedEnumerable<TSource> {
      * values. */
     Enumerable<TSource> intersect(
         Enumerable<TSource> enumerable1, EqualityComparer<TSource> comparer);
+
+    /** Copies the contents of the sequence into a collection. */
+    <C extends Collection<? super TSource>> C into(C sink);
 
     /** Correlates the elements of two sequences based on
      * matching keys. The default equality comparer is used to compare

@@ -205,7 +205,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     }
 
     public Enumerable<T> except(
-        Enumerable<T> enumerable1, EqualityComparer comparer)
+        Enumerable<T> enumerable1, EqualityComparer<T> comparer)
     {
         return Extensions.except(getThis(), enumerable1, comparer);
     }
@@ -331,6 +331,10 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         EqualityComparer<T> comparer)
     {
         return Extensions.intersect(getThis(), enumerable1, comparer);
+    }
+
+    public <C extends Collection<? super T>> C into(C sink) {
+        return Extensions.into(getThis(), sink);
     }
 
     public <TInner, TKey, TResult> Enumerable<TResult> join(

@@ -98,7 +98,7 @@ class EnumerableQueryable<T>
 
     @Override
     public Queryable<T> except(
-        Enumerable<T> enumerable1, EqualityComparer comparer)
+        Enumerable<T> enumerable1, EqualityComparer<T> comparer)
     {
         return Extensions.except(getThis(), enumerable1, comparer)
             .asQueryable();

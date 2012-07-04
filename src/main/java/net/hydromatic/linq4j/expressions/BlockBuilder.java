@@ -137,6 +137,10 @@ public class BlockBuilder {
         }
     }
 
+    public void add(Expression expression) {
+        add(Expressions.return_(null, expression));
+    }
+
     /** Returns a block consisting of the current list of statements. */
     public BlockExpression toBlock() {
         return Expressions.block(statements);

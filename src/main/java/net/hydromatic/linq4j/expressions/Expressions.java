@@ -2821,6 +2821,20 @@ public class Expressions {
         return toCollection(iterable).toArray(a);
     }
 
+    static <T extends Expression> Expression accept(T node, Visitor visitor) {
+        if (node == null) {
+            return null;
+        }
+        return node.accept(visitor);
+    }
+
+    static <T extends Statement> Statement accept(T node, Visitor visitor) {
+        if (node == null) {
+            return null;
+        }
+        return node.accept(visitor);
+    }
+
     static List<Statement> acceptStatements(
         List<Statement> statements, Visitor visitor)
     {

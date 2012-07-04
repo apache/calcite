@@ -46,6 +46,28 @@ public class Functions {
             new HashMap<Class, Class<? extends Function>>(
                 inverse(FUNCTION_RESULT_TYPES)));
 
+    private static final EqualityComparer<Object> IDENTITY_COMPARER =
+        new EqualityComparer<Object>() {
+            public boolean equal(Object v1, Object v2) {
+                return Objects.equals(v1, v2);
+            }
+
+            public int hashCode(Object t) {
+                return t == null ? 0x789d : t.hashCode();
+            }
+        };
+
+    private static final EqualityComparer<Object[]> ARRAY_COMPARER =
+        new EqualityComparer<Object[]>() {
+            public boolean equal(Object[] v1, Object[] v2) {
+                return Arrays.equals(v1, v2);
+            }
+
+            public int hashCode(Object[] t) {
+                return Arrays.hashCode(t);
+            }
+        };
+
     @SuppressWarnings("unchecked")
     private static <K, V> Map<K, V> map(K k, V v, Object... rest) {
         final Map<K, V> map = new HashMap<K, V>();
@@ -230,6 +252,19 @@ public class Functions {
                 return f.apply(a0);
             }
         };
+    }
+
+    /** Returns an {@link EqualityComparer} that uses object identity and hash
+     * code. */
+    @SuppressWarnings("unchecked")
+    public static <T> EqualityComparer<T> identityComparer() {
+        return (EqualityComparer) IDENTITY_COMPARER;
+    }
+
+    /** Returns an {@link EqualityComparer} that works on arrays of objects. */
+    @SuppressWarnings("unchecked")
+    public static <T> EqualityComparer<T[]> arrayComparer() {
+        return (EqualityComparer) ARRAY_COMPARER;
     }
 }
 

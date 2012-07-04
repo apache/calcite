@@ -25,7 +25,6 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import static net.hydromatic.linq4j.function.Functions.adapt;
-import static net.hydromatic.linq4j.function.Functions.identitySelector;
 
 /**
  * Contains what, in LINQ.NET, would be extension methods.
@@ -833,9 +832,14 @@ public class Extensions {
      * using the default equality comparer to compare values. (Defined
      * by Enumerable.) */
     public static <TSource> Enumerable<TSource> except(
-        Enumerable<TSource> enumerable0, Enumerable<TSource> enumerable1)
+        Enumerable<TSource> source0, Enumerable<TSource> source1)
     {
-        throw Extensions.todo();
+        Set<TSource> set = new HashSet<TSource>();
+        source0.into(set);
+        for (TSource o : source1) {
+            set.remove(o);
+        }
+        return Linq4j.asEnumerable(set);
     }
 
     /** Produces the set difference of two sequences by
@@ -851,11 +855,18 @@ public class Extensions {
      * using the specified EqualityComparer<TSource> to compare
      * values. */
     public static <TSource> Enumerable<TSource> except(
-        Enumerable<TSource> enumerable0,
-        Enumerable<TSource> enumerable1,
-        EqualityComparer comparer)
+        Enumerable<TSource> source0,
+        Enumerable<TSource> source1,
+        EqualityComparer<TSource> comparer)
     {
-        throw Extensions.todo();
+        Set<Wrapped<TSource>> set = new HashSet<Wrapped<TSource>>();
+        Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
+        source0.select(wrapper).into(set);
+        for (Wrapped<TSource> o : source1.select(wrapper)) {
+            set.remove(o);
+        }
+        Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
+        return Linq4j.asEnumerable(set).select(unwrapper);
     }
 
     /** Produces the set difference of two sequences by
@@ -864,7 +875,7 @@ public class Extensions {
     public static <TSource> Queryable<TSource> except(
         Queryable<TSource> queryable,
         Enumerable<TSource> enumerable,
-        EqualityComparer comparer)
+        EqualityComparer<TSource> comparer)
     {
         throw Extensions.todo();
     }
@@ -1242,9 +1253,18 @@ public class Extensions {
      * using the default equality comparer to compare values. (Defined
      * by Enumerable.) */
     public static <TSource> Enumerable<TSource> intersect(
-        Enumerable<TSource> enumerable0, Enumerable<TSource> enumerable1)
+        Enumerable<TSource> source0,
+        Enumerable<TSource> source1)
     {
-        throw Extensions.todo();
+        Set<TSource> set0 = new HashSet<TSource>();
+        source0.into(set0);
+        Set<TSource> set1 = new HashSet<TSource>();
+        for (TSource o : source1) {
+            if (set0.contains(o)) {
+                set1.add(o);
+            }
+        }
+        return Linq4j.asEnumerable(set1);
     }
 
     /** Produces the set intersection of two sequences by
@@ -1260,11 +1280,21 @@ public class Extensions {
      * using the specified EqualityComparer<TSource> to compare
      * values. */
     public static <TSource> Enumerable<TSource> intersect(
-        Enumerable<TSource> enumerable0,
-        Enumerable<TSource> enumerable1,
+        Enumerable<TSource> source0,
+        Enumerable<TSource> source1,
         EqualityComparer<TSource> comparer)
     {
-        throw Extensions.todo();
+        Set<Wrapped<TSource>> set0 = new HashSet<Wrapped<TSource>>();
+        Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
+        source0.select(wrapper).into(set0);
+        Set<Wrapped<TSource>> set1 = new HashSet<Wrapped<TSource>>();
+        for (Wrapped<TSource> o : source1.select(wrapper)) {
+            if (set0.contains(o)) {
+                set1.add(o);
+            }
+        }
+        Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
+        return Linq4j.asEnumerable(set1).select(unwrapper);
     }
 
     /** Produces the set intersection of two sequences by
@@ -2862,9 +2892,13 @@ public class Extensions {
     /** Produces the set union of two sequences by using
      * the default equality comparer. */
     public static <TSource> Enumerable<TSource> union(
-        Enumerable<TSource> source0, Enumerable<TSource> source1)
+        Enumerable<TSource> source0,
+        Enumerable<TSource> source1)
     {
-        throw Extensions.todo();
+        Set<TSource> set = new HashSet<TSource>();
+        source0.into(set);
+        source1.into(set);
+        return Linq4j.asEnumerable(set);
     }
 
     /** Produces the set union of two sequences by using
@@ -2876,13 +2910,39 @@ public class Extensions {
     }
 
     /** Produces the set union of two sequences by using a
-     * specified EqualityComparer<TSource>. */
+     * specified EqualityComparer&lt;TSource&gt;. */
     public static <TSource> Enumerable<TSource> union(
         Enumerable<TSource> source0,
         Enumerable<TSource> source1,
-        EqualityComparer<TSource> comparer)
+        final EqualityComparer<TSource> comparer)
     {
-        throw Extensions.todo();
+        if (comparer == Functions.identityComparer()) {
+            return union(source0, source1);
+        }
+        Set<Wrapped<TSource>> set = new HashSet<Wrapped<TSource>>();
+        Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
+        Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
+        source0.select(wrapper).into(set);
+        source1.select(wrapper).into(set);
+        return Linq4j.asEnumerable(set).select(unwrapper);
+    }
+
+    private static <TSource> Function1<Wrapped<TSource>, TSource> unwrapper() {
+        return new Function1<Wrapped<TSource>, TSource>() {
+            public TSource apply(Wrapped<TSource> a0) {
+                return a0.element;
+            }
+        };
+    }
+
+    private static <TSource> Function1<TSource, Wrapped<TSource>> wrapperFor(
+        final EqualityComparer<TSource> comparer)
+    {
+        return new Function1<TSource, Wrapped<TSource>>() {
+            public Wrapped<TSource> apply(TSource a0) {
+                return Wrapped.upAs(comparer, a0);
+            }
+        };
     }
 
     /** Produces the set union of two sequences by using a
@@ -3021,6 +3081,15 @@ public class Extensions {
             ? ((OrderedQueryable<T>) source)
             : new EnumerableOrderedQueryable<T>(
                 source, (Class) Object.class, null, null);
+    }
+
+    public static <T, C extends Collection<? super T>> C into(
+        Enumerable<T> source, C sink)
+    {
+        for (T t : source) {
+            sink.add(t);
+        }
+        return sink;
     }
 
     private static class TakeWhileEnumerator<TSource>
@@ -3175,6 +3244,24 @@ public class Extensions {
     Comparator<T> comparableComparator() {
         //noinspection unchecked
         return (Comparator<T>) (Comparator) COMPARABLE_COMPARATOR;
+    }
+
+    private static class Wrapped<T> {
+        private final EqualityComparer<T> comparer;
+        private final T element;
+
+        private Wrapped(EqualityComparer<T> comparer, T element) {
+            this.comparer = comparer;
+            this.element = element;
+        }
+
+        static <T> Wrapped<T> upAs(EqualityComparer<T> comparer, T element) {
+            return new Wrapped<T>(comparer, element);
+        }
+
+        public T unwrap() {
+            return element;
+        }
     }
 }
 

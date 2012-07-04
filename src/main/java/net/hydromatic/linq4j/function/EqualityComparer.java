@@ -22,6 +22,7 @@ package net.hydromatic.linq4j.function;
 */
 public interface EqualityComparer<T> {
     boolean equal(T v1, T v2);
+    int hashCode(T t);
 }
 
 // End EqualityComparer.java
