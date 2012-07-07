@@ -33,19 +33,19 @@ class EnumerableQueryable<T>
     extends DefaultEnumerable<T>
     implements Queryable<T>
 {
-    private final Enumerable<T> enumerable;
-    private final Class<T> rowType;
     private final QueryProvider provider;
+    private final Class<T> elementType;
+    private final Enumerable<T> enumerable;
     private final Expression expression;
 
     EnumerableQueryable(
-        Enumerable<T> enumerable,
-        Class<T> rowType,
         QueryProvider provider,
-        Expression expression)
+        Class<T> elementType,
+        Expression expression,
+        Enumerable<T> enumerable)
     {
         this.enumerable = enumerable;
-        this.rowType = rowType;
+        this.elementType = elementType;
         this.provider = provider;
         this.expression = expression;
     }
@@ -148,7 +148,7 @@ class EnumerableQueryable<T>
     // Queryable methods
 
     public Type getElementType() {
-        return rowType;
+        return elementType;
     }
 
     public Expression getExpression() {

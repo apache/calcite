@@ -34,6 +34,10 @@ public interface QueryProvider {
      * Constructs a {@link Queryable} object that can evaluate the query
      * represented by a specified expression tree.
      *
+     * <p>NOTE: The {@link net.hydromatic.linq4j.Queryable#getExpression()}
+     * property of the returned {@link Queryable} object is equal to
+     * {@code expression}.</p>
+     *
      * @param expression Expression
      * @param rowType Row type
      * @param <T> Row type

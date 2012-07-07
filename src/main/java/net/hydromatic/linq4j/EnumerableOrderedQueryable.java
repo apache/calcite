@@ -37,7 +37,7 @@ class EnumerableOrderedQueryable<T>
         QueryProvider provider,
         Expression expression)
     {
-        super(enumerable, rowType, provider, expression);
+        super(provider, rowType, expression, enumerable);
     }
 
     public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(

@@ -625,7 +625,7 @@ public class Extensions {
         final Class<T2> clazz)
     {
         return new AbstractQueryable2<T2>(
-            clazz, source.getExpression(), source.getProvider())
+            source.getProvider(), clazz, source.getExpression())
         {
             public Enumerator<T2> enumerator() {
                 return new CastingEnumerator<T2>(source.enumerator(), clazz);
@@ -2374,9 +2374,9 @@ public class Extensions {
         final FunctionExpression<Predicate2<TSource, Integer>> predicate)
     {
         return new AbstractQueryable2<TSource>(
+            source.getProvider(),
             source.getElementType(),
-            source.getExpression(),
-            source.getProvider())
+            source.getExpression())
         {
             public Enumerator<TSource> enumerator() {
                 return new SkipWhileEnumerator<TSource>(
@@ -2647,9 +2647,9 @@ public class Extensions {
         final FunctionExpression<Predicate2<TSource, Integer>> predicate)
     {
         return new AbstractQueryable2<TSource>(
+            source.getProvider(),
             source.getElementType(),
-            source.getExpression(),
-            source.getProvider())
+            source.getExpression())
         {
             public Enumerator<TSource> enumerator() {
                 return new TakeWhileEnumerator<TSource>(
@@ -3070,7 +3070,7 @@ public class Extensions {
         return source instanceof Queryable
             ? ((Queryable<T>) source)
             : new EnumerableQueryable<T>(
-                source, (Class) Object.class, null, null);
+                Linq4j.DEFAULT_PROVIDER, (Class) Object.class, null, source);
     }
 
     public static <T> OrderedQueryable<T> asOrderedQueryable(
@@ -3176,21 +3176,31 @@ public class Extensions {
         }
     }
 
+    /**
+     * Skeleton implementation of {@link Queryable}. The derived class just
+     * needs to implement {@link #enumerator()}.
+     *
+     * @param <TSource> Element type
+     */
     public static abstract class AbstractQueryable2<TSource>
         extends AbstractQueryable<TSource>
     {
+        protected final QueryProvider provider;
         protected final Type elementType;
         protected final Expression expression;
-        protected final QueryProvider provider;
 
         public AbstractQueryable2(
+            QueryProvider provider,
             Type elementType,
-            Expression expression,
-            QueryProvider provider)
+            Expression expression)
         {
+            this.provider = provider;
             this.elementType = elementType;
             this.expression = expression;
-            this.provider = provider;
+        }
+
+        public QueryProvider getProvider() {
+            return provider;
         }
 
         public Type getElementType() {
@@ -3199,10 +3209,6 @@ public class Extensions {
 
         public Expression getExpression() {
             return expression;
-        }
-
-        public QueryProvider getProvider() {
-            return provider;
         }
 
         public Iterator<TSource> iterator() {

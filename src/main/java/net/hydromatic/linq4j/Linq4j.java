@@ -25,6 +25,16 @@ import java.util.*;
 public class Linq4j {
     private static final Object DUMMY = new Object();
 
+    /** Query provider that simply executes a {@link Queryable} by calling its
+     * enumerator method; does not attempt optimization. */
+    public static final QueryProvider DEFAULT_PROVIDER =
+        new QueryProviderImpl() {
+            protected <T> Enumerator<T> executeQuery(QueryableImpl<T> queryable)
+            {
+                return queryable.enumerator();
+            }
+        };
+
     private static final Enumerator<Object> EMPTY_ENUMERATOR =
         new Enumerator<Object>() {
             public Object current() {

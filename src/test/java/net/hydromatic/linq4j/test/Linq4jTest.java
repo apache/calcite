@@ -388,6 +388,39 @@ public class Linq4jTest extends TestCase {
                 .count());
     }
 
+    public void testUnion() {
+        assertEquals(
+            5,
+            Linq4j.asEnumerable(emps)
+                .union(Linq4j.asEnumerable(badEmps))
+                .union(Linq4j.asEnumerable(emps))
+                .count());
+    }
+
+    public void testIntersect() {
+        final Employee[] emps2 = {
+            new Employee(150, "Theodore", 10),
+            emps[3],
+        };
+        assertEquals(
+            1,
+            Linq4j.asEnumerable(emps)
+                .intersect(Linq4j.asEnumerable(emps2))
+                .count());
+    }
+
+    public void testExcept() {
+        final Employee[] emps2 = {
+            new Employee(150, "Theodore", 10),
+            emps[3],
+        };
+        assertEquals(
+            3,
+            Linq4j.asEnumerable(emps)
+                .except(Linq4j.asEnumerable(emps2))
+                .count());
+    }
+
     public void testGroupJoin() {
         // Note #1: Group join is a "left join": "bad employees" are filtered
         //   out, but empty departments are not.
