@@ -25,17 +25,19 @@ import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Predicate1;
 
-import net.hydromatic.optiq.Function;
+import net.hydromatic.optiq.Member;
 import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.Parameter;
-import net.hydromatic.optiq.SchemaObject;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
+import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
+
+import org.apache.commons.dbcp.BasicDataSource;
 
 import org.eigenbase.reltype.RelDataType;
 
@@ -222,6 +224,11 @@ public class JdbcTest extends TestCase {
                 + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n");
     }
 
+    /**
+     * Test that uses a JDBC connection as a linq4j {@link QueryProvider}.
+     *
+     * @throws Exception on error
+     */
     public void testQueryProvider() throws Exception {
         Connection connection = getConnectionWithHrFoodmart();
         QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
@@ -318,11 +325,9 @@ public class JdbcTest extends TestCase {
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
         MapSchema schema = new MapSchema(typeFactory);
-        schema.add(
-            ReflectiveSchema.methodFunction(
-                null,
-                GENERATE_STRINGS_METHOD,
-                typeFactory));
+        schema.addMember(
+            ReflectiveSchema.methodMember(
+                GENERATE_STRINGS_METHOD, typeFactory));
         optiqConnection.getRootSchema().add("s", schema, null);
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
@@ -339,8 +344,8 @@ public class JdbcTest extends TestCase {
 
     public static Queryable<IntString> generateStrings(final int count) {
         return new Extensions.AbstractQueryable2<IntString>(
-            IntString.class,
             null,
+            IntString.class,
             null)
         {
             public Enumerator<IntString> enumerator() {
@@ -385,16 +390,12 @@ public class JdbcTest extends TestCase {
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
         MapSchema schema = new MapSchema(typeFactory);
-        schema.add(
-            ReflectiveSchema.methodFunction(
-                null,
-                GENERATE_STRINGS_METHOD,
-                typeFactory));
-        schema.add(
-            ReflectiveSchema.methodFunction(
-                null,
-                STRING_UNION_METHOD,
-                typeFactory));
+        schema.addMember(
+            ReflectiveSchema.methodMember(
+                GENERATE_STRINGS_METHOD, typeFactory));
+        schema.addMember(
+            ReflectiveSchema.methodMember(
+                STRING_UNION_METHOD, typeFactory));
         optiqConnection.getRootSchema().add("s", schema, null);
         optiqConnection.getRootSchema().add("hr", new HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
@@ -417,11 +418,9 @@ public class JdbcTest extends TestCase {
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
         MapSchema schema = new MapSchema(typeFactory);
-        schema.add(
+        schema.addMember(
             viewFunction(
-                typeFactory,
-                "emps_view",
-                "select * from \"hr\".\"emps\""));
+                typeFactory, "emps_view", "select * from \"hr\".\"emps\""));
         MutableSchema rootSchema = optiqConnection.getRootSchema();
         rootSchema.add("s", schema, schema.getInstanceMap());
         rootSchema.add("hr", new HrSchema());
@@ -431,10 +430,10 @@ public class JdbcTest extends TestCase {
         assertTrue(resultSet.next());
     }
 
-    private SchemaObject viewFunction(
+    private Member viewFunction(
         JavaTypeFactory typeFactory, final String name, String viewSql)
     {
-        return new Function() {
+        return new Member() {
             public List<Parameter> getParameters() {
                 return Collections.emptyList();
             }
@@ -444,7 +443,7 @@ public class JdbcTest extends TestCase {
                 throw new UnsupportedOperationException();
             }
 
-            public Object evaluate(List<Object> arguments) {
+            public Queryable evaluate(Object target, List<Object> arguments) {
                 // TODO: return a Queryable that wraps the parse tree
                 throw new UnsupportedOperationException();
             }
@@ -546,14 +545,38 @@ public class JdbcTest extends TestCase {
         return connection;
     }
 
-    public Xxxx assertQuery(String s) {
-        return new Xxxx(s);
+    public void testFoodMartJdbc() throws Exception {
+        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection connection =
+            DriverManager.getConnection("jdbc:optiq:");
+        OptiqConnection optiqConnection =
+            connection.unwrap(OptiqConnection.class);
+        BasicDataSource dataSource = new BasicDataSource();
+        dataSource.setUrl("jdbc:mysql://localhost");
+        dataSource.setUsername("foodmart");
+        dataSource.setPassword("foodmart");
+        optiqConnection.getRootSchema().add(
+            "foodmart",
+            new JdbcSchema(
+                dataSource, null, null, optiqConnection.getTypeFactory()),
+            null);
+        Statement statement = connection.createStatement();
+        ResultSet resultSet =
+            statement.executeQuery("select * from \"foodmart\".\"customers\"");
+        while (resultSet.next()) {
+            System.out.println(resultSet.getString(1));
+        }
     }
 
-    private class Xxxx {
+    public AssertQuery assertQuery(String s) {
+        return new AssertQuery(s);
+    }
+
+    private class AssertQuery {
         private final String sql;
 
-        Xxxx(String sql) {
+        AssertQuery(String sql) {
             super();
             this.sql = sql;
         }

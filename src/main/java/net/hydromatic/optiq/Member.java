@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq;
 
+import net.hydromatic.linq4j.Queryable;
+
 import org.eigenbase.reltype.RelDataType;
 
 import java.util.List;
@@ -24,29 +26,34 @@ import java.util.List;
 /**
  * A named expression in a schema.
  *
- * <h2>Examples of functions</h2>
+ * <h2>Examples of members</h2>
  *
- * <p>Several kinds of functions crop up in real life. They all implement the
- * {@code Function} interface, but tend to be treated differently by the
+ * <p>Several kinds of members crop up in real life. They all implement the
+ * {@code Member} interface, but tend to be treated differently by the
  * back-end system if not by Optiq.</p>
  *
- * <p>A function that has zero arguments and a type that is a collection of
+ * <p>A member that has zero arguments and a type that is a collection of
  * records is referred to as a <i>relation</i>. In schemas backed by a
  * relational database, tables and views will appear as relations.</p>
  *
- * <p>A function that has one or more arguments and a type that is a collection
+ * <p>A member that has one or more arguments and a type that is a collection
  * of records is referred to as a <i>parameterized relation</i>. Some relational
  * databases support these; for example, Oracle calls them "table
  * functions".</p>
  *
- * <p>Functions may be also more typical of programming-language functions:
+ * <p>Members may be also more typical of programming-language functions:
  * they take zero or more arguments, and return a result of arbitrary type.</p>
  *
- * <p>From the above definitions, you can see that a relation is a special
+ * <p>From the above definitions, you can see that a member is a special
  * kind of function. This makes sense, because even though it has no
  * arguments, it is "evaluated" each time it is used in a query.</p>
  */
-public interface Function extends SchemaObject {
+public interface Member {
+    /**
+     * The name of this function.
+     */
+    String getName();
+
     /**
      * Returns the parameters of this function.
      *
@@ -62,10 +69,19 @@ public interface Function extends SchemaObject {
     RelDataType getType();
 
     /**
-     * Evaluates to yield a result. Typically the result will be a
+     * Evaluates this member to yield a result. The result is a
      * {@link net.hydromatic.linq4j.Queryable}.
+     *
+     * @param schemaInstance Object that is an instance of the containing
+     *                       {@link net.hydromatic.optiq.Schema}
+     * @param arguments List of arguments to the call; must match
+     *                  {@link #getParameters() parameters} in number and type
+     *
+     * @return An instance of this schema object, as a Queryable
      */
-    Object evaluate(List<Object> arguments);
+    Queryable evaluate(
+        Object schemaInstance,
+        List<Object> arguments);
 }
 
-// End Function.java
+// End Member.java

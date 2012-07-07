@@ -39,8 +39,8 @@ public class ObjectEnumeratorCursor extends AbstractCursor {
     }
 
     @Override
-    protected Getter createGetter(int ordinal, boolean[] wasNull) {
-        return new ObjectEnumeratorGetter(ordinal, wasNull);
+    protected Getter createGetter(int ordinal) {
+        return new ObjectEnumeratorGetter(ordinal);
     }
 
     @Override
@@ -49,11 +49,8 @@ public class ObjectEnumeratorCursor extends AbstractCursor {
     }
 
     class ObjectEnumeratorGetter implements Getter {
-        protected final boolean[] wasNull;
-
-        public ObjectEnumeratorGetter(int field, boolean[] wasNull) {
+        public ObjectEnumeratorGetter(int field) {
             assert field == 0;
-            this.wasNull = wasNull;
         }
 
         public Object getObject() {

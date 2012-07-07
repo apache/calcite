@@ -19,6 +19,7 @@ package net.hydromatic.optiq.impl.java;
 
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
+import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
@@ -43,8 +44,12 @@ public class MapSchema implements MutableSchema {
         }
     }
 
-    protected final Map<String, SchemaObject> map =
-        new HashMap<String, SchemaObject>();
+    protected final Map<String, List<Member>> membersMap =
+        new HashMap<String, List<Member>>();
+
+    protected final Map<String, Schema> subSchemaMap =
+        new HashMap<String, Schema>();
+
     private final JavaTypeFactory typeFactory;
 
     private final Map<String, Object> instanceMap =
@@ -54,21 +59,29 @@ public class MapSchema implements MutableSchema {
         this.typeFactory = typeFactory;
     }
 
-    public SchemaObject get(String name) {
-        return map.get(name);
+    public List<Member> getMembers(String name) {
+        List<Member> members = membersMap.get(name);
+        if (members != null) {
+            return members;
+        }
+        return Collections.emptyList();
     }
 
-    public void add(SchemaObject schemaObject) {
-        map.put(schemaObject.getName(), schemaObject);
+    public Schema getSubSchema(String name) {
+        return subSchemaMap.get(name);
+    }
+
+    public void addMember(Member member) {
+        putMulti(membersMap, member.getName(), member);
     }
 
     public void add(String name, Schema schema, Object o) {
-        map.put(name, new SchemaLink(name, schema));
+        subSchemaMap.put(name, schema);
         instanceMap.put(name, o);
     }
 
     public void add(final String name, Object o) {
-        Schema schema = new ReflectiveSchema(o, typeFactory);
+        Schema schema = new ReflectiveSchema(o.getClass(), typeFactory);
         add(name, schema, o);
     }
 
@@ -76,15 +89,8 @@ public class MapSchema implements MutableSchema {
         return Collections.unmodifiableMap(instanceMap);
     }
 
-    public Map<String, SchemaObject> asMap() {
-        return Collections.unmodifiableMap(map);
-    }
-
-    public Expression getExpression(
-        Expression schemaExpression,
-        SchemaObject schemaObject,
-        String name,
-        List<Expression> arguments)
+    public Expression getMemberExpression(
+        Expression schemaExpression, Member member, List<Expression> arguments)
     {
         // (Type) schemaExpression.get("name")
         Expression call =
@@ -92,19 +98,8 @@ public class MapSchema implements MutableSchema {
                 schemaExpression,
                 MAP_GET_METHOD,
                 Collections.<Expression>singletonList(
-                    Expressions.constant(name)));
-        Object o = schemaObject;
-        if (schemaObject instanceof SchemaLink) {
-            o = ((SchemaLink) schemaObject).schema;
-            if (false) {
-                call =
-                    Expressions.field(
-                        Expressions.convert_(
-                            call,
-                            SchemaLink.class),
-                        "schema");
-            }
-        }
+                    Expressions.constant(member.getName())));
+        Object o = member;
         Class clazz = deduceClass(o);
         if (clazz != null && clazz != Object.class) {
             return Expressions.convert_(call, clazz);
@@ -112,10 +107,23 @@ public class MapSchema implements MutableSchema {
         return call;
     }
 
-    public Object getSubSchema(
-        Object schema, String name, List<Type> parameterTypes)
+    public Object getSubSchemaInstance(
+        Object schemaInstance,
+        String subSchemaName,
+        Schema subSchema)
     {
-        return ((Map) schema).get(name);
+        throw new UnsupportedOperationException();
+    }
+
+    public Expression getSubSchemaExpression(
+        Expression schemaExpression, Schema schema, String name)
+    {
+        return Expressions.convert_(
+            Expressions.call(
+                schemaExpression,
+                MAP_GET_METHOD,
+                Expressions.constant(name)),
+            ((ReflectiveSchema) schema).clazz);
     }
 
     private List<RelDataType> convert(List<Type> types) {
@@ -129,8 +137,8 @@ public class MapSchema implements MutableSchema {
     private Class deduceClass(Object schemaObject) {
         // REVIEW: Can we remove the dependency on RelDataType and work in
         //   terms of Class?
-        if (schemaObject instanceof Function) {
-            RelDataType type = ((Function) schemaObject).getType();
+        if (schemaObject instanceof Member) {
+            RelDataType type = ((Member) schemaObject).getType();
             return typeFactory.getJavaClass(type);
         }
         if (schemaObject instanceof ReflectiveSchema) {
@@ -139,6 +147,20 @@ public class MapSchema implements MutableSchema {
             return typeFactory.getJavaClass(type);
         }
         return null;
+    }
+
+    protected static <K, V> void putMulti(
+        Map<K, List<V>> map, K k, V v)
+    {
+        List<V> list = map.put(k, Collections.singletonList(v));
+        if (list == null) {
+            return;
+        }
+        if (list.size() == 1) {
+            list = new ArrayList<V>(list);
+        }
+        list.add(v);
+        map.put(k, list);
     }
 }
 

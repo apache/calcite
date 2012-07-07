@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.impl.java;
 
+import net.hydromatic.linq4j.Linq4j;
+import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 
@@ -24,12 +26,10 @@ import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.type.SqlTypeUtil;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.util.*;
 
 /**
@@ -40,29 +40,51 @@ public class ReflectiveSchema
     extends MapSchema
 {
     private final RelDataType type;
-    private final Object o;
+    final Class clazz;
+    private final Method parentMethod;
 
     /**
      * Creates a ReflectiveSchema.
      *
-     * @param o The object whose fields will be sub-objects
+     * @param clazz Class whose fields will be sub-objects
      * @param typeFactory Type factory
      */
     public ReflectiveSchema(
-        Object o,
+        Class clazz,
         JavaTypeFactory typeFactory)
     {
+        this(clazz, typeFactory, null);
+    }
+
+    /**
+     * Creates a ReflectiveSchema that is optionally a sub-schema.
+     *
+     * @param clazz Class whose fields will be sub-objects
+     * @param typeFactory Type factory
+     */
+    protected ReflectiveSchema(
+        Class clazz,
+        JavaTypeFactory typeFactory,
+        Method parentMethod)
+    {
         super(typeFactory);
-        this.o = o;
-        this.type = typeFactory.createType(o.getClass());
-        Class<?> clazz = o.getClass();
+        this.clazz = clazz;
+        this.parentMethod = parentMethod;
+        this.type = typeFactory.createType(clazz);
         for (Field field : clazz.getFields()) {
-            map.put(field.getName(), fieldRelation(o, field, typeFactory));
+            putMulti(
+                membersMap,
+                field.getName(),
+                fieldRelation(field, typeFactory));
         }
         for (Method method : clazz.getMethods()) {
+            if (method.getDeclaringClass() == Object.class) {
+                continue;
+            }
             putMulti(
+                membersMap,
                 method.getName(),
-                methodFunction(o, method, typeFactory));
+                methodMember(method, typeFactory));
         }
     }
 
@@ -70,95 +92,44 @@ public class ReflectiveSchema
         return type;
     }
 
-    private void putMulti(String name, Function function) {
-        SchemaObject x = map.put(name, function);
-        if (x == null) {
-            return;
-        }
-        OverloadImpl overload;
-        if (x instanceof OverloadImpl) {
-            overload = (OverloadImpl) x;
-        } else {
-            overload = new OverloadImpl(name);
-        }
-        overload.list.add(function);
-    }
-
-    public Expression getExpression(
-        Expression schemaExpression,
-        SchemaObject schemaObject,
-        String name,
-        List<Expression> arguments)
+    public Expression getMemberExpression(
+        Expression schemaExpression, Member member, List<Expression> arguments)
     {
-        return ((FunctionPlus) schemaObject).getExpression(
+        return ((Schemas.MemberPlus) member).getExpression(
             schemaExpression, arguments);
     }
 
     @Override
-    public Object getSubSchema(
-        Object schema, String name, List<Type> parameterTypes)
+    public Expression getSubSchemaExpression(
+        Expression schemaExpression, Schema schema, String name)
     {
-        SchemaObject schemaObject = get(name);
-        throw new UnsupportedOperationException(); // TODO:
+        return super.getSubSchemaExpression(schemaExpression, schema, name);
     }
 
-    private interface FunctionPlus extends Function {
-        public Expression getExpression(
-            Expression schemaExpression,
-            List<Expression> argumentExpressions);
-    }
-
-    private static class OverloadImpl implements Overload {
-        final List<Function> list = new ArrayList<Function>();
-        private final String name;
-
-        public OverloadImpl(String name) {
-            this.name = name;
-        }
-
-        public Function resolve(List<RelDataType> argumentTypes) {
-            final List<Function> matches = new ArrayList<Function>();
-            for (Function function : list) {
-                if (matches(function, argumentTypes)) {
-                    matches.add(function);
-                }
-            }
-            return null; // TODO:
-        }
-
-        private boolean matches(
-            Function function,
-            List<RelDataType> argumentTypes)
-        {
-            List<Parameter> parameters = function.getParameters();
-            if (parameters.size() != argumentTypes.size()) {
-                return false;
-            }
-            for (int i = 0; i < argumentTypes.size(); i++) {
-                RelDataType argumentType = argumentTypes.get(i);
-                Parameter parameter = parameters.get(i);
-                if (!canConvert(argumentType, parameter.getType())) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private boolean canConvert(RelDataType fromType, RelDataType toType) {
-            return SqlTypeUtil.canAssignFrom(toType, fromType);
-        }
-
-        public String getName() {
-            return name;
-        }
-    }
-
-    public static Function methodFunction(
-        final Object o,
-        final Method method,
-        final RelDataTypeFactory typeFactory)
+    @Override
+    public Object getSubSchemaInstance(
+        Object schemaInstance,
+        String subSchemaName,
+        Schema subSchema)
     {
-        return new FunctionPlus() {
+        return ((ReflectiveSchema) subSchema)
+            .instanceFromParent(schemaInstance);
+    }
+
+    private Object instanceFromParent(Object parentSchemaInstance) {
+        try {
+            return parentMethod.invoke(parentSchemaInstance);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Member methodMember(
+        final Method method, final RelDataTypeFactory typeFactory)
+    {
+        return new Schemas.MemberPlus() {
             final Class<?>[] parameterTypes = method.getParameterTypes();
             public List<Parameter> getParameters() {
                 return new AbstractList<Parameter>() {
@@ -189,9 +160,10 @@ public class ReflectiveSchema
                 return typeFactory.createJavaType(method.getReturnType());
             }
 
-            public Object evaluate(List<Object> arguments) {
+            public Queryable evaluate(Object target, List<Object> arguments) {
                 try {
-                    return method.invoke(o, arguments.toArray());
+                    Object o = method.invoke(target, arguments.toArray());
+                    return toQueryable(o);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(
                         "Error while invoking method " + method, e);
@@ -215,13 +187,12 @@ public class ReflectiveSchema
         };
     }
 
-    private SchemaObject fieldRelation(
-        final Object o,
+    private Member fieldRelation(
         final Field field,
         JavaTypeFactory typeFactory)
     {
         final RelDataType type = typeFactory.createType(field.getType());
-        return new FunctionPlus() {
+        return new Schemas.MemberPlus() {
             public List<Parameter> getParameters() {
                 return Collections.emptyList();
             }
@@ -230,10 +201,11 @@ public class ReflectiveSchema
                 return type;
             }
 
-            public Object evaluate(List<Object> arguments) {
+            public Queryable evaluate(Object target, List<Object> arguments) {
                 assert arguments == null || arguments.isEmpty();
                 try {
-                    return field.get(o);
+                    Object o = field.get(target);
+                    return toQueryable(o);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(
                         "Error while accessing field " + field, e);
@@ -252,6 +224,22 @@ public class ReflectiveSchema
                 return Expressions.field(schemaExpression, field);
             }
         };
+    }
+
+    private static Queryable toQueryable(Object o) {
+        if (o.getClass().isArray()) {
+            if (o instanceof Object[]) {
+                return Linq4j.asEnumerable((Object[]) o)
+                    .asQueryable();
+            }
+            // TODO: adapter for primitive arrays, e.g. float[].
+            throw new UnsupportedOperationException();
+        }
+        if (o instanceof Iterable) {
+            return Linq4j.asEnumerable((Iterable) o).asQueryable();
+        }
+        throw new RuntimeException(
+            "Cannot convert " + o.getClass() + " into a Queryable");
     }
 
 }

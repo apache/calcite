@@ -15,18 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq;
-
-import java.util.Map;
 
 /**
- * Schema that can be modified.
+ * Main package for Optiq, the dynamic data management platform.
  */
-public interface MutableSchema extends Schema {
-    void addMember(Member member);
-    void add(String name, Schema schema, Object o);
-    void add(String name, Object o);
-    Map getInstanceMap();
-}
+package net.hydromatic.optiq;
 
-// End MutableSchema.java
+// End package-info.java

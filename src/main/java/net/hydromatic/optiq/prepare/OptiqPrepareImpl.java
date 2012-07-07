@@ -52,6 +52,7 @@ import org.eigenbase.sql.type.MultisetSqlType;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
+import org.eigenbase.util.Pair;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -485,23 +486,33 @@ class OptiqPrepareImpl implements OptiqPrepare {
         }
 
         public Table getTable(final String[] names) {
+            List<Pair<String, Object>> pairs =
+                new ArrayList<Pair<String, Object>>();
             Schema schema2 = schema;
-            Expression expression = rootExpression;
             for (int i = 0; i < names.length; i++) {
                 final String name = names[i];
-                final SchemaObject schemaObject = schema2.get(name);
+                Schema subSchema = schema2.getSubSchema(name);
+                if (subSchema != null) {
+                    pairs.add(Pair.<String, Object>of(name, subSchema));
+                    schema2 = subSchema;
+                    continue;
+                }
+                final List<Member> members = schema2.getMembers(name);
                 final List<Expression> arguments = Collections.emptyList();
-                expression = schema2.getExpression(
-                    expression,
-                    schemaObject,
-                    name,
-                    arguments);
-                if (schemaObject instanceof Function) {
+                Member member =
+                    Schemas.resolve(
+                        members,
+                        Collections.<RelDataType>emptyList());
+                if (member != null) {
+                    pairs.add(Pair.<String, Object>of(name, member));
                     if (i != names.length - 1) {
+                        // not enough objects to match all names
                         return null;
                     }
-                    RelDataType type = ((Function) schemaObject).getType();
+                    RelDataType type = member.getType();
                     if (type instanceof MultisetSqlType) {
+                        Expression expression =
+                            foo(schema, rootExpression, pairs);
                         return new Table(
                             this,
                             type.getComponentType(),
@@ -509,13 +520,35 @@ class OptiqPrepareImpl implements OptiqPrepare {
                             toEnumerable(expression));
                     }
                 }
-                if (schemaObject instanceof SchemaLink) {
-                    schema2 = ((SchemaLink) schemaObject).schema;
-                    continue;
-                }
                 return null;
             }
             return null;
+        }
+
+        private Expression foo(
+            Schema schema,
+            Expression expression,
+            List<Pair<String, Object>> pairs)
+        {
+            for (Pair<String, Object> pair : pairs) {
+                String name = pair.left;
+                Object object = pair.right;
+                if (object instanceof Schema) {
+                    Schema subSchema = (Schema) object;
+                    expression =
+                        schema.getSubSchemaExpression(
+                            expression, subSchema, name);
+                    schema = subSchema;
+                } else {
+                    Member member = (Member) object;
+                    expression =
+                        schema.getMemberExpression(
+                            expression,
+                            member,
+                            Collections.<Expression>emptyList());
+                }
+            }
+            return expression;
         }
 
         private Expression toEnumerable(Expression expression) {

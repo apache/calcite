@@ -36,14 +36,10 @@ public interface Cursor {
     /**
      * Creates a list of accessors, one per column.
      *
-     * @param wasNull Slot into which each accessor should write whether the
-     *                value returned was null.
-     * @param types List of column types, per {@link Types}.
+     * @param types List of column types, per {@link java.sql.Types}.
      * @return List of column accessors
      */
-    List<Accessor> createAccessors(
-        boolean[] wasNull,
-        List<Integer> types);
+    List<Accessor> createAccessors(List<Integer> types);
 
     /**
      * Moves to the next row.

@@ -20,7 +20,7 @@ package net.hydromatic.optiq;
 /**
  * A member of a {@link Schema}.
  *
- * <p>May be a {@link Function} or an {@link Overload}.</p>
+ * <p>May be a {@link Member} or an {@link Overload}.</p>
  */
 public interface SchemaObject {
     /**

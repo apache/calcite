@@ -20,11 +20,11 @@ package net.hydromatic.optiq;
 import org.eigenbase.reltype.RelDataType;
 
 /**
- * Parameter to a {@link net.hydromatic.optiq.Function}.
+ * Parameter to a {@link Member}.
  */
 public interface Parameter {
     /**
-     * Zero-based ordinal of this parameter within the function's parameter
+     * Zero-based ordinal of this parameter within the member's parameter
      * list.
      *
      * @return Parameter ordinal

@@ -37,28 +37,27 @@ import java.util.Map;
  * @author jhyde
  */
 abstract class AbstractCursor implements Cursor {
+    /**
+     * Slot into which each accessor should write whether the
+     * value returned was null.
+     */
+    protected final boolean[] wasNull = {false};
+
     protected AbstractCursor() {
     }
 
-    public List<Accessor> createAccessors(
-        boolean[] wasNull,
-        List<Integer> types)
-    {
+    public List<Accessor> createAccessors(List<Integer> types) {
         List<Accessor> accessors = new ArrayList<Accessor>();
         for (int type : types) {
-            accessors.add(createAccessor(type, accessors.size(), wasNull));
+            accessors.add(createAccessor(type, accessors.size()));
         }
         return accessors;
     }
 
-    protected Accessor createAccessor(
-        int type,
-        int ordinal,
-        boolean[] wasNull)
-    {
+    protected Accessor createAccessor(int type, int ordinal) {
         // Create an accessor appropriate to the underlying type; the accessor
         // can convert to any type in the same family.
-        Getter getter = createGetter(ordinal, wasNull);
+        Getter getter = createGetter(ordinal);
         switch (type) {
         case Types.TINYINT:
             return new ByteAccessor(getter);
@@ -85,7 +84,7 @@ abstract class AbstractCursor implements Cursor {
         }
     }
 
-    protected abstract Getter createGetter(int ordinal, boolean[] wasNull);
+    protected abstract Getter createGetter(int ordinal);
 
     public abstract boolean next();
 
@@ -512,7 +511,6 @@ abstract class AbstractCursor implements Cursor {
     protected interface Getter {
         Object getObject();
 
-        // REVIEW: should this be in Cursor instead?
         boolean wasNull();
     }
 }

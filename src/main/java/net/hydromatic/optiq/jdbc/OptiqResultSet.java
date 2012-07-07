@@ -109,7 +109,6 @@ public class OptiqResultSet implements ResultSet {
             prepareResult.columnList;
         this.accessorList =
             cursor.createAccessors(
-                new boolean[1],
                 new AbstractList<Integer>() {
                     public Integer get(int index) {
                         return columnMetaDataList.get(index).type;

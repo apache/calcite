@@ -15,25 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq;
 
 /**
- * A schema included in another schema with a given name.
- *
- * @author jhyde
+ * Main package for Optiq, the dynamic data management platform.
  */
-public final class SchemaLink implements SchemaObject {
-    public final String name;
-    public final Schema schema;
+package net.hydromatic.optiq;
 
-    public SchemaLink(String name, Schema schema) {
-        this.name = name;
-        this.schema = schema;
-    }
-
-    public String getName() {
-        return name;
-    }
-}
-
-// End SchemaLink.java
+// End package-info.java

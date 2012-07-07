@@ -19,51 +19,57 @@ package net.hydromatic.optiq;
 
 import net.hydromatic.linq4j.expressions.Expression;
 
-import java.lang.reflect.Type;
 import java.util.List;
-import java.util.Map;
 
 /**
- * A namespace that returns relations and functions.
+ * A namespace for relations and functions.
  *
- * <p>Most of the time, {@link #get(String)} return a {@link Function}.
- * The most common and important type of Function is the one with no
- * arguments and a result type that is a collection of records. It is
- * equivalent to a table in a relational database.</p>
+ * <p>A schema can contain sub-schemas, to any level of nesting. Most
+ * providers have a limited number of levels; for example, most JDBC databases
+ * have either one level ("schemas") or two levels ("database" and
+ * "catalog").</p>
+ *
+ * <p>Other than sub-schemas, the contents of a schema are called members.
+ * A member may or may not have parameters, and its result may or may not be
+ * a set.</p>
+ *
+ * <p>There may be multiple overloaded members with the same name but
+ * different numbers or types of parameters.
+ * For this reason, {@link #getMembers} returns a list of all
+ * members with the same name. Optiq will call
+ * {@link Schemas#resolve(java.util.List, java.util.List)} to choose the
+ * appropriate one.</p>
+ *
+ * <p>The most common and important type of member is the one with no
+ * arguments and a result type that is a collection of records. This is called a
+ * <dfn>relation</dfn>. It is equivalent to a table in a relational
+ * database.</p>
  *
  * <p>For example, the query</p>
  *
  * <blockquote>select * from sales.emps</blockquote>
  *
  * <p>is valid if "sales" is a registered
- * schema and "emps" is a function with zero parameters and a result type
- * of {@code Collection(Record(int: "empno", String: "name"))}.</p>
- *
- * <p>If there are overloaded functions, then there may be more than one
- * object with a particular name. In this case, {@link #get} returns
- * an {@link Overload}.</p>
+ * schema and "emps" is a member with zero parameters and a result type
+ * of <code>Collection(Record(int: "empno", String: "name"))</code>.</p>
  *
  * <p>A schema is a {@link SchemaObject}, which implies that schemas can
  * be nested within schemas.</p>
  */
 public interface Schema {
     /**
-     * Returns a sub-object with the given name, or null if there is no such
-     * object. The sub-object might be a {@link Schema}, or a {@link Function},
-     * or a {@link Overload} if there are several functions with the same name
-     * but different signatures.
-     *
-     * @param name Name of sub-object
-     * @return Sub-object, or null
+     * Returns a sub-schema with a given name, or null.
      */
-    SchemaObject get(String name);
+    Schema getSubSchema(String name);
 
     /**
-     * Returns a map whose keys are the names of available sub-objects.
+     * Returns a list of members in this schema with the given name, or empty
+     * list if there is no such member.
      *
-     * @return Map from sub-object names to sub-objects.
+     * @param name Name of member
+     * @return List of members with given name, or empty list
      */
-    Map<String, SchemaObject> asMap();
+    List<Member> getMembers(String name);
 
     /**
      * Returns the expression for a sub-object "name" or "name(argument, ...)",
@@ -76,30 +82,33 @@ public interface Schema {
      * "(Enumerable&lt;Employee&gt;) foodmart.get(&quot;emps&quot;)".</p>
      *
      * @param schemaExpression Expression for schema
-     * @param name Name of schema object
+     * @param member Member
      * @param arguments Arguments to schema object (null means no argument list)
      * @return Expression for a given schema object
      */
-    Expression getExpression(
+    Expression getMemberExpression(
         Expression schemaExpression,
-        SchemaObject schemaObject,
-        String name,
+        Member member,
         List<Expression> arguments);
+
+    Expression getSubSchemaExpression(
+        Expression schemaExpression,
+        Schema schema,
+        String name);
 
     /**
      * Given an object that is an instance of this schema,
-     * returns an object that is an instance of the named sub-object of this
-     * schema.
+     * returns an object that is an instance of a sub-schema.
      *
-     * @param schema Schema
-     * @param name Name of sub-object
-     * @param parameterTypes Parameter types (to resolve overloaded functions)
-     * @return Sub-object
+     * @param schemaInstance Object that is an instance of this Schema
+     * @param subSchemaName Name of sub-schema
+     * @param subSchema Sub-schema
+     * @return Object that is an instance of the sub-schema
      */
-    Object getSubSchema(
-        Object schema,
-        String name,
-        List<Type> parameterTypes);
+    Object getSubSchemaInstance(
+        Object schemaInstance,
+        String subSchemaName,
+        Schema subSchema);
 }
 
 // End Schema.java
