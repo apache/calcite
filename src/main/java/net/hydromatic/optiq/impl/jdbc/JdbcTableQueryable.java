@@ -19,8 +19,14 @@ package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.AbstractQueryable;
 import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
+import net.hydromatic.linq4j.expressions.Expressions;
+import net.hydromatic.linq4j.expressions.ParameterExpression;
+
+import org.eigenbase.sql.SqlWriter;
+import org.eigenbase.sql.pretty.SqlPrettyWriter;
 
 import java.lang.reflect.Type;
 import java.util.Iterator;
@@ -38,20 +44,20 @@ import java.util.Iterator;
  */
 public class JdbcTableQueryable<T> extends AbstractQueryable<T> {
     private final Type elementType;
-    private final Expression expression;
-    private final QueryProvider queryProvider;
+    private final JdbcDataContext dataContext;
     private final String tableName;
+
+    private static final ParameterExpression DC =
+        Expressions.parameter(JdbcDataContext.class, "dc");
 
     public JdbcTableQueryable(
         Type elementType,
-        Expression expression,
-        QueryProvider queryProvider,
+        JdbcDataContext dataContext,
         String tableName)
     {
         super();
         this.elementType = elementType;
-        this.expression = expression;
-        this.queryProvider = queryProvider;
+        this.dataContext = dataContext;
         this.tableName = tableName;
     }
 
@@ -60,19 +66,33 @@ public class JdbcTableQueryable<T> extends AbstractQueryable<T> {
     }
 
     public Expression getExpression() {
-        return expression;
+        return Expressions.lambda(
+            Expressions.call(
+                DC,
+                "getTable",
+                Expressions.constant(tableName),
+                Expressions.constant(elementType)));
     }
 
     public QueryProvider getProvider() {
-        return queryProvider;
+        return dataContext.queryProvider;
     }
 
-    public Iterator iterator() {
-        return null;
+    public Iterator<T> iterator() {
+        return Linq4j.enumeratorIterator(enumerator());
     }
 
-    public Enumerator enumerator() {
-        return null;
+    public Enumerator<T> enumerator() {
+        SqlWriter writer = new SqlPrettyWriter(dataContext.dialect);
+        writer.keyword("select");
+        writer.literal("*");
+        writer.keyword("from");
+        writer.identifier("foodmart");
+        writer.literal(".");
+        writer.identifier(tableName);
+        final String sql = writer.toString();
+
+        return JdbcUtils.sqlEnumerator(sql, dataContext);
     }
 }
 

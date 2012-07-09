@@ -29,7 +29,7 @@ import java.util.Arrays;
  *
  * @author jhyde
  */
-class ByteString implements Comparable<ByteString>, Serializable {
+public class ByteString implements Comparable<ByteString>, Serializable {
     private final byte[] bytes;
 
     private static final char[] digits = {

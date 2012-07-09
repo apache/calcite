@@ -19,6 +19,8 @@ package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
+import net.hydromatic.linq4j.expressions.Expressions;
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.Member;
 import net.hydromatic.optiq.Parameter;
 import net.hydromatic.optiq.Schema;
@@ -27,6 +29,7 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.type.SqlTypeName;
 
+import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.Collections;
 import java.util.List;
@@ -68,6 +71,10 @@ public class JdbcSchema implements Schema {
         this.typeFactory = typeFactory;
     }
 
+    public Type getType() {
+        return DataContext.class;
+    }
+
     public List<Member> getMembers(final String name) {
         Connection connection = null;
         ResultSet resultSet = null;
@@ -82,22 +89,23 @@ public class JdbcSchema implements Schema {
             if (!resultSet.next()) {
                 return Collections.emptyList();
             }
-            final String tableName = resultSet.getString(2);
+            final String catalogName = resultSet.getString(1);
+            final String schemaName = resultSet.getString(2);
+            final String tableName = resultSet.getString(3);
             resultSet.close();
             resultSet = metaData.getColumns(
-                connection.getCatalog(),
-                connection.getSchema(),
+                catalogName,
+                schemaName,
                 tableName,
                 null);
             final RelDataTypeFactory.FieldInfoBuilder fieldInfo =
                 new RelDataTypeFactory.FieldInfoBuilder();
             while (resultSet.next()) {
-                final String columnName = resultSet.getString(3);
+                final String columnName = resultSet.getString(4);
                 final int dataType = resultSet.getInt(5);
                 final int size = resultSet.getInt(7);
                 final int scale = resultSet.getInt(9);
-                RelDataType sqlType = typeFactory.createSqlType(
-                    SqlTypeName.getNameForJdbcType(dataType), size, scale);
+                RelDataType sqlType = zzz(dataType, size, scale);
                 boolean nullable = resultSet.getBoolean(11);
                 if (nullable) {
                     sqlType =
@@ -105,9 +113,16 @@ public class JdbcSchema implements Schema {
                 }
                 fieldInfo.add(columnName, sqlType);
             }
-            final RelDataType type = typeFactory.createStructType(fieldInfo);
+            final RelDataType type =
+                typeFactory.createMultisetType(
+                    typeFactory.createStructType(fieldInfo), -1);
             return Collections.<Member>singletonList(
                 new Member() {
+                    @Override
+                    public String toString() {
+                        return "JdbcTable {" + tableName + "}";
+                    }
+
                     public List<Parameter> getParameters() {
                         return Collections.emptyList();
                     }
@@ -136,6 +151,21 @@ public class JdbcSchema implements Schema {
         }
     }
 
+    private RelDataType zzz(int dataType, int precision, int scale) {
+        SqlTypeName sqlTypeName = SqlTypeName.getNameForJdbcType(dataType);
+        if (precision >= 0
+            && scale >= 0
+            && sqlTypeName.allowsPrecScale(true, true))
+        {
+            return typeFactory.createSqlType(sqlTypeName, precision, scale);
+        } else if (precision >= 0 && sqlTypeName.allowsPrecNoScale()) {
+            return typeFactory.createSqlType(sqlTypeName, precision);
+        } else {
+            assert sqlTypeName.allowsNoPrecNoScale();
+            return typeFactory.createSqlType(sqlTypeName);
+        }
+    }
+
     private Queryable getTableQueryable(String tableName) {
         throw new UnsupportedOperationException(); // TODO:
     }
@@ -150,10 +180,12 @@ public class JdbcSchema implements Schema {
     public Expression getMemberExpression(
         Expression schemaExpression, Member member, List<Expression> arguments)
     {
-        throw new UnsupportedOperationException(
-            "schemaExpression=" + schemaExpression
-            + ", schemaObject=" + member
-            + ", arguments=" + arguments);
+        assert arguments.isEmpty();
+        return Expressions.call(
+            schemaExpression,
+            "getTable",
+            Expressions.constant(member.getName()),
+            Expressions.constant(Object[].class));
     }
 
     public Schema getSubSchema(String name) {

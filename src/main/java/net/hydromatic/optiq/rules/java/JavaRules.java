@@ -209,10 +209,10 @@ public class JavaRules {
             final List<ParameterExpression> parameters =
                 Arrays.asList(
                     Expressions.parameter(
-                        EnumUtil.javaClass(typeFactory, left.getRowType()),
+                        EnumUtil.javaRowClass(typeFactory, left.getRowType()),
                         "left"),
                     Expressions.parameter(
-                        EnumUtil.javaClass(typeFactory, right.getRowType()),
+                        EnumUtil.javaRowClass(typeFactory, right.getRowType()),
                         "right"));
 
             // Generate all fields.
@@ -257,9 +257,9 @@ public class JavaRules {
             //    }
             // }
             ParameterExpression v1 =
-                Expressions.parameter(javaClass(typeFactory, rowType), "v1");
+                Expressions.parameter(javaRowClass(typeFactory, rowType), "v1");
             Class returnType =
-                javaClass(
+                javaRowClass(
                     typeFactory, rowType.getFieldList().get(field).getType());
             if (primitive) {
                 return Expressions.lambda(
@@ -294,6 +294,13 @@ public class JavaRules {
         }
 
         static Class javaClass(
+            JavaTypeFactory typeFactory, RelDataType type)
+        {
+            final Class clazz = typeFactory.getJavaClass(type);
+            return clazz == null ? Object[].class : clazz;
+        }
+
+        static Class javaRowClass(
             JavaTypeFactory typeFactory, RelDataType type)
         {
             final Class clazz = typeFactory.getJavaClass(type);
@@ -510,7 +517,8 @@ public class JavaRules {
             final Type enumeratorType =
                 Types.of(
                     Enumerator.class, outputJavaType);
-            Class inputJavaType = EnumUtil.javaClass(typeFactory, inputRowType);
+            Class inputJavaType = EnumUtil.javaRowClass(
+                typeFactory, inputRowType);
             ParameterExpression inputEnumerator =
                 Expressions.parameter(
                     Types.of(
@@ -520,8 +528,7 @@ public class JavaRules {
                 Expressions.convert_(
                     Expressions.call(
                         inputEnumerator,
-                        "current",
-                        NO_EXPRS),
+                        "current"),
                     inputJavaType);
 
             BlockExpression moveNextBody;
@@ -530,8 +537,7 @@ public class JavaRules {
                     Blocks.toFunctionBlock(
                         Expressions.call(
                             inputEnumerator,
-                            "moveNext",
-                            NO_EXPRS));
+                            "moveNext"));
             } else {
                 final List<Statement> list = Expressions.list();
                 Expression condition =
@@ -550,8 +556,7 @@ public class JavaRules {
                         Expressions.while_(
                             Expressions.call(
                                 inputEnumerator,
-                                "moveNext",
-                                NO_EXPRS),
+                                "moveNext"),
                             Expressions.block(list)),
                         Expressions.return_(
                             null,
@@ -572,7 +577,7 @@ public class JavaRules {
                         ? expressions.get(0)
                         : Expressions.newArrayInit(
                             Object.class,
-                            expressions)));
+                            stripCasts(expressions))));
             BlockExpression currentBody =
                 Expressions.block(list);
 
@@ -606,8 +611,7 @@ public class JavaRules {
                                                 inputEnumerator,
                                                 Expressions.call(
                                                     inputEnumerable,
-                                                    "enumerator",
-                                                    NO_EXPRS)),
+                                                    "enumerator")),
                                             Expressions.methodDecl(
                                                 Modifier.PUBLIC,
                                                 Void.TYPE,
@@ -616,8 +620,7 @@ public class JavaRules {
                                                 Blocks.toFunctionBlock(
                                                     Expressions.call(
                                                         inputEnumerator,
-                                                        "reset",
-                                                        NO_EXPRS))),
+                                                        "reset"))),
                                             Expressions.methodDecl(
                                                 Modifier.PUBLIC,
                                                 Boolean.TYPE,
@@ -633,6 +636,17 @@ public class JavaRules {
                                                 NO_PARAMS,
                                                 currentBody)))))))));
             return statements.toBlock();
+        }
+
+        private Iterable<Expression> stripCasts(List<Expression> expressions) {
+            final List<Expression> list = new ArrayList<Expression>();
+            for (Expression expression : expressions) {
+                while (expression.getNodeType() == ExpressionType.Convert) {
+                    expression = ((UnaryExpression) expression).expression;
+                }
+                list.add(expression);
+            }
+            return list;
         }
 
         public RexProgram getProgram() {
@@ -748,7 +762,8 @@ public class JavaRules {
             //     };
             // return childEnumerable.groupBy(keySelector)
             //     .select(selector);
-            Class inputJavaType = EnumUtil.javaClass(typeFactory, inputRowType);
+            Class inputJavaType = EnumUtil.javaRowClass(
+                typeFactory, inputRowType);
 
             ParameterExpression parameter =
                 Expressions.parameter(inputJavaType, "a0");
@@ -756,8 +771,8 @@ public class JavaRules {
             final List<Expression> keyExpressions = Expressions.list();
             for (int i = 0; i < groupCount; i++) {
                 keyExpressions.add(
-                    EnumUtil.fieldReference(
-                        parameter, inputRowType.getFieldList().get(i)));
+                    EnumUtil.inputFieldReference(
+                        inputRowType, parameter, i));
             }
             final Expression keySelector =
                 statements.append(
@@ -933,7 +948,8 @@ public class JavaRules {
                         this, 0, (EnumerableRel) getChild()));
 
             RelDataType inputRowType = getChild().getRowType();
-            Class inputJavaType = EnumUtil.javaClass(typeFactory, inputRowType);
+            Class inputJavaType = EnumUtil.javaRowClass(
+                typeFactory, inputRowType);
 
             ParameterExpression parameter =
                 Expressions.parameter(inputJavaType, "a0");

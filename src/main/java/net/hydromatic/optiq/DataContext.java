@@ -15,18 +15,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.runtime;
+package net.hydromatic.optiq;
+
+import net.hydromatic.linq4j.Queryable;
+
+import java.lang.reflect.Type;
 
 /**
- * Helper methods to implement SQL functions in generated code.
+ * Runtime context allowing access to the tables in a database.
  *
  * @author jhyde
  */
-public class SqlFunctions {
-    /** SQL SUBSTRING(string FROM ... FOR ...) function. */
-    public static String substring(String s, int from, int for_) {
-        return s.substring(from - 1, Math.min(from - 1 + for_, s.length()));
-    }
+public interface DataContext {
+    Queryable getTable(String name, Type elementType);
+
+    <T> Queryable<T> getTable(String name, Class<T> elementType);
 }
 
-// End SqlFunctions.java
+// End DataContext.java

@@ -133,7 +133,9 @@ public class RexToLixTranslator {
             Expression expression = translate0(expr);
             assert expression != null;
             final ParameterExpression parameter;
-            if (!inlineRexSet.contains(expr)) {
+            if (!inlineRexSet.contains(expr)
+                && !(expr instanceof RexLocalRef))
+            {
                 parameter =
                     Expressions.parameter(
                         expression.getType(),
@@ -185,7 +187,9 @@ public class RexToLixTranslator {
                 program.getExprList().get(((RexLocalRef) expr).getIndex()));
         }
         if (expr instanceof RexLiteral) {
-            return Expressions.constant(((RexLiteral) expr).getValue());
+            return Expressions.constant(
+                ((RexLiteral) expr).getValue(),
+                typeFactory.getJavaClass(expr.getType()));
         }
         if (expr instanceof RexCall) {
             final RexCall call = (RexCall) expr;
@@ -275,7 +279,9 @@ public class RexToLixTranslator {
 
         // Mark expressions as inline if they are not used more than once.
         for (Map.Entry<RexNode, Slot> entry : map.entrySet()) {
-            if (entry.getValue().count < 2) {
+            if (entry.getValue().count < 2
+                || entry.getKey() instanceof RexLiteral)
+            {
                 inlineRexSet.add(entry.getKey());
             }
         }

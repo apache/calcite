@@ -19,7 +19,7 @@ package net.hydromatic.optiq.impl.java;
 
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.Types;
+import net.hydromatic.linq4j.expressions.MethodCallExpression;
 import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
@@ -57,6 +57,10 @@ public class MapSchema implements MutableSchema {
 
     public MapSchema(JavaTypeFactory typeFactory) {
         this.typeFactory = typeFactory;
+    }
+
+    public Type getType() {
+        return Map.class;
     }
 
     public List<Member> getMembers(String name) {
@@ -99,10 +103,9 @@ public class MapSchema implements MutableSchema {
                 MAP_GET_METHOD,
                 Collections.<Expression>singletonList(
                     Expressions.constant(member.getName())));
-        Object o = member;
-        Class clazz = deduceClass(o);
-        if (clazz != null && clazz != Object.class) {
-            return Expressions.convert_(call, clazz);
+        Type type = deduceType(member);
+        if (type != null && type != Object.class) {
+            return Expressions.convert_(call, type);
         }
         return call;
     }
@@ -118,12 +121,17 @@ public class MapSchema implements MutableSchema {
     public Expression getSubSchemaExpression(
         Expression schemaExpression, Schema schema, String name)
     {
-        return Expressions.convert_(
+        MethodCallExpression call =
             Expressions.call(
                 schemaExpression,
                 MAP_GET_METHOD,
-                Expressions.constant(name)),
-            ((ReflectiveSchema) schema).clazz);
+                Expressions.constant(name));
+        Object o = schema;
+        Type clazz = deduceType(o);
+        if (clazz != null && clazz != Object.class) {
+            return Expressions.convert_(call, clazz);
+        }
+        return call;
     }
 
     private List<RelDataType> convert(List<Type> types) {
@@ -134,17 +142,15 @@ public class MapSchema implements MutableSchema {
         return list;
     }
 
-    private Class deduceClass(Object schemaObject) {
+    private Type deduceType(Object schemaObject) {
         // REVIEW: Can we remove the dependency on RelDataType and work in
         //   terms of Class?
         if (schemaObject instanceof Member) {
             RelDataType type = ((Member) schemaObject).getType();
             return typeFactory.getJavaClass(type);
         }
-        if (schemaObject instanceof ReflectiveSchema) {
-            RelDataType type =
-                ((ReflectiveSchema) schemaObject).getType();
-            return typeFactory.getJavaClass(type);
+        if (schemaObject instanceof Schema) {
+            return ((Schema) schemaObject).getType();
         }
         return null;
     }

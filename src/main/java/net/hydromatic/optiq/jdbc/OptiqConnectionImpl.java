@@ -26,10 +26,12 @@ import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
+import net.hydromatic.optiq.runtime.ByteString;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import org.eigenbase.reltype.*;
+import org.eigenbase.sql.type.BasicSqlType;
 import org.eigenbase.sql.type.SqlTypeFactoryImpl;
 
 import java.lang.reflect.Field;
@@ -475,6 +477,32 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
             }
             if (type.isStruct() && type.getFieldCount() == 1) {
                 return getJavaClass(type.getFieldList().get(0).getType());
+            }
+            if (type instanceof BasicSqlType) {
+                switch (type.getSqlTypeName()) {
+                case VARCHAR:
+                case CHAR:
+                    return String.class;
+                case INTEGER:
+                    return Integer.class;
+                case BIGINT:
+                    return Long.class;
+                case SMALLINT:
+                    return Short.class;
+                case TINYINT:
+                    return Byte.class;
+                case BOOLEAN:
+                    return Boolean.class;
+                case BINARY:
+                case VARBINARY:
+                    return ByteString.class;
+                case DATE:
+                    return java.sql.Date.class;
+                case TIME:
+                    return Time.class;
+                case TIMESTAMP:
+                    return Timestamp.class;
+                }
             }
             return null;
         }

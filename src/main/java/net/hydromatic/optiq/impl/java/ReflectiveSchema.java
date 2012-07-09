@@ -30,6 +30,7 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.*;
 
 /**
@@ -39,7 +40,6 @@ import java.util.*;
 public class ReflectiveSchema
     extends MapSchema
 {
-    private final RelDataType type;
     final Class clazz;
     private final Method parentMethod;
 
@@ -70,7 +70,6 @@ public class ReflectiveSchema
         super(typeFactory);
         this.clazz = clazz;
         this.parentMethod = parentMethod;
-        this.type = typeFactory.createType(clazz);
         for (Field field : clazz.getFields()) {
             putMulti(
                 membersMap,
@@ -88,8 +87,8 @@ public class ReflectiveSchema
         }
     }
 
-    public RelDataType getType() {
-        return type;
+    public Type getType() {
+        return clazz;
     }
 
     public Expression getMemberExpression(
@@ -131,6 +130,12 @@ public class ReflectiveSchema
     {
         return new Schemas.MemberPlus() {
             final Class<?>[] parameterTypes = method.getParameterTypes();
+
+            @Override
+            public String toString() {
+                return "Member {method=" + method + "}";
+            }
+
             public List<Parameter> getParameters() {
                 return new AbstractList<Parameter>() {
                     public Parameter get(final int index) {
@@ -193,6 +198,11 @@ public class ReflectiveSchema
     {
         final RelDataType type = typeFactory.createType(field.getType());
         return new Schemas.MemberPlus() {
+            @Override
+            public String toString() {
+                return "Relation {field=" + field.getName() + "}";
+            }
+
             public List<Parameter> getParameters() {
                 return Collections.emptyList();
             }

@@ -79,6 +79,10 @@ abstract class AbstractCursor implements Cursor {
         case Types.BINARY:
         case Types.VARBINARY:
             return new BinaryAccessor(getter);
+        case Types.DATE:
+        case Types.TIME:
+        case Types.TIMESTAMP:
+            return new DateTimeAccessor(getter);
         default:
             throw new RuntimeException("unknown type " + type);
         }
@@ -505,6 +509,19 @@ abstract class AbstractCursor implements Cursor {
         public String getString() {
             byte[] bytes = getBytes();
             return bytes == null ? null : ByteString.toString(bytes);
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a DATE, TIME or
+     * TIMESTAMP value;
+     * corresponds to {@link java.sql.Types#DATE},
+     * {@link java.sql.Types#TIME} and
+     * {@link java.sql.Types#TIMESTAMP}.
+     */
+    private static class DateTimeAccessor extends AccessorImpl {
+        public DateTimeAccessor(Getter getter) {
+            super(getter);
         }
     }
 

@@ -19,6 +19,7 @@ package net.hydromatic.optiq;
 
 import net.hydromatic.linq4j.expressions.Expression;
 
+import java.lang.reflect.Type;
 import java.util.List;
 
 /**
@@ -109,6 +110,17 @@ public interface Schema {
         Object schemaInstance,
         String subSchemaName,
         Schema subSchema);
+
+    /**
+     * Returns the type of the runtime object that represents an instance of
+     * this schema.
+     *
+     * <p>For a JDBC schema, this is generally {@link DataContext} or a
+     * sub-class.</p>
+     *
+     * @return Runtime type of an instance of this schema
+     */
+    Type getType();
 }
 
 // End Schema.java

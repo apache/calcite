@@ -31,6 +31,7 @@ import net.hydromatic.optiq.Parameter;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
+import net.hydromatic.optiq.impl.jdbc.JdbcDataContext;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
@@ -40,14 +41,13 @@ import junit.framework.TestCase;
 import org.apache.commons.dbcp.BasicDataSource;
 
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.util.Util;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.sql.*;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Tests for using Optiq via JDBC.
@@ -151,10 +151,10 @@ public class JdbcTest extends TestCase {
      */
     public void testUnion() {
         assertQuery(
-            "select substring(\"name\" from 1 for 2) as x\n"
+            "select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
             + "union\n"
-            + "select substring(\"name\" from 1 for 2) as y\n"
+            + "select substring(\"name\" from 1 for 1) as y\n"
             + "from \"hr\".\"depts\"").returns(
                 "X=E\n"
                 + "X=S\n"
@@ -168,10 +168,10 @@ public class JdbcTest extends TestCase {
      */
     public void testIntersect() {
         assertQuery(
-            "select substring(\"name\" from 1 for 2) as x\n"
+            "select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
             + "intersect\n"
-            + "select substring(\"name\" from 1 for 2) as y\n"
+            + "select substring(\"name\" from 1 for 1) as y\n"
             + "from \"hr\".\"depts\"").returns(
                 "X=S\n");
     }
@@ -181,10 +181,10 @@ public class JdbcTest extends TestCase {
      */
     public void testExcept() {
         assertQuery(
-            "select substring(\"name\" from 1 for 2) as x\n"
+            "select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
             + "except\n"
-            + "select substring(\"name\" from 1 for 2) as y\n"
+            + "select substring(\"name\" from 1 for 1) as y\n"
             + "from \"hr\".\"depts\"").returns(
                 "X=E\n"
                 + "X=B\n");
@@ -546,27 +546,39 @@ public class JdbcTest extends TestCase {
     }
 
     public void testFoodMartJdbc() throws Exception {
-        Class.forName("net.hydromatic.optiq.jdbc.Driver");
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection connection =
-            DriverManager.getConnection("jdbc:optiq:");
-        OptiqConnection optiqConnection =
-            connection.unwrap(OptiqConnection.class);
-        BasicDataSource dataSource = new BasicDataSource();
-        dataSource.setUrl("jdbc:mysql://localhost");
-        dataSource.setUsername("foodmart");
-        dataSource.setPassword("foodmart");
-        optiqConnection.getRootSchema().add(
-            "foodmart",
-            new JdbcSchema(
-                dataSource, null, null, optiqConnection.getTypeFactory()),
-            null);
-        Statement statement = connection.createStatement();
-        ResultSet resultSet =
-            statement.executeQuery("select * from \"foodmart\".\"customers\"");
-        while (resultSet.next()) {
-            System.out.println(resultSet.getString(1));
-        }
+        assertQuery("select * from \"foodmart\".\"days\"")
+            .inJdbcFoodmart()
+            .returns(
+                "day=1; week_day=Sunday\n"
+                + "day=2; week_day=Monday\n"
+                + "day=5; week_day=Thursday\n"
+                + "day=4; week_day=Wednesday\n"
+                + "day=3; week_day=Tuesday\n"
+                + "day=6; week_day=Friday\n"
+                + "day=7; week_day=Saturday\n");
+    }
+
+    public void testFoodMartJdbcWhere() throws Exception {
+        assertQuery("select * from \"foodmart\".\"days\" where \"day\" < 3")
+            .inJdbcFoodmart()
+            .returns(
+                "day=1; week_day=Sunday\n"
+                + "day=2; week_day=Monday\n");
+    }
+
+    public void testFoodMartJdbcGroup() throws Exception {
+        assertQuery(
+            "select s, count(*) as c from (\n"
+            + "select substring(\"week_day\" from 1 for 1) as s\n"
+            + "from \"foodmart\".\"days\")\n"
+            + "group by s")
+            .inJdbcFoodmart()
+            .returns(
+                "S=T; C=2\n"
+                + "S=F; C=1\n"
+                + "S=W; C=1\n"
+                + "S=S; C=2\n"
+                + "S=M; C=1\n");
     }
 
     public AssertQuery assertQuery(String s) {
@@ -575,6 +587,7 @@ public class JdbcTest extends TestCase {
 
     private class AssertQuery {
         private final String sql;
+        private Config config = Config.REGULAR;
 
         AssertQuery(String sql) {
             super();
@@ -583,10 +596,38 @@ public class JdbcTest extends TestCase {
 
         void returns(String expected) {
             try {
-                Connection connection = getConnectionWithHrFoodmart();
-                Statement statement = connection.createStatement();
-                ResultSet resultSet = statement.executeQuery(sql);
+                Connection connection;
+                Statement statement;
+                ResultSet resultSet;
 
+                switch (config) {
+                case REGULAR:
+                    connection = getConnectionWithHrFoodmart();
+                    break;
+                case JDBC_FOODMART:
+                    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+                    Class.forName("com.mysql.jdbc.Driver");
+                    connection = DriverManager.getConnection("jdbc:optiq:");
+                    OptiqConnection optiqConnection =
+                        connection.unwrap(OptiqConnection.class);
+                    BasicDataSource dataSource = new BasicDataSource();
+                    dataSource.setUrl("jdbc:mysql://localhost");
+                    dataSource.setUsername("foodmart");
+                    dataSource.setPassword("foodmart");
+                    optiqConnection.getRootSchema().add(
+                        "foodmart",
+                        new JdbcSchema(
+                            dataSource,
+                            "foodmart",
+                            "",
+                            optiqConnection.getTypeFactory()),
+                        new JdbcDataContext(dataSource));
+                    break;
+                default:
+                    throw Util.unexpected(config);
+                }
+                statement = connection.createStatement();
+                resultSet = statement.executeQuery(sql);
                 String actual = JdbcTest.toString(resultSet);
                 resultSet.close();
                 statement.close();
@@ -605,6 +646,17 @@ public class JdbcTest extends TestCase {
                 throw new RuntimeException(e);
             }
         }
+
+        public AssertQuery inJdbcFoodmart() {
+            config = Config.JDBC_FOODMART;
+            return this;
+        }
+    }
+
+
+    private enum Config {
+        REGULAR,
+        JDBC_FOODMART,
     }
 
     public static class HrSchema {

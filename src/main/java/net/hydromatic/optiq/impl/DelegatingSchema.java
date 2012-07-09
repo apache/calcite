@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.Member;
 import net.hydromatic.optiq.Schema;
 
+import java.lang.reflect.Type;
 import java.util.List;
 
 /**
@@ -39,6 +40,10 @@ public class DelegatingSchema implements Schema {
      */
     public DelegatingSchema(Schema schema) {
         this.schema = schema;
+    }
+
+    public Type getType() {
+        return schema.getType();
     }
 
     public List<Member> getMembers(String name) {
