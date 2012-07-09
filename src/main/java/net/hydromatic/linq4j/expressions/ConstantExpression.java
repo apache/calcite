@@ -54,6 +54,9 @@ public class ConstantExpression extends Expression {
             writer.append("null");
         } else if (value instanceof String) {
             escapeString(writer.getBuf(), (String) value);
+        } else if (value instanceof Class) {
+            Class clazz = (Class) value;
+            writer.append(clazz.getCanonicalName()).append(".class");
         } else if (value.getClass().isArray()) {
             writer.append("new ")
                 .append(value.getClass().getComponentType());
