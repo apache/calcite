@@ -121,7 +121,7 @@ public class BlockBuilder {
         }
         DeclarationExpression declare =
             Expressions.declare(
-                Modifier.FINAL, name, block);
+                Modifier.FINAL, newName(name), block);
         add(declare);
         return block;
     }

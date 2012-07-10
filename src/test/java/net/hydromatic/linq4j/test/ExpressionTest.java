@@ -253,7 +253,7 @@ public class ExpressionTest extends TestCase {
             + "    10),\n"
             + "  new net.hydromatic.linq4j.test.Linq4jTest.Employee(\n"
             + "    130,\n"
-            + "    \"Jane\",\n"
+            + "    \"Janet\",\n"
             + "    10)}",
             Expressions.toString(
                 Expressions.constant(Linq4jTest.emps)));

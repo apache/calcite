@@ -99,7 +99,7 @@ public class Linq4jTest extends TestCase {
             Linq4j.asEnumerable(emps)
                 .select(EMP_NAME_SELECTOR)
                 .toList();
-        assertEquals("[Fred, Bill, Eric, Jane]", names.toString());
+        assertEquals("[Fred, Bill, Eric, Janet]", names.toString());
     }
 
     public void testWhere() {
@@ -113,7 +113,7 @@ public class Linq4jTest extends TestCase {
                     })
                 .select(EMP_NAME_SELECTOR)
                 .toList();
-        assertEquals("[Fred, Eric, Jane]", names.toString());
+        assertEquals("[Fred, Eric, Janet]", names.toString());
     }
 
     public void testWhereIndexed() {
@@ -143,7 +143,7 @@ public class Linq4jTest extends TestCase {
                     })
                 .toList();
         assertEquals(
-            "[#0: Fred, #1: Eric, #2: Jane, #3: Bill]", nameSeqs.toString());
+            "[#0: Fred, #1: Eric, #2: Janet, #3: Bill]", nameSeqs.toString());
     }
 
     public void testCount() {
@@ -286,7 +286,7 @@ public class Linq4jTest extends TestCase {
                 assertEquals(3, grouping.count());
                 assertTrue(grouping.contains("Fred"));
                 assertTrue(grouping.contains("Eric"));
-                assertTrue(grouping.contains("Jane"));
+                assertTrue(grouping.contains("Janet"));
                 assertFalse(grouping.contains("Bill"));
                 break;
             case 30:
@@ -311,6 +311,31 @@ public class Linq4jTest extends TestCase {
             )
                 .toList()
                 .toString());
+    }
+
+    public void testToLookupSelectorComparer() {
+        final Lookup<String, Employee> lookup =
+            Linq4j.asEnumerable(emps).toLookup(
+                EMP_NAME_SELECTOR, new EqualityComparer<String>() {
+                public boolean equal(String v1, String v2) {
+                    return v1.length() == v2.length();
+                }
+
+                public int hashCode(String s) {
+                    return s.length();
+                }
+            });
+        assertEquals(2, lookup.size());
+        assertEquals("[Fred, Janet]", lookup.keySet().toString());
+
+        StringBuilder buf = new StringBuilder();
+        for (Grouping<String, Employee> grouping : lookup) {
+            buf.append(grouping).append("\n");
+        }
+        assertEquals(
+            "Fred: [Employee(name: Fred, deptno:10), Employee(name: Bill, deptno:30), Employee(name: Eric, deptno:10)]\n"
+            + "Janet: [Employee(name: Janet, deptno:10)]\n",
+            buf.toString());
     }
 
     public void testCast() {
@@ -451,7 +476,7 @@ public class Linq4jTest extends TestCase {
                 ).toList()
                 .toString();
         assertEquals(
-            "[[Fred, Eric, Jane] work(s) in Sales, "
+            "[[Fred, Eric, Janet] work(s) in Sales, "
             + "[] work(s) in HR, "
             + "[Bill] work(s) in Marketing]",
             s);
@@ -478,7 +503,7 @@ public class Linq4jTest extends TestCase {
         assertEquals(
             "[Fred works in Sales, "
             + "Eric works in Sales, "
-            + "Jane works in Sales, "
+            + "Janet works in Sales, "
             + "Bill works in Marketing]",
             s);
     }
@@ -815,11 +840,11 @@ public class Linq4jTest extends TestCase {
     }
 
     public void testOrderBy() {
-        // Note: sort is stable. Records occur Fred, Eric, Jane in input.
+        // Note: sort is stable. Records occur Fred, Eric, Janet in input.
         assertEquals(
             "[Employee(name: Fred, deptno:10),"
             + " Employee(name: Eric, deptno:10),"
-            + " Employee(name: Jane, deptno:10),"
+            + " Employee(name: Janet, deptno:10),"
             + " Employee(name: Bill, deptno:30)]",
             Linq4j.asEnumerable(emps).orderBy(EMP_DEPTNO_SELECTOR)
                 .toList().toString());
@@ -830,7 +855,7 @@ public class Linq4jTest extends TestCase {
             "[Employee(name: Bill, deptno:30),"
             + " Employee(name: Eric, deptno:10),"
             + " Employee(name: Fred, deptno:10),"
-            + " Employee(name: Jane, deptno:10)]",
+            + " Employee(name: Janet, deptno:10)]",
             Linq4j.asEnumerable(emps)
                 .orderBy(EMP_NAME_SELECTOR)
                 .orderBy(
@@ -843,12 +868,35 @@ public class Linq4jTest extends TestCase {
         assertEquals(
             "[Employee(name: Eric, deptno:10),"
             + " Employee(name: Fred, deptno:10),"
-            + " Employee(name: Jane, deptno:10),"
+            + " Employee(name: Janet, deptno:10),"
             + " Employee(name: Bill, deptno:30)]",
             Linq4j.asEnumerable(emps)
                 .orderBy(EMP_NAME_SELECTOR)
                 .orderBy(EMP_DEPTNO_SELECTOR)
                 .toList().toString());
+    }
+
+    public void testOrderByDescending() {
+        assertEquals(
+            "[Employee(name: Janet, deptno:10),"
+            + " Employee(name: Fred, deptno:10),"
+            + " Employee(name: Eric, deptno:10),"
+            + " Employee(name: Bill, deptno:30)]",
+            Linq4j.asEnumerable(emps)
+                .orderByDescending(EMP_NAME_SELECTOR)
+                .toList().toString());
+    }
+
+    public void testReverse() {
+        assertEquals(
+            "[Employee(name: Janet, deptno:10),"
+            + " Employee(name: Eric, deptno:10),"
+            + " Employee(name: Bill, deptno:30),"
+            + " Employee(name: Fred, deptno:10)]",
+            Linq4j.asEnumerable(emps)
+                .reverse()
+                .toList()
+                .toString());
     }
 
     public static class Employee {
@@ -895,7 +943,7 @@ public class Linq4jTest extends TestCase {
         new Employee(100, "Fred", 10),
         new Employee(110, "Bill", 30),
         new Employee(120, "Eric", 10),
-        new Employee(130, "Jane", 10),
+        new Employee(130, "Janet", 10),
     };
 
     public static final Department[] depts = {

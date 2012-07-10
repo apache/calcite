@@ -974,7 +974,7 @@ public class Extensions {
         Function1<TSource, TKey> keySelector,
         EqualityComparer comparer)
     {
-        throw Extensions.todo();
+        return enumerable.toLookup(keySelector, comparer);
     }
 
     /** Groups the elements of a sequence according to a
@@ -1883,7 +1883,7 @@ public class Extensions {
         final Map<TKey, List<TSource>> map =
             new TreeMap<TKey, List<TSource>>(comparator);
         LookupImpl<TKey, TSource> lookup =
-            toLookup(
+            toLookup_(
                 map, source, keySelector,
                 Functions.<TSource>identitySelector());
         return lookup.valuesEnumerable();
@@ -1903,9 +1903,10 @@ public class Extensions {
      * order according to a key. */
     public static <TSource, TKey extends Comparable>
     Enumerable<TSource> orderByDescending(
-        Enumerable<TSource> source, Function1<TSource, TKey> keySelector)
+        Enumerable<TSource> source,
+        Function1<TSource, TKey> keySelector)
     {
-        throw Extensions.todo();
+        return orderBy(source, keySelector, Collections.<TKey>reverseOrder());
     }
 
     /** Sorts the elements of a sequence in descending
@@ -1925,7 +1926,8 @@ public class Extensions {
         Function1<TSource, TKey> keySelector,
         Comparator<TKey> comparator)
     {
-        throw Extensions.todo();
+        return orderBy(
+            source, keySelector, Collections.reverseOrder(comparator));
     }
 
     /** Sorts the elements of a sequence in descending
@@ -1943,7 +1945,18 @@ public class Extensions {
     public static <TSource> Enumerable<TSource> reverse(
         Enumerable<TSource> source)
     {
-        throw Extensions.todo();
+        final List<TSource> list = toList(source);
+        final int n = list.size();
+        return Linq4j.asEnumerable(
+            new AbstractList<TSource>() {
+                public TSource get(int index) {
+                    return list.get(n - 1 - index);
+                }
+
+                public int size() {
+                    return n;
+                }
+            });
     }
 
     /** Inverts the order of the elements in a
@@ -2809,12 +2822,18 @@ public class Extensions {
     }
 
     /** Creates a List<TSource> from an Enumerable<TSource>. */
+    @SuppressWarnings("unchecked")
     public static <TSource> List<TSource> toList(Enumerable<TSource> source) {
-        final ArrayList<TSource> list = new ArrayList<TSource>();
-        for (TSource element : source) {
-            list.add(element);
+        if (source instanceof List
+            && source instanceof RandomAccess)
+        {
+            return (List<TSource>) source;
+        } else {
+            return source.into(
+                source instanceof Collection
+                    ? new ArrayList<TSource>(((Collection) source).size())
+                    : new ArrayList<TSource>());
         }
-        return list;
     }
 
     /** Creates a Lookup&lt;TKey, TElement&gt; from an
@@ -2836,7 +2855,9 @@ public class Extensions {
         Function1<TSource, TKey> keySelector,
         EqualityComparer<TKey> comparer)
     {
-        throw Extensions.todo();
+        return toLookup(
+            source, keySelector, Functions.<TSource>identitySelector(),
+            comparer);
     }
 
     /** Creates a Lookup<TKey, TElement> from an
@@ -2849,11 +2870,12 @@ public class Extensions {
     {
         final Map<TKey, List<TElement>> map =
             new HashMap<TKey, List<TElement>>();
-        return toLookup(map, source, keySelector, elementSelector);
+        return toLookup_(map, source, keySelector, elementSelector);
     }
 
-    static <TSource, TKey, TElement> LookupImpl<TKey, TElement> toLookup(
-        Map<TKey, List<TElement>> map, Enumerable<TSource> source,
+    static <TSource, TKey, TElement> LookupImpl<TKey, TElement> toLookup_(
+        Map<TKey, List<TElement>> map,
+        Enumerable<TSource> source,
         Function1<TSource, TKey> keySelector,
         Function1<TSource, TElement> elementSelector)
     {
@@ -2886,7 +2908,11 @@ public class Extensions {
         Function1<TSource, TElement> elementSelector,
         EqualityComparer<TKey> comparer)
     {
-        throw Extensions.todo();
+        return toLookup_(
+            new WrapMap<TKey, List<TElement>>(comparer),
+            source,
+            keySelector,
+            elementSelector);
     }
 
     /** Produces the set union of two sequences by using
@@ -3265,8 +3291,96 @@ public class Extensions {
             return new Wrapped<T>(comparer, element);
         }
 
+        @Override
+        public int hashCode() {
+            return comparer.hashCode(element);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            //noinspection unchecked
+            return obj == this
+            || obj instanceof Wrapped
+                && comparer.equal(element, ((Wrapped<T>) obj).element);
+        }
+
         public T unwrap() {
             return element;
+        }
+    }
+
+    private static class WrapMap<K, V> extends AbstractMap<K, V> {
+        private final Map<Wrapped<K>, V> map = new HashMap<Wrapped<K>, V>();
+        private final EqualityComparer<K> comparer;
+
+        protected WrapMap(EqualityComparer<K> comparer) {
+            this.comparer = comparer;
+        }
+
+        @Override
+        public Set<Entry<K, V>> entrySet() {
+            return new AbstractSet<Entry<K, V>>() {
+                @Override
+                public Iterator<Entry<K, V>> iterator() {
+                    final Iterator<Entry<Wrapped<K>, V>> iterator =
+                        map.entrySet().iterator();
+
+                    return new Iterator<Entry<K, V>>() {
+                        public boolean hasNext() {
+                            return iterator.hasNext();
+                        }
+
+                        public Entry<K, V> next() {
+                            Entry<Wrapped<K>, V> next = iterator.next();
+                            return new SimpleEntry<K, V>(
+                                next.getKey().element, next.getValue());
+                        }
+
+                        public void remove() {
+                            iterator.remove();
+                        }
+                    };
+                }
+
+                @Override
+                public int size() {
+                    return map.size();
+                }
+            };
+        }
+
+        @Override
+        public boolean containsKey(Object key) {
+            return map.containsKey(wrap((K) key));
+        }
+
+        private Wrapped<K> wrap(K key) {
+            return Wrapped.upAs(comparer, key);
+        }
+
+        @Override
+        public V get(Object key) {
+            return map.get(wrap((K) key));
+        }
+
+        @Override
+        public V put(K key, V value) {
+            return map.put(wrap(key), value);
+        }
+
+        @Override
+        public V remove(Object key) {
+            return map.remove(wrap((K) key));
+        }
+
+        @Override
+        public void clear() {
+            map.clear();
+        }
+
+        @Override
+        public Collection<V> values() {
+            return map.values();
         }
     }
 }

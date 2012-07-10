@@ -252,6 +252,16 @@ public class Linq4j {
     }
 
     /**
+     * Returns an {@link Enumerable} that has one element.
+     *
+     * @param <T> Element type
+     * @return Singleton enumerable
+     */
+    public static <T> Enumerable<T> singletonEnumerable(T element) {
+        return asEnumerable(Collections.singletonList(element));
+    }
+
+    /**
      * Returns an {@link Enumerable} that has no elements.
      *
      * @param <T> Element type
