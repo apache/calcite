@@ -72,9 +72,9 @@ public class JdbcTest extends TestCase {
     /**
      * Runs a simple query that reads from a table in an in-memory schema.
      *
-     * @throws Exception on error
+     * @on error
      */
-    public void testSelect() throws Exception {
+    public void testSelect() {
         assertQuery(
             "select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
@@ -87,7 +87,7 @@ public class JdbcTest extends TestCase {
      *
      * @throws Exception on error
      */
-    public void testJoin() throws Exception {
+    public void testJoin() {
         assertQuery(
             "select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
@@ -102,7 +102,7 @@ public class JdbcTest extends TestCase {
      *
      * @throws Exception on error
      */
-    public void testGroupBy() throws Exception {
+    public void testGroupBy() {
         assertQuery(
             "select \"deptno\", sum(\"empid\") as s, count(*) as c\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -545,7 +545,7 @@ public class JdbcTest extends TestCase {
         return connection;
     }
 
-    public void testFoodMartJdbc() throws Exception {
+    public void testFoodMartJdbc() {
         assertQuery("select * from \"foodmart\".\"days\"")
             .inJdbcFoodmart()
             .returns(
@@ -558,7 +558,7 @@ public class JdbcTest extends TestCase {
                 + "day=7; week_day=Saturday\n");
     }
 
-    public void testFoodMartJdbcWhere() throws Exception {
+    public void testFoodMartJdbcWhere() {
         assertQuery("select * from \"foodmart\".\"days\" where \"day\" < 3")
             .inJdbcFoodmart()
             .returns(
@@ -566,7 +566,7 @@ public class JdbcTest extends TestCase {
                 + "day=2; week_day=Monday\n");
     }
 
-    public void testFoodMartJdbcGroup() throws Exception {
+    public void testFoodMartJdbcGroup() {
         assertQuery(
             "select s, count(*) as c from (\n"
             + "select substring(\"week_day\" from 1 for 1) as s\n"
@@ -579,6 +579,85 @@ public class JdbcTest extends TestCase {
                 + "S=W; C=1\n"
                 + "S=S; C=2\n"
                 + "S=M; C=1\n");
+    }
+
+    public void testFoodMartJdbcGroupEmpty() {
+        assertQuery(
+            "select count(*) as c\n"
+            + "from \"foodmart\".\"days\"")
+            .inJdbcFoodmart()
+            .returns("C=7\n");
+    }
+
+    public void testFoodMartJdbcJoinGroupByEmpty() {
+        assertQuery(
+            "select count(*) from (\n"
+            + "  select *\n"
+            + "  from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "  join \"foodmart\".\"customer\" as c\n"
+            + "  on s.\"customer_id\" = c.\"customer_id\")")
+            .inJdbcFoodmart()
+            .returns("EXPR$0=86837\n");
+    }
+
+    public void testFoodMartJdbcJoinGroupByOrderBy() {
+        assertQuery(
+            "select count(*), c.\"state_province\", sum(s.\"unit_sales\") as s\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "  join \"foodmart\".\"customer\" as c\n"
+            + "  on s.\"customer_id\" = c.\"customer_id\"\n"
+            + "group by c.\"state_province\"\n"
+            + "order by c.\"state_province\"")
+            .inJdbcFoodmart()
+            .returns(
+                "EXPR$0=24442; state_province=CA; S=74748.0000\n"
+                + "EXPR$0=21611; state_province=OR; S=67659.0000\n"
+                + "EXPR$0=40784; state_province=WA; S=124366.0000\n");
+    }
+
+    public void testFoodMartJdbcCompositeGroupBy() {
+        assertQuery(
+            "select count(*) as c, c.\"state_province\"\n"
+            + "from \"foodmart\".\"customer\" as c\n"
+            + "group by c.\"state_province\", c.\"country\"\n"
+            + "order by c.\"state_province\", 1")
+            .inJdbcFoodmart()
+            .returns(
+                "C=1717; state_province=BC\n"
+                + "C=4222; state_province=CA\n"
+                + "C=347; state_province=DF\n"
+                + "C=106; state_province=Guerrero\n"
+                + "C=104; state_province=Jalisco\n"
+                + "C=97; state_province=Mexico\n"
+                + "C=1051; state_province=OR\n"
+                + "C=90; state_province=Oaxaca\n"
+                + "C=78; state_province=Sinaloa\n"
+                + "C=93; state_province=Veracruz\n"
+                + "C=2086; state_province=WA\n"
+                + "C=99; state_province=Yucatan\n"
+                + "C=191; state_province=Zacatecas\n");
+    }
+
+    public void testFoodMartJdbcDistinctCount() {
+        // Complicating factors:
+        // Composite GROUP BY key
+        // Order by select item, referenced by ordinal
+        // Distinct count
+        // Not all GROUP columns are projected
+        assertQuery(
+            "select c.\"state_province\",\n"
+            + "  sum(s.\"unit_sales\") as s,\n"
+            + "  count(distinct c.\"customer_id\") as dc\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "  join \"foodmart\".\"customer\" as c\n"
+            + "  on s.\"customer_id\" = c.\"customer_id\"\n"
+            + "group by c.\"state_province\", c.\"country\"\n"
+            + "order by c.\"state_province\", 2")
+            .inJdbcFoodmart()
+            .returns(
+                "state_province=CA; S=74748.0000; DC=24442\n"
+                + "state_province=OR; S=67659.0000; DC=21611\n"
+                + "state_province=WA; S=124366.0000; DC=40784\n");
     }
 
     public AssertQuery assertQuery(String s) {

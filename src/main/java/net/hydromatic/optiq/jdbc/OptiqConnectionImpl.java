@@ -36,6 +36,7 @@ import org.eigenbase.sql.type.SqlTypeFactoryImpl;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
@@ -491,6 +492,8 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
                     return Short.class;
                 case TINYINT:
                     return Byte.class;
+                case DECIMAL:
+                    return BigDecimal.class;
                 case BOOLEAN:
                     return Boolean.class;
                 case BINARY:

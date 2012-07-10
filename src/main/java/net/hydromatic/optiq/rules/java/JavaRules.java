@@ -92,6 +92,18 @@ public class JavaRules {
         Types.lookupMethod(
             ExtendedEnumerable.class, "except", Enumerable.class);
 
+    private static final Method SINGLETON_ENUMERABLE_METHOD =
+        Types.lookupMethod(
+            Linq4j.class, "singletonEnumerable", Object.class);
+
+    private static final Method ARRAYS_AS_LIST_METHOD =
+        Types.lookupMethod(
+            Arrays.class, "asList", Object[].class);
+
+    private static final Method ARRAY_COMPARER_METHOD =
+        Types.lookupMethod(
+            Functions.class, "arrayComparer");
+
     public static final boolean BRIDGE_METHODS = true;
 
     private static final List<ParameterExpression> NO_PARAMS =
@@ -794,11 +806,30 @@ public class JavaRules {
             final Expressions.FluentList<Statement> statements2 =
                 Expressions.list();
             final List<Expression> expressions = Expressions.list();
-            if (groupCount == 1) {
+            switch (groupCount) {
+            case 0:
+                for (AggregateCall aggCall : aggCalls) {
+                    expressions.add(
+                        translate(
+                            typeFactory, inputRowType, childExp, aggCall));
+                }
+                statements.add(
+                    Expressions.return_(
+                        null,
+                        Expressions.call(
+                            null,
+                            SINGLETON_ENUMERABLE_METHOD,
+                            expressions.size() == 1
+                                ? expressions.get(0)
+                                : Expressions.newArrayInit(
+                                    Object.class, expressions))));
+                return statements.toBlock();
+            case 1:
                 expressions.add(
                     Expressions.call(
                         grouping, "getKey"));
-            } else {
+                break;
+            default:
                 DeclarationExpression keyDeclaration =
                     Expressions.declare(
                         Modifier.FINAL,
@@ -813,6 +844,7 @@ public class JavaRules {
                         Expressions.arrayIndex(
                             keyDeclaration.parameter, Expressions.constant(i)));
                 }
+                break;
             }
             for (AggregateCall aggCall : aggCalls) {
                 expressions.add(
@@ -838,7 +870,14 @@ public class JavaRules {
                     null,
                     Expressions.call(
                         Expressions.call(
-                            childExp, GROUP_BY_METHOD, keySelector),
+                            childExp,
+                            GROUP_BY_METHOD,
+                            Expressions.<Expression>list()
+                                .append(keySelector)
+                                .appendIf(
+                                    keyExpressions.size() > 1,
+                                    Expressions.call(
+                                        null, ARRAY_COMPARER_METHOD))),
                         SELECT_METHOD,
                         selector)));
             return statements.toBlock();

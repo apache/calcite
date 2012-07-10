@@ -73,6 +73,8 @@ abstract class AbstractCursor implements Cursor {
             return new FloatAccessor(getter);
         case Types.DOUBLE:
             return new DoubleAccessor(getter);
+        case Types.DECIMAL:
+            return new BigDecimalAccessor(getter);
         case Types.CHAR:
         case Types.VARCHAR:
             return new StringAccessor(getter);
@@ -474,6 +476,80 @@ abstract class AbstractCursor implements Cursor {
         public double getDouble() {
             Double o = (Double) getObject();
             return o == null ? 0d : o;
+        }
+    }
+
+    /**
+     * Accessor of exact numeric values. The subclass must implement the
+     * {@link #getLong()} method.
+     */
+    private static abstract class BigNumberAccessor extends AccessorImpl {
+        public BigNumberAccessor(Getter getter) {
+            super(getter);
+        }
+
+        protected abstract Number getNumber();
+
+        public double getDouble() {
+            Number number = getNumber();
+            return number == null ? 0d : number.doubleValue();
+        }
+
+        public float getFloat() {
+            Number number = getNumber();
+            return number == null ? 0f : number.floatValue();
+        }
+
+        public long getLong() {
+            Number number = getNumber();
+            return number == null ? 0l : number.longValue();
+        }
+
+        public int getInt() {
+            Number number = getNumber();
+            return number == null ? 0 : number.intValue();
+        }
+
+        public short getShort() {
+            Number number = getNumber();
+            return number == null ? 0 : number.shortValue();
+        }
+
+        public byte getByte() {
+            Number number = getNumber();
+            return number == null ? 0 : number.byteValue();
+        }
+
+        public boolean getBoolean() {
+            Number number = getNumber();
+            return number == null ? false : number.doubleValue() != 0;
+        }
+
+        public String getString() {
+            Number number = getNumber();
+            return number == null ? null : number.toString();
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a {@link BigDecimal};
+     * corresponds to {@link java.sql.Types#DECIMAL}.
+     */
+    private static class BigDecimalAccessor extends BigNumberAccessor {
+        public BigDecimalAccessor(Getter getter) {
+            super(getter);
+        }
+
+        protected Number getNumber() {
+            return (Number) getObject();
+        }
+
+        public BigDecimal getBigDecimal(int scale) {
+            return (BigDecimal) getObject();
+        }
+
+        public BigDecimal getBigDecimal() {
+            return (BigDecimal) getObject();
         }
     }
 
