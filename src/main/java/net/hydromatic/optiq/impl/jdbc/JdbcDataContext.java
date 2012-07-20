@@ -37,15 +37,23 @@ public class JdbcDataContext implements DataContext {
     final SqlDialect dialect;
 
     /** Creates a JdbcDataContext. */
-    public JdbcDataContext(DataSource dataSource, SqlDialect dialect) {
+    public JdbcDataContext(
+        QueryProvider queryProvider,
+        DataSource dataSource,
+        SqlDialect dialect)
+    {
         this.dataSource = dataSource;
-        this.queryProvider = JdbcQueryProvider.INSTANCE;
+        this.queryProvider = queryProvider;
         this.dialect = dialect;
     }
 
     /** Creates JdbcDataContext using an implicit SQL dialect. */
-    public JdbcDataContext(DataSource dataSource) {
+    public JdbcDataContext(
+        DataSource dataSource,
+        QueryProvider queryProvider)
+    {
         this(
+            queryProvider,
             dataSource,
             JdbcUtils.DialectPool.INSTANCE.get(dataSource));
     }

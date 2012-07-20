@@ -27,11 +27,13 @@ import net.hydromatic.linq4j.function.Predicate1;
 
 import net.hydromatic.optiq.Member;
 import net.hydromatic.optiq.MutableSchema;
+import net.hydromatic.optiq.OptiqQueryProvider;
 import net.hydromatic.optiq.Parameter;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcDataContext;
+import net.hydromatic.optiq.impl.jdbc.JdbcQueryProvider;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
@@ -566,6 +568,14 @@ public class JdbcTest extends TestCase {
                 + "day=2; week_day=Monday\n");
     }
 
+    public void testFoodMartJdbcWhere2() {
+        assertQuery("select * from \"foodmart\".\"days\" where \"day\" < 3")
+            .inJdbcFoodmart2()
+            .returns(
+                "day=1; week_day=Sunday\n"
+                + "day=2; week_day=Monday\n");
+    }
+
     public void testFoodMartJdbcGroup() {
         assertQuery(
             "select s, count(*) as c from (\n"
@@ -679,10 +689,13 @@ public class JdbcTest extends TestCase {
                 Statement statement;
                 ResultSet resultSet;
 
+                QueryProvider queryProvider = JdbcQueryProvider.INSTANCE;
                 switch (config) {
                 case REGULAR:
                     connection = getConnectionWithHrFoodmart();
                     break;
+                case JDBC_FOODMART2:
+                    queryProvider = OptiqQueryProvider.INSTANCE;
                 case JDBC_FOODMART:
                     Class.forName("net.hydromatic.optiq.jdbc.Driver");
                     Class.forName("com.mysql.jdbc.Driver");
@@ -700,7 +713,8 @@ public class JdbcTest extends TestCase {
                             "foodmart",
                             "",
                             optiqConnection.getTypeFactory()),
-                        new JdbcDataContext(dataSource));
+                        new JdbcDataContext(
+                            dataSource, queryProvider));
                     break;
                 default:
                     throw Util.unexpected(config);
@@ -730,12 +744,18 @@ public class JdbcTest extends TestCase {
             config = Config.JDBC_FOODMART;
             return this;
         }
+
+        public AssertQuery inJdbcFoodmart2() {
+            config = Config.JDBC_FOODMART2;
+            return this;
+        }
     }
 
 
     private enum Config {
         REGULAR,
         JDBC_FOODMART,
+        JDBC_FOODMART2,
     }
 
     public static class HrSchema {

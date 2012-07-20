@@ -96,10 +96,6 @@ public class JavaRules {
         Types.lookupMethod(
             Linq4j.class, "singletonEnumerable", Object.class);
 
-    private static final Method ARRAYS_AS_LIST_METHOD =
-        Types.lookupMethod(
-            Arrays.class, "asList", Object[].class);
-
     private static final Method ARRAY_COMPARER_METHOD =
         Types.lookupMethod(
             Functions.class, "arrayComparer");
@@ -746,7 +742,6 @@ public class JavaRules {
                     "child",
                     implementor.visitChild(
                         this, 0, (EnumerableRel) getChild()));
-            RelDataType outputRowType = getRowType();
             RelDataType inputRowType = getChild().getRowType();
 
             // final Enumerable<Employee> child = <<child impl>>;
@@ -1134,8 +1129,6 @@ public class JavaRules {
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
-            final JavaTypeFactory typeFactory =
-                (JavaTypeFactory) implementor.getTypeFactory();
             final BlockBuilder statements = new BlockBuilder();
             Expression unionExp = null;
             for (int i = 0; i < inputs.size(); i++) {
@@ -1237,8 +1230,6 @@ public class JavaRules {
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
-            final JavaTypeFactory typeFactory =
-                (JavaTypeFactory) implementor.getTypeFactory();
             final BlockBuilder statements = new BlockBuilder();
             Expression intersectExp = null;
             for (int i = 0; i < inputs.size(); i++) {
@@ -1340,8 +1331,6 @@ public class JavaRules {
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
-            final JavaTypeFactory typeFactory =
-                (JavaTypeFactory) implementor.getTypeFactory();
             final BlockBuilder statements = new BlockBuilder();
             Expression minusExp = null;
             for (int i = 0; i < inputs.size(); i++) {
@@ -1366,55 +1355,6 @@ public class JavaRules {
             statements.add(minusExp);
             return statements.toBlock();
         }
-    }
-
-    /**
-     * Sample code. Not used; just here as a scratch pad, to make sure that what
-     * we generate will compile. Feel free to modify.
-     */
-    private Enumerable<Object[]> foo() {
-        final Enumerable<Employee> childEnumerable =
-            Linq4j.emptyEnumerable();
-        Function1<Employee, Integer> keySelector =
-            new Function1<Employee, Integer>() {
-                public Integer apply(Employee a0) {
-                    return a0.deptno;
-                }
-            };
-        Function1<Grouping<Integer, Employee>, Object[]> selector =
-            new Function1<Grouping<Integer, Employee>, Object[]>() {
-                public Object[] apply(Grouping<Integer, Employee> a0) {
-                    return new Object[] {
-                        a0.getKey(),
-                        a0.sum(
-                            new IntegerFunction1<Employee>() {
-                                public int apply(Employee a0) {
-                                    return a0.empid;
-                                }
-                            }
-                        ),
-                        a0.count()
-                    };
-                }
-            };
-        return childEnumerable.groupBy(keySelector)
-            .select(selector);
-    }
-
-    static class IntString {
-        int n;
-        String s;
-
-        IntString(int n, String s) {
-            this.n = n;
-            this.s = s;
-        }
-    }
-
-    static class Employee {
-        int empid;
-        int deptno;
-        String name;
     }
 }
 
