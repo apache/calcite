@@ -71,7 +71,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
     static final Method METHOD_ENUMERABLE_SELECT2;
     static final Method METHOD_ENUMERABLE_WHERE;
     static final Method METHOD_ENUMERABLE_WHERE2;
-    static final Method METHOD_ENUMERABLE_ASQUERYABLE;
+    static final Method METHOD_ENUMERABLE_AS_QUERYABLE;
 
     static {
         try {
@@ -85,7 +85,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 Enumerable.class.getMethod("where", Predicate1.class);
             METHOD_ENUMERABLE_WHERE2 =
                 Enumerable.class.getMethod("where", Predicate2.class);
-            METHOD_ENUMERABLE_ASQUERYABLE =
+            METHOD_ENUMERABLE_AS_QUERYABLE =
                 Enumerable.class.getMethod("asQueryable");
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
@@ -407,7 +407,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
         }
     }
 
-    private static class Table
+    private static class RelOptTableImpl
         implements SqlValidatorTable, RelOptTable
     {
         private final RelOptSchema schema;
@@ -415,7 +415,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
         private final String[] names;
         private final Expression expression;
 
-        public Table(
+        RelOptTableImpl(
             RelOptSchema schema,
             RelDataType rowType,
             String[] names,
@@ -468,20 +468,21 @@ class OptiqPrepareImpl implements OptiqPrepare {
         implements SqlValidatorCatalogReader, RelOptSchema
     {
         private final Schema schema;
-        private final RelDataTypeFactory typeFactory;
+        private final JavaTypeFactory typeFactory;
 
         private static final ParameterExpression rootExpression =
             Expressions.variable(Map.class, "root");
 
         public OptiqCatalogReader(
-            Schema schema, RelDataTypeFactory typeFactory)
+            Schema schema,
+            JavaTypeFactory typeFactory)
         {
             super();
             this.schema = schema;
             this.typeFactory = typeFactory;
         }
 
-        public Table getTable(final String[] names) {
+        public RelOptTableImpl getTable(final String[] names) {
             List<Pair<String, Object>> pairs =
                 new ArrayList<Pair<String, Object>>();
             Schema schema2 = schema;
@@ -493,7 +494,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     schema2 = subSchema;
                     continue;
                 }
-                final net.hydromatic.optiq.Table table = schema2.getTable(name);
+                final Table table = schema2.getTable(name);
                 if (table != null) {
                     pairs.add(Pair.<String, Object>of(name, table));
                     if (i != names.length - 1) {
@@ -502,44 +503,16 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     }
                     Type type = table.getElementType();
                     if (type instanceof MultisetSqlType) {
-                        Expression expression =
-                            foo(schema, rootExpression, pairs);
-                        return new Table(
+                        return new RelOptTableImpl(
                             this,
-                            type.getComponentType(),
+                            typeFactory.createType(table.getElementType()),
                             names,
-                            toEnumerable(expression));
+                            table.getExpression());
                     }
                 }
                 return null;
             }
             return null;
-        }
-
-        private Expression foo(
-            Schema schema,
-            Expression expression,
-            List<Pair<String, Object>> pairs)
-        {
-            for (Pair<String, Object> pair : pairs) {
-                String name = pair.left;
-                Object object = pair.right;
-                if (object instanceof Schema) {
-                    Schema subSchema = (Schema) object;
-                    expression =
-                        schema.getSubSchemaExpression(
-                            expression, subSchema, name);
-                    schema = subSchema;
-                } else {
-                    Member member = (Member) object;
-                    expression =
-                        schema.getMemberExpression(
-                            expression,
-                            member,
-                            Collections.<Expression>emptyList());
-                }
-            }
-            return expression;
         }
 
         private Expression toEnumerable(Expression expression) {
@@ -569,7 +542,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             return null;
         }
 
-        public Table getTableForMember(String[] names) {
+        public RelOptTableImpl getTableForMember(String[] names) {
             return getTable(names);
         }
 
@@ -634,10 +607,10 @@ class OptiqPrepareImpl implements OptiqPrepare {
                             (FunctionExpression) call.expressions.get(0),
                             child));
                 }
-                if (call.method.equals(METHOD_ENUMERABLE_ASQUERYABLE)) {
+                if (call.method.equals(METHOD_ENUMERABLE_AS_QUERYABLE)) {
                     return new TableAccessRel(
                         cluster,
-                        new Table(
+                        new RelOptTableImpl(
                             null,
                             typeFactory.createJavaType(
                                 Types.toClass(

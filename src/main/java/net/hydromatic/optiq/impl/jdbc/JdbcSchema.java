@@ -77,6 +77,10 @@ public class JdbcSchema implements Schema {
         this.typeFactory = typeFactory;
     }
 
+    public QueryProvider getQueryProvider() {
+        return queryProvider;
+    }
+
     public List<TableFunction> getTableFunctions(String name) {
         return Collections.emptyList();
     }

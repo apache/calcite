@@ -106,4 +106,4 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
     }
 }
 
-// End JdbcTableQueryable.java
+// End JdbcTable.java

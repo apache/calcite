@@ -17,6 +17,9 @@
 */
 package net.hydromatic.optiq;
 
+import net.hydromatic.linq4j.QueryProvider;
+import net.hydromatic.linq4j.expressions.Expression;
+
 import java.util.List;
 
 /**
@@ -72,6 +75,10 @@ public interface Schema extends DataContext {
      * @return Table, or null
      */
     Table getTable(String name);
+
+    Expression getExpression();
+
+    QueryProvider getQueryProvider();
 }
 
 // End Schema.java

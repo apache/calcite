@@ -60,7 +60,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     private int networkTimeout;
     private String catalog;
 
-    final MutableSchema rootSchema = new MapSchema(typeFactory);
+    final MutableSchema rootSchema = new MapSchema(queryProvider, typeFactory);
     final UnregisteredDriver driver;
     final net.hydromatic.optiq.jdbc.Factory factory;
     private final String url;
@@ -452,18 +452,22 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
                     type));
         }
 
-        public RelDataType createType(Class type) {
-            if (type.isPrimitive()) {
-                return createJavaType(type);
-            } else if (type == String.class) {
+        public RelDataType createType(Type type) {
+            if (!(type instanceof Class)) {
+                throw new UnsupportedOperationException("TODO: implement");
+            }
+            final Class clazz = (Class) type;
+            if (clazz.isPrimitive()) {
+                return createJavaType(clazz);
+            } else if (clazz == String.class) {
                 // TODO: similar special treatment for BigDecimal, BigInteger,
                 //  Date, Time, Timestamp, Double etc.
-                return createJavaType(type);
-            } else if (type.isArray()) {
+                return createJavaType(clazz);
+            } else if (clazz.isArray()) {
                 return createMultisetType(
-                    createType(type.getComponentType()), -1);
+                    createType(clazz.getComponentType()), -1);
             } else {
-                return createStructType(type);
+                return createStructType(clazz);
             }
         }
 

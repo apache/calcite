@@ -319,7 +319,7 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        MapSchema schema = new MapSchema(typeFactory);
+        MapSchema schema = new MapSchema(queryProvider, typeFactory);
         schema.addTableFunction(
             ReflectiveSchema.methodMember(
                 GENERATE_STRINGS_METHOD, typeFactory));
@@ -384,7 +384,7 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        MapSchema schema = new MapSchema(typeFactory);
+        MapSchema schema = new MapSchema(queryProvider, typeFactory);
         schema.addTableFunction(
             ReflectiveSchema.methodMember(
                 GENERATE_STRINGS_METHOD, typeFactory));
@@ -412,7 +412,7 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        MapSchema schema = new MapSchema(typeFactory);
+        MapSchema schema = new MapSchema(queryProvider, typeFactory);
         schema.addTableFunction(
             viewFunction(
                 typeFactory, "emps_view", "select * from \"hr\".\"emps\""));

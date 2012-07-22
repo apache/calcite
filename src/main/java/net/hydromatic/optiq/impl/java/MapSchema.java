@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.impl.java;
 
+import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
@@ -45,8 +46,8 @@ public class MapSchema implements MutableSchema {
         }
     }
 
-    protected final Map<String, Table> tableMap =
-        new HashMap<String, Table>();
+    protected final Map<String, Table<Object>> tableMap =
+        new HashMap<String, Table<Object>>();
 
     protected final Map<String, List<TableFunction>> membersMap =
         new HashMap<String, List<TableFunction>>();
@@ -54,10 +55,16 @@ public class MapSchema implements MutableSchema {
     protected final Map<String, Schema> subSchemaMap =
         new HashMap<String, Schema>();
 
+    private final QueryProvider queryProvider;
     private final JavaTypeFactory typeFactory;
 
-    public MapSchema(JavaTypeFactory typeFactory) {
+    public MapSchema(QueryProvider queryProvider, JavaTypeFactory typeFactory) {
+        this.queryProvider = queryProvider;
         this.typeFactory = typeFactory;
+    }
+
+    public QueryProvider getQueryProvider() {
+        return queryProvider;
     }
 
     public <T> Table<T> getTable(String name, Class<T> elementType) {

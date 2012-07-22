@@ -20,6 +20,8 @@ package net.hydromatic.optiq.impl.java;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 
+import java.lang.reflect.Type;
+
 /**
  * Type factory that can register Java classes as record types.
  *
@@ -39,10 +41,10 @@ public interface JavaTypeFactory extends RelDataTypeFactory {
      * Creates a type, deducing whether a record, scalar or primitive type
      * is needed.
      *
-     * @param type Java class
+     * @param type Java type, such as a {@link Class}
      * @return Record or scalar type
      */
-    RelDataType createType(Class type);
+    RelDataType createType(Type type);
 
     Class getJavaClass(RelDataType type);
 }

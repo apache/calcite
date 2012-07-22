@@ -80,12 +80,6 @@ public final class Schemas {
     {
         return SqlTypeUtil.canAssignFrom(toType, fromType);
     }
-
-    public interface MemberPlus extends Member {
-        public Expression getExpression(
-            Expression schemaExpression,
-            List<Expression> argumentExpressions);
-    }
 }
 
 // End Schemas.java
