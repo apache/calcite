@@ -19,6 +19,6 @@
 /**
  * Main package for Optiq, the dynamic data management platform.
  */
-package net.hydromatic.optiq;
+package net.hydromatic.optiq.impl.jdbc;
 
 // End package-info.java

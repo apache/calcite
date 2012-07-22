@@ -19,6 +19,6 @@
 /**
  * Provides a server for hosting Optiq connections.
  */
-package net.hydromatic.optiq.runtime;
+package net.hydromatic.optiq.server;
 
 // End package-info.java
