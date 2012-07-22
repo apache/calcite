@@ -17,16 +17,15 @@
 */
 package net.hydromatic.optiq;
 
+import net.hydromatic.linq4j.Queryable;
+
 /**
- * A member of a {@link Schema}.
+ * Table.
  *
- * <p>May be a {@link Member} or an {@link Overload}.</p>
+ * @see TableFunction
  */
-public interface SchemaObject {
-    /**
-     * The name of this schema object.
-     */
-    String getName();
+public interface Table<T> extends Queryable<T> {
+    DataContext getDataContext();
 }
 
-// End SchemaObject.java
+// End Table.java

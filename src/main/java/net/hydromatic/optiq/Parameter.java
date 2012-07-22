@@ -20,7 +20,7 @@ package net.hydromatic.optiq;
 import org.eigenbase.reltype.RelDataType;
 
 /**
- * Parameter to a {@link Member}.
+ * Parameter to a {@link TableFunction}.
  */
 public interface Parameter {
     /**

@@ -17,11 +17,10 @@
 */
 package net.hydromatic.optiq.impl;
 
+import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.optiq.Member;
-import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.*;
 
-import java.lang.reflect.Type;
 import java.util.List;
 
 /**
@@ -42,39 +41,22 @@ public class DelegatingSchema implements Schema {
         this.schema = schema;
     }
 
-    public Type getType() {
-        return schema.getType();
+    public Table getTable(String name) {
+        return schema.getTable(name);
     }
 
-    public List<Member> getMembers(String name) {
-        return schema.getMembers(name);
+    public <T> Queryable<T> getTable(String name, Class<T> elementType) {
+        return schema.getTable(name, elementType);
     }
 
-    public Expression getMemberExpression(
-        Expression schemaExpression, Member member, List<Expression> arguments)
-    {
-        return schema.getMemberExpression(
-            schemaExpression, member, arguments);
-    }
-
-    public Object getSubSchemaInstance(
-        Object schemaInstance,
-        String subSchemaName,
-        Schema subSchema)
-    {
-        return schema.getSubSchemaInstance(
-            schemaInstance, null, subSchema);
+    public List<TableFunction> getTableFunctions(String name) {
+        return schema.getTableFunctions(name);
     }
 
     public Schema getSubSchema(String name) {
         return schema.getSubSchema(name);
     }
 
-    public Expression getSubSchemaExpression(
-        Expression schemaExpression, Schema schema, String name)
-    {
-        return schema.getSubSchemaExpression(schemaExpression, schema, name);
-    }
 }
 
 // End DelegatingSchema.java

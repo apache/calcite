@@ -55,7 +55,7 @@ public interface Member {
     String getName();
 
     /**
-     * Returns the parameters of this function.
+     * Returns the parameters of this member.
      *
      * @return Parameters; never null
      */

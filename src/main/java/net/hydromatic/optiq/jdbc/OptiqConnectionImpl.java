@@ -547,9 +547,8 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
                                 return connection.getRootSchema();
                             }
 
-                            public Map getRoot() {
-                                return connection.getRootSchema()
-                                    .getInstanceMap();
+                            public MutableSchema getRoot() {
+                                return connection.getRootSchema();
                             }
                         },
                         expression,

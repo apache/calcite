@@ -35,12 +35,13 @@ public final class Schemas {
         throw new AssertionError("no instances!");
     }
 
-    public static Member resolve(
-        List<Member> members,
+    public static TableFunction resolve(
+        String name,
+        List<TableFunction> tableFunctions,
         List<RelDataType> argumentTypes)
     {
-        final List<Member> matches = new ArrayList<Member>();
-        for (Member member : members) {
+        final List<TableFunction> matches = new ArrayList<TableFunction>();
+        for (TableFunction member : tableFunctions) {
             if (matches(member, argumentTypes)) {
                 matches.add(member);
             }
@@ -52,13 +53,13 @@ public final class Schemas {
             return matches.get(0);
         default:
             throw new RuntimeException(
-                "More than one match for " + members.get(0).getName()
+                "More than one match for " + name
                 + " with arguments " + argumentTypes);
         }
     }
 
     private static boolean matches(
-        Member member,
+        TableFunction member,
         List<RelDataType> argumentTypes)
     {
         List<Parameter> parameters = member.getParameters();

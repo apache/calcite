@@ -17,19 +17,17 @@
 */
 package net.hydromatic.optiq.impl.jdbc;
 
+import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.Member;
-import net.hydromatic.optiq.Parameter;
-import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.*;
 
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.sql.type.SqlTypeName;
 
-import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.Collections;
 import java.util.List;
@@ -45,37 +43,50 @@ import javax.sql.DataSource;
  * @author jhyde
  */
 public class JdbcSchema implements Schema {
-    private final DataSource dataSource;
+    final QueryProvider queryProvider;
+    final DataSource dataSource;
     private final String catalog;
     private final String schema;
-    private final RelDataTypeFactory typeFactory;
+    private final JavaTypeFactory typeFactory;
+    final SqlDialect dialect;
 
     /**
      * Creates a JDBC schema.
      *
+     * @param queryProvider Query provider
      * @param dataSource Data source
+     * @param dialect SQL dialect
      * @param catalog Catalog name, or null
      * @param schema Schema name pattern
      * @param typeFactory Type factory
      */
     public JdbcSchema(
+        QueryProvider queryProvider,
         DataSource dataSource,
+        SqlDialect dialect,
         String catalog,
         String schema,
-        RelDataTypeFactory typeFactory)
+        JavaTypeFactory typeFactory)
     {
         super();
+        this.queryProvider = queryProvider;
         this.dataSource = dataSource;
+        this.dialect = dialect;
         this.catalog = catalog;
         this.schema = schema;
         this.typeFactory = typeFactory;
     }
 
-    public Type getType() {
-        return DataContext.class;
+    public List<TableFunction> getTableFunctions(String name) {
+        return Collections.emptyList();
     }
 
-    public List<Member> getMembers(final String name) {
+    public <T> Queryable<T> getTable(String name, Class<T> elementType) {
+        assert elementType != null;
+        return getTable(name);
+    }
+
+    public Table getTable(String name) {
         Connection connection = null;
         ResultSet resultSet = null;
         try {
@@ -87,7 +98,7 @@ public class JdbcSchema implements Schema {
                 name,
                 null);
             if (!resultSet.next()) {
-                return Collections.emptyList();
+                return null;
             }
             final String catalogName = resultSet.getString(1);
             final String schemaName = resultSet.getString(2);
@@ -116,32 +127,8 @@ public class JdbcSchema implements Schema {
             final RelDataType type =
                 typeFactory.createMultisetType(
                     typeFactory.createStructType(fieldInfo), -1);
-            return Collections.<Member>singletonList(
-                new Member() {
-                    @Override
-                    public String toString() {
-                        return "JdbcTable {" + tableName + "}";
-                    }
-
-                    public List<Parameter> getParameters() {
-                        return Collections.emptyList();
-                    }
-
-                    public RelDataType getType() {
-                        return type;
-                    }
-
-                    public Queryable evaluate(
-                        Object target, List<Object> arguments)
-                    {
-                        assert arguments.isEmpty();
-                        return getTableQueryable(tableName);
-                    }
-
-                    public String getName() {
-                        return tableName;
-                    }
-                });
+            Class javaType = typeFactory.getJavaClass(type);
+            return new JdbcTable<Object>(javaType, this, name);
         } catch (SQLException e) {
             throw new RuntimeException(
                 "Exception while reading definition of table '" + name + "'",
@@ -166,26 +153,11 @@ public class JdbcSchema implements Schema {
         }
     }
 
-    private Queryable getTableQueryable(String tableName) {
-        throw new UnsupportedOperationException(); // TODO:
-    }
-
     public Expression getSubSchemaExpression(
         Expression schemaExpression, Schema schema, String name)
     {
         // JDBC has no sub-schemas.
         throw new UnsupportedOperationException();
-    }
-
-    public Expression getMemberExpression(
-        Expression schemaExpression, Member member, List<Expression> arguments)
-    {
-        assert arguments.isEmpty();
-        return Expressions.call(
-            schemaExpression,
-            "getTable",
-            Expressions.constant(member.getName()),
-            Expressions.constant(Object[].class));
     }
 
     public Schema getSubSchema(String name) {

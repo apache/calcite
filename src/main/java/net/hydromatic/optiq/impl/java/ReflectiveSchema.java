@@ -46,29 +46,29 @@ public class ReflectiveSchema
     /**
      * Creates a ReflectiveSchema.
      *
-     * @param clazz Class whose fields will be sub-objects
+     * @param target Object whose fields will be sub-objects
      * @param typeFactory Type factory
      */
     public ReflectiveSchema(
-        Class clazz,
+        Object target,
         JavaTypeFactory typeFactory)
     {
-        this(clazz, typeFactory, null);
+        this(target, typeFactory, null);
     }
 
     /**
      * Creates a ReflectiveSchema that is optionally a sub-schema.
      *
-     * @param clazz Class whose fields will be sub-objects
+     * @param target Object whose fields will be sub-objects
      * @param typeFactory Type factory
      */
     protected ReflectiveSchema(
-        Class clazz,
+        Object target,
         JavaTypeFactory typeFactory,
         Method parentMethod)
     {
         super(typeFactory);
-        this.clazz = clazz;
+        this.clazz = target.getClass();
         this.parentMethod = parentMethod;
         for (Field field : clazz.getFields()) {
             putMulti(
@@ -85,10 +85,6 @@ public class ReflectiveSchema
                 method.getName(),
                 methodMember(method, typeFactory));
         }
-    }
-
-    public Type getType() {
-        return clazz;
     }
 
     public Expression getMemberExpression(

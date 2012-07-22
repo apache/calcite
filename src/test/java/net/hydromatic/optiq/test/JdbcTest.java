@@ -32,7 +32,6 @@ import net.hydromatic.optiq.Parameter;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
-import net.hydromatic.optiq.impl.jdbc.JdbcDataContext;
 import net.hydromatic.optiq.impl.jdbc.JdbcQueryProvider;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
@@ -73,8 +72,6 @@ public class JdbcTest extends TestCase {
 
     /**
      * Runs a simple query that reads from a table in an in-memory schema.
-     *
-     * @on error
      */
     public void testSelect() {
         assertQuery(
@@ -86,8 +83,6 @@ public class JdbcTest extends TestCase {
 
     /**
      * Runs a simple query that joins between two in-memory schemas.
-     *
-     * @throws Exception on error
      */
     public void testJoin() {
         assertQuery(
@@ -101,8 +96,6 @@ public class JdbcTest extends TestCase {
 
     /**
      * Simple GROUP BY.
-     *
-     * @throws Exception on error
      */
     public void testGroupBy() {
         assertQuery(
@@ -327,7 +320,7 @@ public class JdbcTest extends TestCase {
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
         MapSchema schema = new MapSchema(typeFactory);
-        schema.addMember(
+        schema.addTableFunction(
             ReflectiveSchema.methodMember(
                 GENERATE_STRINGS_METHOD, typeFactory));
         optiqConnection.getRootSchema().add("s", schema, null);
@@ -392,10 +385,10 @@ public class JdbcTest extends TestCase {
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
         MapSchema schema = new MapSchema(typeFactory);
-        schema.addMember(
+        schema.addTableFunction(
             ReflectiveSchema.methodMember(
                 GENERATE_STRINGS_METHOD, typeFactory));
-        schema.addMember(
+        schema.addTableFunction(
             ReflectiveSchema.methodMember(
                 STRING_UNION_METHOD, typeFactory));
         optiqConnection.getRootSchema().add("s", schema, null);
@@ -420,11 +413,11 @@ public class JdbcTest extends TestCase {
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
         MapSchema schema = new MapSchema(typeFactory);
-        schema.addMember(
+        schema.addTableFunction(
             viewFunction(
                 typeFactory, "emps_view", "select * from \"hr\".\"emps\""));
         MutableSchema rootSchema = optiqConnection.getRootSchema();
-        rootSchema.add("s", schema, schema.getInstanceMap());
+        rootSchema.add("s", schema);
         rootSchema.add("hr", new HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
@@ -516,12 +509,14 @@ public class JdbcTest extends TestCase {
         StringBuilder buf = new StringBuilder();
         while (resultSet.next()) {
             int n = resultSet.getMetaData().getColumnCount();
-            for (int i = 1; i <= n; i++) {
-                buf.append(
-                    (i > 1 ? "; " : "")
-                    + resultSet.getMetaData().getColumnLabel(i)
-                    + "="
-                    + resultSet.getObject(i));
+            for (int i = 1;; i++) {
+                buf.append(resultSet.getMetaData().getColumnLabel(i))
+                    .append("=")
+                    .append(resultSet.getObject(i));
+                if (i == n) {
+                    break;
+                }
+                buf.append("; ");
             }
             buf.append("\n");
         }
@@ -545,6 +540,29 @@ public class JdbcTest extends TestCase {
         optiqConnection.getRootSchema().add("hr", new HrSchema());
         optiqConnection.getRootSchema().add("foodmart", new FoodmartSchema());
         return connection;
+    }
+
+    private OptiqConnection getConnection(QueryProvider queryProvider)
+        throws ClassNotFoundException, SQLException
+    {
+        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+        Class.forName("com.mysql.jdbc.Driver");
+        Connection connection = DriverManager.getConnection("jdbc:optiq:");
+        OptiqConnection optiqConnection =
+            connection.unwrap(OptiqConnection.class);
+        BasicDataSource dataSource = new BasicDataSource();
+        dataSource.setUrl("jdbc:mysql://localhost");
+        dataSource.setUsername("foodmart");
+        dataSource.setPassword("foodmart");
+        optiqConnection.getRootSchema().add(
+            "foodmart",
+            new JdbcSchema(
+                queryProvider,
+                dataSource,
+                "foodmart",
+                "",
+                optiqConnection.getTypeFactory()));
+        return optiqConnection;
     }
 
     public void testFoodMartJdbc() {
@@ -574,6 +592,17 @@ public class JdbcTest extends TestCase {
             .returns(
                 "day=1; week_day=Sunday\n"
                 + "day=2; week_day=Monday\n");
+    }
+
+    public void testJdbcBackendLinqFrontend() {
+        try {
+            final OptiqConnection connection =
+                getConnection(OptiqQueryProvider.INSTANCE);
+            JdbcSchema schema = (JdbcSchema) connection.getRootSchema();
+            schema.get
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void testFoodMartJdbcGroup() {
@@ -689,32 +718,15 @@ public class JdbcTest extends TestCase {
                 Statement statement;
                 ResultSet resultSet;
 
-                QueryProvider queryProvider = JdbcQueryProvider.INSTANCE;
                 switch (config) {
                 case REGULAR:
                     connection = getConnectionWithHrFoodmart();
                     break;
                 case JDBC_FOODMART2:
-                    queryProvider = OptiqQueryProvider.INSTANCE;
+                    connection = getConnection(OptiqQueryProvider.INSTANCE);
+                    break;
                 case JDBC_FOODMART:
-                    Class.forName("net.hydromatic.optiq.jdbc.Driver");
-                    Class.forName("com.mysql.jdbc.Driver");
-                    connection = DriverManager.getConnection("jdbc:optiq:");
-                    OptiqConnection optiqConnection =
-                        connection.unwrap(OptiqConnection.class);
-                    BasicDataSource dataSource = new BasicDataSource();
-                    dataSource.setUrl("jdbc:mysql://localhost");
-                    dataSource.setUsername("foodmart");
-                    dataSource.setPassword("foodmart");
-                    optiqConnection.getRootSchema().add(
-                        "foodmart",
-                        new JdbcSchema(
-                            dataSource,
-                            "foodmart",
-                            "",
-                            optiqConnection.getTypeFactory()),
-                        new JdbcDataContext(
-                            dataSource, queryProvider));
+                    connection = getConnection(JdbcQueryProvider.INSTANCE);
                     break;
                 default:
                     throw Util.unexpected(config);

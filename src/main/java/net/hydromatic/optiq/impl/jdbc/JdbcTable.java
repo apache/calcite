@@ -25,6 +25,8 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
 
+import net.hydromatic.optiq.DataContext;
+import net.hydromatic.optiq.Table;
 import org.eigenbase.sql.SqlWriter;
 import org.eigenbase.sql.pretty.SqlPrettyWriter;
 
@@ -42,23 +44,35 @@ import java.util.Iterator;
  *
  * @author jhyde
  */
-public class JdbcTableQueryable<T> extends AbstractQueryable<T> {
+class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
     private final Type elementType;
-    private final JdbcDataContext dataContext;
+    private final JdbcSchema dataContext;
     private final String tableName;
 
     private static final ParameterExpression DC =
-        Expressions.parameter(JdbcDataContext.class, "dc");
+        Expressions.parameter(JdbcSchema.class, "dc");
 
-    public JdbcTableQueryable(
+    public JdbcTable(
         Type elementType,
-        JdbcDataContext dataContext,
+        JdbcSchema dataContext,
         String tableName)
     {
         super();
         this.elementType = elementType;
         this.dataContext = dataContext;
         this.tableName = tableName;
+    }
+
+    public String toString() {
+        return "JdbcTable {" + tableName + "}";
+    }
+
+    public QueryProvider getProvider() {
+        return dataContext.queryProvider;
+    }
+
+    public DataContext getDataContext() {
+        return dataContext;
     }
 
     public Type getElementType() {
@@ -72,10 +86,6 @@ public class JdbcTableQueryable<T> extends AbstractQueryable<T> {
                 "getTable",
                 Expressions.constant(tableName),
                 Expressions.constant(elementType)));
-    }
-
-    public QueryProvider getProvider() {
-        return dataContext.queryProvider;
     }
 
     public Iterator<T> iterator() {

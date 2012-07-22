@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.impl.java;
 
+import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.MethodCallExpression;
@@ -44,27 +45,33 @@ public class MapSchema implements MutableSchema {
         }
     }
 
-    protected final Map<String, List<Member>> membersMap =
-        new HashMap<String, List<Member>>();
+    protected final Map<String, Table> tableMap =
+        new HashMap<String, Table>();
+
+    protected final Map<String, List<TableFunction>> membersMap =
+        new HashMap<String, List<TableFunction>>();
 
     protected final Map<String, Schema> subSchemaMap =
         new HashMap<String, Schema>();
 
     private final JavaTypeFactory typeFactory;
 
-    private final Map<String, Object> instanceMap =
-        new HashMap<String, Object>();
-
     public MapSchema(JavaTypeFactory typeFactory) {
         this.typeFactory = typeFactory;
     }
 
-    public Type getType() {
-        return Map.class;
+    public <T> Table<T> getTable(String name, Class<T> elementType) {
+        // TODO: check elementType matches table.elementType
+        assert elementType != null;
+        return getTable(name);
     }
 
-    public List<Member> getMembers(String name) {
-        List<Member> members = membersMap.get(name);
+    public Table getTable(String name) {
+        return tableMap.get(name);
+    }
+
+    public List<TableFunction> getTableFunctions(String name) {
+        List<TableFunction> members = membersMap.get(name);
         if (members != null) {
             return members;
         }
@@ -75,25 +82,19 @@ public class MapSchema implements MutableSchema {
         return subSchemaMap.get(name);
     }
 
-    public void addMember(Member member) {
-        putMulti(membersMap, member.getName(), member);
+    public void addTableFunction(String name, TableFunction tableFunction) {
+        putMulti(membersMap, name, tableFunction);
     }
 
-    public void add(String name, Schema schema, Object o) {
+    public void addTable(String name, Table table) {
+        tableMap.put(name, table);
+    }
+
+    public void add(String name, Schema schema) {
         subSchemaMap.put(name, schema);
-        instanceMap.put(name, o);
     }
 
-    public void add(final String name, Object o) {
-        Schema schema = new ReflectiveSchema(o.getClass(), typeFactory);
-        add(name, schema, o);
-    }
-
-    public Map getInstanceMap() {
-        return Collections.unmodifiableMap(instanceMap);
-    }
-
-    public Expression getMemberExpression(
+    private Expression getMemberExpression(
         Expression schemaExpression, Member member, List<Expression> arguments)
     {
         // (Type) schemaExpression.get("name")
@@ -118,7 +119,7 @@ public class MapSchema implements MutableSchema {
         throw new UnsupportedOperationException();
     }
 
-    public Expression getSubSchemaExpression(
+    private Expression getSubSchemaExpression(
         Expression schemaExpression, Schema schema, String name)
     {
         MethodCallExpression call =
@@ -150,7 +151,7 @@ public class MapSchema implements MutableSchema {
             return typeFactory.getJavaClass(type);
         }
         if (schemaObject instanceof Schema) {
-            return ((Schema) schemaObject).getType();
+            return schemaObject.getClass();
         }
         return null;
     }

@@ -20,7 +20,7 @@ package net.hydromatic.optiq.jdbc;
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.RawEnumerable;
 import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import java.io.InputStream;
@@ -55,7 +55,7 @@ public interface OptiqPrepare {
 
         Schema getRootSchema();
 
-        Map getRoot();
+        Schema getRoot();
     }
 
     public static class PrepareResult {

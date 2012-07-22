@@ -107,7 +107,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
         Expression expression,
         Type elementType)
     {
-        final RelDataTypeFactory typeFactory = statement.getTypeFactory();
+        final JavaTypeFactory typeFactory = statement.getTypeFactory();
         OptiqCatalogReader catalogReader =
             new OptiqCatalogReader(
                 statement.getRootSchema(),
@@ -118,8 +118,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             new OptiqPreparingStmt(
                 relOptConnection,
                 typeFactory,
-                statement.getRootSchema(),
-                statement.getRoot());
+                statement.getRootSchema());
         preparingStmt.setResultCallingConvention(CallingConvention.ENUMERABLE);
 
         final RelDataType x;
@@ -205,17 +204,14 @@ class OptiqPrepareImpl implements OptiqPrepare {
         private final RelOptPlanner planner;
         private final RexBuilder rexBuilder;
         private final Schema schema;
-        private final Map root;
 
         public OptiqPreparingStmt(
             RelOptConnection connection,
             RelDataTypeFactory typeFactory,
-            Schema schema,
-            Map root)
+            Schema schema)
         {
             super(connection);
             this.schema = schema;
-            this.root = root;
             planner = new VolcanoPlanner();
             planner.addRelTraitDef(CallingConventionTraitDef.instance);
             RelOptUtil.registerAbstractRels(planner);
@@ -405,7 +401,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 null)
             {
                 public Object execute() {
-                    return executable.execute(root);
+                    return executable.execute(schema);
                 }
             };
         }
@@ -497,19 +493,14 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     schema2 = subSchema;
                     continue;
                 }
-                final List<Member> members = schema2.getMembers(name);
-                final List<Expression> arguments = Collections.emptyList();
-                Member member =
-                    Schemas.resolve(
-                        members,
-                        Collections.<RelDataType>emptyList());
-                if (member != null) {
-                    pairs.add(Pair.<String, Object>of(name, member));
+                final net.hydromatic.optiq.Table table = schema2.getTable(name);
+                if (table != null) {
+                    pairs.add(Pair.<String, Object>of(name, table));
                     if (i != names.length - 1) {
                         // not enough objects to match all names
                         return null;
                     }
-                    RelDataType type = member.getType();
+                    Type type = table.getElementType();
                     if (type instanceof MultisetSqlType) {
                         Expression expression =
                             foo(schema, rootExpression, pairs);

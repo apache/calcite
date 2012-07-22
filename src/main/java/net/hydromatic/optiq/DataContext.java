@@ -19,16 +19,12 @@ package net.hydromatic.optiq;
 
 import net.hydromatic.linq4j.Queryable;
 
-import java.lang.reflect.Type;
-
 /**
  * Runtime context allowing access to the tables in a database.
  *
  * @author jhyde
  */
 public interface DataContext {
-    Queryable getTable(String name, Type elementType);
-
     <T> Queryable<T> getTable(String name, Class<T> elementType);
 }
 

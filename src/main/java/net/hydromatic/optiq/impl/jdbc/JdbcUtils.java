@@ -40,7 +40,7 @@ final class JdbcUtils {
      * objects. */
     static <T> Enumerator<T> sqlEnumerator(
         String sql,
-        JdbcDataContext dataContext)
+        JdbcSchema dataContext)
     {
         Connection connection;
         Statement statement;

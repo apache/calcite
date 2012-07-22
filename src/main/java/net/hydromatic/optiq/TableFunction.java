@@ -15,26 +15,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.runtime;
+package net.hydromatic.optiq;
 
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.optiq.DataContext;
+import java.lang.reflect.Type;
+import java.util.List;
 
 /**
- * Executable statement.
- *
- * @author jhyde
+ * Function that returns a {@link Table}.
  */
-public interface Executable {
+public interface TableFunction<T> {
     /**
-     * Executes this statement and returns an enumerable which will yield rows.
-     * The {@code environment} parameter provides the values in the root of the
-     * environment (usually schemas).
+     * Element type of table that will be returned.
      *
-     * @param dataContext Environment that provides tables
-     * @return Enumerable over rows
+     * @return Element type of table
      */
-    Enumerable execute(DataContext dataContext);
+    Type getElementType();
+
+    /**
+     * Returns the parameters of this table function.
+     *
+     * @return Parameters; never null
+     */
+    List<Parameter> getParameters();
+
+    /**
+     * Applies arguments to yield a table.
+     *
+     * @param arguments Arguments
+     * @return Table
+     */
+    Table<T> apply(List<Object> arguments);
 }
 
-// End Executable.java
+// End TableFunction.java
