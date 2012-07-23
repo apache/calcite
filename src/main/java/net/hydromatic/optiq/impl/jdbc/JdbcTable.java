@@ -27,6 +27,7 @@ import net.hydromatic.linq4j.expressions.ParameterExpression;
 
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.Table;
+
 import org.eigenbase.sql.SqlWriter;
 import org.eigenbase.sql.pretty.SqlPrettyWriter;
 
@@ -54,13 +55,16 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
 
     public JdbcTable(
         Type elementType,
-        JdbcSchema dataContext,
+        JdbcSchema schema,
         String tableName)
     {
         super();
         this.elementType = elementType;
-        this.dataContext = dataContext;
+        this.dataContext = schema;
         this.tableName = tableName;
+        assert elementType != null;
+        assert schema != null;
+        assert tableName != null;
     }
 
     public String toString() {
@@ -84,8 +88,11 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
             Expressions.call(
                 DC,
                 "getTable",
-                Expressions.constant(tableName),
-                Expressions.constant(elementType)));
+                Expressions.<Expression>list()
+                    .append(Expressions.constant(tableName))
+                    .appendIf(
+                        elementType instanceof Class,
+                        Expressions.constant(elementType))));
     }
 
     public Iterator<T> iterator() {

@@ -283,13 +283,13 @@ public class JavaRules {
         }
 
         private static Expression castIfNecessary(
-            Class returnType,
+            Type returnType,
             Expression expression)
         {
             if (Types.isAssignableFrom(returnType, expression.getType())) {
                 return expression;
             }
-            if (returnType.isPrimitive()
+            if (Types.isPrimitive(returnType)
                 && !Types.isPrimitive(expression.getType()))
             {
                 // E.g.
@@ -301,24 +301,24 @@ public class JavaRules {
             return Expressions.convert_(expression, returnType);
         }
 
-        static Class javaClass(
+        static Type javaClass(
             JavaTypeFactory typeFactory, RelDataType type)
         {
-            final Class clazz = typeFactory.getJavaClass(type);
+            final Type clazz = typeFactory.getJavaClass(type);
             return clazz == null ? Object[].class : clazz;
         }
 
         static Class javaRowClass(
             JavaTypeFactory typeFactory, RelDataType type)
         {
-            final Class clazz = typeFactory.getJavaClass(type);
-            return clazz == null ? Object[].class : clazz;
+            final Type clazz = typeFactory.getJavaClass(type);
+            return clazz instanceof Class ? (Class) clazz : Object[].class;
         }
 
-        static Class computeOutputJavaType(
+        static Type computeOutputJavaType(
             JavaTypeFactory typeFactory, RelDataType outputRowType)
         {
-            Class outputJavaType = typeFactory.getJavaClass(outputRowType);
+            Type outputJavaType = typeFactory.getJavaClass(outputRowType);
             if (outputJavaType == null) {
                 if (outputRowType.getFieldCount() == 1) {
                     outputJavaType =
@@ -520,7 +520,7 @@ public class JavaRules {
             //         return new Enumerator<IntString>() {
             //             public void reset() {
             // ...
-            Class outputJavaType =
+            Type outputJavaType =
                 EnumUtil.computeOutputJavaType(typeFactory, outputRowType);
             final Type enumeratorType =
                 Types.of(

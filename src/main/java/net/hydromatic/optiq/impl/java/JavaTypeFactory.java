@@ -46,7 +46,7 @@ public interface JavaTypeFactory extends RelDataTypeFactory {
      */
     RelDataType createType(Type type);
 
-    Class getJavaClass(RelDataType type);
+    Type getJavaClass(RelDataType type);
 }
 
 // End JavaTypeFactory.java

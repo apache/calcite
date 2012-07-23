@@ -18,6 +18,7 @@
 package org.eigenbase.reltype;
 
 import java.io.*;
+import java.lang.reflect.Type;
 
 import org.eigenbase.sql.type.*;
 
@@ -30,7 +31,7 @@ import org.eigenbase.sql.type.*;
  */
 public class RelRecordType
     extends RelDataTypeImpl
-    implements Serializable
+    implements Serializable, Type
 {
     //~ Constructors -----------------------------------------------------------
 

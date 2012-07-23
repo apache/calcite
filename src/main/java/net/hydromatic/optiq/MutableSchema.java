@@ -24,6 +24,7 @@ public interface MutableSchema extends Schema {
     void addTableFunction(String name, TableFunction tableFunction);
     void addTable(String name, Table table);
     void add(String name, Schema schema);
+    void addReflectiveSchema(String name, Object target);
 }
 
 // End MutableSchema.java

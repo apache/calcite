@@ -18,20 +18,14 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.ParameterExpression;
+import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Predicate1;
 
-import net.hydromatic.optiq.Member;
-import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.OptiqQueryProvider;
-import net.hydromatic.optiq.Parameter;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
-import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcQueryProvider;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
@@ -41,14 +35,17 @@ import junit.framework.TestCase;
 
 import org.apache.commons.dbcp.BasicDataSource;
 
-import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.util.Util;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.sql.*;
+import java.sql.Statement;
 import java.util.*;
+import javax.sql.DataSource;
 
 /**
  * Tests for using Optiq via JDBC.
@@ -319,11 +316,13 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        MapSchema schema = new MapSchema(queryProvider, typeFactory);
+        MapSchema schema =
+            new MapSchema(optiqConnection, typeFactory, null);
         schema.addTableFunction(
-            ReflectiveSchema.methodMember(
+            "GenerateStrings",
+            Schemas.methodMember(
                 GENERATE_STRINGS_METHOD, typeFactory));
-        optiqConnection.getRootSchema().add("s", schema, null);
+        optiqConnection.getRootSchema().add("s", schema);
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
             + "from table(s.GenerateStrings(5))\n"
@@ -384,15 +383,19 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        MapSchema schema = new MapSchema(queryProvider, typeFactory);
+        MapSchema schema =
+            new MapSchema(optiqConnection, typeFactory, null);
         schema.addTableFunction(
-            ReflectiveSchema.methodMember(
+            "GenerateStrings",
+            Schemas.methodMember(
                 GENERATE_STRINGS_METHOD, typeFactory));
         schema.addTableFunction(
-            ReflectiveSchema.methodMember(
+            "StringUnion",
+            Schemas.methodMember(
                 STRING_UNION_METHOD, typeFactory));
-        optiqConnection.getRootSchema().add("s", schema, null);
-        optiqConnection.getRootSchema().add("hr", new HrSchema());
+        MutableSchema rootSchema = optiqConnection.getRootSchema();
+        rootSchema.add("s", schema);
+        rootSchema.addReflectiveSchema("hr", new HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
             + "from table(s.StringUnion(\n"
@@ -412,39 +415,37 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        MapSchema schema = new MapSchema(queryProvider, typeFactory);
+        MapSchema schema =
+            new MapSchema(optiqConnection, typeFactory, null);
         schema.addTableFunction(
+            "emps_view",
             viewFunction(
                 typeFactory, "emps_view", "select * from \"hr\".\"emps\""));
         MutableSchema rootSchema = optiqConnection.getRootSchema();
         rootSchema.add("s", schema);
-        rootSchema.add("hr", new HrSchema());
+        rootSchema.addReflectiveSchema("hr", new HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
             + "from \"emps_view\"");
         assertTrue(resultSet.next());
     }
 
-    private Member viewFunction(
+    private <T> TableFunction<T> viewFunction(
         JavaTypeFactory typeFactory, final String name, String viewSql)
     {
-        return new Member() {
+        return new TableFunction<T>() {
             public List<Parameter> getParameters() {
                 return Collections.emptyList();
             }
 
-            public RelDataType getType() {
+            public Type getElementType() {
                 // TODO: return type returned from validation
                 throw new UnsupportedOperationException();
             }
 
-            public Queryable evaluate(Object target, List<Object> arguments) {
+            public Table<T> apply(List<Object> arguments) {
                 // TODO: return a Queryable that wraps the parse tree
                 throw new UnsupportedOperationException();
-            }
-
-            public String getName() {
-                return name;
             }
         };
     }
@@ -537,8 +538,9 @@ public class JdbcTest extends TestCase {
             DriverManager.getConnection("jdbc:optiq:");
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
-        optiqConnection.getRootSchema().add("hr", new HrSchema());
-        optiqConnection.getRootSchema().add("foodmart", new FoodmartSchema());
+        MutableSchema rootSchema = optiqConnection.getRootSchema();
+        rootSchema.addReflectiveSchema("hr", new HrSchema());
+        rootSchema.addReflectiveSchema("foodmart", new FoodmartSchema());
         return connection;
     }
 
@@ -559,9 +561,11 @@ public class JdbcTest extends TestCase {
             new JdbcSchema(
                 queryProvider,
                 dataSource,
+                JdbcSchema.createDialect(dataSource),
                 "foodmart",
                 "",
-                optiqConnection.getTypeFactory()));
+                optiqConnection.getTypeFactory(),
+                null));
         return optiqConnection;
     }
 
@@ -569,12 +573,9 @@ public class JdbcTest extends TestCase {
         assertQuery("select * from \"foodmart\".\"days\"")
             .inJdbcFoodmart()
             .returns(
-                "day=1; week_day=Sunday\n"
-                + "day=2; week_day=Monday\n"
-                + "day=5; week_day=Thursday\n"
-                + "day=4; week_day=Wednesday\n"
-                + "day=3; week_day=Tuesday\n"
-                + "day=6; week_day=Friday\n"
+                "day=1; week_day=Sunday\n" + "day=2; week_day=Monday\n"
+                + "day=5; week_day=Thursday\n" + "day=4; week_day=Wednesday\n"
+                + "day=3; week_day=Tuesday\n" + "day=6; week_day=Friday\n"
                 + "day=7; week_day=Saturday\n");
     }
 
@@ -599,7 +600,19 @@ public class JdbcTest extends TestCase {
             final OptiqConnection connection =
                 getConnection(OptiqQueryProvider.INSTANCE);
             JdbcSchema schema = (JdbcSchema) connection.getRootSchema();
-            schema.get
+            ParameterExpression c =
+                Expressions.parameter(
+                    Customer.class, "c");
+            String s =
+            schema.getTable("customer", Customer.class)
+                .where(
+                    Expressions.<Predicate1<Customer>>lambda(
+                        Expressions.lessThan(
+                            Expressions.field(c, "customer_id"),
+                            Expressions.constant(50)),
+                        c))
+                .toList()
+                .toString();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -810,6 +823,38 @@ public class JdbcTest extends TestCase {
             new SalesFact(100, 10),
             new SalesFact(150, 20),
         };
+    }
+
+    public static class FoodmartJdbcSchema extends JdbcSchema {
+        public FoodmartJdbcSchema(
+            QueryProvider queryProvider,
+            DataSource dataSource,
+            SqlDialect dialect,
+            String catalog,
+            String schema,
+            JavaTypeFactory typeFactory,
+            Expression expression)
+        {
+            super(
+                queryProvider,
+                dataSource,
+                dialect,
+                catalog,
+                schema,
+                typeFactory,
+                expression);
+        }
+
+        public final Table<Customer> customer =
+            getTable("customer", Customer.class);
+    }
+
+    public static class Customer {
+        public final int customer_id;
+
+        public Customer(int customer_id) {
+            this.customer_id = customer_id;
+        }
     }
 
     public static class SalesFact {

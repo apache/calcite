@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.impl;
 
+import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
@@ -39,6 +40,14 @@ public class DelegatingSchema implements Schema {
      */
     public DelegatingSchema(Schema schema) {
         this.schema = schema;
+    }
+
+    public Expression getExpression() {
+        return schema.getExpression();
+    }
+
+    public QueryProvider getQueryProvider() {
+        return schema.getQueryProvider();
     }
 
     public Table getTable(String name) {

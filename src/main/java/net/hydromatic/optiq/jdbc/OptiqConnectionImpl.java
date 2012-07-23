@@ -23,6 +23,7 @@ import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
 
 import net.hydromatic.optiq.MutableSchema;
+import net.hydromatic.optiq.OptiqQueryProvider;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
@@ -60,7 +61,9 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     private int networkTimeout;
     private String catalog;
 
-    final MutableSchema rootSchema = new MapSchema(queryProvider, typeFactory);
+    final MutableSchema rootSchema =
+        new MapSchema(
+            OptiqQueryProvider.INSTANCE, typeFactory, null);
     final UnregisteredDriver driver;
     final net.hydromatic.optiq.jdbc.Factory factory;
     private final String url;
@@ -453,8 +456,12 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         }
 
         public RelDataType createType(Type type) {
+            if (type instanceof RelDataType) {
+                return (RelDataType) type;
+            }
             if (!(type instanceof Class)) {
-                throw new UnsupportedOperationException("TODO: implement");
+                throw new UnsupportedOperationException(
+                    "TODO: implement " + type + ": " + type.getClass());
             }
             final Class clazz = (Class) type;
             if (clazz.isPrimitive()) {
@@ -471,10 +478,15 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
             }
         }
 
-        public Class getJavaClass(RelDataType type) {
-            if (type instanceof JavaRecordType) {
-                JavaRecordType javaRecordType = (JavaRecordType) type;
-                return javaRecordType.clazz;
+        public Type getJavaClass(RelDataType type) {
+            if (type instanceof RelRecordType) {
+                JavaRecordType javaRecordType;
+                if (type instanceof JavaRecordType) {
+                    javaRecordType = (JavaRecordType) type;
+                    return javaRecordType.clazz;
+                } else {
+                    return (RelRecordType) type;
+                }
             }
             if (type instanceof JavaType) {
                 JavaType javaType = (JavaType) type;

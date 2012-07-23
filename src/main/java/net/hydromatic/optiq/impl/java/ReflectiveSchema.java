@@ -21,10 +21,10 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 
+import net.hydromatic.linq4j.expressions.FunctionExpression;
 import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -40,7 +40,6 @@ public class ReflectiveSchema
     extends MapSchema
 {
     final Class clazz;
-    private final Method parentMethod;
     private Object target;
 
     /**
@@ -52,27 +51,12 @@ public class ReflectiveSchema
     public ReflectiveSchema(
         QueryProvider queryProvider,
         Object target,
-        JavaTypeFactory typeFactory)
-    {
-        this(queryProvider, target, typeFactory, null);
-    }
-
-    /**
-     * Creates a ReflectiveSchema that is optionally a sub-schema.
-     *
-     * @param target Object whose fields will be sub-objects
-     * @param typeFactory Type factory
-     */
-    protected ReflectiveSchema(
-        QueryProvider queryProvider,
-        Object target,
         JavaTypeFactory typeFactory,
-        Method parentMethod)
+        Expression expression)
     {
-        super(queryProvider, typeFactory);
+        super(queryProvider, typeFactory, expression);
         this.clazz = target.getClass();
         this.target = target;
-        this.parentMethod = parentMethod;
         for (Field field : clazz.getFields()) {
             tableMap.put(
                 field.getName(),
@@ -93,10 +77,10 @@ public class ReflectiveSchema
         final Method method,
         final JavaTypeFactory typeFactory)
     {
+        final ReflectiveSchema schema = this;
         final Type elementType = getElementType(method.getReturnType());
+        final Class<?>[] parameterTypes = method.getParameterTypes();
         return new TableFunction<T>() {
-            final Class<?>[] parameterTypes = method.getParameterTypes();
-
             public String toString() {
                 return "Member {method=" + method + "}";
             }
@@ -119,7 +103,7 @@ public class ReflectiveSchema
 
                             public RelDataType getType() {
                                 return typeFactory.createJavaType(
-                                    method.getParameterTypes()[index]);
+                                    parameterTypes[index]);
                             }
                         };
                     }
@@ -131,35 +115,31 @@ public class ReflectiveSchema
             }
 
             public Table<T> apply(final List<Object> arguments) {
-                final Type elementType = getElementType();
                 final List<Expression> list = new ArrayList<Expression>();
                 for (Object argument : arguments) {
                     list.add(Expressions.constant(argument));
                 }
-                return new ReflectiveTable<T>(
-                    ReflectiveSchema.this,
-                    elementType,
-                    Expressions.call(
-                        ReflectiveSchema.this.getExpression(),
-                        method,
-                        list))
-                {
-                    public Enumerator<T> enumerator() {
-                        try {
-                            final Object o =
-                                method.invoke(target, arguments.toArray());
+                try {
+                    final Object o = method.invoke(schema, arguments.toArray());
+                    return new ReflectiveTable<T>(
+                        schema,
+                        elementType,
+                        Expressions.call(
+                            schema.getExpression(),
+                            method,
+                            list))
+                    {
+                        public Enumerator<T> enumerator() {
                             @SuppressWarnings("unchecked")
                             final Enumerable<T> enumerable = toEnumerable(o);
                             return enumerable.enumerator();
-                        } catch (IllegalAccessException e) {
-                            throw new RuntimeException(
-                                "Error while invoking method " + method, e);
-                        } catch (InvocationTargetException e) {
-                            throw new RuntimeException(
-                                "Error while invoking method " + method, e);
                         }
-                    }
-                };
+                    };
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                } catch (InvocationTargetException e) {
+                    throw new RuntimeException(e);
+                }
             }
         };
     }

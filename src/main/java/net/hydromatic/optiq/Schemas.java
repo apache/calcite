@@ -19,9 +19,12 @@ package net.hydromatic.optiq;
 
 import net.hydromatic.linq4j.expressions.Expression;
 
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.type.SqlTypeUtil;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,6 +82,12 @@ public final class Schemas {
     private static boolean canConvert(RelDataType fromType, RelDataType toType)
     {
         return SqlTypeUtil.canAssignFrom(toType, fromType);
+    }
+
+    public static TableFunction methodMember(
+        Method method, JavaTypeFactory typeFactory)
+    {
+        throw new UnsupportedOperationException("TODO: implement");
     }
 }
 

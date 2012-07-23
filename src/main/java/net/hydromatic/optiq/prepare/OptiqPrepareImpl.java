@@ -48,7 +48,6 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParseException;
 import org.eigenbase.sql.parser.SqlParser;
-import org.eigenbase.sql.type.MultisetSqlType;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
@@ -501,14 +500,11 @@ class OptiqPrepareImpl implements OptiqPrepare {
                         // not enough objects to match all names
                         return null;
                     }
-                    Type type = table.getElementType();
-                    if (type instanceof MultisetSqlType) {
-                        return new RelOptTableImpl(
-                            this,
-                            typeFactory.createType(table.getElementType()),
-                            names,
-                            table.getExpression());
-                    }
+                    return new RelOptTableImpl(
+                        this,
+                        typeFactory.createType(table.getElementType()),
+                        names,
+                        table.getExpression());
                 }
                 return null;
             }

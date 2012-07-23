@@ -18,10 +18,8 @@
 package net.hydromatic.optiq.impl.java;
 
 import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.MethodCallExpression;
 import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
@@ -57,10 +55,20 @@ public class MapSchema implements MutableSchema {
 
     private final QueryProvider queryProvider;
     private final JavaTypeFactory typeFactory;
+    private final Expression expression;
 
-    public MapSchema(QueryProvider queryProvider, JavaTypeFactory typeFactory) {
+    public MapSchema(
+        QueryProvider queryProvider,
+        JavaTypeFactory typeFactory,
+        Expression expression)
+    {
         this.queryProvider = queryProvider;
         this.typeFactory = typeFactory;
+        this.expression = expression;
+    }
+
+    public Expression getExpression() {
+        return expression;
     }
 
     public QueryProvider getQueryProvider() {
@@ -101,8 +109,23 @@ public class MapSchema implements MutableSchema {
         subSchemaMap.put(name, schema);
     }
 
+    public void addReflectiveSchema(String name, Object target) {
+        add(
+            name,
+            new ReflectiveSchema(
+                queryProvider,
+                target,
+                typeFactory,
+                getMemberExpression(
+                    getExpression(),
+                    name,
+                    target.getClass())));
+    }
+
     private Expression getMemberExpression(
-        Expression schemaExpression, Member member, List<Expression> arguments)
+        Expression schemaExpression,
+        String name,
+        Class type)
     {
         // (Type) schemaExpression.get("name")
         Expression call =
@@ -110,44 +133,11 @@ public class MapSchema implements MutableSchema {
                 schemaExpression,
                 MAP_GET_METHOD,
                 Collections.<Expression>singletonList(
-                    Expressions.constant(member.getName())));
-        Type type = deduceType(member);
+                    Expressions.constant(name)));
         if (type != null && type != Object.class) {
             return Expressions.convert_(call, type);
         }
         return call;
-    }
-
-    public Object getSubSchemaInstance(
-        Object schemaInstance,
-        String subSchemaName,
-        Schema subSchema)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    private Expression getSubSchemaExpression(
-        Expression schemaExpression, Schema schema, String name)
-    {
-        MethodCallExpression call =
-            Expressions.call(
-                schemaExpression,
-                MAP_GET_METHOD,
-                Expressions.constant(name));
-        Object o = schema;
-        Type clazz = deduceType(o);
-        if (clazz != null && clazz != Object.class) {
-            return Expressions.convert_(call, clazz);
-        }
-        return call;
-    }
-
-    private List<RelDataType> convert(List<Type> types) {
-        ArrayList<RelDataType> list = new ArrayList<RelDataType>();
-        for (Type type : types) {
-            list.add(typeFactory.createJavaType((Class) type));
-        }
-        return list;
     }
 
     private Type deduceType(Object schemaObject) {

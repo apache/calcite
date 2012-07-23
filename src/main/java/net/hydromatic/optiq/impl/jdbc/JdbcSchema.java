@@ -18,16 +18,17 @@
 package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.sql.type.SqlTypeName;
 
+import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +49,7 @@ public class JdbcSchema implements Schema {
     private final String catalog;
     private final String schema;
     private final JavaTypeFactory typeFactory;
+    private final Expression expression;
     final SqlDialect dialect;
 
     /**
@@ -66,7 +68,8 @@ public class JdbcSchema implements Schema {
         SqlDialect dialect,
         String catalog,
         String schema,
-        JavaTypeFactory typeFactory)
+        JavaTypeFactory typeFactory,
+        Expression expression)
     {
         super();
         this.queryProvider = queryProvider;
@@ -75,6 +78,16 @@ public class JdbcSchema implements Schema {
         this.catalog = catalog;
         this.schema = schema;
         this.typeFactory = typeFactory;
+        this.expression = expression;
+    }
+
+    /** Returns a suitable SQL dialect for the given data source. */
+    public static SqlDialect createDialect(DataSource dataSource) {
+        return JdbcUtils.DialectPool.INSTANCE.get(dataSource);
+    }
+
+    public Expression getExpression() {
+        return expression;
     }
 
     public QueryProvider getQueryProvider() {
@@ -85,7 +98,7 @@ public class JdbcSchema implements Schema {
         return Collections.emptyList();
     }
 
-    public <T> Queryable<T> getTable(String name, Class<T> elementType) {
+    public <T> Table<T> getTable(String name, Class<T> elementType) {
         assert elementType != null;
         return getTable(name);
     }
@@ -129,9 +142,8 @@ public class JdbcSchema implements Schema {
                 fieldInfo.add(columnName, sqlType);
             }
             final RelDataType type =
-                typeFactory.createMultisetType(
-                    typeFactory.createStructType(fieldInfo), -1);
-            Class javaType = typeFactory.getJavaClass(type);
+                typeFactory.createStructType(fieldInfo);
+            Type javaType = typeFactory.getJavaClass(type);
             return new JdbcTable<Object>(javaType, this, name);
         } catch (SQLException e) {
             throw new RuntimeException(
@@ -157,23 +169,9 @@ public class JdbcSchema implements Schema {
         }
     }
 
-    public Expression getSubSchemaExpression(
-        Expression schemaExpression, Schema schema, String name)
-    {
-        // JDBC has no sub-schemas.
-        throw new UnsupportedOperationException();
-    }
-
     public Schema getSubSchema(String name) {
         // JDBC does not support sub-schemas.
         return null;
-    }
-
-    public Object getSubSchemaInstance(
-        Object schemaInstance, String subSchemaName, Schema subSchema)
-    {
-        // JDBC does not support sub-schemas.
-        throw new UnsupportedOperationException();
     }
 
     private static void close(
