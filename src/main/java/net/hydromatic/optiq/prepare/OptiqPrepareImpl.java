@@ -362,12 +362,12 @@ class OptiqPrepareImpl implements OptiqPrepare {
             BlockExpression expr =
                 relImplementor.implementRoot((EnumerableRel) rootRel);
             ParameterExpression root0 =
-                Expressions.parameter(Map.class, "root0");
+                Expressions.parameter(DataContext.class, "root0");
             String s = Expressions.toString(
                 Blocks.create(
                     Expressions.declare(
                         Modifier.FINAL,
-                        OptiqCatalogReader.rootExpression,
+                        (ParameterExpression) schema.getExpression(),
                         root0),
                     expr),
                 false);
@@ -377,7 +377,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             try {
                 executable = (Executable)
                     ExpressionEvaluator.createFastScriptEvaluator(
-                        s, Executable.class, new String[]{"root0"});
+                        s, Executable.class, new String[]{root0.name});
             } catch (Exception e) {
                 throw Helper.INSTANCE.wrap(
                     "Error while compiling generated Java code:\n" + s, e);
@@ -468,9 +468,6 @@ class OptiqPrepareImpl implements OptiqPrepare {
     {
         private final Schema schema;
         private final JavaTypeFactory typeFactory;
-
-        private static final ParameterExpression rootExpression =
-            Expressions.variable(Map.class, "root");
 
         public OptiqCatalogReader(
             Schema schema,

@@ -34,7 +34,7 @@ import java.util.List;
  * different numbers or types of parameters.
  * For this reason, {@link #getTableFunctions} returns a list of all
  * members with the same name. Optiq will call
- * {@link Schemas#resolve(java.util.List, java.util.List)} to choose the
+ * {@link Schemas#resolve(String, java.util.List, java.util.List)} to choose the
  * appropriate one.</p>
  *
  * <p>The most common and important type of member is the one with no
@@ -54,10 +54,6 @@ import java.util.List;
  * {@link Schema#getSubSchema(String)}.</p>
  */
 public interface Schema extends DataContext {
-    /**
-     * Returns a sub-schema with a given name, or null.
-     */
-    Schema getSubSchema(String name);
 
     /**
      * Returns a list of table functions in this schema with the given name, or

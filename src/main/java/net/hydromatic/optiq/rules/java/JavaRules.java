@@ -100,6 +100,26 @@ public class JavaRules {
         Types.lookupMethod(
             Functions.class, "arrayComparer");
 
+    public static final Method LINQ4J_AS_ENUMERABLE_METHOD =
+        Types.lookupMethod(
+            Linq4j.class, "asEnumerable", Object[].class);
+
+    public static final Method ENUMERATOR_CURRENT_METHOD =
+        Types.lookupMethod(
+            Enumerator.class, "current");
+
+    public static final Method ENUMERATOR_MOVE_NEXT_METHOD =
+        Types.lookupMethod(
+            Enumerator.class, "moveNext");
+
+    public static final Method ENUMERATOR_RESET_METHOD =
+        Types.lookupMethod(
+            Enumerator.class, "reset");
+
+    public static final Method ENUMERABLE_ENUMERATOR_METHOD =
+        Types.lookupMethod(
+            Enumerable.class, "enumerator");
+
     public static final boolean BRIDGE_METHODS = true;
 
     private static final List<ParameterExpression> NO_PARAMS =
@@ -249,6 +269,20 @@ public class JavaRules {
      */
     public static class EnumUtil
     {
+        /** Declares a method that overrides another method. */
+        static MethodDeclaration overridingMethodDecl(
+            Method method,
+            Iterable<ParameterExpression> parameters,
+            BlockExpression body)
+        {
+            return Expressions.methodDecl(
+                method.getModifiers() & ~Modifier.ABSTRACT,
+                method.getReturnType(),
+                method.getName(),
+                parameters,
+                body);
+        }
+
         static Expression generateAccessor(
             JavaTypeFactory typeFactory,
             RelDataType rowType,
@@ -269,48 +303,29 @@ public class JavaRules {
             Class returnType =
                 javaRowClass(
                     typeFactory, rowType.getFieldList().get(field).getType());
-            if (primitive) {
-                return Expressions.lambda(
-                    Functions.functionClass(returnType),
-                    castIfNecessary(returnType, fieldReference(v1, field)),
-                    v1);
-            } else {
-                return Expressions.lambda(
-                    Function1.class,
-                    castIfNecessary(returnType, fieldReference(v1, field)),
-                    v1);
-            }
-        }
-
-        private static Expression castIfNecessary(
-            Type returnType,
-            Expression expression)
-        {
-            if (Types.isAssignableFrom(returnType, expression.getType())) {
-                return expression;
-            }
-            if (Types.isPrimitive(returnType)
-                && !Types.isPrimitive(expression.getType()))
-            {
-                // E.g.
-                //   int foo(Object o) {
-                //     return (Integer) o;
-                //   }
-                return Expressions.convert_(expression, Types.box(returnType));
-            }
-            return Expressions.convert_(expression, returnType);
+            Expression fieldReference =
+                Types.castIfNecessary(returnType, fieldReference(v1, field));
+            return Expressions.lambda(
+                primitive
+                    ? Functions.functionClass(returnType)
+                    : Function1.class,
+                fieldReference,
+                v1);
         }
 
         static Type javaClass(
             JavaTypeFactory typeFactory, RelDataType type)
         {
             final Type clazz = typeFactory.getJavaClass(type);
-            return clazz == null ? Object[].class : clazz;
+            return clazz instanceof Class ? clazz : Object[].class;
         }
 
         static Class javaRowClass(
             JavaTypeFactory typeFactory, RelDataType type)
         {
+            if (type.isStruct() && type.getFieldCount() == 1) {
+                type = type.getFieldList().get(0).getType();
+            }
             final Type clazz = typeFactory.getJavaClass(type);
             return clazz instanceof Class ? (Class) clazz : Object[].class;
         }
@@ -319,7 +334,7 @@ public class JavaRules {
             JavaTypeFactory typeFactory, RelDataType outputRowType)
         {
             Type outputJavaType = typeFactory.getJavaClass(outputRowType);
-            if (outputJavaType == null) {
+            if (outputJavaType == null || !(outputJavaType instanceof Class)) {
                 if (outputRowType.getFieldCount() == 1) {
                     outputJavaType =
                         typeFactory.getJavaClass(
@@ -391,6 +406,10 @@ public class JavaRules {
                 cluster.traitSetOf(CallingConvention.ENUMERABLE),
                 table,
                 connection);
+            if (Types.isArray(expression.getType())) {
+                expression =
+                    Expressions.call(LINQ4J_AS_ENUMERABLE_METHOD, expression);
+            }
             this.expression = expression;
         }
 
@@ -536,7 +555,7 @@ public class JavaRules {
                 Expressions.convert_(
                     Expressions.call(
                         inputEnumerator,
-                        "current"),
+                        ENUMERATOR_CURRENT_METHOD),
                     inputJavaType);
 
             BlockExpression moveNextBody;
@@ -545,7 +564,7 @@ public class JavaRules {
                     Blocks.toFunctionBlock(
                         Expressions.call(
                             inputEnumerator,
-                            "moveNext"));
+                            ENUMERATOR_MOVE_NEXT_METHOD));
             } else {
                 final List<Statement> list = Expressions.list();
                 Expression condition =
@@ -564,7 +583,7 @@ public class JavaRules {
                         Expressions.while_(
                             Expressions.call(
                                 inputEnumerator,
-                                "moveNext"),
+                                ENUMERATOR_MOVE_NEXT_METHOD),
                             Expressions.block(list)),
                         Expressions.return_(
                             null,
@@ -594,6 +613,37 @@ public class JavaRules {
                     "inputEnumerable",
                     implementor.visitChild(
                         this, 0, (EnumerableRel) getChild()));
+            final Expression body =
+                Expressions.new_(
+                    enumeratorType,
+                    NO_EXPRS,
+                    Expressions.<MemberDeclaration>list(
+                        Expressions.fieldDecl(
+                            Modifier.PUBLIC
+                            | Modifier.FINAL,
+                            inputEnumerator,
+                            Expressions.call(
+                                inputEnumerable,
+                                ENUMERABLE_ENUMERATOR_METHOD)),
+                        EnumUtil.overridingMethodDecl(
+                            ENUMERATOR_RESET_METHOD,
+                            NO_PARAMS,
+                            Blocks.toFunctionBlock(
+                                Expressions.call(
+                                    inputEnumerator,
+                                    ENUMERATOR_RESET_METHOD))),
+                        EnumUtil.overridingMethodDecl(
+                            ENUMERATOR_MOVE_NEXT_METHOD,
+                            NO_PARAMS,
+                            moveNextBody),
+                        Expressions.methodDecl(
+                            Modifier.PUBLIC,
+                            BRIDGE_METHODS
+                                ? Object.class
+                                : outputJavaType,
+                            "current",
+                            NO_PARAMS,
+                            currentBody)));
             statements.add(
                 Expressions.return_(
                     null,
@@ -606,43 +656,9 @@ public class JavaRules {
                             Expressions.methodDecl(
                                 Modifier.PUBLIC,
                                 enumeratorType,
-                                "enumerator",
+                                ENUMERABLE_ENUMERATOR_METHOD.getName(),
                                 NO_PARAMS,
-                                Blocks.toFunctionBlock(
-                                    Expressions.new_(
-                                        enumeratorType,
-                                        NO_EXPRS,
-                                        Expressions.<MemberDeclaration>list(
-                                            Expressions.fieldDecl(
-                                                Modifier.PUBLIC
-                                                    | Modifier.FINAL,
-                                                inputEnumerator,
-                                                Expressions.call(
-                                                    inputEnumerable,
-                                                    "enumerator")),
-                                            Expressions.methodDecl(
-                                                Modifier.PUBLIC,
-                                                Void.TYPE,
-                                                "reset",
-                                                NO_PARAMS,
-                                                Blocks.toFunctionBlock(
-                                                    Expressions.call(
-                                                        inputEnumerator,
-                                                        "reset"))),
-                                            Expressions.methodDecl(
-                                                Modifier.PUBLIC,
-                                                Boolean.TYPE,
-                                                "moveNext",
-                                                NO_PARAMS,
-                                                moveNextBody),
-                                            Expressions.methodDecl(
-                                                Modifier.PUBLIC,
-                                                BRIDGE_METHODS
-                                                    ? Object.class
-                                                    : outputJavaType,
-                                                "current",
-                                                NO_PARAMS,
-                                                currentBody)))))))));
+                                Blocks.toFunctionBlock(body))))));
             return statements.toBlock();
         }
 

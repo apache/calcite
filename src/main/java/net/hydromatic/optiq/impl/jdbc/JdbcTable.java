@@ -23,7 +23,6 @@ import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.ParameterExpression;
 
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.Table;
@@ -47,11 +46,8 @@ import java.util.Iterator;
  */
 class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
     private final Type elementType;
-    private final JdbcSchema dataContext;
+    private final JdbcSchema schema;
     private final String tableName;
-
-    private static final ParameterExpression DC =
-        Expressions.parameter(JdbcSchema.class, "dc");
 
     public JdbcTable(
         Type elementType,
@@ -60,7 +56,7 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
     {
         super();
         this.elementType = elementType;
-        this.dataContext = schema;
+        this.schema = schema;
         this.tableName = tableName;
         assert elementType != null;
         assert schema != null;
@@ -72,11 +68,11 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
     }
 
     public QueryProvider getProvider() {
-        return dataContext.queryProvider;
+        return schema.queryProvider;
     }
 
     public DataContext getDataContext() {
-        return dataContext;
+        return schema;
     }
 
     public Type getElementType() {
@@ -84,15 +80,14 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
     }
 
     public Expression getExpression() {
-        return Expressions.lambda(
-            Expressions.call(
-                DC,
-                "getTable",
-                Expressions.<Expression>list()
-                    .append(Expressions.constant(tableName))
-                    .appendIf(
-                        elementType instanceof Class,
-                        Expressions.constant(elementType))));
+        return Expressions.call(
+            schema.getExpression(),
+            "getTable",
+            Expressions.<Expression>list()
+                .append(Expressions.constant(tableName))
+                .appendIf(
+                    elementType instanceof Class,
+                    Expressions.constant(elementType)));
     }
 
     public Iterator<T> iterator() {
@@ -100,7 +95,7 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
     }
 
     public Enumerator<T> enumerator() {
-        SqlWriter writer = new SqlPrettyWriter(dataContext.dialect);
+        SqlWriter writer = new SqlPrettyWriter(schema.dialect);
         writer.keyword("select");
         writer.literal("*");
         writer.keyword("from");
@@ -109,7 +104,7 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
         writer.identifier(tableName);
         final String sql = writer.toString();
 
-        return JdbcUtils.sqlEnumerator(sql, dataContext);
+        return JdbcUtils.sqlEnumerator(sql, schema);
     }
 }
 

@@ -21,7 +21,7 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 
-import net.hydromatic.linq4j.expressions.FunctionExpression;
+import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
@@ -39,6 +39,9 @@ import java.util.*;
 public class ReflectiveSchema
     extends MapSchema
 {
+    private static final Method GET_TARGET_METHOD =
+        Types.lookupMethod(ReflectiveSchema.class, "getTarget");
+
     final Class clazz;
     private Object target;
 
@@ -71,6 +74,12 @@ public class ReflectiveSchema
                 method.getName(),
                 methodMember(method, typeFactory));
         }
+    }
+
+    /** Returns the wrapped object. (May not appear to be used, but is used in
+     * generated code via {@link #GET_TARGET_METHOD}.) */
+    public Object getTarget() {
+        return target;
     }
 
     public <T> TableFunction<T> methodMember(
@@ -125,7 +134,7 @@ public class ReflectiveSchema
                         schema,
                         elementType,
                         Expressions.call(
-                            schema.getExpression(),
+                            schema.getTargetExpression(),
                             method,
                             list))
                     {
@@ -144,6 +153,18 @@ public class ReflectiveSchema
         };
     }
 
+    /** Returns an expression for the object wrapped by this schema (not the
+     * schema itself). */
+    Expression getTargetExpression() {
+        return Types.castIfNecessary(
+            target.getClass(),
+            Expressions.call(
+                Types.castIfNecessary(
+                    ReflectiveSchema.class,
+                    getExpression()),
+                GET_TARGET_METHOD));
+    }
+
     private <T> Table<T> fieldRelation(
         final Field field,
         JavaTypeFactory typeFactory)
@@ -153,7 +174,7 @@ public class ReflectiveSchema
             this,
             elementType,
             Expressions.field(
-                ReflectiveSchema.this.getExpression(),
+                ReflectiveSchema.this.getTargetExpression(),
                 field))
         {
             public String toString() {

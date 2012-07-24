@@ -26,6 +26,11 @@ import net.hydromatic.linq4j.Queryable;
  */
 public interface DataContext {
     <T> Queryable<T> getTable(String name, Class<T> elementType);
+
+    /**
+     * Returns a sub-schema with a given name, or null.
+     */
+    Schema getSubSchema(String name);
 }
 
 // End DataContext.java

@@ -22,6 +22,9 @@ import net.hydromatic.linq4j.Extensions;
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
 
+import net.hydromatic.linq4j.expressions.Expressions;
+import net.hydromatic.linq4j.expressions.ParameterExpression;
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.OptiqQueryProvider;
 import net.hydromatic.optiq.Schema;
@@ -61,9 +64,11 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     private int networkTimeout;
     private String catalog;
 
+    final ParameterExpression rootExpression =
+        Expressions.parameter(DataContext.class, "root");
     final MutableSchema rootSchema =
         new MapSchema(
-            OptiqQueryProvider.INSTANCE, typeFactory, null);
+            OptiqQueryProvider.INSTANCE, typeFactory, rootExpression);
     final UnregisteredDriver driver;
     final net.hydromatic.optiq.jdbc.Factory factory;
     private final String url;

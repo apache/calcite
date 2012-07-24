@@ -79,6 +79,11 @@ public class JdbcSchema implements Schema {
         this.schema = schema;
         this.typeFactory = typeFactory;
         this.expression = expression;
+        assert expression != null;
+        assert typeFactory != null;
+        assert dialect != null;
+        assert queryProvider != null;
+        assert dataSource != null;
     }
 
     /** Returns a suitable SQL dialect for the given data source. */
@@ -100,6 +105,7 @@ public class JdbcSchema implements Schema {
 
     public <T> Table<T> getTable(String name, Class<T> elementType) {
         assert elementType != null;
+        //noinspection unchecked
         return getTable(name);
     }
 

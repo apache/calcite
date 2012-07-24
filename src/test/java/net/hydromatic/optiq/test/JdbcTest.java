@@ -322,7 +322,7 @@ public class JdbcTest extends TestCase {
             "GenerateStrings",
             Schemas.methodMember(
                 GENERATE_STRINGS_METHOD, typeFactory));
-        optiqConnection.getRootSchema().add("s", schema);
+        optiqConnection.getRootSchema().addSchema("s", schema);
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
             + "from table(s.GenerateStrings(5))\n"
@@ -394,7 +394,7 @@ public class JdbcTest extends TestCase {
             Schemas.methodMember(
                 STRING_UNION_METHOD, typeFactory));
         MutableSchema rootSchema = optiqConnection.getRootSchema();
-        rootSchema.add("s", schema);
+        rootSchema.addSchema("s", schema);
         rootSchema.addReflectiveSchema("hr", new HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
@@ -422,7 +422,7 @@ public class JdbcTest extends TestCase {
             viewFunction(
                 typeFactory, "emps_view", "select * from \"hr\".\"emps\""));
         MutableSchema rootSchema = optiqConnection.getRootSchema();
-        rootSchema.add("s", schema);
+        rootSchema.addSchema("s", schema);
         rootSchema.addReflectiveSchema("hr", new HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
@@ -556,7 +556,15 @@ public class JdbcTest extends TestCase {
         dataSource.setUrl("jdbc:mysql://localhost");
         dataSource.setUsername("foodmart");
         dataSource.setPassword("foodmart");
-        optiqConnection.getRootSchema().add(
+
+        // FIXME: Sub-schema should not need to build its own expression.
+        final Expression expression =
+            Expressions.call(
+                optiqConnection.getRootSchema().getExpression(),
+                "getSubSchema",
+                Expressions.constant("foodmart"));
+
+        optiqConnection.getRootSchema().addSchema(
             "foodmart",
             new JdbcSchema(
                 queryProvider,
@@ -565,7 +573,7 @@ public class JdbcTest extends TestCase {
                 "foodmart",
                 "",
                 optiqConnection.getTypeFactory(),
-                null));
+                expression));
         return optiqConnection;
     }
 
