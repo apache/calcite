@@ -17,6 +17,7 @@
 */
 package net.hydromatic.linq4j.function;
 
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -187,7 +188,7 @@ public class Functions {
      * @param aClass Return type
      * @return Function class
      */
-    public static Class<? extends Function> functionClass(Class aClass) {
+    public static Class<? extends Function> functionClass(Type aClass) {
         Class<? extends Function> c = FUNCTION1_CLASSES.get(aClass);
         if (c != null) {
             return c;

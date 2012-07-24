@@ -194,8 +194,8 @@ public class Types {
         return className.replace('$', '.');
     }
 
-    public static boolean isAssignableFrom(Class clazz, Type type) {
-        return clazz.isAssignableFrom(toClass(type));
+    public static boolean isAssignableFrom(Type type0, Type type) {
+        return toClass(type0).isAssignableFrom(toClass(type));
     }
 
     public static boolean isArray(Type type) {
@@ -330,6 +330,33 @@ public class Types {
         return types[0];
     }
 
+    /**
+     * Wraps an expression in a cast if it is not already of the desired type,
+     * or cannot be implicitly converted to it.
+     *
+     * @param returnType Desired type
+     * @param expression Expression
+     * @return Expression of desired type
+     */
+    public static Expression castIfNecessary(
+        Type returnType,
+        Expression expression)
+    {
+        if (Types.isAssignableFrom(returnType, expression.getType())) {
+            return expression;
+        }
+        if (Types.isPrimitive(returnType)
+            && !Types.isPrimitive(expression.getType()))
+        {
+            // E.g.
+            //   int foo(Object o) {
+            //     return (Integer) o;
+            //   }
+            return Expressions.convert_(expression, Types.box(returnType));
+        }
+        return Expressions.convert_(expression, returnType);
+    }
+
     static class ParameterizedTypeImpl implements ParameterizedType {
         private final Type rawType;
         private final List<Type> typeArguments;
@@ -374,6 +401,15 @@ public class Types {
 
         public Type getOwnerType() {
             return ownerType;
+        }
+    }
+
+    interface RecordType {
+        List<Field> getFields();
+
+        interface Field {
+            String getName();
+            Type getType();
         }
     }
 }
