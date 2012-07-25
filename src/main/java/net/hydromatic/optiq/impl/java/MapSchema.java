@@ -20,12 +20,10 @@ package net.hydromatic.optiq.impl.java;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.*;
 
@@ -35,8 +33,6 @@ import java.util.*;
  * @author jhyde
  */
 public class MapSchema implements MutableSchema {
-    private static final Method DATA_CONTEXT_GET_SUB_SCHEMA_METHOD =
-        Types.lookupMethod(DataContext.class, "getSubSchema", String.class);
 
     protected final Map<String, Table<Object>> tableMap =
         new HashMap<String, Table<Object>>();
@@ -123,7 +119,7 @@ public class MapSchema implements MutableSchema {
         Expression call =
             Expressions.call(
                 schemaExpression,
-                DATA_CONTEXT_GET_SUB_SCHEMA_METHOD,
+                BuiltinMethod.GET_SUB_SCHEMA.method,
                 Collections.<Expression>singletonList(
                     Expressions.constant(name)));
         if (type != null && type != Object.class) {

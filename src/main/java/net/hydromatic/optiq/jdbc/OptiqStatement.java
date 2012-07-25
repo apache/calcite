@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.server.OptiqServerStatement;
@@ -338,23 +339,31 @@ abstract class OptiqStatement
         }
     }
 
-    protected OptiqPrepare.PrepareResult parseQuery(String sql) {
-        return net.hydromatic.optiq.prepare.Factory.implement().prepare(
-            new OptiqPrepare.Statement() {
-                public JavaTypeFactory getTypeFactory() {
-                    return connection.typeFactory;
-                }
-
-                public Schema getRootSchema() {
-                    return connection.getRootSchema();
-                }
-
-                public Schema getRoot() {
-                    return connection.getRootSchema();
-                }
-            }, sql, null, null);
+    protected <T> OptiqPrepare.PrepareResult<T> parseQuery(String sql) {
+        return net.hydromatic.optiq.prepare.Factory.implement().prepareSql(
+            new ContextImpl(connection), sql, null, null);
     }
 
+    protected <T> OptiqPrepare.PrepareResult prepare(Queryable<T> queryable) {
+        return net.hydromatic.optiq.prepare.Factory.implement().prepareQueryable(
+            new ContextImpl(connection), queryable);
+    }
+
+    private class ContextImpl implements OptiqPrepare.Context {
+        private final OptiqConnectionImpl connection;
+
+        public ContextImpl(OptiqConnectionImpl connection) {
+            this.connection = connection;
+        }
+
+        public JavaTypeFactory getTypeFactory() {
+            return connection.typeFactory;
+        }
+
+        public Schema getRootSchema() {
+            return connection.getRootSchema();
+        }
+    }
 }
 
 // End OptiqStatement.java

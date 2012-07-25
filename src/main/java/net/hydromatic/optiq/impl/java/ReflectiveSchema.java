@@ -39,8 +39,6 @@ import java.util.*;
 public class ReflectiveSchema
     extends MapSchema
 {
-    private static final Method GET_TARGET_METHOD =
-        Types.lookupMethod(ReflectiveSchema.class, "getTarget");
 
     final Class clazz;
     private Object target;
@@ -77,7 +75,7 @@ public class ReflectiveSchema
     }
 
     /** Returns the wrapped object. (May not appear to be used, but is used in
-     * generated code via {@link #GET_TARGET_METHOD}.) */
+     * generated code via {@link BuiltinMethod#GET_TARGET}.) */
     public Object getTarget() {
         return target;
     }
@@ -162,7 +160,7 @@ public class ReflectiveSchema
                 Types.castIfNecessary(
                     ReflectiveSchema.class,
                     getExpression()),
-                GET_TARGET_METHOD));
+                BuiltinMethod.GET_TARGET.method));
     }
 
     private <T> Table<T> fieldRelation(
@@ -223,7 +221,7 @@ public class ReflectiveSchema
     }
 
     private static abstract class ReflectiveTable<T>
-        extends Extensions.AbstractQueryable2<T>
+        extends BaseQueryable<T>
         implements Table<T>
     {
         private final ReflectiveSchema schema;

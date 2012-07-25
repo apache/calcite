@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.rules.java;
 
+import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.ArrayComparator;
 
@@ -48,77 +49,6 @@ public class JavaRules {
     private static final Constructor ABSTRACT_ENUMERABLE_CTOR =
         Types.lookupConstructor(AbstractEnumerable.class);
 
-    private static final Method JOIN_METHOD =
-        Types.lookupMethod(
-            ExtendedEnumerable.class,
-            "join",
-            Enumerable.class,
-            Function1.class,
-            Function1.class,
-            Function2.class);
-
-    private static final Method SELECT_METHOD =
-        Types.lookupMethod(
-            ExtendedEnumerable.class, "select", Function1.class);
-
-    private static final Method GROUP_BY_METHOD =
-        Types.lookupMethod(
-            ExtendedEnumerable.class,
-            "groupBy",
-            Function1.class);
-
-    private static final Method ORDER_BY_METHOD =
-        Types.lookupMethod(
-            ExtendedEnumerable.class,
-            "orderBy",
-            Function1.class,
-            Comparator.class);
-
-    private static final Method UNION_METHOD =
-        Types.lookupMethod(
-            ExtendedEnumerable.class,
-            "union",
-            Enumerable.class);
-
-    private static final Method CONCAT_METHOD =
-        Types.lookupMethod(
-            ExtendedEnumerable.class, "concat", Enumerable.class);
-
-    private static final Method INTERSECT_METHOD =
-        Types.lookupMethod(
-            ExtendedEnumerable.class, "intersect", Enumerable.class);
-
-    private static final Method EXCEPT_METHOD =
-        Types.lookupMethod(
-            ExtendedEnumerable.class, "except", Enumerable.class);
-
-    private static final Method SINGLETON_ENUMERABLE_METHOD =
-        Types.lookupMethod(
-            Linq4j.class, "singletonEnumerable", Object.class);
-
-    private static final Method ARRAY_COMPARER_METHOD =
-        Types.lookupMethod(
-            Functions.class, "arrayComparer");
-
-    public static final Method LINQ4J_AS_ENUMERABLE_METHOD =
-        Types.lookupMethod(
-            Linq4j.class, "asEnumerable", Object[].class);
-
-    public static final Method ENUMERATOR_CURRENT_METHOD =
-        Types.lookupMethod(
-            Enumerator.class, "current");
-
-    public static final Method ENUMERATOR_MOVE_NEXT_METHOD =
-        Types.lookupMethod(
-            Enumerator.class, "moveNext");
-
-    public static final Method ENUMERATOR_RESET_METHOD =
-        Types.lookupMethod(
-            Enumerator.class, "reset");
-
-    public static final Method ENUMERABLE_ENUMERATOR_METHOD =
-        Types.lookupMethod(
-            Enumerable.class, "enumerator");
 
     public static final boolean BRIDGE_METHODS = true;
 
@@ -222,7 +152,7 @@ public class JavaRules {
             return list.append(
                 Expressions.call(
                     leftExpression,
-                    JOIN_METHOD,
+                    BuiltinMethod.JOIN.method,
                     rightExpression,
                     EnumUtil.generateAccessor(
                         typeFactory, left.getRowType(), leftKeys, false),
@@ -408,7 +338,9 @@ public class JavaRules {
                 connection);
             if (Types.isArray(expression.getType())) {
                 expression =
-                    Expressions.call(LINQ4J_AS_ENUMERABLE_METHOD, expression);
+                    Expressions.call(
+                        BuiltinMethod.AS_ENUMERABLE.method,
+                        expression);
             }
             this.expression = expression;
         }
@@ -555,7 +487,7 @@ public class JavaRules {
                 Expressions.convert_(
                     Expressions.call(
                         inputEnumerator,
-                        ENUMERATOR_CURRENT_METHOD),
+                        BuiltinMethod.ENUMERATOR_CURRENT.method),
                     inputJavaType);
 
             BlockExpression moveNextBody;
@@ -564,7 +496,7 @@ public class JavaRules {
                     Blocks.toFunctionBlock(
                         Expressions.call(
                             inputEnumerator,
-                            ENUMERATOR_MOVE_NEXT_METHOD));
+                            BuiltinMethod.ENUMERATOR_MOVE_NEXT.method));
             } else {
                 final List<Statement> list = Expressions.list();
                 Expression condition =
@@ -583,7 +515,7 @@ public class JavaRules {
                         Expressions.while_(
                             Expressions.call(
                                 inputEnumerator,
-                                ENUMERATOR_MOVE_NEXT_METHOD),
+                                BuiltinMethod.ENUMERATOR_MOVE_NEXT.method),
                             Expressions.block(list)),
                         Expressions.return_(
                             null,
@@ -624,16 +556,16 @@ public class JavaRules {
                             inputEnumerator,
                             Expressions.call(
                                 inputEnumerable,
-                                ENUMERABLE_ENUMERATOR_METHOD)),
+                                BuiltinMethod.ENUMERABLE_ENUMERATOR.method)),
                         EnumUtil.overridingMethodDecl(
-                            ENUMERATOR_RESET_METHOD,
+                            BuiltinMethod.ENUMERATOR_RESET.method,
                             NO_PARAMS,
                             Blocks.toFunctionBlock(
                                 Expressions.call(
                                     inputEnumerator,
-                                    ENUMERATOR_RESET_METHOD))),
+                                    BuiltinMethod.ENUMERATOR_RESET.method))),
                         EnumUtil.overridingMethodDecl(
-                            ENUMERATOR_MOVE_NEXT_METHOD,
+                            BuiltinMethod.ENUMERATOR_MOVE_NEXT.method,
                             NO_PARAMS,
                             moveNextBody),
                         Expressions.methodDecl(
@@ -656,7 +588,8 @@ public class JavaRules {
                             Expressions.methodDecl(
                                 Modifier.PUBLIC,
                                 enumeratorType,
-                                ENUMERABLE_ENUMERATOR_METHOD.getName(),
+                                BuiltinMethod.ENUMERABLE_ENUMERATOR
+                                    .method.getName(),
                                 NO_PARAMS,
                                 Blocks.toFunctionBlock(body))))));
             return statements.toBlock();
@@ -829,7 +762,7 @@ public class JavaRules {
                         null,
                         Expressions.call(
                             null,
-                            SINGLETON_ENUMERABLE_METHOD,
+                            BuiltinMethod.SINGLETON_ENUMERABLE.method,
                             expressions.size() == 1
                                 ? expressions.get(0)
                                 : Expressions.newArrayInit(
@@ -882,14 +815,15 @@ public class JavaRules {
                     Expressions.call(
                         Expressions.call(
                             childExp,
-                            GROUP_BY_METHOD,
+                            BuiltinMethod.GROUP_BY.method,
                             Expressions.<Expression>list()
                                 .append(keySelector)
                                 .appendIf(
                                     keyExpressions.size() > 1,
                                     Expressions.call(
-                                        null, ARRAY_COMPARER_METHOD))),
-                        SELECT_METHOD,
+                                        null,
+                                        BuiltinMethod.ARRAY_COMPARER.method))),
+                        BuiltinMethod.SELECT.method,
                         selector)));
             return statements.toBlock();
         }
@@ -1067,7 +1001,7 @@ public class JavaRules {
                     null,
                     Expressions.call(
                         childExp,
-                        ORDER_BY_METHOD,
+                        BuiltinMethod.ORDER_BY.method,
                         keySelector,
                         comparator)));
             return statements.toBlock();
@@ -1161,7 +1095,9 @@ public class JavaRules {
                     unionExp =
                         Expressions.call(
                             unionExp,
-                            all ? CONCAT_METHOD : UNION_METHOD,
+                            all
+                                ? BuiltinMethod.CONCAT.method
+                                : BuiltinMethod.UNION.method,
                             childExp);
                 }
             }
@@ -1262,7 +1198,9 @@ public class JavaRules {
                     intersectExp =
                         Expressions.call(
                             intersectExp,
-                            all ? CONCAT_METHOD : INTERSECT_METHOD,
+                            all
+                                ? BuiltinMethod.CONCAT.method
+                                : BuiltinMethod.INTERSECT.method,
                             childExp);
                 }
             }
@@ -1363,7 +1301,7 @@ public class JavaRules {
                     minusExp =
                         Expressions.call(
                             minusExp,
-                            EXCEPT_METHOD,
+                            BuiltinMethod.EXCEPT.method,
                             childExp);
                 }
             }

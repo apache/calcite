@@ -2,26 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9d74f731-b54d-486a-a785-d43280566c26" name="Default" comment="Re-organize directory structure; add package-info files; move EigenbaseResource.properties into resource directory, as maven demands.">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/Factory.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqParameter.java" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/OptiqQueryProvider.java" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/optiq.iml" afterPath="$PROJECT_DIR$/optiq.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/impl/java/MapSchema.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/impl/java/MapSchema.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/Factory.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/Factory.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/FactoryJdbc41.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/FactoryJdbc41.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/Helper.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/Helper.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqConnection.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqConnection.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqConnectionImpl.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqConnectionImpl.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPrepare.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPrepare.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPreparedStatement.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPreparedStatement.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSet.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSet.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSetMetaData.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSetMetaData.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqStatement.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqStatement.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/rules/java/JavaRules.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/rules/java/JavaRules.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/org/eigenbase/reltype/RelDataTypeImpl.java" afterPath="$PROJECT_DIR$/src/main/java/org/eigenbase/reltype/RelDataTypeImpl.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/test/java/net/hydromatic/optiq/test/JdbcTest.java" afterPath="$PROJECT_DIR$/src/test/java/net/hydromatic/optiq/test/JdbcTest.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java" afterPath="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java" />
     </list>
     <ignored path="optiq.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -53,7 +36,7 @@
         <option name="CONDITION" value="&#13;&#13;JAVA" />
         <option name="LOG_MESSAGE" value="&#13;&#13;JAVA" />
       </breakpoint>
-      <breakpoint url="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/EnumerableQueryable.java" line="614" class="net.hydromatic.linq4j.EnumerableQueryable" package="net.hydromatic.linq4j">
+      <breakpoint url="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/EnumerableQueryable.java" line="616" class="net.hydromatic.linq4j.EnumerableQueryable" package="net.hydromatic.linq4j">
         <option name="ENABLED" value="true" />
         <option name="LOG_ENABLED" value="false" />
         <option name="LOG_EXPRESSION_ENABLED" value="false" />
@@ -66,7 +49,137 @@
         <option name="CONDITION" value="" />
         <option name="LOG_MESSAGE" value="" />
       </breakpoint>
-      <breakpoint url="file://$PROJECT_DIR$/src/test/java/net/hydromatic/optiq/test/JdbcTest.java" line="150" class="net.hydromatic.optiq.test.JdbcTest" package="net.hydromatic.optiq.test">
+      <breakpoint url="file://$PROJECT_DIR$/src/test/java/net/hydromatic/optiq/test/JdbcTest.java" line="270" class="net.hydromatic.optiq.test.JdbcTest" package="net.hydromatic.optiq.test">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint url="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/expressions/Types.java" line="272" class="net.hydromatic.linq4j.expressions.Types" package="net.hydromatic.linq4j.expressions">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint url="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/expressions/Types.java" line="96" class="net.hydromatic.linq4j.expressions.Types" package="net.hydromatic.linq4j.expressions">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint url="file://$PROJECT_DIR$/src/main/java/org/eigenbase/rel/AbstractRelNode.java" line="367" class="org.eigenbase.rel.AbstractRelNode" package="org.eigenbase.rel">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint url="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/rules/java/JavaRules.java" line="1234" class="net.hydromatic.optiq.rules.java.JavaRules.EnumerableMinusRule" package="net.hydromatic.optiq.rules.java">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint url="file://$PROJECT_DIR$/src/main/java/org/eigenbase/rel/MinusRelBase.java" line="38" class="org.eigenbase.rel.MinusRelBase" package="org.eigenbase.rel">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint url="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/impl/java/ReflectiveSchema.java" line="63" class="net.hydromatic.optiq.impl.java.ReflectiveSchema" package="net.hydromatic.optiq.impl.java">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint url="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/expressions/Expressions.java" line="388" class="net.hydromatic.linq4j.expressions.Expressions" package="net.hydromatic.linq4j.expressions">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint url="file://$PROJECT_DIR$/src/test/java/net/hydromatic/optiq/test/JdbcTest.java" line="614" class="net.hydromatic.optiq.test.JdbcTest" package="net.hydromatic.optiq.test">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint url="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java" line="644" class="net.hydromatic.optiq.prepare.OptiqPrepareImpl.LixToRelTranslator" package="net.hydromatic.optiq.prepare">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint url="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java" line="583" class="net.hydromatic.optiq.prepare.OptiqPrepareImpl.LixToRelTranslator" package="net.hydromatic.optiq.prepare">
         <option name="ENABLED" value="true" />
         <option name="LOG_ENABLED" value="false" />
         <option name="LOG_EXPRESSION_ENABLED" value="false" />
@@ -80,38 +193,6 @@
         <option name="LOG_MESSAGE" value="" />
       </breakpoint>
     </line_breakpoints>
-    <exception_breakpoints>
-      <breakpoint class_name="java.lang.NullPointerException" package_name="java.lang">
-        <option name="NOTIFY_CAUGHT" value="true" />
-        <option name="NOTIFY_UNCAUGHT" value="true" />
-        <option name="ENABLED" value="true" />
-        <option name="LOG_ENABLED" value="false" />
-        <option name="LOG_EXPRESSION_ENABLED" value="false" />
-        <option name="SUSPEND_POLICY" value="SuspendAll" />
-        <option name="COUNT_FILTER_ENABLED" value="false" />
-        <option name="COUNT_FILTER" value="0" />
-        <option name="CONDITION_ENABLED" value="false" />
-        <option name="CLASS_FILTERS_ENABLED" value="false" />
-        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
-        <option name="CONDITION" value="&#13;&#13;JAVA" />
-        <option name="LOG_MESSAGE" value="&#13;&#13;JAVA" />
-      </breakpoint>
-      <breakpoint class_name="java.lang.AssertionError" package_name="java.lang">
-        <option name="NOTIFY_CAUGHT" value="true" />
-        <option name="NOTIFY_UNCAUGHT" value="true" />
-        <option name="ENABLED" value="true" />
-        <option name="LOG_ENABLED" value="false" />
-        <option name="LOG_EXPRESSION_ENABLED" value="false" />
-        <option name="SUSPEND_POLICY" value="SuspendAll" />
-        <option name="COUNT_FILTER_ENABLED" value="false" />
-        <option name="COUNT_FILTER" value="0" />
-        <option name="CONDITION_ENABLED" value="false" />
-        <option name="CLASS_FILTERS_ENABLED" value="false" />
-        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
-        <option name="CONDITION" value="&#13;&#13;JAVA" />
-        <option name="LOG_MESSAGE" value="&#13;&#13;JAVA" />
-      </breakpoint>
-    </exception_breakpoints>
     <breakpoint_any>
       <breakpoint>
         <option name="NOTIFY_CAUGHT" value="true" />
@@ -125,8 +206,8 @@
         <option name="CONDITION_ENABLED" value="false" />
         <option name="CLASS_FILTERS_ENABLED" value="false" />
         <option name="INSTANCE_FILTERS_ENABLED" value="false" />
-        <option name="CONDITION" value="&#13;&#13;JAVA" />
-        <option name="LOG_MESSAGE" value="&#13;&#13;JAVA" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
       </breakpoint>
       <breakpoint>
         <option name="NOTIFY_CAUGHT" value="true" />
@@ -140,8 +221,8 @@
         <option name="CONDITION_ENABLED" value="false" />
         <option name="CLASS_FILTERS_ENABLED" value="false" />
         <option name="INSTANCE_FILTERS_ENABLED" value="false" />
-        <option name="CONDITION" value="&#13;&#13;JAVA" />
-        <option name="LOG_MESSAGE" value="&#13;&#13;JAVA" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
       </breakpoint>
     </breakpoint_any>
     <breakpoint_rules />
@@ -169,10 +250,10 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="OptiqResultSetMetaData.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSetMetaData.java">
+      <file leaf-file-name="JdbcTest.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/test/java/net/hydromatic/optiq/test/JdbcTest.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="42" column="19" selection-start="1464" selection-end="1464" vertical-scroll-proportion="0.0">
+            <state line="614" column="0" selection-start="22166" selection-end="22166" vertical-scroll-proportion="0.0">
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -180,25 +261,68 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Linq4j.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/Linq4j.java">
+      <file leaf-file-name="QueryProviderImpl.java" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/QueryProviderImpl.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="100" column="0" selection-start="2895" selection-end="2895" vertical-scroll-proportion="0.0">
+            <state line="22" column="0" selection-start="895" selection-end="895" vertical-scroll-proportion="0.13856813">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="JdbcQueryProvider.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/impl/jdbc/JdbcQueryProvider.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="24" column="0" selection-start="993" selection-end="993" vertical-scroll-proportion="0.0">
               <folding>
-                <element signature="e#0#14094#0" expanded="false" />
-                <element signature="e#1044#1052#0" expanded="false" />
-                <element signature="e#1372#1524#0" expanded="false" />
-                <element signature="e#1513#1514#0" expanded="false" />
-                <element signature="e#10094#10124#0" expanded="false" />
+                <element signature="imports" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="PreparedExecution.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/eigenbase/oj/stmt/PreparedExecution.java">
+      <file leaf-file-name="OptiqPrepareImpl.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="35" column="23" selection-start="1141" selection-end="1141" vertical-scroll-proportion="0.0">
+            <state line="574" column="29" selection-start="18732" selection-end="18732" vertical-scroll-proportion="0.0">
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="TableAccessRel.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/org/eigenbase/rel/TableAccessRel.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="65" column="11" selection-start="2077" selection-end="2077" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="JavaRules.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/rules/java/JavaRules.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="242" column="20" selection-start="8725" selection-end="8725" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="QueryableDefaults.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/QueryableDefaults.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="1148" column="14" selection-start="41947" selection-end="41947" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="OptiqConnection.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqConnection.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="56" column="20" selection-start="1879" selection-end="1879" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -207,16 +331,36 @@
       <file leaf-file-name="OptiqStatement.java" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqStatement.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="341" column="15" selection-start="10230" selection-end="10230" vertical-scroll-proportion="0.0">
+            <state line="341" column="47" selection-start="10236" selection-end="10236" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Factory.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/Factory.java">
+      <file leaf-file-name="OptiqConnectionImpl.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqConnectionImpl.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="60" column="23" selection-start="1915" selection-end="1915" vertical-scroll-proportion="0.0">
+            <state line="145" column="27" selection-start="4795" selection-end="4795" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="OptiqPrepare.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPrepare.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="45" column="8" selection-start="1544" selection-end="1544" vertical-scroll-proportion="0.0">
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="OptiqPreparedStatement.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPreparedStatement.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="41" column="46" selection-start="1419" selection-end="1419" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -225,106 +369,34 @@
       <file leaf-file-name="OptiqResultSet.java" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSet.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="40" column="0" selection-start="1411" selection-end="1411" vertical-scroll-proportion="0.0">
+            <state line="59" column="36" selection-start="2100" selection-end="2100" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="OptiqPreparedStatement.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPreparedStatement.java">
+      <file leaf-file-name="MapSchema.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/impl/java/MapSchema.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="258" column="5" selection-start="7916" selection-end="7916" vertical-scroll-proportion="0.0">
+            <state line="130" column="17" selection-start="4063" selection-end="4063" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="OptiqPrepare.java" pinned="false" current="true" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPrepare.java">
+      <file leaf-file-name="Functions.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/function/Functions.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="32" column="22" selection-start="1244" selection-end="1244" vertical-scroll-proportion="0.7763975">
-              <folding>
-                <element signature="e#0#8951#0" expanded="true" />
-                <element signature="imports" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Factory.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/Factory.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="33" column="0" selection-start="1082" selection-end="1082" vertical-scroll-proportion="0.0">
+            <state line="190" column="44" selection-start="6319" selection-end="6319" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="OptiqPrepareImpl.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java">
+      <file leaf-file-name="ParameterizedTypeImpl.class" pinned="false" current="false" current-in-tab="false">
+        <entry file="jar:///Library/Java/JavaVirtualMachines/1.7.0.jdk/Contents/Home/jre/lib/rt.jar!/sun/reflect/generics/reflectiveObjects/ParameterizedTypeImpl.class">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="770" column="0" selection-start="26973" selection-end="26973" vertical-scroll-proportion="0.0">
-              <folding>
-                <element signature="imports" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Statement.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="jar:///Library/Java/JavaVirtualMachines/1.7.0.jdk/Contents/Home/src.zip!/java/sql/Statement.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="42" column="17" selection-start="896" selection-end="896" vertical-scroll-proportion="0.0">
-              <folding>
-                <element signature="e#0#50052#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="OptiqConnectionImpl.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqConnectionImpl.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="501" column="54" selection-start="15259" selection-end="15259" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="FactoryJdbc41.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/FactoryJdbc41.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="83" column="38" selection-start="2679" selection-end="2679" vertical-scroll-proportion="0.0">
-              <folding>
-                <element signature="e#998#1036#1" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="OJPreparingStmt.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/eigenbase/oj/stmt/OJPreparingStmt.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="70" column="37" selection-start="2257" selection-end="2257" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="MethodCallExpression.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/expressions/MethodCallExpression.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="39" column="0" selection-start="1438" selection-end="1438" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Expressions.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/expressions/Expressions.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="462" column="23" selection-start="15383" selection-end="15383" vertical-scroll-proportion="0.0">
+            <state line="5" column="13" selection-start="176" selection-end="176" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -342,7 +414,7 @@
       <file leaf-file-name="RelImplementorImpl.java" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/org/eigenbase/rel/RelImplementorImpl.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="112" column="0" selection-start="3608" selection-end="3608" vertical-scroll-proportion="0.0">
+            <state line="82" column="0" selection-start="2605" selection-end="2605" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -351,7 +423,7 @@
       <file leaf-file-name="RelNode.java" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/org/eigenbase/rel/RelNode.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="65" column="17" selection-start="2893" selection-end="2893" vertical-scroll-proportion="0.0">
+            <state line="203" column="16" selection-start="7398" selection-end="7398" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -379,22 +451,22 @@
   <component name="IdeDocumentHistory">
     <option name="changedFiles">
       <list>
+        <option value="$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/expressions/Types.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/BuiltinMethod.java" />
+        <option value="$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/LookupImpl.java" />
         <option value="$PROJECT_DIR$/src/test/java/net/hydromatic/optiq/test/JdbcTest.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/Helper.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/Factory.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSet.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqParameter.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPreparedStatement.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPrepareImpl.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqStatement.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepare.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/impl/java/ReflectiveSchema.java" />
+        <option value="$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/QueryProviderImpl.java" />
+        <option value="$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/BaseQueryable.java" />
+        <option value="$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/QueryProvider.java" />
         <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqConnectionImpl.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/FactoryJdbc41.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSetMetaData.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/FactoryX.java" />
-        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/Factory.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPreparedStatement.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSet.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/impl/jdbc/JdbcQueryProvider.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqStatement.java" />
         <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPrepare.java" />
+        <option value="$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/QueryableDefaults.java" />
+        <option value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java" />
       </list>
     </option>
   </component>
@@ -407,7 +479,36 @@
     </option>
   </component>
   <component name="MavenProjectNavigator">
-    <treeState />
+    <treeState>
+      <PATH>
+        <PATH_ELEMENT>
+          <option name="myItemId" value="" />
+          <option name="myItemType" value="org.jetbrains.idea.maven.navigator.MavenProjectsStructure$RootNode" />
+        </PATH_ELEMENT>
+        <PATH_ELEMENT>
+          <option name="myItemId" value="optiq" />
+          <option name="myItemType" value="org.jetbrains.idea.maven.navigator.MavenProjectsStructure$ProjectNode" />
+        </PATH_ELEMENT>
+        <PATH_ELEMENT>
+          <option name="myItemId" value="Dependencies" />
+          <option name="myItemType" value="org.jetbrains.idea.maven.navigator.MavenProjectsStructure$DependenciesNode" />
+        </PATH_ELEMENT>
+      </PATH>
+      <PATH>
+        <PATH_ELEMENT>
+          <option name="myItemId" value="" />
+          <option name="myItemType" value="org.jetbrains.idea.maven.navigator.MavenProjectsStructure$RootNode" />
+        </PATH_ELEMENT>
+        <PATH_ELEMENT>
+          <option name="myItemId" value="optiq" />
+          <option name="myItemType" value="org.jetbrains.idea.maven.navigator.MavenProjectsStructure$ProjectNode" />
+        </PATH_ELEMENT>
+        <PATH_ELEMENT>
+          <option name="myItemId" value="Lifecycle" />
+          <option name="myItemType" value="org.jetbrains.idea.maven.navigator.MavenProjectsStructure$LifecycleNode" />
+        </PATH_ELEMENT>
+      </PATH>
+    </treeState>
   </component>
   <component name="ProjectFrameBounds">
     <option name="y" value="22" />
@@ -440,6 +541,30 @@
       <sortByType />
     </navigator>
     <panes>
+      <pane id="PackagesPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="optiq" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="optiq" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+      <pane id="Scope">
+        <subPane subId="Project Files">
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -470,6 +595,10 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
+              <option name="myItemId" value="hydromatic" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
               <option name="myItemId" value="linq4j" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -492,11 +621,37 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
+              <option name="myItemId" value="hydromatic" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
               <option name="myItemId" value="linq4j" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="expressions" />
+              <option name="myItemId" value="function" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="optiq" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="External Libraries" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ExternalLibrariesNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Maven: net.hydromatic:linq4j:0.1-SNAPSHOT" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.NamedLibraryElementNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="linq4j-0.1-SNAPSHOT.jar" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="hydromatic" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -549,6 +704,28 @@
               <option name="myItemId" value="java" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="optiq" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="optiq" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="test" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="java" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="optiq" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
@@ -647,36 +824,6 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="optiq" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="optiq" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="optiq" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="optiq" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="runtime" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -736,32 +883,8 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="jdbc" />
+              <option name="myItemId" value="impl" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-        </subPane>
-      </pane>
-      <pane id="Scope">
-        <subPane subId="Project Files">
-          <PATH>
-            <PATH_ELEMENT USER_OBJECT="Root">
-              <option name="myItemId" value="" />
-              <option name="myItemType" value="" />
-            </PATH_ELEMENT>
-          </PATH>
-        </subPane>
-      </pane>
-      <pane id="PackagesPane">
-        <subPane>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="optiq" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="optiq" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
@@ -769,45 +892,72 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="last_directory_selection" value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare" />
-    <property name="GoToFile.includeJavaFiles" value="false" />
-    <property name="project.structure.last.edited" value="Project" />
-    <property name="OverrideImplement.combined" value="true" />
+    <property name="project.structure.last.edited" value="Libraries" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth0" value="130" />
     <property name="project.structure.proportion" value="0.15" />
+    <property name="OverrideImplement.combined" value="true" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth1" value="139" />
     <property name="options.splitter.main.proportions" value="0.3" />
-    <property name="MemberChooser.sorted" value="false" />
-    <property name="options.lastSelected" value="Template Data Languages" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth0" value="136" />
     <property name="recentsLimit" value="5" />
-    <property name="project.structure.side.proportion" value="0.26456878" />
+    <property name="MemberChooser.sorted" value="false" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder0" value="0" />
+    <property name="last_opened_file_path" value="$USER_HOME$/mondrian-book/svn/trunk" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth2" value="143" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth3" value="935" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth3" value="937" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth2" value="141" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth1" value="137" />
     <property name="GoToClass.includeJavaFiles" value="false" />
-    <property name="MemberChooser.copyJavadoc" value="false" />
     <property name="GoToClass.toSaveIncludeLibraries" value="false" />
-    <property name="MemberChooser.showClasses" value="true" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder2" value="2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder3" value="3" />
     <property name="FullScreen" value="false" />
+    <property name="MemberChooser.showClasses" value="true" />
     <property name="GoToClass.includeLibraries" value="false" />
-    <property name="dynamic.classpath" value="false" />
-    <property name="options.searchVisible" value="true" />
     <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder0" value="0" />
+    <property name="GoToFile.includeJavaFiles" value="false" />
+    <property name="last_directory_selection" value="$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder3" value="3" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder2" value="2" />
+    <property name="options.lastSelected" value="Template Data Languages" />
+    <property name="project.structure.side.proportion" value="0.26456878" />
+    <property name="MemberChooser.copyJavadoc" value="false" />
+    <property name="options.searchVisible" value="true" />
+    <property name="dynamic.classpath" value="false" />
   </component>
   <component name="RecentsManager">
     <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="net.hydromatic.optiq" />
+      <recent name="net.hydromatic.optiq.runtime" />
+      <recent name="net.hydromatic.linq4j.expressions" />
       <recent name="net.hydromatic.linq4j" />
       <recent name="net.hydromatic.optiq.rules.java" />
     </key>
     <key name="ExtractSuperBase.RECENT_KEYS">
-      <recent name="net.hydromatic.optiq.jdbc" />
       <recent name="org.eigenbase.rel" />
+      <recent name="net.hydromatic.optiq.runtime" />
+      <recent name="net.hydromatic.optiq.jdbc" />
     </key>
     <key name="MoveMembersDialog.RECENTS_KEY">
+      <recent name="net.hydromatic.optiq.impl.jdbc.JdbcUtils" />
+      <recent name="net.hydromatic.optiq.Schemas" />
+      <recent name="org.eigenbase.reltype.RelDataTypeFactory" />
+      <recent name="net.hydromatic.optiq.rules.java.RexToLixTranslator" />
       <recent name="net.hydromatic.optiq.prepare.OptiqPrepare" />
     </key>
     <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
+      <recent name="net.hydromatic.optiq.impl.linq4j" />
+      <recent name="net.hydromatic.optiq.impl" />
+      <recent name="net.hydromatic.optiq.runtime" />
       <recent name="net.hydromatic.optiq.jdbc" />
       <recent name="net.hydromatic.optiq.prepare" />
-      <recent name="net.hydromatic.optiq.runtime" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.JdbcTest.testQueryProvider">
+  <component name="RunManager" selected="JUnit.JdbcTest.testJdbcBackendLinqFrontend">
     <configuration default="true" type="Remote" factoryName="Remote">
       <option name="USE_SOCKET_TRANSPORT" value="true" />
       <option name="SERVER_MODE" value="false" />
@@ -916,7 +1066,24 @@
       <ConfigurationWrapper RunnerId="Run" />
       <method />
     </configuration>
-    <configuration default="false" name="JdbcTest.testQueryProvider" type="JUnit" factoryName="JUnit">
+    <configuration default="false" name="Baz" type="Application" factoryName="Application">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea" />
+      <option name="MAIN_CLASS_NAME" value="Baz" />
+      <option name="VM_PARAMETERS" />
+      <option name="PROGRAM_PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="ENABLE_SWING_INSPECTOR" value="false" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <module name="optiq" />
+      <envs />
+      <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Run" />
+      <method />
+    </configuration>
+    <configuration default="false" name="JdbcTest.testFoodMartJdbcWhere2" type="JUnit" factoryName="JUnit">
       <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
         <pattern>
           <option name="PATTERN" value="net.hydromatic.optiq.test.*" />
@@ -928,7 +1095,7 @@
       <option name="ALTERNATIVE_JRE_PATH" value="" />
       <option name="PACKAGE_NAME" value="net.hydromatic.optiq.test" />
       <option name="MAIN_CLASS_NAME" value="net.hydromatic.optiq.test.JdbcTest" />
-      <option name="METHOD_NAME" value="testQueryProvider" />
+      <option name="METHOD_NAME" value="testFoodMartJdbcWhere2" />
       <option name="TEST_OBJECT" value="method" />
       <option name="VM_PARAMETERS" value="-ea -esa" />
       <option name="PARAMETERS" value="" />
@@ -962,7 +1129,7 @@
       <option name="ALTERNATIVE_JRE_PATH" value="" />
       <option name="PACKAGE_NAME" value="net.hydromatic.optiq.test" />
       <option name="MAIN_CLASS_NAME" value="net.hydromatic.optiq.test.JdbcTest" />
-      <option name="METHOD_NAME" value="testQueryProvider" />
+      <option name="METHOD_NAME" value="testSelect" />
       <option name="TEST_OBJECT" value="class" />
       <option name="VM_PARAMETERS" value="-ea -esa" />
       <option name="PARAMETERS" value="" />
@@ -974,14 +1141,56 @@
       </option>
       <envs />
       <patterns />
+      <RunnerSettings RunnerId="Debug">
+        <option name="DEBUG_PORT" value="" />
+        <option name="TRANSPORT" value="0" />
+        <option name="LOCAL" value="true" />
+      </RunnerSettings>
       <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Debug" />
       <ConfigurationWrapper RunnerId="Run" />
       <method />
     </configuration>
-    <list size="3">
+    <configuration default="false" name="JdbcTest.testJdbcBackendLinqFrontend" type="JUnit" factoryName="JUnit">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
+        <pattern>
+          <option name="PATTERN" value="net.hydromatic.optiq.test.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <module name="optiq" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" value="" />
+      <option name="PACKAGE_NAME" value="net.hydromatic.optiq.test" />
+      <option name="MAIN_CLASS_NAME" value="net.hydromatic.optiq.test.JdbcTest" />
+      <option name="METHOD_NAME" value="testJdbcBackendLinqFrontend" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -esa" />
+      <option name="PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="moduleWithDependencies" />
+      </option>
+      <envs />
+      <patterns />
+      <RunnerSettings RunnerId="Debug">
+        <option name="DEBUG_PORT" value="" />
+        <option name="TRANSPORT" value="0" />
+        <option name="LOCAL" value="true" />
+      </RunnerSettings>
+      <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Debug" />
+      <ConfigurationWrapper RunnerId="Run" />
+      <method />
+    </configuration>
+    <list size="5">
       <item index="0" class="java.lang.String" itemvalue="Application.JdbcExample" />
-      <item index="1" class="java.lang.String" itemvalue="JUnit.JdbcTest.testQueryProvider" />
-      <item index="2" class="java.lang.String" itemvalue="JUnit.JdbcTest" />
+      <item index="1" class="java.lang.String" itemvalue="Application.Baz" />
+      <item index="2" class="java.lang.String" itemvalue="JUnit.JdbcTest.testFoodMartJdbcWhere2" />
+      <item index="3" class="java.lang.String" itemvalue="JUnit.JdbcTest" />
+      <item index="4" class="java.lang.String" itemvalue="JUnit.JdbcTest.testJdbcBackendLinqFrontend" />
     </list>
     <configuration name="&lt;template&gt;" type="WebApp" default="true" selected="false">
       <Host>localhost</Host>
@@ -1046,7 +1255,71 @@
       <created>1336778985695</created>
       <updated>1336778985695</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="Factor implementation of OptiqPrepare into new package net.hydromatic.optiq.prepare (separate from JDBC driver).&#10;&#10;Implement QueryProvider. Can now create a Queryable, extend it using where, select etc. methods, and implement via a planner.">
+      <created>1337661008306</created>
+      <updated>1337661008306</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Progress translating CalcRel.">
+      <created>1338019113328</created>
+      <updated>1338019113328</updated>
+    </task>
+    <task id="LOCAL-00010" summary="More type information. Add maps from Java to SQL functions in both directions, including String.toUpperCase()/UPPER.">
+      <created>1338672400461</created>
+      <updated>1338672400461</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Re-organize schema structure. Upgrade janino. Queries that return an Object[] (i.e. not a struct) now work.">
+      <created>1340672421528</created>
+      <updated>1340672421528</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Fix for API changes in janino-2.6.1.">
+      <created>1340821967414</created>
+      <updated>1340821967414</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Support for GROUP BY. Add rule and rel for aggregation implemented by generating code that implements Enumerable. (Not fully working.)&#10;&#10;Match changes to linq4j for array-access.">
+      <created>1340822327129</created>
+      <updated>1340822327129</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Implement ORDER BY.">
+      <created>1341187075830</created>
+      <updated>1341187075830</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Implement UNION. (Queries can plan but currently run into a bug while implementing them.)">
+      <created>1341242609823</created>
+      <updated>1341242609823</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Implement SQL INTERSECT, EXCEPT and Substring; optimize records that have a single field.">
+      <created>1341359914222</created>
+      <updated>1341359914222</updated>
+    </task>
+    <task id="LOCAL-00017" summary="Beginnings of a JDBC QueryProvider.&#10;&#10;Cleanup of concepts related to Schema. Rename Function to Member, and obsolete SchemaObject and Overload.&#10;&#10;Schemas and members no longer need to remember their own name and ancestry. The container does that.&#10;&#10;Move 'wasNull' field from Getter and into AbstractCursor. Getters are non-static, so they can reference it implicitly.">
+      <created>1341704199832</created>
+      <updated>1341704199832</updated>
+    </task>
+    <task id="LOCAL-00018" summary="More operations working against JDBC provider. Operations are still implemented in the client (using linq4j builtins). &#10;&#10;Add DataContext, and move some data/functionality that used to be in &quot;root&quot; into it.">
+      <created>1341873218472</created>
+      <updated>1341873218472</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Some more SQL operators against JDBC backend (JOIN, distinct-COUNT, ORDER BY, empty GROUP BY; but all still implemented in linq4j); composite GROUP BY keys; SQL DECIMAL type mapped into BigDecimal in Java.">
+      <created>1341894668012</created>
+      <updated>1341894668012</updated>
+    </task>
+    <task id="LOCAL-00020" summary="Start on the real SQL provider. The goal is to execute JDBC queries by pushing as much logic as possible into a SQL query.">
+      <created>1342806153905</created>
+      <updated>1342806153905</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Progress check-in. It now builds, but doesn't run.">
+      <created>1343032211851</created>
+      <updated>1343032211851</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Working again after re-org.">
+      <created>1343091073996</created>
+      <updated>1343091073996</updated>
+    </task>
+    <task id="LOCAL-00023" summary="Planning of a tree of Queryable objects, built using methods such as Queryable.where. The plan is represented using an OpQueryable, then converted into RelNodes at planning time.&#10;&#10;Consolidate all method pointers into new enum BuiltinMethod.&#10;&#10;Add method QueryProvider.executeQuery(Queryable).&#10;&#10;Rename Extensions.AbstractQueryable2 to BaseQueryable.&#10;&#10;Dependencies: junit and diffj are (for now) used at runtime, not just testing.">
+      <created>1343232159945</created>
+      <updated>1343232159945</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -1055,18 +1328,18 @@
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32947233" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25482625" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24066924" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33848134" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32561132" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32947233" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33462033" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="true" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32957244" sideWeight="0.6704901" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.2722701" sideWeight="0.65637064" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.34362933" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3283046" sideWeight="0.84813386" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29310346" sideWeight="0.5920206" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.4079794" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Data Sources" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="JetGradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -1113,7 +1386,7 @@
     <option name="SHOW_VCS_ERROR_NOTIFICATIONS" value="true" />
     <option name="FORCE_NON_EMPTY_COMMENT" value="false" />
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="false" />
-    <option name="LAST_COMMIT_MESSAGE" value="Re-organize directory structure; add package-info files; move EigenbaseResource.properties into resource directory, as maven demands." />
+    <option name="LAST_COMMIT_MESSAGE" value="Planning of a tree of Queryable objects, built using methods such as Queryable.where. The plan is represented using an OpQueryable, then converted into RelNodes at planning time.&#10;&#10;Consolidate all method pointers into new enum BuiltinMethod.&#10;&#10;Add method QueryProvider.executeQuery(Queryable).&#10;&#10;Rename Extensions.AbstractQueryable2 to BaseQueryable.&#10;&#10;Dependencies: junit and diffj are (for now) used at runtime, not just testing." />
     <option name="MAKE_NEW_CHANGELIST_ACTIVE" value="true" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="false" />
     <option name="CHECK_FILES_UP_TO_DATE_BEFORE_COMMIT" value="false" />
@@ -1131,6 +1404,22 @@
     <MESSAGE value="First query via JDBC now works." />
     <MESSAGE value="Factor out Cursor from OptiqResultSet; will allow a result set to work on top of various iterator protocols." />
     <MESSAGE value="Re-organize directory structure; add package-info files; move EigenbaseResource.properties into resource directory, as maven demands." />
+    <MESSAGE value="Factor implementation of OptiqPrepare into new package net.hydromatic.optiq.prepare (separate from JDBC driver).&#10;&#10;Implement QueryProvider. Can now create a Queryable, extend it using where, select etc. methods, and implement via a planner." />
+    <MESSAGE value="Progress translating CalcRel." />
+    <MESSAGE value="More type information. Add maps from Java to SQL functions in both directions, including String.toUpperCase()/UPPER." />
+    <MESSAGE value="Re-organize schema structure. Upgrade janino. Queries that return an Object[] (i.e. not a struct) now work." />
+    <MESSAGE value="Fix for API changes in janino-2.6.1." />
+    <MESSAGE value="Support for GROUP BY. Add rule and rel for aggregation implemented by generating code that implements Enumerable. (Not fully working.)&#10;&#10;Match changes to linq4j for array-access." />
+    <MESSAGE value="Implement ORDER BY." />
+    <MESSAGE value="Implement UNION. (Queries can plan but currently run into a bug while implementing them.)" />
+    <MESSAGE value="Implement SQL INTERSECT, EXCEPT and Substring; optimize records that have a single field." />
+    <MESSAGE value="Beginnings of a JDBC QueryProvider.&#10;&#10;Cleanup of concepts related to Schema. Rename Function to Member, and obsolete SchemaObject and Overload.&#10;&#10;Schemas and members no longer need to remember their own name and ancestry. The container does that.&#10;&#10;Move 'wasNull' field from Getter and into AbstractCursor. Getters are non-static, so they can reference it implicitly." />
+    <MESSAGE value="More operations working against JDBC provider. Operations are still implemented in the client (using linq4j builtins). &#10;&#10;Add DataContext, and move some data/functionality that used to be in &quot;root&quot; into it." />
+    <MESSAGE value="Some more SQL operators against JDBC backend (JOIN, distinct-COUNT, ORDER BY, empty GROUP BY; but all still implemented in linq4j); composite GROUP BY keys; SQL DECIMAL type mapped into BigDecimal in Java." />
+    <MESSAGE value="Start on the real SQL provider. The goal is to execute JDBC queries by pushing as much logic as possible into a SQL query." />
+    <MESSAGE value="Progress check-in. It now builds, but doesn't run." />
+    <MESSAGE value="Working again after re-org." />
+    <MESSAGE value="Planning of a tree of Queryable objects, built using methods such as Queryable.where. The plan is represented using an OpQueryable, then converted into RelNodes at planning time.&#10;&#10;Consolidate all method pointers into new enum BuiltinMethod.&#10;&#10;Add method QueryProvider.executeQuery(Queryable).&#10;&#10;Rename Extensions.AbstractQueryable2 to BaseQueryable.&#10;&#10;Dependencies: junit and diffj are (for now) used at runtime, not just testing." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
@@ -1140,126 +1429,123 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/Factory.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqConnectionImpl.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="60" column="23" selection-start="1915" selection-end="1915" vertical-scroll-proportion="0.0">
+        <state line="145" column="27" selection-start="4795" selection-end="4795" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSet.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/BuiltinMethod.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="40" column="0" selection-start="1411" selection-end="1411" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/eigenbase/oj/rel/IterCalcRel.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="474" column="23" selection-start="16816" selection-end="16816" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/eigenbase/oj/rex/RexToOJTranslator.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="286" column="13" selection-start="9231" selection-end="9231" vertical-scroll-proportion="0.0">
+        <state line="37" column="4" selection-start="1301" selection-end="1301" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPreparedStatement.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="258" column="5" selection-start="7916" selection-end="7916" vertical-scroll-proportion="0.0">
+        <state line="41" column="46" selection-start="1419" selection-end="1419" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/rules/java/EnumerableRelImplementor.java">
+    <entry file="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/RawEnumerable.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="58" column="0" selection-start="1997" selection-end="1997" vertical-scroll-proportion="0.0">
+        <state line="35" column="18" selection-start="1390" selection-end="1390" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/rules/java/JavaRules.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSet.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="402" column="25" selection-start="13277" selection-end="13277" vertical-scroll-proportion="0.0">
+        <state line="59" column="36" selection-start="2100" selection-end="2100" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/1.7.0.jdk/Contents/Home/src.zip!/java/sql/Statement.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/impl/jdbc/JdbcQueryProvider.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="42" column="17" selection-start="896" selection-end="896" vertical-scroll-proportion="0.0">
+        <state line="24" column="0" selection-start="993" selection-end="993" vertical-scroll-proportion="0.0">
           <folding>
-            <element signature="e#0#50052#0" expanded="false" />
+            <element signature="imports" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqStatement.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="341" column="15" selection-start="10230" selection-end="10230" vertical-scroll-proportion="0.0">
+        <state line="341" column="47" selection-start="10236" selection-end="10236" vertical-scroll-proportion="0.0">
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqConnectionImpl.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="501" column="54" selection-start="15259" selection-end="15259" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/FactoryJdbc41.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="83" column="38" selection-start="2679" selection-end="2679" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="e#998#1036#1" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqResultSetMetaData.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="42" column="19" selection-start="1464" selection-end="1464" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/Helper.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="26" column="7" selection-start="934" selection-end="934" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/Factory.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="33" column="0" selection-start="1082" selection-end="1082" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="770" column="0" selection-start="26973" selection-end="26973" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/jdbc/OptiqPrepare.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="32" column="22" selection-start="1244" selection-end="1244" vertical-scroll-proportion="0.7763975">
+        <state line="45" column="8" selection-start="1544" selection-end="1544" vertical-scroll-proportion="0.0">
           <folding>
-            <element signature="e#0#8951#0" expanded="true" />
             <element signature="imports" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/BaseQueryable.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="69" column="25" selection-start="2076" selection-end="2076" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/QueryableDefaults.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="1148" column="14" selection-start="41947" selection-end="41947" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/net/hydromatic/optiq/test/JdbcTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="614" column="0" selection-start="22166" selection-end="22166" vertical-scroll-proportion="0.0">
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/prepare/OptiqPrepareImpl.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="574" column="29" selection-start="18732" selection-end="18732" vertical-scroll-proportion="0.0">
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/eigenbase/rel/TableAccessRel.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="65" column="11" selection-start="2077" selection-end="2077" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/QueryProvider.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="88" column="35" selection-start="3153" selection-end="3153" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/net/hydromatic/optiq/rules/java/JavaRules.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="242" column="20" selection-start="8725" selection-end="8725" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../linq4j/src/main/java/net/hydromatic/linq4j/QueryProviderImpl.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="22" column="0" selection-start="895" selection-end="895" vertical-scroll-proportion="0.13856813">
+          <folding />
         </state>
       </provider>
     </entry>
@@ -1352,11 +1638,11 @@
       </state>
       <state key="ProjectLibrariesConfigurable.UI">
         <settings>
-          <last-edited>Maven: eigenbase:eigenbase-properties:1.1.0.10924</last-edited>
+          <last-edited>Maven: org.codehaus.janino:janino:2.6.1</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>
-                <option value="0.30818278" />
+                <option value="0.41551542" />
               </list>
             </option>
           </splitter-proportions>

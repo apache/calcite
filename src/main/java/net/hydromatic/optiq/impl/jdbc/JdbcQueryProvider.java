@@ -20,9 +20,7 @@ package net.hydromatic.optiq.impl.jdbc;
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.QueryProviderImpl;
-import net.hydromatic.linq4j.expressions.Expression;
-
-import java.lang.reflect.Type;
+import net.hydromatic.linq4j.Queryable;
 
 /**
  * Implementation of {@link QueryProvider} that talks to JDBC databases.
@@ -35,27 +33,8 @@ public final class JdbcQueryProvider extends QueryProviderImpl {
     private JdbcQueryProvider() {
     }
 
-    @Override
-    protected <T> Enumerator<T> executeQuery(QueryableImpl<T> queryable) {
+    public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
         return null;
-    }
-
-    /**
-     * Binds an expression to this query provider.
-     */
-    private static class ExpressionQueryable<T> extends QueryableImpl<T> {
-        public ExpressionQueryable(
-            JdbcQueryProvider jdbcQueryProvider,
-            Type elementType,
-            Expression expression)
-        {
-            super(jdbcQueryProvider, elementType, expression);
-        }
-
-        @Override
-        public JdbcQueryProvider getProvider() {
-            return (JdbcQueryProvider) super.getProvider();
-        }
     }
 }
 

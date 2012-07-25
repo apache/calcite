@@ -39,7 +39,7 @@ abstract class OptiqPreparedStatement
     extends OptiqStatement
     implements PreparedStatement, ParameterMetaData
 {
-    private final OptiqPrepare.PrepareResult prepareResult;
+    private final OptiqPrepare.PrepareResult<?> prepareResult;
     private final ResultSetMetaData resultSetMetaData;
 
     /**

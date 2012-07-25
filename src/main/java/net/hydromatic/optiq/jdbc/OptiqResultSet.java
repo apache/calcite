@@ -57,7 +57,7 @@ public class OptiqResultSet implements ResultSet {
 
     OptiqResultSet(
         OptiqStatement statement,
-        OptiqPrepare.PrepareResult prepareResult)
+        OptiqPrepare.PrepareResult<?> prepareResult)
     {
         this.statement = statement;
         this.prepareResult = prepareResult;

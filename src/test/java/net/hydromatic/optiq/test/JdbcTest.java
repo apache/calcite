@@ -337,7 +337,7 @@ public class JdbcTest extends TestCase {
     }
 
     public static Queryable<IntString> generateStrings(final int count) {
-        return new Extensions.AbstractQueryable2<IntString>(
+        return new BaseQueryable<IntString>(
             null,
             IntString.class,
             null)
@@ -567,7 +567,7 @@ public class JdbcTest extends TestCase {
         optiqConnection.getRootSchema().addSchema(
             "foodmart",
             new JdbcSchema(
-                queryProvider,
+                queryProvider == null ? optiqConnection : queryProvider,
                 dataSource,
                 JdbcSchema.createDialect(dataSource),
                 "foodmart",
@@ -605,9 +605,10 @@ public class JdbcTest extends TestCase {
 
     public void testJdbcBackendLinqFrontend() {
         try {
-            final OptiqConnection connection =
-                getConnection(OptiqQueryProvider.INSTANCE);
-            JdbcSchema schema = (JdbcSchema) connection.getRootSchema();
+            final OptiqConnection connection = getConnection(null);
+            JdbcSchema schema =
+                (JdbcSchema)
+                connection.getRootSchema().getSubSchema("foodmart");
             ParameterExpression c =
                 Expressions.parameter(
                     Customer.class, "c");
@@ -744,7 +745,7 @@ public class JdbcTest extends TestCase {
                     connection = getConnectionWithHrFoodmart();
                     break;
                 case JDBC_FOODMART2:
-                    connection = getConnection(OptiqQueryProvider.INSTANCE);
+                    connection = getConnection(null);
                     break;
                 case JDBC_FOODMART:
                     connection = getConnection(JdbcQueryProvider.INSTANCE);

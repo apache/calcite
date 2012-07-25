@@ -53,7 +53,9 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>3.8.1</version>
+       <!--
       <scope>test</scope>
+      -->
     </dependency>
     <dependency>
       <groupId>eigenbase</groupId>
@@ -94,7 +96,9 @@
       <groupId>org.incava</groupId>
       <artifactId>java-diff</artifactId>
       <version>1.1</version>
+      <!--
       <scope>test</scope>
+      -->
     </dependency>
     <dependency>
       <groupId>commons-dbcp</groupId>

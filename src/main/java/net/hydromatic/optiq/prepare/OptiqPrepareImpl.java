@@ -19,10 +19,7 @@ package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Function2;
-import net.hydromatic.linq4j.function.Predicate1;
-import net.hydromatic.linq4j.function.Predicate2;
+
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.Helper;
@@ -53,7 +50,6 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 import org.eigenbase.util.Pair;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -65,51 +61,33 @@ import java.util.*;
  * @author jhyde
  */
 class OptiqPrepareImpl implements OptiqPrepare {
-    static final Method METHOD_QUERYABLE_SELECT;
-    static final Method METHOD_ENUMERABLE_SELECT;
-    static final Method METHOD_ENUMERABLE_SELECT2;
-    static final Method METHOD_ENUMERABLE_WHERE;
-    static final Method METHOD_ENUMERABLE_WHERE2;
-    static final Method METHOD_ENUMERABLE_AS_QUERYABLE;
 
-    static {
-        try {
-            METHOD_QUERYABLE_SELECT =
-                Queryable.class.getMethod("select", FunctionExpression.class);
-            METHOD_ENUMERABLE_SELECT =
-                Enumerable.class.getMethod("select", Function1.class);
-            METHOD_ENUMERABLE_SELECT2 =
-                Enumerable.class.getMethod("select", Function2.class);
-            METHOD_ENUMERABLE_WHERE =
-                Enumerable.class.getMethod("where", Predicate1.class);
-            METHOD_ENUMERABLE_WHERE2 =
-                Enumerable.class.getMethod("where", Predicate2.class);
-            METHOD_ENUMERABLE_AS_QUERYABLE =
-                Enumerable.class.getMethod("asQueryable");
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public PrepareResult prepare2(
-        Statement statement,
-        Expression expression,
-        Type elementType)
+    public <T> PrepareResult<T> prepareQueryable(
+        Context context,
+        Queryable<T> queryable)
     {
-        return prepare(
-            statement, null, expression, elementType);
+        return prepare_(context, null, queryable, queryable.getElementType());
     }
 
-    public PrepareResult prepare(
-        Statement statement,
+    public <T> PrepareResult<T> prepareSql(
+        Context context,
         String sql,
-        Expression expression,
+        Queryable<T> expression,
         Type elementType)
     {
-        final JavaTypeFactory typeFactory = statement.getTypeFactory();
+        return prepare_(context, sql, expression, elementType);
+    }
+
+    <T> PrepareResult<T> prepare_(
+        Context context,
+        String sql,
+        Queryable<T> queryable,
+        Type elementType)
+    {
+        final JavaTypeFactory typeFactory = context.getTypeFactory();
         OptiqCatalogReader catalogReader =
             new OptiqCatalogReader(
-                statement.getRootSchema(),
+                context.getRootSchema(),
                 typeFactory);
         RelOptConnectionImpl relOptConnection =
             new RelOptConnectionImpl(catalogReader);
@@ -117,13 +95,13 @@ class OptiqPrepareImpl implements OptiqPrepare {
             new OptiqPreparingStmt(
                 relOptConnection,
                 typeFactory,
-                statement.getRootSchema());
+                context.getRootSchema());
         preparingStmt.setResultCallingConvention(CallingConvention.ENUMERABLE);
 
         final RelDataType x;
         final PreparedResult preparedResult;
         if (sql != null) {
-            assert expression == null;
+            assert queryable == null;
             SqlParser parser = new SqlParser(sql);
             SqlNode sqlNode;
             try {
@@ -139,11 +117,10 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 sqlNode, Object.class, validator, true);
             x = validator.getValidatedNodeType(sqlNode);
         } else {
-            assert expression != null;
-            x = statement.getTypeFactory().createJavaType(
-                Types.toClass(elementType));
+            assert queryable != null;
+            x = context.getTypeFactory().createType(elementType);
             preparedResult =
-                preparingStmt.prepareExpression(expression, x);
+                preparingStmt.prepareQueryable(queryable, x);
         }
 
         // TODO: parameters
@@ -181,11 +158,11 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     false,
                     null));
         }
-        return new PrepareResult(
+        return new PrepareResult<T>(
             sql,
             parameters,
             columns,
-            (Enumerable) preparedResult.execute());
+            (Enumerable<T>) preparedResult.execute());
     }
 
     private static RelDataType makeStruct(
@@ -226,8 +203,9 @@ class OptiqPrepareImpl implements OptiqPrepare {
             rexBuilder = new RexBuilder(typeFactory);
         }
 
-        public PreparedResult prepareExpression(
-            Expression expression, RelDataType resultType)
+        public PreparedResult prepareQueryable(
+            Queryable queryable,
+            RelDataType resultType)
         {
             queryString = null;
             Class runtimeContextClass = connection.getClass();
@@ -246,7 +224,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
 
             RelNode rootRel =
                 new LixToRelTranslator(cluster, connection)
-                    .translate(expression);
+                    .translate(queryable);
 
             if (timingTracer != null) {
                 timingTracer.traceTime("end sql2rel");
@@ -260,7 +238,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             // physical storage.
             rootRel = flattenTypes(rootRel, true);
 
-            rootRel = (RelNode) optimize(resultType, rootRel);
+            rootRel = optimize(resultType, rootRel);
             containsJava = treeContainsJava(rootRel);
 
             if (timingTracer != null) {
@@ -577,11 +555,61 @@ class OptiqPrepareImpl implements OptiqPrepare {
             this.typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
         }
 
+        public RelNode translate(Queryable queryable) {
+            if (queryable instanceof QueryableDefaults.OpQueryable) {
+                QueryableDefaults.OpQueryable opQueryable =
+                    (QueryableDefaults.OpQueryable) queryable;
+                switch (opQueryable.opType) {
+                case WHERE:
+                    RelNode child = translate(queryable(opQueryable, 0));
+                    return new FilterRel(
+                        cluster,
+                        child,
+                        toRex(funEx(opQueryable, 1), child));
+                }
+            }
+            if (queryable instanceof Table) {
+                return new TableAccessRel(
+                    cluster,
+                    new RelOptTableImpl(
+                        null,
+                        typeFactory.createJavaType(
+                            Types.toClass(
+                                Types.getComponentType(
+                                    queryable.getElementType()))),
+                        new String[0],
+                        queryable.getExpression()),
+                    connection);
+            }
+            throw new UnsupportedOperationException("Tbi");
+        }
+
+        private Queryable queryable(
+            QueryableDefaults.OpQueryable opQueryable,
+            int index)
+        {
+            return (Queryable) opQueryable.args.get(index);
+        }
+
+        private FunctionExpression funEx(
+            QueryableDefaults.OpQueryable opQueryable,
+            int index)
+        {
+            return (FunctionExpression) opQueryable.args.get(index);
+        }
+
         public RelNode translate(Expression expression) {
             if (expression instanceof MethodCallExpression) {
                 MethodCallExpression call = (MethodCallExpression) expression;
-                if (call.method.equals(METHOD_ENUMERABLE_SELECT)) {
-                    RelNode child = translate(call.targetExpression);
+                BuiltinMethod method = BuiltinMethod.lookup(call.method);
+                if (method == null) {
+                    throw new UnsupportedOperationException(
+                        "unknown method " + call.method);
+                }
+                RelNode child;
+                switch (method) {
+                case SELECT:
+                    child = translate(call.targetExpression);
                     return new ProjectRel(
                         cluster,
                         child,
@@ -590,17 +618,17 @@ class OptiqPrepareImpl implements OptiqPrepare {
                             (FunctionExpression) call.expressions.get(0)),
                         null,
                         ProjectRel.Flags.Boxed);
-                }
-                if (call.method.equals(METHOD_ENUMERABLE_WHERE)) {
-                    RelNode child = translate(call.targetExpression);
+
+                case WHERE:
+                    child = translate(call.targetExpression);
                     return new FilterRel(
                         cluster,
                         child,
                         toRex(
                             (FunctionExpression) call.expressions.get(0),
                             child));
-                }
-                if (call.method.equals(METHOD_ENUMERABLE_AS_QUERYABLE)) {
+
+                case AS_QUERYABLE:
                     return new TableAccessRel(
                         cluster,
                         new RelOptTableImpl(
@@ -612,9 +640,24 @@ class OptiqPrepareImpl implements OptiqPrepare {
                             new String[0],
                             call.targetExpression),
                         connection);
+
+                case SCHEMA_GET_TABLE:
+                    return new TableAccessRel(
+                        cluster,
+                        new RelOptTableImpl(
+                            null,
+                            typeFactory.createJavaType(
+                                Types.toClass(
+                                    Types.getComponentType(
+                                        call.targetExpression.getType()))),
+                            new String[0],
+                            call.targetExpression),
+                        connection);
+
+                default:
+                    throw new UnsupportedOperationException(
+                        "unknown method " + call.method);
                 }
-                throw new UnsupportedOperationException(
-                    "unknown method " + call.method);
             }
             throw new UnsupportedOperationException(
                 "unknown expression type " + expression.getNodeType());

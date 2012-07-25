@@ -18,8 +18,8 @@
 package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.RawEnumerable;
-import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
@@ -31,7 +31,6 @@ import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Map;
 
 /**
  * API for a service that prepares statements for execution.
@@ -39,36 +38,31 @@ import java.util.Map;
  * @author jhyde
  */
 public interface OptiqPrepare {
-    PrepareResult prepare2(
-        Statement statement,
-        Expression expression,
-        Type elementType);
+    <T> PrepareResult<T> prepareSql(
+        Context context, String sql, Queryable<T> expression, Type elementType);
 
-    PrepareResult prepare(
-        Statement statement,
-        String sql,
-        Expression expression,
-        Type elementType);
+    <T> PrepareResult<T> prepareQueryable(
+        Context context,
+        Queryable<T> queryable);
 
-    interface Statement {
+    /** Context for preparing a statement. */
+    interface Context {
         JavaTypeFactory getTypeFactory();
 
         Schema getRootSchema();
-
-        Schema getRoot();
     }
 
-    public static class PrepareResult {
+    public static class PrepareResult<T> {
         public final String sql; // for debug
         public final List<Parameter> parameterList;
         public final List<ColumnMetaData> columnList;
-        public final RawEnumerable<Object[]> enumerable;
+        public final RawEnumerable<T> enumerable;
 
         public PrepareResult(
             String sql,
             List<Parameter> parameterList,
             List<ColumnMetaData> columnList,
-            RawEnumerable<Object[]> enumerable)
+            RawEnumerable<T> enumerable)
         {
             super();
             this.sql = sql;
@@ -77,7 +71,7 @@ public interface OptiqPrepare {
             this.enumerable = enumerable;
         }
 
-        public Enumerator<Object[]> execute() {
+        public Enumerator<T> execute() {
             return enumerable.enumerator();
         }
     }

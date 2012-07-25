@@ -17,16 +17,13 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Extensions;
-import net.hydromatic.linq4j.Queryable;
+import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.OptiqQueryProvider;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
@@ -51,7 +48,7 @@ import java.util.concurrent.Executor;
  *
  * <p>Abstract to allow newer versions of JDBC to add methods.</p>
  */
-abstract class OptiqConnectionImpl implements OptiqConnection {
+abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
     public static final String CONNECT_STRING_PREFIX = "jdbc:optiq:";
 
     public final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
@@ -67,8 +64,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     final ParameterExpression rootExpression =
         Expressions.parameter(DataContext.class, "root");
     final MutableSchema rootSchema =
-        new MapSchema(
-            OptiqQueryProvider.INSTANCE, typeFactory, rootExpression);
+        new MapSchema(this, typeFactory, rootExpression);
     final UnregisteredDriver driver;
     final net.hydromatic.optiq.jdbc.Factory factory;
     private final String url;
@@ -120,7 +116,6 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         return rootSchema;
     }
 
-
     public JavaTypeFactory getTypeFactory() {
         return typeFactory;
     }
@@ -145,9 +140,20 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         return null; // TODO:
     }
 
+    public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
+        try {
+            OptiqStatement statement = createStatement();
+            OptiqPrepare.PrepareResult enumerable =
+                statement.prepare(queryable);
+            return (Enumerator) enumerable.execute();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     // Connection methods
 
-    public Statement createStatement() throws SQLException {
+    public OptiqStatement createStatement() throws SQLException {
         //noinspection MagicConstant
         return createStatement(
             ResultSet.TYPE_FORWARD_ONLY,
@@ -293,7 +299,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
         throw new UnsupportedOperationException();
     }
 
-    public Statement createStatement(
+    public OptiqStatement createStatement(
         int resultSetType,
         int resultSetConcurrency,
         int resultSetHoldability) throws SQLException
@@ -543,7 +549,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
     }
 
     static class ObjectAbstractQueryable2<T>
-        extends Extensions.AbstractQueryable2<T>
+        extends BaseQueryable<T>
     {
         public ObjectAbstractQueryable2(
             OptiqConnection connection,
@@ -551,33 +557,6 @@ abstract class OptiqConnectionImpl implements OptiqConnection {
             Expression expression)
         {
             super(connection, elementType, expression);
-        }
-
-        public Enumerator<T> enumerator() {
-            try {
-                final OptiqConnection connection = (OptiqConnection) provider;
-                Statement statement = connection.createStatement();
-                OptiqPrepare.PrepareResult enumerable =
-                    net.hydromatic.optiq.prepare.Factory.implement().prepare2(
-                        new OptiqPrepare.Statement() {
-                            public JavaTypeFactory getTypeFactory() {
-                                return connection.getTypeFactory();
-                            }
-
-                            public Schema getRootSchema() {
-                                return connection.getRootSchema();
-                            }
-
-                            public MutableSchema getRoot() {
-                                return connection.getRootSchema();
-                            }
-                        },
-                        expression,
-                        elementType);
-                return (Enumerator) enumerable.execute();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
         }
     }
 }
