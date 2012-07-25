@@ -171,7 +171,7 @@ public interface ExtendedEnumerable<TSource> {
      * obtain only those elements that can be cast to type TResult, use the
      * {@link #ofType(Class)} method instead.
      *
-     * @see Extensions#cast(Enumerable, Class)
+     * @see EnumerableDefaults#cast(Enumerable
      * @see #ofType(Class)
      */
     <T2> Enumerable<T2> cast(Class<T2> clazz);

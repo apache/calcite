@@ -99,7 +99,7 @@ class LookupImpl<K, V>
 
     public void putAll(Map<? extends K, ? extends Enumerable<V>> m) {
         for (Entry<? extends K, ? extends Enumerable<V>> entry : m.entrySet()) {
-            map.put(entry.getKey(), Extensions.toList(entry.getValue()));
+            map.put(entry.getKey(), entry.getValue().toList());
         }
     }
 

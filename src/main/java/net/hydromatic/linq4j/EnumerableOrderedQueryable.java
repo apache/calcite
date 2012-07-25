@@ -43,27 +43,32 @@ class EnumerableOrderedQueryable<T>
     public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
-        return Extensions.thenBy(asOrderedQueryable(), keySelector);
+        return QueryableDefaults.thenBy(asOrderedQueryable(), keySelector);
     }
 
     public <TKey> OrderedQueryable<T> thenBy(
         FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
-        return Extensions.thenBy(asOrderedQueryable(), keySelector, comparator);
+        return QueryableDefaults.thenBy(
+            asOrderedQueryable(),
+            keySelector,
+            comparator);
     }
 
     public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenByDescending(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
-        return Extensions.thenByDescending(asOrderedQueryable(), keySelector);
+        return QueryableDefaults.thenByDescending(
+            asOrderedQueryable(),
+            keySelector);
     }
 
     public <TKey> OrderedQueryable<T> thenByDescending(
         FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
-        return Extensions.thenByDescending(
+        return QueryableDefaults.thenByDescending(
             asOrderedQueryable(), keySelector, comparator);
     }
 }

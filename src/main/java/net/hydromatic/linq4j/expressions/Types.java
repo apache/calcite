@@ -259,8 +259,7 @@ public class Types {
                 }
             }
             throw new RuntimeException(
-                "while resolving static method '" + methodName + "' in class "
-                + clazz,
+                "while resolving method '" + methodName + "' in class " + clazz,
                 e);
         }
     }

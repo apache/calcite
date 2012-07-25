@@ -630,7 +630,7 @@ public class Linq4jTest extends TestCase {
         final Enumerable<Department> enumerableDepts =
             Linq4j.asEnumerable(depts);
         final List<Department> enumerableDeptsResult =
-            Extensions.take(enumerableDepts, 2).toList();
+            EnumerableDefaults.take(enumerableDepts, 2).toList();
         assertEquals(2, enumerableDeptsResult.size());
         assertEquals(depts[0], enumerableDeptsResult.get(0));
         assertEquals(depts[1], enumerableDeptsResult.get(1));
@@ -640,7 +640,7 @@ public class Linq4jTest extends TestCase {
         final Queryable<Department> querableDepts =
             Linq4j.asEnumerable(depts).asQueryable();
         final List<Department> queryableResult =
-            Extensions.take(querableDepts, 2).toList();
+            QueryableDefaults.take(querableDepts, 2).toList();
 
         assertEquals(2, queryableResult.size());
         assertEquals(depts[0], queryableResult.get(0));
@@ -650,20 +650,22 @@ public class Linq4jTest extends TestCase {
     public void testTake_enumerable_zero_or_negative_size() {
         assertEquals(
             0,
-            Extensions.take(Linq4j.asEnumerable(depts), 0).toList().size());
+            EnumerableDefaults.take(Linq4j.asEnumerable(depts), 0)
+                .toList().size());
         assertEquals(
             0,
-            Extensions.take(Linq4j.asEnumerable(depts), -2).toList().size());
+            EnumerableDefaults.take(Linq4j.asEnumerable(depts), -2)
+                .toList().size());
     }
 
     public void testTake_queryable_zero_or_negative_size() {
         assertEquals(
             0,
-            Extensions.take(Linq4j.asEnumerable(depts).asQueryable(), 0)
+            QueryableDefaults.take(Linq4j.asEnumerable(depts).asQueryable(), 0)
                 .toList().size());
         assertEquals(
             0,
-            Extensions.take(Linq4j.asEnumerable(depts).asQueryable(), -2)
+            QueryableDefaults.take(Linq4j.asEnumerable(depts).asQueryable(), -2)
                 .toList().size());
     }
 
@@ -671,7 +673,7 @@ public class Linq4jTest extends TestCase {
         final Enumerable<Department> enumerableDepts =
             Linq4j.asEnumerable(depts);
         final List<Department> depList =
-            Extensions.take(enumerableDepts, 5).toList();
+            EnumerableDefaults.take(enumerableDepts, 5).toList();
         assertEquals(3, depList.size());
         assertEquals(depts[0], depList.get(0));
         assertEquals(depts[1], depList.get(1));
@@ -682,7 +684,7 @@ public class Linq4jTest extends TestCase {
         final Enumerable<Department> enumerableDepts =
             Linq4j.asEnumerable(depts);
         final List<Department> depList =
-            Extensions.take(enumerableDepts, 5).toList();
+            EnumerableDefaults.take(enumerableDepts, 5).toList();
         assertEquals(3, depList.size());
         assertEquals(depts[0], depList.get(0));
         assertEquals(depts[1], depList.get(1));
@@ -693,13 +695,12 @@ public class Linq4jTest extends TestCase {
         final Enumerable<Department> enumerableDepts =
             Linq4j.asEnumerable(depts);
         final List<Department> deptList =
-            Extensions.takeWhile(
-                enumerableDepts,
-                new Predicate1<Department>() {
-                    public boolean apply(Department v1) {
-                        return v1.name.contains("e");
-                    }
-                }).toList();
+            EnumerableDefaults.takeWhile(
+                enumerableDepts, new Predicate1<Department>() {
+                public boolean apply(Department v1) {
+                    return v1.name.contains("e");
+                }
+            }).toList();
 
         // Only one department:
         // 0: Sales --> true
@@ -713,19 +714,17 @@ public class Linq4jTest extends TestCase {
         final Enumerable<Department> enumerableDepts =
             Linq4j.asEnumerable(depts);
         final List<Department> deptList =
-            Extensions.takeWhile(
-                enumerableDepts,
-                new Predicate2<Department, Integer>() {
-                    int index = 0;
-                    public boolean apply(Department v1, Integer v2) {
-                        // Make sure we're passed the correct indices
-                        assertEquals(
-                            "Invalid index passed to function",
-                            index++,
-                            (int) v2);
-                        return 20 != v1.deptno;
-                    }
-                }).toList();
+            EnumerableDefaults.takeWhile(
+                enumerableDepts, new Predicate2<Department, Integer>() {
+                int index = 0;
+
+                public boolean apply(Department v1, Integer v2) {
+                    // Make sure we're passed the correct indices
+                    assertEquals(
+                        "Invalid index passed to function", index++, (int) v2);
+                    return 20 != v1.deptno;
+                }
+            }).toList();
 
         assertEquals(1, deptList.size());
         assertEquals(depts[0], deptList.get(0));
@@ -740,9 +739,8 @@ public class Linq4jTest extends TestCase {
             }
         };
         List<Department> deptList =
-            Extensions.takeWhile(
-                queryableDepts,
-                Expressions.lambda(predicate))
+            QueryableDefaults.takeWhile(
+                queryableDepts, Expressions.lambda(predicate))
             .toList();
 
         assertEquals(0, deptList.size());
@@ -753,9 +751,8 @@ public class Linq4jTest extends TestCase {
             }
         };
         deptList =
-            Extensions.takeWhile(
-                queryableDepts,
-                Expressions.lambda(predicate))
+            QueryableDefaults.takeWhile(
+                queryableDepts, Expressions.lambda(predicate))
             .toList();
 
         assertEquals(1, deptList.size());
@@ -777,7 +774,7 @@ public class Linq4jTest extends TestCase {
             };
 
         final List<Department> deptList =
-            Extensions.takeWhileN(
+            QueryableDefaults.takeWhileN(
                 queryableDepts, Expressions.lambda(function2))
             .toList();
 
@@ -791,7 +788,9 @@ public class Linq4jTest extends TestCase {
             Linq4j.asEnumerable(depts).asQueryable();
         Predicate2<Department, Integer> function2 = Functions.falsePredicate2();
         final List<Department> deptList =
-            Extensions.takeWhileN(queryableDepts, Expressions.lambda(function2))
+            QueryableDefaults.takeWhileN(
+                queryableDepts,
+                Expressions.lambda(function2))
             .toList();
 
         assertEquals(0, deptList.size());

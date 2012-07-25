@@ -59,21 +59,10 @@ public abstract class QueryProviderImpl implements QueryProvider {
     }
 
     /**
-     * Executes a queryable, and returns an enumerator over the
-     * rows that it yields.
-     *
-     * @param queryable Queryable
-     * @param <T> Element type
-     * @return Enumerator over rows
-     */
-    protected abstract <T> Enumerator<T> executeQuery(
-        QueryableImpl<T> queryable);
-
-    /**
      * Binds an expression to this query provider.
      */
     public static class QueryableImpl<T>
-        extends Extensions.AbstractQueryable2<T>
+        extends BaseQueryable<T>
     {
         public QueryableImpl(
             QueryProviderImpl provider, Type elementType, Expression expression)
@@ -81,8 +70,9 @@ public abstract class QueryProviderImpl implements QueryProvider {
             super(provider, elementType, expression);
         }
 
-        public Enumerator<T> enumerator() {
-            return ((QueryProviderImpl) provider).executeQuery(this);
+        @Override
+        public String toString() {
+            return "Queryable(expr=" + expression + ")";
         }
     }
 }

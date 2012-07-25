@@ -78,6 +78,15 @@ public interface QueryProvider {
      * The row type may contain type parameters.
      */
     <T> T execute(Expression expression, Type type);
+
+    /**
+     * Executes a queryable, and returns an enumerator over the
+     * rows that it yields.
+     *
+     * @param queryable Queryable
+     * @return Enumerator over rows
+     */
+    <T> Enumerator<T> executeQuery(Queryable<T> queryable);
 }
 
 // End QueryProvider.java

@@ -29,7 +29,7 @@ public class Linq4j {
      * enumerator method; does not attempt optimization. */
     public static final QueryProvider DEFAULT_PROVIDER =
         new QueryProviderImpl() {
-            protected <T> Enumerator<T> executeQuery(QueryableImpl<T> queryable)
+            public <T> Enumerator<T> executeQuery(Queryable<T> queryable)
             {
                 return queryable.enumerator();
             }
