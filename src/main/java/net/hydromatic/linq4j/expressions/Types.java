@@ -403,13 +403,13 @@ public class Types {
         }
     }
 
-    interface RecordType {
-        List<Field> getFields();
+    public interface RecordType {
+        List<RecordField> getRecordFields();
+    }
 
-        interface Field {
-            String getName();
-            Type getType();
-        }
+    public interface RecordField {
+        String getName();
+        Type getType();
     }
 }
 

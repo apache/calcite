@@ -24,10 +24,7 @@ import net.hydromatic.linq4j.function.*;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 /**
  * Default implementations for methods in the {@link Queryable} interface.
@@ -38,9 +35,9 @@ public abstract class QueryableDefaults {
 
     /** Applies an accumulator function over a
      * sequence. */
-    public static <TSource> TSource aggregate(
-        Queryable<TSource> queryable,
-        FunctionExpression<Function2<TSource, TSource, TSource>> func)
+    public static <T> T aggregate(
+        Queryable<T> queryable,
+        FunctionExpression<Function2<T, T, T>> func)
     {
         throw Extensions.todo();
     }
@@ -48,10 +45,10 @@ public abstract class QueryableDefaults {
     /** Applies an accumulator function over a
      * sequence. The specified seed value is used as the initial
      * accumulator value. */
-    public static <TSource, TAccumulate> TAccumulate aggregate(
-        Queryable<TSource> queryable,
+    public static <T, TAccumulate> TAccumulate aggregate(
+        Queryable<T> queryable,
         TAccumulate seed,
-        FunctionExpression<Function2<TAccumulate, TSource, TAccumulate>> func)
+        FunctionExpression<Function2<TAccumulate, T, TAccumulate>> func)
     {
         throw Extensions.todo();
     }
@@ -60,10 +57,10 @@ public abstract class QueryableDefaults {
      * sequence. The specified seed value is used as the initial
      * accumulator value, and the specified function is used to select
      * the result value. */
-    public static <TSource, TAccumulate, TResult> TResult aggregate(
-        Queryable<TSource> queryable,
+    public static <T, TAccumulate, TResult> TResult aggregate(
+        Queryable<T> queryable,
         TAccumulate seed,
-        FunctionExpression<Function2<TAccumulate, TSource, TAccumulate>> func,
+        FunctionExpression<Function2<TAccumulate, T, TAccumulate>> func,
         FunctionExpression<Function1<TAccumulate, TResult>> selector)
     {
         throw Extensions.todo();
@@ -71,34 +68,34 @@ public abstract class QueryableDefaults {
 
     /** Determines whether all the elements of a sequence
      * satisfy a condition. */
-    public static <TSource> boolean all(
-        Queryable<TSource> queryable,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> boolean all(
+        Queryable<T> queryable,
+        FunctionExpression<Predicate1<T>> predicate)
     {
         throw Extensions.todo();
     }
 
     /** Determines whether a sequence contains any
      * elements. */
-    public static <TSource> void any(
-        Queryable<TSource> queryable)
+    public static <T> void any(
+        Queryable<T> queryable)
     {
         throw Extensions.todo();
     }
 
     /** Determines whether any element of a sequence
      * satisfies a condition. */
-    public static <TSource> boolean any(
-        Queryable<TSource> queryable,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> boolean any(
+        Queryable<T> queryable,
+        FunctionExpression<Predicate1<T>> predicate)
     {
         throw Extensions.todo();
     }
 
-    /** Converts a generic Enumerable<TSource> to a generic
-     * IQueryable<TSource>. */
-    public static <TSource> Queryable<TSource> asQueryable(
-        Queryable<TSource> queryable)
+    /** Converts a generic Enumerable<T> to a generic
+     * IQueryable<T>. */
+    public static <T> Queryable<T> asQueryable(
+        Queryable<T> queryable)
     {
         throw Extensions.todo();
     }
@@ -106,9 +103,9 @@ public abstract class QueryableDefaults {
     /** Computes the average of a sequence of Decimal
      * values that is obtained by invoking a projection function on
      * each element of the input sequence. */
-    public static <TSource> BigDecimal averageBigDecimal(
-        Queryable<TSource> queryable,
-        FunctionExpression<BigDecimalFunction1<TSource>> selector)
+    public static <T> BigDecimal averageBigDecimal(
+        Queryable<T> queryable,
+        FunctionExpression<BigDecimalFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -116,9 +113,9 @@ public abstract class QueryableDefaults {
     /** Computes the average of a sequence of nullable
      * Decimal values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    public static <TSource> BigDecimal averageNullableBigDecimal(
-        Queryable<TSource> queryable,
-        FunctionExpression<NullableBigDecimalFunction1<TSource>> selector)
+    public static <T> BigDecimal averageNullableBigDecimal(
+        Queryable<T> queryable,
+        FunctionExpression<NullableBigDecimalFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -126,9 +123,9 @@ public abstract class QueryableDefaults {
     /** Computes the average of a sequence of Double
      * values that is obtained by invoking a projection function on
      * each element of the input sequence. */
-    public static <TSource> double averageDouble(
-        Queryable<TSource> queryable,
-        FunctionExpression<DoubleFunction1<TSource>> selector)
+    public static <T> double averageDouble(
+        Queryable<T> queryable,
+        FunctionExpression<DoubleFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -136,9 +133,9 @@ public abstract class QueryableDefaults {
     /** Computes the average of a sequence of nullable
      * Double values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    public static <TSource> Double averageNullableDouble(
-        Queryable<TSource> queryable,
-        FunctionExpression<NullableDoubleFunction1<TSource>> selector)
+    public static <T> Double averageNullableDouble(
+        Queryable<T> queryable,
+        FunctionExpression<NullableDoubleFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -146,9 +143,9 @@ public abstract class QueryableDefaults {
     /** Computes the average of a sequence of int values
      * that is obtained by invoking a projection function on each
      * element of the input sequence. */
-    public static <TSource> int averageInteger(
-        Queryable<TSource> queryable,
-        FunctionExpression<IntegerFunction1<TSource>> selector)
+    public static <T> int averageInteger(
+        Queryable<T> queryable,
+        FunctionExpression<IntegerFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -156,9 +153,9 @@ public abstract class QueryableDefaults {
     /** Computes the average of a sequence of nullable
      * int values that is obtained by invoking a projection function
      * on each element of the input sequence. */
-    public static <TSource> Integer averageNullableInteger(
-        Queryable<TSource> queryable,
-        FunctionExpression<NullableIntegerFunction1<TSource>> selector)
+    public static <T> Integer averageNullableInteger(
+        Queryable<T> queryable,
+        FunctionExpression<NullableIntegerFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -166,9 +163,9 @@ public abstract class QueryableDefaults {
     /** Computes the average of a sequence of Float
      * values that is obtained by invoking a projection function on
      * each element of the input sequence. */
-    public static <TSource> float averageFloat(
-        Queryable<TSource> queryable,
-        FunctionExpression<FloatFunction1<TSource>> selector)
+    public static <T> float averageFloat(
+        Queryable<T> queryable,
+        FunctionExpression<FloatFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -176,9 +173,9 @@ public abstract class QueryableDefaults {
     /** Computes the average of a sequence of nullable
      * Float values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    public static <TSource> Float averageNullableFloat(
-        Queryable<TSource> queryable,
-        FunctionExpression<NullableFloatFunction1<TSource>> selector)
+    public static <T> Float averageNullableFloat(
+        Queryable<T> queryable,
+        FunctionExpression<NullableFloatFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -186,9 +183,9 @@ public abstract class QueryableDefaults {
     /** Computes the average of a sequence of long values
      * that is obtained by invoking a projection function on each
      * element of the input sequence. */
-    public static <TSource> long averageLong(
-        Queryable<TSource> queryable,
-        FunctionExpression<LongFunction1<TSource>> selector)
+    public static <T> long averageLong(
+        Queryable<T> queryable,
+        FunctionExpression<LongFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -196,9 +193,9 @@ public abstract class QueryableDefaults {
     /** Computes the average of a sequence of nullable
      * long values that is obtained by invoking a projection function
      * on each element of the input sequence. */
-    public static <TSource> Long averageNullableLong(
-        Queryable<TSource> queryable,
-        FunctionExpression<NullableLongFunction1<TSource>> selector)
+    public static <T> Long averageNullableLong(
+        Queryable<T> queryable,
+        FunctionExpression<NullableLongFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -210,8 +207,8 @@ public abstract class QueryableDefaults {
      * @param <T2> Target type
      * @return Collection of T2
      */
-    public static <TSource, T2> Queryable<T2> cast(
-        final Queryable<TSource> source,
+    public static <T, T2> Queryable<T2> cast(
+        final Queryable<T> source,
         final Class<T2> clazz)
     {
         return new BaseQueryable<T2>(
@@ -225,25 +222,25 @@ public abstract class QueryableDefaults {
     }
 
     /** Concatenates two sequences. */
-    public static <TSource> Queryable<TSource> concat(
-        Queryable<TSource> queryable0, Enumerable<TSource> source2)
+    public static <T> Queryable<T> concat(
+        Queryable<T> queryable0, Enumerable<T> source2)
     {
         throw Extensions.todo();
     }
 
     /** Determines whether a sequence contains a specified
      * element by using the default equality comparer. */
-    public static <TSource> boolean contains(
-        Queryable<TSource> queryable, TSource element)
+    public static <T> boolean contains(
+        Queryable<T> queryable, T element)
     {
         throw Extensions.todo();
     }
 
     /** Determines whether a sequence contains a specified
-     * element by using a specified EqualityComparer<TSource>. */
-    public static <TSource> boolean contains(
-        Queryable<TSource> queryable,
-        TSource element,
+     * element by using a specified EqualityComparer<T>. */
+    public static <T> boolean contains(
+        Queryable<T> queryable,
+        T element,
         EqualityComparer comparer)
     {
         throw Extensions.todo();
@@ -251,17 +248,17 @@ public abstract class QueryableDefaults {
 
     /** Returns the number of elements in a
      * sequence. */
-    public static <TSource> int count(
-        Queryable<TSource> queryable)
+    public static <T> int count(
+        Queryable<T> queryable)
     {
         throw Extensions.todo();
     }
 
     /** Returns the number of elements in the specified
      * sequence that satisfies a condition. */
-    public static <TSource> int count(
-        Queryable<TSource> queryable,
-        FunctionExpression<Predicate1<TSource>> func)
+    public static <T> int count(
+        Queryable<T> queryable,
+        FunctionExpression<Predicate1<T>> func)
     {
         throw Extensions.todo();
     }
@@ -269,8 +266,8 @@ public abstract class QueryableDefaults {
     /** Returns the elements of the specified sequence or
      * the type parameter's default value in a singleton collection if
      * the sequence is empty. */
-    public static <TSource> Queryable<TSource> defaultIfEmpty(
-        Queryable<TSource> queryable)
+    public static <T> Queryable<T> defaultIfEmpty(
+        Queryable<T> queryable)
     {
         throw Extensions.todo();
     }
@@ -278,32 +275,32 @@ public abstract class QueryableDefaults {
     /** Returns the elements of the specified sequence or
      * the specified value in a singleton collection if the sequence
      * is empty. */
-    public static <TSource> TSource defaultIfEmpty(
-        Queryable<TSource> queryable, TSource value)
+    public static <T> T defaultIfEmpty(
+        Queryable<T> queryable, T value)
     {
         throw Extensions.todo();
     }
 
     /** Returns distinct elements from a sequence by using
      * the default equality comparer to compare values. */
-    public static <TSource> Queryable<TSource> distinct(
-        Queryable<TSource> queryable)
+    public static <T> Queryable<T> distinct(
+        Queryable<T> queryable)
     {
         throw Extensions.todo();
     }
 
     /** Returns distinct elements from a sequence by using
-     * a specified EqualityComparer<TSource> to compare values. */
-    public static <TSource> Queryable<TSource> distinct(
-        Queryable<TSource> queryable, EqualityComparer comparer)
+     * a specified EqualityComparer<T> to compare values. */
+    public static <T> Queryable<T> distinct(
+        Queryable<T> queryable, EqualityComparer comparer)
     {
         throw Extensions.todo();
     }
 
     /** Returns the element at a specified index in a
      * sequence. */
-    public static <TSource> TSource elementAt(
-        Queryable<TSource> queryable, int index)
+    public static <T> T elementAt(
+        Queryable<T> queryable, int index)
     {
         throw Extensions.todo();
     }
@@ -311,8 +308,8 @@ public abstract class QueryableDefaults {
     /** Returns the element at a specified index in a
      * sequence or a default value if the index is out of
      * range. */
-    public static <TSource> TSource elementAtOrDefault(
-        Queryable<TSource> queryable, int index)
+    public static <T> T elementAtOrDefault(
+        Queryable<T> queryable, int index)
     {
         throw Extensions.todo();
     }
@@ -320,44 +317,44 @@ public abstract class QueryableDefaults {
     /** Produces the set difference of two sequences by
      * using the default equality comparer to compare values. (Defined
      * by Queryable.) */
-    public static <TSource> Queryable<TSource> except(
-        Queryable<TSource> queryable, Enumerable<TSource> enumerable)
+    public static <T> Queryable<T> except(
+        Queryable<T> queryable, Enumerable<T> enumerable)
     {
         throw Extensions.todo();
     }
 
     /** Produces the set difference of two sequences by
-     * using the specified EqualityComparer<TSource> to compare
+     * using the specified EqualityComparer<T> to compare
      * values. */
-    public static <TSource> Queryable<TSource> except(
-        Queryable<TSource> queryable,
-        Enumerable<TSource> enumerable,
-        EqualityComparer<TSource> comparer)
+    public static <T> Queryable<T> except(
+        Queryable<T> queryable,
+        Enumerable<T> enumerable,
+        EqualityComparer<T> comparer)
     {
         throw Extensions.todo();
     }
 
     /** Returns the first element of a sequence. (Defined
      * by Queryable.) */
-    public static <TSource> TSource first(
-        Queryable<TSource> queryable)
+    public static <T> T first(
+        Queryable<T> queryable)
     {
         throw Extensions.todo();
     }
 
     /** Returns the first element of a sequence that
      * satisfies a specified condition. */
-    public static <TSource> TSource first(
-        Queryable<TSource> queryable,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> T first(
+        Queryable<T> queryable,
+        FunctionExpression<Predicate1<T>> predicate)
     {
         throw Extensions.todo();
     }
 
     /** Returns the first element of a sequence, or a
      * default value if the sequence contains no elements. */
-    public static <TSource> TSource firstOrDefault(
-        Queryable<TSource> queryable)
+    public static <T> T firstOrDefault(
+        Queryable<T> queryable)
     {
         throw Extensions.todo();
     }
@@ -365,18 +362,18 @@ public abstract class QueryableDefaults {
     /** Returns the first element of a sequence that
      * satisfies a specified condition or a default value if no such
      * element is found. */
-    public static <TSource> TSource firstOrDefault(
-        Queryable<TSource> queryable,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> T firstOrDefault(
+        Queryable<T> queryable,
+        FunctionExpression<Predicate1<T>> predicate)
     {
         throw Extensions.todo();
     }
 
     /** Groups the elements of a sequence according to a
      * specified key selector function. */
-    public static <TSource, TKey> Queryable<Grouping<TKey, TSource>> groupBy(
-        Queryable<TSource> queryable,
-        FunctionExpression<Function1<TSource, TKey>> keySelector)
+    public static <T, TKey> Queryable<Grouping<TKey, T>> groupBy(
+        Queryable<T> queryable,
+        FunctionExpression<Function1<T, TKey>> keySelector)
     {
         throw Extensions.todo();
     }
@@ -384,9 +381,9 @@ public abstract class QueryableDefaults {
     /** Groups the elements of a sequence according to a
      * specified key selector function and compares the keys by using
      * a specified comparer. */
-    public static <TSource, TKey> Queryable<Grouping<TKey, TSource>> groupBy(
-        Queryable<TSource> queryable,
-        FunctionExpression<Function1<TSource, TKey>> keySelector,
+    public static <T, TKey> Queryable<Grouping<TKey, T>> groupBy(
+        Queryable<T> queryable,
+        FunctionExpression<Function1<T, TKey>> keySelector,
         EqualityComparer comparer)
     {
         throw Extensions.todo();
@@ -395,11 +392,11 @@ public abstract class QueryableDefaults {
     /** Groups the elements of a sequence according to a
      * specified key selector function and projects the elements for
      * each group by using a specified function. */
-    public static <TSource, TKey, TElement>
+    public static <T, TKey, TElement>
     Queryable<Grouping<TKey, TElement>> groupBy(
-        Queryable<TSource> queryable,
-        FunctionExpression<Function1<TSource, TKey>> keySelector,
-        FunctionExpression<Function1<TSource, TElement>> elementSelector)
+        Queryable<T> queryable,
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        FunctionExpression<Function1<T, TElement>> elementSelector)
     {
         throw Extensions.todo();
     }
@@ -412,11 +409,11 @@ public abstract class QueryableDefaults {
      * {@link #groupBy(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression)},
      * which has the same erasure.</p>
      */
-    public static <TSource, TKey, TResult>
+    public static <T, TKey, TResult>
     Queryable<Grouping<TKey, TResult>> groupByK(
-        Queryable<TSource> queryable,
-        FunctionExpression<Function1<TSource, TKey>> keySelector,
-        FunctionExpression<Function2<TKey, Enumerable<TSource>, TResult>>
+        Queryable<T> queryable,
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
             elementSelector)
     {
         throw Extensions.todo();
@@ -426,11 +423,11 @@ public abstract class QueryableDefaults {
      * elements for each group by using a specified function. Key
      * values are compared by using a specified comparer.
      */
-    public static <TSource, TKey, TElement>
+    public static <T, TKey, TElement>
     Queryable<Grouping<TKey, TElement>> groupBy(
-        Queryable<TSource> queryable,
-        FunctionExpression<Function1<TSource, TKey>> keySelector,
-        FunctionExpression<Function1<TSource, TElement>> elementSelector,
+        Queryable<T> queryable,
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        FunctionExpression<Function1<T, TElement>> elementSelector,
         EqualityComparer comparer)
     {
         throw Extensions.todo();
@@ -445,10 +442,10 @@ public abstract class QueryableDefaults {
      * {@link #groupBy(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.function.EqualityComparer)},
      * which has the same erasure.</p>
      * */
-    public static <TSource, TKey, TResult> Queryable<TResult> groupByK(
-        Queryable<TSource> queryable,
-        FunctionExpression<Function1<TSource, TKey>> keySelector,
-        FunctionExpression<Function2<TKey, Enumerable<TSource>,
+    public static <T, TKey, TResult> Queryable<TResult> groupByK(
+        Queryable<T> queryable,
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        FunctionExpression<Function2<TKey, Enumerable<T>,
         TResult>> elementSelector,
         EqualityComparer comparer)
     {
@@ -459,10 +456,10 @@ public abstract class QueryableDefaults {
      * specified key selector function and creates a result value from
      * each group and its key. The elements of each group are
      * projected by using a specified function. */
-    public static <TSource, TKey, TElement, TResult> Queryable<TResult> groupBy(
-        Queryable<TSource> queryable,
-        FunctionExpression<Function1<TSource, TKey>> keySelector,
-        FunctionExpression<Function1<TSource, TElement>> elementSelector,
+    public static <T, TKey, TElement, TResult> Queryable<TResult> groupBy(
+        Queryable<T> queryable,
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        FunctionExpression<Function1<T, TElement>> elementSelector,
         FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>>
             resultSelector)
     {
@@ -474,10 +471,10 @@ public abstract class QueryableDefaults {
      * each group and its key. Keys are compared by using a specified
      * comparer and the elements of each group are projected by using
      * a specified function. */
-    public static <TSource, TKey, TElement, TResult> Queryable<TResult> groupBy(
-        Queryable<TSource> queryable,
-        FunctionExpression<Function1<TSource, TKey>> keySelector,
-        FunctionExpression<Function1<TSource, TElement>> elementSelector,
+    public static <T, TKey, TElement, TResult> Queryable<TResult> groupBy(
+        Queryable<T> queryable,
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        FunctionExpression<Function1<T, TElement>> elementSelector,
         FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>>
             resultSelector,
         EqualityComparer<TKey> comparer)
@@ -501,7 +498,7 @@ public abstract class QueryableDefaults {
 
     /** Correlates the elements of two sequences based on
      * key equality and groups the results. A specified
-     * EqualityComparer<TSource> is used to compare keys. */
+     * EqualityComparer<T> is used to compare keys. */
     public static <TOuter, TInner, TKey, TResult> Enumerable<TResult> groupJoin(
         Queryable<TOuter> outer,
         Enumerable<TInner> inner,
@@ -517,19 +514,19 @@ public abstract class QueryableDefaults {
     /** Produces the set intersection of two sequences by
      * using the default equality comparer to compare values. (Defined
      * by Queryable.) */
-    public static <TSource> Queryable<TSource> intersect(
-        Queryable<TSource> queryable, Enumerable<TSource> enumerable)
+    public static <T> Queryable<T> intersect(
+        Queryable<T> queryable, Enumerable<T> enumerable)
     {
         throw Extensions.todo();
     }
 
     /** Produces the set intersection of two sequences by
-     * using the specified EqualityComparer<TSource> to compare
+     * using the specified EqualityComparer<T> to compare
      * values. */
-    public static <TSource> Queryable<TSource> intersect(
-        Queryable<TSource> queryable,
-        Enumerable<TSource> enumerable,
-        EqualityComparer<TSource> comparer)
+    public static <T> Queryable<T> intersect(
+        Queryable<T> queryable,
+        Enumerable<T> enumerable,
+        EqualityComparer<T> comparer)
     {
         throw Extensions.todo();
     }
@@ -548,7 +545,7 @@ public abstract class QueryableDefaults {
     }
 
     /** Correlates the elements of two sequences based on
-     * matching keys. A specified EqualityComparer<TSource> is used to
+     * matching keys. A specified EqualityComparer<T> is used to
      * compare keys. */
     public static <TOuter, TInner, TKey, TResult> Queryable<TResult> join(
         Queryable<TOuter> outer,
@@ -563,22 +560,22 @@ public abstract class QueryableDefaults {
 
     /** Returns the last element in a sequence. (Defined
      * by Queryable.) */
-    public static <TSource> TSource last(Queryable<TSource> queryable) {
+    public static <T> T last(Queryable<T> queryable) {
         throw Extensions.todo();
     }
 
     /** Returns the last element of a sequence that
      * satisfies a specified condition. */
-    public static <TSource> TSource last(
-        Queryable<TSource> queryable,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> T last(
+        Queryable<T> queryable,
+        FunctionExpression<Predicate1<T>> predicate)
     {
         throw Extensions.todo();
     }
 
     /** Returns the last element in a sequence, or a
      * default value if the sequence contains no elements. */
-    public static <TSource> TSource lastOrDefault(Queryable<TSource> queryable)
+    public static <T> T lastOrDefault(Queryable<T> queryable)
     {
         throw Extensions.todo();
     }
@@ -586,58 +583,58 @@ public abstract class QueryableDefaults {
     /** Returns the last element of a sequence that
      * satisfies a condition or a default value if no such element is
      * found. */
-    public static <TSource> TSource lastOrDefault(
-        Queryable<TSource> queryable,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> T lastOrDefault(
+        Queryable<T> queryable,
+        FunctionExpression<Predicate1<T>> predicate)
     {
         throw Extensions.todo();
     }
 
     /** Returns an long that represents the total number
      * of elements in a sequence. */
-    public static <TSource> long longCount(Queryable<TSource> xable) {
+    public static <T> long longCount(Queryable<T> xable) {
         throw Extensions.todo();
     }
 
     /** Returns an long that represents the number of
      * elements in a sequence that satisfy a condition. */
-    public static <TSource> long longCount(
-        Queryable<TSource> queryable,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> long longCount(
+        Queryable<T> queryable,
+        FunctionExpression<Predicate1<T>> predicate)
     {
         throw Extensions.todo();
     }
 
     /** Returns the maximum value in a generic
-     * IQueryable<TSource>. */
-    public static <TSource> TSource max(Queryable<TSource> queryable) {
+     * IQueryable<T>. */
+    public static <T> T max(Queryable<T> queryable) {
         throw Extensions.todo();
     }
 
     /** Invokes a projection function on each element of a
-     * generic IQueryable<TSource> and returns the maximum resulting
+     * generic IQueryable<T> and returns the maximum resulting
      * value. */
-    public static <TSource, TResult> TResult max(
-        Queryable<TSource> queryable,
-        FunctionExpression<Function1<TSource, TResult>> selector)
+    public static <T, TResult> TResult max(
+        Queryable<T> queryable,
+        FunctionExpression<Function1<T, TResult>> selector)
     {
         throw Extensions.todo();
     }
 
     /** Returns the minimum value in a generic
-     * IQueryable<TSource>. */
-    public static <TSource> TSource min(
-        Queryable<TSource> queryable)
+     * IQueryable<T>. */
+    public static <T> T min(
+        Queryable<T> queryable)
     {
         throw Extensions.todo();
     }
 
     /** Invokes a projection function on each element of a
-     * generic IQueryable<TSource> and returns the minimum resulting
+     * generic IQueryable<T> and returns the minimum resulting
      * value. */
-    public static <TSource, TResult> TResult min(
-        Queryable<TSource> queryable,
-        FunctionExpression<Function1<TSource, TResult>> selector)
+    public static <T, TResult> TResult min(
+        Queryable<T> queryable,
+        FunctionExpression<Function1<T, TResult>> selector)
     {
         throw Extensions.todo();
     }
@@ -671,19 +668,19 @@ public abstract class QueryableDefaults {
      * order according to a key.
      *
      * @see #thenBy */
-    public static <TSource, TKey extends Comparable>
-    OrderedQueryable<TSource> orderBy(
-        Queryable<TSource> source,
-        FunctionExpression<Function1<TSource, TKey>> keySelector)
+    public static <T, TKey extends Comparable>
+    OrderedQueryable<T> orderBy(
+        Queryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector)
     {
         throw Extensions.todo();
     }
 
     /** Sorts the elements of a sequence in ascending
      * order by using a specified comparer. */
-    public static <TSource, TKey> OrderedQueryable<TSource> orderBy(
-        Queryable<TSource> source,
-        FunctionExpression<Function1<TSource, TKey>> keySelector,
+    public static <T, TKey> OrderedQueryable<T> orderBy(
+        Queryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
         throw Extensions.todo();
@@ -691,19 +688,19 @@ public abstract class QueryableDefaults {
 
     /** Sorts the elements of a sequence in descending
      * order according to a key. */
-    public static <TSource, TKey extends Comparable>
-    OrderedQueryable<TSource> orderByDescending(
-        Queryable<TSource> source,
-        FunctionExpression<Function1<TSource, TKey>> keySelector)
+    public static <T, TKey extends Comparable>
+    OrderedQueryable<T> orderByDescending(
+        Queryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector)
     {
         throw Extensions.todo();
     }
 
     /** Sorts the elements of a sequence in descending
      * order by using a specified comparer. */
-    public static <TSource, TKey> OrderedQueryable<TSource> orderByDescending(
-        Queryable<TSource> source,
-        FunctionExpression<Function1<TSource, TKey>> keySelector,
+    public static <T, TKey> OrderedQueryable<T> orderByDescending(
+        Queryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
         throw Extensions.todo();
@@ -711,16 +708,16 @@ public abstract class QueryableDefaults {
 
     /** Inverts the order of the elements in a
      * sequence. */
-    public static <TSource> Queryable<TSource> reverse(
-        Queryable<TSource> source)
+    public static <T> Queryable<T> reverse(
+        Queryable<T> source)
     {
         throw Extensions.todo();
     }
 
     /** Projects each element of a sequence into a new form. */
-    public static <TSource, TResult> Queryable<TResult> select(
-        Queryable<TSource> source,
-        FunctionExpression<Function1<TSource, TResult>> selector)
+    public static <T, TResult> Queryable<TResult> select(
+        Queryable<T> source,
+        FunctionExpression<Function1<T, TResult>> selector)
     {
         return source.getProvider().createQuery(
             Expressions.call(source.getExpression(), "select", selector),
@@ -739,57 +736,57 @@ public abstract class QueryableDefaults {
      * <p>NOTE: Renamed from {@code select} because had same erasure as
      * {@link #select(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)}.</p>
      */
-    public static <TSource, TResult> Queryable<TResult> selectN(
-        Queryable<TSource> source,
-        FunctionExpression<Function2<TSource, Integer, TResult>> selector)
+    public static <T, TResult> Queryable<TResult> selectN(
+        Queryable<T> source,
+        FunctionExpression<Function2<T, Integer, TResult>> selector)
     {
         throw Extensions.todo();
     }
 
     /** Projects each element of a sequence to an
-     * Enumerable<TSource> and combines the resulting sequences into one
+     * Enumerable<T> and combines the resulting sequences into one
      * sequence. */
-    public static <TSource, TResult> Queryable<TResult> selectMany(
-        Queryable<TSource> source,
-        FunctionExpression<Function1<TSource, Enumerable<TResult>>> selector)
+    public static <T, TResult> Queryable<TResult> selectMany(
+        Queryable<T> source,
+        FunctionExpression<Function1<T, Enumerable<TResult>>> selector)
     {
         throw Extensions.todo();
     }
 
     /** Projects each element of a sequence to an
-     * Enumerable<TSource> and combines the resulting sequences into one
+     * Enumerable<T> and combines the resulting sequences into one
      * sequence. The index of each source element is used in the
      * projected form of that element.
      *
      * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
      * {@link #selectMany(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)}</p>
      */
-    public static <TSource, TResult> Queryable<TResult> selectManyN(
-        Queryable<TSource> source,
-        FunctionExpression<Function2<TSource, Integer, Enumerable<TResult>>>
+    public static <T, TResult> Queryable<TResult> selectManyN(
+        Queryable<T> source,
+        FunctionExpression<Function2<T, Integer, Enumerable<TResult>>>
             selector)
     {
         throw Extensions.todo();
     }
 
     /** Projects each element of a sequence to an
-     * Enumerable<TSource> that incorporates the index of the source
+     * Enumerable<T> that incorporates the index of the source
      * element that produced it. A result selector function is invoked
      * on each element of each intermediate sequence, and the
      * resulting values are combined into a single, one-dimensional
      * sequence and returned. */
-    public static <TSource, TCollection, TResult> Queryable<TResult> selectMany(
-        Queryable<TSource> source,
-        FunctionExpression<Function2<TSource, Integer, Enumerable<TCollection>>>
+    public static <T, TCollection, TResult> Queryable<TResult> selectMany(
+        Queryable<T> source,
+        FunctionExpression<Function2<T, Integer, Enumerable<TCollection>>>
             collectionSelector,
-        FunctionExpression<Function2<TSource, TCollection, TResult>>
+        FunctionExpression<Function2<T, TCollection, TResult>>
             resultSelector)
     {
         throw Extensions.todo();
     }
 
     /** Projects each element of a sequence to an
-     * Enumerable<TSource> and invokes a result selector function on each
+     * Enumerable<T> and invokes a result selector function on each
      * element therein. The resulting values from each intermediate
      * sequence are combined into a single, one-dimensional sequence
      * and returned.
@@ -797,12 +794,12 @@ public abstract class QueryableDefaults {
      * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
      * {@link #selectMany(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression)}</p>
      * */
-    public static <TSource, TCollection, TResult>
+    public static <T, TCollection, TResult>
     Queryable<TResult> selectManyN(
-        Queryable<TSource> source,
-        FunctionExpression<Function1<TSource, Enumerable<TCollection>>>
+        Queryable<T> source,
+        FunctionExpression<Function1<T, Enumerable<TCollection>>>
             collectionSelector,
-        FunctionExpression<Function2<TSource, TCollection, TResult>>
+        FunctionExpression<Function2<T, TCollection, TResult>>
             resultSelector)
     {
         throw Extensions.todo();
@@ -811,19 +808,19 @@ public abstract class QueryableDefaults {
     /** Determines whether two sequences are equal by
      * using the default equality comparer to compare
      * elements. */
-    public static <TSource> boolean sequenceEqual(
-        Queryable<TSource> queryable, Enumerable<TSource> enumerable)
+    public static <T> boolean sequenceEqual(
+        Queryable<T> queryable, Enumerable<T> enumerable)
     {
         throw Extensions.todo();
     }
 
     /** Determines whether two sequences are equal by
-     * using a specified EqualityComparer<TSource> to compare
+     * using a specified EqualityComparer<T> to compare
      * elements. */
-    public static <TSource> boolean sequenceEqual(
-        Queryable<TSource> queryable,
-        Enumerable<TSource> enumerable,
-        EqualityComparer<TSource> comparer)
+    public static <T> boolean sequenceEqual(
+        Queryable<T> queryable,
+        Enumerable<T> enumerable,
+        EqualityComparer<T> comparer)
     {
         throw Extensions.todo();
     }
@@ -831,8 +828,8 @@ public abstract class QueryableDefaults {
     /** Returns the only element of a sequence, and throws
      * an exception if there is not exactly one element in the
      * sequence. */
-    public static <TSource> TSource single(
-        Queryable<TSource> source)
+    public static <T> T single(
+        Queryable<T> source)
     {
         throw Extensions.todo();
     }
@@ -840,9 +837,9 @@ public abstract class QueryableDefaults {
     /** Returns the only element of a sequence that
      * satisfies a specified condition, and throws an exception if
      * more than one such element exists. */
-    public static <TSource> TSource single(
-        Queryable<TSource> source,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> T single(
+        Queryable<T> source,
+        FunctionExpression<Predicate1<T>> predicate)
     {
         throw Extensions.todo();
     }
@@ -851,8 +848,8 @@ public abstract class QueryableDefaults {
      * default value if the sequence is empty; this method throws an
      * exception if there is more than one element in the
      * sequence. */
-    public static <TSource> TSource singleOrDefault(
-        Queryable<TSource> source)
+    public static <T> T singleOrDefault(
+        Queryable<T> source)
     {
         throw Extensions.todo();
     }
@@ -861,17 +858,17 @@ public abstract class QueryableDefaults {
      * satisfies a specified condition or a default value if no such
      * element exists; this method throws an exception if more than
      * one element satisfies the condition. */
-    public static <TSource> TSource singleOrDefault(
-        Queryable<TSource> source,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> T singleOrDefault(
+        Queryable<T> source,
+        FunctionExpression<Predicate1<T>> predicate)
     {
         throw Extensions.todo();
     }
 
     /** Bypasses a specified number of elements in a
      * sequence and then returns the remaining elements. */
-    public static <TSource> Queryable<TSource> skip(
-        Queryable<TSource> source, int count)
+    public static <T> Queryable<T> skip(
+        Queryable<T> source, int count)
     {
         return EnumerableDefaults.skip(source.asEnumerable(), count)
             .asQueryable();
@@ -880,14 +877,14 @@ public abstract class QueryableDefaults {
     /** Bypasses elements in a sequence as long as a
      * specified condition is true and then returns the remaining
      * elements. */
-    public static <TSource> Queryable<TSource> skipWhile(
-        Queryable<TSource> source,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> Queryable<T> skipWhile(
+        Queryable<T> source,
+        FunctionExpression<Predicate1<T>> predicate)
     {
         return skipWhileN(
             source,
             Expressions.lambda(
-                Functions.<TSource, Integer>toPredicate2(
+                Functions.<T, Integer>toPredicate2(
                     predicate.getFunction())));
     }
 
@@ -895,17 +892,17 @@ public abstract class QueryableDefaults {
      * specified condition is true and then returns the remaining
      * elements. The element's index is used in the logic of the
      * predicate function. */
-    public static <TSource> Queryable<TSource> skipWhileN(
-        final Queryable<TSource> source,
-        final FunctionExpression<Predicate2<TSource, Integer>> predicate)
+    public static <T> Queryable<T> skipWhileN(
+        final Queryable<T> source,
+        final FunctionExpression<Predicate2<T, Integer>> predicate)
     {
-        return new BaseQueryable<TSource>(
+        return new BaseQueryable<T>(
             source.getProvider(),
             source.getElementType(),
             source.getExpression())
         {
-            public Enumerator<TSource> enumerator() {
-                return new EnumerableDefaults.SkipWhileEnumerator<TSource>(
+            public Enumerator<T> enumerator() {
+                return new EnumerableDefaults.SkipWhileEnumerator<T>(
                     source.enumerator(), predicate.getFunction());
             }
         };
@@ -914,9 +911,9 @@ public abstract class QueryableDefaults {
     /** Computes the sum of the sequence of Decimal values
      * that is obtained by invoking a projection function on each
      * element of the input sequence. */
-    public static <TSource> BigDecimal sumBigDecimal(
-        Queryable<TSource> sources,
-        FunctionExpression<BigDecimalFunction1<TSource>> selector)
+    public static <T> BigDecimal sumBigDecimal(
+        Queryable<T> sources,
+        FunctionExpression<BigDecimalFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -924,9 +921,9 @@ public abstract class QueryableDefaults {
     /** Computes the sum of the sequence of nullable
      * Decimal values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    public static <TSource> BigDecimal sumNullableBigDecimal(
-        Queryable<TSource> source,
-        FunctionExpression<NullableBigDecimalFunction1<TSource>> selector)
+    public static <T> BigDecimal sumNullableBigDecimal(
+        Queryable<T> source,
+        FunctionExpression<NullableBigDecimalFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -934,9 +931,9 @@ public abstract class QueryableDefaults {
     /** Computes the sum of the sequence of Double values
      * that is obtained by invoking a projection function on each
      * element of the input sequence. */
-    public static <TSource> double sumDouble(
-        Queryable<TSource> source,
-        FunctionExpression<DoubleFunction1<TSource>> selector)
+    public static <T> double sumDouble(
+        Queryable<T> source,
+        FunctionExpression<DoubleFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -944,9 +941,9 @@ public abstract class QueryableDefaults {
     /** Computes the sum of the sequence of nullable
      * Double values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    public static <TSource> Double sumNullableDouble(
-        Queryable<TSource> source,
-        FunctionExpression<NullableDoubleFunction1<TSource>> selector)
+    public static <T> Double sumNullableDouble(
+        Queryable<T> source,
+        FunctionExpression<NullableDoubleFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -954,8 +951,8 @@ public abstract class QueryableDefaults {
     /** Computes the sum of the sequence of int values
      * that is obtained by invoking a projection function on each
      * element of the input sequence. */
-    public static <TSource> int sumInteger(
-        Queryable<TSource> source, FunctionExpression<IntegerFunction1<TSource>>
+    public static <T> int sumInteger(
+        Queryable<T> source, FunctionExpression<IntegerFunction1<T>>
             selector)
     {
         throw Extensions.todo();
@@ -964,9 +961,9 @@ public abstract class QueryableDefaults {
     /** Computes the sum of the sequence of nullable int
      * values that is obtained by invoking a projection function on
      * each element of the input sequence. */
-    public static <TSource> Integer sumNullableInteger(
-        Queryable<TSource> source,
-        FunctionExpression<NullableIntegerFunction1<TSource>> selector)
+    public static <T> Integer sumNullableInteger(
+        Queryable<T> source,
+        FunctionExpression<NullableIntegerFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -974,9 +971,9 @@ public abstract class QueryableDefaults {
     /** Computes the sum of the sequence of long values
      * that is obtained by invoking a projection function on each
      * element of the input sequence. */
-    public static <TSource> long sumLong(
-        Queryable<TSource> source,
-        FunctionExpression<LongFunction1<TSource>> selector)
+    public static <T> long sumLong(
+        Queryable<T> source,
+        FunctionExpression<LongFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -984,9 +981,9 @@ public abstract class QueryableDefaults {
     /** Computes the sum of the sequence of nullable long
      * values that is obtained by invoking a projection function on
      * each element of the input sequence. */
-    public static <TSource> Long sumNullableLong(
-        Queryable<TSource> source,
-        FunctionExpression<NullableLongFunction1<TSource>> selector)
+    public static <T> Long sumNullableLong(
+        Queryable<T> source,
+        FunctionExpression<NullableLongFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -994,9 +991,9 @@ public abstract class QueryableDefaults {
     /** Computes the sum of the sequence of Float values
      * that is obtained by invoking a projection function on each
      * element of the input sequence. */
-    public static <TSource> float sumFloat(
-        Queryable<TSource> source,
-        FunctionExpression<FloatFunction1<TSource>> selector)
+    public static <T> float sumFloat(
+        Queryable<T> source,
+        FunctionExpression<FloatFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -1004,17 +1001,17 @@ public abstract class QueryableDefaults {
     /** Computes the sum of the sequence of nullable
      * Float values that is obtained by invoking a projection
      * function on each element of the input sequence. */
-    public static <TSource> Float sumNullableFloat(
-        Queryable<TSource> source,
-        FunctionExpression<NullableFloatFunction1<TSource>> selector)
+    public static <T> Float sumNullableFloat(
+        Queryable<T> source,
+        FunctionExpression<NullableFloatFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
 
     /** Returns a specified number of contiguous elements
      * from the start of a sequence. */
-    public static <TSource> Queryable<TSource> take(
-        Queryable<TSource> source, int count)
+    public static <T> Queryable<T> take(
+        Queryable<T> source, int count)
     {
         return EnumerableDefaults.take(source.asEnumerable(), count)
             .asQueryable();
@@ -1022,31 +1019,31 @@ public abstract class QueryableDefaults {
 
     /** Returns elements from a sequence as long as a
      * specified condition is true. */
-    public static <TSource> Queryable<TSource> takeWhile(
-        Queryable<TSource> source,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> Queryable<T> takeWhile(
+        Queryable<T> source,
+        FunctionExpression<Predicate1<T>> predicate)
     {
         return takeWhileN(
             source,
             Expressions.lambda(
-                Functions.<TSource, Integer>toPredicate2(
+                Functions.<T, Integer>toPredicate2(
                     predicate.getFunction())));
     }
 
     /** Returns elements from a sequence as long as a
      * specified condition is true. The element's index is used in the
      * logic of the predicate function. */
-    public static <TSource> Queryable<TSource> takeWhileN(
-        final Queryable<TSource> source,
-        final FunctionExpression<Predicate2<TSource, Integer>> predicate)
+    public static <T> Queryable<T> takeWhileN(
+        final Queryable<T> source,
+        final FunctionExpression<Predicate2<T, Integer>> predicate)
     {
-        return new BaseQueryable<TSource>(
+        return new BaseQueryable<T>(
             source.getProvider(),
             source.getElementType(),
             source.getExpression())
         {
-            public Enumerator<TSource> enumerator() {
-                return new EnumerableDefaults.TakeWhileEnumerator<TSource>(
+            public Enumerator<T> enumerator() {
+                return new EnumerableDefaults.TakeWhileEnumerator<T>(
                     source.enumerator(), predicate.getFunction());
             }
         };
@@ -1054,19 +1051,19 @@ public abstract class QueryableDefaults {
 
     /** Performs a subsequent ordering of the elements in a sequence in
      * ascending order according to a key. */
-    public static <TSource, TKey extends Comparable<TKey>>
-    OrderedQueryable<TSource> thenBy(
-        OrderedQueryable<TSource> source,
-        FunctionExpression<Function1<TSource, TKey>> keySelector)
+    public static <T, TKey extends Comparable<TKey>>
+    OrderedQueryable<T> thenBy(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector)
     {
         throw Extensions.todo();
     }
 
     /** Performs a subsequent ordering of the elements in a sequence in
      * ascending order according to a key, using a specified comparator. */
-    public static <TSource, TKey> OrderedQueryable<TSource> thenBy(
-        OrderedQueryable<TSource> source,
-        FunctionExpression<Function1<TSource, TKey>> keySelector,
+    public static <T, TKey> OrderedQueryable<T> thenBy(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
         throw Extensions.todo();
@@ -1074,19 +1071,19 @@ public abstract class QueryableDefaults {
 
     /** Performs a subsequent ordering of the elements in a sequence in
      * descending order according to a key. */
-    public static <TSource, TKey extends Comparable<TKey>>
-    OrderedQueryable<TSource> thenByDescending(
-        OrderedQueryable<TSource> source,
-        FunctionExpression<Function1<TSource, TKey>> keySelector)
+    public static <T, TKey extends Comparable<TKey>>
+    OrderedQueryable<T> thenByDescending(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector)
     {
         throw Extensions.todo();
     }
 
     /** Performs a subsequent ordering of the elements in a sequence in
      * dscending order according to a key, using a specified comparator. */
-    public static <TSource, TKey> OrderedQueryable<TSource> thenByDescending(
-        OrderedQueryable<TSource> source,
-        FunctionExpression<Function1<TSource, TKey>> keySelector,
+    public static <T, TKey> OrderedQueryable<T> thenByDescending(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
         throw Extensions.todo();
@@ -1094,42 +1091,41 @@ public abstract class QueryableDefaults {
 
     /** Produces the set union of two sequences by using
      * the default equality comparer. */
-    public static <TSource> Queryable<TSource> union(
-        Queryable<TSource> source0, Enumerable<TSource> source1)
+    public static <T> Queryable<T> union(
+        Queryable<T> source0, Enumerable<T> source1)
     {
         throw Extensions.todo();
     }
 
     /** Produces the set union of two sequences by using a
-     * specified EqualityComparer<TSource>. */
-    public static <TSource> Queryable<TSource> union(
-        Queryable<TSource> source0,
-        Enumerable<TSource> source1,
-        EqualityComparer<TSource> comparer)
+     * specified EqualityComparer<T>. */
+    public static <T> Queryable<T> union(
+        Queryable<T> source0,
+        Enumerable<T> source1,
+        EqualityComparer<T> comparer)
     {
         throw Extensions.todo();
     }
 
     /** Filters a sequence of values based on a
      * predicate. */
-    public static <TSource> Queryable<TSource> where(
-        Queryable<TSource> source,
-        FunctionExpression<Predicate1<TSource>> predicate)
+    public static <T> Queryable<T> where(
+        final Queryable<T> source,
+        final FunctionExpression<Predicate1<T>> predicate)
     {
-        return new OpQueryable<TSource>(
-            source.getProvider(),
-            source.getElementType(),
-            Expressions.call(source.getExpression(), "where", predicate),
-            OpType.WHERE,
-            source);
+        return new NonLeafReplayableQueryable<T>(source) {
+            public Queryable<T> replay(Replayer<T> replayer) {
+                return replayer.where(source, predicate);
+            }
+        };
     }
 
     /** Filters a sequence of values based on a
      * predicate. Each element's index is used in the logic of the
      * predicate function. */
-    public static <TSource> Queryable<TSource> whereN(
-        Queryable<TSource> source,
-        FunctionExpression<Predicate2<TSource, Integer>> predicate)
+    public static <T> Queryable<T> whereN(
+        Queryable<T> source,
+        FunctionExpression<Predicate2<T, Integer>> predicate)
     {
         throw Extensions.todo();
     }
@@ -1144,24 +1140,51 @@ public abstract class QueryableDefaults {
         throw Extensions.todo();
     }
 
-    public static class OpQueryable<T> extends BaseQueryable<T> {
-        public final OpType opType;
-        public final List<Object> args;
+    public interface Replayable<T> extends Queryable<T> {
+        Queryable<T> replay(Replayer<T> replayer);
+    }
 
-        public OpQueryable(
-            QueryProvider provider,
-            Type elementType,
-            Expression expression,
-            OpType opType,
-            Object... args)
-        {
-            super(provider, elementType, expression);
-            this.opType = opType;
-            this.args =
-                args == null || args.length == 0
-                    ? Collections.emptyList()
-                    : Arrays.asList(args);
+    public static abstract class ReplayableQueryable<T>
+        extends DefaultQueryable<T>
+        implements Replayable<T>
+    {
+        public Queryable<T> replay(Replayer<T> replayer) {
+            return this;
         }
+
+        public Iterator<T> iterator() {
+            return Linq4j.enumeratorIterator(enumerator());
+        }
+
+        public Enumerator<T> enumerator() {
+            return getProvider().executeQuery(this);
+        }
+    }
+
+    public static abstract class NonLeafReplayableQueryable<T>
+        extends ReplayableQueryable<T>
+    {
+        private final Queryable<T> original;
+
+        protected NonLeafReplayableQueryable(Queryable<T> original) {
+            this.original = original;
+        }
+
+        public Type getElementType() {
+            return original.getElementType();
+        }
+
+        public Expression getExpression() {
+            return original.getExpression();
+        }
+
+        public QueryProvider getProvider() {
+            return original.getProvider();
+        }
+    }
+
+    public interface Replayer<T> extends QueryableFactory<T> {
+        <T2> Queryable<T2> visit(Queryable<T2> queryable);
     }
 }
 
