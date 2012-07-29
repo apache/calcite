@@ -26,8 +26,6 @@ import java.util.Comparator;
 /**
  * Factory for building {@link Queryable} objects.
  *
- * @see net.hydromatic.linq4j.QueryableDefaults.Replayer
- *
  * @author jhyde
  */
 public interface QueryableFactory<T> {
@@ -686,6 +684,24 @@ public interface QueryableFactory<T> {
     Queryable<T> takeWhileN(
         Queryable<T> source,
         FunctionExpression<Predicate2<T, Integer>> predicate);
+
+    <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector);
+
+    <TKey> OrderedQueryable<T> thenBy(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        Comparator<TKey> comparator);
+
+    <TKey extends Comparable<TKey>> OrderedQueryable<T> thenByDescending(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector);
+
+    <TKey> OrderedQueryable<T> thenByDescending(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        Comparator<TKey> comparator);
 
     /** Produces the set union of two sequences by using
      * the default equality comparer. */

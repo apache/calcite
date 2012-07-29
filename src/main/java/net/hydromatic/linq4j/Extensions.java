@@ -61,15 +61,15 @@ import java.util.*;
  *
  * <li>Java erases type parameters from argument types before resolving
  * overloading. Therefore similar methods have the same erasure. Methods
- * {@link QueryableDefaults#averageDouble averageDouble},
- * {@link QueryableDefaults#averageInteger averageInteger},
- * {@link QueryableDefaults#groupByK groupByK},
- * {@link QueryableDefaults#selectN selectN},
- * {@link QueryableDefaults#selectManyN selectManyN},
- * {@link QueryableDefaults#skipWhileN skipWhileN},
- * {@link QueryableDefaults#sumBigDecimal sumBigDecimal},
- * {@link QueryableDefaults#sumNullableBigDecimal sumNullableBigDecimal},
- * {@link QueryableDefaults#whereN whereN}
+ * {@link ExtendedQueryable#averageDouble averageDouble},
+ * {@link ExtendedQueryable#averageInteger averageInteger},
+ * {@link ExtendedQueryable#groupByK groupByK},
+ * {@link ExtendedQueryable#selectN selectN},
+ * {@link ExtendedQueryable#selectManyN selectManyN},
+ * {@link ExtendedQueryable#skipWhileN skipWhileN},
+ * {@link ExtendedQueryable#sumBigDecimal sumBigDecimal},
+ * {@link ExtendedQueryable#sumNullableBigDecimal sumNullableBigDecimal},
+ * {@link ExtendedQueryable#whereN whereN}
  * have been renamed from {@code average}, {@code groupBy}, {@code max},
  * {@code min}, {@code select}, {@code selectMany}, {@code skipWhile} and
  * {@code where} to prevent ambiguity.</li>

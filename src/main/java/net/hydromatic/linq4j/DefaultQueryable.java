@@ -32,6 +32,19 @@ abstract class DefaultQueryable<T>
     extends DefaultEnumerable<T>
     implements Queryable<T>, OrderedQueryable<T>
 {
+    private final QueryableFactory<T> factory;
+
+    /** Creates a DefaultQueryable using a factory that records events. */
+    protected DefaultQueryable() {
+        this(QueryableRecorder.<T>instance());
+    }
+
+    /** Creates a DefaultQueryable using a particular factory. */
+    protected DefaultQueryable(QueryableFactory<T> factory) {
+        this.factory = factory;
+    }
+
+    // override return type
     protected Queryable<T> getThis() {
         return this;
     }
@@ -44,70 +57,70 @@ abstract class DefaultQueryable<T>
 
     @Override
     public Queryable<T> union(Enumerable<T> source1) {
-        return QueryableDefaults.union(getThis(), source1);
+        return factory.union(getThis(), source1);
     }
 
     @Override
     public Queryable<T> union(
         Enumerable<T> source1, EqualityComparer<T> comparer)
     {
-        return QueryableDefaults.union(getThis(), source1, comparer);
+        return factory.union(getThis(), source1, comparer);
     }
 
     @Override
     public Queryable<T> intersect(Enumerable<T> source1) {
-        return QueryableDefaults.intersect(getThis(), source1);
+        return factory.intersect(getThis(), source1);
     }
 
     @Override
     public Queryable<T> intersect(
         Enumerable<T> source1, EqualityComparer<T> comparer)
     {
-        return QueryableDefaults.intersect(getThis(), source1, comparer);
+        return factory.intersect(getThis(), source1, comparer);
     }
 
     @Override
     public Queryable<T> except(
         Enumerable<T> enumerable1, EqualityComparer<T> comparer)
     {
-        return QueryableDefaults.except(getThis(), enumerable1, comparer);
+        return factory.except(getThis(), enumerable1, comparer);
     }
 
     @Override
     public Queryable<T> except(Enumerable<T> enumerable1) {
-        return QueryableDefaults.except(getThis(), enumerable1);
+        return factory.except(getThis(), enumerable1);
     }
 
     public Queryable<T> take(int count) {
-        return QueryableDefaults.take(getThis(), count);
+        return factory.take(getThis(), count);
     }
 
     public Queryable<T> skip(int count) {
-        return QueryableDefaults.skip(getThis(), count);
+        return factory.skip(getThis(), count);
     }
 
     public Queryable<T> reverse() {
-        return QueryableDefaults.reverse(getThis());
+        return factory.reverse(getThis());
     }
 
     @Override
     public Queryable<T> distinct() {
-        return QueryableDefaults.distinct(getThis());
+        return factory.distinct(getThis());
     }
 
     @Override
     public Queryable<T> distinct(EqualityComparer comparer) {
-        return QueryableDefaults.distinct(getThis(), comparer);
+        return factory.distinct(getThis(), comparer);
     }
 
     @Override
     public <TResult> Queryable<TResult> ofType(Class<TResult> clazz) {
-        return QueryableDefaults.ofType(getThis(), clazz);
+        return factory.ofType(getThis(), clazz);
     }
 
     @Override
     public Queryable<T> defaultIfEmpty() {
-        return QueryableDefaults.defaultIfEmpty(getThis());
+        return factory.defaultIfEmpty(getThis());
     }
 
     @Override
@@ -116,20 +129,20 @@ abstract class DefaultQueryable<T>
     }
 
     public <T2> Queryable<T2> cast(Class<T2> clazz) {
-        return QueryableDefaults.cast(getThis(), clazz);
+        return factory.cast(getThis(), clazz);
     }
 
     // End disambiguate
 
     public T aggregate(FunctionExpression<Function2<T, T, T>> selector) {
-        return QueryableDefaults.aggregate(getThis(), selector);
+        return factory.aggregate(getThis(), selector);
     }
 
     public <TAccumulate> TAccumulate aggregate(
         TAccumulate seed,
         FunctionExpression<Function2<TAccumulate, T, TAccumulate>> selector)
     {
-        return QueryableDefaults.aggregate(getThis(), seed, selector);
+        return factory.aggregate(getThis(), seed, selector);
     }
 
     public <TAccumulate, TResult> TResult aggregate(
@@ -137,109 +150,109 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function2<TAccumulate, T, TAccumulate>> func,
         FunctionExpression<Function1<TAccumulate, TResult>> selector)
     {
-        return QueryableDefaults.aggregate(getThis(), seed, func, selector);
+        return factory.aggregate(getThis(), seed, func, selector);
     }
 
     public boolean all(FunctionExpression<Predicate1<T>> predicate) {
-        return QueryableDefaults.all(getThis(), predicate);
+        return factory.all(getThis(), predicate);
     }
 
     public boolean any(FunctionExpression<Predicate1<T>> predicate) {
-        return QueryableDefaults.any(getThis(), predicate);
+        return factory.any(getThis(), predicate);
     }
 
     public BigDecimal averageBigDecimal(
         FunctionExpression<BigDecimalFunction1<T>> selector)
     {
-        return QueryableDefaults.averageBigDecimal(getThis(), selector);
+        return factory.averageBigDecimal(getThis(), selector);
     }
 
     public BigDecimal averageNullableBigDecimal(
         FunctionExpression<NullableBigDecimalFunction1<T>> selector)
     {
-        return QueryableDefaults.averageNullableBigDecimal(getThis(), selector);
+        return factory.averageNullableBigDecimal(getThis(), selector);
     }
 
     public double averageDouble(
         FunctionExpression<DoubleFunction1<T>> selector)
     {
-        return QueryableDefaults.averageDouble(getThis(), selector);
+        return factory.averageDouble(getThis(), selector);
     }
 
     public Double averageNullableDouble(
         FunctionExpression<NullableDoubleFunction1<T>> selector)
     {
-        return QueryableDefaults.averageNullableDouble(getThis(), selector);
+        return factory.averageNullableDouble(getThis(), selector);
     }
 
     public int averageInteger(
         FunctionExpression<IntegerFunction1<T>> selector)
     {
-        return QueryableDefaults.averageInteger(getThis(), selector);
+        return factory.averageInteger(getThis(), selector);
     }
 
     public Integer averageNullableInteger(
         FunctionExpression<NullableIntegerFunction1<T>> selector)
     {
-        return QueryableDefaults.averageNullableInteger(getThis(), selector);
+        return factory.averageNullableInteger(getThis(), selector);
     }
 
     public float averageFloat(
         FunctionExpression<FloatFunction1<T>> selector)
     {
-        return QueryableDefaults.averageFloat(getThis(), selector);
+        return factory.averageFloat(getThis(), selector);
     }
 
     public Float averageNullableFloat(
         FunctionExpression<NullableFloatFunction1<T>> selector)
     {
-        return QueryableDefaults.averageNullableFloat(getThis(), selector);
+        return factory.averageNullableFloat(getThis(), selector);
     }
 
     public long averageLong(FunctionExpression<LongFunction1<T>> selector) {
-        return QueryableDefaults.averageLong(getThis(), selector);
+        return factory.averageLong(getThis(), selector);
     }
 
     public Long averageNullableLong(
         FunctionExpression<NullableLongFunction1<T>> selector)
     {
-        return QueryableDefaults.averageNullableLong(getThis(), selector);
+        return factory.averageNullableLong(getThis(), selector);
     }
 
     public Queryable<T> concat(Enumerable<T> source2) {
-        return QueryableDefaults.concat(getThis(), source2);
+        return factory.concat(getThis(), source2);
     }
 
     public int count(FunctionExpression<Predicate1<T>> func) {
-        return QueryableDefaults.count(getThis(), func);
+        return factory.count(getThis(), func);
     }
 
     public T first(FunctionExpression<Predicate1<T>> predicate) {
-        return QueryableDefaults.first(getThis(), predicate);
+        return factory.first(getThis(), predicate);
     }
 
     public T firstOrDefault(FunctionExpression<Predicate1<T>> predicate) {
-        return QueryableDefaults.firstOrDefault(getThis(), predicate);
+        return factory.firstOrDefault(getThis(), predicate);
     }
 
     public <TKey> Queryable<Grouping<TKey, T>> groupBy(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
-        return QueryableDefaults.groupBy(getThis(), keySelector);
+        return factory.groupBy(getThis(), keySelector);
     }
 
     public <TKey> Queryable<Grouping<TKey, T>> groupBy(
         FunctionExpression<Function1<T, TKey>> keySelector,
         EqualityComparer comparer)
     {
-        return QueryableDefaults.groupBy(getThis(), keySelector, comparer);
+        return factory.groupBy(getThis(), keySelector, comparer);
     }
 
     public <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function1<T, TElement>> elementSelector)
     {
-        return QueryableDefaults.groupBy(
+        return factory.groupBy(
             getThis(),
             keySelector,
             elementSelector);
@@ -250,7 +263,7 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
             elementSelector)
     {
-        return QueryableDefaults.groupByK(
+        return factory.groupByK(
             getThis(),
             keySelector,
             elementSelector);
@@ -261,7 +274,7 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function1<T, TElement>> elementSelector,
         EqualityComparer comparer)
     {
-        return QueryableDefaults.groupBy(
+        return factory.groupBy(
             getThis(), keySelector, elementSelector, comparer);
     }
 
@@ -271,7 +284,7 @@ abstract class DefaultQueryable<T>
             elementSelector,
         EqualityComparer comparer)
     {
-        return QueryableDefaults.groupByK(
+        return factory.groupByK(
             getThis(), keySelector, elementSelector, comparer);
     }
 
@@ -281,7 +294,7 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>>
             resultSelector)
     {
-        return QueryableDefaults.groupBy(
+        return factory.groupBy(
             getThis(), keySelector, elementSelector, resultSelector);
     }
 
@@ -292,7 +305,7 @@ abstract class DefaultQueryable<T>
             resultSelector,
         EqualityComparer<TKey> comparer)
     {
-        return QueryableDefaults.groupBy(
+        return factory.groupBy(
             getThis(), keySelector, elementSelector, resultSelector, comparer);
     }
 
@@ -303,7 +316,7 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function2<T, Enumerable<TInner>, TResult>>
             resultSelector)
     {
-        return QueryableDefaults.groupJoin(
+        return factory.groupJoin(
             getThis(),
             inner,
             outerKeySelector,
@@ -319,7 +332,7 @@ abstract class DefaultQueryable<T>
             resultSelector,
         EqualityComparer<TKey> comparer)
     {
-        return QueryableDefaults.groupJoin(
+        return factory.groupJoin(
             getThis(),
             inner,
             outerKeySelector,
@@ -334,7 +347,7 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
         FunctionExpression<Function2<T, TInner, TResult>> resultSelector)
     {
-        return QueryableDefaults.join(
+        return factory.join(
             getThis(),
             inner,
             outerKeySelector,
@@ -349,7 +362,7 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function2<T, TInner, TResult>> resultSelector,
         EqualityComparer<TKey> comparer)
     {
-        return QueryableDefaults.join(
+        return factory.join(
             getThis(),
             inner,
             outerKeySelector,
@@ -359,53 +372,53 @@ abstract class DefaultQueryable<T>
     }
 
     public T last(FunctionExpression<Predicate1<T>> predicate) {
-        return QueryableDefaults.last(getThis(), predicate);
+        return factory.last(getThis(), predicate);
     }
 
     public T lastOrDefault(FunctionExpression<Predicate1<T>> predicate) {
-        return QueryableDefaults.lastOrDefault(getThis(), predicate);
+        return factory.lastOrDefault(getThis(), predicate);
     }
 
     public long longCount(FunctionExpression<Predicate1<T>> predicate) {
-        return QueryableDefaults.longCount(getThis(), predicate);
+        return factory.longCount(getThis(), predicate);
     }
 
     public <TResult extends Comparable<TResult>> TResult max(
         FunctionExpression<Function1<T, TResult>> selector)
     {
-        return QueryableDefaults.max(getThis(), selector);
+        return factory.max(getThis(), selector);
     }
 
     public <TResult extends Comparable<TResult>> TResult min(
         FunctionExpression<Function1<T, TResult>> selector)
     {
-        return QueryableDefaults.min(getThis(), selector);
+        return factory.min(getThis(), selector);
     }
 
     public <TKey extends Comparable> OrderedQueryable<T> orderBy(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
-        return QueryableDefaults.orderBy(getThis(), keySelector);
+        return factory.orderBy(getThis(), keySelector);
     }
 
     public <TKey> OrderedQueryable<T> orderBy(
         FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
-        return QueryableDefaults.orderBy(getThis(), keySelector, comparator);
+        return factory.orderBy(getThis(), keySelector, comparator);
     }
 
     public <TKey extends Comparable> OrderedQueryable<T> orderByDescending(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
-        return QueryableDefaults.orderByDescending(getThis(), keySelector);
+        return factory.orderByDescending(getThis(), keySelector);
     }
 
     public <TKey> OrderedQueryable<T> orderByDescending(
         FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
-        return QueryableDefaults.orderByDescending(
+        return factory.orderByDescending(
             getThis(),
             keySelector,
             comparator);
@@ -414,25 +427,25 @@ abstract class DefaultQueryable<T>
     public <TResult> Queryable<TResult> select(
         FunctionExpression<Function1<T, TResult>> selector)
     {
-        return QueryableDefaults.select(getThis(), selector);
+        return factory.select(getThis(), selector);
     }
 
     public <TResult> Queryable<TResult> selectN(
         FunctionExpression<Function2<T, Integer, TResult>> selector)
     {
-        return QueryableDefaults.selectN(getThis(), selector);
+        return factory.selectN(getThis(), selector);
     }
 
     public <TResult> Queryable<TResult> selectMany(
         FunctionExpression<Function1<T, Enumerable<TResult>>> selector)
     {
-        return QueryableDefaults.selectMany(getThis(), selector);
+        return factory.selectMany(getThis(), selector);
     }
 
     public <TResult> Queryable<TResult> selectManyN(
         FunctionExpression<Function2<T, Integer, Enumerable<TResult>>> selector)
     {
-        return QueryableDefaults.selectManyN(getThis(), selector);
+        return factory.selectManyN(getThis(), selector);
     }
 
     public <TCollection, TResult> Queryable<TResult> selectMany(
@@ -440,7 +453,7 @@ abstract class DefaultQueryable<T>
             collectionSelector,
         FunctionExpression<Function2<T, TCollection, TResult>> resultSelector)
     {
-        return QueryableDefaults.selectMany(
+        return factory.selectMany(
             getThis(), collectionSelector, resultSelector);
     }
 
@@ -449,108 +462,108 @@ abstract class DefaultQueryable<T>
             collectionSelector,
         FunctionExpression<Function2<T, TCollection, TResult>> resultSelector)
     {
-        return QueryableDefaults.selectManyN(
+        return factory.selectManyN(
             getThis(), collectionSelector, resultSelector);
     }
 
     public T single(FunctionExpression<Predicate1<T>> predicate) {
-        return QueryableDefaults.single(getThis(), predicate);
+        return factory.single(getThis(), predicate);
     }
 
     public T singleOrDefault(FunctionExpression<Predicate1<T>> predicate) {
-        return QueryableDefaults.singleOrDefault(getThis(), predicate);
+        return factory.singleOrDefault(getThis(), predicate);
     }
 
     public Queryable<T> skipWhile(FunctionExpression<Predicate1<T>> predicate) {
-        return QueryableDefaults.skipWhile(getThis(), predicate);
+        return factory.skipWhile(getThis(), predicate);
     }
 
     public Queryable<T> skipWhileN(
         FunctionExpression<Predicate2<T, Integer>> predicate)
     {
-        return QueryableDefaults.skipWhileN(getThis(), predicate);
+        return factory.skipWhileN(getThis(), predicate);
     }
 
     public BigDecimal sumBigDecimal(
         FunctionExpression<BigDecimalFunction1<T>> selector)
     {
-        return QueryableDefaults.sumBigDecimal(getThis(), selector);
+        return factory.sumBigDecimal(getThis(), selector);
     }
 
     public BigDecimal sumNullableBigDecimal(
         FunctionExpression<NullableBigDecimalFunction1<T>> selector)
     {
-        return QueryableDefaults.sumNullableBigDecimal(getThis(), selector);
+        return factory.sumNullableBigDecimal(getThis(), selector);
     }
 
     public double sumDouble(FunctionExpression<DoubleFunction1<T>> selector) {
-        return QueryableDefaults.sumDouble(getThis(), selector);
+        return factory.sumDouble(getThis(), selector);
     }
 
     public Double sumNullableDouble(
         FunctionExpression<NullableDoubleFunction1<T>> selector)
     {
-        return QueryableDefaults.sumNullableDouble(getThis(), selector);
+        return factory.sumNullableDouble(getThis(), selector);
     }
 
     public int sumInteger(FunctionExpression<IntegerFunction1<T>> selector) {
-        return QueryableDefaults.sumInteger(getThis(), selector);
+        return factory.sumInteger(getThis(), selector);
     }
 
     public Integer sumNullableInteger(
         FunctionExpression<NullableIntegerFunction1<T>> selector)
     {
-        return QueryableDefaults.sumNullableInteger(getThis(), selector);
+        return factory.sumNullableInteger(getThis(), selector);
     }
 
     public long sumLong(FunctionExpression<LongFunction1<T>> selector) {
-        return QueryableDefaults.sumLong(getThis(), selector);
+        return factory.sumLong(getThis(), selector);
     }
 
     public Long sumNullableLong(
         FunctionExpression<NullableLongFunction1<T>> selector)
     {
-        return QueryableDefaults.sumNullableLong(getThis(), selector);
+        return factory.sumNullableLong(getThis(), selector);
     }
 
     public float sumFloat(FunctionExpression<FloatFunction1<T>> selector) {
-        return QueryableDefaults.sumFloat(getThis(), selector);
+        return factory.sumFloat(getThis(), selector);
     }
 
     public Float sumNullableFloat(
         FunctionExpression<NullableFloatFunction1<T>> selector)
     {
-        return QueryableDefaults.sumNullableFloat(getThis(), selector);
+        return factory.sumNullableFloat(getThis(), selector);
     }
 
     public Queryable<T> takeWhile(FunctionExpression<Predicate1<T>> predicate) {
-        return QueryableDefaults.takeWhile(getThis(), predicate);
+        return factory.takeWhile(getThis(), predicate);
     }
 
     public Queryable<T> takeWhileN(
         FunctionExpression<Predicate2<T, Integer>> predicate)
     {
-        return QueryableDefaults.takeWhileN(getThis(), predicate);
+        return factory.takeWhileN(getThis(), predicate);
     }
 
     public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
-        return QueryableDefaults.thenBy(getThisOrderedQueryable(), keySelector);
+        return factory.thenBy(getThisOrderedQueryable(), keySelector);
     }
 
     public <TKey> OrderedQueryable<T> thenBy(
         FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
-        return QueryableDefaults.thenByDescending(
+        return factory.thenByDescending(
             getThisOrderedQueryable(), keySelector, comparator);
     }
 
     public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenByDescending(
         FunctionExpression<Function1<T, TKey>> keySelector)
     {
-        return QueryableDefaults.thenByDescending(
+        return factory.thenByDescending(
             getThisOrderedQueryable(), keySelector);
     }
 
@@ -558,47 +571,28 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function1<T, TKey>> keySelector,
         Comparator<TKey> comparator)
     {
-        return QueryableDefaults.thenBy(
+        return factory.thenBy(
             getThisOrderedQueryable(), keySelector, comparator);
     }
 
     public Queryable<T> where(
         FunctionExpression<? extends Predicate1<T>> predicate)
     {
-        //noinspection unchecked
-        return QueryableDefaults.where(
-            getThis(), (FunctionExpression<Predicate1<T>>) predicate);
+        return factory.where(getThis(), predicate);
     }
 
     public Queryable<T> whereN(
         FunctionExpression<? extends Predicate2<T, Integer>> predicate)
     {
-        //noinspection unchecked
-        return QueryableDefaults.whereN(
-            getThis(), (FunctionExpression<Predicate2<T, Integer>>) predicate);
+        return factory.whereN(getThis(), predicate);
     }
 
     public <T1, TResult> Queryable<TResult> zip(
         Enumerable<T1> source1,
         FunctionExpression<Function2<T, T1, TResult>> resultSelector)
     {
-        return QueryableDefaults.zip(getThis(), source1, resultSelector);
+        return factory.zip(getThis(), source1, resultSelector);
     }
-
-    public <TAccumulate> TAccumulate aggregate(
-        TAccumulate seed, Function2<TAccumulate, T, TAccumulate> func)
-    {
-        return EnumerableDefaults.aggregate(getThis(), seed, func);
-    }
-
-    public <TAccumulate, TResult> TResult aggregate(
-        TAccumulate seed,
-        Function2<TAccumulate, T, TAccumulate> func,
-        Function1<TAccumulate, TResult> selector)
-    {
-        return EnumerableDefaults.aggregate(getThis(), seed, func, selector);
-    }
-
 }
 
 // End DefaultQueryable.java
