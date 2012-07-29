@@ -384,7 +384,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
         }
     }
 
-    private static class RelOptTableImpl
+    static class RelOptTableImpl
         implements SqlValidatorTable, RelOptTable
     {
         private final RelOptSchema schema;
@@ -541,181 +541,14 @@ class OptiqPrepareImpl implements OptiqPrepare {
         }
     }
 
-    private static class LixToRelTranslator {
-        final RelOptCluster cluster;
-        private final RelOptConnection connection;
-        final JavaTypeFactory typeFactory;
-
-        public LixToRelTranslator(
-            RelOptCluster cluster,
-            RelOptConnection connection)
-        {
-            this.cluster = cluster;
-            this.connection = connection;
-            this.typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
-        }
-
-        public RelNode translate(Queryable queryable) {
-            if (queryable instanceof QueryableDefaults.OpQueryable) {
-                QueryableDefaults.OpQueryable opQueryable =
-                    (QueryableDefaults.OpQueryable) queryable;
-                switch (opQueryable.opType) {
-                case WHERE:
-                    RelNode child = translate(queryable(opQueryable, 0));
-                    return new FilterRel(
-                        cluster,
-                        child,
-                        toRex(funEx(opQueryable, 1), child));
-                }
-            }
-            if (queryable instanceof Table) {
-                return new TableAccessRel(
-                    cluster,
-                    new RelOptTableImpl(
-                        null,
-                        typeFactory.createJavaType(
-                            Types.toClass(
-                                Types.getComponentType(
-                                    queryable.getElementType()))),
-                        new String[0],
-                        queryable.getExpression()),
-                    connection);
-            }
-            throw new UnsupportedOperationException("Tbi");
-        }
-
-        private Queryable queryable(
-            QueryableDefaults.OpQueryable opQueryable,
-            int index)
-        {
-            return (Queryable) opQueryable.args.get(index);
-        }
-
-        private FunctionExpression funEx(
-            QueryableDefaults.OpQueryable opQueryable,
-            int index)
-        {
-            return (FunctionExpression) opQueryable.args.get(index);
-        }
-
-        public RelNode translate(Expression expression) {
-            if (expression instanceof MethodCallExpression) {
-                MethodCallExpression call = (MethodCallExpression) expression;
-                BuiltinMethod method = BuiltinMethod.lookup(call.method);
-                if (method == null) {
-                    throw new UnsupportedOperationException(
-                        "unknown method " + call.method);
-                }
-                RelNode child;
-                switch (method) {
-                case SELECT:
-                    child = translate(call.targetExpression);
-                    return new ProjectRel(
-                        cluster,
-                        child,
-                        toRex(
-                            child,
-                            (FunctionExpression) call.expressions.get(0)),
-                        null,
-                        ProjectRel.Flags.Boxed);
-
-                case WHERE:
-                    child = translate(call.targetExpression);
-                    return new FilterRel(
-                        cluster,
-                        child,
-                        toRex(
-                            (FunctionExpression) call.expressions.get(0),
-                            child));
-
-                case AS_QUERYABLE:
-                    return new TableAccessRel(
-                        cluster,
-                        new RelOptTableImpl(
-                            null,
-                            typeFactory.createJavaType(
-                                Types.toClass(
-                                    Types.getComponentType(
-                                        call.targetExpression.getType()))),
-                            new String[0],
-                            call.targetExpression),
-                        connection);
-
-                case SCHEMA_GET_TABLE:
-                    return new TableAccessRel(
-                        cluster,
-                        new RelOptTableImpl(
-                            null,
-                            typeFactory.createJavaType(
-                                Types.toClass(
-                                    Types.getComponentType(
-                                        call.targetExpression.getType()))),
-                            new String[0],
-                            call.targetExpression),
-                        connection);
-
-                default:
-                    throw new UnsupportedOperationException(
-                        "unknown method " + call.method);
-                }
-            }
-            throw new UnsupportedOperationException(
-                "unknown expression type " + expression.getNodeType());
-        }
-
-        private RexNode[] toRex(
-            RelNode child, FunctionExpression expression)
-        {
-            List<RexNode> list = new ArrayList<RexNode>();
-            RexBuilder rexBuilder = cluster.getRexBuilder();
-            for (RelNode input : new RelNode[]{child}) {
-                list.add(rexBuilder.makeRangeReference(input.getRowType()));
-            }
-            ScalarTranslator translator =
-                EmptyScalarTranslator
-                    .empty(rexBuilder)
-                    .bind(expression.parameterList, list);
-            final List<RexNode> rexList = new ArrayList<RexNode>();
-            final Expression simple = Blocks.simple(expression.body);
-            for (Expression expression1 : fieldExpressions(simple)) {
-                rexList.add(translator.toRex(expression1));
-            }
-            return rexList.toArray(new RexNode[rexList.size()]);
-        }
-
-        List<Expression> fieldExpressions(Expression expression) {
-            if (expression instanceof NewExpression) {
-                // Note: We are assuming that the arguments to the constructor
-                // are the same order as the fields of the class.
-                return ((NewExpression) expression).arguments;
-            }
-            throw new RuntimeException(
-                "unsupported expression type " + expression);
-        }
-
-        private RexNode toRex(
-            FunctionExpression expression,
-            RelNode... inputs)
-        {
-            List<RexNode> list = new ArrayList<RexNode>();
-            RexBuilder rexBuilder = cluster.getRexBuilder();
-            for (RelNode input : inputs) {
-                list.add(rexBuilder.makeRangeReference(input.getRowType()));
-            }
-            return EmptyScalarTranslator.empty(rexBuilder)
-                .bind(expression.parameterList, list)
-                .toRex(expression.body);
-        }
-    }
-
-    private interface ScalarTranslator {
+    interface ScalarTranslator {
         RexNode toRex(BlockExpression expression);
         RexNode toRex(Expression expression);
         ScalarTranslator bind(
             List<ParameterExpression> parameterList, List<RexNode> values);
     }
 
-    private static class EmptyScalarTranslator implements ScalarTranslator {
+    static class EmptyScalarTranslator implements ScalarTranslator {
         private final RexBuilder rexBuilder;
 
         public EmptyScalarTranslator(RexBuilder rexBuilder) {
@@ -833,6 +666,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             throw new RuntimeException("unknown parameter " + param);
         }
     }
+
 }
 
 // End OptiqPrepareImpl.java

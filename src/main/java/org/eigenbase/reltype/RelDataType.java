@@ -17,6 +17,7 @@
 */
 package org.eigenbase.reltype;
 
+import java.lang.reflect.Type;
 import java.nio.charset.*;
 
 import java.util.*;
@@ -37,7 +38,7 @@ import org.eigenbase.sql.type.*;
  * @version $Id$
  * @since May 29, 2003
  */
-public interface RelDataType
+public interface RelDataType extends Type
 {
     //~ Methods ----------------------------------------------------------------
 

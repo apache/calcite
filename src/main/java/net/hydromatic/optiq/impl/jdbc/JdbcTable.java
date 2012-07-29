@@ -17,10 +17,7 @@
 */
 package net.hydromatic.optiq.impl.jdbc;
 
-import net.hydromatic.linq4j.AbstractQueryable;
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.QueryProvider;
+import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 
@@ -54,7 +51,6 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
         JdbcSchema schema,
         String tableName)
     {
-        super();
         this.elementType = elementType;
         this.schema = schema;
         this.tableName = tableName;

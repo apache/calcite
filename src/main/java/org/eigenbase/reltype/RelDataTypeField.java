@@ -17,6 +17,8 @@
 */
 package org.eigenbase.reltype;
 
+import net.hydromatic.linq4j.expressions.Types;
+
 /**
  * RelDataTypeField represents the definition of a field in a structured {@link
  * RelDataType}.
@@ -25,7 +27,7 @@ package org.eigenbase.reltype;
  * @version $Id$
  * @since May 29, 2003
  */
-public interface RelDataTypeField
+public interface RelDataTypeField extends Types.RecordField
 {
     //~ Methods ----------------------------------------------------------------
 

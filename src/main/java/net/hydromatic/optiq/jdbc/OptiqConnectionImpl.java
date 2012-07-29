@@ -24,7 +24,6 @@ import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.runtime.ByteString;
@@ -145,7 +144,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
             OptiqStatement statement = createStatement();
             OptiqPrepare.PrepareResult enumerable =
                 statement.prepare(queryable);
-            return (Enumerator) enumerable.execute();
+            return (Enumerator<T>) enumerable.execute();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

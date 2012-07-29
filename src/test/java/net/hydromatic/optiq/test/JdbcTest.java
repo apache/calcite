@@ -618,10 +618,11 @@ public class JdbcTest extends TestCase {
                     Expressions.<Predicate1<Customer>>lambda(
                         Expressions.lessThan(
                             Expressions.field(c, "customer_id"),
-                            Expressions.constant(50)),
+                            Expressions.constant(5)),
                         c))
                 .toList()
                 .toString();
+            System.out.println(s);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
