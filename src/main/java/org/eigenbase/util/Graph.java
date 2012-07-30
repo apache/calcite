@@ -19,15 +19,12 @@ package org.eigenbase.util;
 
 import java.util.*;
 
-import junit.framework.*;
-
 
 /**
- * A <code>Graph</code> is a collection of directed arcs between nodes, and
+ * A collection of directed arcs between nodes;
  * supports various graph-theoretic operations.
  *
  * @author jhyde
- * @version $Id$
  * @since May 6, 2003
  */
 public class Graph<T>
@@ -65,8 +62,8 @@ public class Graph<T>
     /**
      * Returns the shortest path between two points, null if there is no path.
      *
-     * @param from
-     * @param to
+     * @param from From
+     * @param to To
      *
      * @return A list of arcs, null if there is no path.
      */
@@ -259,7 +256,7 @@ public class Graph<T>
             return from + "-" + to;
         }
 
-        private static <T> String toString(Arc<T> [] arcs)
+        static <T> String toString(Arc<T> [] arcs)
         {
             StringBuilder buf = new StringBuilder("{");
             for (int i = 0; i < arcs.length; i++) {
@@ -269,59 +266,6 @@ public class Graph<T>
                 buf.append(arcs[i].toString());
             }
             buf.append("}");
-            return buf.toString();
-        }
-    }
-
-    public static class GraphTest
-        extends TestCase
-    {
-        public GraphTest(String name)
-        {
-            super(name);
-        }
-
-        public void test()
-        {
-            Graph<String> g = new Graph<String>();
-            g.createArc("A", "B");
-            g.createArc("B", "C");
-            g.createArc("D", "C");
-            g.createArc("C", "D");
-            g.createArc("E", "F");
-            g.createArc("C", "C");
-            assertEquals(
-                "{A-B, B-C, C-D}",
-                Arc.toString(g.getShortestPath("A", "D")));
-            g.createArc("B", "D");
-            assertEquals(
-                "{A-B, B-D}",
-                Arc.toString(g.getShortestPath("A", "D")));
-            assertNull(
-                "There is no path from A to E",
-                g.getShortestPath("A", "E"));
-            assertEquals(
-                "{}",
-                Arc.toString(g.getShortestPath("D", "D")));
-            assertNull(
-                "Node X is not in the graph",
-                g.getShortestPath("X", "A"));
-            assertEquals(
-                "{A-B, B-D} {A-B, B-C, C-D}",
-                toString(g.getPaths("A", "D")));
-        }
-
-        private static <T> String toString(final Iterator<Arc<T>[]> iter)
-        {
-            StringBuilder buf = new StringBuilder();
-            int count = 0;
-            while (iter.hasNext()) {
-                Arc<T> [] path = iter.next();
-                if (count++ > 0) {
-                    buf.append(" ");
-                }
-                buf.append(Arc.toString(path));
-            }
             return buf.toString();
         }
     }

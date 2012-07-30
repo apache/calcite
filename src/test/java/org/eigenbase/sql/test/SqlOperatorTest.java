@@ -15,50 +15,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sql;
+package org.eigenbase.sql.test;
 
-import org.eigenbase.sql.type.*;
+import org.eigenbase.sql.validate.*;
+import org.eigenbase.test.*;
+
 
 /**
- * SqlFunctionalOperator is a base class for special operators which use
- * functional syntax.
+ * Concrete subclass of {@link SqlOperatorTests} which checks against
  *
- * @author John V. Sichi
+ * @author Julian Hyde
+ * @since July 7, 2005
  */
-public class SqlFunctionalOperator
-    extends SqlSpecialOperator
+public class SqlOperatorTest
+    extends SqlOperatorTests
 {
+    //~ Instance fields --------------------------------------------------------
+
+    private SqlTester tester =
+        (SqlTester) new SqlValidatorTestCase("dummy").getTester(
+            SqlConformance.Default);
+
     //~ Constructors -----------------------------------------------------------
 
-    public SqlFunctionalOperator(
-        String name,
-        SqlKind kind,
-        int pred,
-        boolean isLeftAssoc,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker)
+    public SqlOperatorTest(String testName)
     {
-        super(
-            name,
-            kind,
-            pred,
-            isLeftAssoc,
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker);
+        super(testName);
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
+    protected SqlTester getTester()
     {
-        SqlUtil.unparseFunctionSyntax(this, writer, operands, true, null);
+        return tester;
     }
 }
 
-// End SqlFunctionalOperator.java
+// End SqlOperatorTest.java

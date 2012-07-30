@@ -29,7 +29,6 @@ import org.eigenbase.oj.rel.*;
 import org.eigenbase.oj.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
-import org.eigenbase.relopt.volcano.VolcanoPlannerTraitTest;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
@@ -43,7 +42,6 @@ import org.eigenbase.util.*;
  * {@link RelNode}s.
  *
  * @author jhyde
- * @version $Id$
  * @since 26 September, 2003
  */
 public abstract class RelOptUtil

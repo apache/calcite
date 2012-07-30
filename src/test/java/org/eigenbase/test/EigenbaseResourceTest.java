@@ -15,50 +15,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sql;
+package org.eigenbase.test;
 
-import org.eigenbase.sql.type.*;
+import java.util.*;
+
+import junit.framework.*;
+
+import org.eigenbase.resource.*;
+
 
 /**
- * SqlFunctionalOperator is a base class for special operators which use
- * functional syntax.
+ * Tests generated package org.eigenbase.resource (mostly a sanity check for
+ * resgen infrastructure).
  *
  * @author John V. Sichi
  */
-public class SqlFunctionalOperator
-    extends SqlSpecialOperator
+public class EigenbaseResourceTest
+    extends TestCase
 {
     //~ Constructors -----------------------------------------------------------
 
-    public SqlFunctionalOperator(
-        String name,
-        SqlKind kind,
-        int pred,
-        boolean isLeftAssoc,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker)
+    public EigenbaseResourceTest(String name)
     {
-        super(
-            name,
-            kind,
-            pred,
-            isLeftAssoc,
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker);
+        super(name);
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
+    /**
+     * Verifies that resource properties such as SQLSTATE are available at
+     * runtime.
+     */
+    public void testSqlstateProperty()
     {
-        SqlUtil.unparseFunctionSyntax(this, writer, operands, true, null);
+        Properties props =
+            EigenbaseResource.instance().IllegalIntervalLiteral.getProperties();
+        assertEquals(
+            "42000",
+            props.get("SQLSTATE"));
     }
 }
 
-// End SqlFunctionalOperator.java
+// End EigenbaseResourceTest.java

@@ -15,50 +15,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.sql;
-
-import org.eigenbase.sql.type.*;
+package org.eigenbase.sql.parser;
 
 /**
- * SqlFunctionalOperator is a base class for special operators which use
- * functional syntax.
+ * Extension to {@link SqlParserTest} which ensures that every expression can
+ * un-parse successfully.
  *
- * @author John V. Sichi
+ * @author jhyde
+ * @since Oct 12, 2005
  */
-public class SqlFunctionalOperator
-    extends SqlSpecialOperator
+public class SqlUnParserTest
+    extends SqlParserTest
 {
     //~ Constructors -----------------------------------------------------------
 
-    public SqlFunctionalOperator(
-        String name,
-        SqlKind kind,
-        int pred,
-        boolean isLeftAssoc,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker)
+    public SqlUnParserTest(String name)
     {
-        super(
-            name,
-            kind,
-            pred,
-            isLeftAssoc,
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker);
+        super(name);
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
+    protected Tester getTester()
     {
-        SqlUtil.unparseFunctionSyntax(this, writer, operands, true, null);
+        return new UnparsingTesterImpl();
     }
 }
 
-// End SqlFunctionalOperator.java
+// End SqlUnParserTest.java

@@ -19,8 +19,6 @@ package org.eigenbase.runtime;
 
 import java.util.*;
 
-import org.eigenbase.test.*;
-
 
 /**
  * <code>CompoundParallelTupleIter</code> creates one TupleIter out of several.
@@ -47,7 +45,6 @@ import org.eigenbase.test.*;
  * </ul>
  *
  * @author Marc Berkowitz
- * @version $Id$
  */
 public class CompoundParallelTupleIter
     extends AbstractTupleIter
@@ -116,94 +113,6 @@ public class CompoundParallelTupleIter
     {
         for (int index = 0; index < in.length; index++) {
             in[index].closeAllocation();
-        }
-    }
-
-    //~ Inner Classes ----------------------------------------------------------
-
-    public static class Test
-        extends EigenbaseTestCase
-    {
-        public Test(String s)
-            throws Exception
-        {
-            super(s);
-        }
-
-        // The CompoundParallelTupleIter preserves the order of 2 elements
-        // from the same source, but may transpose 2 elements from different
-        // soureces. Being sloppy, just test that the actual results match the
-        // expected results when resorted.
-        protected void assertEquals(
-            TupleIter tupleIter,
-            Object [] expected) // expected vals -- sorted in place
-
-        {
-            Object [] actual = toList(tupleIter).toArray(); // get results
-            Arrays.sort(actual);
-            Arrays.sort(expected);
-            assertEquals(expected, actual);
-        }
-
-        public void testCompoundParallelTupleIter2()
-        {
-            TupleIter tupleIter =
-                new CompoundParallelTupleIter(
-                    new TupleIter[] {
-                        makeTupleIter(new String[] { "a", "b" }),
-                        makeTupleIter(new String[] { "c" })
-                    });
-            assertEquals(
-                tupleIter,
-                new String[] { "a", "b", "c" });
-        }
-
-        public void testCompoundParallelTupleIter1()
-        {
-            TupleIter tupleIter =
-                new CompoundParallelTupleIter(
-                    new TupleIter[] {
-                        makeTupleIter(new String[] { "a", "b", "c" })
-                    });
-            assertEquals(
-                tupleIter,
-                new String[] { "a", "b", "c" });
-        }
-
-        public void testCompoundParallelTupleIter3()
-        {
-            TupleIter tupleIter =
-                new CompoundParallelTupleIter(
-                    new TupleIter[] {
-                        makeTupleIter(new String[] { "a", "b", "c" }),
-                        makeTupleIter(new String[] { "d", "e" }),
-                        makeTupleIter(new String[] { "f" }),
-                    });
-            assertEquals(
-                tupleIter,
-                new String[] { "a", "b", "c", "d", "e", "f" });
-        }
-
-        public void testCompoundParallelIterEmpty1()
-        {
-            TupleIter tupleIter =
-                new CompoundParallelTupleIter(new TupleIter[] {});
-            assertEquals(
-                tupleIter,
-                new String[] {});
-        }
-
-        public void testCompoundParallelIterEmpty2()
-        {
-            TupleIter tupleIter =
-                new CompoundParallelTupleIter(
-                    new TupleIter[] {
-                        makeTupleIter(new String[] {}),
-                        makeTupleIter(new String[] { "a", "b" })
-                    });
-            assertEquals(
-                tupleIter,
-                new String[] { "a", "b" });
         }
     }
 }

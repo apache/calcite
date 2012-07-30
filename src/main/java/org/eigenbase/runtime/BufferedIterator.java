@@ -19,8 +19,6 @@ package org.eigenbase.runtime;
 
 import java.util.*;
 
-import org.eigenbase.test.*;
-
 
 /**
  * <code>BufferedIterator</code> converts a regular iterator into one which
@@ -32,7 +30,6 @@ import org.eigenbase.test.*;
  * onto the replay list only when they are requested for the first time.</p>
  *
  * @author jhyde
- * @version $Id$
  * @since 26 April, 2002
  */
 public class BufferedIterator
@@ -118,55 +115,10 @@ public class BufferedIterator
 
     //~ Inner Classes ----------------------------------------------------------
 
-    public static class Test
-        extends EigenbaseTestCase
-    {
-        public Test(String s)
-            throws Exception
-        {
-            super(s);
-        }
-
-        // --------------------------------------------------------------------
-        // test BufferedIterator
-        public void testBufferedIterator()
-        {
-            String [] abc = new String[] { "a", "b", "c" };
-            Iterator source = makeIterator(abc);
-            BufferedIterator iterator = new BufferedIterator(source);
-            assertTrue(iterator.hasNext());
-            assertTrue(iterator.next().equals("a"));
-
-            // no intervening "hasNext"
-            assertTrue(iterator.next().equals("b"));
-
-            // restart before we get to the end
-            iterator.restart();
-            assertTrue(iterator.hasNext());
-            assertEquals(iterator, abc);
-            assertTrue(!iterator.hasNext());
-            assertTrue(!iterator.hasNext());
-            iterator.restart();
-            assertEquals(iterator, abc);
-        }
-
-        // --------------------------------------------------------------------
-        // test Clonerator
-        public void testClonerator()
-        {
-            String [] ab = new String[] { "a", "b" };
-            Iterator source = makeIterator(ab);
-            List list = new ArrayList();
-            Clonerator clonerator = new Clonerator(source, list);
-            assertEquals(clonerator, ab);
-            assertEquals(list, ab);
-        }
-    }
-
     /**
      * Reads from an iterator, duplicating elements into a list as it does so.
      */
-    private static class Clonerator
+    static class Clonerator
         implements Iterator
     {
         Iterator iterator;
