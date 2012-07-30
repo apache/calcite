@@ -27,27 +27,44 @@ import org.eigenbase.rex.RexNode;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
+import java.util.List;
 
 /**
- * Implementation of {@link net.hydromatic.linq4j.QueryableDefaults.Replayer}
+ * Implementation of {@link QueryableFactory}
  * that builds a tree of {@link RelNode} planner nodes. Used by
  * {@link LixToRelTranslator}.
  *
  * @author jhyde
 */
-class QueryableRelBuilder<T>
-    implements QueryableDefaults.Replayer<T>
-{
+class QueryableRelBuilder<T> implements QueryableFactory<T> {
     private final LixToRelTranslator translator;
-    private RelNode child;
+    private RelNode rel;
 
     public QueryableRelBuilder(LixToRelTranslator translator) {
         this.translator = translator;
     }
 
-    public <T> Queryable<T> visit(Queryable<T> queryable) {
-        throw new UnsupportedOperationException();
+    RelNode toRel(Queryable<T> queryable) {
+        if (queryable instanceof QueryableDefaults.Replayable) {
+            //noinspection unchecked
+            ((QueryableDefaults.Replayable) queryable).replay(this);
+            return rel;
+        }
+        if (queryable instanceof Table) {
+            return new TableAccessRel(
+                translator.cluster,
+                new OptiqPrepareImpl.RelOptTableImpl(
+                    null,
+                    translator.typeFactory.createType(
+                        queryable.getElementType()),
+                    new String[0],
+                    queryable.getExpression()),
+                translator.connection);
+        }
+        return translator.translate(queryable.getExpression());
     }
+
+    // ~ Methods from QueryableFactory -----------------------------------------
 
     public <TAccumulate, TResult> TResult aggregate(
         Queryable<T> source,
@@ -174,7 +191,7 @@ class QueryableRelBuilder<T>
     }
 
     public boolean contains(
-        Queryable<T> source, T element, EqualityComparer comparer)
+        Queryable<T> source, T element, EqualityComparer<T> comparer)
     {
         throw new UnsupportedOperationException();
     }
@@ -194,7 +211,7 @@ class QueryableRelBuilder<T>
         throw new UnsupportedOperationException();
     }
 
-    public T defaultIfEmpty(Queryable<T> source, T value) {
+    public Queryable<T> defaultIfEmpty(Queryable<T> source, T value) {
         throw new UnsupportedOperationException();
     }
 
@@ -205,7 +222,7 @@ class QueryableRelBuilder<T>
     }
 
     public Queryable<T> distinct(
-        Queryable<T> source, EqualityComparer comparer)
+        Queryable<T> source, EqualityComparer<T> comparer)
     {
         throw new UnsupportedOperationException();
     }
@@ -266,7 +283,7 @@ class QueryableRelBuilder<T>
     public <TKey> Queryable<Grouping<TKey, T>> groupBy(
         Queryable<T> source,
         FunctionExpression<Function1<T, TKey>> keySelector,
-        EqualityComparer comparer)
+        EqualityComparer<T> comparer)
     {
         throw new UnsupportedOperationException();
     }
@@ -292,7 +309,7 @@ class QueryableRelBuilder<T>
         Queryable<T> source,
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function1<T, TElement>> elementSelector,
-        EqualityComparer comparer)
+        EqualityComparer<T> comparer)
     {
         throw new UnsupportedOperationException();
     }
@@ -302,7 +319,7 @@ class QueryableRelBuilder<T>
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
             elementSelector,
-        EqualityComparer comparer)
+        EqualityComparer<TKey> comparer)
     {
         throw new UnsupportedOperationException();
     }
@@ -339,7 +356,7 @@ class QueryableRelBuilder<T>
         throw new UnsupportedOperationException();
     }
 
-    public <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
+    public <TInner, TKey, TResult> Queryable<TResult> groupJoin(
         Queryable<T> source,
         Enumerable<TInner> inner,
         FunctionExpression<Function1<T, TKey>> outerKeySelector,
@@ -496,7 +513,16 @@ class QueryableRelBuilder<T>
         Queryable<T> source,
         FunctionExpression<Function1<T, TResult>> selector)
     {
-        throw new UnsupportedOperationException();
+        RelNode child = toRel(source);
+        List<RexNode> nodes = translator.toRexList(selector, child);
+        setRel(
+            new ProjectRel(
+                translator.cluster,
+                child,
+                nodes.toArray(new RexNode[nodes.size()]),
+                null,
+                ProjectRelBase.Flags.Boxed));
+        return null;
     }
 
     public <TResult> Queryable<TResult> selectN(
@@ -684,6 +710,36 @@ class QueryableRelBuilder<T>
         throw new UnsupportedOperationException();
     }
 
+    public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    public <TKey> OrderedQueryable<T> thenBy(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        Comparator<TKey> comparator)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenByDescending(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    public <TKey> OrderedQueryable<T> thenByDescending(
+        OrderedQueryable<T> source,
+        FunctionExpression<Function1<T, TKey>> keySelector,
+        Comparator<TKey> comparator)
+    {
+        throw new UnsupportedOperationException();
+    }
+
     public Queryable<T> union(
         Queryable<T> source, Enumerable<T> source1)
     {
@@ -702,30 +758,15 @@ class QueryableRelBuilder<T>
         Queryable<T> source,
         FunctionExpression<? extends Predicate1<T>> predicate)
     {
-        RelNode childx = toRel(source);
-        RexNode node = translator.toRex(predicate, childx);
-        child = new FilterRel(translator.cluster, childx, node);
+        RelNode child = toRel(source);
+        RexNode node = translator.toRex(predicate, child);
+        setRel(new FilterRel(translator.cluster, child, node));
         return source;
     }
 
-    RelNode toRel(Queryable<T> queryable) {
-        if (queryable instanceof QueryableDefaults.Replayable) {
-            //noinspection unchecked
-            ((QueryableDefaults.Replayable) queryable).replay(this);
-            return child;
-        }
-        if (queryable instanceof Table) {
-            return new TableAccessRel(
-                translator.cluster,
-                new OptiqPrepareImpl.RelOptTableImpl(
-                    null,
-                    translator.typeFactory.createType(
-                        queryable.getElementType()),
-                    new String[0],
-                    queryable.getExpression()),
-                translator.connection);
-        }
-        return translator.translate(queryable.getExpression());
+    // called internally, when a RelNode is produced
+    private void setRel(RelNode rel) {
+        this.rel = rel;
     }
 
     public Queryable<T> whereN(

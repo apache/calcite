@@ -153,6 +153,20 @@ class LixToRelTranslator {
             "unsupported expression type " + expression);
     }
 
+    List<RexNode> toRexList(
+        FunctionExpression expression,
+        RelNode... inputs)
+    {
+        List<RexNode> list = new ArrayList<RexNode>();
+        RexBuilder rexBuilder = cluster.getRexBuilder();
+        for (RelNode input : inputs) {
+            list.add(rexBuilder.makeRangeReference(input.getRowType()));
+        }
+        return OptiqPrepareImpl.EmptyScalarTranslator.empty(rexBuilder)
+            .bind(expression.parameterList, list)
+            .toRexList(expression.body);
+    }
+
     RexNode toRex(
         FunctionExpression expression,
         RelNode... inputs)

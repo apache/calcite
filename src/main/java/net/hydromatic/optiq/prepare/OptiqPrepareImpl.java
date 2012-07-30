@@ -543,6 +543,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
 
     interface ScalarTranslator {
         RexNode toRex(BlockExpression expression);
+        List<RexNode> toRexList(BlockExpression expression);
         RexNode toRex(Expression expression);
         ScalarTranslator bind(
             List<ParameterExpression> parameterList, List<RexNode> values);
@@ -559,8 +560,27 @@ class OptiqPrepareImpl implements OptiqPrepare {
             return new EmptyScalarTranslator(builder);
         }
 
+        public List<RexNode> toRexList(BlockExpression expression) {
+            final List<Expression> simpleList = simpleList(expression);
+            final List<RexNode> list = new ArrayList<RexNode>();
+            for (Expression expression1 : simpleList) {
+                list.add(toRex(expression1));
+            }
+            return list;
+        }
+
         public RexNode toRex(BlockExpression expression) {
             return toRex(Blocks.simple(expression));
+        }
+
+        private static List<Expression> simpleList(BlockExpression expression) {
+            Expression simple = Blocks.simple(expression);
+            if (simple instanceof NewExpression) {
+                NewExpression newExpression = (NewExpression) simple;
+                return newExpression.arguments;
+            } else {
+                return Collections.singletonList(simple);
+            }
         }
 
         public RexNode toRex(Expression expression) {
