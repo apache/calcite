@@ -1180,6 +1180,14 @@ public abstract class QueryableDefaults {
         public QueryProvider getProvider() {
             return original.getProvider();
         }
+
+        public <U> U castSingle() {
+            return ((Queryable<U>) this).single();
+        }
+
+        public <U> Queryable<U> castQueryable() {
+            return (Queryable<U>) this;
+        }
     }
 }
 

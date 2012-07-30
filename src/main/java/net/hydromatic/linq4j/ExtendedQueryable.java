@@ -241,7 +241,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     /** Correlates the elements of two sequences based on
      * key equality and groups the results. A specified
      * EqualityComparer<TSource> is used to compare keys. */
-    <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
+    <TInner, TKey, TResult> Queryable<TResult> groupJoin(
         Enumerable<TInner> inner,
         FunctionExpression<Function1<TSource, TKey>> outerKeySelector,
         FunctionExpression<Function1<TInner, TKey>> innerKeySelector,

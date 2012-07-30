@@ -157,7 +157,7 @@ public interface QueryableFactory<T> {
     boolean contains(
         Queryable<T> source,
         T element,
-        EqualityComparer comparer);
+        EqualityComparer<T> comparer);
 
     /** Returns the number of elements in a
      * sequence. */
@@ -179,7 +179,7 @@ public interface QueryableFactory<T> {
     /** Returns the elements of the specified sequence or
      * the specified value in a singleton collection if the sequence
      * is empty. */
-    T defaultIfEmpty(
+    Queryable<T> defaultIfEmpty(
         Queryable<T> source,
         T value);
 
@@ -192,7 +192,7 @@ public interface QueryableFactory<T> {
      * a specified EqualityComparer<T> to compare values. */
     Queryable<T> distinct(
         Queryable<T> source,
-        EqualityComparer comparer);
+        EqualityComparer<T> comparer);
 
     /** Returns the element at a specified index in a
      * sequence. */
@@ -257,7 +257,7 @@ public interface QueryableFactory<T> {
     <TKey> Queryable<Grouping<TKey, T>> groupBy(
         Queryable<T> source,
         FunctionExpression<Function1<T, TKey>> keySelector,
-        EqualityComparer comparer);
+        EqualityComparer<T> comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and projects the elements for
@@ -284,7 +284,7 @@ public interface QueryableFactory<T> {
         Queryable<T> source,
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function1<T, TElement>> elementSelector,
-        EqualityComparer comparer);
+        EqualityComparer<T> comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
@@ -296,7 +296,7 @@ public interface QueryableFactory<T> {
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
             elementSelector,
-        EqualityComparer comparer);
+        EqualityComparer<TKey> comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
@@ -336,7 +336,7 @@ public interface QueryableFactory<T> {
     /** Correlates the elements of two sequences based on
      * key equality and groups the results. A specified
      * EqualityComparer<T> is used to compare keys. */
-    <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
+    <TInner, TKey, TResult> Queryable<TResult> groupJoin(
         Queryable<T> source,
         Enumerable<TInner> inner,
         FunctionExpression<Function1<T, TKey>> outerKeySelector,

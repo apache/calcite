@@ -374,7 +374,7 @@ class EnumerableQueryable<T>
             resultSelector.getFunction()).asQueryable();
     }
 
-    public <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
+    public <TInner, TKey, TResult> Queryable<TResult> groupJoin(
         Enumerable<TInner> inner,
         FunctionExpression<Function1<T, TKey>> outerKeySelector,
         FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
@@ -388,7 +388,7 @@ class EnumerableQueryable<T>
             outerKeySelector.getFunction(),
             innerKeySelector.getFunction(),
             resultSelector.getFunction(),
-            comparer);
+            comparer).asQueryable();
     }
 
     public <TInner, TKey, TResult> Queryable<TResult> join(

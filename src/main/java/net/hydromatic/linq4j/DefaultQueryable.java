@@ -324,7 +324,7 @@ abstract class DefaultQueryable<T>
             resultSelector);
     }
 
-    public <TInner, TKey, TResult> Enumerable<TResult> groupJoin(
+    public <TInner, TKey, TResult> Queryable<TResult> groupJoin(
         Enumerable<TInner> inner,
         FunctionExpression<Function1<T, TKey>> outerKeySelector,
         FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
