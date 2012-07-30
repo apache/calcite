@@ -1,10 +1,25 @@
+/*
+// Licensed to Julian Hyde under one or more contributor license
+// agreements. See the NOTICE file distributed with this work for
+// additional information regarding copyright ownership.
+//
+// Julian Hyde licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except in
+// compliance with the License. You may obtain a copy of the License at:
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+*/
 package net.hydromatic.linq4j;
 
-import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.FunctionExpression;
 import net.hydromatic.linq4j.function.*;
 
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.Comparator;
 
@@ -12,7 +27,9 @@ import static net.hydromatic.linq4j.QueryableDefaults.NonLeafReplayableQueryable
 
 /**
  * Implementation of {@link QueryableFactory} that records each event
- * and returns an object that can replay them.
+ * and returns an object that can replay the event when you call its
+ * {@link net.hydromatic.linq4j.QueryableDefaults.ReplayableQueryable#replay(QueryableFactory)}
+ * method.
  *
  * @author jhyde
  */
@@ -179,9 +196,6 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
         }.castSingle();
     }
 
-    /** Computes the average of a sequence of long values
-     * that is obtained by invoking a projection function on each
-     * element of the input sequence. */
     public long averageLong(
         final Queryable<T> source,
         final FunctionExpression<LongFunction1<T>> selector)
@@ -193,9 +207,6 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
         }.castSingle();
     }
 
-    /** Computes the average of a sequence of nullable
-     * long values that is obtained by invoking a projection function
-     * on each element of the input sequence. */
     public Long averageNullableLong(
         final Queryable<T> source,
         final FunctionExpression<NullableLongFunction1<T>> selector)
@@ -218,7 +229,6 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
         }.castQueryable();
     }
 
-    /** Concatenates two sequences. */
     public Queryable<T> concat(
         final Queryable<T> source,
         final Enumerable<T> source2)
@@ -721,125 +731,95 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
         }.castQueryable();
     }
 
-    public <TKey extends Comparable>
-    OrderedQueryable<T> orderBy(
+    public <TKey extends Comparable> OrderedQueryable<T> orderBy(
         final Queryable<T> source,
         final FunctionExpression<Function1<T, TKey>> keySelector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.orderBy(source, keySelector);
             }
-        }.castSingle();
+        };
     }
 
-    /** Sorts the elements of a sequence in ascending
-     * order by using a specified comparer. */
     public <TKey> OrderedQueryable<T> orderBy(
         final Queryable<T> source,
         final FunctionExpression<Function1<T, TKey>> keySelector,
-        Comparator<TKey> comparator)
+        final Comparator<TKey> comparator)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.orderBy(source, keySelector, comparator);
             }
-        }.castSingle();
+        };
     }
 
-    /** Sorts the elements of a sequence in descending
-     * order according to a key. */
-    public <TKey extends Comparable>
-    OrderedQueryable<T> orderByDescending(
+    public <TKey extends Comparable> OrderedQueryable<T> orderByDescending(
         final Queryable<T> source,
         final FunctionExpression<Function1<T, TKey>> keySelector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.orderByDescending(source, keySelector);
             }
-        }.castSingle();
+        };
     }
 
     public <TKey> OrderedQueryable<T> orderByDescending(
         final Queryable<T> source,
         final FunctionExpression<Function1<T, TKey>> keySelector,
-        Comparator<TKey> comparator)
+        final Comparator<TKey> comparator)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.orderByDescending(source, keySelector, comparator);
             }
-        }.castSingle();
+        };
     }
 
-    /** Inverts the order of the elements in a
-     * sequence. */
     public Queryable<T> reverse(
         final Queryable<T> source)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.reverse(source);
             }
-        }.castSingle();
+        };
     }
 
-    /** Projects each element of a sequence into a new form. */
     public <TResult> Queryable<TResult> select(
         final Queryable<T> source,
         final FunctionExpression<Function1<T, TResult>> selector)
     {
-        return source.getProvider().createQuery(
-            Expressions.call(source.getExpression(), "select", selector),
-            functionResultType(selector));
+        return new NonLeafReplayableQueryable<T>(source) {
+            public void replay(QueryableFactory<T> factory) {
+                factory.select(source, selector);
+            }
+        }.castQueryable();
     }
 
-    private <P0, R> Type functionResultType(
-        final FunctionExpression<Function1<P0, R>> selector)
-    {
-        return selector.body.getType();
-    }
-
-    /** Projects each element of a sequence into a new
-     * form by incorporating the element's index.
-     *
-     * <p>NOTE: Renamed from {@code select} because had same erasure as
-     * {@link #select(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)}.</p>
-     */
     public <TResult> Queryable<TResult> selectN(
         final Queryable<T> source,
         final FunctionExpression<Function2<T, Integer, TResult>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.selectN(source, selector);
             }
-        }.castSingle();
+        }.castQueryable();
     }
 
-    /** Projects each element of a sequence to an
-     * Enumerable<T> and combines the resulting sequences into one
-     * sequence. */
     public <TResult> Queryable<TResult> selectMany(
         final Queryable<T> source,
         final FunctionExpression<Function1<T, Enumerable<TResult>>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.selectMany(source, selector);
             }
-        }.castSingle();
+        }.castQueryable();
     }
 
-    /** Projects each element of a sequence to an
-     * Enumerable<T> and combines the resulting sequences into one
-     * sequence. The index of each source element is used in the
-     * projected form of that element.
-     *
-     * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
-     * {@link #selectMany(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression)}</p>
-     */
     public <TResult> Queryable<TResult> selectManyN(
         final Queryable<T> source,
         final FunctionExpression<Function2<T, Integer, Enumerable<TResult>>>
@@ -847,17 +827,11 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.selectManyN(source, selector);
             }
-        }.castSingle();
+        }.castQueryable();
     }
 
-    /** Projects each element of a sequence to an
-     * Enumerable<T> that incorporates the index of the source
-     * element that produced it. A result selector function is invoked
-     * on each element of each intermediate sequence, and the
-     * resulting values are combined into a single, one-dimensional
-     * sequence and returned. */
     public <TCollection, TResult> Queryable<TResult> selectMany(
         final Queryable<T> source,
         final FunctionExpression<Function2<T, Integer, Enumerable<TCollection>>>
@@ -867,22 +841,12 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.selectMany(source, collectionSelector, resultSelector);
             }
-        }.castSingle();
+        }.castQueryable();
     }
 
-    /** Projects each element of a sequence to an
-     * Enumerable<T> and invokes a result selector function on each
-     * element therein. The resulting values from each intermediate
-     * sequence are combined into a single, one-dimensional sequence
-     * and returned.
-     *
-     * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
-     * {@link #selectMany(net.hydromatic.linq4j.Queryable, net.hydromatic.linq4j.expressions.FunctionExpression, net.hydromatic.linq4j.expressions.FunctionExpression)}</p>
-     * */
-    public <TCollection, TResult>
-    Queryable<TResult> selectManyN(
+    public <TCollection, TResult> Queryable<TResult> selectManyN(
         final Queryable<T> source,
         final FunctionExpression<Function1<T, Enumerable<TCollection>>>
             collectionSelector,
@@ -891,9 +855,9 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.selectManyN(source, collectionSelector, resultSelector);
             }
-        }.castSingle();
+        }.castQueryable();
     }
 
     public boolean sequenceEqual(
@@ -902,394 +866,317 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sequenceEqual(source, enumerable);
             }
         }.castSingle();
     }
 
-    /** Determines whether two sequences are equal by
-     * using a specified EqualityComparer<T> to compare
-     * elements. */
     public boolean sequenceEqual(
         final Queryable<T> source,
-        Enumerable<T> enumerable,
-        EqualityComparer<T> comparer)
+        final Enumerable<T> enumerable,
+        final EqualityComparer<T> comparer)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sequenceEqual(source, enumerable, comparer);
             }
         }.castSingle();
     }
 
-    /** Returns the only element of a sequence, and throws
-     * an exception if there is not exactly one element in the
-     * sequence. */
     public T single(
         final Queryable<T> source)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.single(source);
             }
-        }.castSingle();
+        }.single();
     }
 
-    /** Returns the only element of a sequence that
-     * satisfies a specified condition, and throws an exception if
-     * more than one such element exists. */
     public T single(
         final Queryable<T> source,
         final FunctionExpression<Predicate1<T>> predicate)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.single(source, predicate);
             }
-        }.castSingle();
+        }.single();
     }
 
-    /** Returns the only element of a sequence, or a
-     * default value if the sequence is empty; this method throws an
-     * exception if there is more than one element in the
-     * sequence. */
     public T singleOrDefault(
         final Queryable<T> source)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.singleOrDefault(source);
             }
-        }.castSingle();
+        }.single();
     }
 
-    /** Returns the only element of a sequence that
-     * satisfies a specified condition or a default value if no such
-     * element exists; this method throws an exception if more than
-     * one element satisfies the condition. */
     public T singleOrDefault(
         final Queryable<T> source,
         final FunctionExpression<Predicate1<T>> predicate)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.singleOrDefault(source, predicate);
             }
-        }.castSingle();
+        }.single();
     }
 
-    /** Bypasses a specified number of elements in a
-     * sequence and then returns the remaining elements. */
     public Queryable<T> skip(
-        final Queryable<T> source, int count)
-    {
-        return EnumerableDefaults.skip(source.asEnumerable(), count)
-            .asQueryable();
-    }
-
-    /** Bypasses elements in a sequence as long as a
-     * specified condition is true and then returns the remaining
-     * elements. */
-    public Queryable<T> skipWhile(
         final Queryable<T> source,
-        final FunctionExpression<Predicate1<T>> predicate)
+        final int count)
     {
-        return skipWhileN(
-            source,
-            Expressions.lambda(
-                Functions.<T, Integer>toPredicate2(
-                    predicate.getFunction())));
-    }
-
-    /** Bypasses elements in a sequence as long as a
-     * specified condition is true and then returns the remaining
-     * elements. The element's index is used in the logic of the
-     * predicate function. */
-    public Queryable<T> skipWhileN(
-        final Queryable<T> source,
-        final FunctionExpression<Predicate2<T, Integer>> predicate)
-    {
-        return new BaseQueryable<T>(
-            source.getProvider(),
-            source.getElementType(),
-            source.getExpression())
-        {
-            public Enumerator<T> enumerator() {
-                return new EnumerableDefaults.SkipWhileEnumerator<T>(
-                    source.enumerator(), predicate.getFunction());
+        return new NonLeafReplayableQueryable<T>(source) {
+            public void replay(QueryableFactory<T> factory) {
+                factory.skip(source, count);
             }
         };
     }
 
-    /** Computes the sum of the sequence of Decimal values
-     * that is obtained by invoking a projection function on each
-     * element of the input sequence. */
+    public Queryable<T> skipWhile(
+        final Queryable<T> source,
+        final FunctionExpression<Predicate1<T>> predicate)
+    {
+        return new NonLeafReplayableQueryable<T>(source) {
+            public void replay(QueryableFactory<T> factory) {
+                factory.skipWhile(source, predicate);
+            }
+        };
+    }
+
+    public Queryable<T> skipWhileN(
+        final Queryable<T> source,
+        final FunctionExpression<Predicate2<T, Integer>> predicate)
+    {
+        return new NonLeafReplayableQueryable<T>(source) {
+            public void replay(QueryableFactory<T> factory) {
+                factory.skipWhileN(source, predicate);
+            }
+        };
+    }
+
     public BigDecimal sumBigDecimal(
-        final Queryable<T> sources,
+        final Queryable<T> source,
         final FunctionExpression<BigDecimalFunction1<T>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sumBigDecimal(source, selector);
             }
         }.castSingle();
     }
 
-    /** Computes the sum of the sequence of nullable
-     * Decimal values that is obtained by invoking a projection
-     * function on each element of the input sequence. */
     public BigDecimal sumNullableBigDecimal(
         final Queryable<T> source,
         final FunctionExpression<NullableBigDecimalFunction1<T>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sumNullableBigDecimal(source, selector);
             }
         }.castSingle();
     }
 
-    /** Computes the sum of the sequence of Double values
-     * that is obtained by invoking a projection function on each
-     * element of the input sequence. */
     public double sumDouble(
         final Queryable<T> source,
         final FunctionExpression<DoubleFunction1<T>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sumDouble(source, selector);
             }
         }.castSingle();
     }
 
-    /** Computes the sum of the sequence of nullable
-     * Double values that is obtained by invoking a projection
-     * function on each element of the input sequence. */
     public Double sumNullableDouble(
         final Queryable<T> source,
         final FunctionExpression<NullableDoubleFunction1<T>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sumNullableDouble(source, selector);
             }
         }.castSingle();
     }
 
-    /** Computes the sum of the sequence of int values
-     * that is obtained by invoking a projection function on each
-     * element of the input sequence. */
     public int sumInteger(
-        final Queryable<T> source, FunctionExpression<IntegerFunction1<T>>
-        selector)
+        final Queryable<T> source,
+        final FunctionExpression<IntegerFunction1<T>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sumInteger(source, selector);
             }
         }.castSingle();
     }
 
-    /** Computes the sum of the sequence of nullable int
-     * values that is obtained by invoking a projection function on
-     * each element of the input sequence. */
     public Integer sumNullableInteger(
         final Queryable<T> source,
         final FunctionExpression<NullableIntegerFunction1<T>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sumNullableInteger(source, selector);
             }
         }.castSingle();
     }
 
-    /** Computes the sum of the sequence of long values
-     * that is obtained by invoking a projection function on each
-     * element of the input sequence. */
     public long sumLong(
         final Queryable<T> source,
         final FunctionExpression<LongFunction1<T>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sumLong(source, selector);
             }
         }.castSingle();
     }
 
-    /** Computes the sum of the sequence of nullable long
-     * values that is obtained by invoking a projection function on
-     * each element of the input sequence. */
     public Long sumNullableLong(
         final Queryable<T> source,
         final FunctionExpression<NullableLongFunction1<T>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sumNullableLong(source, selector);
             }
         }.castSingle();
     }
 
-    /** Computes the sum of the sequence of Float values
-     * that is obtained by invoking a projection function on each
-     * element of the input sequence. */
     public float sumFloat(
         final Queryable<T> source,
         final FunctionExpression<FloatFunction1<T>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sumFloat(source, selector);
             }
         }.castSingle();
     }
 
-    /** Computes the sum of the sequence of nullable
-     * Float values that is obtained by invoking a projection
-     * function on each element of the input sequence. */
     public Float sumNullableFloat(
         final Queryable<T> source,
         final FunctionExpression<NullableFloatFunction1<T>> selector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.sumNullableFloat(source, selector);
             }
         }.castSingle();
     }
 
-    /** Returns a specified number of contiguous elements
-     * from the start of a sequence. */
     public Queryable<T> take(
-        final Queryable<T> source, int count)
-    {
-        return EnumerableDefaults.take(source.asEnumerable(), count)
-            .asQueryable();
-    }
-
-    /** Returns elements from a sequence as long as a
-     * specified condition is true. */
-    public Queryable<T> takeWhile(
         final Queryable<T> source,
-        final FunctionExpression<Predicate1<T>> predicate)
+        final int count)
     {
-        return takeWhileN(
-            source,
-            Expressions.lambda(
-                Functions.<T, Integer>toPredicate2(
-                    predicate.getFunction())));
-    }
-
-    /** Returns elements from a sequence as long as a
-     * specified condition is true. The element's index is used in the
-     * logic of the predicate function. */
-    public Queryable<T> takeWhileN(
-        final Queryable<T> source,
-        final FunctionExpression<Predicate2<T, Integer>> predicate)
-    {
-        return new BaseQueryable<T>(
-            source.getProvider(),
-            source.getElementType(),
-            source.getExpression())
-        {
-            public Enumerator<T> enumerator() {
-                return new EnumerableDefaults.TakeWhileEnumerator<T>(
-                    source.enumerator(), predicate.getFunction());
+        return new NonLeafReplayableQueryable<T>(source) {
+            public void replay(QueryableFactory<T> factory) {
+                factory.take(source, count);
             }
         };
     }
 
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * ascending order according to a key. */
-    public <TKey extends Comparable<TKey>>
-    OrderedQueryable<T> thenBy(
-        OrderedQueryable<T> source,
+    public Queryable<T> takeWhile(
+        final Queryable<T> source,
+        final FunctionExpression<Predicate1<T>> predicate)
+    {
+        return new NonLeafReplayableQueryable<T>(source) {
+            public void replay(QueryableFactory<T> factory) {
+                factory.takeWhile(source, predicate);
+            }
+        };
+    }
+
+    public Queryable<T> takeWhileN(
+        final Queryable<T> source,
+        final FunctionExpression<Predicate2<T, Integer>> predicate)
+    {
+        return new NonLeafReplayableQueryable<T>(source) {
+            public void replay(QueryableFactory<T> factory) {
+                factory.takeWhileN(source, predicate);
+            }
+        };
+    }
+
+    public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(
+        final OrderedQueryable<T> source,
         final FunctionExpression<Function1<T, TKey>> keySelector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.thenBy(source, keySelector);
             }
-        }.castSingle();
+        };
     }
 
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * ascending order according to a key, using a specified comparator. */
     public <TKey> OrderedQueryable<T> thenBy(
-        OrderedQueryable<T> source,
+        final OrderedQueryable<T> source,
         final FunctionExpression<Function1<T, TKey>> keySelector,
-        Comparator<TKey> comparator)
+        final Comparator<TKey> comparator)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.thenBy(source, keySelector, comparator);
             }
-        }.castSingle();
+        };
     }
 
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * descending order according to a key. */
-    public <TKey extends Comparable<TKey>>
-    OrderedQueryable<T> thenByDescending(
-        OrderedQueryable<T> source,
+    public <TKey extends Comparable<TKey>> OrderedQueryable<T> thenByDescending(
+        final OrderedQueryable<T> source,
         final FunctionExpression<Function1<T, TKey>> keySelector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.thenByDescending(source, keySelector);
             }
-        }.castSingle();
+        };
     }
 
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * dscending order according to a key, using a specified comparator. */
     public <TKey> OrderedQueryable<T> thenByDescending(
-        OrderedQueryable<T> source,
+        final OrderedQueryable<T> source,
         final FunctionExpression<Function1<T, TKey>> keySelector,
-        Comparator<TKey> comparator)
+        final Comparator<TKey> comparator)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.thenByDescending(source, keySelector, comparator);
             }
-        }.castSingle();
+        };
     }
 
     public Queryable<T> union(
-        final Queryable<T> source0,
+        final Queryable<T> source,
         final Enumerable<T> source1)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.union(source, source1);
             }
-        }.castSingle();
+        };
     }
 
-    /** Produces the set union of two sequences by using a
-     * specified EqualityComparer<T>. */
     public Queryable<T> union(
-        final Queryable<T> source0,
-        Enumerable<T> source1,
-        EqualityComparer<T> comparer)
+        final Queryable<T> source,
+        final Enumerable<T> source1,
+        final EqualityComparer<T> comparer)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.union(source, source1, comparer);
             }
-        }.castSingle();
+        };
     }
 
     public Queryable<T> where(
         final Queryable<T> source,
         final FunctionExpression<? extends Predicate1<T>> predicate)
     {
-        return new QueryableDefaults.NonLeafReplayableQueryable<T>(source) {
-            public Queryable<T> replay(QueryableFactory<T> factory) {
-                return factory.where(source, predicate);
+        return new NonLeafReplayableQueryable<T>(source) {
+            public void replay(QueryableFactory<T> factory) {
+                factory.where(source, predicate);
             }
         };
     }
@@ -1300,21 +1187,21 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.whereN(source, predicate);
             }
-        }.castSingle();
+        };
     }
 
     public <T1, TResult> Queryable<TResult> zip(
         final Queryable<T> source,
-        Enumerable<T1> source1,
+        final Enumerable<T1> source1,
         final FunctionExpression<Function2<T, T1, TResult>> resultSelector)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
-                factory.xxx(source, selector);
+                factory.zip(source, source1, resultSelector);
             }
-        }.castSingle();
+        }.castQueryable();
     }
 }
 

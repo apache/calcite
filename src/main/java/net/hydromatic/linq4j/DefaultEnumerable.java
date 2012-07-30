@@ -187,7 +187,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     }
 
     public Enumerable<T> distinct(
-        EqualityComparer comparer)
+        EqualityComparer<T> comparer)
     {
         return EnumerableDefaults.distinct(getThis(), comparer);
     }

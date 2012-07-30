@@ -109,7 +109,7 @@ abstract class DefaultQueryable<T>
     }
 
     @Override
-    public Queryable<T> distinct(EqualityComparer comparer) {
+    public Queryable<T> distinct(EqualityComparer<T> comparer) {
         return factory.distinct(getThis(), comparer);
     }
 

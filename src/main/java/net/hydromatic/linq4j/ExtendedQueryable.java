@@ -131,7 +131,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
     /** Returns distinct elements from a sequence by using
      * a specified EqualityComparer&lt;TSource&gt; to compare values. */
-    Queryable<TSource> distinct(EqualityComparer comparer);
+    Queryable<TSource> distinct(EqualityComparer<TSource> comparer);
 
     /** Produces the set difference of two sequences by
      * using the default equality comparer to compare values. (Defined

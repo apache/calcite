@@ -952,8 +952,8 @@ public abstract class QueryableDefaults {
      * that is obtained by invoking a projection function on each
      * element of the input sequence. */
     public static <T> int sumInteger(
-        Queryable<T> source, FunctionExpression<IntegerFunction1<T>>
-            selector)
+        Queryable<T> source,
+        FunctionExpression<IntegerFunction1<T>> selector)
     {
         throw Extensions.todo();
     }
@@ -1158,6 +1158,21 @@ public abstract class QueryableDefaults {
         public Enumerator<T> enumerator() {
             return getProvider().executeQuery(this);
         }
+
+        /** Convenience method, for {@link QueryableRecorder} methods that
+         * return a scalar value such as {@code boolean} or
+         * {@link BigDecimal}. */
+        @SuppressWarnings("unchecked")
+        <U> U castSingle() {
+            return ((Queryable<U>) (Queryable) this).single();
+        }
+
+        /** Convenience method, for {@link QueryableRecorder} methods that
+         * return a Queryable of a different element type than the source. */
+        @SuppressWarnings("unchecked")
+        public <U> Queryable<U> castQueryable() {
+            return (Queryable<U>) (Queryable) this;
+        }
     }
 
     public static abstract class NonLeafReplayableQueryable<T>
@@ -1179,14 +1194,6 @@ public abstract class QueryableDefaults {
 
         public QueryProvider getProvider() {
             return original.getProvider();
-        }
-
-        public <U> U castSingle() {
-            return ((Queryable<U>) this).single();
-        }
-
-        public <U> Queryable<U> castQueryable() {
-            return (Queryable<U>) this;
         }
     }
 }

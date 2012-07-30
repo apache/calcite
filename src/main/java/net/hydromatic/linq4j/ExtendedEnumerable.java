@@ -211,7 +211,7 @@ public interface ExtendedEnumerable<TSource> {
 
     /** Returns distinct elements from a sequence by using
      * a specified EqualityComparer<TSource> to compare values. */
-    Enumerable<TSource> distinct(EqualityComparer comparer);
+    Enumerable<TSource> distinct(EqualityComparer<TSource> comparer);
 
     /** Returns the element at a specified index in a
      * sequence. */
