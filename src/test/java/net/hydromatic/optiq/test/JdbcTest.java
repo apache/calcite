@@ -26,26 +26,21 @@ import net.hydromatic.linq4j.function.Predicate1;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
+import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
-import junit.framework.Assert;
 import junit.framework.TestCase;
 
 import org.apache.commons.dbcp.BasicDataSource;
 
 import org.eigenbase.sql.SqlDialect;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.sql.*;
-import java.sql.Statement;
 import java.util.*;
 import javax.sql.DataSource;
-
-import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
 
 /**
  * Tests for using Optiq via JDBC.
@@ -184,13 +179,12 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        MapSchema schema =
-            new MapSchema(optiqConnection, typeFactory, null);
+        MutableSchema rootSchema = optiqConnection.getRootSchema();
+        MapSchema schema = MapSchema.create(optiqConnection, rootSchema, "s");
         schema.addTableFunction(
             "GenerateStrings",
             Schemas.methodMember(
                 GENERATE_STRINGS_METHOD, typeFactory));
-        optiqConnection.getRootSchema().addSchema("s", schema);
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
             + "from table(s.GenerateStrings(5))\n"
@@ -251,8 +245,8 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        MapSchema schema =
-            new MapSchema(optiqConnection, typeFactory, null);
+        MutableSchema rootSchema = optiqConnection.getRootSchema();
+        MapSchema schema = MapSchema.create(optiqConnection, rootSchema, "s");
         schema.addTableFunction(
             "GenerateStrings",
             Schemas.methodMember(
@@ -261,9 +255,8 @@ public class JdbcTest extends TestCase {
             "StringUnion",
             Schemas.methodMember(
                 STRING_UNION_METHOD, typeFactory));
-        MutableSchema rootSchema = optiqConnection.getRootSchema();
-        rootSchema.addSchema("s", schema);
-        rootSchema.addReflectiveSchema("hr", new HrSchema());
+        ReflectiveSchema.create(
+            optiqConnection, rootSchema, "hr", new HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
             + "from table(s.StringUnion(\n"
@@ -283,15 +276,16 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        MapSchema schema =
-            new MapSchema(optiqConnection, typeFactory, null);
+        MutableSchema rootSchema = optiqConnection.getRootSchema();
+        MapSchema schema = MapSchema.create(optiqConnection, rootSchema, "s");
         schema.addTableFunction(
             "emps_view",
             viewFunction(
-                typeFactory, "emps_view", "select * from \"hr\".\"emps\""));
-        MutableSchema rootSchema = optiqConnection.getRootSchema();
-        rootSchema.addSchema("s", schema);
-        rootSchema.addReflectiveSchema("hr", new HrSchema());
+                typeFactory,
+                "emps_view",
+                "select * from \"hr\".\"emps\""));
+        ReflectiveSchema.create(
+            optiqConnection, rootSchema, "hr", new HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
             + "from \"emps_view\"");
@@ -329,8 +323,10 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         MutableSchema rootSchema = optiqConnection.getRootSchema();
-        rootSchema.addReflectiveSchema("hr", new HrSchema());
-        rootSchema.addReflectiveSchema("foodmart", new FoodmartSchema());
+        ReflectiveSchema.create(
+            optiqConnection, rootSchema, "hr", new HrSchema());
+        ReflectiveSchema.create(
+            optiqConnection, rootSchema, "foodmart", new FoodmartSchema());
         return connection;
     }
 
@@ -357,14 +353,8 @@ public class JdbcTest extends TestCase {
         dataSource.setUsername("foodmart");
         dataSource.setPassword("foodmart");
 
-        // FIXME: Sub-schema should not need to build its own expression.
-        final Expression expression =
-            Expressions.call(
-                optiqConnection.getRootSchema().getExpression(),
-                "getSubSchema",
-                Expressions.constant("foodmart"));
-
-        optiqConnection.getRootSchema().addSchema(
+        MutableSchema rootSchema = optiqConnection.getRootSchema();
+        rootSchema.addSchema(
             "foodmart",
             new JdbcSchema(
                 queryProvider == null ? optiqConnection : queryProvider,
@@ -373,7 +363,8 @@ public class JdbcTest extends TestCase {
                 "foodmart",
                 "",
                 optiqConnection.getTypeFactory(),
-                expression));
+                rootSchema.getSubSchemaExpression(
+                    "foodmart", Schema.class)));
         return optiqConnection;
     }
 

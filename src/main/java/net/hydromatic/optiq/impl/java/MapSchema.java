@@ -20,7 +20,9 @@ package net.hydromatic.optiq.impl.java;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
+
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.eigenbase.reltype.RelDataType;
 
@@ -44,9 +46,16 @@ public class MapSchema implements MutableSchema {
         new HashMap<String, Schema>();
 
     private final QueryProvider queryProvider;
-    private final JavaTypeFactory typeFactory;
+    protected final JavaTypeFactory typeFactory;
     private final Expression expression;
 
+    /**
+     * Creates a MapSchema.
+     *
+     * @param queryProvider Query provider
+     * @param typeFactory Type factory
+     * @param expression Expression for schema
+     */
     public MapSchema(
         QueryProvider queryProvider,
         JavaTypeFactory typeFactory,
@@ -59,6 +68,28 @@ public class MapSchema implements MutableSchema {
         assert expression != null;
         assert typeFactory != null;
         assert queryProvider != null;
+    }
+
+    /**
+     * Creates a MapSchema within another schema.
+     *
+     * @param optiqConnection Connection to Optiq (also a query provider)
+     * @param parentSchema Parent schema
+     * @param name Name of new schema
+     * @return New MapSchema
+     */
+    public static MapSchema create(
+        OptiqConnection optiqConnection,
+        MutableSchema parentSchema,
+        String name)
+    {
+        MapSchema schema =
+            new MapSchema(
+                optiqConnection,
+                optiqConnection.getTypeFactory(),
+                parentSchema.getSubSchemaExpression(name, Object.class));
+        parentSchema.addSchema(name, schema);
+        return schema;
     }
 
     public Expression getExpression() {
@@ -103,26 +134,15 @@ public class MapSchema implements MutableSchema {
         subSchemaMap.put(name, schema);
     }
 
-    public void addReflectiveSchema(String name, Object target) {
-        addSchema(
-            name,
-            new ReflectiveSchema(
-                queryProvider, target, typeFactory,
-                getSubSchemaExpression(
-                    getExpression(), name, ReflectiveSchema.class)));
-    }
-
-    private Expression getSubSchemaExpression(
-        Expression schemaExpression, String name, Class type)
-    {
+    public Expression getSubSchemaExpression(String name, Class type) {
         // (Type) schemaExpression.getSubSchema("name")
         Expression call =
             Expressions.call(
-                schemaExpression,
+                getExpression(),
                 BuiltinMethod.GET_SUB_SCHEMA.method,
                 Collections.<Expression>singletonList(
                     Expressions.constant(name)));
-        if (type != null && type != Object.class) {
+        if (type != null && !type.isAssignableFrom(Schema.class)) {
             return Expressions.convert_(call, type);
         }
         return call;

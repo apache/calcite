@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.examples.foodmart.java;
 
 import net.hydromatic.optiq.MutableSchema;
+import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import java.sql.*;
@@ -39,8 +40,10 @@ public class JdbcExample {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         MutableSchema rootSchema = optiqConnection.getRootSchema();
-        rootSchema.addReflectiveSchema("hr", new HrSchema());
-        rootSchema.addReflectiveSchema("foodmart", new FoodmartSchema());
+        ReflectiveSchema.create(
+            optiqConnection, rootSchema, "hr", new HrSchema());
+        ReflectiveSchema.create(
+            optiqConnection, rootSchema, "foodmart", new FoodmartSchema());
         Statement statement = connection.createStatement();
         ResultSet resultSet =
             statement.executeQuery(

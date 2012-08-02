@@ -20,9 +20,10 @@ package net.hydromatic.optiq.impl.java;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
-
 import net.hydromatic.linq4j.expressions.Types;
+
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.eigenbase.reltype.RelDataType;
 
@@ -46,22 +47,22 @@ public class ReflectiveSchema
     /**
      * Creates a ReflectiveSchema.
      *
-     * @param target Object whose fields will be sub-objects
-     * @param typeFactory Type factory
+     * @param optiqConnection Connection to Optiq (also a query provider)
+     * @param target Object whose fields will be sub-objects of the schema
+     * @param expression Expression for schema
      */
     public ReflectiveSchema(
-        QueryProvider queryProvider,
+        OptiqConnection optiqConnection,
         Object target,
-        JavaTypeFactory typeFactory,
         Expression expression)
     {
-        super(queryProvider, typeFactory, expression);
+        super(optiqConnection, optiqConnection.getTypeFactory(), expression);
         this.clazz = target.getClass();
         this.target = target;
         for (Field field : clazz.getFields()) {
             tableMap.put(
                 field.getName(),
-                fieldRelation(field, typeFactory));
+                fieldRelation(field));
         }
         for (Method method : clazz.getMethods()) {
             if (method.getDeclaringClass() == Object.class) {
@@ -70,8 +71,33 @@ public class ReflectiveSchema
             putMulti(
                 membersMap,
                 method.getName(),
-                methodMember(method, typeFactory));
+                methodMember(method));
         }
+    }
+
+    /**
+     * Creates a ReflectiveSchema within another schema.
+     *
+     * @param optiqConnection Connection to Optiq (also a query provider)
+     * @param parentSchema Parent schema
+     * @param name Name of new schema
+     * @param target Object whose fields become the tables of the schema
+     * @return New ReflectiveSchema
+     */
+    public static ReflectiveSchema create(
+        OptiqConnection optiqConnection,
+        MutableSchema parentSchema,
+        String name,
+        Object target)
+    {
+        ReflectiveSchema schema =
+            new ReflectiveSchema(
+                optiqConnection,
+                target,
+                parentSchema.getSubSchemaExpression(
+                    name, ReflectiveSchema.class));
+        parentSchema.addSchema(name, schema);
+        return schema;
     }
 
     /** Returns the wrapped object. (May not appear to be used, but is used in
@@ -80,10 +106,7 @@ public class ReflectiveSchema
         return target;
     }
 
-    public <T> TableFunction<T> methodMember(
-        final Method method,
-        final JavaTypeFactory typeFactory)
-    {
+    public <T> TableFunction<T> methodMember(final Method method) {
         final ReflectiveSchema schema = this;
         final Type elementType = getElementType(method.getReturnType());
         final Class<?>[] parameterTypes = method.getParameterTypes();
@@ -163,10 +186,7 @@ public class ReflectiveSchema
                 BuiltinMethod.GET_TARGET.method));
     }
 
-    private <T> Table<T> fieldRelation(
-        final Field field,
-        JavaTypeFactory typeFactory)
-    {
+    private <T> Table<T> fieldRelation(final Field field) {
         final Type elementType = getElementType(field.getType());
         return new ReflectiveTable<T>(
             this,
