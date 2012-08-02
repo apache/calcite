@@ -15,10 +15,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
+package net.hydromatic.optiq.test;
+
+import junit.framework.TestCase;
+
+import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
 
 /**
- * Main package for Optiq, the dynamic data management platform.
+ * Tests for a JDBC front-end and JDBC back-end.
+ *
+ * <p>The idea is that as much as possible of the query is pushed down
+ * to the JDBC data source, in the form of a large (and hopefully efficient)
+ * SQL statement.</p>
+ *
+ * @see JdbcFrontJdbcBackLinqMiddleTest
+ *
+ * @author jhyde
  */
-package net.hydromatic.optiq.impl;
+public class JdbcFrontJdbcBackTest extends TestCase {
+    public void testWhere2() {
+        assertThat()
+            .inJdbcFoodmart2()
+            .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
+            .returns(
+                "day=1; week_day=Sunday\n"
+                + "day=2; week_day=Monday\n");
+    }
+}
 
-// End package-info.java
+// End JdbcFrontJdbcBackTest.java

@@ -26,7 +26,6 @@ import net.hydromatic.linq4j.function.Predicate1;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
-import net.hydromatic.optiq.impl.jdbc.JdbcQueryProvider;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
@@ -36,7 +35,6 @@ import junit.framework.TestCase;
 import org.apache.commons.dbcp.BasicDataSource;
 
 import org.eigenbase.sql.SqlDialect;
-import org.eigenbase.util.Util;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -46,6 +44,8 @@ import java.sql.*;
 import java.sql.Statement;
 import java.util.*;
 import javax.sql.DataSource;
+
+import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
 
 /**
  * Tests for using Optiq via JDBC.
@@ -67,121 +67,6 @@ public class JdbcTest extends TestCase {
         Types.lookupMethod(
             JdbcTest.class, "stringUnion", Queryable.class, Queryable.class);
 
-    /**
-     * Runs a simple query that reads from a table in an in-memory schema.
-     */
-    public void testSelect() {
-        assertQuery(
-            "select *\n"
-            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-            + "where s.\"cust_id\" = 100").returns(
-                "cust_id=100; prod_id=10\n");
-    }
-
-    /**
-     * Runs a simple query that joins between two in-memory schemas.
-     */
-    public void testJoin() {
-        assertQuery(
-            "select *\n"
-            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-            + "join \"hr\".\"emps\" as e\n"
-            + "on e.\"empid\" = s.\"cust_id\"").returns(
-                "cust_id=100; prod_id=10; empid=100; deptno=10; name=Bill\n"
-                + "cust_id=150; prod_id=20; empid=150; deptno=10; name=Sebastian\n");
-    }
-
-    /**
-     * Simple GROUP BY.
-     */
-    public void testGroupBy() {
-        assertQuery(
-            "select \"deptno\", sum(\"empid\") as s, count(*) as c\n"
-            + "from \"hr\".\"emps\" as e\n"
-            + "group by \"deptno\"").returns(
-                "deptno=20; S=200; C=1\n"
-                + "deptno=10; S=250; C=2\n");
-    }
-
-    /**
-     * Simple ORDER BY.
-     */
-    public void testOrderBy() {
-        assertQuery(
-            "select upper(\"name\") as un, \"deptno\"\n"
-            + "from \"hr\".\"emps\" as e\n"
-            + "order by \"deptno\", \"name\" desc").returns(
-                "UN=SEBASTIAN; deptno=10\n"
-                + "UN=BILL; deptno=10\n"
-                + "UN=ERIC; deptno=20\n");
-    }
-
-    /**
-     * Simple UNION, plus ORDER BY.
-     *
-     * <p>Also tests a query that returns a single column. We optimize this case
-     * internally, using non-array representations for rows.</p>
-     */
-    public void testUnionAllOrderBy() {
-        assertQuery(
-            "select \"name\"\n"
-            + "from \"hr\".\"emps\" as e\n"
-            + "union all\n"
-            + "select \"name\"\n"
-            + "from \"hr\".\"depts\"\n"
-            + "order by 1 desc").returns(
-                "name=Sebastian\n"
-                + "name=Sales\n"
-                + "name=Marketing\n"
-                + "name=HR\n"
-                + "name=Eric\n"
-                + "name=Bill\n");
-    }
-
-    /**
-     * Tests UNION.
-     */
-    public void testUnion() {
-        assertQuery(
-            "select substring(\"name\" from 1 for 1) as x\n"
-            + "from \"hr\".\"emps\" as e\n"
-            + "union\n"
-            + "select substring(\"name\" from 1 for 1) as y\n"
-            + "from \"hr\".\"depts\"").returns(
-                "X=E\n"
-                + "X=S\n"
-                + "X=B\n"
-                + "X=M\n"
-                + "X=H\n");
-    }
-
-    /**
-     * Tests INTERSECT.
-     */
-    public void testIntersect() {
-        assertQuery(
-            "select substring(\"name\" from 1 for 1) as x\n"
-            + "from \"hr\".\"emps\" as e\n"
-            + "intersect\n"
-            + "select substring(\"name\" from 1 for 1) as y\n"
-            + "from \"hr\".\"depts\"").returns(
-                "X=S\n");
-    }
-
-    /**
-     * Tests EXCEPT.
-     */
-    public void testExcept() {
-        assertQuery(
-            "select substring(\"name\" from 1 for 1) as x\n"
-            + "from \"hr\".\"emps\" as e\n"
-            + "except\n"
-            + "select substring(\"name\" from 1 for 1) as y\n"
-            + "from \"hr\".\"depts\"").returns(
-                "X=E\n"
-                + "X=B\n");
-    }
-
     static String toString(ResultSet resultSet) throws SQLException {
         StringBuilder buf = new StringBuilder();
         while (resultSet.next()) {
@@ -197,23 +82,6 @@ public class JdbcTest extends TestCase {
             buf.append("\n");
         }
         return buf.toString();
-    }
-
-    public void testWhereBad() {
-        assertQuery(
-            "select *\n"
-            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-            + "where empid > 120")
-            .throwz("Column 'EMPID' not found in any table");
-    }
-
-    public void _testWhere() {
-        assertQuery(
-            "select *\n"
-            + "from \"hr\".\"emps\" as e\n"
-            + "where e.\"empid\" > 120 and e.\"name\" like 'B%'").returns(
-                "cust_id=100; prod_id=10; empid=100; name=Bill\n"
-                + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n");
     }
 
     /**
@@ -431,7 +299,9 @@ public class JdbcTest extends TestCase {
     }
 
     private <T> TableFunction<T> viewFunction(
-        JavaTypeFactory typeFactory, final String name, String viewSql)
+        JavaTypeFactory typeFactory,
+        final String name,
+        String viewSql)
     {
         return new TableFunction<T>() {
             public List<Parameter> getParameters() {
@@ -450,87 +320,7 @@ public class JdbcTest extends TestCase {
         };
     }
 
-    private Function1<String, Void> checkResult(final String expected) {
-        return new Function1<String, Void>() {
-            public Void apply(String p0) {
-                Assert.assertEquals(expected, p0);
-                return null;
-            }
-        };
-    }
-
-    private Function1<Exception, Void> checkException(final String expected) {
-        return new Function1<Exception, Void>() {
-            public Void apply(Exception p0) {
-                StringWriter stringWriter = new StringWriter();
-                PrintWriter printWriter = new PrintWriter(stringWriter);
-                p0.printStackTrace(printWriter);
-                printWriter.flush();
-                String stack = stringWriter.toString();
-                Assert.assertTrue(stack, stack.contains(expected));
-                return null;
-            }
-        };
-    }
-
-    private void assertQueryReturns(String sql, String expected)
-        throws Exception
-    {
-        assertQuery(sql, checkResult(expected), null);
-    }
-
-    private void assertQueryThrows(String sql, String message)
-        throws Exception
-    {
-        assertQuery(sql, null, checkException(message));
-    }
-
-    private void assertQuery(
-        String sql,
-        Function1<String, Void> resultChecker,
-        Function1<Exception, Void> exceptionChecker)
-        throws Exception
-    {
-        Connection connection = getConnectionWithHrFoodmart();
-        Statement statement = connection.createStatement();
-        ResultSet resultSet;
-        try {
-            resultSet = statement.executeQuery(sql);
-            if (exceptionChecker != null) {
-                exceptionChecker.apply(null);
-                return;
-            }
-        } catch (Exception e) {
-            if (exceptionChecker != null) {
-                exceptionChecker.apply(e);
-                return;
-            }
-            throw e;
-        }
-        StringBuilder buf = new StringBuilder();
-        while (resultSet.next()) {
-            int n = resultSet.getMetaData().getColumnCount();
-            for (int i = 1;; i++) {
-                buf.append(resultSet.getMetaData().getColumnLabel(i))
-                    .append("=")
-                    .append(resultSet.getObject(i));
-                if (i == n) {
-                    break;
-                }
-                buf.append("; ");
-            }
-            buf.append("\n");
-        }
-        resultSet.close();
-        statement.close();
-        connection.close();
-
-        if (resultChecker != null) {
-            resultChecker.apply(buf.toString());
-        }
-    }
-
-    private Connection getConnectionWithHrFoodmart()
+    static Connection getConnectionWithHrFoodmart()
         throws ClassNotFoundException, SQLException
     {
         Class.forName("net.hydromatic.optiq.jdbc.Driver");
@@ -544,7 +334,17 @@ public class JdbcTest extends TestCase {
         return connection;
     }
 
-    private OptiqConnection getConnection(QueryProvider queryProvider)
+    /**
+     * Creates a connection with a given query provider. If provider is null,
+     * uses the connection as its own provider. The connection contains a
+     * schema called "foodmart" backed by a JDBC connection to MySQL.
+     *
+     * @param queryProvider Query provider
+     * @return Connection
+     * @throws ClassNotFoundException
+     * @throws SQLException
+     */
+    static OptiqConnection getConnection(QueryProvider queryProvider)
         throws ClassNotFoundException, SQLException
     {
         Class.forName("net.hydromatic.optiq.jdbc.Driver");
@@ -575,222 +375,6 @@ public class JdbcTest extends TestCase {
                 optiqConnection.getTypeFactory(),
                 expression));
         return optiqConnection;
-    }
-
-    public void testFoodMartJdbc() {
-        assertQuery("select * from \"foodmart\".\"days\"")
-            .inJdbcFoodmart()
-            .returns(
-                "day=1; week_day=Sunday\n" + "day=2; week_day=Monday\n"
-                + "day=5; week_day=Thursday\n" + "day=4; week_day=Wednesday\n"
-                + "day=3; week_day=Tuesday\n" + "day=6; week_day=Friday\n"
-                + "day=7; week_day=Saturday\n");
-    }
-
-    public void testFoodMartJdbcWhere() {
-        assertQuery("select * from \"foodmart\".\"days\" where \"day\" < 3")
-            .inJdbcFoodmart()
-            .returns(
-                "day=1; week_day=Sunday\n"
-                + "day=2; week_day=Monday\n");
-    }
-
-    public void testFoodMartJdbcWhere2() {
-        assertQuery("select * from \"foodmart\".\"days\" where \"day\" < 3")
-            .inJdbcFoodmart2()
-            .returns(
-                "day=1; week_day=Sunday\n"
-                + "day=2; week_day=Monday\n");
-    }
-
-    public void testJdbcBackendLinqFrontend() {
-        try {
-            final OptiqConnection connection = getConnection(null);
-            JdbcSchema schema =
-                (JdbcSchema)
-                connection.getRootSchema().getSubSchema("foodmart");
-            ParameterExpression c =
-                Expressions.parameter(
-                    Customer.class, "c");
-            String s =
-            schema.getTable("customer", Customer.class)
-                .where(
-                    Expressions.<Predicate1<Customer>>lambda(
-                        Expressions.lessThan(
-                            Expressions.field(c, "customer_id"),
-                            Expressions.constant(5)),
-                        c))
-                .toList()
-                .toString();
-            System.out.println(s);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void testFoodMartJdbcGroup() {
-        assertQuery(
-            "select s, count(*) as c from (\n"
-            + "select substring(\"week_day\" from 1 for 1) as s\n"
-            + "from \"foodmart\".\"days\")\n"
-            + "group by s")
-            .inJdbcFoodmart()
-            .returns(
-                "S=T; C=2\n"
-                + "S=F; C=1\n"
-                + "S=W; C=1\n"
-                + "S=S; C=2\n"
-                + "S=M; C=1\n");
-    }
-
-    public void testFoodMartJdbcGroupEmpty() {
-        assertQuery(
-            "select count(*) as c\n"
-            + "from \"foodmart\".\"days\"")
-            .inJdbcFoodmart()
-            .returns("C=7\n");
-    }
-
-    public void testFoodMartJdbcJoinGroupByEmpty() {
-        assertQuery(
-            "select count(*) from (\n"
-            + "  select *\n"
-            + "  from \"foodmart\".\"sales_fact_1997\" as s\n"
-            + "  join \"foodmart\".\"customer\" as c\n"
-            + "  on s.\"customer_id\" = c.\"customer_id\")")
-            .inJdbcFoodmart()
-            .returns("EXPR$0=86837\n");
-    }
-
-    public void testFoodMartJdbcJoinGroupByOrderBy() {
-        assertQuery(
-            "select count(*), c.\"state_province\", sum(s.\"unit_sales\") as s\n"
-            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-            + "  join \"foodmart\".\"customer\" as c\n"
-            + "  on s.\"customer_id\" = c.\"customer_id\"\n"
-            + "group by c.\"state_province\"\n"
-            + "order by c.\"state_province\"")
-            .inJdbcFoodmart()
-            .returns(
-                "EXPR$0=24442; state_province=CA; S=74748.0000\n"
-                + "EXPR$0=21611; state_province=OR; S=67659.0000\n"
-                + "EXPR$0=40784; state_province=WA; S=124366.0000\n");
-    }
-
-    public void testFoodMartJdbcCompositeGroupBy() {
-        assertQuery(
-            "select count(*) as c, c.\"state_province\"\n"
-            + "from \"foodmart\".\"customer\" as c\n"
-            + "group by c.\"state_province\", c.\"country\"\n"
-            + "order by c.\"state_province\", 1")
-            .inJdbcFoodmart()
-            .returns(
-                "C=1717; state_province=BC\n"
-                + "C=4222; state_province=CA\n"
-                + "C=347; state_province=DF\n"
-                + "C=106; state_province=Guerrero\n"
-                + "C=104; state_province=Jalisco\n"
-                + "C=97; state_province=Mexico\n"
-                + "C=1051; state_province=OR\n"
-                + "C=90; state_province=Oaxaca\n"
-                + "C=78; state_province=Sinaloa\n"
-                + "C=93; state_province=Veracruz\n"
-                + "C=2086; state_province=WA\n"
-                + "C=99; state_province=Yucatan\n"
-                + "C=191; state_province=Zacatecas\n");
-    }
-
-    public void testFoodMartJdbcDistinctCount() {
-        // Complicating factors:
-        // Composite GROUP BY key
-        // Order by select item, referenced by ordinal
-        // Distinct count
-        // Not all GROUP columns are projected
-        assertQuery(
-            "select c.\"state_province\",\n"
-            + "  sum(s.\"unit_sales\") as s,\n"
-            + "  count(distinct c.\"customer_id\") as dc\n"
-            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-            + "  join \"foodmart\".\"customer\" as c\n"
-            + "  on s.\"customer_id\" = c.\"customer_id\"\n"
-            + "group by c.\"state_province\", c.\"country\"\n"
-            + "order by c.\"state_province\", 2")
-            .inJdbcFoodmart()
-            .returns(
-                "state_province=CA; S=74748.0000; DC=24442\n"
-                + "state_province=OR; S=67659.0000; DC=21611\n"
-                + "state_province=WA; S=124366.0000; DC=40784\n");
-    }
-
-    public AssertQuery assertQuery(String s) {
-        return new AssertQuery(s);
-    }
-
-    private class AssertQuery {
-        private final String sql;
-        private Config config = Config.REGULAR;
-
-        AssertQuery(String sql) {
-            super();
-            this.sql = sql;
-        }
-
-        void returns(String expected) {
-            try {
-                Connection connection;
-                Statement statement;
-                ResultSet resultSet;
-
-                switch (config) {
-                case REGULAR:
-                    connection = getConnectionWithHrFoodmart();
-                    break;
-                case JDBC_FOODMART2:
-                    connection = getConnection(null);
-                    break;
-                case JDBC_FOODMART:
-                    connection = getConnection(JdbcQueryProvider.INSTANCE);
-                    break;
-                default:
-                    throw Util.unexpected(config);
-                }
-                statement = connection.createStatement();
-                resultSet = statement.executeQuery(sql);
-                String actual = JdbcTest.toString(resultSet);
-                resultSet.close();
-                statement.close();
-                connection.close();
-
-                assertEquals(expected, actual);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public void throwz(String message) {
-            try {
-                assertQueryThrows(sql, message);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public AssertQuery inJdbcFoodmart() {
-            config = Config.JDBC_FOODMART;
-            return this;
-        }
-
-        public AssertQuery inJdbcFoodmart2() {
-            config = Config.JDBC_FOODMART2;
-            return this;
-        }
-    }
-
-
-    private enum Config {
-        REGULAR,
-        JDBC_FOODMART,
-        JDBC_FOODMART2,
     }
 
     public static class HrSchema {

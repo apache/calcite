@@ -124,11 +124,11 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
     public <T> Queryable<T> createQuery(
         Expression expression, Class<T> rowType)
     {
-        return new ObjectAbstractQueryable2<T>(this, rowType, expression);
+        return new OptiqQueryable<T>(this, rowType, expression);
     }
 
     public <T> Queryable<T> createQuery(Expression expression, Type rowType) {
-        return new ObjectAbstractQueryable2<T>(this, rowType, expression);
+        return new OptiqQueryable<T>(this, rowType, expression);
     }
 
     public <T> T execute(Expression expression, Type type) {
@@ -547,13 +547,11 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
         }
     }
 
-    static class ObjectAbstractQueryable2<T>
+    static class OptiqQueryable<T>
         extends BaseQueryable<T>
     {
-        public ObjectAbstractQueryable2(
-            OptiqConnection connection,
-            Type elementType,
-            Expression expression)
+        public OptiqQueryable(
+            OptiqConnection connection, Type elementType, Expression expression)
         {
             super(connection, elementType, expression);
         }

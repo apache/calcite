@@ -34,6 +34,21 @@ import java.util.List;
  * that builds a tree of {@link RelNode} planner nodes. Used by
  * {@link LixToRelTranslator}.
  *
+ * <p>Each of the methods that implements a {@code Replayer} method creates
+ * a tree of {@code RelNode}s equivalent to the arguments, and calls
+ * {@link #setRel} to assign the root of that tree to the {@link #rel} member
+ * variable.</p>
+ *
+ * <p>To comply with the {@link net.hydromatic.linq4j.QueryableFactory}
+ * interface, which is after all a factory, each method returns a dummy result
+ * such as {@code null} or {@code 0}.
+ * The caller will not use the result.
+ * The real effect of the method is to
+ * call {@link #setRel} with a {@code RelNode}.</p>
+ *
+ * <p>NOTE: Many methods currently throw {@link UnsupportedOperationException}.
+ * These method need to be implemented.</p>
+ *
  * @author jhyde
 */
 class QueryableRelBuilder<T> implements QueryableFactory<T> {
@@ -62,6 +77,11 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
                 translator.connection);
         }
         return translator.translate(queryable.getExpression());
+    }
+
+    /** Sets the output of this event. */
+    private void setRel(RelNode rel) {
+        this.rel = rel;
     }
 
     // ~ Methods from QueryableFactory -----------------------------------------
@@ -762,11 +782,6 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
         RexNode node = translator.toRex(predicate, child);
         setRel(new FilterRel(translator.cluster, child, node));
         return source;
-    }
-
-    // called internally, when a RelNode is produced
-    private void setRel(RelNode rel) {
-        this.rel = rel;
     }
 
     public Queryable<T> whereN(
