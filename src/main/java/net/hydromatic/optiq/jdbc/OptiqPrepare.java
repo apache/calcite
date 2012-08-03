@@ -38,8 +38,15 @@ import java.util.List;
  * @author jhyde
  */
 public interface OptiqPrepare {
+    <T> Queryable<T> toQueryable(
+        Context context,
+        String sql);
+
     <T> PrepareResult<T> prepareSql(
-        Context context, String sql, Queryable<T> expression, Type elementType);
+        Context context,
+        String sql,
+        Queryable<T> expression,
+        Type elementType);
 
     <T> PrepareResult<T> prepareQueryable(
         Context context,

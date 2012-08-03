@@ -29,6 +29,8 @@ import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
+import net.hydromatic.optiq.jdbc.OptiqPrepare;
+import net.hydromatic.optiq.prepare.Factory;
 
 import junit.framework.TestCase;
 
@@ -61,6 +63,15 @@ public class JdbcTest extends TestCase {
     public static final Method STRING_UNION_METHOD =
         Types.lookupMethod(
             JdbcTest.class, "stringUnion", Queryable.class, Queryable.class);
+
+    public static final Method OPTIQ_PREPARE_FACTORY_IMPLEMENT_METHOD =
+        Types.lookupMethod(
+            Factory.class, "implement");
+
+    public static final Method OPTIQ_PREPARE_TO_QUERYABLE_METHOD =
+        Types.lookupMethod(
+            OptiqPrepare.class, "toQueryable",
+            OptiqPrepare.Context.class, String.class);
 
     static String toString(ResultSet resultSet) throws SQLException {
         StringBuilder buf = new StringBuilder();
@@ -281,6 +292,7 @@ public class JdbcTest extends TestCase {
         schema.addTableFunction(
             "emps_view",
             viewFunction(
+                schema,
                 typeFactory,
                 "emps_view",
                 "select * from \"hr\".\"emps\""));
@@ -288,28 +300,36 @@ public class JdbcTest extends TestCase {
             optiqConnection, rootSchema, "hr", new HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
-            + "from \"emps_view\"");
+            + "from \"s\".\"emps_view\"");
         assertTrue(resultSet.next());
     }
 
     private <T> TableFunction<T> viewFunction(
-        JavaTypeFactory typeFactory,
+        final Schema schema,
+        final JavaTypeFactory typeFactory,
         final String name,
-        String viewSql)
+        final String viewSql)
     {
         return new TableFunction<T>() {
             public List<Parameter> getParameters() {
                 return Collections.emptyList();
             }
 
-            public Type getElementType() {
-                // TODO: return type returned from validation
-                throw new UnsupportedOperationException();
-            }
-
             public Table<T> apply(List<Object> arguments) {
-                // TODO: return a Queryable that wraps the parse tree
-                throw new UnsupportedOperationException();
+                Queryable<T> queryable =
+                    Factory.implement().toQueryable(
+                        new OptiqPrepare.Context() {
+                            public JavaTypeFactory getTypeFactory() {
+                                return typeFactory;
+                            }
+
+                            public Schema getRootSchema() {
+                                return schema;
+                            }
+                        },
+                        viewSql);
+                Type elementType = queryable.getElementType();
+                return new ViewTable<T>(elementType, schema, name);
             }
         };
     }
@@ -471,6 +491,68 @@ public class JdbcTest extends TestCase {
 
         public String toString() {
             return "{n=" + n + ", s=" + s + "}";
+        }
+    }
+
+    static abstract class AbstractTable<T>
+        extends AbstractQueryable<T>
+        implements Table<T>
+    {
+        protected final Type elementType;
+        protected final Schema schema;
+        protected final String tableName;
+
+        protected AbstractTable(
+            Type elementType,
+            Schema schema,
+            String tableName)
+        {
+            this.elementType = elementType;
+            this.schema = schema;
+            this.tableName = tableName;
+            assert elementType != null;
+            assert schema != null;
+            assert tableName != null;
+        }
+
+        public QueryProvider getProvider() {
+            return schema.getQueryProvider();
+        }
+
+        public DataContext getDataContext() {
+            return schema;
+        }
+
+        public Type getElementType() {
+            return elementType;
+        }
+
+        public Expression getExpression() {
+            return Expressions.call(
+                schema.getExpression(),
+                "getTable",
+                Expressions.<Expression>list()
+                    .append(Expressions.constant(tableName))
+                    .appendIf(
+                        elementType instanceof Class,
+                        Expressions.constant(elementType)));
+        }
+
+        public Iterator<T> iterator() {
+            return Linq4j.enumeratorIterator(enumerator());
+        }
+    }
+
+    static class ViewTable<T> extends AbstractTable<T> {
+        protected ViewTable(Type elementType, Schema schema, String tableName) {
+            super(elementType, schema, tableName);
+        }
+
+        public Enumerator<T> enumerator() {
+            return schema
+                .getQueryProvider()
+                .<T>createQuery(getExpression(), elementType)
+                .enumerator();
         }
     }
 }

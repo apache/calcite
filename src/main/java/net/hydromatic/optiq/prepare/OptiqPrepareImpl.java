@@ -62,6 +62,12 @@ import java.util.*;
  */
 class OptiqPrepareImpl implements OptiqPrepare {
 
+    public <T> Queryable<T> toQueryable(
+        Context context, String sql)
+    {
+        throw new UnsupportedOperationException(); // TODO:
+    }
+
     public <T> PrepareResult<T> prepareQueryable(
         Context context,
         Queryable<T> queryable)

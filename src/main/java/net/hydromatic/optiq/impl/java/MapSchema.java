@@ -107,7 +107,21 @@ public class MapSchema implements MutableSchema {
     }
 
     public Table getTable(String name) {
-        return tableMap.get(name);
+        // First look for a table.
+        Table<Object> table = tableMap.get(name);
+        if (table != null) {
+            return table;
+        }
+        // Then look for a table-function with no arguments.
+        List<TableFunction> tableFunctions = membersMap.get(name);
+        if (tableFunctions != null) {
+            for (TableFunction tableFunction : tableFunctions) {
+                if (tableFunction.getParameters().isEmpty()) {
+                    return tableFunction.apply(Collections.emptyList());
+                }
+            }
+        }
+        return null;
     }
 
     public List<TableFunction> getTableFunctions(String name) {

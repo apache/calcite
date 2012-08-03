@@ -25,13 +25,6 @@ import java.util.List;
  */
 public interface TableFunction<T> {
     /**
-     * Element type of table that will be returned.
-     *
-     * @return Element type of table
-     */
-    Type getElementType();
-
-    /**
      * Returns the parameters of this table function.
      *
      * @return Parameters; never null

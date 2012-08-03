@@ -555,6 +555,10 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
         {
             super(connection, elementType, expression);
         }
+
+        public OptiqConnection getConnection() {
+            return (OptiqConnection) provider;
+        }
     }
 }
 
