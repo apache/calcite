@@ -24,7 +24,6 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptCluster;
-import org.eigenbase.relopt.RelOptConnection;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
 
@@ -41,14 +40,10 @@ import java.util.List;
  */
 class LixToRelTranslator {
     final RelOptCluster cluster;
-    final RelOptConnection connection;
     final JavaTypeFactory typeFactory;
 
-    public LixToRelTranslator(
-        RelOptCluster cluster, RelOptConnection connection)
-    {
+    public LixToRelTranslator(RelOptCluster cluster) {
         this.cluster = cluster;
-        this.connection = connection;
         this.typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
     }
 
@@ -89,18 +84,6 @@ class LixToRelTranslator {
                         child));
 
             case AS_QUERYABLE:
-                return new TableAccessRel(
-                    cluster,
-                    new OptiqPrepareImpl.RelOptTableImpl(
-                        null,
-                        typeFactory.createJavaType(
-                            Types.toClass(
-                                Types.getComponentType(
-                                    call.targetExpression.getType()))),
-                        new String[0],
-                        call.targetExpression),
-                    connection);
-
             case SCHEMA_GET_TABLE:
                 return new TableAccessRel(
                     cluster,
@@ -111,8 +94,19 @@ class LixToRelTranslator {
                                 Types.getComponentType(
                                     call.targetExpression.getType()))),
                         new String[0],
-                        call.targetExpression),
-                    connection);
+                        call.targetExpression));
+
+            case DATA_CONTEXT_GET_TABLE:
+                return new TableAccessRel(
+                    cluster,
+                    new OptiqPrepareImpl.RelOptTableImpl(
+                        null,
+                        typeFactory.createJavaType(
+                            (Class)
+                                ((ConstantExpression) call.expressions.get(1))
+                                    .value),
+                        new String[0],
+                        call.targetExpression));
 
             default:
                 throw new UnsupportedOperationException(

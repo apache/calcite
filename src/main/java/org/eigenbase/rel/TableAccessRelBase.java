@@ -36,11 +36,6 @@ public abstract class TableAccessRelBase
     //~ Instance fields --------------------------------------------------------
 
     /**
-     * The connection to the optimizing session.
-     */
-    protected RelOptConnection connection;
-
-    /**
      * The table definition.
      */
     protected RelOptTable table;
@@ -50,23 +45,16 @@ public abstract class TableAccessRelBase
     protected TableAccessRelBase(
         RelOptCluster cluster,
         RelTraitSet traits,
-        RelOptTable table,
-        RelOptConnection connection)
+        RelOptTable table)
     {
         super(cluster, traits);
         this.table = table;
-        this.connection = connection;
         if (table.getRelOptSchema() != null) {
             cluster.getPlanner().registerSchema(table.getRelOptSchema());
         }
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    public RelOptConnection getConnection()
-    {
-        return connection;
-    }
 
     public double getRows()
     {

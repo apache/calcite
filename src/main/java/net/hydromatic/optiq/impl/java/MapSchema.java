@@ -124,6 +124,10 @@ public class MapSchema implements MutableSchema {
         return null;
     }
 
+    public Map<String, List<TableFunction>> getTableFunctions() {
+        return membersMap;
+    }
+
     public List<TableFunction> getTableFunctions(String name) {
         List<TableFunction> members = membersMap.get(name);
         if (members != null) {

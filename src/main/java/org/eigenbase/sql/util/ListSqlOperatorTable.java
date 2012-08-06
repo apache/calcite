@@ -34,12 +34,16 @@ public class ListSqlOperatorTable
 {
     //~ Instance fields --------------------------------------------------------
 
-    private final List<SqlOperator> operatorList = new ArrayList<SqlOperator>();
+    private final List<SqlOperator> operatorList;
 
     //~ Constructors -----------------------------------------------------------
 
-    public ListSqlOperatorTable()
-    {
+    public ListSqlOperatorTable() {
+        this(new ArrayList<SqlOperator>());
+    }
+
+    public ListSqlOperatorTable(List<SqlOperator> operatorList) {
+        this.operatorList = operatorList;
     }
 
     //~ Methods ----------------------------------------------------------------

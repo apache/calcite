@@ -19,6 +19,7 @@ package org.eigenbase.rel;
 
 import java.util.*;
 
+import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.relopt.*;
 
 
@@ -38,7 +39,7 @@ public final class TableModificationRel
     public TableModificationRel(
         RelOptCluster cluster,
         RelOptTable table,
-        RelOptConnection connection,
+        OJPreparingStmt.CatalogReader schema,
         RelNode child,
         Operation operation,
         List<String> updateColumnList,
@@ -48,7 +49,7 @@ public final class TableModificationRel
             cluster,
             cluster.traitSetOf(CallingConvention.NONE),
             table,
-            connection,
+            schema,
             child,
             operation,
             updateColumnList,
@@ -61,8 +62,7 @@ public final class TableModificationRel
         assert traitSet.comprises(CallingConvention.NONE);
         return new TableModificationRel(
             getCluster(),
-            table,
-            connection,
+            table, catalogReader,
             sole(inputs),
             getOperation(),
             getUpdateColumnList(),

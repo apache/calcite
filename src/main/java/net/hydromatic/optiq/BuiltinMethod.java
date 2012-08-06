@@ -43,6 +43,8 @@ public enum BuiltinMethod {
         ReflectiveSchema.class, "getTarget"),
     SCHEMA_GET_TABLE(
         Schema.class, "getTable", String.class),
+    DATA_CONTEXT_GET_TABLE(
+        DataContext.class, "getTable", String.class, Class.class),
     JOIN(
         ExtendedEnumerable.class, "join", Enumerable.class, Function1.class,
         Function1.class, Function2.class),

@@ -53,10 +53,6 @@ public class JdbcQuery
 
     private final DataSource dataSource;
 
-    /**
-     * The expression which yields the connection object.
-     */
-    protected RelOptConnection connection;
     SqlDialect dialect;
     SqlSelect sql;
 
@@ -72,8 +68,6 @@ public class JdbcQuery
      *
      * @param cluster {@link RelOptCluster}  this relational expression belongs
      * to
-     * @param connection a {@link RelOptConnection}; must also implement {@link
-     * DataSource}, because that's how we will acquire the JDBC connection
      * @param sql SQL parse tree, may be null, otherwise must be a SELECT
      * statement
      * @param dataSource Provides a JDBC connection to run this query against.
@@ -84,14 +78,12 @@ public class JdbcQuery
      * the same as calling the <code>getDataSource()</code> method on that
      * schema. But non-JDBC schemas are also acceptable.
      *
-     * @pre connection != null
      * @pre sql == null || sql.isA(SqlNode.Kind.Select)
      * @pre dataSource != null
      */
     public JdbcQuery(
         RelOptCluster cluster,
         RelDataType rowType,
-        RelOptConnection connection,
         SqlDialect dialect,
         SqlSelect sql,
         DataSource dataSource)
@@ -99,10 +91,8 @@ public class JdbcQuery
         super(
             cluster,
             cluster.traitSetOf(CallingConvention.RESULT_SET));
-        Util.pre(connection != null, "connection != null");
         Util.pre(dataSource != null, "dataSource != null");
         this.rowType = rowType;
-        this.connection = connection;
         this.dialect = dialect;
         if (sql == null) {
             sql =
@@ -126,16 +116,6 @@ public class JdbcQuery
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Returns the connection
-     *
-     * @return connection
-     */
-    public RelOptConnection getConnection()
-    {
-        return connection;
-    }
 
     /**
      * Returns the JDBC data source
@@ -186,7 +166,6 @@ public class JdbcQuery
         return new JdbcQuery(
             getCluster(),
             rowType,
-            connection,
             dialect,
             sql,
             dataSource);

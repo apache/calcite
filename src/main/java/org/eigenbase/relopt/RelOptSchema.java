@@ -22,8 +22,6 @@ import org.eigenbase.reltype.*;
 
 /**
  * A <code>RelOptSchema</code> is a set of {@link RelOptTable} objects.
- *
- * @see RelOptConnection
  */
 public interface RelOptSchema
 {

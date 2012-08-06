@@ -21,6 +21,7 @@ import java.nio.charset.*;
 
 import java.util.*;
 
+import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
@@ -47,7 +48,7 @@ public class SqlValidatorUtil
      * Otherwise, returns null.
      *
      * @param namespace Namespace
-     * @param schema Schema
+     * @param catalogReader Schema
      * @param datasetName Name of sample dataset to substitute, or null to use
      * the regular table
      * @param usedDataset Output parameter which is set to true if a sample
@@ -55,7 +56,7 @@ public class SqlValidatorUtil
      */
     public static RelOptTable getRelOptTable(
         SqlValidatorNamespace namespace,
-        RelOptSchema schema,
+        OJPreparingStmt.CatalogReader catalogReader,
         String datasetName,
         boolean [] usedDataset)
     {
@@ -64,16 +65,17 @@ public class SqlValidatorUtil
                 namespace.unwrap(IdentifierNamespace.class);
             final String [] names = identifierNamespace.getId().names;
             if ((datasetName != null)
-                && (schema instanceof RelOptSchemaWithSampling))
+                && (catalogReader instanceof RelOptSchemaWithSampling))
             {
-                return ((RelOptSchemaWithSampling) schema).getTableForMember(
-                    names,
-                    datasetName,
-                    usedDataset);
+                return ((RelOptSchemaWithSampling) catalogReader)
+                    .getTableForMember(
+                        names,
+                        datasetName,
+                        usedDataset);
             } else {
                 // Schema does not support substitution. Ignore the dataset,
                 // if any.
-                return schema.getTableForMember(names);
+                return catalogReader.getTableForMember(names);
             }
         } else {
             return null;

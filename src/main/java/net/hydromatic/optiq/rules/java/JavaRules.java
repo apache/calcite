@@ -328,14 +328,12 @@ public class JavaRules {
         public EnumerableTableAccessRel(
             RelOptCluster cluster,
             RelOptTable table,
-            RelOptConnection connection,
             Expression expression)
         {
             super(
                 cluster,
                 cluster.traitSetOf(CallingConvention.ENUMERABLE),
-                table,
-                connection);
+                table);
             if (Types.isArray(expression.getType())) {
                 expression =
                     Expressions.call(

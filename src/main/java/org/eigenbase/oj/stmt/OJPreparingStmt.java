@@ -68,7 +68,7 @@ public abstract class OJPreparingStmt
     private CallingConvention resultCallingConvention;
 
     protected JavaCompiler javaCompiler;
-    protected final RelOptConnection connection;
+    protected final CatalogReader catalogReader;
 
     protected EigenbaseTimingTracer timingTracer;
 
@@ -84,35 +84,16 @@ public abstract class OJPreparingStmt
     /**
      * Creates a statement.
      *
-     * @param connection Connection statement belongs to; may be null, but only
-     * if this statement implements {@link RelOptConnection}
-     *
-     * @pre connection != null || this instanceof RelOptConnection
+     * @param catalogReader Catalog reader
      */
-    public OJPreparingStmt(RelOptConnection connection)
+    public OJPreparingStmt(CatalogReader catalogReader)
     {
-        this.connection =
-            ((connection == null) && (this instanceof RelOptConnection))
-            ? (RelOptConnection) this
-            : connection;
-        Util.pre(
-            this.connection != null,
-            "connection != null || this instanceof RelOptConnection");
+        this.catalogReader = catalogReader;
         this.resultCallingConvention = CallingConvention.RESULT_SET;
         this.containsJava = true;
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    public RelOptSchema getRelOptSchema()
-    {
-        return connection.getRelOptSchema();
-    }
-
-    public Environment getEnvironment()
-    {
-        return env;
-    }
 
     public void setResultCallingConvention(
         CallingConvention resultCallingConvention)
@@ -189,17 +170,11 @@ public abstract class OJPreparingStmt
                         new BufferedIterator((Iterator) argument.value);
                     argument.clazz = argument.value.getClass();
                 }
-                if (RelOptConnection.class.isInstance(argument.value)) {
-                    // Don't fix up the type of connections. (The mapping to
-                    // schema is made via static typing, so changing the type
-                    // destroys the mapping.)
-                } else {
-                    // If the argument's type is a private class, change its
-                    // type to the nearest base class which is public. Otherwise
-                    // the generated code won't compile.
-                    argument.clazz =
-                        visibleBaseClass(argument.clazz, packageName);
-                }
+                // If the argument's type is a private class, change its
+                // type to the nearest base class which is public. Otherwise
+                // the generated code won't compile.
+                argument.clazz =
+                    visibleBaseClass(argument.clazz, packageName);
                 bindArgument(argument);
             }
         }
@@ -240,20 +215,16 @@ public abstract class OJPreparingStmt
     {
         queryString = sqlQuery.toString();
 
-        if (runtimeContextClass == null) {
-            runtimeContextClass = connection.getClass();
-        }
-
         final Argument [] arguments = {
             new Argument(
                 connectionVariable,
                 runtimeContextClass,
-                connection)
+                null)
         };
         ClassDeclaration decl = init(arguments);
 
         SqlToRelConverter sqlToRelConverter =
-            getSqlToRelConverter(validator, connection);
+            getSqlToRelConverter(validator, catalogReader);
 
         SqlExplain sqlExplain = null;
         if (sqlQuery.getKind() == SqlKind.EXPLAIN) {
@@ -312,7 +283,7 @@ public abstract class OJPreparingStmt
             switch (explainDepth) {
             case Physical:
             default:
-                rootRel = (RelNode)
+                rootRel =
                     optimize(
                         rootRel.getRowType(),
                         rootRel);
@@ -324,7 +295,7 @@ public abstract class OJPreparingStmt
             }
         }
 
-        rootRel = (RelNode) optimize(resultType, rootRel);
+        rootRel = optimize(resultType, rootRel);
         containsJava = treeContainsJava(rootRel);
 
         if (timingTracer != null) {
@@ -360,7 +331,7 @@ public abstract class OJPreparingStmt
         RelDataType logicalRowType,
         RelNode rootRel)
     {
-        RelOptPlanner planner = ((RelNode) rootRel).getCluster().getPlanner();
+        RelOptPlanner planner = rootRel.getCluster().getPlanner();
         planner.setRoot(rootRel);
 
         RelTraitSet desiredTraits = getDesiredRootTraitSet(rootRel);
@@ -416,7 +387,7 @@ public abstract class OJPreparingStmt
             new Argument(
                 connectionVariable,
                 runtimeContextClass,
-                connection)
+                null)
         };
         assert containsJava;
         javaCompiler = createCompiler();
@@ -550,13 +521,13 @@ public abstract class OJPreparingStmt
         Argument [] args)
     {
         if (needOpt) {
-            rootRel = flattenTypes((RelNode) rootRel, true);
+            rootRel = flattenTypes(rootRel, true);
             rootRel =
                 optimize(
                     rootRel.getRowType(),
                     rootRel);
         }
-        return implement(rowType, (RelNode) rootRel, sqlKind, decl, args);
+        return implement(rowType, rootRel, sqlKind, decl, args);
     }
 
     /**
@@ -565,7 +536,7 @@ public abstract class OJPreparingStmt
      */
     protected abstract SqlToRelConverter getSqlToRelConverter(
         SqlValidator validator,
-        final RelOptConnection connection);
+        CatalogReader catalogReader);
 
     /**
      * Protected method to allow subclasses to override construction of
@@ -589,7 +560,7 @@ public abstract class OJPreparingStmt
 
     protected abstract boolean shouldSetConnectionInfo();
 
-    protected abstract RelNode flattenTypes(
+    public abstract RelNode flattenTypes(
         RelNode rootRel,
         boolean restructure);
 
@@ -784,8 +755,7 @@ public abstract class OJPreparingStmt
             Object o = clazz.newInstance();
             Method method =
                 clazz.getDeclaredMethod(
-                    getTempMethodName(),
-                    parameterTypes);
+                    getTempMethodName(), parameterTypes);
             return new BoundMethod(o, method, parameterNames);
         } catch (InstantiationException e) {
             throw Util.newInternal(e);
@@ -874,6 +844,21 @@ public abstract class OJPreparingStmt
             throw Util.newInternal(e);
         }
     }
+
+    /**
+     * Returns a relational expression which is to be substituted for an access
+     * to a SQL view.
+     *
+     * @param rowType Row type of the view
+     * @param queryString Body of the view
+     *
+     * @return Relational expression
+     */
+    public RelNode expandView(RelDataType rowType, String queryString)
+    {
+        throw new UnsupportedOperationException();
+    }
+
 
     //~ Inner Classes ----------------------------------------------------------
 
@@ -975,6 +960,19 @@ public abstract class OJPreparingStmt
         {
             return javaRelFound;
         }
+    }
+
+    public interface CatalogReader
+        extends RelOptSchema, SqlValidatorCatalogReader
+    {
+        PreparingTable getTableForMember(String[] names);
+
+        PreparingTable getTable(String[] names);
+    }
+
+    public interface PreparingTable
+        extends RelOptTable, SqlValidatorTable
+    {
     }
 }
 

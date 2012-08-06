@@ -17,14 +17,14 @@
 */
 package net.hydromatic.optiq;
 
-import net.hydromatic.linq4j.expressions.Expression;
-
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.type.SqlTypeUtil;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,10 +84,51 @@ public final class Schemas {
         return SqlTypeUtil.canAssignFrom(toType, fromType);
     }
 
-    public static TableFunction methodMember(
-        Method method, JavaTypeFactory typeFactory)
+    public static <T> TableFunction<T> methodMember(
+        final Method method,
+        final JavaTypeFactory typeFactory)
     {
-        throw new UnsupportedOperationException("TODO: implement");
+        final List<Parameter> parameters = new ArrayList<Parameter>();
+        for (final Class<?> parameterType : method.getParameterTypes()) {
+            parameters.add(
+                new Parameter() {
+                    final int ordinal = parameters.size();
+                    final RelDataType type =
+                        typeFactory.createType(parameterType);
+
+                    public int getOrdinal() {
+                        return ordinal;
+                    }
+
+                    public String getName() {
+                        return "a" + ordinal;
+                    }
+
+                    public RelDataType getType() {
+                        return type;
+                    }
+                }
+            );
+        }
+        return new TableFunction<T>() {
+            public List<Parameter> getParameters() {
+                return parameters;
+            }
+
+            public Table<T> apply(List<Object> arguments) {
+                try {
+                    return (Table) method.invoke(null, arguments.toArray());
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                } catch (InvocationTargetException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            public Type getElementType() {
+                return method.getReturnType();
+            }
+        };
     }
 }
 

@@ -23,6 +23,7 @@ import junit.framework.*;
 
 import openjava.mop.*;
 
+import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.oj.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
@@ -110,9 +111,6 @@ public abstract class SqlToRelTestBase
          * @param sql SQL statement
          *
          * @return Relational expression, never null
-         *
-         * @pre sql != null
-         * @post return != null
          */
         RelNode convertSqlToRel(String sql);
 
@@ -127,9 +125,10 @@ public abstract class SqlToRelTestBase
             RelDataTypeFactory typeFactory);
 
         /**
-         * Factory method for a {@link SqlValidatorCatalogReader}.
+         * Factory method for a
+         * {@link org.eigenbase.oj.stmt.OJPreparingStmt.CatalogReader}.
          */
-        SqlValidatorCatalogReader createCatalogReader(
+        OJPreparingStmt.CatalogReader createCatalogReader(
             RelDataTypeFactory typeFactory);
 
         RelOptPlanner createPlanner();
@@ -138,10 +137,6 @@ public abstract class SqlToRelTestBase
          * Returns the {@link SqlOperatorTable} to use.
          */
         SqlOperatorTable getOperatorTable();
-
-        MockRelOptSchema createRelOptSchema(
-            SqlValidatorCatalogReader catalogReader,
-            RelDataTypeFactory typeFactory);
 
         /**
          * Returns the SQL dialect to test.
@@ -185,11 +180,27 @@ public abstract class SqlToRelTestBase
             final SqlValidatorTable table = catalogReader.getTable(names);
             final RelDataType rowType = table.getRowType();
             final List<RelCollation> collationList =
+                deduceMonotonicity(table);
+            if (names.length < 3) {
+                String [] newNames = { "CATALOG", "SALES", "" };
+                System.arraycopy(
+                    names,
+                    0,
+                    newNames,
+                    newNames.length - names.length,
+                    names.length);
+                names = newNames;
+            }
+            return createColumnSet(table, names, rowType, collationList);
+        }
+
+        private List<RelCollation> deduceMonotonicity(SqlValidatorTable table) {
+            final List<RelCollation> collationList =
                 new ArrayList<RelCollation>();
 
             // Deduce which fields the table is sorted on.
             int i = -1;
-            for (RelDataTypeField field : rowType.getFields()) {
+            for (RelDataTypeField field : table.getRowType().getFields()) {
                 ++i;
                 final SqlMonotonicity monotonicity =
                     table.getMonotonicity(field.getName());
@@ -202,21 +213,10 @@ public abstract class SqlToRelTestBase
                         new RelCollationImpl(
                             Collections.singletonList(
                                 new RelFieldCollation(
-                                    i,
-                                    direction))));
+                                    i, direction))));
                 }
             }
-            if (names.length < 3) {
-                String [] newNames = { "CATALOG", "SALES", "" };
-                System.arraycopy(
-                    names,
-                    0,
-                    newNames,
-                    newNames.length - names.length,
-                    names.length);
-                names = newNames;
-            }
-            return createColumnSet(table, names, rowType, collationList);
+            return collationList;
         }
 
         public RelOptTable getTableForMember(
@@ -310,10 +310,9 @@ public abstract class SqlToRelTestBase
             }
 
             public RelNode toRel(
-                RelOptCluster cluster,
-                RelOptConnection connection)
+                ToRelContext context)
             {
-                return new TableAccessRel(cluster, this, connection);
+                return new TableAccessRel(context.getCluster(), this);
             }
 
             public List<RelCollation> getCollationList()
@@ -353,11 +352,8 @@ public abstract class SqlToRelTestBase
             return parent.getRelOptSchema();
         }
 
-        public RelNode toRel(
-            RelOptCluster cluster,
-            RelOptConnection connection)
-        {
-            return new TableAccessRel(cluster, this, connection);
+        public RelNode toRel(ToRelContext context) {
+            return new TableAccessRel(context.getCluster(), this);
         }
 
         public List<RelCollation> getCollationList()
@@ -367,36 +363,8 @@ public abstract class SqlToRelTestBase
     }
 
     /**
-     * Mock implementation of {@link RelOptConnection}, contains a {@link
-     * MockRelOptSchema}.
-     */
-    private static class MockRelOptConnection
-        implements RelOptConnection
-    {
-        private final RelOptSchema relOptSchema;
-
-        public MockRelOptConnection(RelOptSchema relOptSchema)
-        {
-            this.relOptSchema = relOptSchema;
-        }
-
-        public RelOptSchema getRelOptSchema()
-        {
-            return relOptSchema;
-        }
-
-        public Object contentsAsArray(
-            String qualifier,
-            String tableName)
-        {
-            return null;
-        }
-    }
-
-    /**
      * Default implementation of {@link Tester}, using mock classes {@link
-     * MockRelOptSchema}, {@link MockRelOptConnection} and {@link
-     * MockRelOptPlanner}.
+     * MockRelOptSchema} and {@link MockRelOptPlanner}.
      */
     public static class TesterImpl
         implements Tester
@@ -425,21 +393,15 @@ public abstract class SqlToRelTestBase
                 throw Util.newInternal(e); // todo: better handling
             }
             final RelDataTypeFactory typeFactory = createTypeFactory();
-            final SqlValidatorCatalogReader catalogReader =
+            final OJPreparingStmt.CatalogReader catalogReader =
                 createCatalogReader(typeFactory);
             final SqlValidator validator =
                 createValidator(
-                    catalogReader,
-                    typeFactory);
-            final RelOptSchema relOptSchema =
-                createRelOptSchema(catalogReader, typeFactory);
-            final RelOptConnection relOptConnection =
-                new MockRelOptConnection(relOptSchema);
+                    catalogReader, typeFactory);
             final SqlToRelConverter converter =
                 createSqlToRelConverter(
                     validator,
-                    relOptSchema,
-                    relOptConnection,
+                    catalogReader,
                     typeFactory);
             final SqlNode validatedQuery = validator.validate(sqlQuery);
             final RelNode rel =
@@ -448,26 +410,18 @@ public abstract class SqlToRelTestBase
             return rel;
         }
 
-        public MockRelOptSchema createRelOptSchema(
-            final SqlValidatorCatalogReader catalogReader,
-            final RelDataTypeFactory typeFactory)
-        {
-            return new MockRelOptSchema(catalogReader, typeFactory);
-        }
-
         protected SqlToRelConverter createSqlToRelConverter(
             final SqlValidator validator,
-            final RelOptSchema relOptSchema,
-            final RelOptConnection relOptConnection,
+            final OJPreparingStmt.CatalogReader catalogReader,
             final RelDataTypeFactory typeFactory)
         {
             final SqlToRelConverter converter =
                 new SqlToRelConverter(
+                    null,
                     validator,
-                    relOptSchema,
+                    catalogReader,
                     OJSystem.env,
                     getPlanner(),
-                    relOptConnection,
                     new JavaRexBuilder(typeFactory));
             return converter;
         }
@@ -525,7 +479,7 @@ public abstract class SqlToRelTestBase
             return opTab;
         }
 
-        public SqlValidatorCatalogReader createCatalogReader(
+        public OJPreparingStmt.CatalogReader createCatalogReader(
             RelDataTypeFactory typeFactory)
         {
             return new MockCatalogReader(typeFactory);

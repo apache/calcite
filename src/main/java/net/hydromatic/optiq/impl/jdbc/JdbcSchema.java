@@ -32,6 +32,7 @@ import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import javax.sql.DataSource;
 
 /**
@@ -173,6 +174,11 @@ public class JdbcSchema implements Schema {
             assert sqlTypeName.allowsNoPrecNoScale();
             return typeFactory.createSqlType(sqlTypeName);
         }
+    }
+
+    public Map<String, List<TableFunction>> getTableFunctions() {
+        // TODO: populate map from JDBC metadata
+        return Collections.emptyMap();
     }
 
     public Schema getSubSchema(String name) {

@@ -210,10 +210,10 @@ public class SqlValidatorImpl
         RelDataTypeFactory typeFactory,
         SqlConformance conformance)
     {
-        Util.pre(opTab != null, "opTab != null");
-        Util.pre(catalogReader != null, "catalogReader != null");
-        Util.pre(typeFactory != null, "typeFactory != null");
-        Util.pre(conformance != null, "conformance != null");
+        Objects.requireNonNull(opTab);
+        Objects.requireNonNull(catalogReader);
+        Objects.requireNonNull(typeFactory);
+        Objects.requireNonNull(conformance);
         this.opTab = opTab;
         this.catalogReader = catalogReader;
         this.typeFactory = typeFactory;

@@ -19,6 +19,7 @@ package org.eigenbase.rel;
 
 import java.util.*;
 
+import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
@@ -50,7 +51,7 @@ public abstract class TableModificationRelBase
     /**
      * The connection to the optimizing session.
      */
-    protected RelOptConnection connection;
+    protected OJPreparingStmt.CatalogReader catalogReader;
 
     /**
      * The table definition.
@@ -67,7 +68,7 @@ public abstract class TableModificationRelBase
         RelOptCluster cluster,
         RelTraitSet traits,
         RelOptTable table,
-        RelOptConnection connection,
+        OJPreparingStmt.CatalogReader catalogReader,
         RelNode child,
         Operation operation,
         List<String> updateColumnList,
@@ -75,7 +76,7 @@ public abstract class TableModificationRelBase
     {
         super(cluster, traits, child);
         this.table = table;
-        this.connection = connection;
+        this.catalogReader = catalogReader;
         this.operation = operation;
         this.updateColumnList = updateColumnList;
         if (table.getRelOptSchema() != null) {
@@ -86,9 +87,9 @@ public abstract class TableModificationRelBase
 
     //~ Methods ----------------------------------------------------------------
 
-    public RelOptConnection getConnection()
+    public OJPreparingStmt.CatalogReader getCatalogReader()
     {
-        return connection;
+        return catalogReader;
     }
 
     public RelOptTable getTable()

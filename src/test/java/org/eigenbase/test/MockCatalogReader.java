@@ -19,6 +19,10 @@ package org.eigenbase.test;
 
 import java.util.*;
 
+import org.eigenbase.oj.stmt.OJPreparingStmt;
+import org.eigenbase.rel.*;
+import org.eigenbase.relopt.RelOptPlanner;
+import org.eigenbase.relopt.RelOptSchema;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
@@ -33,7 +37,7 @@ import org.eigenbase.sql.validate.*;
  * @author jhyde
  */
 public class MockCatalogReader
-    implements SqlValidatorCatalogReader
+    implements OJPreparingStmt.CatalogReader
 {
     //~ Static fields/initializers ---------------------------------------------
 
@@ -117,7 +121,7 @@ public class MockCatalogReader
         registerSchema(salesSchema);
 
         // Register "EMP" table.
-        MockTable empTable = new MockTable(salesSchema, "EMP");
+        MockTable empTable = new MockTable(this, salesSchema, "EMP");
         empTable.addColumn("EMPNO", intType);
         empTable.addColumn("ENAME", varchar20Type);
         empTable.addColumn("JOB", varchar10Type);
@@ -130,13 +134,13 @@ public class MockCatalogReader
         registerTable(empTable);
 
         // Register "DEPT" table.
-        MockTable deptTable = new MockTable(salesSchema, "DEPT");
+        MockTable deptTable = new MockTable(this, salesSchema, "DEPT");
         deptTable.addColumn("DEPTNO", intType);
         deptTable.addColumn("NAME", varchar10Type);
         registerTable(deptTable);
 
         // Register "BONUS" table.
-        MockTable bonusTable = new MockTable(salesSchema, "BONUS");
+        MockTable bonusTable = new MockTable(this, salesSchema, "BONUS");
         bonusTable.addColumn("ENAME", varchar20Type);
         bonusTable.addColumn("JOB", varchar10Type);
         bonusTable.addColumn("SAL", intType);
@@ -144,7 +148,7 @@ public class MockCatalogReader
         registerTable(bonusTable);
 
         // Register "SALGRADE" table.
-        MockTable salgradeTable = new MockTable(salesSchema, "SALGRADE");
+        MockTable salgradeTable = new MockTable(this, salesSchema, "SALGRADE");
         salgradeTable.addColumn("GRADE", intType);
         salgradeTable.addColumn("LOSAL", intType);
         salgradeTable.addColumn("HISAL", intType);
@@ -152,7 +156,7 @@ public class MockCatalogReader
 
         // Register "EMP_ADDRESS" table
         MockTable contactAddressTable =
-            new MockTable(salesSchema, "EMP_ADDRESS");
+            new MockTable(this, salesSchema, "EMP_ADDRESS");
         contactAddressTable.addColumn("EMPNO", intType);
         contactAddressTable.addColumn("HOME_ADDRESS", addressType);
         contactAddressTable.addColumn("MAILING_ADDRESS", addressType);
@@ -163,7 +167,7 @@ public class MockCatalogReader
         registerSchema(customerSchema);
 
         // Register "CONTACT" table.
-        MockTable contactTable = new MockTable(customerSchema, "CONTACT");
+        MockTable contactTable = new MockTable(this, customerSchema, "CONTACT");
         contactTable.addColumn("CONTACTNO", intType);
         contactTable.addColumn("FNAME", varchar10Type);
         contactTable.addColumn("LNAME", varchar10Type);
@@ -172,7 +176,7 @@ public class MockCatalogReader
         registerTable(contactTable);
 
         // Register "ACCOUNT" table.
-        MockTable accountTable = new MockTable(customerSchema, "ACCOUNT");
+        MockTable accountTable = new MockTable(this, customerSchema, "ACCOUNT");
         accountTable.addColumn("ACCTNO", intType);
         accountTable.addColumn("TYPE", varchar20Type);
         accountTable.addColumn("BALANCE", intType);
@@ -180,6 +184,18 @@ public class MockCatalogReader
     }
 
     //~ Methods ----------------------------------------------------------------
+
+
+    public OJPreparingStmt.PreparingTable getTableForMember(String[] names) {
+        return getTable(names);
+    }
+
+    public RelDataTypeFactory getTypeFactory() {
+        return typeFactory;
+    }
+
+    public void registerRules(RelOptPlanner planner) {
+    }
 
     protected void registerTable(MockTable table)
     {
@@ -194,7 +210,7 @@ public class MockCatalogReader
         schemas.put(schema.name, schema);
     }
 
-    public SqlValidatorTable getTable(final String [] names)
+    public OJPreparingStmt.PreparingTable getTable(final String[] names)
     {
         switch (names.length) {
         case 1:
@@ -261,6 +277,33 @@ public class MockCatalogReader
         return defaultSchema;
     }
 
+    private static List<RelCollation> deduceMonotonicity(
+        OJPreparingStmt.PreparingTable table)
+    {
+        final List<RelCollation> collationList =
+            new ArrayList<RelCollation>();
+
+        // Deduce which fields the table is sorted on.
+        int i = -1;
+        for (RelDataTypeField field : table.getRowType().getFields()) {
+            ++i;
+            final SqlMonotonicity monotonicity =
+                table.getMonotonicity(field.getName());
+            if (monotonicity != SqlMonotonicity.NotMonotonic) {
+                final RelFieldCollation.Direction direction =
+                    monotonicity.isDecreasing()
+                        ? RelFieldCollation.Direction.Descending
+                        : RelFieldCollation.Direction.Ascending;
+                collationList.add(
+                    new RelCollationImpl(
+                        Collections.singletonList(
+                            new RelFieldCollation(
+                                i, direction))));
+            }
+        }
+        return collationList;
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     public static class MockSchema
@@ -285,24 +328,47 @@ public class MockCatalogReader
     }
 
     /**
-     * Mock implementation of {@link SqlValidatorTable}.
+     * Mock implementation of
+     * {@link org.eigenbase.oj.stmt.OJPreparingStmt.PreparingTable}.
      */
     public static class MockTable
-        implements SqlValidatorTable
+        implements OJPreparingStmt.PreparingTable
     {
+        private final MockCatalogReader catalogReader;
         private final List<String> columnNameList = new ArrayList<String>();
         private final List<RelDataType> columnTypeList =
             new ArrayList<RelDataType>();
         private RelDataType rowType;
+        private List<RelCollation> collationList;
         private final String [] names;
 
-        public MockTable(MockSchema schema, String name)
+        public MockTable(
+            MockCatalogReader catalogReader,
+            MockSchema schema,
+            String name)
         {
+            this.catalogReader = catalogReader;
             this.names =
                 new String[] {
                     schema.getCatalogName(), schema.name, name
                 };
             schema.addTable(name);
+        }
+
+        public double getRowCount() {
+            return 0;
+        }
+
+        public RelOptSchema getRelOptSchema() {
+            return catalogReader;
+        }
+
+        public RelNode toRel(ToRelContext context) {
+            return new TableAccessRel(context.getCluster(), this);
+        }
+
+        public List<RelCollation> getCollationList() {
+            return collationList;
         }
 
         public RelDataType getRowType()
@@ -316,6 +382,8 @@ public class MockCatalogReader
                 typeFactory.createStructType(
                     columnTypeList,
                     columnNameList);
+
+            collationList = deduceMonotonicity(this);
         }
 
         public String [] getQualifiedName()

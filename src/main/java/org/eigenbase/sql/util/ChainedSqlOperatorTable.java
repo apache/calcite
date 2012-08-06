@@ -34,16 +34,15 @@ public class ChainedSqlOperatorTable
 {
     //~ Instance fields --------------------------------------------------------
 
-    private final List<SqlOperatorTable> tableList;
+    protected final List<SqlOperatorTable> tableList;
 
     //~ Constructors -----------------------------------------------------------
 
     /**
-     * Creates a new empty table.
+     * Creates a table based on a given list.
      */
-    public ChainedSqlOperatorTable()
-    {
-        tableList = new ArrayList<SqlOperatorTable>();
+    public ChainedSqlOperatorTable(List<SqlOperatorTable> tableList) {
+        this.tableList = tableList;
     }
 
     //~ Methods ----------------------------------------------------------------

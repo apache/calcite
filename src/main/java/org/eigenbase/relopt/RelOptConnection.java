@@ -46,17 +46,6 @@ public interface RelOptConnection
      * getRelOptSchemaStatic()</code>.
      */
     RelOptSchema getRelOptSchema();
-
-    /**
-     * In theory, this method returns the contents of <code>tableName</code> as
-     * an array; in practice, it is a placeholder recognized by the optimizer to
-     * do something much more efficient. This involves calling <code>{@link
-     * RelOptSchema#getTableForMember}(qualifier,tableName).{@link
-     * RelOptTable#toRel}(cluster, exp)</code>.
-     */
-    Object contentsAsArray(
-        String qualifier,
-        String tableName);
 }
 
 // End RelOptConnection.java

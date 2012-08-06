@@ -73,8 +73,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
                     translator.typeFactory.createType(
                         queryable.getElementType()),
                     new String[0],
-                    queryable.getExpression()),
-                translator.connection);
+                    (Table) queryable));
         }
         return translator.translate(queryable.getExpression());
     }

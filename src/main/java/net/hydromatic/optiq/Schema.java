@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * A namespace for tables and table functions.
@@ -75,6 +76,8 @@ public interface Schema extends DataContext {
     Expression getExpression();
 
     QueryProvider getQueryProvider();
+
+    Map<String, List<TableFunction>> getTableFunctions();
 }
 
 // End Schema.java

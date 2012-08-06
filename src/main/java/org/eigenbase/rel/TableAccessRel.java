@@ -61,18 +61,15 @@ public final class TableAccessRel
      *
      * @param cluster Cluster
      * @param table Table
-     * @param connection Connection
      */
     public TableAccessRel(
         RelOptCluster cluster,
-        RelOptTable table,
-        RelOptConnection connection)
+        RelOptTable table)
     {
         super(
             cluster,
             cluster.traitSetOf(CallingConvention.NONE),
-            table,
-            connection);
+            table);
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

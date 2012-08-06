@@ -17,34 +17,24 @@
 */
 package net.hydromatic.optiq;
 
-import java.lang.reflect.Type;
-import java.util.List;
+import org.eigenbase.rel.RelNode;
+import org.eigenbase.relopt.RelOptTable;
 
 /**
- * Function that returns a {@link Table}.
+ * Extension to {@link Table} that specifies how it is to be translated to
+ * a {@link org.eigenbase.rel.RelNode planner node}.
+ *
+ * <p>It is optional for a Table to implement this interface. A Table that does
+ * not implement this interface, a Table will be converted to an
+ * EnumerableTableAccessRel. Generally a Table will implements this interface to
+ * create a particular subclass of RelNode, and also register rules that act
+ * on that particular subclass of RelNode.</p>
+ *
+ * @author jhyde
  */
-public interface TableFunction<T> {
-    /**
-     * Returns the parameters of this table function.
-     *
-     * @return Parameters; never null
-     */
-    List<Parameter> getParameters();
-
-    /**
-     * Returns the record type of the table yielded by this function when
-     * applied to parameters of given types.
-     */
-    Type getElementType();
-
-    /**
-     * Applies arguments to yield a table.
-     *
-     * @param arguments Arguments
-     * @return Table
-     */
-    Table<T> apply(List<Object> arguments);
-
+public interface TranslatableTable<T> extends Table<T> {
+    /** Converts this table into a {@link RelNode relational expression}. */
+    RelNode toRel(RelOptTable.ToRelContext context);
 }
 
-// End TableFunction.java
+// End TranslatableTable.java

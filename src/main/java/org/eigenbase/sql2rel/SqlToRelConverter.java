@@ -24,6 +24,7 @@ import java.util.logging.*;
 
 import openjava.mop.*;
 
+import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
@@ -64,8 +65,7 @@ public class SqlToRelConverter
 
     protected final SqlValidator validator;
     protected final RexBuilder rexBuilder;
-    private final RelOptConnection connection;
-    protected final RelOptSchema schema;
+    protected final OJPreparingStmt.CatalogReader catalogReader;
     protected final RelOptCluster cluster;
     private final Map<SqlValidatorScope, LookupContext> mapScopeToLux =
         new HashMap<SqlValidatorScope, LookupContext>();
@@ -122,36 +122,35 @@ public class SqlToRelConverter
      */
     private final Map<SqlNode, RexNode> mapConvertedNonCorrSubqs =
         new HashMap<SqlNode, RexNode>();
+    private final OJPreparingStmt preparingStmt;
 
     //~ Constructors -----------------------------------------------------------
 
     /**
      * Creates a converter.
      *
+     * @param preparingStmt Preparing statement
      * @param validator Validator
-     * @param schema Schema
+     * @param catalogReader Schema
      * @param env Environment
-     * @param connection Connection
+     * @param planner Planner
      * @param rexBuilder Rex builder
-     *
-     * @pre connection != null
      */
     public SqlToRelConverter(
+        OJPreparingStmt preparingStmt,
         SqlValidator validator,
-        RelOptSchema schema,
+        OJPreparingStmt.CatalogReader catalogReader,
         Environment env,
         RelOptPlanner planner,
-        RelOptConnection connection,
         RexBuilder rexBuilder)
     {
-        Util.pre(connection != null, "connection != null");
+        this.preparingStmt = preparingStmt;
         this.opTab =
             (validator
                 == null) ? SqlStdOperatorTable.instance()
             : validator.getOperatorTable();
         this.validator = validator;
-        this.schema = schema;
-        this.connection = connection;
+        this.catalogReader = catalogReader;
         this.defaultValueFactory = new NullDefaultValueFactory();
         this.subqueryConverter = new NoOpSubqueryConverter();
         this.rexBuilder = rexBuilder;
@@ -1691,14 +1690,23 @@ public class SqlToRelConverter
             RelOptTable table =
                 SqlValidatorUtil.getRelOptTable(
                     fromNamespace,
-                    schema,
+                    catalogReader,
                     datasetName,
                     usedDataset);
             final RelNode tableRel;
             if (shouldConvertTableAccess) {
-                tableRel = table.toRel(cluster, connection);
+                tableRel = table.toRel(
+                    new RelOptTable.ToRelContext() {
+                        public RelOptCluster getCluster() {
+                            return cluster;
+                        }
+
+                        public OJPreparingStmt getPreparingStmt() {
+                            return preparingStmt;
+                        }
+                    });
             } else {
-                tableRel = new TableAccessRel(cluster, table, connection);
+                tableRel = new TableAccessRel(cluster, table);
             }
             bb.setRoot(tableRel, true);
             if (usedDataset[0]) {
@@ -2675,7 +2683,7 @@ public class SqlToRelConverter
         return new TableModificationRel(
             cluster,
             targetTable,
-            connection,
+            catalogReader,
             massagedRel,
             TableModificationRel.Operation.INSERT,
             null,
@@ -2686,7 +2694,8 @@ public class SqlToRelConverter
     {
         SqlValidatorNamespace targetNs = validator.getNamespace(call);
         RelOptTable targetTable =
-            SqlValidatorUtil.getRelOptTable(targetNs, schema, null, null);
+            SqlValidatorUtil.getRelOptTable(
+                targetNs, catalogReader, null, null);
         return targetTable;
     }
 
@@ -2809,7 +2818,7 @@ public class SqlToRelConverter
         return new TableModificationRel(
             cluster,
             targetTable,
-            connection,
+            catalogReader,
             sourceRel,
             TableModificationRel.Operation.DELETE,
             null,
@@ -2833,7 +2842,7 @@ public class SqlToRelConverter
         return new TableModificationRel(
             cluster,
             targetTable,
-            connection,
+            catalogReader,
             sourceRel,
             TableModificationRel.Operation.UPDATE,
             targetColumnNameList,
@@ -2928,7 +2937,7 @@ public class SqlToRelConverter
         return new TableModificationRel(
             cluster,
             targetTable,
-            connection,
+            catalogReader,
             massagedRel,
             TableModificationRel.Operation.MERGE,
             targetColumnNameList,

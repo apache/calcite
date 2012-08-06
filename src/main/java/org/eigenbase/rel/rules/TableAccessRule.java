@@ -17,6 +17,7 @@
 */
 package org.eigenbase.rel.rules;
 
+import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
@@ -49,11 +50,18 @@ public class TableAccessRule
 
     public void onMatch(RelOptRuleCall call)
     {
-        TableAccessRel oldRel = (TableAccessRel) call.rels[0];
+        final TableAccessRel oldRel = (TableAccessRel) call.rels[0];
         RelNode newRel =
             oldRel.getTable().toRel(
-                oldRel.getCluster(),
-                oldRel.getConnection());
+                new RelOptTable.ToRelContext() {
+                    public RelOptCluster getCluster() {
+                        return oldRel.getCluster();
+                    }
+
+                    public OJPreparingStmt getPreparingStmt() {
+                        throw new UnsupportedOperationException();
+                    }
+                });
         call.transformTo(newRel);
     }
 }

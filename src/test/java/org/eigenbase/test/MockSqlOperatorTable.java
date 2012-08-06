@@ -17,6 +17,8 @@
 */
 package org.eigenbase.test;
 
+import java.util.Arrays;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
@@ -34,14 +36,16 @@ public class MockSqlOperatorTable
 {
     //~ Instance fields --------------------------------------------------------
 
-    private final ListSqlOperatorTable listOpTab = new ListSqlOperatorTable();
+    private final ListSqlOperatorTable listOpTab;
 
     //~ Constructors -----------------------------------------------------------
 
     public MockSqlOperatorTable(SqlOperatorTable parentTable)
     {
-        add(parentTable);
-        add(listOpTab);
+        super(
+            Arrays.<SqlOperatorTable>asList(
+                parentTable, new ListSqlOperatorTable()));
+        listOpTab = (ListSqlOperatorTable) tableList.get(1);
     }
 
     //~ Methods ----------------------------------------------------------------

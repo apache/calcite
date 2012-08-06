@@ -23,6 +23,7 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implementation of {@link net.hydromatic.optiq.Schema} that delegates to an
@@ -40,6 +41,10 @@ public class DelegatingSchema implements Schema {
      */
     public DelegatingSchema(Schema schema) {
         this.schema = schema;
+    }
+
+    public Map<String, List<TableFunction>> getTableFunctions() {
+        return schema.getTableFunctions();
     }
 
     public Expression getExpression() {

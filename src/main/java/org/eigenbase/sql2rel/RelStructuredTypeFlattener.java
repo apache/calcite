@@ -83,6 +83,7 @@ public class RelStructuredTypeFlattener
     private int iRestructureInput;
     private RelDataType flattenedRootType;
     boolean restructured;
+    private final RelOptTable.ToRelContext toRelContext;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -90,6 +91,7 @@ public class RelStructuredTypeFlattener
     {
         this.rexBuilder = rexBuilder;
         visitor = new RewriteRelVisitor();
+        toRelContext = null; // TODO:
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -307,7 +309,7 @@ public class RelStructuredTypeFlattener
             new TableModificationRel(
                 rel.getCluster(),
                 rel.getTable(),
-                rel.getConnection(),
+                rel.getCatalogReader(),
                 getNewForOldRel(rel.getChild()),
                 rel.getOperation(),
                 rel.getUpdateColumnList(),
@@ -694,9 +696,7 @@ public class RelStructuredTypeFlattener
     public void rewriteRel(TableAccessRel rel)
     {
         RelNode newRel =
-            rel.getTable().toRel(
-                rel.getCluster(),
-                rel.getConnection());
+            rel.getTable().toRel(toRelContext);
 
         setNewForOldRel(rel, newRel);
     }

@@ -20,8 +20,12 @@ package net.hydromatic.optiq.jdbc;
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.RawEnumerable;
+
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.sql.SqlNode;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -38,9 +42,8 @@ import java.util.List;
  * @author jhyde
  */
 public interface OptiqPrepare {
-    <T> Queryable<T> toQueryable(
-        Context context,
-        String sql);
+    ParseResult parse(
+        Context context, String sql);
 
     <T> PrepareResult<T> prepareSql(
         Context context,
@@ -57,6 +60,19 @@ public interface OptiqPrepare {
         JavaTypeFactory getTypeFactory();
 
         Schema getRootSchema();
+    }
+
+    public static class ParseResult {
+        public final String sql; // for debug
+        public final SqlNode sqlNode;
+        public final RelDataType rowType;
+
+        public ParseResult(String sql, SqlNode sqlNode, RelDataType rowType) {
+            super();
+            this.sql = sql;
+            this.sqlNode = sqlNode;
+            this.rowType = rowType;
+        }
     }
 
     public static class PrepareResult<T> {

@@ -18,11 +18,9 @@
 package org.eigenbase.relopt;
 
 /**
- * Extension to {@link RelOptSchema} with support for sample datasets.
+ * Extension to {@link RelOptSchema} with support for sample data-sets.
  *
  * @author jhyde
- * @version $Id$
- * @see RelOptConnection
  * @see RelOptSchema
  */
 public interface RelOptSchemaWithSampling

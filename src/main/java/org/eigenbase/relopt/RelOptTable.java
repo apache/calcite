@@ -19,6 +19,7 @@ package org.eigenbase.relopt;
 
 import java.util.*;
 
+import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
 
@@ -67,17 +68,8 @@ public interface RelOptTable
      * org.eigenbase.rel.TableAccessRel}, then optimizes this expression by
      * applying {@link org.eigenbase.relopt.RelOptRule rules} to transform it
      * into more efficient access methods for this table.</p>
-     *
-     * @param cluster the cluster the relational expression will belong to
-     * @param connection the parse tree of the expression which evaluates to a
-     * connection object
-     *
-     * @pre cluster != null
-     * @pre connection != null
      */
-    RelNode toRel(
-        RelOptCluster cluster,
-        RelOptConnection connection);
+    RelNode toRel(ToRelContext context);
 
     /**
      * Returns a description of the physical ordering (or orderings) of the rows
@@ -87,6 +79,11 @@ public interface RelOptTable
      * @post return != null
      */
     public List<RelCollation> getCollationList();
+
+    interface ToRelContext {
+        RelOptCluster getCluster();
+        OJPreparingStmt getPreparingStmt();
+    }
 }
 
 // End RelOptTable.java
