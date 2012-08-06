@@ -1,39 +1,10 @@
 optiq
-Copyright (C) 2012-2012, Julian Hyde
+Copyright (C) 2012-2012 Julian Hyde
 
 This product includes software from the Eigenbase project, licensed from
-DynamoBI Corporation. DynamoBI describes the progeny of the IP:
+DynamoBI Corporation, http://github.com/dynamobi/luciddb/.
 
-   The code in this repository is provided 100% unencumbered via the ASL 2.0
-   from DynamoBI Corporation.  This code is based on the work of numerous
-   companies and individuals through the collaboration and Copyright/IP sharing
-   framework that existed at Eigenbase Foundation (a non profit).
-
-   Eigenbase released the entire codebase directly to the public under the terms
-   of the GPLv2 but also had separate, full copyright sharing agreements with
-   companies deeply involved at Eigenbase (SQLstream, LucidEra, DynamoBI)
-
-   In short, all companies had joint copyright on each others Eigenbase code and
-   could license as they see fit, without accounting to the other (including
-   commercial closed source licensing).  The IP was NOT shared (meaning each
-   owns a portion) but rather joint (each owns it all, without account to
-   other).
-
-   All IP in this repository is provided to the public, at large, under the
-   terms of the ASL 2.0 by either:
-
-   a) The copyrights/IP DynamoBI has obtained from it's contractual / legal
-   agreement with Eigenbase (JDA) and the corresponding agreements between other
-   individuals/companies and Eigebnase (JCAs/JDAs)
-
-   -or-
-
-   b) Direct ASL licensing / CLAs (any code commits after ASL relicense early
-   2012)
-
-   Eigenbase JDAs, and JCAs or Apache CLAS cover 100% of the project code
-   provided in this repository are available here:
-   https://github.com/dynamobi/luciddb-legal
+Copyright (C) 2005-2011 DynamoBI Corporation.
 
 ===============================================================================
 Licensed under the Apache License, Version 2.0 (the "License");
