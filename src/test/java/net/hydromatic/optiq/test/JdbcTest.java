@@ -47,6 +47,7 @@ import org.eigenbase.util.Util;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.sql.*;
+import java.sql.Statement;
 import java.util.*;
 import javax.sql.DataSource;
 
@@ -380,19 +381,39 @@ public class JdbcTest extends TestCase {
         dataSource.setUsername("foodmart");
         dataSource.setPassword("foodmart");
 
-        MutableSchema rootSchema = optiqConnection.getRootSchema();
-        rootSchema.addSchema(
+        JdbcSchema.create(
+            optiqConnection,
+            optiqConnection.getRootSchema(),
+            dataSource,
             "foodmart",
-            new JdbcSchema(
-                queryProvider == null ? optiqConnection : queryProvider,
-                dataSource,
-                JdbcSchema.createDialect(dataSource),
-                "foodmart",
-                "",
-                optiqConnection.getTypeFactory(),
-                rootSchema.getSubSchemaExpression(
-                    "foodmart", Schema.class)));
+            "",
+            "foodmart");
         return optiqConnection;
+    }
+
+    /**
+     * The example in the README.
+     */
+    public void testReadme() throws ClassNotFoundException, SQLException {
+        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+        Connection connection = DriverManager.getConnection("jdbc:optiq:");
+        OptiqConnection optiqConnection =
+            connection.unwrap(OptiqConnection.class);
+        ReflectiveSchema.create(
+            optiqConnection, optiqConnection.getRootSchema(),
+            "hr", new HrSchema());
+        Statement statement = optiqConnection.createStatement();
+        ResultSet resultSet = statement.executeQuery(
+            "select d.\"deptno\", min(e.\"empid\")\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "join \"hr\".\"depts\" as d\n"
+            + "  on e.\"deptno\" = d.\"deptno\"\n"
+            + "group by d.\"deptno\"\n"
+            + "having count(*) > 1");
+        toString(resultSet);
+        resultSet.close();
+        statement.close();
+        connection.close();
     }
 
     public static class HrSchema {

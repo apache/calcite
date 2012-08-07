@@ -23,6 +23,7 @@ import net.hydromatic.optiq.*;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
+import net.hydromatic.optiq.jdbc.OptiqConnection;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlDialect;
@@ -85,6 +86,39 @@ public class JdbcSchema implements Schema {
         assert dialect != null;
         assert queryProvider != null;
         assert dataSource != null;
+    }
+
+    /**
+     * Creates a JdbcSchema within another schema.
+     *
+     * @param optiqConnection Connection to Optiq (also a query provider)
+     * @param parentSchema Parent schema
+     * @param dataSource Data source
+     * @param jdbcCatalog Catalog name, or null
+     * @param jdbcSchema Schema name pattern
+     * @param name Name of new schema
+     * @return New JdbcSchema
+     */
+    public static JdbcSchema create(
+        OptiqConnection optiqConnection,
+        MutableSchema parentSchema,
+        DataSource dataSource,
+        String jdbcCatalog,
+        String jdbcSchema,
+        String name)
+    {
+        JdbcSchema schema =
+            new JdbcSchema(
+                optiqConnection,
+                dataSource,
+                JdbcSchema.createDialect(dataSource),
+                jdbcCatalog,
+                jdbcSchema,
+                optiqConnection.getTypeFactory(),
+                parentSchema.getSubSchemaExpression(
+                    name, Schema.class));
+        parentSchema.addSchema(name, schema);
+        return schema;
     }
 
     /** Returns a suitable SQL dialect for the given data source. */

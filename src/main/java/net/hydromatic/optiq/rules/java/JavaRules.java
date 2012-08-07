@@ -836,11 +836,29 @@ public class JavaRules {
             if (aggregation == SqlStdOperatorTable.countOperator) {
                 return Expressions.call(
                     grouping,
-                    "count");
+                    "longCount");
             } else if (aggregation == SqlStdOperatorTable.sumOperator) {
                 return Expressions.call(
                     grouping,
                     "sum",
+                    EnumUtil.generateAccessor(
+                        typeFactory,
+                        rowType,
+                        aggCall.getArgList(),
+                        true));
+            } else if (aggregation == SqlStdOperatorTable.maxOperator) {
+                return Expressions.call(
+                    grouping,
+                    "max",
+                    EnumUtil.generateAccessor(
+                        typeFactory,
+                        rowType,
+                        aggCall.getArgList(),
+                        true));
+            } else if (aggregation == SqlStdOperatorTable.minOperator) {
+                return Expressions.call(
+                    grouping,
+                    "min",
                     EnumUtil.generateAccessor(
                         typeFactory,
                         rowType,
