@@ -91,9 +91,8 @@ to push the <code>JOIN</code> and <code>GROUP BY</code> operations to
 the source database.
 
 In-memory and JDBC are just two familiar examples. Optiq can handle
-any data source and data format.
-
-To add a data source, you need to write an adapter that tells Optiq
+any data source and data format. To add a data source, you need to
+write an adapter that tells Optiq
 what collections in the data source it should consider "tables".
 
 For more advanced integration, you can write optimizer
@@ -103,6 +102,37 @@ and allow Optiq to optimize how queries are translated to
 operators. Optiq will combine your rules and operators with built-in
 rules and operators, apply cost-based optimization, and generate an
 efficient plan.
+
+Optiq also allows front-ends other than SQL/JDBC. For example, you can
+execute queries in linq4j:
+
+    final OptiqConnection connection = ...;
+    ParameterExpression c = Expressions.parameter(Customer.class, "c");
+    for (Customer customer
+        : connection.getRootSchema()
+            .getSubSchema("foodmart")
+            .getTable("customer", Customer.class)
+            .where(
+                Expressions.<Predicate1<Customer>>lambda(
+                    Expressions.lessThan(
+                        Expressions.field(c, "customer_id"),
+                        Expressions.constant(5)),
+                    c)))
+    {
+        System.out.println(c.name);
+    }
+
+Linq4j understands the full query parse tree, and the Linq4j query
+provider for Optiq invokes Optiq as an query optimizer. If the
+<code>customer</code> table comes from a JDBC database (based on
+this code fragment, we really can't tell) then the optimal plan
+will be to send the query
+
+    SELECT *
+    FROM "customer"
+    WHERE "customer_id" < 5
+
+to the JDBC data source.
 
 Status
 ======
