@@ -17,8 +17,8 @@
 */
 
 /**
- * Utilities to help implement Optiq's SPIs.
+ * Preparation of queries (parsing, planning and implementation).
  */
-package net.hydromatic.optiq.impl;
+package net.hydromatic.optiq.prepare;
 
 // End package-info.java

@@ -17,8 +17,8 @@
 */
 
 /**
- * Utilities to help implement Optiq's SPIs.
+ * Query optimizer rules.
  */
-package net.hydromatic.optiq.impl;
+package net.hydromatic.optiq.rules;
 
 // End package-info.java

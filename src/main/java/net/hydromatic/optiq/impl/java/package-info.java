@@ -17,7 +17,8 @@
 */
 
 /**
- * Main package for Optiq, the dynamic data management platform.
+ * Query provider based on Java in-memory data
+ * structures.
  */
 package net.hydromatic.optiq.impl.java;
 

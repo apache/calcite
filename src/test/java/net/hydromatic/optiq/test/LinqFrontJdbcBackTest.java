@@ -20,6 +20,7 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
 import net.hydromatic.linq4j.function.Predicate1;
+import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
@@ -36,9 +37,8 @@ public class LinqFrontJdbcBackTest extends TestCase {
     public void testTableWhere() {
         try {
             final OptiqConnection connection = JdbcTest.getConnection(null);
-            JdbcSchema schema =
-                (JdbcSchema)
-                    connection.getRootSchema().getSubSchema("foodmart");
+            Schema schema =
+                connection.getRootSchema().getSubSchema("foodmart");
             ParameterExpression c =
                 Expressions.parameter(
                     JdbcTest.Customer.class, "c");
