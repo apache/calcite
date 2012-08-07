@@ -6,9 +6,9 @@ Optiq is a dynamic data management framework.
 Prerequisites
 =============
 
-Git, maven, JDK 1.7.
+Optiq requires git, maven, and JDK 1.7.
 
-Download, build and install linq4j:
+Optiq also depends on linq4j. Before you build optiq, you must download, build and install linq4j:
 
     $ git clone git://github.com/julianhyde/linq4j.git
     $ cd linq4j
@@ -64,13 +64,13 @@ format. This example used in-memory data sets, and processed them
 using operators such as <code>groupBy</code> and <code>join</code>
 from the <a href="https://github.com/julianhyde/linq4j">linq4j</a>
 library. But Optiq can also process data in other data formats, such
-as JDBC. Replace
+as JDBC. In the first example, replace
 
     ReflectiveSchema.create(
         optiqConnection, optiqConnection.getRootSchema(),
         "hr", new HrSchema());
 
-in the first example with
+with
 
     Class.forName("com.mysql.jdbc.Driver");
     BasicDataSource dataSource = new BasicDataSource();
@@ -84,7 +84,9 @@ in the first example with
         "hr",
         "");
 
-and Optiq will execute the same query in JDBC. It uses optimizer rules
+and Optiq will execute the same query in JDBC. To the application, the
+data and API are the same, but behind the scenes the implementation is
+very different. Optiq uses optimizer rules
 to push the <code>JOIN</code> and <code>GROUP BY</code> operations to
 the source database.
 
