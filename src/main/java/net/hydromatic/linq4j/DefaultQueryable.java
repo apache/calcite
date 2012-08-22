@@ -45,6 +45,7 @@ abstract class DefaultQueryable<T>
     }
 
     // override return type
+    @Override
     protected Queryable<T> getThis() {
         return this;
     }
@@ -91,14 +92,17 @@ abstract class DefaultQueryable<T>
         return factory.except(getThis(), enumerable1);
     }
 
+    @Override
     public Queryable<T> take(int count) {
         return factory.take(getThis(), count);
     }
 
+    @Override
     public Queryable<T> skip(int count) {
         return factory.skip(getThis(), count);
     }
 
+    @Override
     public Queryable<T> reverse() {
         return factory.reverse(getThis());
     }
@@ -128,6 +132,7 @@ abstract class DefaultQueryable<T>
         return this;
     }
 
+    @Override
     public <T2> Queryable<T2> cast(Class<T2> clazz) {
         return factory.cast(getThis(), clazz);
     }
