@@ -95,3 +95,4 @@ More information
 * Blog: http://julianhyde.blogspot.com
 * Project page: http://www.hydromatic.net/linq4j
 * Source code: http://github.com/julianhyde/linq4j
+* Developers list: http://groups.google.com/group/linq4j-dev

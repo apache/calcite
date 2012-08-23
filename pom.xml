@@ -38,6 +38,7 @@
       <properties/>
     </developer>
   </developers>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
@@ -46,8 +47,18 @@
   <issueManagement>
     <system>github</system>
     <url>https://github.com/julianhyde/linq4j/issues</url>
-   </issueManagement>
-  <mailingLists/>
+  </issueManagement>
+
+  <mailingLists>
+    <mailingList>
+      <name>Linq4j developers list</name>
+      <subscribe>linq4j-dev-subscribe@googlegroups.com</subscribe>
+      <unsubscribe>linq4j-dev-unsubscribe@googlegroups.com</unsubscribe>
+      <post>linq4j-dev@googlegroups.com</post>
+      <archive>http://groups.google.com/group/linq4j-dev</archive>
+    </mailingList>
+  </mailingLists>
+
   <scm>
     <connection>scm:git:git://github.com/julianhyde/linq4j.git</connection>
     <url>scm:git:git://github.com/julianhyde/linq4j.git</url>
