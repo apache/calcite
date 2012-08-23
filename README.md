@@ -161,3 +161,4 @@ More information
 * Blog: http://julianhyde.blogspot.com
 * Project page: http://www.hydromatic.net/optiq
 * Source code: http://github.com/julianhyde/optiq
+* Developers list: http://groups.google.com/group/optiq-dev

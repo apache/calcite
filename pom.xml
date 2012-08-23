@@ -38,17 +38,28 @@
       <properties/>
     </developer>
   </developers>
+
+  <mailingLists>
+    <mailingList>
+      <name>Optiq developers list</name>
+      <subscribe>optiq-dev-subscribe@googlegroups.com</subscribe>
+      <unsubscribe>optiq-dev-unsubscribe@googlegroups.com</unsubscribe>
+      <post>optiq-dev@googlegroups.com</post>
+      <archive>http://groups.google.com/group/optiq-dev</archive>
+    </mailingList>
+  </mailingLists>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
   <!-- Environment settings. -->
   <issueManagement/>
-  <mailingLists/>
 
   <scm>
     <connection>scm:git:git://github.com/julianhyde/optiq.git</connection>
-    <url>scm:git:git://github.com/julianhyde/optiq.git</url>
+    <developerConnection>scm:git:git@github.com:julianhyde/optiq.git</developerConnection>
+    <url>http://github.com/julianhyde/optiq/tree/master</url>
   </scm>
 
   <!-- Dependencies. -->
