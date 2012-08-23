@@ -8,7 +8,9 @@ Prerequisites
 
 Optiq requires git, maven, and JDK 1.7.
 
-Optiq also depends on linq4j. Before you build optiq, you must download, build and install linq4j:
+Optiq also depends on
+<a href="https://github.com/julianhyde/linq4j">linq4j</a>.
+Before you build optiq, you must download, build and install linq4j:
 
     $ git clone git://github.com/julianhyde/linq4j.git
     $ cd linq4j
@@ -19,6 +21,7 @@ Download and build
 ==================
 
     $ git clone git://github.com/julianhyde/optiq.git
+    $ cd optiq
     $ mvn compile
 
 Example
@@ -48,7 +51,7 @@ in-memory collections:
         + "  on e.\"deptno\" = d.\"deptno\"\n"
         + "group by d.\"deptno\"\n"
         + "having count(*) > 1");
-    toString(resultSet);
+    print(resultSet);
     resultSet.close();
     statement.close();
     connection.close();
@@ -62,7 +65,7 @@ and <code>depts</code> as tables.
 Optiq does not want to own data; it does not even have favorite data
 format. This example used in-memory data sets, and processed them
 using operators such as <code>groupBy</code> and <code>join</code>
-from the <a href="https://github.com/julianhyde/linq4j">linq4j</a>
+from the linq4j
 library. But Optiq can also process data in other data formats, such
 as JDBC. In the first example, replace
 
