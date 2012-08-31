@@ -71,6 +71,9 @@ class UnregisteredDriver implements java.sql.Driver {
     }
 
     public Connection connect(String url, Properties info) throws SQLException {
+        if (!acceptsURL(url)) {
+            return null;
+        }
         return factory.newConnection(this, factory, url, info);
     }
 
