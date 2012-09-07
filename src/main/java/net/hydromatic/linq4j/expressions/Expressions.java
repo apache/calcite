@@ -1767,6 +1767,8 @@ public class Expressions {
     public static NewExpression new_(
         Type type, Iterable<Expression> arguments)
     {
+        // Note that the last argument is not an empty list. That would cause
+        // an anonymous inner-class with no members to be generated.
         return new_(type, arguments, null);
     }
 
@@ -1787,10 +1789,12 @@ public class Expressions {
     public static NewExpression new_(
         Constructor constructor, Iterable<Expression> expressions)
     {
+        // Note that the last argument is not an empty list. That would cause
+        // an anonymous inner-class with no members to be generated.
         return new_(
             constructor.getDeclaringClass(),
             expressions,
-            Collections.<MemberDeclaration>emptyList());
+            null);
     }
 
     /** Creates a NewExpression that represents calling the specified

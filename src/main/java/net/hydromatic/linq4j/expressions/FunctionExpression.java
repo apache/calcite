@@ -141,7 +141,8 @@ public final class FunctionExpression<F extends Function<?>>
         }
         Type resultType2 = bridgeResultType;
         if (bridgeResultType == Object.class
-            && !params.equals(bridgeParams))
+            && !params.equals(bridgeParams)
+            && !(body.getType() instanceof TypeVariable))
         {
             resultType2 = body.getType();
         }
