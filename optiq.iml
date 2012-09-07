@@ -27,7 +27,6 @@
     <orderEntry type="library" scope="TEST" name="Maven: commons-dbcp:commons-dbcp:1.4" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: commons-pool:commons-pool:1.5.4" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: mysql:mysql-connector-java:5.1.20" level="project" />
-    <orderEntry type="library" name="Maven: net.sf.opencsv:opencsv:2.3" level="project" />
   </component>
 </module>
 
