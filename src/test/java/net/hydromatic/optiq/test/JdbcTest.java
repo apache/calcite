@@ -594,7 +594,10 @@ public class JdbcTest extends TestCase {
                 .enumerator();
         }
 
-        public RelNode toRel(RelOptTable.ToRelContext context) {
+        public RelNode toRel(
+            RelOptTable.ToRelContext context,
+            RelOptTable relOptTable)
+        {
             return expandView(
                 context.getPreparingStmt(),
                 ((JavaTypeFactory) context.getCluster().getTypeFactory())

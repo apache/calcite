@@ -1,10 +1,17 @@
 optiq
 Copyright (C) 2012-2012 Julian Hyde
 
+===============================================================================
 This product includes software from the Eigenbase project, licensed from
 DynamoBI Corporation, http://github.com/dynamobi/luciddb/.
 
 Copyright (C) 2005-2011 DynamoBI Corporation.
+
+===============================================================================
+The Splunk adapter (net.hydromatic.optiq.impl.splunk and sub-packages) contains
+code from the SplunkLucidDb project.
+
+Copyright [2011] Splunk Inc
 
 ===============================================================================
 Licensed under the Apache License, Version 2.0 (the "License");

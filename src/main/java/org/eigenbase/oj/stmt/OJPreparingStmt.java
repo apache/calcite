@@ -331,7 +331,17 @@ public abstract class OJPreparingStmt
         RelDataType logicalRowType,
         RelNode rootRel)
     {
-        RelOptPlanner planner = rootRel.getCluster().getPlanner();
+        final RelOptPlanner planner = rootRel.getCluster().getPlanner();
+
+        // Allow each rel to register its own rules.
+        new RelVisitor() {
+            @Override
+            public void visit(RelNode node, int ordinal, RelNode parent) {
+                planner.registerClass(node);
+                super.visit(node, ordinal, parent);
+            }
+        }.go(rootRel);
+
         planner.setRoot(rootRel);
 
         RelTraitSet desiredTraits = getDesiredRootTraitSet(rootRel);
@@ -339,10 +349,10 @@ public abstract class OJPreparingStmt
         rootRel = planner.changeTraits(rootRel, desiredTraits);
         assert (rootRel != null);
         planner.setRoot(rootRel);
-        planner = planner.chooseDelegate();
-        rootRel = planner.findBestExp();
-        assert (rootRel != null) : "could not implement exp";
-        return rootRel;
+        final RelOptPlanner planner2 = planner.chooseDelegate();
+        final RelNode rootRel2 = planner2.findBestExp();
+        assert (rootRel2 != null) : "could not implement exp";
+        return rootRel2;
     }
 
     protected RelTraitSet getDesiredRootTraitSet(RelNode rootRel)

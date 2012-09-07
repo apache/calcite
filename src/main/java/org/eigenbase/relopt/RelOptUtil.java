@@ -1625,20 +1625,6 @@ public abstract class RelOptUtil
 
     public static void registerAbstractRels(RelOptPlanner planner)
     {
-        AggregateRel.register(planner);
-        FilterRel.register(planner);
-        JoinRel.register(planner);
-        CorrelatorRel.register(planner);
-        OneRowRel.register(planner);
-        ValuesRel.register(planner);
-        ProjectRel.register(planner);
-        TableAccessRel.register(planner);
-        UnionRel.register(planner);
-        IntersectRel.register(planner);
-        MinusRel.register(planner);
-        CalcRel.register(planner);
-        CollectRel.register(planner);
-        UncollectRel.register(planner);
         planner.addRule(PullConstantsThroughAggregatesRule.instance);
         planner.addRule(FilterToCalcRule.instance);
         planner.addRule(ProjectToCalcRule.instance);

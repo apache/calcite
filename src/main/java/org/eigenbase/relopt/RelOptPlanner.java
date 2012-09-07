@@ -266,6 +266,14 @@ public interface RelOptPlanner
      * @param importance Importance
      */
     void setImportance(RelNode rel, double importance);
+
+    /**
+     * Registers a class of RelNode. If this class of RelNode has been seen
+     * before, does nothing.
+     *
+     * @param node Relational expression
+     */
+    void registerClass(RelNode node);
 }
 
 // End RelOptPlanner.java

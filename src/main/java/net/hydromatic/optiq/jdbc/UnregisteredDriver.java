@@ -26,12 +26,16 @@ import java.util.logging.Logger;
 
 /**
  * Implementation of Optiq JDBC driver that does not register itself.
+ *
+ * <p>You can easily create a "vanity driver" that recognizes its own
+ * URL prefix as a sub-class of this class. Per the JDBC specification it
+ * must register itself.</p>
  */
-class UnregisteredDriver implements java.sql.Driver {
+public class UnregisteredDriver implements java.sql.Driver {
     final DriverVersion version = new DriverVersion();
     final Factory factory;
 
-    UnregisteredDriver() {
+    protected UnregisteredDriver() {
         this.factory = createFactory();
     }
 
@@ -144,8 +148,7 @@ class UnregisteredDriver implements java.sql.Driver {
     /**
      * Registers this driver with the driver manager.
      */
-    void register()
-    {
+    protected void register() {
         try {
             DriverManager.registerDriver(this);
         } catch (SQLException e) {

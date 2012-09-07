@@ -499,7 +499,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
         public RelNode toRel(ToRelContext context)
         {
             if (table instanceof TranslatableTable) {
-                return ((TranslatableTable) table).toRel(context);
+                return ((TranslatableTable) table).toRel(context, this);
             }
             return new JavaRules.EnumerableTableAccessRel(
                 context.getCluster(), this, expression);

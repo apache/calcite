@@ -54,7 +54,7 @@ public class VolcanoPlanner
      * any implementation, no matter how expensive. The default is false due to
      * unresolved bugs with various rules.
      */
-    protected boolean ambitious;
+    protected boolean ambitious = true;
 
     /**
      * If true, and if {@link #ambitious} is true, the planner waits a finite

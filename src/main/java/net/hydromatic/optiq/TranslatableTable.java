@@ -34,7 +34,9 @@ import org.eigenbase.relopt.RelOptTable;
  */
 public interface TranslatableTable<T> extends Table<T> {
     /** Converts this table into a {@link RelNode relational expression}. */
-    RelNode toRel(RelOptTable.ToRelContext context);
+    RelNode toRel(
+        RelOptTable.ToRelContext context,
+        RelOptTable relOptTable);
 }
 
 // End TranslatableTable.java

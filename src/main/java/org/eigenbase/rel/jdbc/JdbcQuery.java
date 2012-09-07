@@ -203,15 +203,11 @@ public class JdbcQuery
         return r;
     }
 
-    /**
-     * Registers any planner rules needed to implement queries using JdbcQuery
-     * objects.
-     *
-     * @param planner Planner
-     */
-    public static void register(RelOptPlanner planner)
+    @Override
+    public void register(RelOptPlanner planner)
     {
         // nothing for now
+        super.register(planner);
     }
 
     public ParseTree implement(JavaRelImplementor implementor)

@@ -59,6 +59,9 @@ public abstract class AbstractRelOptPlanner
 
     private CancelFlag cancelFlag;
 
+    private final Set<Class<? extends RelNode>> classes =
+        new HashSet<Class<? extends RelNode>>();
+
     //~ Constructors -----------------------------------------------------------
 
     /**
@@ -190,6 +193,13 @@ public abstract class AbstractRelOptPlanner
 
     public void setImportance(RelNode rel, double importance)
     {
+    }
+
+    public void registerClass(RelNode node) {
+        final Class<? extends RelNode> clazz = node.getClass();
+        if (classes.add(clazz)) {
+            node.register(this);
+        }
     }
 
     // implement RelOptPlanner
