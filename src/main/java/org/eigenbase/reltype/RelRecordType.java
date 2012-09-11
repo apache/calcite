@@ -22,7 +22,6 @@ import java.lang.reflect.Type;
 import java.util.List;
 
 import org.eigenbase.sql.type.*;
-import org.eigenbase.util.Util;
 
 import net.hydromatic.linq4j.expressions.Types;
 

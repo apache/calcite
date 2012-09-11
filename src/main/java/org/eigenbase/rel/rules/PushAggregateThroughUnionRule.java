@@ -37,7 +37,10 @@ public class PushAggregateThroughUnionRule extends RelOptRule
     public static final PushAggregateThroughUnionRule instance =
         new PushAggregateThroughUnionRule();
 
-    public PushAggregateThroughUnionRule()
+    /**
+     * Private constructor.
+     */
+    private PushAggregateThroughUnionRule()
     {
         super(
             new RelOptRuleOperand(
@@ -73,7 +76,7 @@ public class PushAggregateThroughUnionRule extends RelOptRule
         List<AggregateCall> transformedAggCalls =
             transformAggCalls(
                 aggRel.getCluster().getTypeFactory(),
-                aggRel.getGroupCount(),
+                aggRel.getGroupSet().cardinality(),
                 aggRel.getAggCallList());
         if (transformedAggCalls == null) {
             // we've detected the presence of something like AVG,
@@ -89,7 +92,7 @@ public class PushAggregateThroughUnionRule extends RelOptRule
             boolean alreadyUnique =
                 RelMdUtil.areColumnsDefinitelyUnique(
                     input,
-                    groupByKeyMask);
+                    aggRel.getGroupSet());
 
             if (alreadyUnique) {
                 newUnionInputs.add(input);
@@ -98,7 +101,7 @@ public class PushAggregateThroughUnionRule extends RelOptRule
                 newUnionInputs.add(
                     new AggregateRel(
                         cluster, input,
-                        aggRel.getGroupCount(),
+                        aggRel.getGroupSet(),
                         aggRel.getAggCallList()));
             }
         }
@@ -116,7 +119,7 @@ public class PushAggregateThroughUnionRule extends RelOptRule
         AggregateRel newTopAggRel = new AggregateRel(
             cluster,
             newUnionRel,
-            aggRel.getGroupCount(),
+            aggRel.getGroupSet(),
             transformedAggCalls);
 
         // In case we transformed any COUNT (which is always NOT NULL)

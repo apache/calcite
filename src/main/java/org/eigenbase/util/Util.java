@@ -36,6 +36,7 @@ import java.sql.*;
 import java.text.*;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.jar.*;
 import java.util.logging.*;
 import java.util.regex.*;
@@ -116,6 +117,18 @@ public class Util
     private static final Map<Class, Map<String, ? extends Enum>>
         mapClazzToMapNameToEnum =
             new WeakHashMap<Class, Map<String, ? extends Enum>>();
+    public static final String [] spaces =
+            {
+                "",
+                " ",
+                "  ",
+                "   ",
+                "    ",
+                "     ",
+                "      ",
+                "       ",
+                "        ",
+            };
 
     //~ Methods ----------------------------------------------------------------
 
@@ -2120,6 +2133,14 @@ public class Util
         return bitSet;
     }
 
+    /**
+     * Returns a string of N spaces.
+     */
+    public static String spaces(int i)
+    {
+        return SpaceList.INSTANCE.get(i);
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     /**
@@ -2250,6 +2271,49 @@ public class Util
         }
 
         static final Ignore INSTANCE = new Ignore();
+    }
+
+    private static class SpaceList extends CopyOnWriteArrayList<String> {
+        private static final List<String> INSTANCE = new SpaceList();
+
+        public SpaceList() {
+            populate("               ");
+        }
+
+        @Override
+        public String get(int index) {
+            for (;;) {
+                try {
+                    return super.get(index);
+                } catch (IndexOutOfBoundsException e) {
+                    if (index < 0) {
+                        throw e;
+                    }
+                    String s = get(size() - 1);
+                    populate(s + s);
+                }
+            }
+        }
+
+        /** Populates this list with all prefix strings of a given string. All
+         * of the prefix strings share the same backing array of chars. */
+        private void populate(final String s) {
+            // If another thread sees list as momentarily empty, it will throw
+            // and retry.
+            clear();
+            addAll(
+                new AbstractList<String>() {
+                    @Override
+                    public String get(int index) {
+                        return s.substring(0, index);
+                    }
+
+                    @Override
+                    public int size() {
+                        return s.length();
+                    }
+                });
+        }
     }
 }
 

@@ -119,6 +119,13 @@ public class Permutation
         return targets.length;
     }
 
+    public void clear()
+    {
+        throw new UnsupportedOperationException(
+            "Cannot clear: permutation must always contain one mapping per "
+            + "element");
+    }
+
     /**
      * Returns a string representation of this permutation.
      *
@@ -318,7 +325,7 @@ public class Permutation
      * Note that the array has been extended to accomodate the new target, and
      * the previously unmapped source 5 is mapped to the unused target slot 2.
      *
-     * @param x
+     * @param x Ordinal of position to add to target
      */
     public void insertTarget(int x)
     {
@@ -339,7 +346,7 @@ public class Permutation
      *
      * <p/>Behavior is analogous to {@link #insertTarget(int)}.
      *
-     * @param x
+     * @param x Ordinal of position to add to source
      */
     public void insertSource(int x)
     {
@@ -408,8 +415,8 @@ public class Permutation
     public Permutation inverse()
     {
         return new Permutation(
-            (int []) sources.clone(),
-            (int []) targets.clone());
+            sources.clone(),
+            targets.clone());
     }
 
     /**

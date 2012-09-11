@@ -48,8 +48,6 @@ import java.util.concurrent.Executor;
  * <p>Abstract to allow newer versions of JDBC to add methods.</p>
  */
 abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
-    public static final String CONNECT_STRING_PREFIX = "jdbc:optiq:";
-
     public final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
 
     private boolean autoCommit;
@@ -228,7 +226,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
     }
 
     public SQLWarning getWarnings() throws SQLException {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     public void clearWarnings() throws SQLException {
@@ -439,10 +437,6 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return iface.isInstance(this);
-    }
-
-    static boolean acceptsURL(String url) {
-        return url.startsWith(CONNECT_STRING_PREFIX);
     }
 
     private static class JavaTypeFactoryImpl

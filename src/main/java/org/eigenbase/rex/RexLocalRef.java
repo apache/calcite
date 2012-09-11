@@ -17,6 +17,8 @@
 */
 package org.eigenbase.rex;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.*;
 
@@ -42,7 +44,7 @@ public class RexLocalRef
     //~ Static fields/initializers ---------------------------------------------
 
     // array of common names, to reduce memory allocations
-    private static final String [] names = makeArray(32, "$t");
+    private static final List<String> names = new SelfPopulatingList("$t");
 
     //~ Constructors -----------------------------------------------------------
 
@@ -97,7 +99,7 @@ public class RexLocalRef
 
     private static String createName(int index)
     {
-        return (index < names.length) ? names[index] : ("$t" + index);
+        return names.get(index);
     }
 }
 

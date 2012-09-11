@@ -74,13 +74,18 @@ public final class SemiJoinRel
 
     //~ Methods ----------------------------------------------------------------
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert inputs.size() == 2;
+    @Override
+    public SemiJoinRel copy(
+        RelTraitSet traitSet,
+        RexNode conditionExpr,
+        RelNode left,
+        RelNode right)
+    {
         return new SemiJoinRel(
             getCluster(),
-            inputs.get(0),
-            inputs.get(1),
-            condition,
+            left,
+            right,
+            conditionExpr,
             new ArrayList<Integer>(getLeftKeys()),
             new ArrayList<Integer>(getRightKeys()));
     }

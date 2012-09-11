@@ -79,6 +79,7 @@ public class SqlToRelConverter
     protected final RelDataTypeFactory typeFactory;
     private final SqlNodeToRexConverter exprConverter;
     private boolean decorrelationEnabled;
+    private boolean trimUnusedFields;
     private boolean shouldCreateValuesRel;
     private boolean isExplain;
     private int nDynamicParamsInExplain;
@@ -161,6 +162,7 @@ public class SqlToRelConverter
         this.exprConverter =
             new SqlNodeToRexConverterImpl(new StandardConvertletTable());
         decorrelationEnabled = true;
+        trimUnusedFields = false;
         shouldCreateValuesRel = true;
         isExplain = false;
         nDynamicParamsInExplain = 0;
@@ -360,12 +362,17 @@ public class SqlToRelConverter
         return newRootRel;
     }
 
+    /**
+     * If subquery is correlated and decorrelation is enabled, performs
+     * decorrelation.
+     *
+     * @param query Query
+     * @param rootRel Root relational expression
+     * @return New root relational expression after decorrelation
+     */
     public RelNode decorrelate(SqlNode query, RelNode rootRel)
     {
         RelNode result = rootRel;
-
-        // If subquery is correlated and decorrelation is enabled, perform
-        // decorrelation.
         if (enableDecorrelation()
             && hasCorrelation())
         {
@@ -373,6 +380,52 @@ public class SqlToRelConverter
             checkConvertedType(query, result);
         }
         return result;
+    }
+
+    /**
+     * Walks over a tree of relational expressions, replacing each
+     * {@link RelNode} with a 'slimmed down' relational expression that projects
+     * only the fields required by its consumer.
+     *
+     * <p>This may make things easier for the optimizer, by removing crud that
+     * would expand the search space, but is difficult for the optimizer itself
+     * to do it, because optimizer rules must preserve the number and type of
+     * fields. Hence, this transform that operates on the entire tree, similar
+     * to the {@link RelStructuredTypeFlattener type-flattening transform}.
+     *
+     * <p>Currently this functionality is disabled in farrago/luciddb; the
+     * default implementation of this method does nothing.
+     *
+     * @param rootRel Relational expression that is at the root of the tree
+     * @return Trimmed relational expression
+     */
+    public RelNode trimUnusedFields(RelNode rootRel)
+    {
+        // Trim fields that are not used by their consumer.
+        if (isTrimUnusedFields()) {
+            final RelFieldTrimmer trimmer = newFieldTrimmer();
+            rootRel = trimmer.trim(rootRel);
+            boolean dumpPlan = sqlToRelTracer.isLoggable(Level.FINE);
+            if (dumpPlan) {
+                sqlToRelTracer.fine(
+                    RelOptUtil.dumpPlan(
+                        "Plan after trimming unused fields",
+                        rootRel,
+                        false,
+                        SqlExplainLevel.EXPPLAN_ATTRIBUTES));
+            }
+        }
+        return rootRel;
+    }
+
+    /**
+     * Creates a RelFieldTrimmer.
+     *
+     * @return Field trimmer
+     */
+    protected RelFieldTrimmer newFieldTrimmer()
+    {
+        return new RelFieldTrimmer(validator);
     }
 
     /**
@@ -628,6 +681,15 @@ public class SqlToRelConverter
         return -1;
     }
 
+    /**
+     * Converts a query's ORDER BY clause, if any.
+     *
+     * @param select Query
+     * @param bb Blackboard
+     * @param collationList Collation list
+     * @param orderExprList Method populates this list with orderBy expressions
+     *   not present in selectList
+     */
     protected void convertOrder(
         SqlSelect select,
         Blackboard bb,
@@ -635,6 +697,7 @@ public class SqlToRelConverter
         List<SqlNode> orderExprList)
     {
         if (select.getOrderList() == null) {
+            assert collationList.isEmpty();
             return;
         }
 
@@ -818,9 +881,7 @@ public class SqlToRelConverter
         final RexNode convertedWhere = bb.convertExpression(newWhere);
 
         // only allocate filter if the condition is not TRUE
-        if (!(convertedWhere instanceof RexLiteral)
-            || (((RexLiteral) convertedWhere).getValue() != Boolean.TRUE))
-        {
+        if (!convertedWhere.isAlwaysTrue()) {
             RelNode inputRel = bb.root;
             Set<String> correlatedVariablesBefore =
                 RelOptUtil.getVariablesUsed(inputRel);
@@ -1317,7 +1378,7 @@ public class SqlToRelConverter
                             operand,
                             bb,
                             rowType,
-                            i++);
+                            tuple.size());
                     if ((rexLiteral == null) && allowLiteralsOnly) {
                         return null;
                     }
@@ -2093,18 +2154,20 @@ public class SqlToRelConverter
     {
         RexNode conditionExp = null;
         for (String name : nameList) {
-            RelDataType leftRowType = leftRel.getRowType();
-            int leftField = SqlValidatorUtil.lookupField(leftRowType, name);
+            final RelDataType leftRowType = leftRel.getRowType();
+            RelDataTypeField
+                leftField = SqlValidatorUtil.lookupField(leftRowType, name);
             RexNode left =
                 rexBuilder.makeInputRef(
-                    leftRowType.getFieldList().get(leftField).getType(),
-                    leftField);
-            RelDataType rightRowType = rightRel.getRowType();
-            int rightField = SqlValidatorUtil.lookupField(rightRowType, name);
+                    leftField.getType(),
+                    leftField.getIndex());
+            final RelDataType rightRowType = rightRel.getRowType();
+            RelDataTypeField
+                rightField = SqlValidatorUtil.lookupField(rightRowType, name);
             RexNode right =
                 rexBuilder.makeInputRef(
-                    rightRowType.getFieldList().get(rightField).getType(),
-                    rightField + leftRowType.getFieldList().size());
+                    rightField.getType(),
+                    rightField.getIndex());
             RexNode equalsCall =
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.equalsOperator,
@@ -2344,6 +2407,9 @@ public class SqlToRelConverter
                 SqlNode newHaving = pushdownNotForIn(having);
                 replaceSubqueries(bb, newHaving);
                 havingExpr = bb.convertExpression(newHaving);
+                if (havingExpr.isAlwaysTrue()) {
+                    havingExpr = null;
+                }
             }
 
             // Now convert the other subqueries in the select list.
@@ -2387,11 +2453,8 @@ public class SqlToRelConverter
             bb.agg = null;
         }
 
-        // implement HAVING
-        if ((havingExpr != null)
-            && (!(havingExpr instanceof RexLiteral)
-                || (((RexLiteral) havingExpr).getValue() != Boolean.TRUE)))
-        {
+        // implement HAVING (we have already checked that it is non-trivial)
+        if (havingExpr != null) {
             bb.setRoot(CalcRel.createFilter(bb.root, havingExpr), false);
         }
 
@@ -2438,7 +2501,7 @@ public class SqlToRelConverter
         return new AggregateRel(
             cluster,
             bb.root,
-            groupCount,
+            Util.bitSetBetween(0, groupCount),
             aggCalls);
     }
 
@@ -2555,6 +2618,11 @@ public class SqlToRelConverter
         return decorrelationEnabled;
     }
 
+    /**
+     * Returns whether there are any correlating variables in this statement.
+     *
+     * @return whether there are any correlating variables
+     */
     public boolean hasCorrelation()
     {
         return !mapCorVarToCorRel.isEmpty();
@@ -2586,6 +2654,26 @@ public class SqlToRelConverter
         }
 
         return newRootRel;
+    }
+
+    /**
+     * Sets whether to trim unused fields as part of the conversion process.
+     *
+     * @param trim Whether to trim unused fields
+     */
+    public void setTrimUnusedFields(boolean trim)
+    {
+        this.trimUnusedFields = trim;
+    }
+
+    /**
+     * Returns whether to trim unused fields as part of the conversion process.
+     *
+     * @return Whether to trim unused fields
+     */
+    public boolean isTrimUnusedFields()
+    {
+        return trimUnusedFields;
     }
 
     /**
@@ -2723,7 +2811,7 @@ public class SqlToRelConverter
         final RexNode sourceRef =
             rexBuilder.makeRangeReference(sourceRowType, 0, false);
         final List<String> targetColumnNames = new ArrayList<String>();
-        List<RexNode> columnExprs = new ArrayList<RexNode>();
+        final List<RexNode> columnExprs = new ArrayList<RexNode>();
         collectInsertTargets(call, sourceRef, targetColumnNames, columnExprs);
 
         final RelOptTable targetTable = getTargetTable(call);
@@ -2739,7 +2827,7 @@ public class SqlToRelConverter
         for (int i = 0; i < targetColumnNames.size(); i++) {
             String targetColumnName = targetColumnNames.get(i);
             int iTarget = targetRowType.getFieldOrdinal(targetColumnName);
-            assert iTarget != -1;
+            assert iTarget != -1 : "column " + targetColumnName + " not found";
             sourceExps[iTarget] = columnExprs.get(i);
         }
 
@@ -3001,8 +3089,8 @@ public class SqlToRelConverter
     }
 
     /**
-     * Adjust the type of a reference to an input field to account for nulls
-     * introduced by outer joins; and adjust the offset to match the physical
+     * Adjusts the type of a reference to an input field to account for nulls
+     * introduced by outer joins; and adjusts the offset to match the physical
      * implementation.
      *
      * @param bb Blackboard
@@ -3037,10 +3125,7 @@ public class SqlToRelConverter
         Blackboard bb,
         SqlCall rowConstructor)
     {
-        Util.pre(
-            isRowConstructor(rowConstructor),
-            "isRowConstructor(rowConstructor)");
-
+        assert isRowConstructor(rowConstructor) : rowConstructor;
         final SqlNode [] operands = rowConstructor.getOperands();
         return convertMultisets(operands, bb);
     }
@@ -3062,7 +3147,7 @@ public class SqlToRelConverter
 
     private RelNode convertMultisets(final SqlNode [] operands, Blackboard bb)
     {
-        // TODO Wael 2/04/05: this implementation is not the most efficent in
+        // NOTE: Wael 2/04/05: this implementation is not the most efficent in
         // terms of planning since it generates XOs that can be reduced.
         List<Object> joinList = new ArrayList<Object>();
         List<SqlNode> lastList = new ArrayList<SqlNode>();
@@ -3249,7 +3334,7 @@ public class SqlToRelConverter
             fieldNames.add(deriveAlias(expr, aliases, i));
         }
 
-        SqlValidatorUtil.uniquify(fieldNames);
+        fieldNames = SqlValidatorUtil.uniquify(fieldNames);
 
         RelNode inputRel = bb.root;
         Set<String> correlatedVariablesBefore =
@@ -3319,6 +3404,9 @@ public class SqlToRelConverter
     /**
      * Converts a values clause (as in "INSERT INTO T(x,y) VALUES (1,2)") into a
      * relational expression.
+     *
+     * @param bb Blackboard
+     * @param values Call to SQL VALUES operator
      */
     private void convertValues(
         Blackboard bb,
@@ -3843,10 +3931,12 @@ public class SqlToRelConverter
             for (RelNode rel : rels) {
                 if (leaves.contains(rel)) {
                     relOffsetList.add(
-                        new Pair<RelNode, Integer>(rel, start[0]));
+                        Pair.of(rel, start[0]));
                     start[0] += rel.getRowType().getFieldCount();
                 } else {
-                    if (rel instanceof JoinRel) {
+                    if (rel instanceof JoinRel
+                        || rel instanceof AggregateRel)
+                    {
                         start[0] += systemFieldCount;
                     }
                     flatten(
@@ -4364,12 +4454,15 @@ public class SqlToRelConverter
         public void addGroupExpr(SqlNode expr)
         {
             RexNode convExpr = bb.convertExpression(expr);
-            final int index = groupExprs.size();
+            final RexNode rex = lookupGroupExpr(expr);
+            if (rex != null) {
+                return; // don't add duplicates, in e.g. "GROUP BY x, y, x"
+            }
             groupExprs.add(expr);
             String name = nameMap.get(expr.toString());
             addExpr(convExpr, name);
             final RelDataType type = convExpr.getType();
-            inputRefs.add((RexInputRef) rexBuilder.makeInputRef(type, index));
+            inputRefs.add(rexBuilder.makeInputRef(type, inputRefs.size()));
         }
 
         /**

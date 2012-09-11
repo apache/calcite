@@ -105,48 +105,48 @@ public class SqlValidatorImpl
      * scope created from them}.
      */
     protected final Map<SqlNode, SqlValidatorScope> scopes =
-        new HashMap<SqlNode, SqlValidatorScope>();
+        new IdentityHashMap<SqlNode, SqlValidatorScope>();
 
     /**
      * Maps a {@link SqlSelect} node to the scope used by its WHERE and HAVING
      * clauses.
      */
     private final Map<SqlSelect, SqlValidatorScope> whereScopes =
-        new HashMap<SqlSelect, SqlValidatorScope>();
+        new IdentityHashMap<SqlSelect, SqlValidatorScope>();
 
     /**
      * Maps a {@link SqlSelect} node to the scope used by its SELECT and HAVING
      * clauses.
      */
     private final Map<SqlSelect, SqlValidatorScope> selectScopes =
-        new HashMap<SqlSelect, SqlValidatorScope>();
+        new IdentityHashMap<SqlSelect, SqlValidatorScope>();
 
     /**
      * Maps a {@link SqlSelect} node to the scope used by its ORDER BY clause.
      */
     private final Map<SqlSelect, SqlValidatorScope> orderScopes =
-        new HashMap<SqlSelect, SqlValidatorScope>();
+        new IdentityHashMap<SqlSelect, SqlValidatorScope>();
 
     /**
      * Maps a {@link SqlSelect} node that is the argument to a CURSOR
      * constructor to the scope of the result of that select node
      */
     private final Map<SqlSelect, SqlValidatorScope> cursorScopes =
-        new HashMap<SqlSelect, SqlValidatorScope>();
+        new IdentityHashMap<SqlSelect, SqlValidatorScope>();
 
     /**
      * Maps a {@link SqlNode node} to the {@link SqlValidatorNamespace
      * namespace} which describes what columns they contain.
      */
     protected final Map<SqlNode, SqlValidatorNamespace> namespaces =
-        new HashMap<SqlNode, SqlValidatorNamespace>();
+        new IdentityHashMap<SqlNode, SqlValidatorNamespace>();
 
     /**
      * Set of select expressions used as cursor definitions. In standard SQL,
      * only the top-level SELECT is a cursor; Eigenbase extends this with
      * cursors as inputs to table functions.
      */
-    private final Set<SqlNode> cursorSet = new HashSet<SqlNode>();
+    private final Set<SqlNode> cursorSet = new IdentityHashSet<SqlNode>();
 
     /**
      * Stack of objects that maintain information about function calls. A stack
@@ -261,15 +261,15 @@ public class SqlValidatorImpl
         boolean includeSystemVars)
     {
         List<SqlNode> list = new ArrayList<SqlNode>();
-        List<String> aliases = new ArrayList<String>();
-        List<RelDataType> types = new ArrayList<RelDataType>();
+        List<Map.Entry<String, RelDataType>> types =
+            new ArrayList<Map.Entry<String, RelDataType>>();
         for (int i = 0; i < selectList.size(); i++) {
             final SqlNode selectItem = selectList.get(i);
             expandSelectItem(
                 selectItem,
                 select,
                 list,
-                aliases,
+                new LinkedHashSet<String>(),
                 types,
                 includeSystemVars);
         }
@@ -328,7 +328,7 @@ public class SqlValidatorImpl
      * @param selectItem Select-list item
      * @param select Containing select clause
      * @param selectItems List that expanded items are written to
-     * @param aliases List of aliases
+     * @param aliases Set of aliases
      * @param types List of data types in alias order
      * @param includeSystemVars If true include system vars in lists
      *
@@ -338,8 +338,8 @@ public class SqlValidatorImpl
         final SqlNode selectItem,
         SqlSelect select,
         List<SqlNode> selectItems,
-        List<String> aliases,
-        List<RelDataType> types,
+        Set<String> aliases,
+        List<Map.Entry<String, RelDataType>> types,
         final boolean includeSystemVars)
     {
         final SelectScope scope = (SelectScope) getWhereScope(select);
@@ -442,7 +442,7 @@ public class SqlValidatorImpl
 
         final RelDataType type = deriveType(scope, selectItem);
         setValidatedNodeTypeImpl(selectItem, type);
-        types.add(type);
+        types.add(Pair.of(alias, type));
         return false;
     }
 
@@ -1716,8 +1716,8 @@ public class SqlValidatorImpl
      */
     protected void addToSelectList(
         List<SqlNode> list,
-        List<String> aliases,
-        List<RelDataType> types,
+        Set<String> aliases,
+        List<Map.Entry<String, RelDataType>> fieldList,
         SqlNode exp,
         SqlValidatorScope scope,
         final boolean includeSystemVars)
@@ -1727,7 +1727,7 @@ public class SqlValidatorImpl
         if (!alias.equals(uniqueAlias)) {
             exp = SqlValidatorUtil.addAlias(exp, uniqueAlias);
         }
-        types.add(deriveType(scope, exp));
+        fieldList.add(Pair.of(uniqueAlias, deriveType(scope, exp)));
         list.add(exp);
     }
 
@@ -3285,8 +3285,9 @@ public class SqlValidatorImpl
         // Validate SELECT list. Expand terms of the form "*" or "TABLE.*".
         final SqlValidatorScope selectScope = getSelectScope(select);
         final List<SqlNode> expandedSelectItems = new ArrayList<SqlNode>();
-        final List<String> aliasList = new ArrayList<String>();
-        final List<RelDataType> typeList = new ArrayList<RelDataType>();
+        final Set<String> aliases = new HashSet<String>();
+        final List<Map.Entry<String, RelDataType>> fieldList =
+            new ArrayList<Map.Entry<String, RelDataType>>();
 
         for (int i = 0; i < selectItems.size(); i++) {
             SqlNode selectItem = selectItems.get(i);
@@ -3295,15 +3296,15 @@ public class SqlValidatorImpl
                     select,
                     (SqlSelect) selectItem,
                     expandedSelectItems,
-                    aliasList,
-                    typeList);
+                    aliases,
+                    fieldList);
             } else {
                 expandSelectItem(
                     selectItem,
                     select,
                     expandedSelectItems,
-                    aliasList,
-                    typeList,
+                    aliases,
+                    fieldList,
                     false);
             }
         }
@@ -3337,8 +3338,8 @@ public class SqlValidatorImpl
             validateExpr(selectItem, selectScope);
         }
 
-        assert typeList.size() == aliasList.size();
-        return typeFactory.createStructType(typeList, aliasList);
+        assert fieldList.size() == aliases.size();
+        return typeFactory.createStructType(fieldList);
     }
 
     /**
@@ -3366,14 +3367,14 @@ public class SqlValidatorImpl
      * @param selectItem child SqlSelect from select list
      * @param expandedSelectItems Select items after processing
      * @param aliasList built from user or system values
-     * @param typeList Built up entries for each select list entry
+     * @param fieldList Built up entries for each select list entry
      */
     private void handleScalarSubQuery(
         SqlSelect parentSelect,
         SqlSelect selectItem,
         List<SqlNode> expandedSelectItems,
-        List<String> aliasList,
-        List<RelDataType> typeList)
+        Set<String> aliasList,
+        List<Map.Entry<String, RelDataType>> fieldList)
     {
         // A scalar subquery only has one output column.
         if (1 != selectItem.getSelectList().size()) {
@@ -3404,7 +3405,7 @@ public class SqlValidatorImpl
 
         RelDataType nodeType = rec.getFields()[0].getType();
         nodeType = typeFactory.createTypeWithNullability(nodeType, true);
-        typeList.add(nodeType);
+        fieldList.add(Pair.of(alias, nodeType));
     }
 
     /**
@@ -4490,10 +4491,11 @@ public class SqlValidatorImpl
                 final SqlValidatorNamespace selectNs = getNamespace(select);
                 final RelDataType rowType =
                     selectNs.getRowTypeSansSystemColumns();
-                int ordinal = SqlValidatorUtil.lookupField(rowType, alias);
-                if (ordinal >= 0) {
+                RelDataTypeField field =
+                    SqlValidatorUtil.lookupField(rowType, alias);
+                if (field != null) {
                     return nthSelectItem(
-                        ordinal,
+                        field.getIndex(),
                         id.getParserPosition());
                 }
             }

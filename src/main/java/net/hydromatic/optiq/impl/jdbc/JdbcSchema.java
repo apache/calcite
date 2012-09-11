@@ -19,11 +19,11 @@ package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
+
 import net.hydromatic.optiq.*;
-
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
 import net.hydromatic.optiq.jdbc.OptiqConnection;
+
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlDialect;

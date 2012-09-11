@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import org.eigenbase.util14.ConnectStringParser;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +33,7 @@ import java.util.logging.Logger;
  * URL prefix as a sub-class of this class. Per the JDBC specification it
  * must register itself.</p>
  */
-public class UnregisteredDriver implements java.sql.Driver {
+public abstract class UnregisteredDriver implements java.sql.Driver {
     final DriverVersion version = new DriverVersion();
     final Factory factory;
 
@@ -78,12 +80,20 @@ public class UnregisteredDriver implements java.sql.Driver {
         if (!acceptsURL(url)) {
             return null;
         }
-        return factory.newConnection(this, factory, url, info);
+        final String prefix = getConnectStringPrefix();
+        assert url.startsWith(prefix);
+        final String urlSuffix = url.substring(prefix.length());
+        final Properties info2 = ConnectStringParser.parse(urlSuffix, info);
+        return factory.newConnection(this, factory, url, info2);
     }
 
     public boolean acceptsURL(String url) throws SQLException {
-        return OptiqConnectionImpl.acceptsURL(url);
+        return url.startsWith(getConnectStringPrefix());
     }
+
+    /** Returns the prefix of the connect string that this driver will recognize
+     * as its own. For example, "jdbc:optiq:". */
+    protected abstract String getConnectStringPrefix();
 
     public DriverPropertyInfo[] getPropertyInfo(
         String url, Properties info) throws SQLException

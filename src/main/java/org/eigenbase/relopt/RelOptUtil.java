@@ -496,7 +496,7 @@ public abstract class RelOptUtil
                 new AggregateRel(
                     ret.getCluster(),
                     ret,
-                    0,
+                    Util.bitSetOf(),
                     Collections.singletonList(aggCall));
         }
 
@@ -577,7 +577,7 @@ public abstract class RelOptUtil
                     new AggregateRel(
                         ret.getCluster(),
                         ret,
-                        newProjFieldCount - 1,
+                        Util.bitSetBetween(0, newProjFieldCount - 1),
                         Collections.singletonList(aggCall));
             } else {
                 final List<AggregateCall> aggCalls = Collections.emptyList();
@@ -585,7 +585,7 @@ public abstract class RelOptUtil
                     new AggregateRel(
                         ret.getCluster(),
                         ret,
-                        ret.getRowType().getFieldCount(),
+                        Util.bitSetBetween(0, ret.getRowType().getFieldCount()),
                         aggCalls);
             }
         }
@@ -764,7 +764,7 @@ public abstract class RelOptUtil
         return new AggregateRel(
             rel.getCluster(),
             rel,
-            0,
+            Util.bitSetOf(),
             aggCalls);
     }
 
@@ -783,7 +783,7 @@ public abstract class RelOptUtil
         return new AggregateRel(
             rel.getCluster(),
             rel,
-            rel.getRowType().getFieldCount(),
+            Util.bitSetBetween(0, rel.getRowType().getFieldCount()),
             aggCalls);
     }
 
@@ -2597,11 +2597,19 @@ public abstract class RelOptUtil
         extends RexVisitorImpl<Void>
     {
         private final BitSet rexRefSet;
+        private final Set<RelDataTypeField> extraFields;
 
-        public InputFinder(BitSet rexRefSet)
+        public InputFinder(BitSet rexRefSet) {
+            this(rexRefSet, null);
+        }
+
+        public InputFinder(
+            BitSet rexRefSet,
+            Set<RelDataTypeField> extraFields)
         {
             super(true);
             this.rexRefSet = rexRefSet;
+            this.extraFields = extraFields;
         }
 
         public Void visitInputRef(RexInputRef inputRef)
@@ -2617,6 +2625,19 @@ public abstract class RelOptUtil
         public void apply(RexNode [] exprs, RexNode expr)
         {
             RexProgram.apply(this, exprs, expr);
+        }
+
+        @Override
+        public Void visitCall(RexCall call) {
+            if (call.getOperator() == RexBuilder.GET_OPERATOR) {
+                RexLiteral literal = (RexLiteral) call.getOperands()[1];
+                extraFields.add(
+                    new RelDataTypeFieldImpl(
+                        (String) literal.getValue2(),
+                        -1,
+                        call.getType()));
+            }
+            return super.visitCall(call);
         }
     }
 

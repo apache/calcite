@@ -145,7 +145,7 @@ abstract class OptiqStatement
     }
 
     public SQLWarning getWarnings() throws SQLException {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     public void clearWarnings() throws SQLException {
@@ -157,7 +157,8 @@ abstract class OptiqStatement
     }
 
     public boolean execute(String sql) throws SQLException {
-        throw new UnsupportedOperationException();
+        OptiqPrepare.PrepareResult x = parseQuery(sql);
+        return executeInternal(x);
     }
 
     public ResultSet getResultSet() throws SQLException {
@@ -293,6 +294,20 @@ abstract class OptiqStatement
     }
 
     /**
+     * Executes a parsed statement.
+     *
+     * @param query Parsed statement
+     * @return as specified by {@link Statement#execute(String)}
+     * @throws SQLException if a database error occurs
+     */
+    protected boolean executeInternal(
+        OptiqPrepare.PrepareResult query) throws SQLException
+    {
+        ResultSet resultSet = executeQueryInternal(query);
+        return true;
+    }
+
+    /**
      * Executes a parsed query, closing any previously open result set.
      *
      * @param query Parsed query
@@ -345,8 +360,9 @@ abstract class OptiqStatement
     }
 
     protected <T> OptiqPrepare.PrepareResult prepare(Queryable<T> queryable) {
-        return net.hydromatic.optiq.prepare.Factory.implement().prepareQueryable(
-            new ContextImpl(connection), queryable);
+        return net.hydromatic.optiq.prepare.Factory.implement()
+            .prepareQueryable(
+                new ContextImpl(connection), queryable);
     }
 
     private class ContextImpl implements OptiqPrepare.Context {

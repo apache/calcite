@@ -152,36 +152,7 @@
       <url>http://repo.pentaho.org/artifactory/repo</url>
       <layout>default</layout>
     </repository>
-<!--
-    <repository>
-      <id>scala-tools.org</id>
-      <name>Scala-tools Maven2 Repository</name>
-      <url>http://scala-tools.org/repo-releases</url>
-    </repository>
--->
   </repositories>
-
-  <!--
-  <pluginRepositories>
-    <pluginRepository>
-      <id>scala-tools.org</id>
-      <name>Scala-tools Maven2 Repository</name>
-      <url>http://scala-tools.org/repo-releases</url>
-    </pluginRepository>
-  </pluginRepositories>
-
-  <build>
-    <sourceDirectory>src/main/scala</sourceDirectory>
-    <testSourceDirectory>src/test/scala</testSourceDirectory>
-    <plugins>
-      <plugin>
-        <groupId>org.scala-tools</groupId>
-        <artifactId>maven-scala-plugin</artifactId>
-        <version>2.15.2</version>
-      </plugin>
-    </plugins>
-  </build>
- -->
 
   <build>
     <plugins>
@@ -198,7 +169,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>net/hydromatic/optiq/**/*.java</exclude>
+            <exclude>net/hydromatic/**/*.java</exclude>
             <exclude>org/eigenbase/**/*.java</exclude>
           </excludes>
         </configuration>

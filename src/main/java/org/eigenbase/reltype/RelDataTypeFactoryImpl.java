@@ -113,6 +113,27 @@ public abstract class RelDataTypeFactoryImpl
     }
 
     // implement RelDataTypeFactory
+    public final RelDataType createStructType(
+        final List<? extends Map.Entry<String, RelDataType>> fieldList)
+    {
+        return createStructType(
+            new FieldInfo() {
+                public int getFieldCount() {
+                    return fieldList.size();
+                }
+
+                public String getFieldName(int index) {
+                    return fieldList.get(index).getKey();
+                }
+
+                public RelDataType getFieldType(int index) {
+                    return fieldList.get(index).getValue();
+                }
+            }
+        );
+    }
+
+    // implement RelDataTypeFactory
     public RelDataType leastRestrictive(RelDataType [] types)
     {
         assert (types != null);

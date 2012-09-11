@@ -108,6 +108,17 @@ public interface RelDataTypeFactory
     public RelDataType createStructType(FieldInfo fieldInfo);
 
     /**
+     * Creates a type which represents a structured collection of fieldList,
+     * obtaining the field information from a list of (name, type) pairs.
+     *
+     * @param fieldList List of (name, type) pairs
+     *
+     * @return canonical struct type descriptor
+     */
+    public RelDataType createStructType(
+        List<? extends Map.Entry<String, RelDataType>> fieldList);
+
+    /**
      * Creates an array type. Arrays are ordered collections of elements.
      *
      * @param elementType type of the elements of the array

@@ -81,10 +81,10 @@ public class PullConstantsThroughAggregatesRule
         final RexProgram program = child.getProgram();
 
         final RelDataType childRowType = child.getRowType();
-        final int groupCount = aggregate.getGroupCount();
+        final int groupCount = aggregate.getGroupSet().cardinality();
         IntList constantList = new IntList();
         Map<Integer, RexNode> constants = new HashMap<Integer, RexNode>();
-        for (int i = 0; i < groupCount; ++i) {
+        for (int i : Util.toIter(aggregate.getGroupSet())) {
             final RexLocalRef ref = program.getProjectList().get(i);
             if (program.isConstant(ref)) {
                 constantList.add(i);
@@ -112,7 +112,7 @@ public class PullConstantsThroughAggregatesRule
                     new AggregateCall(
                         aggCall.getAggregation(),
                         aggCall.isDistinct(),
-                        new ArrayList<Integer>(aggCall.getArgList()),
+                        aggCall.getArgList(),
                         aggCall.getType(),
                         aggCall.getName()));
             }
@@ -120,8 +120,7 @@ public class PullConstantsThroughAggregatesRule
                 new AggregateRel(
                     aggregate.getCluster(),
                     child,
-                    newGroupCount,
-                    newAggCalls);
+                    Util.bitSetBetween(0, newGroupCount), newAggCalls);
         } else {
             // Create the mapping from old field positions to new field
             // positions.
@@ -172,8 +171,7 @@ public class PullConstantsThroughAggregatesRule
                 new AggregateRel(
                     aggregate.getCluster(),
                     project,
-                    newGroupCount,
-                    newAggCalls);
+                    Util.bitSetBetween(0, newGroupCount), newAggCalls);
         }
 
         // Create a projection back again.

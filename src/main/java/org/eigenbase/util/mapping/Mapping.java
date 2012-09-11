@@ -67,6 +67,16 @@ public interface Mapping
      * Returns whether this mapping is the identity.
      */
     boolean isIdentity();
+
+    /**
+     * Removes all elements in the mapping.
+     */
+    void clear();
+
+    /**
+     * Returns the number of elements in the mapping.
+     */
+    int size();
 }
 
 // End Mapping.java

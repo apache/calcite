@@ -445,8 +445,9 @@ public class ReduceAggregatesRule
         List<AggregateCall> newCalls)
     {
         return new AggregateRel(
-            oldAggRel.getCluster(), inputRel,
-            oldAggRel.getGroupCount(),
+            oldAggRel.getCluster(),
+            inputRel,
+            oldAggRel.getGroupSet(),
             newCalls);
     }
 

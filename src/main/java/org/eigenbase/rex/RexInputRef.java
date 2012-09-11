@@ -17,8 +17,9 @@
 */
 package org.eigenbase.rex;
 
-import org.eigenbase.reltype.*;
+import java.util.List;
 
+import org.eigenbase.reltype.*;
 
 /**
  * Variable which references a field of an input relational expression.
@@ -53,8 +54,8 @@ public class RexInputRef
 {
     //~ Static fields/initializers ---------------------------------------------
 
-    // array of common names, to reduce memory allocations
-    private static final String [] names = makeArray(32, "$");
+    // list of common names, to reduce memory allocations
+    private static final List<String> names = new SelfPopulatingList("$");
 
     //~ Constructors -----------------------------------------------------------
 
@@ -95,7 +96,7 @@ public class RexInputRef
      */
     public static String createName(int index)
     {
-        return (index < names.length) ? names[index] : ("$" + index);
+        return names.get(index);
     }
 }
 

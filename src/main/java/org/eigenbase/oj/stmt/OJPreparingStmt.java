@@ -275,6 +275,9 @@ public abstract class OJPreparingStmt
         // Subquery decorrelation.
         rootRel = decorrelate(sqlQuery, rootRel);
 
+        // Trim unused fields.
+        rootRel = trimUnusedFields(rootRel);
+
         // Display physical plan after decorrelation.
         if (sqlExplain != null) {
             SqlExplain.Depth explainDepth = sqlExplain.getDepth();
@@ -334,25 +337,27 @@ public abstract class OJPreparingStmt
         final RelOptPlanner planner = rootRel.getCluster().getPlanner();
 
         // Allow each rel to register its own rules.
-        new RelVisitor() {
+        RelVisitor visitor = new RelVisitor() {
             @Override
             public void visit(RelNode node, int ordinal, RelNode parent) {
                 planner.registerClass(node);
                 super.visit(node, ordinal, parent);
             }
-        }.go(rootRel);
+        };
+        visitor.go(rootRel);
 
         planner.setRoot(rootRel);
 
         RelTraitSet desiredTraits = getDesiredRootTraitSet(rootRel);
 
-        rootRel = planner.changeTraits(rootRel, desiredTraits);
-        assert (rootRel != null);
-        planner.setRoot(rootRel);
+        final RelNode rootRel2 = planner.changeTraits(rootRel, desiredTraits);
+        assert rootRel2 != null;
+
+        planner.setRoot(rootRel2);
         final RelOptPlanner planner2 = planner.chooseDelegate();
-        final RelNode rootRel2 = planner2.findBestExp();
-        assert (rootRel2 != null) : "could not implement exp";
-        return rootRel2;
+        final RelNode rootRel3 = planner2.findBestExp();
+        assert rootRel3 != null : "could not implement exp";
+        return rootRel3;
     }
 
     protected RelTraitSet getDesiredRootTraitSet(RelNode rootRel)
@@ -577,6 +582,16 @@ public abstract class OJPreparingStmt
     protected abstract RelNode decorrelate(
         SqlNode query,
         RelNode rootRel);
+
+    /**
+     * Walks over a tree of relational expressions, replacing each
+     * {@link RelNode} with a 'slimmed down' relational expression that projects
+     * only the columns required by its consumer.
+     *
+     * @param rootRel Relational expression that is at the root of the tree
+     * @return Trimmed relational expression
+     */
+    protected abstract RelNode trimUnusedFields(RelNode rootRel);
 
     protected JavaCompiler createCompiler()
     {

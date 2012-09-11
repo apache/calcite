@@ -17,10 +17,10 @@
 */
 package org.eigenbase.runtime;
 
-import org.eigenbase.test.EigenbaseTestCase;
-
 import java.util.ArrayList;
 import java.util.Iterator;
+
+import org.eigenbase.test.EigenbaseTestCase;
 
 /**
  * Unit test for {@link CompoundIterator}.

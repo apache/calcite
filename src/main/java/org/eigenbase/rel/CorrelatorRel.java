@@ -104,13 +104,18 @@ public final class CorrelatorRel
 
     //~ Methods ----------------------------------------------------------------
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert inputs.size() == 2;
+    @Override
+    public CorrelatorRel copy(
+        RelTraitSet traitSet,
+        RexNode conditionExpr,
+        RelNode left,
+        RelNode right)
+    {
         assert traitSet.comprises(CallingConvention.NONE);
         return new CorrelatorRel(
             getCluster(),
-            inputs.get(0),
-            inputs.get(1),
+            left,
+            right,
             correlations,
             joinType);
     }

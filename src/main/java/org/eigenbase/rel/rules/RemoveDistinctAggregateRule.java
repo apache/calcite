@@ -47,6 +47,9 @@ public final class RemoveDistinctAggregateRule
 
     //~ Constructors -----------------------------------------------------------
 
+    /**
+     * Private constructor.
+     */
     private RemoveDistinctAggregateRule()
     {
         super(new RelOptRuleOperand(AggregateRel.class, ANY));
@@ -92,30 +95,33 @@ public final class RemoveDistinctAggregateRule
         // Create a list of the expressions which will yield the final result.
         // Initially, the expressions point to the input field.
         RelDataTypeField [] aggFields = aggregate.getRowType().getFields();
-        RexInputRef [] refs = new RexInputRef[aggFields.length];
-        String [] fieldNames = RelOptUtil.getFieldNames(aggregate.getRowType());
-        final int groupCount = aggregate.getGroupCount();
-        for (int i = 0; i < groupCount; i++) {
-            refs[i] =
+        final List<RexInputRef> refs =
+            new ArrayList<RexInputRef>(aggFields.length);
+        final List<String> fieldNames =
+            RelOptUtil.getFieldNameList(aggregate.getRowType());
+        final BitSet groupSet = aggregate.getGroupSet();
+        for (int i : Util.toIter(groupSet)) {
+            refs.add(
                 new RexInputRef(
                     i,
-                    aggFields[i].getType());
+                    aggFields[i].getType()));
         }
 
         // Aggregate the original relation, including any non-distinct aggs.
 
         List<AggregateCall> newAggCallList = new ArrayList<AggregateCall>();
+        final int groupCount = groupSet.cardinality();
         int i = -1;
         for (AggregateCall aggCall : aggregate.getAggCallList()) {
             ++i;
             if (aggCall.isDistinct()) {
+                refs.add(null);
                 continue;
             }
-            assert refs[groupCount + i] == null;
-            refs[groupCount + i] =
+            refs.add(
                 new RexInputRef(
                     groupCount + newAggCallList.size(),
-                    aggFields[groupCount + i].getType());
+                    aggFields[groupCount + i].getType()));
             newAggCallList.add(aggCall);
         }
 
@@ -130,7 +136,7 @@ public final class RemoveDistinctAggregateRule
                 new AggregateRel(
                     aggregate.getCluster(),
                     aggregate.getChild(),
-                    groupCount,
+                    groupSet,
                     newAggCallList);
         }
 
@@ -140,7 +146,8 @@ public final class RemoveDistinctAggregateRule
             rel = doRewrite(aggregate, rel, argList, refs);
         }
 
-        rel = CalcRel.createProject(rel, refs, fieldNames);
+        //noinspection unchecked
+        rel = CalcRel.createProject(rel, (List) refs, fieldNames);
 
         call.transformTo(rel);
     }
@@ -181,7 +188,7 @@ public final class RemoveDistinctAggregateRule
             new AggregateRel(
                 aggregate.getCluster(),
                 distinct,
-                aggregate.getGroupCount(),
+                aggregate.getGroupSet(),
                 newAggCalls);
 
         return newAggregate;
@@ -209,10 +216,9 @@ public final class RemoveDistinctAggregateRule
         AggregateRel aggregate,
         RelNode left,
         List<Integer> argList,
-        RexInputRef [] refs)
+        List<RexInputRef> refs)
     {
         final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
-        final int groupCount = aggregate.getGroupCount();
         final RelDataTypeField [] leftFields;
         if (left == null) {
             leftFields = null;
@@ -276,6 +282,7 @@ public final class RemoveDistinctAggregateRule
         List<AggregateCall> aggCallList = new ArrayList<AggregateCall>();
         final List<AggregateCall> aggCalls = aggregate.getAggCallList();
 
+        final int groupCount = aggregate.getGroupSet().cardinality();
         int i = groupCount - 1;
         for (AggregateCall aggCall : aggCalls) {
             ++i;
@@ -305,17 +312,19 @@ public final class RemoveDistinctAggregateRule
                     newArgs,
                     aggCall.getType(),
                     aggCall.getName());
-            assert refs[i] == null;
+            assert refs.get(i) == null;
             if (left == null) {
-                refs[i] =
+                refs.set(
+                    i,
                     new RexInputRef(
                         groupCount + aggCallList.size(),
-                        newAggCall.getType());
+                        newAggCall.getType()));
             } else {
-                refs[i] =
+                refs.set(
+                    i,
                     new RexInputRef(
                         leftFields.length + groupCount + aggCallList.size(),
-                        newAggCall.getType());
+                        newAggCall.getType()));
             }
             aggCallList.add(newAggCall);
         }
@@ -324,7 +333,7 @@ public final class RemoveDistinctAggregateRule
             new AggregateRel(
                 aggregate.getCluster(),
                 distinct,
-                groupCount,
+                aggregate.getGroupSet(),
                 aggCallList);
 
         // If there's no left child yet, no need to create the join
@@ -449,8 +458,8 @@ public final class RemoveDistinctAggregateRule
      *
      * @param aggregate Aggregate relational expression
      * @param argList Ordinals of columns to distinctify
-     * @param sourceOf Out paramer, is populated with a map of where each output
-     * field came from
+     * @param sourceOf Out parameter, is populated with a map of where each
+     *     output field came from
      *
      * @return Aggregate relational expression which projects the required
      * columns
@@ -464,13 +473,15 @@ public final class RemoveDistinctAggregateRule
         List<String> nameList = new ArrayList<String>();
         final RelNode child = aggregate.getChild();
         final RelDataTypeField [] childFields = child.getRowType().getFields();
-        for (int i = 0; i < aggregate.getGroupCount(); i++) {
+        for (int i : Util.toIter(aggregate.getGroupSet())) {
+            sourceOf.put(
+                i,
+                exprList.size());
             exprList.add(
                 new RexInputRef(
                     i,
                     childFields[i].getType()));
             nameList.add(childFields[i].getName());
-            sourceOf.put(i, i);
         }
         for (Integer arg : argList) {
             if (sourceOf.get(arg) != null) {
@@ -488,36 +499,18 @@ public final class RemoveDistinctAggregateRule
         final RelNode project =
             CalcRel.createProject(
                 child,
-                (RexNode []) exprList.toArray(new RexNode[exprList.size()]),
-                (String []) nameList.toArray(new String[nameList.size()]));
+                exprList,
+                nameList);
 
         // Get the distinct values of the GROUP BY fields and the arguments
         // to the agg functions.
-        List<AggregateCall> distinctAggCallList =
-            new ArrayList<AggregateCall>();
         final AggregateRel distinct =
             new AggregateRel(
                 aggregate.getCluster(),
                 project,
-                exprList.size(),
-                distinctAggCallList);
+                Util.bitSetBetween(0, exprList.size()),
+                Collections.<AggregateCall>emptyList());
         return distinct;
-    }
-
-    /**
-     * Returns whether an integer array has the same content as an integer list.
-     */
-    private static boolean equals(int [] args, List<Integer> argList)
-    {
-        if (args.length != argList.size()) {
-            return false;
-        }
-        for (int i = 0; i < args.length; i++) {
-            if (args[i] != argList.get(i)) {
-                return false;
-            }
-        }
-        return true;
     }
 }
 

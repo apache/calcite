@@ -17,9 +17,9 @@
 */
 package org.eigenbase.runtime;
 
-import org.eigenbase.test.EigenbaseTestCase;
-
 import java.util.Arrays;
+
+import org.eigenbase.test.EigenbaseTestCase;
 
 /**
  * Unit test for {@link CompoundParallelTupleIter}.

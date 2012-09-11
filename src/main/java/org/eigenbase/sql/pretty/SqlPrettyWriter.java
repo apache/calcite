@@ -124,19 +124,6 @@ public class SqlPrettyWriter
         new SqlPrettyWriter(SqlDialect.DUMMY).getBean();
     protected static final String NL = System.getProperty("line.separator");
 
-    private static final String [] spaces =
-    {
-        "",
-        " ",
-        "  ",
-        "   ",
-        "    ",
-        "     ",
-        "      ",
-        "       ",
-        "        ",
-    };
-
     //~ Instance fields --------------------------------------------------------
 
     private final SqlDialect dialect;
@@ -453,16 +440,16 @@ public class SqlPrettyWriter
         if (indent < 0) {
             throw new IllegalArgumentException("negative indent " + indent);
         } else if (indent <= 8) {
-            pw.print(spaces[indent]);
+            pw.print(Util.spaces[indent]);
         } else {
             // Print space in chunks of 8 to amortize cost of calls to print.
             final int rem = indent % 8;
             final int div = indent / 8;
             for (int i = 0; i < div; ++i) {
-                pw.print(spaces[8]);
+                pw.print(Util.spaces[8]);
             }
             if (rem > 0) {
-                pw.print(spaces[rem]);
+                pw.print(Util.spaces[rem]);
             }
         }
         charCount += indent;
@@ -569,7 +556,7 @@ public class SqlPrettyWriter
                     //
                     // WHERE foo = bar IN
                     // (   SELECT ...
-                    open = "(" + spaces(indentation - 1);
+                    open = "(" + Util.spaces(indentation - 1);
                     return new FrameImpl(
                         frameType,
                         keyword,
@@ -778,20 +765,6 @@ public class SqlPrettyWriter
             false,
             newlineBeforeClose,
             false);
-    }
-
-    /**
-     * Returns a string of N spaces.
-     */
-    private static String spaces(int i)
-    {
-        if (i <= 8) {
-            return spaces[i];
-        } else {
-            char [] chars = new char[i];
-            Arrays.fill(chars, ' ');
-            return new String(chars);
-        }
     }
 
     /**

@@ -1250,10 +1250,10 @@ SUBSET_LOOP:
         } else {
             assert (equivExp.getTraitSet().equals(traits)
                 && (equivExp.getClass() == rel.getClass()));
-            assert RelOptUtil.areRowTypesEqual(
-                equivExp.getRowType(),
-                rel.getRowType(),
-                false);
+            assert RelOptUtil.equal(
+                "left", equivExp.getRowType(),
+                "right", rel.getRowType(),
+                true);
             RelSet equivSet = getSet(equivExp);
             if (equivSet != null) {
                 if (tracer.isLoggable(Level.FINER)) {

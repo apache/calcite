@@ -67,7 +67,18 @@ public class DateTimeUtil
      * <p>In the fennel calculator, this is the modulo 'mask' when converting
      * TIMESTAMP values to DATE and TIME values.
      */
-    public static long MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
+    public static final long MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
+
+    /**
+     * Calendar set to the epoch (1970-01-01 00:00:00 UTC). Useful for
+     * initializing other values. Calendars are not immutable, so be careful not
+     * to screw up this object for everyone else.
+     */
+    public static final Calendar zeroCalendar;
+    static {
+        zeroCalendar = Calendar.getInstance(DateTimeUtil.gmtZone);
+        zeroCalendar.setTimeInMillis(0);
+    }
 
     //~ Methods ----------------------------------------------------------------
 

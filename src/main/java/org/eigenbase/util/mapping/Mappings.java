@@ -55,7 +55,12 @@ public abstract class Mappings
             assert sourceCount == targetCount;
             return new Permutation(sourceCount);
         case InverseSurjection:
+            assert sourceCount >= targetCount;
+            return new SurjectionWithInverse(
+                sourceCount,
+                targetCount);
         case PartialSurjection:
+        case Surjection:
             return new Mappings.PartialMapping(
                 sourceCount,
                 targetCount,
@@ -76,7 +81,197 @@ public abstract class Mappings
         }
     }
 
+    /**
+     * Creates the identity mapping.
+     *
+     * <p>For example, {@code createIdentity(2)} returns the mapping
+     * {0:0, 1:1, 2:2}.
+     *
+     * @param fieldCount Number of sources/targets
+     * @return Identity mapping
+     */
+    public static Mapping createIdentity(int fieldCount)
+    {
+        return new Mappings.IdentityMapping(fieldCount);
+    }
+
+    /**
+     * Divides one mapping by another.
+     *
+     * <p>{@code divide(A, B)} returns a mapping C such that B . C (the mapping
+     * B followed by the mapping C) is equivalent to A.
+     *
+     * @param mapping1 First mapping
+     * @param mapping2 Second mapping
+     * @return Mapping mapping3 such that mapping1 = mapping2 . mapping3
+     */
+    public static Mapping divide(Mapping mapping1, Mapping mapping2)
+    {
+        if (mapping1.getSourceCount() != mapping2.getSourceCount()) {
+            throw new IllegalArgumentException();
+        }
+        Mapping remaining =
+            create(
+                MappingType.InverseSurjection,
+                mapping2.getTargetCount(),
+                mapping1.getTargetCount());
+        for (int target = 0; target < mapping1.getTargetCount(); ++target) {
+            int source = mapping1.getSourceOpt(target);
+            if (source >= 0) {
+                int x = mapping2.getTarget(source);
+                remaining.set(x, target);
+            }
+        }
+        return remaining;
+    }
+
+    /**
+     * Multiplies one mapping by another.
+     *
+     * <p>{@code divide(A, B)} returns a mapping C such that B . C (the mapping
+     * B followed by the mapping C) is equivalent to A.
+     *
+     * @param mapping1 First mapping
+     * @param mapping2 Second mapping
+     * @return Mapping mapping3 such that mapping1 = mapping2 . mapping3
+     */
+    public static Mapping multiply(Mapping mapping1, Mapping mapping2)
+    {
+        if (mapping1.getTargetCount() != mapping2.getSourceCount()) {
+            throw new IllegalArgumentException();
+        }
+        Mapping product =
+            create(
+                MappingType.InverseSurjection,
+                mapping1.getSourceCount(),
+                mapping2.getTargetCount());
+        for (int source = 0; source < mapping1.getSourceCount(); ++source) {
+            int x = mapping1.getTargetOpt(source);
+            if (x >= 0) {
+                int target = mapping2.getTarget(x);
+                product.set(source, target);
+            }
+        }
+        return product;
+    }
+
+    /**
+     * Applies a mapping to a BitSet.
+     *
+     * <p>If the mapping does not affect the bit set, returns the original.
+     * Never changes the original.
+     *
+     * @param mapping Mapping
+     * @param bitSet Bit set
+     * @return Bit set with mapping applied
+     */
+    public static BitSet apply(Mapping mapping, BitSet bitSet)
+    {
+        final BitSet newBitSet = new BitSet();
+        for (int source : Util.toIter(bitSet)) {
+            final int target = mapping.getTarget(source);
+            newBitSet.set(target);
+        }
+        if (newBitSet.equals(bitSet)) {
+            return bitSet;
+        }
+        return newBitSet;
+    }
+
+    /**
+     * Applies a mapping to a list.
+     *
+     * @param mapping Mapping
+     * @param list List
+     * @param <T> Element type
+     * @return List with elements permuted according to mapping
+     */
+    public static <T> List<T> apply(final Mapping mapping, final List<T> list)
+    {
+        if (mapping.getSourceCount() != list.size()) {
+            // REVIEW: too strict?
+            throw new IllegalArgumentException(
+                "mapping source count "
+                + mapping.getSourceCount()
+                + " does not match list size "
+                + list.size());
+        }
+        final int targetCount = mapping.getTargetCount();
+        final List<T> list2 = new ArrayList<T>(targetCount);
+        for (int target = 0; target < targetCount; ++target) {
+            final int source = mapping.getSource(target);
+            list2.add(list.get(source));
+        }
+        return list2;
+    }
+
+    public static List<Integer> apply2(
+        final Mapping mapping,
+        final List<Integer> list)
+    {
+        return new AbstractList<Integer>()
+        {
+            public Integer get(int index)
+            {
+                final int source = list.get(index);
+                return mapping.getTarget(source);
+            }
+
+            public int size()
+            {
+                return list.size();
+            }
+        };
+    }
+
+    /**
+     * Creates a view of a list, permuting according to a mapping.
+     *
+     * @param mapping Mapping
+     * @param list List
+     * @param <T> Element type
+     * @return Permuted view of list
+     */
+    public static <T> List<T> apply3(
+        final Mapping mapping,
+        final List<T> list)
+    {
+        return new AbstractList<T>()
+        {
+            @Override
+            public T get(int index)
+            {
+                return list.get(mapping.getSource(index));
+            }
+
+            @Override
+            public int size()
+            {
+                return mapping.getTargetCount();
+            }
+        };
+    }
+
     //~ Inner Interfaces -------------------------------------------------------
+
+    /**
+     * Core interface of all mappings.
+     */
+    public static interface CoreMapping
+        extends Iterable<IntPair>
+    {
+        /**
+         * Returns the mapping type.
+         *
+         * @return Mapping type
+         */
+        MappingType getMappingType();
+
+        /**
+         * Returns the number of elements in the mapping.
+         */
+        int size();
+    }
 
     /**
      * Mapping where every source has a target. But:
@@ -87,6 +282,7 @@ public abstract class Mappings
      * </ul>
      */
     public static interface FunctionMapping
+        extends CoreMapping
     {
         /**
          * Returns the target that a source maps to, or -1 if it is not mapped.
@@ -100,7 +296,7 @@ public abstract class Mappings
          *
          * @return target
          *
-         * @throws IndexOutOfBoundsException if source is not mapped
+         * @throws NoElementException if source is not mapped
          */
         int getTarget(int source);
 
@@ -123,6 +319,7 @@ public abstract class Mappings
      * <p>TODO: figure out which interfaces this should extend
      */
     public static interface SourceMapping
+        extends CoreMapping
     {
         int getSourceCount();
 
@@ -155,6 +352,7 @@ public abstract class Mappings
      * <p>TODO: figure out which interfaces this should extend
      */
     public static interface TargetMapping
+        extends FunctionMapping
     {
         int getSourceCount();
 
@@ -167,8 +365,6 @@ public abstract class Mappings
         int getTargetOpt(int source);
 
         void set(int source, int target);
-
-        MappingType getMappingType();
 
         Mapping inverse();
     }
@@ -192,7 +388,7 @@ public abstract class Mappings
         {
             int target = getTargetOpt(source);
             if (target == -1) {
-                throw new IndexOutOfBoundsException(
+                throw new NoElementException(
                     "source #" + source + " has no target in mapping "
                     + toString());
             }
@@ -208,8 +404,8 @@ public abstract class Mappings
         {
             int source = getSourceOpt(target);
             if (source == -1) {
-                throw new IndexOutOfBoundsException(
-                    "target #" + source + " has no source in mapping "
+                throw new NoElementException(
+                    "target #" + target + " has no source in mapping "
                     + toString());
             }
             return source;
@@ -315,7 +511,7 @@ public abstract class Mappings
         public boolean equals(Object obj)
         {
             // not very efficient
-            return (obj instanceof Permutation)
+            return (obj instanceof Mapping)
                 && toString().equals(obj.toString());
         }
     }
@@ -366,11 +562,20 @@ public abstract class Mappings
     public static class NoElementException
         extends RuntimeException
     {
+        /**
+         * Creates a NoElementException.
+         *
+         * @param message Message
+         */
+        public NoElementException(String message)
+        {
+            super(message);
+        }
     }
 
     /**
-     * A mapping where a source at most one target, and every target has at most
-     * one source.
+     * A mapping where a source has at most one target, and every target has at
+     * most one source.
      */
     public static class PartialMapping
         extends FiniteAbstractMapping
@@ -517,6 +722,24 @@ public abstract class Mappings
             return sources.length;
         }
 
+        public void clear()
+        {
+            Arrays.fill(sources, -1);
+            Arrays.fill(targets, -1);
+        }
+
+        public int size()
+        {
+            int size = 0;
+            int[] a = sources.length < targets.length ? sources : targets;
+            for (int i = 0; i < a.length; i++) {
+                if (a[i] >= 0) {
+                    ++size;
+                }
+            }
+            return size;
+        }
+
         public Mapping inverse()
         {
             return new PartialMapping(
@@ -573,17 +796,6 @@ public abstract class Mappings
             return targets[source];
         }
 
-        public int getTarget(int source)
-        {
-            int target = getTargetOpt(source);
-            if (target == -1) {
-                throw new IndexOutOfBoundsException(
-                    "source #" + source + " has no target in mapping "
-                    + toString());
-            }
-            return target;
-        }
-
         public boolean isIdentity()
         {
             if (sources.length != targets.length) {
@@ -601,17 +813,29 @@ public abstract class Mappings
         private class MappingItr
             implements Iterator<IntPair>
         {
-            int i = 0;
+            int i = -1;
+
+            {
+                advance();
+            }
 
             public boolean hasNext()
             {
                 return i < targets.length;
             }
 
+            private void advance()
+            {
+                do {
+                    ++i;
+                } while (i < targets.length && targets[i] == -1);
+            }
+
             public IntPair next()
             {
-                int x = i++;
-                return new IntPair(x, targets[x]);
+                final IntPair pair = new IntPair(i, targets[i]);
+                advance();
+                return pair;
             }
 
             public void remove()
@@ -659,9 +883,7 @@ public abstract class Mappings
                     + " is already mapped to target #" + target);
             }
             targets[source] = target;
-            final int prevSource = sources[target];
             sources[target] = source;
-            sources[prevTarget] = prevSource;
         }
 
         public int getSource(int target)
@@ -686,6 +908,16 @@ public abstract class Mappings
         public IdentityMapping(int size)
         {
             this.size = size;
+        }
+
+        public void clear()
+        {
+            throw new UnsupportedOperationException("Mapping is read-only");
+        }
+
+        public int size()
+        {
+            return size;
         }
 
         public Mapping inverse()
@@ -780,6 +1012,18 @@ public abstract class Mappings
             this.target = target;
         }
 
+        public void clear()
+        {
+            throw new UnsupportedOperationException("Mapping is read-only");
+        }
+
+        public int size()
+        {
+            return parent.getSourceOpt(target) >= 0
+                   ? parent.size()
+                   : parent.size() + 1;
+        }
+
         public Mapping inverse()
         {
             return new OverridingTargetMapping(
@@ -833,6 +1077,18 @@ public abstract class Mappings
             this.parent = parent;
             this.target = target;
             this.source = source;
+        }
+
+        public void clear()
+        {
+            throw new UnsupportedOperationException("Mapping is read-only");
+        }
+
+        public int size()
+        {
+            return parent.getTargetOpt(source) >= 0
+                   ? parent.size()
+                   : parent.size() + 1;
         }
 
         public void set(int source, int target)
@@ -922,6 +1178,22 @@ public abstract class Mappings
         public int getTargetCount()
         {
             return targetCount;
+        }
+
+        public void clear()
+        {
+            Arrays.fill(targets, -1);
+        }
+
+        public int size()
+        {
+            int size = 0;
+            for (int i = 0; i < targets.length; i++) {
+                if (targets[i] >= 0) {
+                    ++size;
+                }
+            }
+            return size;
         }
 
         public Iterator<IntPair> iterator()
@@ -1038,6 +1310,16 @@ public abstract class Mappings
                     parentIter.remove();
                 }
             };
+        }
+
+        public void clear()
+        {
+            parent.clear();
+        }
+
+        public int size()
+        {
+            return parent.size();
         }
 
         public int getSourceCount()

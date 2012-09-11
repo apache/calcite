@@ -101,18 +101,24 @@ public class SqlValidatorUtil
                 return field.getType();
             }
         }
+        // If record type is flagged as having "any field you ask for",
+        // return a type. (TODO: Better way to mark accomodating types.)
+        RelDataTypeField extra = rowType.getField("_extra");
+        if (extra != null) {
+            return extra.getType();
+        }
         return null;
     }
 
     /**
-     * Looks up a field with a given name and if found returns its ordinal.
+     * Looks up a field with a given name, returning null if not found.
      *
      * @param rowType Row type
      * @param columnName Field name
      *
-     * @return Ordinal of field, or -1 if not found
+     * @return Field, or null if not found
      */
-    public static int lookupField(
+    public static RelDataTypeField lookupField(
         final RelDataType rowType,
         String columnName)
     {
@@ -120,10 +126,10 @@ public class SqlValidatorUtil
         for (int i = 0; i < fields.length; i++) {
             RelDataTypeField field = fields[i];
             if (field.getName().equals(columnName)) {
-                return i;
+                return field;
             }
         }
-        return -1;
+        return null;
     }
 
     public static void checkCharsetAndCollateConsistentIfCharType(
@@ -227,22 +233,21 @@ public class SqlValidatorUtil
      *
      * @return Unique name
      */
-    public static String uniquify(String name, Collection<String> nameList)
+    public static String uniquify(String name, Set<String> nameList)
     {
         if (name == null) {
             name = "EXPR$";
         }
-        if (nameList.contains(name)) {
-            String aliasBase = name;
-            for (int j = 0;; j++) {
-                name = aliasBase + j;
-                if (!nameList.contains(name)) {
-                    break;
-                }
+        if (nameList.add(name)) {
+            return name;
+        }
+        String aliasBase = name;
+        for (int j = 0;; j++) {
+            name = aliasBase + j;
+            if (nameList.add(name)) {
+                return name;
             }
         }
-        nameList.add(name);
-        return name;
     }
 
     /**
@@ -262,17 +267,27 @@ public class SqlValidatorUtil
 
     /**
      * Makes sure that the names in a list are unique.
+     *
+     * <p>Does not modify the input list. Returns the input list if the strings
+     * are unique, otherwise allocates a new list.
+     *
+     * @param nameList List of strings
+     * @return List of unique strings
      */
-    public static void uniquify(List<String> nameList)
+    public static List<String> uniquify(List<String> nameList)
     {
-        List<String> usedList = new ArrayList<String>();
+        Set<String> used = new LinkedHashSet<String>();
+        int changeCount = 0;
         for (int i = 0; i < nameList.size(); i++) {
             String name = nameList.get(i);
-            String uniqueName = uniquify(name, usedList);
+            String uniqueName = uniquify(name, used);
             if (!uniqueName.equals(name)) {
-                nameList.set(i, uniqueName);
+                ++changeCount;
             }
         }
+        return changeCount == 0
+           ? nameList
+           : new ArrayList<String>(used);
     }
 
     /**

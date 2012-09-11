@@ -36,6 +36,7 @@ import org.eigenbase.rex.RexMultisetUtil;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.rex.RexProgram;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.util.Util;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -114,14 +115,18 @@ public class JavaRules {
         }
 
         @Override
-        public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-            assert inputs.size() == 2;
+        public EnumerableJoinRel copy(
+            RelTraitSet traitSet,
+            RexNode conditionExpr,
+            RelNode left,
+            RelNode right)
+        {
             return new EnumerableJoinRel(
                 getCluster(),
                 traitSet,
-                inputs.get(0),
-                inputs.get(1),
-                condition,
+                left,
+                right,
+                conditionExpr,
                 joinType,
                 variablesStopped);
         }
@@ -645,8 +650,8 @@ public class JavaRules {
                 rel.getCluster(),
                 rel.getTraitSet(),
                 convertedChild,
-                agg.getAggCallList(),
-                agg.getGroupCount());
+                agg.getGroupSet(),
+                agg.getAggCallList());
         }
     }
 
@@ -658,17 +663,18 @@ public class JavaRules {
             RelOptCluster cluster,
             RelTraitSet traitSet,
             RelNode child,
-            List<AggregateCall> aggCalls,
-            int groupCount)
+            BitSet groupSet,
+            List<AggregateCall> aggCalls)
         {
             super(
                 cluster,
                 traitSet.plus(CallingConvention.ENUMERABLE),
                 child,
-                groupCount,
+                groupSet,
                 aggCalls);
         }
 
+        @Override
         public EnumerableAggregateRel copy(
             RelTraitSet traitSet, List<RelNode> inputs)
         {
@@ -676,8 +682,8 @@ public class JavaRules {
                 getCluster(),
                 traitSet,
                 sole(inputs),
-                aggCalls,
-                groupCount);
+                groupSet,
+                aggCalls);
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
@@ -723,10 +729,10 @@ public class JavaRules {
                 Expressions.parameter(inputJavaType, "a0");
 
             final List<Expression> keyExpressions = Expressions.list();
-            for (int i = 0; i < groupCount; i++) {
+            for (int groupKey : Util.toIter(groupSet)) {
                 keyExpressions.add(
                     EnumUtil.inputFieldReference(
-                        inputRowType, parameter, i));
+                        inputRowType, parameter, groupKey));
             }
             final Expression keySelector =
                 statements.append(
@@ -748,7 +754,7 @@ public class JavaRules {
             final Expressions.FluentList<Statement> statements2 =
                 Expressions.list();
             final List<Expression> expressions = Expressions.list();
-            switch (groupCount) {
+            switch (getGroupCount()) {
             case 0:
                 for (AggregateCall aggCall : aggCalls) {
                     expressions.add(
@@ -781,10 +787,11 @@ public class JavaRules {
                                 grouping, "getKey"),
                             Object[].class));
                 statements2.append(keyDeclaration);
-                for (int i = 0; i < groupCount; i++) {
+                for (int groupKey : Util.toIter(groupSet)) {
                     expressions.add(
                         Expressions.arrayIndex(
-                            keyDeclaration.parameter, Expressions.constant(i)));
+                            keyDeclaration.parameter,
+                            Expressions.constant(groupKey)));
                 }
                 break;
             }
@@ -927,14 +934,17 @@ public class JavaRules {
                 collations);
         }
 
+        @Override
         public EnumerableSortRel copy(
-            RelTraitSet traitSet, List<RelNode> inputs)
+            RelTraitSet traitSet,
+            RelNode newInput,
+            List<RelFieldCollation> newCollations)
         {
             return new EnumerableSortRel(
                 getCluster(),
                 traitSet,
-                sole(inputs),
-                collations);
+                newInput,
+                newCollations);
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {

@@ -45,10 +45,9 @@ public final class AggregateRel
     /**
      * Creates an AggregateRel.
      *
-     * @param cluster {@link RelOptCluster}  this relational expression belongs
-     * to
+     * @param cluster Cluster that this relational expression belongs to
      * @param child input relational expression
-     * @param groupCount Number of columns to group on
+     * @param groupSet Bitset of grouping fields
      * @param aggCalls Array of aggregates to compute
      *
      * @pre aggCalls != null
@@ -56,26 +55,26 @@ public final class AggregateRel
     public AggregateRel(
         RelOptCluster cluster,
         RelNode child,
-        int groupCount,
+        BitSet groupSet,
         List<AggregateCall> aggCalls)
     {
         super(
             cluster,
             cluster.traitSetOf(CallingConvention.NONE),
             child,
-            groupCount,
+            groupSet,
             aggCalls);
     }
 
     //~ Methods ----------------------------------------------------------------
 
-
+    @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         assert traitSet.comprises(CallingConvention.NONE);
         return new AggregateRel(
             getCluster(),
             sole(inputs),
-            groupCount,
+            groupSet,
             aggCalls);
     }
 }

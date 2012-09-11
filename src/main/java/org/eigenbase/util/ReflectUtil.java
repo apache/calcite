@@ -200,7 +200,7 @@ public abstract class ReflectUtil
      * Implements the {@link Glossary#VisitorPattern} via reflection. The basic
      * technique is taken from <a
      * href="http://www.javaworld.com/javaworld/javatips/jw-javatip98.html">a
-     * Javaworld article</a>. For an example of how to use it, see {@link
+     * Javaworld article</a>. For an example of how to use it, see {@code
      * ReflectVisitorTest}. Visit method lookup follows the same rules as if
      * compile-time resolution for VisitorClass.visit(VisiteeClass) were
      * performed. An ambiguous match due to multiple interface inheritance
@@ -507,6 +507,99 @@ public abstract class ReflectUtil
     }
 
     /**
+     * Creates a dispatcher for calls to a single multi-method on a particular
+     * object.
+     *
+     * <p>Calls to that multi-method are resolved by looking for a method on
+     * the runtime type of that object, with the required name, and with
+     * the correct type or a subclass for the first argument, and precisely the
+     * same types for other arguments.
+     *
+     * <p>For instance, a dispatcher created for the method
+     *
+     * <blockquote>String foo(Vehicle, int, List)</blockquote>
+     *
+     * could be used to call the methods
+     *
+     * <blockquote>String foo(Car, int, List)<br/>
+     * String foo(Bus, int, List)</blockquote>
+     *
+     * (because Car and Bus are subclasses of Vehicle, and they occur in the
+     * polymorphic first argument) but not the method
+     *
+     * <blockquote>String foo(Car, int, ArrayList)</blockquote>
+     *
+     * (only the first argument is polymorphic).
+     *
+     * <p>You must create an implementation of the method for the base class.
+     * Otherwise throws {@link IllegalArgumentException}.
+     *
+     * @param returnClazz Return type of method
+     * @param visitor Object on which to invoke the method
+     * @param methodName Name of method
+     * @param arg0Clazz Base type of argument zero
+     * @param otherArgClasses Types of remaining arguments
+     */
+    public static <E, T> MethodDispatcher<T> createMethodDispatcher(
+        final Class<T> returnClazz,
+        final ReflectiveVisitor visitor,
+        final String methodName,
+        final Class<E> arg0Clazz,
+        final Class... otherArgClasses)
+    {
+        final List<Class> otherArgClassList =
+            Collections.unmodifiableList(
+                Arrays.<Class>asList(
+                    otherArgClasses));
+        @SuppressWarnings({"unchecked"})
+        final ReflectiveVisitDispatcher<ReflectiveVisitor, E>
+            dispatcher =
+            createDispatcher(
+                (Class<ReflectiveVisitor>) visitor.getClass(), arg0Clazz);
+        return new MethodDispatcher<T>()
+        {
+            public T invoke(Object... args)
+            {
+                Method method = lookupMethod(args[0]);
+                try {
+                    final Object o = method.invoke(visitor, args);
+                    return returnClazz.cast(o);
+                } catch (IllegalAccessException e) {
+                    throw Util.newInternal(
+                        e,
+                        "While invoking method '" + method + "'");
+                } catch (InvocationTargetException e) {
+                    throw Util.newInternal(
+                        e,
+                        "While invoking method '" + method + "'");
+                }
+            }
+
+            private Method lookupMethod(final Object arg0) {
+                if (!arg0Clazz.isInstance(arg0)) {
+                    throw new IllegalArgumentException();
+                }
+                Method method =
+                    dispatcher.lookupVisitMethod(
+                        visitor.getClass(),
+                        (Class<? extends E>) arg0.getClass(),
+                        methodName,
+                        otherArgClassList);
+                if (method == null) {
+                    List<Class> classList =
+                        new ArrayList<Class>();
+                    classList.add(arg0Clazz);
+                    classList.addAll(otherArgClassList);
+                    throw new IllegalArgumentException(
+                        "Method not found: " + methodName + "(" + classList
+                        + ")");
+                }
+                return method;
+            }
+        };
+    }
+
+    /**
      * Looks up a class by name. This is like Class.forName, except that it
      * handles primitive type names.
      *
@@ -538,6 +631,24 @@ public abstract class ReflectUtil
         } else {
             return Class.forName(name);
         }
+    }
+
+    //~ Inner Classes ----------------------------------------------------------
+
+    /**
+     * Can invoke a method on an object of type E with return type T.
+     *
+     * @param <T> Return type of method
+     */
+    public interface MethodDispatcher<T>
+    {
+        /**
+         * Invokes method on an object with a given set of arguments.
+         *
+         * @param args Arguments to method
+         * @return Return value of method
+         */
+        T invoke(Object... args);
     }
 }
 

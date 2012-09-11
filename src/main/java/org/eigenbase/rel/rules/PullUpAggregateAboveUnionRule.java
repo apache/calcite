@@ -110,7 +110,7 @@ public class PullUpAggregateAboveUnionRule
             new AggregateRel(
                 topAggRel.getCluster(),
                 newUnionRel,
-                topAggRel.getGroupCount(),
+                topAggRel.getGroupSet(),
                 topAggRel.getAggCallList());
 
         call.transformTo(newAggRel);

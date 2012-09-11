@@ -127,16 +127,22 @@ public final class JoinRel
 
     //~ Methods ----------------------------------------------------------------
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert inputs.size() == 2;
+    @Override
+    public JoinRel copy(
+        RelTraitSet traitSet,
+        RexNode conditionExpr,
+        RelNode left,
+        RelNode right)
+    {
+        assert traitSet.comprises(CallingConvention.NONE);
         return new JoinRel(
             getCluster(),
-            inputs.get(0),
-            inputs.get(1),
-            condition,
-            joinType,
-            variablesStopped,
-            isSemiJoinDone(),
+            left,
+            right,
+            conditionExpr,
+            this.joinType,
+            new HashSet<String>(this.variablesStopped),
+            this.semiJoinDone,
             systemFieldList);
     }
 

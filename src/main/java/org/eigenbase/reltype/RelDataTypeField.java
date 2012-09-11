@@ -17,17 +17,25 @@
 */
 package org.eigenbase.reltype;
 
+import java.util.Map;
+
 import net.hydromatic.linq4j.expressions.Types;
 
 /**
  * RelDataTypeField represents the definition of a field in a structured {@link
  * RelDataType}.
  *
+ * <p>Extends the {@link java.util.Map.Entry} interface to allow convenient
+ * inter-operation with Java collections classes. In any implementation of this
+ * interface, {@link #getKey()} must be equivalent to {@link #getName()}
+ * and {@link #getValue()} must be equivalent to {@link #getType()}.
+ *
  * @author jhyde
  * @version $Id$
  * @since May 29, 2003
  */
-public interface RelDataTypeField extends Types.RecordField
+public interface RelDataTypeField
+    extends Types.RecordField, Map.Entry<String, RelDataType>
 {
     //~ Methods ----------------------------------------------------------------
 

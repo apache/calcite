@@ -68,13 +68,21 @@ public class SortRel
 
     //~ Methods ----------------------------------------------------------------
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    public SortRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
+        return copy(traitSet, sole(inputs), collations);
+    }
+
+    public SortRel copy(
+        RelTraitSet traitSet,
+        RelNode newInput,
+        List<RelFieldCollation> newCollations)
+    {
         assert traitSet.comprises(CallingConvention.NONE);
         return new SortRel(
             getCluster(),
             getCluster().traitSetOf(CallingConvention.NONE),
-            sole(inputs),
-            collations);
+            newInput,
+            newCollations);
     }
 
     public RexNode [] getChildExps()

@@ -893,6 +893,15 @@ public class UtilTest
         }
     }
 
+    public void testSpaces() {
+        assertEquals("", Util.spaces(0));
+        assertEquals(" ", Util.spaces(1));
+        assertEquals(" ", Util.spaces(1));
+        assertEquals("         ", Util.spaces(9));
+        assertEquals("     ", Util.spaces(5));
+        assertEquals(1000, Util.spaces(1000).length());
+    }
+
     /**
      * Runs the test suite.
      */

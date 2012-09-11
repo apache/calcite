@@ -58,11 +58,14 @@ public final class TableModificationRel
 
     //~ Methods ----------------------------------------------------------------
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override
+    public TableModificationRel copy(RelTraitSet traitSet, List<RelNode> inputs)
+    {
         assert traitSet.comprises(CallingConvention.NONE);
         return new TableModificationRel(
             getCluster(),
-            table, catalogReader,
+            table,
+            catalogReader,
             sole(inputs),
             getOperation(),
             getUpdateColumnList(),

@@ -56,6 +56,29 @@ public class RelDataTypeFieldImpl
 
     //~ Methods ----------------------------------------------------------------
 
+    @Override
+    public int hashCode()
+    {
+        return index
+            ^ name.hashCode()
+            ^ type.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof RelDataTypeFieldImpl)) {
+            return false;
+        }
+        RelDataTypeFieldImpl that = (RelDataTypeFieldImpl) obj;
+        return this.index == that.index
+            && this.name.equals(that.name)
+            && this.type.equals(that.type);
+    }
+
     // implement RelDataTypeField
     public String getName()
     {
@@ -72,6 +95,24 @@ public class RelDataTypeFieldImpl
     public RelDataType getType()
     {
         return type;
+    }
+
+    // implement Map.Entry
+    public final String getKey()
+    {
+        return getName();
+    }
+
+    // implement Map.Entry
+    public final RelDataType getValue()
+    {
+        return getType();
+    }
+
+    // implement Map.Entry
+    public RelDataType setValue(RelDataType value)
+    {
+        throw new UnsupportedOperationException();
     }
 
     // for debugging

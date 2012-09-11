@@ -82,7 +82,7 @@ public class OrderByScope
             final SqlValidatorNamespace selectNs =
                 validator.getNamespace(select);
             final RelDataType rowType = selectNs.getRowType();
-            if (SqlValidatorUtil.lookupField(rowType, name) >= 0) {
+            if (SqlValidatorUtil.lookupField(rowType, name) != null) {
                 return identifier;
             }
         }

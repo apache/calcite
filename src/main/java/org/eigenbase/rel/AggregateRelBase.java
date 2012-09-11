@@ -40,8 +40,8 @@ public abstract class AggregateRelBase
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected List<AggregateCall> aggCalls;
-    protected int groupCount;
+    protected final List<AggregateCall> aggCalls;
+    protected final BitSet groupSet;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -51,20 +51,23 @@ public abstract class AggregateRelBase
      * @param cluster Cluster
      * @param traits Traits
      * @param child Child
-     * @param groupCount Size of grouping key
+     * @param groupSet Bitset of grouping fields
      * @param aggCalls Collection of calls to aggregate functions
      */
     protected AggregateRelBase(
         RelOptCluster cluster,
         RelTraitSet traits,
         RelNode child,
-        int groupCount,
+        BitSet groupSet,
         List<AggregateCall> aggCalls)
     {
         super(cluster, traits, child);
         Util.pre(aggCalls != null, "aggCalls != null");
-        this.groupCount = groupCount;
         this.aggCalls = aggCalls;
+        this.groupSet = groupSet;
+        assert groupSet != null;
+        assert groupSet.isEmpty() == (groupSet.cardinality() == 0)
+            : "See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6222207";
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -76,7 +79,8 @@ public abstract class AggregateRelBase
         // How can the result of aggregation have any duplicates?
 
         return (aggCalls.size() == 0)
-            && (groupCount == getChild().getRowType().getFieldList().size());
+            && (getGroupCount()
+                == getChild().getRowType().getFieldCount());
     }
 
     /**
@@ -90,23 +94,53 @@ public abstract class AggregateRelBase
     }
 
     /**
-     * Returns the number of grouping fields. These fields are the leading
-     * fields in both the input and output records.
+     * Returns the number of grouping fields.
+     * These grouping fields are the leading fields in both the input and output
+     * records.
+     *
+     * <p>NOTE: The {@link #getGroupSet()} data structure allows for the
+     * grouping fields to not be on the leading edge. New code should, if
+     * possible, assume that grouping fields are in arbitrary positions in the
+     * input relational expression.
      *
      * @return number of grouping fields
      */
     public int getGroupCount()
     {
-        return groupCount;
+        return groupSet.cardinality();
+    }
+
+    /**
+     * Returns a bitmap of the grouping fields.
+     *
+     * @return bitset of ordinals of grouping fields
+     */
+    public BitSet getGroupSet()
+    {
+        return groupSet;
     }
 
     public void explain(RelOptPlanWriter pw)
     {
         List<String> names = new ArrayList<String>();
         List<Object> values = new ArrayList<Object>();
+        populateExplainAttributes(names, values);
+        pw.explain(this, names, values);
+    }
+
+    /**
+     * Populates attributes for EXPLAIN.
+     *
+     * @param names Names of attributes
+     * @param values Values of attributes
+     */
+    protected void populateExplainAttributes(
+        List<String> names,
+        List<Object> values)
+    {
         names.add("child");
-        names.add("groupCount");
-        values.add(groupCount);
+        names.add("group");
+        values.add(groupSet);
         int i = -1;
         for (AggregateCall aggCall : aggCalls) {
             ++i;
@@ -119,7 +153,6 @@ public abstract class AggregateRelBase
             names.add(name);
             values.add(aggCall);
         }
-        pw.explain(this, names, values);
     }
 
     // implement RelNode
@@ -129,6 +162,7 @@ public abstract class AggregateRelBase
         // Therefore one sort column has .5 * rowCount,
         // 2 sort columns give .75 * rowCount.
         // Zero sort columns yields 1 row (or 0 if the input is empty).
+        final int groupCount = groupSet.cardinality();
         if (groupCount == 0) {
             return 1;
         } else {
@@ -148,42 +182,41 @@ public abstract class AggregateRelBase
 
     protected RelDataType deriveRowType()
     {
+        //noinspection unchecked
         return getCluster().getTypeFactory().createStructType(
-            new RelDataTypeFactory.FieldInfo() {
-                public int getFieldCount()
-                {
-                    return groupCount + aggCalls.size();
-                }
+            CompositeList.of(
+                // fields derived from grouping columns
+                new AbstractList<RelDataTypeField>() {
+                    public int size() {
+                        return groupSet.cardinality();
+                    }
 
-                public String getFieldName(int index)
-                {
-                    if (index < groupCount) {
-                        return getChild().getRowType().getFields()[index]
-                            .getName();
-                    } else {
-                        final AggregateCall aggCall =
-                            aggCalls.get(index - groupCount);
+                    public RelDataTypeField get(int index) {
+                        return getChild().getRowType().getFieldList().get(
+                            Util.toList(groupSet).get(index));
+                    }
+                },
+
+                // fields derived from aggregate calls
+                new AbstractList<RelDataTypeField>() {
+                    public int size() {
+                        return aggCalls.size();
+                    }
+
+                    public RelDataTypeField get(int index) {
+                        final AggregateCall aggCall = aggCalls.get(index);
+                        String name;
                         if (aggCall.getName() != null) {
-                            return aggCall.getName();
+                            name = aggCall.getName();
                         } else {
-                            return "$f" + index;
+                            name = "$f" + index;
                         }
-                    }
-                }
-
-                public RelDataType getFieldType(int index)
-                {
-                    if (index < groupCount) {
-                        return getChild().getRowType().getFields()[index]
-                            .getType();
-                    } else {
-                        final AggregateCall aggCall =
-                            aggCalls.get(index - groupCount);
                         assert typeMatchesInferred(aggCall, true);
-                        return aggCall.getType();
+                        return new RelDataTypeFieldImpl(
+                            name, index, aggCall.getType());
                     }
                 }
-            });
+            ));
     }
 
     /**

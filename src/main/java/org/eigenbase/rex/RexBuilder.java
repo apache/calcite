@@ -30,6 +30,7 @@ import org.eigenbase.sql.SqlIntervalQualifier.TimeUnit;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
+import org.eigenbase.util14.DateTimeUtil;
 
 
 /**
@@ -43,6 +44,13 @@ import org.eigenbase.util.*;
  */
 public class RexBuilder
 {
+    /** Special operator that accesses an unadvertised field of an input record.
+     * This operator cannot be used in SQL queries; it is introduced temporarily
+     * during sql-to-rel translation, then replaced during the process that
+     * trims unwanted fields. */
+    public static final SqlSpecialOperator GET_OPERATOR =
+        new SqlSpecialOperator("_get", SqlKind.OTHER_FUNCTION);
+
     //~ Instance fields --------------------------------------------------------
 
     protected final RelDataTypeFactory typeFactory;
@@ -165,6 +173,13 @@ public class RexBuilder
     {
         if (expr instanceof RexRangeRef) {
             RexRangeRef range = (RexRangeRef) expr;
+            if (field.getIndex() < 0) {
+                return makeCall(
+                    field.getType(),
+                    GET_OPERATOR,
+                    expr,
+                    makeLiteral(field.getName()));
+            }
             return new RexInputRef(
                 range.getOffset() + field.getIndex(),
                 field.getType());
@@ -209,35 +224,7 @@ public class RexBuilder
         }
 
         final RelDataType type = deriveReturnType(op, typeFactory, exprs);
-        RexNode [] fixExprs = exprs;
-
-        // REVIEW: angel 2006-08-27 Commented out the following section
-        // piece of code, not sure what its purpose is, but it was causing
-        // errors
-        /*
-        if (type instanceof IntervalSqlType) {
-            //if (op instanceof SqlDatetimeSubtractionOperator) {
-            //    op = SqlStdOperatorTable.minusOperator;
-            //}
-            int count = 0;
-            for (int i = 0; i < exprs.length; i++) {
-                if ((exprs[i] instanceof RexLiteral)
-                    && (exprs[i].getType() instanceof IntervalSqlType)
-                    && (exprs[i].getType().getIntervalQualifier() != null)) {
-                    exprs[i] = null;
-                    continue;
-                }
-                count++;
-            }
-            fixExprs = new RexNode[count];
-            for (int i = 0; i < exprs.length; i++) {
-                if (exprs[i] == null) {
-                    continue;
-                }
-                fixExprs[i] = exprs[i];
-            }
-        }  */
-        return new RexCall(type, op, fixExprs);
+        return new RexCall(type, op, exprs);
     }
 
     /**
@@ -450,8 +437,43 @@ public class RexBuilder
             && SqlTypeUtil.isInterval(exp.getType()))
         {
             return makeCastIntervalToExact(type, exp);
+        } else if (type.getSqlTypeName()  == SqlTypeName.BOOLEAN
+            && SqlTypeUtil.isExactNumeric(exp.getType()))
+        {
+            return makeCastExactToBoolean(type, exp);
+        } else if (exp.getType().getSqlTypeName()  == SqlTypeName.BOOLEAN
+            && SqlTypeUtil.isExactNumeric(type))
+        {
+            return makeCastBooleanToExact(type, exp);
         }
         return makeAbstractCast(type, exp);
+    }
+
+    private RexNode makeCastExactToBoolean(RelDataType toType, RexNode exp)
+    {
+        return makeCall(
+            toType,
+            SqlStdOperatorTable.notEqualsOperator,
+            exp,
+            makeZeroLiteral(exp.getType()));
+    }
+
+    private RexNode makeCastBooleanToExact(RelDataType toType, RexNode exp)
+    {
+        final RexNode casted = makeCall(
+            SqlStdOperatorTable.caseOperator,
+            exp,
+            makeExactLiteral(new BigDecimal(1), toType),
+            makeZeroLiteral(toType));
+        if (!exp.getType().isNullable()) {
+            return casted;
+        }
+        return makeCall(
+            toType,
+            SqlStdOperatorTable.caseOperator,
+            makeCall(SqlStdOperatorTable.isNotNullOperator, exp),
+            casted,
+            makeNullLiteral(toType.getSqlTypeName()));
     }
 
     private RexNode makeCastIntervalToExact(RelDataType toType, RexNode exp)
@@ -676,7 +698,7 @@ public RexNode decodeIntervalOrDecimal(RexNode node)
      *
      * @return Reference to field
      */
-    public RexNode makeInputRef(
+    public RexInputRef makeInputRef(
         RelDataType type,
         int i)
     {
@@ -794,9 +816,7 @@ public RexNode decodeIntervalOrDecimal(RexNode node)
     public RexLiteral makeExactLiteral(BigDecimal bd, RelDataType type)
     {
         return makeLiteral(
-            bd,
-            type,
-            SqlTypeName.DECIMAL);
+            bd, type, SqlTypeName.DECIMAL);
     }
 
     /**
@@ -823,8 +843,7 @@ public RexNode decodeIntervalOrDecimal(RexNode node)
             bd = BigDecimal.ZERO;
         }
         return makeApproxLiteral(
-            bd,
-            typeFactory.createSqlType(SqlTypeName.DOUBLE));
+            bd, typeFactory.createSqlType(SqlTypeName.DOUBLE));
     }
 
     /**
@@ -1083,6 +1102,89 @@ public RexNode decodeIntervalOrDecimal(RexNode node)
     public RexNode copy(RexNode expr)
     {
         return expr.accept(new RexCopier(this));
+    }
+
+    /**
+     * Creates a literal of the default value for the given type.
+     *
+     * @see #makeZeroLiteral(org.eigenbase.reltype.RelDataType, boolean)
+     *
+     * @param type Type
+     * @return Simple literal
+     */
+    public RexLiteral makeZeroLiteral(RelDataType type)
+    {
+        return (RexLiteral) makeZeroLiteral(type, false);
+    }
+
+    /**
+     * Creates an expression of the default value for the given type, casting if
+     * necessary to ensure that the expression is the exact type.
+     *
+     * <p>This value is:</p>
+     *
+     * <ul>
+     * <li>0 for numeric types;
+     * <li>FALSE for BOOLEAN;
+     * <li>The epoch for TIMESTAMP and DATE;
+     * <li>Midnight for TIME;
+     * <li>The empty string for string types (CHAR, BINARY, VARCHAR, VARBINARY).
+     * </ul>
+     *
+     * @param type Type
+     * @param allowCast Whether to allow a cast. If false, value is always a
+     *    {@link RexLiteral} but may not be the exact type
+     * @return Simple literal, or cast simple literal
+     */
+    public RexNode makeZeroLiteral(RelDataType type, boolean allowCast)
+    {
+        if (type.isNullable()) {
+            type = typeFactory.createTypeWithNullability(type, false);
+        }
+        RexLiteral literal;
+        switch (type.getSqlTypeName()) {
+        case CHAR:
+            return makeCharLiteral(
+                new NlsString(Util.spaces(type.getPrecision()), null, null));
+        case VARCHAR:
+            literal = makeCharLiteral(new NlsString("", null, null));
+            if (allowCast) {
+                return makeCast(type, literal);
+            } else {
+                return literal;
+            }
+        case BINARY:
+            return makeBinaryLiteral(new byte[type.getPrecision()]);
+        case VARBINARY:
+            literal = makeBinaryLiteral(new byte[0]);
+            if (allowCast) {
+                return makeCast(type, literal);
+            } else {
+                return literal;
+            }
+        case TINYINT:
+        case SMALLINT:
+        case INTEGER:
+        case BIGINT:
+        case DECIMAL:
+            return makeExactLiteral(BigDecimal.ZERO, type);
+        case FLOAT:
+        case REAL:
+        case DOUBLE:
+            return makeApproxLiteral(BigDecimal.ZERO, type);
+        case BOOLEAN:
+            return booleanFalse;
+        case TIME:
+            return makeTimeLiteral(
+                DateTimeUtil.zeroCalendar, type.getPrecision());
+        case DATE:
+            return makeDateLiteral(DateTimeUtil.zeroCalendar);
+        case TIMESTAMP:
+            return makeTimestampLiteral(
+                DateTimeUtil.zeroCalendar, type.getPrecision());
+        default:
+            throw Util.unexpected(type.getSqlTypeName());
+        }
     }
 }
 

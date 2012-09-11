@@ -90,6 +90,13 @@ public abstract class RelDataTypeImpl
                 return field;
             }
         }
+        // Extra field
+        if (fields[fields.length - 1].getName().equals("_extra")) {
+            return new RelDataTypeFieldImpl(
+                fieldName,
+                -1,
+                fields[fields.length - 1].getType());
+        }
         return null;
     }
 

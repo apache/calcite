@@ -380,6 +380,33 @@ public abstract class JoinRelBase
             typeList.add(field.getType());
         }
     }
+
+    @Override
+    public final JoinRelBase copy(RelTraitSet traitSet, List<RelNode> inputs) {
+        assert inputs.size() == 2;
+        return copy(
+            traitSet,
+            getCondition(),
+            inputs.get(0),
+            inputs.get(1));
+    }
+
+    /**
+     * Creates a copy of this join, overriding condition, system fields and
+     * inputs.
+     *
+     * <p>General contract as {@link org.eigenbase.rel.RelNode#copy}.
+     *
+     * @param conditionExpr Condition
+     * @param left Left input
+     * @param right Right input
+     * @return Copy of this join
+     */
+    public abstract JoinRelBase copy(
+        RelTraitSet traitSet,
+        RexNode conditionExpr,
+        RelNode left,
+        RelNode right);
 }
 
 // End JoinRelBase.java

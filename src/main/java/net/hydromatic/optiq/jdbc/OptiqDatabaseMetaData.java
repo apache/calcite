@@ -108,35 +108,35 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean storesUpperCaseIdentifiers() throws SQLException {
-        throw connection.helper.todo();
+        return true;
     }
 
     public boolean storesLowerCaseIdentifiers() throws SQLException {
-        throw connection.helper.todo();
+        return false;
     }
 
     public boolean storesMixedCaseIdentifiers() throws SQLException {
-        throw connection.helper.todo();
+        return false;
     }
 
     public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException {
-        throw connection.helper.todo();
+        return true;
     }
 
     public boolean storesUpperCaseQuotedIdentifiers() throws SQLException {
-        throw connection.helper.todo();
+        return false;
     }
 
     public boolean storesLowerCaseQuotedIdentifiers() throws SQLException {
-        throw connection.helper.todo();
+        return false;
     }
 
     public boolean storesMixedCaseQuotedIdentifiers() throws SQLException {
-        throw connection.helper.todo();
+        return false;
     }
 
     public String getIdentifierQuoteString() throws SQLException {
-        throw connection.helper.todo();
+        return "\"";
     }
 
     public String getSQLKeywords() throws SQLException {
@@ -164,7 +164,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public String getExtraNameCharacters() throws SQLException {
-        throw connection.helper.todo();
+        return "";
     }
 
     public boolean supportsAlterTableWithAddColumn() throws SQLException {

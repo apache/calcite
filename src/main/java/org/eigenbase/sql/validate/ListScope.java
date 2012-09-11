@@ -118,7 +118,7 @@ public abstract class ListScope
         for (int i = 0; i < children.size(); i++) {
             SqlValidatorNamespace ns = children.get(i);
             final RelDataType rowType = ns.getRowType();
-            if (SqlValidatorUtil.lookupField(rowType, columnName) >= 0) {
+            if (SqlValidatorUtil.lookupField(rowType, columnName) != null) {
                 tableName = childrenNames.get(i);
                 count++;
             }

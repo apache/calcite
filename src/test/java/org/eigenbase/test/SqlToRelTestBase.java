@@ -153,7 +153,31 @@ public abstract class SqlToRelTestBase
             String sql,
             String plan);
 
+        /**
+         * Checks that a SQL statement converts to a given plan, optionally
+         * trimming columns that are not needed.
+         *
+         * @param sql SQL query
+         * @param plan Expected plan
+         */
+        void assertConvertsTo(
+            String sql,
+            String plan,
+            boolean trim);
+
+        /**
+         * Returns the diff repository.
+         *
+         * @return Diff repository
+         */
         DiffRepository getDiffRepos();
+
+        /**
+         * Returns the validator.
+         *
+         * @return Validator
+         */
+        SqlValidator getValidator();
     }
 
     //~ Inner Classes ----------------------------------------------------------
@@ -195,12 +219,13 @@ public abstract class SqlToRelTestBase
         }
 
         private List<RelCollation> deduceMonotonicity(SqlValidatorTable table) {
+            final RelDataType rowType = table.getRowType();
             final List<RelCollation> collationList =
                 new ArrayList<RelCollation>();
 
             // Deduce which fields the table is sorted on.
             int i = -1;
-            for (RelDataTypeField field : table.getRowType().getFields()) {
+            for (RelDataTypeField field : rowType.getFields()) {
                 ++i;
                 final SqlMonotonicity monotonicity =
                     table.getMonotonicity(field.getName());
@@ -372,6 +397,7 @@ public abstract class SqlToRelTestBase
         private RelOptPlanner planner;
         private SqlOperatorTable opTab;
         private final DiffRepository diffRepos;
+        private RelDataTypeFactory typeFactory;
 
         /**
          * Creates a TesterImpl.
@@ -392,7 +418,7 @@ public abstract class SqlToRelTestBase
             } catch (Exception e) {
                 throw Util.newInternal(e); // todo: better handling
             }
-            final RelDataTypeFactory typeFactory = createTypeFactory();
+            final RelDataTypeFactory typeFactory = getTypeFactory();
             final OJPreparingStmt.CatalogReader catalogReader =
                 createCatalogReader(typeFactory);
             final SqlValidator validator =
@@ -403,6 +429,7 @@ public abstract class SqlToRelTestBase
                     validator,
                     catalogReader,
                     typeFactory);
+            converter.setTrimUnusedFields(true);
             final SqlNode validatedQuery = validator.validate(sqlQuery);
             final RelNode rel =
                 converter.convertQuery(validatedQuery, false, true);
@@ -424,6 +451,14 @@ public abstract class SqlToRelTestBase
                     getPlanner(),
                     new JavaRexBuilder(typeFactory));
             return converter;
+        }
+
+        protected final RelDataTypeFactory getTypeFactory()
+        {
+            if (typeFactory == null) {
+                typeFactory = createTypeFactory();
+            }
+            return typeFactory;
         }
 
         protected RelDataTypeFactory createTypeFactory()
@@ -471,6 +506,11 @@ public abstract class SqlToRelTestBase
             return opTab;
         }
 
+        /**
+         * Creates an operator table.
+         *
+         * @return New operator table
+         */
         protected SqlOperatorTable createOperatorTable()
         {
             final MockSqlOperatorTable opTab =
@@ -494,16 +534,26 @@ public abstract class SqlToRelTestBase
             String sql,
             String plan)
         {
+            assertConvertsTo(sql, plan, false);
+        }
+
+        public void assertConvertsTo(
+            String sql,
+            String plan,
+            boolean trim)
+        {
             String sql2 = getDiffRepos().expand("sql", sql);
-            final RelNode rel = convertSqlToRel(sql2);
+            RelNode rel = convertSqlToRel(sql2);
 
             assertTrue(rel != null);
+            assertValid(rel);
 
-            // Check that every node is valid.
-            SqlToRelConverterTest.RelValidityChecker checker =
-                new SqlToRelConverterTest.RelValidityChecker();
-            checker.go(rel);
-            assertEquals(0, checker.invalidCount);
+            if (trim) {
+                final RelFieldTrimmer trimmer = createFieldTrimmer();
+                rel = trimmer.trim(rel);
+                assertTrue(rel != null);
+                assertValid(rel);
+            }
 
             // NOTE jvs 28-Mar-2006:  insert leading newline so
             // that plans come out nicely stacked instead of first
@@ -512,9 +562,43 @@ public abstract class SqlToRelTestBase
             diffRepos.assertEquals("plan", plan, actual);
         }
 
+        /**
+         * Creates a RelFieldTrimmer.
+         *
+         * @return Field trimmer
+         */
+        public RelFieldTrimmer createFieldTrimmer()
+        {
+            return new RelFieldTrimmer(getValidator());
+        }
+
+        /**
+         * Checks that every node of a relational expression is valid.
+         *
+         * @param rel Relational expression
+         */
+        protected void assertValid(RelNode rel)
+        {
+            SqlToRelConverterTest.RelValidityChecker checker =
+                new SqlToRelConverterTest.RelValidityChecker();
+            checker.go(rel);
+            assertEquals(0, checker.invalidCount);
+        }
+
         public DiffRepository getDiffRepos()
         {
             return diffRepos;
+        }
+
+        public SqlValidator getValidator()
+        {
+            final RelDataTypeFactory typeFactory = getTypeFactory();
+            final SqlValidatorCatalogReader catalogReader =
+                createCatalogReader(typeFactory);
+            return
+                createValidator(
+                    catalogReader,
+                    typeFactory);
         }
     }
 

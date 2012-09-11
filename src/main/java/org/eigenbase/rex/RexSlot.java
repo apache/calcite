@@ -17,6 +17,8 @@
 */
 package org.eigenbase.rex;
 
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.*;
 
@@ -64,13 +66,31 @@ public abstract class RexSlot
         return index;
     }
 
-    protected static String [] makeArray(int length, String prefix)
+    /** Thread-safe list that populates itself if you make a reference beyond
+     * the end of the list. Useful if you are using the same entries repeatedly.
+     * Once populated, accesses are very efficient. */
+    protected static class SelfPopulatingList
+        extends CopyOnWriteArrayList<String>
     {
-        final String [] a = new String[length];
-        for (int i = 0; i < a.length; i++) {
-            a[i] = prefix + i;
+        private final String prefix;
+
+        SelfPopulatingList(String prefix) {
+            this.prefix = prefix;
         }
-        return a;
+
+        @Override
+        public String get(int index) {
+            for (;;) {
+                try {
+                    return super.get(index);
+                } catch (IndexOutOfBoundsException e) {
+                    if (index < 0) {
+                        throw new IllegalArgumentException();
+                    }
+                    add(prefix + size());
+                }
+            }
+        }
     }
 }
 

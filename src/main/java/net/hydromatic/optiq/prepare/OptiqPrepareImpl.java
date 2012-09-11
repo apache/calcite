@@ -29,8 +29,6 @@ import net.hydromatic.optiq.runtime.Executable;
 
 import openjava.ptree.ClassDeclaration;
 
-import org.codehaus.janino.*;
-
 import org.eigenbase.oj.stmt.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.TableAccessRule;
@@ -50,6 +48,8 @@ import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 import org.eigenbase.util.Pair;
+
+import org.codehaus.janino.*;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -217,6 +217,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
         private final RexBuilder rexBuilder;
         private final Schema schema;
         private int expansionDepth;
+        private SqlValidator sqlValidator;
 
         public OptiqPreparingStmt(
             CatalogReader catalogReader,
@@ -275,6 +276,9 @@ class OptiqPrepareImpl implements OptiqPrepare {
             // physical storage.
             rootRel = flattenTypes(rootRel, true);
 
+            // Trim unused fields.
+            rootRel = trimUnusedFields(rootRel);
+
             rootRel = optimize(resultType, rootRel);
             containsJava = treeContainsJava(rootRel);
 
@@ -295,8 +299,11 @@ class OptiqPrepareImpl implements OptiqPrepare {
             SqlValidator validator,
             CatalogReader catalogReader)
         {
-            return new SqlToRelConverter(
-                this, validator, catalogReader, env, planner, rexBuilder);
+            SqlToRelConverter sqlToRelConverter =
+                new SqlToRelConverter(
+                    this, validator, catalogReader, env, planner, rexBuilder);
+            sqlToRelConverter.setTrimUnusedFields(true);
+            return sqlToRelConverter;
         }
 
         @Override
@@ -346,17 +353,35 @@ class OptiqPrepareImpl implements OptiqPrepare {
             return false;
         }
 
+        private SqlToRelConverter getSqlToRelConverter() {
+            return getSqlToRelConverter(getSqlValidator(), catalogReader);
+        }
+
         @Override
         public RelNode flattenTypes(
             RelNode rootRel,
             boolean restructure)
         {
+            final RelNode rel = addUnadvertisedFields(rootRel);
+            return rel;
+        }
+
+        private RelNode addUnadvertisedFields(RelNode rootRel) {
+            // First, find all types for which expressions want extra fields.
+            // You can find them because they occur as _GET(record, "field")
+            // calls.
+
             return rootRel;
         }
 
         @Override
         protected RelNode decorrelate(SqlNode query, RelNode rootRel) {
             return rootRel;
+        }
+
+        @Override
+        protected RelNode trimUnusedFields(RelNode rootRel) {
+            return getSqlToRelConverter().trimUnusedFields(rootRel);
         }
 
         @Override
@@ -370,11 +395,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             } catch (SqlParseException e) {
                 throw new RuntimeException("parse failed", e);
             }
-            SqlValidator validator =
-                new SqlValidatorImpl(
-                    SqlStdOperatorTable.instance(), catalogReader,
-                    rexBuilder.getTypeFactory(),
-                    SqlConformance.Default) { };
+            SqlValidator validator = getSqlValidator();
             SqlNode sqlNode1 = validator.validate(sqlNode);
 
             SqlToRelConverter sqlToRelConverter =
@@ -384,6 +405,16 @@ class OptiqPrepareImpl implements OptiqPrepare {
 
             --expansionDepth;
             return relNode;
+        }
+
+        private SqlValidator getSqlValidator() {
+            if (sqlValidator == null) {
+                sqlValidator = new SqlValidatorImpl(
+                    SqlStdOperatorTable.instance(), catalogReader,
+                    rexBuilder.getTypeFactory(),
+                    SqlConformance.Default) { };
+            }
+            return sqlValidator;
         }
 
         @Override

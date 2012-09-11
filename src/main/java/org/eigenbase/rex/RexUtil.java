@@ -19,13 +19,14 @@ package org.eigenbase.rex;
 
 import java.util.*;
 
+import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
-
+import org.eigenbase.util.mapping.*;
 
 /**
  * Utility methods concerning row-expressions.
@@ -89,7 +90,8 @@ public class RexUtil
         RelDataType rhsRowType)
     {
         int n = rhsRowType.getFieldCount();
-        assert (n == lhsRowType.getFieldCount());
+        assert n == lhsRowType.getFieldCount()
+            : "field count: lhs [" + lhsRowType + "] rhs [" + rhsRowType + "]";
         RexNode [] rhsExps = new RexNode[n];
         for (int i = 0; i < n; ++i) {
             rhsExps[i] =
@@ -642,28 +644,16 @@ public class RexUtil
 
     /**
      * Creates a record type with anonymous field names.
+     *
+     * @param typeFactory Type factory
+     * @param exprs Expressions
+     * @return Record type
      */
     public static RelDataType createStructType(
         RelDataTypeFactory typeFactory,
         final RexNode [] exprs)
     {
-        return typeFactory.createStructType(
-            new RelDataTypeFactory.FieldInfo() {
-                public int getFieldCount()
-                {
-                    return exprs.length;
-                }
-
-                public String getFieldName(int index)
-                {
-                    return "$" + index;
-                }
-
-                public RelDataType getFieldType(int index)
-                {
-                    return exprs[index].getType();
-                }
-            });
+        return createStructType(typeFactory, exprs, null);
     }
 
     /**
@@ -673,6 +663,11 @@ public class RexUtil
      * can be null. We recommend using explicit names where possible, because it
      * makes it much easier to figure out the intent of fields when looking at
      * planner output.
+     *
+     * @param typeFactory Type factory
+     * @param exprs Expressions
+     * @param names Field names, may be null, or elements may be null
+     * @return Record type
      */
     public static RelDataType createStructType(
         RelDataTypeFactory typeFactory,
@@ -847,6 +842,157 @@ public class RexUtil
                     orExpr);
         }
         return orExpr;
+    }
+
+    /**
+     * Applies a mapping to a collation list.
+     *
+     * @param mapping Mapping
+     * @param collationList Collation list
+     * @return collation list with mapping applied to each field
+     */
+    public static List<RelCollation> apply(
+        Mappings.TargetMapping mapping,
+        List<RelCollation> collationList)
+    {
+        final List<RelCollation> newCollationList =
+            new ArrayList<RelCollation>();
+        for (RelCollation collation : collationList) {
+            final List<RelFieldCollation> newFieldCollationList =
+                new ArrayList<RelFieldCollation>();
+            for (RelFieldCollation fieldCollation
+                : collation.getFieldCollations())
+            {
+                final RelFieldCollation newFieldCollation =
+                    apply(mapping, fieldCollation);
+                if (newFieldCollation == null) {
+                    // This field is not mapped. Stop here. The leading edge
+                    // of the collation is still valid (although it's useless
+                    // if it's empty).
+                    break;
+                }
+                newFieldCollationList.add(newFieldCollation);
+            }
+            // Truncation to collations to their leading edge creates empty
+            // and duplicate collations. Ignore these.
+            if (!newFieldCollationList.isEmpty()) {
+                final RelCollationImpl newCollation =
+                    new RelCollationImpl(newFieldCollationList);
+                if (!newCollationList.contains(newCollation)) {
+                    newCollationList.add(newCollation);
+                }
+            }
+        }
+
+        // REVIEW: There might be redundant collations in the list. For example,
+        // in {(x), (x, y)}, (x) is redundant because it is a leading edge of
+        // another collation in the list. Could remove redundant collations.
+
+        return newCollationList;
+    }
+
+    /**
+     * Applies a mapping to a field collation.
+     *
+     * <p>If the field is not mapped, returns null.
+     *
+     * @param mapping Mapping
+     * @param fieldCollation Field collation
+     * @return collation with mapping applied
+     */
+    public static RelFieldCollation apply(
+        Mappings.TargetMapping mapping,
+        RelFieldCollation fieldCollation)
+    {
+        final int target =
+            mapping.getTargetOpt(fieldCollation.getFieldIndex());
+        if (target < 0) {
+            return null;
+        }
+        return new RelFieldCollation(
+            target,
+            fieldCollation.getDirection());
+    }
+
+    /**
+     * Applies a mapping to a list of field collations.
+     *
+     * @param mapping Mapping
+     * @param fieldCollations Field collations
+     * @return collations with mapping applied
+     */
+    public static List<RelFieldCollation> apply(
+        Mapping mapping,
+        List<RelFieldCollation> fieldCollations)
+    {
+        final List<RelFieldCollation> newFieldCollations =
+            new ArrayList<RelFieldCollation>(fieldCollations.size());
+        for (RelFieldCollation fieldCollation : fieldCollations) {
+            newFieldCollations.add(apply(mapping, fieldCollation));
+        }
+        return newFieldCollations;
+    }
+
+    /**
+     * Applies a shuttle to an array of expressions. Creates a copy first.
+     *
+     * @param shuttle Shuttle
+     * @param exprs Array of expressions
+     */
+    public static <T extends RexNode> T[] apply(
+        RexVisitor<T> shuttle,
+        T[] exprs)
+    {
+        T[] newExprs = exprs.clone();
+        for (int i = 0; i < newExprs.length; i++) {
+            final RexNode expr = newExprs[i];
+            if (expr != null) {
+                newExprs[i] = expr.accept(shuttle);
+            }
+        }
+        return newExprs;
+    }
+
+    /**
+     * Applies a visitor to an array of expressions and, if specified, a single
+     * expression.
+     *
+     * @param visitor Visitor
+     * @param exprs Array of expressions
+     * @param expr Single expression, may be null
+     */
+    public static void apply(
+        RexVisitor<Void> visitor,
+        RexNode [] exprs,
+        RexNode expr)
+    {
+        for (int i = 0; i < exprs.length; i++) {
+            exprs[i].accept(visitor);
+        }
+        if (expr != null) {
+            expr.accept(visitor);
+        }
+    }
+
+    /**
+     * Applies a visitor to a list of expressions and, if specified, a single
+     * expression.
+     *
+     * @param visitor Visitor
+     * @param exprs List of expressions
+     * @param expr Single expression, may be null
+     */
+    public static void apply(
+        RexVisitor<Void> visitor,
+        List<? extends RexNode> exprs,
+        RexNode expr)
+    {
+        for (int i = 0; i < exprs.size(); i++) {
+            exprs.get(i).accept(visitor);
+        }
+        if (expr != null) {
+            expr.accept(visitor);
+        }
     }
 
     //~ Inner Classes ----------------------------------------------------------
@@ -1032,17 +1178,6 @@ public class RexUtil
                 operand.accept(this);
             }
             return null;
-        }
-
-        /**
-         * Applies this visitor to an array of expressions and an optional
-         * single expression.
-         */
-        public void apply(List<RexNode> exprsList, RexNode expr)
-        {
-            RexNode [] exprs = new RexNode[exprsList.size()];
-            exprsList.toArray(exprs);
-            RexProgram.apply(this, exprs, expr);
         }
 
         public List<RexFieldAccess> getFieldAccessList()
