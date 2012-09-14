@@ -18,7 +18,6 @@
 package net.hydromatic.lamdba.functions;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 
 /**
@@ -178,7 +177,6 @@ public class BiPredicates {
         };
     }
 
-    @SafeVarargs
     public static <K, V> BiPredicate<K, V> or(
         BiPredicate<? super K, ? super V>... predicates)
     {
@@ -235,7 +233,7 @@ public class BiPredicates {
         };
     }
 
-    @SafeVarargs
+    //@SafeVarargs
     public static <K, V> BiPredicate<K, V> xor(
         BiPredicate<? super K, ? super V>... predicates)
     {
@@ -246,15 +244,18 @@ public class BiPredicates {
         implements BiPredicate<K, V>
     {
         public BiPredicate<K, V> and(BiPredicate<? super K, ? super V> p) {
-            return BiPredicates.and(this, p);
+            //noinspection unchecked
+            return BiPredicates.and((BiPredicate) this, (BiPredicate) p);
         }
 
         public BiPredicate<K, V> or(BiPredicate<? super K, ? super V> p) {
-            return BiPredicates.or(this, p);
+            //noinspection unchecked
+            return BiPredicates.or((BiPredicate) this, p);
         }
 
         public BiPredicate<K, V> xor(BiPredicate<? super K, ? super V> p) {
-            return BiPredicates.xor(this, p);
+            //noinspection unchecked
+            return BiPredicates.xor((BiPredicate) this, p);
         }
 
         public BiPredicate<K, V> negate() {

@@ -17,7 +17,7 @@
 */
 package net.hydromatic.lamdba.functions;
 
-import java.util.Objects;
+import net.hydromatic.linq4j.Linq4j;
 
 /**
  * Static utility methods pertaining to {@code Block} instances.
@@ -39,7 +39,7 @@ public final class Blocks {
     private static final Block<Object> REQUIRE_NON_NULL =
         new Block<Object>() {
             public void apply(Object o) {
-                Objects.requireNonNull(o);
+                Linq4j.requireNonNull(o);
             }
 
             public Block<Object> chain(Block<? super Object> second) {
@@ -70,12 +70,12 @@ public final class Blocks {
             }
 
             public Block<T> chain(Block<? super T> second) {
-                return Blocks.chain(this, second);
+                //noinspection unchecked
+                return Blocks.chain((Block) this, second);
             }
         };
     }
 
-    @SafeVarargs
     public static <T> Block<T> chain(final Block<? super T>... sequence) {
         return new Block<T>() {
             public void apply(T t) {
@@ -85,7 +85,8 @@ public final class Blocks {
             }
 
             public Block<T> chain(Block<? super T> second) {
-                return Blocks.chain(this, second);
+                //noinspection unchecked
+                return Blocks.chain((Block) this, second);
             }
         };
     }
@@ -101,7 +102,8 @@ public final class Blocks {
             }
 
             public Block<T> chain(Block<? super T> second) {
-                return Blocks.chain(this, second);
+                //noinspection unchecked
+                return Blocks.chain((Block) this, second);
             }
         };
     }

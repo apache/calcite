@@ -57,6 +57,10 @@ public class Linq4j {
         };
 
     /**
+     *
+     */
+
+    /**
      * Adapter that converts an enumerator into an iterator.
      *
      * @param enumerator Enumerator
@@ -321,6 +325,28 @@ public class Linq4j {
         List<Enumerator<T>> enumerators)
     {
         return new CartesianProductEnumerator<T>(enumerators);
+    }
+
+    /**
+     * Returns whether the arguments are equal to each other.
+     *
+     * <p>Equivalent to {@code Objects#equals} in JDK 1.7 and above.</p>
+     */
+    public static <T> boolean equals(T t0, T t1) {
+        return t0 == t1 || t0 != null && t0.equals(t1);
+    }
+
+    /**
+     * Throws {@link NullPointerException} if argument is null, otherwise
+     * returns argument.
+     *
+     * <p>Equivalent to {@code Objects#equireNonNull} in JDK 1.7 and above.</p>
+     */
+    public static <T> T requireNonNull(T o) {
+        if (o == null) {
+            throw new NullPointerException();
+        }
+        return o;
     }
 
     @SuppressWarnings("unchecked")

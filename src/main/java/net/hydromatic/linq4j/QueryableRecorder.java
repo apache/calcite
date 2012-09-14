@@ -62,7 +62,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.aggregate(source, seed, func);
             }
-        }.castSingle();
+        }.<TAccumulate>castSingle();
     }
 
     public <TAccumulate, TResult> TResult aggregate(
@@ -75,7 +75,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.aggregate(source, seed, func, selector);
             }
-        }.castSingle();
+        }.<TResult>castSingle();
     }
 
     public boolean all(
@@ -86,7 +86,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.all(source, predicate);
             }
-        }.castSingle();
+        }.<Boolean>castSingle();
     }
 
     public boolean any(final Queryable<T> source) {
@@ -94,7 +94,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.any(source);
             }
-        }.castSingle();
+        }.<Boolean>castSingle();
     }
 
     public boolean any(
@@ -105,7 +105,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.any(source, predicate);
             }
-        }.castSingle();
+        }.<Boolean>castSingle();
     }
 
     public BigDecimal averageBigDecimal(
@@ -138,7 +138,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.averageDouble(source, selector);
             }
-        }.castSingle();
+        }.<Double>castSingle();
     }
 
     public Double averageNullableDouble(
@@ -149,7 +149,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.averageNullableDouble(source, selector);
             }
-        }.castSingle();
+        }.<Double>castSingle();
     }
 
     public int averageInteger(
@@ -160,7 +160,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.averageInteger(source, selector);
             }
-        }.castSingle();
+        }.<Integer>castSingle();
     }
 
     public Integer averageNullableInteger(
@@ -171,7 +171,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.averageNullableInteger(source, selector);
             }
-        }.castSingle();
+        }.<Integer>castSingle();
     }
 
     public float averageFloat(
@@ -182,7 +182,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.averageFloat(source, selector);
             }
-        }.castSingle();
+        }.<Float>castSingle();
     }
 
     public Float averageNullableFloat(
@@ -193,7 +193,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.averageNullableFloat(source, selector);
             }
-        }.castSingle();
+        }.<Float>castSingle();
     }
 
     public long averageLong(
@@ -204,7 +204,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.averageLong(source, selector);
             }
-        }.castSingle();
+        }.<Long>castSingle();
     }
 
     public Long averageNullableLong(
@@ -215,7 +215,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.averageNullableLong(source, selector);
             }
-        }.castSingle();
+        }.<Long>castSingle();
     }
 
     public <T2> Queryable<T2> cast(
@@ -248,7 +248,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.contains(source, element);
             }
-        }.castSingle();
+        }.<Boolean>castSingle();
     }
 
     public boolean contains(
@@ -260,7 +260,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.contains(source, element, comparer);
             }
-        }.castSingle();
+        }.<Boolean>castSingle();
     }
 
     public int count(
@@ -270,7 +270,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.count(source);
             }
-        }.castSingle();
+        }.<Integer>castSingle();
     }
 
     public int count(
@@ -281,7 +281,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.count(source, func);
             }
-        }.castSingle();
+        }.<Integer>castSingle();
     }
 
     public Queryable<T> defaultIfEmpty(
@@ -334,7 +334,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.elementAt(source, index);
             }
-        }.castSingle();
+        }.<T>castSingle();
     }
 
     public T elementAtOrDefault(
@@ -345,7 +345,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.elementAtOrDefault(source, index);
             }
-        }.castSingle();
+        }.<T>castSingle();
     }
 
     public Queryable<T> except(
@@ -664,7 +664,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.longCount(source);
             }
-        }.castSingle();
+        }.<Long>castSingle();
     }
 
     public long longCount(
@@ -685,7 +685,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.max(source);
             }
-        }.castSingle();
+        }.<T>castSingle();
     }
 
     public <TResult extends Comparable<TResult>> TResult max(
@@ -696,7 +696,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.max(source, selector);
             }
-        }.castSingle();
+        }.<TResult>castSingle();
     }
 
     public T min(
@@ -706,7 +706,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.min(source);
             }
-        }.castSingle();
+        }.<T>castSingle();
     }
 
     public <TResult extends Comparable<TResult>> TResult min(
@@ -717,7 +717,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.min(source, selector);
             }
-        }.castSingle();
+        }.<TResult>castSingle();
     }
 
     public <TResult> Queryable<TResult> ofType(
@@ -868,7 +868,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.sequenceEqual(source, enumerable);
             }
-        }.castSingle();
+        }.<Boolean>castSingle();
     }
 
     public boolean sequenceEqual(
@@ -880,7 +880,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.sequenceEqual(source, enumerable, comparer);
             }
-        }.castSingle();
+        }.<Boolean>castSingle();
     }
 
     public T single(
@@ -988,7 +988,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.sumDouble(source, selector);
             }
-        }.castSingle();
+        }.<Double>castSingle();
     }
 
     public Double sumNullableDouble(
@@ -999,7 +999,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.sumNullableDouble(source, selector);
             }
-        }.castSingle();
+        }.<Double>castSingle();
     }
 
     public int sumInteger(
@@ -1010,7 +1010,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.sumInteger(source, selector);
             }
-        }.castSingle();
+        }.<Integer>castSingle();
     }
 
     public Integer sumNullableInteger(
@@ -1021,7 +1021,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.sumNullableInteger(source, selector);
             }
-        }.castSingle();
+        }.<Integer>castSingle();
     }
 
     public long sumLong(
@@ -1032,7 +1032,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.sumLong(source, selector);
             }
-        }.castSingle();
+        }.<Long>castSingle();
     }
 
     public Long sumNullableLong(
@@ -1043,7 +1043,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.sumNullableLong(source, selector);
             }
-        }.castSingle();
+        }.<Long>castSingle();
     }
 
     public float sumFloat(
@@ -1054,7 +1054,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.sumFloat(source, selector);
             }
-        }.castSingle();
+        }.<Float>castSingle();
     }
 
     public Float sumNullableFloat(
@@ -1065,7 +1065,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
             public void replay(QueryableFactory<T> factory) {
                 factory.sumNullableFloat(source, selector);
             }
-        }.castSingle();
+        }.<Float>castSingle();
     }
 
     public Queryable<T> take(

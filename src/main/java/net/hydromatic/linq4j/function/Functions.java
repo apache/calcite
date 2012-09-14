@@ -17,6 +17,8 @@
 */
 package net.hydromatic.linq4j.function;
 
+import net.hydromatic.linq4j.Linq4j;
+
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
@@ -268,7 +270,7 @@ public class Functions {
         implements EqualityComparer<Object>
     {
         public boolean equal(Object v1, Object v2) {
-            return Objects.equals(v1, v2);
+            return Linq4j.equals(v1, v2);
         }
 
         public int hashCode(Object t) {

@@ -205,7 +205,7 @@ public class Predicates {
         };
     }
 
-    @SafeVarargs
+    //@SafeVarargs
     public static <T> Predicate<T> or(
         Predicate<? super T>... predicates)
     {
@@ -229,22 +229,25 @@ public class Predicates {
         throw new UnsupportedOperationException(); // TODO:
     }
 
-    @SafeVarargs
+    //@SafeVarargs
     public static <T> Predicate<T> xor(Predicate<? super T>... predicates) {
         return xor(Arrays.asList(predicates));
     }
 
     static abstract class AbstractPredicate<T> implements Predicate<T> {
         public Predicate<T> and(Predicate<? super T> p) {
-            return Predicates.and(this, p);
+            //noinspection unchecked
+            return Predicates.and((Predicate) this, p);
         }
 
         public Predicate<T> or(Predicate<? super T> p) {
-            return Predicates.or(this, p);
+            //noinspection unchecked
+            return Predicates.or((Predicate) this, p);
         }
 
         public Predicate<T> xor(Predicate<? super T> p) {
-            return Predicates.xor(this, p);
+            //noinspection unchecked
+            return Predicates.xor((Predicate) this, p);
         }
 
         public Predicate<T> negate() {

@@ -17,8 +17,9 @@
 */
 package net.hydromatic.lamdba.functions;
 
+import net.hydromatic.linq4j.Linq4j;
+
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Utilities for {@link Mapper}.
@@ -98,7 +99,7 @@ public class Mappers {
     public static <T> Mapper<T, T> substitute(final T subOut, final T subIn) {
         return new Mapper<T, T>() {
             public T map(T t) {
-                return Objects.equals(subOut, t) ? subIn : t;
+                return Linq4j.equals(subOut, t) ? subIn : t;
             }
 
             public <V> Mapper<T, V> compose(
