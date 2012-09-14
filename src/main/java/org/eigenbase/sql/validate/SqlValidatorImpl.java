@@ -34,6 +34,8 @@ import org.eigenbase.sql.util.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.linq4j.Linq4j;
+
 
 /**
  * Default implementation of {@link SqlValidator}.
@@ -197,12 +199,6 @@ public class SqlValidatorImpl
      * @param catalogReader Catalog reader
      * @param typeFactory Type factory
      * @param conformance Compatibility mode
-     *
-     * @pre opTab != null
-     * @pre // node is a "query expression" (per SQL standard)
-     * @pre catalogReader != null
-     * @pre typeFactory != null
-     * @pre conformance != null
      */
     protected SqlValidatorImpl(
         SqlOperatorTable opTab,
@@ -210,10 +206,10 @@ public class SqlValidatorImpl
         RelDataTypeFactory typeFactory,
         SqlConformance conformance)
     {
-        Objects.requireNonNull(opTab);
-        Objects.requireNonNull(catalogReader);
-        Objects.requireNonNull(typeFactory);
-        Objects.requireNonNull(conformance);
+        Linq4j.requireNonNull(opTab);
+        Linq4j.requireNonNull(catalogReader);
+        Linq4j.requireNonNull(typeFactory);
+        Linq4j.requireNonNull(conformance);
         this.opTab = opTab;
         this.catalogReader = catalogReader;
         this.typeFactory = typeFactory;

@@ -27,12 +27,26 @@ import java.util.Properties;
  */
 @SuppressWarnings("UnusedDeclaration")
 class FactoryJdbc41 implements Factory {
+    private final int major;
+    private final int minor;
+
+    /** Creates a JDBC factory. */
+    public FactoryJdbc41() {
+        this(4, 1);
+    }
+
+    /** Creates a JDBC factory with given major/minor version number. */
+    protected FactoryJdbc41(int major, int minor) {
+        this.major = major;
+        this.minor = minor;
+    }
+
     public int getJdbcMajorVersion() {
-        return 4;
+        return major;
     }
 
     public int getJdbcMinorVersion() {
-        return 1;
+        return minor;
     }
 
     public OptiqConnectionImpl newConnection(

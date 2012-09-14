@@ -19,11 +19,11 @@ package org.eigenbase.javac;
 
 import java.util.*;
 
+import org.eigenbase.util.*;
+
 import org.codehaus.janino.*;
 import org.codehaus.janino.util.*;
 import org.codehaus.janino.util.resource.*;
-
-import org.eigenbase.util.*;
 
 
 /**
