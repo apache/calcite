@@ -302,7 +302,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             SqlToRelConverter sqlToRelConverter =
                 new SqlToRelConverter(
                     this, validator, catalogReader, env, planner, rexBuilder);
-            sqlToRelConverter.setTrimUnusedFields(true);
+            sqlToRelConverter.setTrimUnusedFields(false);
             return sqlToRelConverter;
         }
 
@@ -362,15 +362,6 @@ class OptiqPrepareImpl implements OptiqPrepare {
             RelNode rootRel,
             boolean restructure)
         {
-            final RelNode rel = addUnadvertisedFields(rootRel);
-            return rel;
-        }
-
-        private RelNode addUnadvertisedFields(RelNode rootRel) {
-            // First, find all types for which expressions want extra fields.
-            // You can find them because they occur as _GET(record, "field")
-            // calls.
-
             return rootRel;
         }
 
