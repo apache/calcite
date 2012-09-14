@@ -145,13 +145,13 @@ The following features are complete.
 * Query parser, validator and optimizer complete.
 * Many standard functions and aggregate functions (limited number available in plans implemented in Java)
 * JDBC queries against Linq4j and JDBC back-ends
-* Linq4j front-end
+* <a href="https://github.com/julianhyde/linq4j">Linq4j</a> front-end
+* <a href="https://github.com/julianhyde/optiq-splunk">Splunk adapter</a>
 
 Backlog
 =======
 
 * Rules to push down as many operations as possible to JDBC back-end (i.e. generate SQL)
-* Splunk adapter
 * Cascading adapter
 * Easy API to register optimizer rules
 * Easy API to register calling conventions
@@ -165,3 +165,5 @@ More information
 * Project page: http://www.hydromatic.net/optiq
 * Source code: http://github.com/julianhyde/optiq
 * Developers list: http://groups.google.com/group/optiq-dev
+* Presentations
+** <a href="http://www.slideshare.net/julianhyde/how-to-integrate-splunk-with-any-data-solution">Splunk 2012 User Conference</a>
