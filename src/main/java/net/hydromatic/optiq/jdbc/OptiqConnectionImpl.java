@@ -26,17 +26,10 @@ import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
-import net.hydromatic.optiq.runtime.ByteString;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.sql.type.BasicSqlType;
-import org.eigenbase.sql.type.SqlTypeFactoryImpl;
-
-import java.lang.reflect.Field;
 import java.lang.reflect.Type;
-import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
@@ -437,108 +430,6 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return iface.isInstance(this);
-    }
-
-    private static class JavaTypeFactoryImpl
-        extends SqlTypeFactoryImpl
-        implements JavaTypeFactory
-    {
-        public RelDataType createStructType(Class type) {
-            List<RelDataTypeField> list = new ArrayList<RelDataTypeField>();
-            for (Field field : type.getFields()) {
-                // FIXME: watch out for recursion
-                list.add(
-                    new RelDataTypeFieldImpl(
-                        field.getName(),
-                        list.size(),
-                        createType(field.getType())));
-            }
-            return canonize(
-                new JavaRecordType(
-                    list.toArray(new RelDataTypeField[list.size()]),
-                    type));
-        }
-
-        public RelDataType createType(Type type) {
-            if (type instanceof RelDataType) {
-                return (RelDataType) type;
-            }
-            if (!(type instanceof Class)) {
-                throw new UnsupportedOperationException(
-                    "TODO: implement " + type + ": " + type.getClass());
-            }
-            final Class clazz = (Class) type;
-            if (clazz.isPrimitive()) {
-                return createJavaType(clazz);
-            } else if (clazz == String.class) {
-                // TODO: similar special treatment for BigDecimal, BigInteger,
-                //  Date, Time, Timestamp, Double etc.
-                return createJavaType(clazz);
-            } else if (clazz.isArray()) {
-                return createMultisetType(
-                    createType(clazz.getComponentType()), -1);
-            } else {
-                return createStructType(clazz);
-            }
-        }
-
-        public Type getJavaClass(RelDataType type) {
-            if (type instanceof RelRecordType) {
-                JavaRecordType javaRecordType;
-                if (type instanceof JavaRecordType) {
-                    javaRecordType = (JavaRecordType) type;
-                    return javaRecordType.clazz;
-                } else {
-                    return (RelRecordType) type;
-                }
-            }
-            if (type instanceof JavaType) {
-                JavaType javaType = (JavaType) type;
-                return javaType.getJavaClass();
-            }
-            if (type.isStruct() && type.getFieldCount() == 1) {
-                return getJavaClass(type.getFieldList().get(0).getType());
-            }
-            if (type instanceof BasicSqlType) {
-                switch (type.getSqlTypeName()) {
-                case VARCHAR:
-                case CHAR:
-                    return String.class;
-                case INTEGER:
-                    return Integer.class;
-                case BIGINT:
-                    return Long.class;
-                case SMALLINT:
-                    return Short.class;
-                case TINYINT:
-                    return Byte.class;
-                case DECIMAL:
-                    return BigDecimal.class;
-                case BOOLEAN:
-                    return Boolean.class;
-                case BINARY:
-                case VARBINARY:
-                    return ByteString.class;
-                case DATE:
-                    return java.sql.Date.class;
-                case TIME:
-                    return Time.class;
-                case TIMESTAMP:
-                    return Timestamp.class;
-                }
-            }
-            return null;
-        }
-    }
-
-    private static class JavaRecordType extends RelRecordType {
-        private final Class clazz;
-
-        public JavaRecordType(RelDataTypeField[] fields, Class clazz) {
-            super(fields);
-            this.clazz = clazz;
-            assert clazz != null;
-        }
     }
 
     static class OptiqQueryable<T>
