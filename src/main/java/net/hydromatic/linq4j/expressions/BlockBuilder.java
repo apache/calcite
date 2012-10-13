@@ -159,7 +159,7 @@ public class BlockBuilder {
     }
 
     public BlockBuilder append(Expression expression) {
-        statements.add(Expressions.statement(expression));
+        add(expression);
         return this;
     }
 
