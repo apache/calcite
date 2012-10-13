@@ -12,17 +12,21 @@ Optiq also depends on
 <a href="https://github.com/julianhyde/linq4j">linq4j</a>.
 Before you build optiq, you must download, build and install linq4j:
 
-    $ git clone git://github.com/julianhyde/linq4j.git
-    $ cd linq4j
-    $ mvn install
-    $ cd ..
+```bash
+$ git clone git://github.com/julianhyde/linq4j.git
+$ cd linq4j
+$ mvn install
+$ cd ..
+```
 
 Download and build
 ==================
 
-    $ git clone git://github.com/julianhyde/optiq.git
-    $ cd optiq
-    $ mvn compile
+```bash
+$ git clone git://github.com/julianhyde/optiq.git
+$ cd optiq
+$ mvn compile
+```
 
 Example
 =======
@@ -31,31 +35,32 @@ Optiq makes data anywhere, of any format, look like a database. For
 example, you can execute a complex ANSI-standard SQL statement on
 in-memory collections:
 
-    public static class HrSchema {
-        public final Employee[] emps = ... ;
-        public final Department[] depts = ...;
-    }
+```java
+public static class HrSchema {
+    public final Employee[] emps = ... ;
+    public final Department[] depts = ...;
+}
 
-    Class.forName("net.hydromatic.optiq.jdbc.Driver");
-    Connection connection = DriverManager.getConnection("jdbc:optiq:");
-    OptiqConnection optiqConnection =
-        connection.unwrap(OptiqConnection.class);
-    ReflectiveSchema.create(
-        optiqConnection, optiqConnection.getRootSchema(),
-        "hr", new HrSchema());
-    Statement statement = optiqConnection.createStatement();
-    ResultSet resultSet = statement.executeQuery(
-        "select d.\"deptno\", min(e.\"empid\")\n"
-        + "from \"hr\".\"emps\" as e\n"
-        + "join \"hr\".\"depts\" as d\n"
-        + "  on e.\"deptno\" = d.\"deptno\"\n"
-        + "group by d.\"deptno\"\n"
-        + "having count(*) > 1");
-    print(resultSet);
-    resultSet.close();
-    statement.close();
-    connection.close();
-
+Class.forName("net.hydromatic.optiq.jdbc.Driver");
+Connection connection = DriverManager.getConnection("jdbc:optiq:");
+OptiqConnection optiqConnection =
+    connection.unwrap(OptiqConnection.class);
+ReflectiveSchema.create(
+    optiqConnection, optiqConnection.getRootSchema(),
+    "hr", new HrSchema());
+Statement statement = optiqConnection.createStatement();
+ResultSet resultSet = statement.executeQuery(
+    "select d.\"deptno\", min(e.\"empid\")\n"
+    + "from \"hr\".\"emps\" as e\n"
+    + "join \"hr\".\"depts\" as d\n"
+    + "  on e.\"deptno\" = d.\"deptno\"\n"
+    + "group by d.\"deptno\"\n"
+    + "having count(*) > 1");
+print(resultSet);
+resultSet.close();
+statement.close();
+connection.close();
+```
 
 Where is the database? There is no database. The connection is
 completely empty until <code>ReflectiveSchema.create</code> registers
@@ -69,23 +74,27 @@ from the linq4j
 library. But Optiq can also process data in other data formats, such
 as JDBC. In the first example, replace
 
-    ReflectiveSchema.create(
-        optiqConnection, optiqConnection.getRootSchema(),
-        "hr", new HrSchema());
+```java
+ReflectiveSchema.create(
+    optiqConnection, optiqConnection.getRootSchema(),
+    "hr", new HrSchema());
+```
 
 with
 
-    Class.forName("com.mysql.jdbc.Driver");
-    BasicDataSource dataSource = new BasicDataSource();
-    dataSource.setUrl("jdbc:mysql://localhost");
-    dataSource.setUsername("sa");
-    dataSource.setPassword("");
-    JdbcSchema.create(
-        optiqConnection,
-        dataSource,
-        rootSchema,
-        "hr",
-        "");
+```java
+Class.forName("com.mysql.jdbc.Driver");
+BasicDataSource dataSource = new BasicDataSource();
+dataSource.setUrl("jdbc:mysql://localhost");
+dataSource.setUsername("sa");
+dataSource.setPassword("");
+JdbcSchema.create(
+    optiqConnection,
+    dataSource,
+    rootSchema,
+    "hr",
+    "");
+```
 
 and Optiq will execute the same query in JDBC. To the application, the
 data and API are the same, but behind the scenes the implementation is
@@ -109,21 +118,23 @@ efficient plan.
 Optiq also allows front-ends other than SQL/JDBC. For example, you can
 execute queries in linq4j:
 
-    final OptiqConnection connection = ...;
-    ParameterExpression c = Expressions.parameter(Customer.class, "c");
-    for (Customer customer
-        : connection.getRootSchema()
-            .getSubSchema("foodmart")
-            .getTable("customer", Customer.class)
-            .where(
-                Expressions.<Predicate1<Customer>>lambda(
-                    Expressions.lessThan(
-                        Expressions.field(c, "customer_id"),
-                        Expressions.constant(5)),
-                    c)))
-    {
-        System.out.println(c.name);
-    }
+```java
+final OptiqConnection connection = ...;
+ParameterExpression c = Expressions.parameter(Customer.class, "c");
+for (Customer customer
+    : connection.getRootSchema()
+        .getSubSchema("foodmart")
+        .getTable("customer", Customer.class)
+        .where(
+            Expressions.<Predicate1<Customer>>lambda(
+                Expressions.lessThan(
+                    Expressions.field(c, "customer_id"),
+                    Expressions.constant(5)),
+                c)))
+{
+    System.out.println(c.name);
+}
+```
 
 Linq4j understands the full query parse tree, and the Linq4j query
 provider for Optiq invokes Optiq as an query optimizer. If the
@@ -131,9 +142,11 @@ provider for Optiq invokes Optiq as an query optimizer. If the
 this code fragment, we really can't tell) then the optimal plan
 will be to send the query
 
-    SELECT *
-    FROM "customer"
-    WHERE "customer_id" < 5
+```SQL
+SELECT *
+FROM "customer"
+WHERE "customer_id" < 5
+```
 
 to the JDBC data source.
 
@@ -151,10 +164,16 @@ The following features are complete.
 Backlog
 =======
 
-* Rules to push down as many operations as possible to JDBC back-end (i.e. generate SQL)
+* Rules to push down as many operations as possible to JDBC back-end
+  (i.e. generate SQL)
 * Cascading adapter
 * Easy API to register optimizer rules
 * Easy API to register calling conventions
+* Make it easier to implement RelNode.explain by building on super.
+* Make 'guaranteed' a constructor parameter to ConverterRule. (It's
+  too easy to forget.)
+* RelOptRule.convert should check whether there is a subset of desired
+  traitSet before creating
 
 More information
 ================

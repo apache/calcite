@@ -513,7 +513,13 @@ public class VolcanoPlanner
             pw.flush();
             tracer.finer(sw.toString());
         }
-        return root.buildCheapestPlan(this);
+        RelNode cheapest = root.buildCheapestPlan(this);
+        if (tracer.isLoggable(Level.FINE)) {
+            tracer.fine(
+                "Cheapest plan:\n"
+                + RelOptUtil.toString(cheapest));
+        }
+        return cheapest;
     }
 
     private void setInitialImportance()

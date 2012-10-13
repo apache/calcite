@@ -131,6 +131,13 @@ public class JavaRules {
                 variablesStopped);
         }
 
+        @Override
+        public RelOptCost computeSelfCost(RelOptPlanner planner) {
+            // Inflate Java cost to make Cascading implementation more
+            // attractive.
+            return super.computeSelfCost(planner).multiplyBy(2d);
+        }
+
         public BlockExpression implement(EnumerableRelImplementor implementor) {
             final List<Integer> leftKeys = new ArrayList<Integer>();
             final List<Integer> rightKeys = new ArrayList<Integer>();
