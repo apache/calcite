@@ -433,7 +433,6 @@ class OptiqPrepareImpl implements OptiqPrepare {
                         root0),
                     expr),
                 false);
-            System.out.println(s);
 
             final Executable executable;
             try {
