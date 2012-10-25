@@ -17,7 +17,11 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import org.eigenbase.runtime.AbstractIterResultSet;
+import org.eigenbase.runtime.IteratorResultSet;
+
 import java.sql.*;
+import java.util.Collections;
 
 /**
  * Implementation of {@link java.sql.DatabaseMetaData}
@@ -522,7 +526,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String schemaPattern,
         String procedureNamePattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getProcedureColumns(
@@ -531,7 +535,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String procedureNamePattern,
         String columnNamePattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getTables(
@@ -540,19 +544,19 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String tableNamePattern,
         String[] types) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getSchemas() throws SQLException {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getCatalogs() throws SQLException {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getTableTypes() throws SQLException {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getColumns(
@@ -561,7 +565,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String tableNamePattern,
         String columnNamePattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getColumnPrivileges(
@@ -570,7 +574,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String table,
         String columnNamePattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getTablePrivileges(
@@ -578,7 +582,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String schemaPattern,
         String tableNamePattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getBestRowIdentifier(
@@ -588,31 +592,31 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         int scope,
         boolean nullable) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getVersionColumns(
         String catalog, String schema, String table) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getPrimaryKeys(
         String catalog, String schema, String table) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getImportedKeys(
         String catalog, String schema, String table) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getExportedKeys(
         String catalog, String schema, String table) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getCrossReference(
@@ -623,11 +627,11 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String foreignSchema,
         String foreignTable) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getTypeInfo() throws SQLException {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getIndexInfo(
@@ -637,7 +641,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         boolean unique,
         boolean approximate) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public boolean supportsResultSetType(int type) throws SQLException {
@@ -696,7 +700,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String typeNamePattern,
         int[] types) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public Connection getConnection() throws SQLException {
@@ -724,7 +728,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String schemaPattern,
         String typeNamePattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getSuperTables(
@@ -732,7 +736,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String schemaPattern,
         String tableNamePattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getAttributes(
@@ -741,7 +745,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String typeNamePattern,
         String attributeNamePattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public boolean supportsResultSetHoldability(int holdability)
@@ -789,7 +793,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     public ResultSet getSchemas(
         String catalog, String schemaPattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public boolean supportsStoredFunctionsUsingCallSyntax()
@@ -803,7 +807,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public ResultSet getClientInfoProperties() throws SQLException {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getFunctions(
@@ -811,7 +815,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String schemaPattern,
         String functionNamePattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getFunctionColumns(
@@ -820,7 +824,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String functionNamePattern,
         String columnNamePattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public ResultSet getPseudoColumns(
@@ -829,7 +833,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String tableNamePattern,
         String columnNamePattern) throws SQLException
     {
-        throw connection.helper.todo();
+        return createEmptyResultSet();
     }
 
     public boolean generatedKeyAlwaysReturned() throws SQLException {
@@ -848,6 +852,14 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return iface.isInstance(this);
+    }
+
+    // Helpers
+
+    private static IteratorResultSet createEmptyResultSet() {
+        return IteratorResultSet.create(
+            Collections.EMPTY_LIST.iterator(),
+            new AbstractIterResultSet.FieldGetter(Object.class));
     }
 }
 

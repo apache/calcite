@@ -416,6 +416,19 @@ public class JdbcTest extends TestCase {
         connection.close();
     }
 
+    /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
+    public void testMetaDataColumns()
+        throws ClassNotFoundException, SQLException
+    {
+        Connection connection = getConnectionWithHrFoodmart();
+        DatabaseMetaData metaData = connection.getMetaData();
+        ResultSet resultSet = metaData.getColumns(null, null, null, null);
+        // result set is empty (for now)
+        assertFalse(resultSet.next());
+        resultSet.close();
+        connection.close();
+    }
+
     public static class HrSchema {
         public final Employee[] emps = {
             new Employee(100, 10, "Bill"),
