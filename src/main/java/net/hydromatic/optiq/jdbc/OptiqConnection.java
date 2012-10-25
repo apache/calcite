@@ -22,9 +22,8 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import net.hydromatic.linq4j.QueryProvider;
 
-import org.eigenbase.reltype.RelDataTypeFactory;
-
 import java.sql.Connection;
+import java.util.Properties;
 
 /**
  * Extension to Optiq's implementation of
@@ -55,6 +54,20 @@ public interface OptiqConnection extends Connection, QueryProvider {
      * @return Type factory
      */
     JavaTypeFactory getTypeFactory();
+
+    /**
+     * Returns an instance of the connection properties.
+     *
+     * <p>NOTE: The resulting collection of properties is same collection used
+     * by the connection, and is writable, but behavior if you modify the
+     * collection is undefined. Some implementations might, for example, see
+     * a modified property, but only if you set it before you create a
+     * statement. We will remove this method when there are better
+     * implementations of stateful connections and configuration.</p>
+     *
+     * @return properties
+     */
+    Properties getProperties();
 }
 
 // End OptiqConnection.java

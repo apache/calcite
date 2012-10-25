@@ -19,9 +19,9 @@ package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
-
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
+
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
@@ -108,6 +108,10 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
 
     public JavaTypeFactory getTypeFactory() {
         return typeFactory;
+    }
+
+    public Properties getProperties() {
+        return info;
     }
 
     // QueryProvider methods
