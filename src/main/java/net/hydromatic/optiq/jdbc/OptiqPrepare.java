@@ -154,7 +154,14 @@ public interface OptiqPrepare {
             this.signed = signed;
             this.displaySize = displaySize;
             this.label = label;
-            this.columnName = columnName;
+            // Per the JDBC spec this should be just columnName.
+            // For example, the query
+            //     select 1 as x, c as y from t
+            // should give columns
+            //     (label=x, column=null, table=null)
+            //     (label=y, column=c table=t)
+            // But DbUnit requires every column to have a name. Duh.
+            this.columnName = first(columnName, label);
             this.schemaName = schemaName;
             this.precision = precision;
             this.scale = scale;
@@ -166,6 +173,10 @@ public interface OptiqPrepare {
             this.writable = writable;
             this.definitelyWritable = definitelyWritable;
             this.columnClassName = columnClassName;
+        }
+
+        private static <T> T first(T t0, T t1) {
+            return t0 != null ? t0 : t1;
         }
     }
 

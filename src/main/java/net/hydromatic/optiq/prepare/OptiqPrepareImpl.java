@@ -165,8 +165,11 @@ class OptiqPrepareImpl implements OptiqPrepare {
         final List<ColumnMetaData> columns =
             new ArrayList<ColumnMetaData>();
         RelDataType jdbcType = makeStruct(typeFactory, x);
+        final List<List<String>> originList = preparedResult.getFieldOrigins();
+        int i = 0;
         for (RelDataTypeField field : jdbcType.getFields()) {
             RelDataType type = field.getType();
+            List<String> origins = originList.get(i++);
             SqlTypeName sqlTypeName = type.getSqlTypeName();
             columns.add(
                 new ColumnMetaData(
@@ -179,13 +182,13 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     true,
                     0,
                     field.getName(),
-                    null,
-                    null,
+                    origins == null ? null : origins.get(2),
+                    origins == null ? null : origins.get(0),
                     sqlTypeName.allowsPrec() && false
                         ? type.getPrecision()
                         : -1,
                     sqlTypeName.allowsScale() ? type.getScale() : -1,
-                    null,
+                    origins == null ? null : origins.get(1),
                     null,
                     sqlTypeName.getJdbcOrdinal(),
                     sqlTypeName.getName(),
@@ -458,7 +461,8 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 resultType,
                 isDml,
                 mapTableModOp(isDml, sqlKind),
-                null)
+                null,
+                fieldOrigins)
             {
                 public Object execute() {
                     return executable.execute(schema);

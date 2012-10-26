@@ -429,6 +429,31 @@ public class JdbcTest extends TestCase {
         connection.close();
     }
 
+    /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
+    public void testResultSetMetaData()
+        throws ClassNotFoundException, SQLException
+    {
+        Connection connection = getConnectionWithHrFoodmart();
+        Statement statement = connection.createStatement();
+        ResultSet resultSet =
+            statement.executeQuery(
+                "select \"empid\", \"deptno\" as x, 1 as y\n"
+                + "from \"hr\".\"emps\"");
+        ResultSetMetaData metaData = resultSet.getMetaData();
+        assertEquals(3, metaData.getColumnCount());
+        assertEquals("empid", metaData.getColumnLabel(1));
+        assertEquals("empid", metaData.getColumnName(1));
+        assertEquals("emps", metaData.getTableName(1));
+        assertEquals("X", metaData.getColumnLabel(2));
+        assertEquals("deptno", metaData.getColumnName(2));
+        assertEquals("emps", metaData.getTableName(2));
+        assertEquals("Y", metaData.getColumnLabel(3));
+        assertEquals("Y", metaData.getColumnName(3));
+        assertEquals(null, metaData.getTableName(3));
+        resultSet.close();
+        connection.close();
+    }
+
     public static class HrSchema {
         public final Employee[] emps = {
             new Employee(100, 10, "Bill"),

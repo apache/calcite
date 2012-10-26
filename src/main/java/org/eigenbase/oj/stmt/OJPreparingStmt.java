@@ -489,7 +489,8 @@ public abstract class OJPreparingStmt
                 resultType,
                 isDml,
                 mapTableModOp(isDml, sqlKind),
-                boundMethod);
+                boundMethod,
+                fieldOrigins);
         return plan;
     }
 

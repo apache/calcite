@@ -17,8 +17,9 @@
 */
 package org.eigenbase.oj.stmt;
 
-import org.eigenbase.rel.*;
+import java.util.List;
 
+import org.eigenbase.rel.*;
 
 /**
  * PreparedResult represents the result of a call to OJPreparingStmt.prepareSql.
@@ -47,6 +48,12 @@ public interface PreparedResult
      * if it is a table modification statement; otherwise null
      */
     TableModificationRel.Operation getTableModOp();
+
+    /**
+     * Returns a list describing, for each result field, the origin of the field
+     * as a 4-element list of (database, schema, table, column).
+     */
+    List<List<String>> getFieldOrigins();
 
     /**
      * Executes the prepared result.

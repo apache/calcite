@@ -18,6 +18,7 @@
 package org.eigenbase.oj.stmt;
 
 import java.lang.reflect.*;
+import java.util.List;
 
 import openjava.ptree.*;
 
@@ -44,6 +45,7 @@ public class PreparedExecution
     private final boolean isDml;
     private final TableModificationRel.Operation tableModOp;
     private final BoundMethod boundMethod;
+    private final List<List<String>> fieldOrigins;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -53,7 +55,8 @@ public class PreparedExecution
         RelDataType rowType,
         boolean isDml,
         TableModificationRel.Operation tableModOp,
-        BoundMethod boundMethod)
+        BoundMethod boundMethod,
+        List<List<String>> fieldOrigins)
     {
         this.parseTree = parseTree;
         this.rootRel = rootRel;
@@ -61,6 +64,7 @@ public class PreparedExecution
         this.isDml = isDml;
         this.tableModOp = tableModOp;
         this.boundMethod = boundMethod;
+        this.fieldOrigins = fieldOrigins;
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -78,6 +82,10 @@ public class PreparedExecution
     public TableModificationRel.Operation getTableModOp()
     {
         return tableModOp;
+    }
+
+    public List<List<String>> getFieldOrigins() {
+        return fieldOrigins;
     }
 
     /**

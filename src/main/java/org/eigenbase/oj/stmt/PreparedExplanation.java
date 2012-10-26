@@ -83,6 +83,10 @@ public class PreparedExplanation
         return null;
     }
 
+    public List<List<String>> getFieldOrigins() {
+        return Collections.singletonList(Collections.<String>nCopies(4, null));
+    }
+
     public RelNode getRel()
     {
         return rel;
