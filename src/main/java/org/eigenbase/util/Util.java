@@ -516,7 +516,7 @@ public class Util
             ret.append('-');
         }
 
-        //do truncation
+        // do truncation
         unscaled =
             unscaled.substring(
                 0,
@@ -1779,7 +1779,7 @@ public class Util
      * Makes a collection of untyped elements appear as a list of strictly typed
      * elements, by filtering out those which are not of the correct type.
      *
-     * <p>The returned object is an {@link org.eigenbase.runtime.Iterable},
+     * <p>The returned object is an {@link Iterable},
      * which makes it ideal for use with the 'foreach' construct. For example,
      *
      * <blockquote><code>List&lt;Number&gt; numbers = Arrays.asList(1, 2, 3.14,
@@ -1790,8 +1790,8 @@ public class Util
      *
      * will print 1, 2, 4.
      *
-     * @param iterable
-     * @param includeFilter
+     * @param iterable Iterable
+     * @param includeFilter Class whose instances to include
      */
     public static <E> Iterable<E> filter(
         final Iterable<? extends Object> iterable,

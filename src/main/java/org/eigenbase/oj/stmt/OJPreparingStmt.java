@@ -21,7 +21,6 @@ import java.io.*;
 
 import java.lang.reflect.*;
 
-import java.util.*;
 import java.util.logging.*;
 
 import openjava.mop.*;
@@ -36,7 +35,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.runtime.*;
-import org.eigenbase.runtime.Iterable;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
@@ -46,7 +44,7 @@ import org.eigenbase.util.*;
 
 
 /**
- * <code>OJPreparingStmt</code> is an abstract base for classes which implement
+ * Abstract base for classes that implement
  * the process of preparing and executing SQL expressions by generating OpenJava
  * code.
  */
@@ -110,22 +108,21 @@ public abstract class OJPreparingStmt
         Object [] args = new Object[thunk.parameterNames.length];
         for (int i = 0; i < thunk.parameterNames.length; i++) {
             String parameterName = thunk.parameterNames[i];
-            Argument argument = null;
-            for (int j = 0; j < arguments.length; j++) {
-                if (arguments[j].name.equals(parameterName)) {
-                    argument = arguments[j];
-                    break;
-                }
-            }
-            if (argument == null) {
-                throw Util.newInternal(
-                    "variable '" + parameterName
-                    + "' not found");
-            }
+            Argument argument = findArgument(arguments, parameterName);
             args[i] = argument.value;
         }
         thunk.args = args;
         return thunk;
+    }
+
+    private Argument findArgument(Argument[] arguments, String parameterName) {
+        for (Argument argument : arguments) {
+            if (argument.name.equals(parameterName)) {
+                return argument;
+            }
+        }
+        throw Util.newInternal(
+            "variable '" + parameterName + "' not found");
     }
 
     protected void initSub()
@@ -155,28 +152,12 @@ public abstract class OJPreparingStmt
         initSub();
 
         OJUtil.threadDeclarers.set(clazz);
-        if ((arguments != null) && (arguments.length > 0)) {
-            for (int i = 0; i < arguments.length; i++) {
-                final Argument argument = arguments[i];
-                if (argument.value instanceof Enumeration) {
-                    argument.value =
-                        new EnumerationIterator((Enumeration) argument.value);
-                    argument.clazz = argument.value.getClass();
-                }
-                if ((argument.value instanceof Iterator)
-                    && !(argument.value instanceof Iterable))
-                {
-                    argument.value =
-                        new BufferedIterator((Iterator) argument.value);
-                    argument.clazz = argument.value.getClass();
-                }
-                // If the argument's type is a private class, change its
-                // type to the nearest base class which is public. Otherwise
-                // the generated code won't compile.
-                argument.clazz =
-                    visibleBaseClass(argument.clazz, packageName);
-                bindArgument(argument);
-            }
+        for (final Argument argument : arguments) {
+            // If the argument's type is a private class, change its
+            // type to the nearest base class which is public. Otherwise
+            // the generated code won't compile.
+            argument.clazz = visibleBaseClass(argument.clazz, packageName);
+            bindArgument(argument);
         }
         return decl;
     }
@@ -323,7 +304,6 @@ public abstract class OJPreparingStmt
     /**
      * Optimizes a query plan.
      *
-     *
      * @param logicalRowType logical row type of relational expression (before
      * struct fields are flattened, or field names are renamed for uniqueness)
      * @param rootRel root of a relational expression
@@ -385,8 +365,8 @@ public abstract class OJPreparingStmt
             return true;
         }
         RelDataTypeField [] fields = rootRel.getRowType().getFields();
-        for (int i = 0; i < fields.length; i++) {
-            if (SqlTypeUtil.isInterval(fields[i].getType())) {
+        for (RelDataTypeField field : fields) {
+            if (SqlTypeUtil.isInterval(field.getType())) {
                 return true;
             }
         }

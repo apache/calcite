@@ -66,7 +66,7 @@ public abstract class ThreadIterator
     extends QueueIterator
     implements Iterator,
         Runnable,
-        Iterable
+        java.lang.Iterable
 {
     //~ Instance fields --------------------------------------------------------
 

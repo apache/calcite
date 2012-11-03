@@ -77,10 +77,6 @@ public abstract class OJUtil
         OJClass.forClass(
             java.util.Iterator.class);
 
-    public static final OJClass clazzIterable =
-        OJClass.forClass(
-            org.eigenbase.runtime.Iterable.class);
-
     public static final OJClass clazzTupleIter =
         OJClass.forClass(
             org.eigenbase.runtime.TupleIter.class);

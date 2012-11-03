@@ -117,8 +117,7 @@ public class CallingConvention
     /**
      * The <code>ITERABLE</code> calling convention means that the expression is
      * converted to an openjava expression ({@link openjava.ptree.Expression})
-     * which evalutes to an object which implements {@link
-     * org.eigenbase.runtime.Iterable}.
+     * which evaluates to an object which implements {@link Iterable}.
      */
     public static final int ITERABLE_ORDINAL = 8;
     public static final CallingConvention ITERABLE =
@@ -246,11 +245,9 @@ public class CallingConvention
      */
     public boolean equals(Object o)
     {
-        if (o == null) {
-            return false;
-        }
-
-        return ordinal == ((CallingConvention) o).ordinal;
+        return this == o
+            || o instanceof CallingConvention
+            && ordinal == ((CallingConvention) o).ordinal;
     }
 
     /**
