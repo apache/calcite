@@ -17,6 +17,7 @@
 */
 package org.eigenbase.rex;
 
+import java.util.AbstractList;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eigenbase.reltype.*;
@@ -74,7 +75,17 @@ public abstract class RexSlot
     {
         private final String prefix;
 
-        SelfPopulatingList(String prefix) {
+        SelfPopulatingList(final String prefix, final int initialSize) {
+            super(
+                new AbstractList<String>() {
+                    public String get(int index) {
+                        return prefix + index;
+                    }
+
+                    public int size() {
+                        return initialSize;
+                    }
+                });
             this.prefix = prefix;
         }
 

@@ -55,7 +55,7 @@ public class RexInputRef
     //~ Static fields/initializers ---------------------------------------------
 
     // list of common names, to reduce memory allocations
-    private static final List<String> names = new SelfPopulatingList("$");
+    private static final List<String> names = new SelfPopulatingList("$", 30);
 
     //~ Constructors -----------------------------------------------------------
 

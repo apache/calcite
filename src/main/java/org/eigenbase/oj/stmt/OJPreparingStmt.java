@@ -59,6 +59,8 @@ public abstract class OJPreparingStmt
 
     protected String queryString = null;
     protected Environment env;
+    private Argument[] args;
+    private ClassDeclaration decl;
 
     /**
      * CallingConvention via which results should be returned by execution.
@@ -129,14 +131,16 @@ public abstract class OJPreparingStmt
     {
     }
 
-    public ClassDeclaration init(Argument [] arguments)
+    /** Initializes, setting the {@link #decl} and {@link #args} fields. */
+    public void init(Argument... arguments)
     {
         env = OJSystem.env;
 
         String packageName = getTempPackageName();
         String className = getTempClassName();
         env = new FileEnvironment(env, packageName, className);
-        ClassDeclaration decl =
+        args = arguments;
+        decl =
             new ClassDeclaration(
                 new ModifierList(ModifierList.PUBLIC),
                 className,
@@ -159,7 +163,6 @@ public abstract class OJPreparingStmt
             argument.clazz = visibleBaseClass(argument.clazz, packageName);
             bindArgument(argument);
         }
-        return decl;
     }
 
     protected void bindArgument(Argument arg)
@@ -196,13 +199,11 @@ public abstract class OJPreparingStmt
     {
         queryString = sqlQuery.toString();
 
-        final Argument [] arguments = {
+        init(
             new Argument(
                 connectionVariable,
                 runtimeContextClass,
-                null)
-        };
-        ClassDeclaration decl = init(arguments);
+                null));
 
         SqlToRelConverter sqlToRelConverter =
             getSqlToRelConverter(validator, catalogReader);
@@ -296,9 +297,7 @@ public abstract class OJPreparingStmt
         return implement(
             resultType,
             rootRel,
-            kind,
-            decl,
-            arguments);
+            kind);
     }
 
     /**
@@ -373,44 +372,18 @@ public abstract class OJPreparingStmt
         return false;
     }
 
-    public void halfImplement(
-        RelNode rootRel,
-        ClassDeclaration decl)
-    {
-        Class runtimeContextClass = null;
-        final Argument [] arguments = {
-            new Argument(
-                connectionVariable,
-                runtimeContextClass,
-                null)
-        };
-        assert containsJava;
-        javaCompiler = createCompiler();
-        JavaRelImplementor relImplementor =
-            (JavaRelImplementor)
-            getRelImplementor(rootRel.getCluster().getRexBuilder());
-        Expression expr = relImplementor.implementRoot((JavaRel) rootRel);
-        BoundMethod boundMethod;
-        boundMethod = compileAndBind(decl, expr, arguments);
-        Util.discard(boundMethod);
-    }
-
     /**
      * Implements a physical query plan.
      *
      * @param rowType original rowtype returned by query validator
      * @param rootRel root of the relational expression.
      * @param sqlKind SqlKind of the original statement.
-     * @param decl ClassDeclaration of the generated result.
-     * @param args argument list of the generated result.
      * @return an executable plan, a {@link PreparedExecution}.
      */
     protected PreparedExecution implement(
         RelDataType rowType,
         RelNode rootRel,
-        SqlKind sqlKind,
-        ClassDeclaration decl,
-        Argument[] args)
+        SqlKind sqlKind)
     {
         BoundMethod boundMethod;
         ParseTree parseTree;
@@ -462,7 +435,7 @@ public abstract class OJPreparingStmt
             rootRel = rootRel.getInput(0);
         }
 
-        final PreparedExecution plan =
+        return
             new PreparedExecution(
                 parseTree,
                 rootRel,
@@ -471,7 +444,6 @@ public abstract class OJPreparingStmt
                 mapTableModOp(isDml, sqlKind),
                 boundMethod,
                 fieldOrigins);
-        return plan;
     }
 
     protected TableModificationRel.Operation mapTableModOp(
@@ -492,38 +464,6 @@ public abstract class OJPreparingStmt
         default:
             return null;
         }
-    }
-
-    /**
-     * Prepares a statement for execution, starting from a relational expression
-     * (ie a logical or a physical query plan).
-     *
-     * @param rowType Row type
-     * @param rootRel root of the relational expression.
-     * @param sqlKind SqlKind for the relational expression: only
-     * SqlKind.Explain and SqlKind.Dml are special cases.
-     * @param needOpt true for a logical query plan (still needs to be
-     * optimized), false for a physical plan.
-     * @param decl openjava ClassDeclaration for the code generated to implement
-     * the statement.
-     * @param args openjava argument list for the generated code.
-     */
-    public PreparedResult prepareSql(
-        RelDataType rowType,
-        RelNode rootRel,
-        SqlKind sqlKind,
-        boolean needOpt,
-        ClassDeclaration decl,
-        Argument [] args)
-    {
-        if (needOpt) {
-            rootRel = flattenTypes(rootRel, true);
-            rootRel =
-                optimize(
-                    rootRel.getRowType(),
-                    rootRel);
-        }
-        return implement(rowType, rootRel, sqlKind, decl, args);
     }
 
     /**

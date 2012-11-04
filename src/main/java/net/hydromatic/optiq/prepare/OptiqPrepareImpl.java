@@ -27,8 +27,6 @@ import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.rules.java.*;
 import net.hydromatic.optiq.runtime.Executable;
 
-import openjava.ptree.ClassDeclaration;
-
 import org.eigenbase.oj.stmt.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.TableAccessRule;
@@ -250,13 +248,11 @@ class OptiqPrepareImpl implements OptiqPrepare {
         {
             queryString = null;
             Class runtimeContextClass = Object.class;
-            final Argument [] arguments = {
+            init(
                 new Argument(
                     connectionVariable,
                     runtimeContextClass,
-                    null)
-            };
-            ClassDeclaration decl = init(arguments);
+                    null));
 
             final RelOptQuery query = new RelOptQuery(planner);
             final RelOptCluster cluster =
@@ -292,9 +288,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             return implement(
                 resultType,
                 rootRel,
-                SqlKind.SELECT,
-                decl,
-                arguments);
+                SqlKind.SELECT);
         }
 
         @Override
@@ -415,9 +409,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
         protected PreparedExecution implement(
             RelDataType rowType,
             RelNode rootRel,
-            SqlKind sqlKind,
-            ClassDeclaration decl,
-            Argument[] args)
+            SqlKind sqlKind)
         {
             RelDataType resultType = rootRel.getRowType();
             boolean isDml = sqlKind.belongsTo(SqlKind.DML);

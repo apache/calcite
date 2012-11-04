@@ -53,20 +53,57 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
                 + "day=2; week_day=Monday\n");
     }
 
+    public void testWhere2() {
+        assertThat()
+            .inJdbcFoodmart()
+            .query(
+                "select * from \"foodmart\".\"days\"\n"
+                + "where not (lower(\"week_day\") = 'wednesday')")
+            .returns(
+                "day=1; week_day=Sunday\n"
+                + "day=2; week_day=Monday\n"
+                + "day=5; week_day=Thursday\n"
+                + "day=3; week_day=Tuesday\n"
+                + "day=6; week_day=Friday\n"
+                + "day=7; week_day=Saturday\n");
+    }
+
+    public void testCase() {
+        assertThat()
+            .inJdbcFoodmart()
+            .query(
+                "select \"day\",\n"
+                + " \"week_day\",\n"
+                + " case when \"day\" < 3 then upper(\"week_day\")\n"
+                + "      when \"day\" < 5 then lower(\"week_day\")\n"
+                + "      else \"week_day\" end as d\n"
+                + "from \"foodmart\".\"days\"\n"
+                + "where \"day\" <> 1\n"
+                + "order by \"day\"")
+            .returns(
+                "day=2; week_day=Monday; D=MONDAY\n"
+                + "day=3; week_day=Tuesday; D=tuesday\n"
+                + "day=4; week_day=Wednesday; D=wednesday\n"
+                + "day=5; week_day=Thursday; D=Thursday\n"
+                + "day=6; week_day=Friday; D=Friday\n"
+                + "day=7; week_day=Saturday; D=Saturday\n");
+    }
+
     public void testGroup() {
         assertThat()
             .inJdbcFoodmart()
             .query(
-                "select s, count(*) as c from (\n"
-                + "select substring(\"week_day\" from 1 for 1) as s\n"
+                "select s, count(*) as c, min(\"week_day\") as mw from (\n"
+                + "select \"week_day\",\n"
+                + "  substring(\"week_day\" from 1 for 1) as s\n"
                 + "from \"foodmart\".\"days\")\n"
                 + "group by s")
             .returns(
-                "S=T; C=2\n"
-                + "S=F; C=1\n"
-                + "S=W; C=1\n"
-                + "S=S; C=2\n"
-                + "S=M; C=1\n");
+                "S=T; C=2; MW=Thursday\n"
+                + "S=F; C=1; MW=Friday\n"
+                + "S=W; C=1; MW=Wednesday\n"
+                + "S=S; C=2; MW=Saturday\n"
+                + "S=M; C=1; MW=Monday\n");
     }
 
     public void testGroupEmpty() {

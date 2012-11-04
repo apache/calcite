@@ -35,7 +35,6 @@ import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.RexMultisetUtil;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.rex.RexProgram;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.util.Util;
 
 import java.lang.reflect.*;
@@ -846,41 +845,22 @@ public class JavaRules {
             Expression grouping,
             AggregateCall aggCall)
         {
-            final Aggregation aggregation = aggCall.getAggregation();
-            if (aggregation == SqlStdOperatorTable.countOperator) {
-                return Expressions.call(
-                    grouping,
-                    "longCount");
-            } else if (aggregation == SqlStdOperatorTable.sumOperator) {
-                return Expressions.call(
-                    grouping,
-                    "sum",
+            Expression accessor;
+            switch (aggCall.getArgList().size()) {
+            case 0:
+                accessor = null;
+                break;
+            case 1:
+                accessor =
                     EnumUtil.generateAccessor(
-                        typeFactory,
-                        rowType,
-                        aggCall.getArgList(),
-                        true));
-            } else if (aggregation == SqlStdOperatorTable.maxOperator) {
-                return Expressions.call(
-                    grouping,
-                    "max",
-                    EnumUtil.generateAccessor(
-                        typeFactory,
-                        rowType,
-                        aggCall.getArgList(),
-                        true));
-            } else if (aggregation == SqlStdOperatorTable.minOperator) {
-                return Expressions.call(
-                    grouping,
-                    "min",
-                    EnumUtil.generateAccessor(
-                        typeFactory,
-                        rowType,
-                        aggCall.getArgList(),
-                        true));
-            } else {
-                throw new AssertionError("unknown agg " + aggregation);
+                        typeFactory, rowType, aggCall.getArgList(), true);
+                break;
+            default:
+                throw new RuntimeException(
+                    "composite aggregates not yet implemented");
             }
+            return RexToLixTranslator.translateAggregate(
+                grouping, aggCall.getAggregation(), accessor);
         }
     }
 

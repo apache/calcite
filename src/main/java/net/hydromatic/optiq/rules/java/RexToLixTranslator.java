@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
+import org.eigenbase.rel.Aggregation;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlOperator;
@@ -48,29 +49,6 @@ public class RexToLixTranslator {
                 SqlFunctions.class, "substring", String.class, Integer.TYPE,
                 Integer.TYPE),
             substringFunc);
-
-    private static final Map<SqlOperator, ExpressionType>
-        SQL_TO_LINQ_OPERATOR_MAP = Util.<SqlOperator, ExpressionType>mapOf(
-            andOperator, AndAlso,
-            orOperator, OrElse,
-            lessThanOperator, LessThan,
-            lessThanOrEqualOperator, LessThanOrEqual,
-            greaterThanOperator, GreaterThan,
-            greaterThanOrEqualOperator, GreaterThanOrEqual,
-            equalsOperator, Equal,
-            notEqualsOperator, NotEqual,
-            notOperator, Not);
-
-    public static final Map<SqlOperator, Method> SQL_OP_TO_JAVA_METHOD_MAP =
-        new HashMap<SqlOperator, Method>();
-
-    static {
-        for (Map.Entry<Method, SqlOperator> entry
-            : JAVA_TO_SQL_METHOD_MAP.entrySet())
-        {
-            SQL_OP_TO_JAVA_METHOD_MAP.put(entry.getValue(), entry.getKey());
-        }
-    }
 
     private final Map<RexNode, Slot> map = new HashMap<RexNode, Slot>();
     private final JavaTypeFactory typeFactory;
@@ -188,48 +166,22 @@ public class RexToLixTranslator {
         }
         if (expr instanceof RexLiteral) {
             return Expressions.constant(
-                ((RexLiteral) expr).getValue(),
+                ((RexLiteral) expr).getValue2(),
                 typeFactory.getJavaClass(expr.getType()));
         }
         if (expr instanceof RexCall) {
             final RexCall call = (RexCall) expr;
             final SqlOperator operator = call.getOperator();
-            final ExpressionType expressionType =
-                SQL_TO_LINQ_OPERATOR_MAP.get(operator);
-            if (expressionType != null) {
-                switch (operator.getSyntax()) {
-                case Binary:
-                    return Expressions.makeBinary(
-                        expressionType,
-                        translate(call.getOperands()[0]),
-                        translate(call.getOperands()[1]));
-                case Postfix:
-                case Prefix:
-                    return Expressions.makeUnary(
-                        expressionType, translate(call.getOperands()[0]));
-                default:
-                    throw new RuntimeException(
-                        "unknown syntax " + operator.getSyntax());
-                }
-            }
-
-            Method method = SQL_OP_TO_JAVA_METHOD_MAP.get(operator);
-            if (method != null) {
-                List<Expression> exprs =
-                    translateList(Arrays.asList(call.operands));
-                return !Modifier.isStatic(method.getModifiers())
-                    ? Expressions.call(
-                        exprs.get(0), method, exprs.subList(1, exprs.size()))
-                    : Expressions.call(method, exprs);
-            }
-
-            switch (expr.getKind()) {
-            default:
-                throw new RuntimeException(
-                    "cannot translate expression " + expr);
+            CallImplementor implementor = ImpTable.INSTANCE.get(operator);
+            if (implementor != null) {
+                return implementor.implement(this, call);
             }
         }
-        throw new RuntimeException("cannot translate expression " + expr);
+        switch (expr.getKind()) {
+        default:
+            throw new RuntimeException(
+                "cannot translate expression " + expr);
+        }
     }
 
     /**
@@ -312,6 +264,22 @@ public class RexToLixTranslator {
         return x.get(0);
     }
 
+    public static Expression translateAggregate(
+        Expression grouping,
+        Aggregation aggregation,
+        Expression accessor)
+    {
+        final AggregateImplementor implementor =
+            ImpTable.INSTANCE.aggMap.get(aggregation);
+        if (aggregation == countOperator) {
+            accessor = null; // FIXME
+        }
+        if (implementor != null) {
+            return implementor.implementAggregate(grouping, accessor);
+        }
+        throw new AssertionError("unknown agg " + aggregation);
+    }
+
     private static class Slot {
         ParameterExpression parameterExpression;
         Expression expression;
@@ -323,6 +291,180 @@ public class RexToLixTranslator {
         {
             this.parameterExpression = parameterExpression;
             this.expression = expression;
+        }
+    }
+
+    private interface CallImplementor {
+        Expression implement(
+            RexToLixTranslator translator,
+            RexCall call);
+    }
+
+    private static class ImpTable {
+        private final Map<SqlOperator, CallImplementor> map =
+            new HashMap<SqlOperator, CallImplementor>();
+        private final Map<Aggregation, AggregateImplementor> aggMap =
+            new HashMap<Aggregation, AggregateImplementor>();
+
+        private ImpTable() {
+            defineMethod(upperFunc, "upper");
+            defineMethod(lowerFunc, "lower");
+            defineMethod(substringFunc, "substring");
+            if (false) {
+                defineBinary(andOperator, AndAlso);
+                defineBinary(orOperator, OrElse);
+                defineBinary(lessThanOperator, LessThan);
+                defineBinary(lessThanOrEqualOperator, LessThanOrEqual);
+                defineBinary(greaterThanOperator, GreaterThan);
+                defineBinary(greaterThanOrEqualOperator, GreaterThanOrEqual);
+                defineBinary(equalsOperator, Equal);
+                defineBinary(notEqualsOperator, NotEqual);
+                defineUnary(notOperator, Not);
+            } else {
+                defineMethod(andOperator, "and");
+                defineMethod(orOperator, "or");
+                defineMethod(lessThanOperator, "lt");
+                defineMethod(lessThanOrEqualOperator, "le");
+                defineMethod(greaterThanOperator, "gt");
+                defineMethod(greaterThanOrEqualOperator, "ge");
+                defineMethod(equalsOperator, "eq");
+                defineMethod(notEqualsOperator, "ne");
+                defineMethod(notOperator, "not");
+            }
+            map.put(
+                caseOperator,
+                new CallImplementor() {
+                    public Expression implement(
+                        RexToLixTranslator translator,
+                        RexCall call)
+                    {
+                        return implementRecurse(translator, call, 0);
+                    }
+
+                    private Expression implementRecurse(
+                        RexToLixTranslator translator,
+                        RexCall call,
+                        int i)
+                    {
+                        RexNode[] operands = call.getOperands();
+                        if (i == operands.length - 1) {
+                            // the "else" clause
+                            return translator.translate(operands[i]);
+                        } else {
+                            return Expressions.condition(
+                                translator.translate(operands[i]),
+                                translator.translate(operands[i + 1]),
+                                implementRecurse(translator, call, i + 2));
+                        }
+                    }
+                });
+            aggMap.put(
+                countOperator,
+                new BuiltinAggregateImplementor("longCount"));
+            aggMap.put(
+                sumOperator,
+                new BuiltinAggregateImplementor("sum"));
+            aggMap.put(
+                minOperator,
+                new BuiltinAggregateImplementor("min"));
+            aggMap.put(
+                maxOperator,
+                new BuiltinAggregateImplementor("max"));
+        }
+
+        private void defineMethod(SqlOperator operator, String functionName) {
+            map.put(operator, new MethodImplementor(functionName));
+        }
+
+        private void defineUnary(
+            SqlOperator operator, ExpressionType expressionType)
+        {
+            map.put(operator, new UnaryImplementor(expressionType));
+        }
+
+        private void defineBinary(
+            SqlOperator operator, ExpressionType expressionType)
+        {
+            map.put(operator, new BinaryImplementor(expressionType));
+        }
+
+        public static final ImpTable INSTANCE = new ImpTable();
+
+        public CallImplementor get(final SqlOperator operator) {
+            return map.get(operator);
+        }
+    }
+
+    private static class MethodImplementor implements CallImplementor {
+        private final String methodName;
+
+        MethodImplementor(String methodName) {
+            this.methodName = methodName;
+        }
+
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call)
+        {
+            return Expressions.call(
+                SqlFunctions.class,
+                methodName,
+                translator.translateList(Arrays.asList(call.getOperands())));
+        }
+    }
+
+    private static class BinaryImplementor implements CallImplementor {
+        private final ExpressionType expressionType;
+
+        BinaryImplementor(ExpressionType expressionType) {
+            this.expressionType = expressionType;
+        }
+
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call)
+        {
+            return Expressions.makeBinary(
+                expressionType,
+                translator.translate(call.getOperands()[0]),
+                translator.translate(call.getOperands()[1]));
+        }
+    }
+
+    private static class UnaryImplementor implements CallImplementor {
+        private final ExpressionType expressionType;
+
+        UnaryImplementor(ExpressionType expressionType) {
+            this.expressionType = expressionType;
+        }
+
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call)
+        {
+            return Expressions.makeUnary(
+                expressionType,
+                translator.translate(call.getOperands()[0]));
+        }
+    }
+
+    interface AggregateImplementor {
+        Expression implementAggregate(
+            Expression grouping, Expression accessor);
+    }
+
+    private static class BuiltinAggregateImplementor
+        implements AggregateImplementor
+    {
+        private final String methodName;
+
+        public BuiltinAggregateImplementor(String methodName) {
+            this.methodName = methodName;
+        }
+
+        public Expression implementAggregate(
+            Expression grouping, Expression accessor)
+        {
+            return accessor == null
+                ?  Expressions.call(grouping, methodName)
+                :  Expressions.call(grouping, methodName, accessor);
         }
     }
 }

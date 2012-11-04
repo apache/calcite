@@ -44,7 +44,7 @@ public class RexLocalRef
     //~ Static fields/initializers ---------------------------------------------
 
     // array of common names, to reduce memory allocations
-    private static final List<String> names = new SelfPopulatingList("$t");
+    private static final List<String> names = new SelfPopulatingList("$t", 30);
 
     //~ Constructors -----------------------------------------------------------
 
