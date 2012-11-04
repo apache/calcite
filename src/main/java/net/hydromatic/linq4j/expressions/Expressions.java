@@ -493,14 +493,15 @@ public class Expressions {
 
     /** Creates a ConditionalExpression that represents a conditional
      * statement. */
-    public static ConditionalExpression condition(
+    public static Expression condition(
         Expression test,
         Expression ifTrue,
         Expression ifFalse)
     {
-        return new ConditionalExpression(
-            Arrays.<Node>asList(test, ifFalse, ifTrue),
-            Types.gcd(ifTrue.getType(), ifFalse.getType()));
+        return new TernaryExpression(
+            ExpressionType.Conditional,
+            Types.gcd(ifTrue.getType(), ifFalse.getType()),
+            test, ifTrue, ifFalse);
     }
 
     /** Creates a ConditionalExpression that represents a conditional
@@ -1356,6 +1357,19 @@ public class Expressions {
         LambdaExpression lambdaExpression)
     {
         throw Extensions.todo();
+    }
+
+    /** Creates a TernaryExpression, given the left and right operands,
+     * by calling an appropriate factory method. */
+    public static TernaryExpression makeTernary(
+        ExpressionType ternaryType,
+        Expression e0,
+        Expression e1,
+        Expression e2)
+    {
+        final Type type = e1.getType();
+        return new TernaryExpression(
+            ternaryType, type, e0, e1, e2);
     }
 
     /** Creates a CatchBlock representing a catch statement with the

@@ -107,6 +107,23 @@ public class Visitor {
     }
 
     public Expression visit(
+        TernaryExpression ternaryExpression,
+        Expression expression0,
+        Expression expression1,
+        Expression expression2)
+    {
+        return ternaryExpression.expression0 == expression0
+            && ternaryExpression.expression1 == expression1
+            && ternaryExpression.expression2 == expression2
+            ? ternaryExpression
+            : Expressions.makeTernary(
+                ternaryExpression.nodeType,
+                expression0,
+                expression1,
+                expression2);
+    }
+
+    public Expression visit(
         IndexExpression indexExpression,
         Expression array,
         List<Expression> indexExpressions)

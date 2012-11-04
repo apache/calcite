@@ -144,6 +144,27 @@ public class ExpressionTest extends TestCase {
                         Expressions.constant(1), Expressions.constant(2)),
                     Expressions.constant(3))));
 
+        // Ternary operator.
+        assertEquals(
+            "1 < 2 ? (3 < 4 ? 5 : 6) : 7 < 8 ? 9 : 10",
+            Expressions.toString(
+                Expressions.condition(
+                    Expressions.lessThan(
+                        Expressions.constant(1),
+                        Expressions.constant(2)),
+                    Expressions.condition(
+                        Expressions.lessThan(
+                            Expressions.constant(3),
+                            Expressions.constant(4)),
+                        Expressions.constant(5),
+                        Expressions.constant(6)),
+                    Expressions.condition(
+                        Expressions.lessThan(
+                            Expressions.constant(7),
+                            Expressions.constant(8)),
+                        Expressions.constant(9),
+                        Expressions.constant(10)))));
+
         assertEquals(
             "0 + (double) (2 + 3)",
             Expressions.toString(

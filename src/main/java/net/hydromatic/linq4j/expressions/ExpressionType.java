@@ -96,7 +96,7 @@ public enum ExpressionType {
 
     /** A conditional operation, such as a > b ? a : b in C# or
      * If(a > b, a, b) in Visual Basic. */
-    Conditional(null, false, 13, true),
+    Conditional(" ? ", " : ", false, 13, true),
 
     /** A constant value. */
     Constant,
@@ -413,6 +413,7 @@ public enum ExpressionType {
     While;
 
     final String op;
+    final String op2;
     final boolean postfix;
     final int lprec;
     final int rprec;
@@ -422,7 +423,14 @@ public enum ExpressionType {
     }
 
     ExpressionType(String op, boolean postfix, int prec, boolean right) {
+        this(op, null, postfix, prec, right);
+    }
+
+    ExpressionType(
+        String op, String op2, boolean postfix, int prec, boolean right)
+    {
         this.op = op;
+        this.op2 = op2;
         this.postfix = postfix;
         this.lprec = (20 - prec) * 2 + (right ? 1 : 0);
         this.rprec = (20 - prec) * 2 + (right ? 0 : 1);
