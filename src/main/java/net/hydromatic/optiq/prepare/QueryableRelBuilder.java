@@ -302,7 +302,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     public <TKey> Queryable<Grouping<TKey, T>> groupBy(
         Queryable<T> source,
         FunctionExpression<Function1<T, TKey>> keySelector,
-        EqualityComparer<T> comparer)
+        EqualityComparer<TKey> comparer)
     {
         throw new UnsupportedOperationException();
     }
@@ -328,7 +328,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
         Queryable<T> source,
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function1<T, TElement>> elementSelector,
-        EqualityComparer<T> comparer)
+        EqualityComparer<TKey> comparer)
     {
         throw new UnsupportedOperationException();
     }
