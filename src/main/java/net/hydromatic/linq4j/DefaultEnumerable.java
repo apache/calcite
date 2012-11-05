@@ -234,7 +234,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
 
     public <TKey> Enumerable<Grouping<TKey, T>> groupBy(
         Function1<T, TKey> keySelector,
-        EqualityComparer comparer)
+        EqualityComparer<TKey> comparer)
     {
         return EnumerableDefaults.groupBy(getThis(), keySelector, comparer);
     }

@@ -260,7 +260,8 @@ public interface ExtendedEnumerable<TSource> {
      * specified key selector function and compares the keys by using
      * a specified comparer. */
     <TKey> Enumerable<Grouping<TKey, TSource>> groupBy(
-        Function1<TSource, TKey> keySelector, EqualityComparer comparer);
+        Function1<TSource, TKey> keySelector,
+        EqualityComparer<TKey> comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and projects the elements for

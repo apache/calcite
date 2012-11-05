@@ -257,7 +257,7 @@ public interface QueryableFactory<T> {
     <TKey> Queryable<Grouping<TKey, T>> groupBy(
         Queryable<T> source,
         FunctionExpression<Function1<T, TKey>> keySelector,
-        EqualityComparer<T> comparer);
+        EqualityComparer<TKey> comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and projects the elements for
@@ -284,7 +284,7 @@ public interface QueryableFactory<T> {
         Queryable<T> source,
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function1<T, TElement>> elementSelector,
-        EqualityComparer<T> comparer);
+        EqualityComparer<TKey> comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from

@@ -434,7 +434,7 @@ public abstract class EnumerableDefaults {
     public static <TSource, TKey> Enumerable<Grouping<TKey, TSource>> groupBy(
         Enumerable<TSource> enumerable,
         Function1<TSource, TKey> keySelector,
-        EqualityComparer comparer)
+        EqualityComparer<TKey> comparer)
     {
         return enumerable.toLookup(keySelector, comparer);
     }
@@ -472,7 +472,7 @@ public abstract class EnumerableDefaults {
         Enumerable<TSource> enumerable,
         Function1<TSource, TKey> keySelector,
         Function1<TSource, TElement> elementSelector,
-        EqualityComparer comparer)
+        EqualityComparer<TKey> comparer)
     {
         throw Extensions.todo();
     }

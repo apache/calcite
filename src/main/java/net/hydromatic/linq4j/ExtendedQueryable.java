@@ -164,7 +164,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
      * a specified comparer. */
     <TKey> Queryable<Grouping<TKey, TSource>> groupBy(
         FunctionExpression<Function1<TSource, TKey>> keySelector,
-        EqualityComparer comparer);
+        EqualityComparer<TKey> comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and projects the elements for
@@ -193,18 +193,17 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
     <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
         FunctionExpression<Function1<TSource, TKey>> keySelector,
         FunctionExpression<Function1<TSource, TElement>> elementSelector,
-        EqualityComparer comparer);
+        EqualityComparer<TKey> comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
      * each group and its key. Keys are compared by using a specified
-     * comparer.
-     */
+     * comparer. */
     <TKey, TResult> Queryable<TResult> groupByK(
         FunctionExpression<Function1<TSource, TKey>> keySelector,
         FunctionExpression<Function2<TKey, Enumerable<TSource>, TResult>>
             elementSelector,
-        EqualityComparer comparer);
+        EqualityComparer<TKey> comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from

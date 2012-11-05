@@ -248,7 +248,7 @@ abstract class DefaultQueryable<T>
 
     public <TKey> Queryable<Grouping<TKey, T>> groupBy(
         FunctionExpression<Function1<T, TKey>> keySelector,
-        EqualityComparer comparer)
+        EqualityComparer<TKey> comparer)
     {
         return factory.groupBy(getThis(), keySelector, comparer);
     }
@@ -277,7 +277,7 @@ abstract class DefaultQueryable<T>
     public <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function1<T, TElement>> elementSelector,
-        EqualityComparer comparer)
+        EqualityComparer<TKey> comparer)
     {
         return factory.groupBy(
             getThis(), keySelector, elementSelector, comparer);
@@ -287,7 +287,7 @@ abstract class DefaultQueryable<T>
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function2<TKey, Enumerable<T>, TResult>>
             elementSelector,
-        EqualityComparer comparer)
+        EqualityComparer<TKey> comparer)
     {
         return factory.groupByK(
             getThis(), keySelector, elementSelector, comparer);
