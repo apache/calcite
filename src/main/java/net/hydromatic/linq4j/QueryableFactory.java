@@ -257,7 +257,7 @@ public interface QueryableFactory<T> {
     <TKey> Queryable<Grouping<TKey, T>> groupBy(
         Queryable<T> source,
         FunctionExpression<Function1<T, TKey>> keySelector,
-        EqualityComparer<T> comparer);
+        EqualityComparer<TKey> comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and projects the elements for
@@ -278,19 +278,17 @@ public interface QueryableFactory<T> {
 
     /** Groups the elements of a sequence and projects the
      * elements for each group by using a specified function. Key
-     * values are compared by using a specified comparer.
-     */
+     * values are compared by using a specified comparer. */
     <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
         Queryable<T> source,
         FunctionExpression<Function1<T, TKey>> keySelector,
         FunctionExpression<Function1<T, TElement>> elementSelector,
-        EqualityComparer<T> comparer);
+        EqualityComparer<TKey> comparer);
 
     /** Groups the elements of a sequence according to a
      * specified key selector function and creates a result value from
      * each group and its key. Keys are compared by using a specified
-     * comparer.
-     */
+     * comparer. */
     <TKey, TResult> Queryable<TResult> groupByK(
         Queryable<T> source,
         FunctionExpression<Function1<T, TKey>> keySelector,
@@ -335,7 +333,7 @@ public interface QueryableFactory<T> {
 
     /** Correlates the elements of two sequences based on
      * key equality and groups the results. A specified
-     * EqualityComparer<T> is used to compare keys. */
+     * EqualityComparer is used to compare keys. */
     <TInner, TKey, TResult> Queryable<TResult> groupJoin(
         Queryable<T> source,
         Enumerable<TInner> inner,
@@ -353,7 +351,7 @@ public interface QueryableFactory<T> {
         Enumerable<T> enumerable);
 
     /** Produces the set intersection of two sequences by
-     * using the specified EqualityComparer<T> to compare
+     * using the specified EqualityComparer to compare
      * values. */
     Queryable<T> intersect(
         Queryable<T> source,
@@ -371,7 +369,7 @@ public interface QueryableFactory<T> {
         FunctionExpression<Function2<T, TInner, TResult>> resultSelector);
 
     /** Correlates the elements of two sequences based on
-     * matching keys. A specified EqualityComparer<T> is used to
+     * matching keys. A specified EqualityComparer is used to
      * compare keys. */
     <TInner, TKey, TResult> Queryable<TResult> join(
         Queryable<T> source,
@@ -540,7 +538,7 @@ public interface QueryableFactory<T> {
         Enumerable<T> enumerable);
 
     /** Determines whether two sequences are equal by
-     * using a specified EqualityComparer<T> to compare
+     * using a specified EqualityComparer to compare
      * elements. */
     boolean sequenceEqual(
         Queryable<T> source,

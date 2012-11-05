@@ -427,7 +427,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     public <TKey> Queryable<Grouping<TKey, T>> groupBy(
         final Queryable<T> source,
         final FunctionExpression<Function1<T, TKey>> keySelector,
-        final EqualityComparer<T> comparer)
+        final EqualityComparer<TKey> comparer)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
@@ -468,7 +468,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
         final Queryable<T> source,
         final FunctionExpression<Function1<T, TKey>> keySelector,
         final FunctionExpression<Function1<T, TElement>> elementSelector,
-        final EqualityComparer<T> comparer)
+        final EqualityComparer<TKey> comparer)
     {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
