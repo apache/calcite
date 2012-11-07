@@ -30,6 +30,7 @@ import org.eigenbase.util.Util;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.util.*;
 
 import static net.hydromatic.linq4j.expressions.ExpressionType.*;
@@ -300,11 +301,13 @@ public class RexToLixTranslator {
             RexCall call);
     }
 
-    private static class ImpTable {
+    public static class ImpTable {
         private final Map<SqlOperator, CallImplementor> map =
             new HashMap<SqlOperator, CallImplementor>();
         private final Map<Aggregation, AggregateImplementor> aggMap =
             new HashMap<Aggregation, AggregateImplementor>();
+        private final Map<Aggregation, AggregateImplementor2> agg2Map =
+            new HashMap<Aggregation, AggregateImplementor2>();
 
         private ImpTable() {
             defineMethod(upperFunc, "upper");
@@ -370,6 +373,12 @@ public class RexToLixTranslator {
             aggMap.put(
                 maxOperator,
                 new BuiltinAggregateImplementor("max"));
+
+            agg2Map.put(countOperator, new CountImplementor2());
+            agg2Map.put(sumOperator, new SumImplementor2());
+            final MinMaxImplementor2 minMax = new MinMaxImplementor2();
+            agg2Map.put(minOperator, minMax);
+            agg2Map.put(maxOperator, minMax);
         }
 
         private void defineMethod(SqlOperator operator, String functionName) {
@@ -392,6 +401,14 @@ public class RexToLixTranslator {
 
         public CallImplementor get(final SqlOperator operator) {
             return map.get(operator);
+        }
+
+        public AggregateImplementor get(final Aggregation aggregation) {
+            return aggMap.get(aggregation);
+        }
+
+        public AggregateImplementor2 get2(final Aggregation aggregation) {
+            return agg2Map.get(aggregation);
         }
     }
 
@@ -445,9 +462,27 @@ public class RexToLixTranslator {
         }
     }
 
+    /** Implements an aggregate function by generating a call to a method that
+     * takes an enumeration and an accessor function. */
     interface AggregateImplementor {
         Expression implementAggregate(
             Expression grouping, Expression accessor);
+    }
+
+    /** Implements an aggregate function by generating expressions to
+     * initialize, add to, and get a result from, an accumulator. */
+    interface AggregateImplementor2 {
+        Expression implementInit(
+            Aggregation aggregation,
+            Type returnType,
+            List<Type> parameterTypes);
+        Expression implementAdd(
+            Aggregation aggregation,
+            Expression accumulator,
+            List<Expression> arguments);
+        Expression implementResult(
+            Aggregation aggregation,
+            Expression accumulator);
     }
 
     private static class BuiltinAggregateImplementor
@@ -465,6 +500,92 @@ public class RexToLixTranslator {
             return accessor == null
                 ?  Expressions.call(grouping, methodName)
                 :  Expressions.call(grouping, methodName, accessor);
+        }
+    }
+
+    private static class CountImplementor2 implements AggregateImplementor2 {
+        public Expression implementInit(
+            Aggregation aggregation,
+            Type returnType,
+            List<Type> parameterTypes)
+        {
+            return Expressions.constant(0, returnType);
+        }
+
+        public Expression implementAdd(
+            Aggregation aggregation,
+            Expression accumulator,
+            List<Expression> arguments)
+        {
+            // REVIEW: Should we check whether value is NOT NULL?
+            //  Or should the container do that, and only call us if
+            //  the value is NOT NULL?
+            return Expressions.add(
+                accumulator, Expressions.constant(1, accumulator.type));
+        }
+
+        public Expression implementResult(
+            Aggregation aggregation, Expression accumulator)
+        {
+            return accumulator;
+        }
+    }
+
+    private static class SumImplementor2 implements AggregateImplementor2 {
+        public Expression implementInit(
+            Aggregation aggregation,
+            Type returnType,
+            List<Type> parameterTypes)
+        {
+            return Expressions.constant(0);
+        }
+
+        public Expression implementAdd(
+            Aggregation aggregation,
+            Expression accumulator,
+            List<Expression> arguments)
+        {
+            assert arguments.size() == 1;
+            return Expressions.add(
+                accumulator,
+                Types.castIfNecessary(accumulator.type, arguments.get(0)));
+        }
+
+        public Expression implementResult(
+            Aggregation aggregation, Expression accumulator)
+        {
+            return accumulator;
+        }
+    }
+
+    private static class MinMaxImplementor2 implements AggregateImplementor2 {
+        public Expression implementInit(
+            Aggregation aggregation,
+            Type returnType,
+            List<Type> parameterTypes)
+        {
+            return Types.castIfNecessary(
+                returnType,
+                Expressions.constant(null));
+        }
+
+        public Expression implementAdd(
+            Aggregation aggregation,
+            Expression accumulator,
+            List<Expression> arguments)
+        {
+            assert arguments.size() == 1;
+            return Expressions.call(
+                SqlFunctions.class,
+                aggregation == minOperator ? "lesser" : "greater",
+                accumulator,
+                arguments.get(0));
+        }
+
+        public Expression implementResult(
+            Aggregation aggregation, Expression accumulator)
+        {
+            return accumulator;
         }
     }
 }

@@ -138,9 +138,9 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
                 + "group by c.\"state_province\"\n"
                 + "order by c.\"state_province\"")
             .returns(
-                "EXPR$0=24442; state_province=CA; S=74748.0000\n"
-                + "EXPR$0=21611; state_province=OR; S=67659.0000\n"
-                + "EXPR$0=40784; state_province=WA; S=124366.0000\n");
+                "EXPR$0=24442; state_province=CA; S=74748\n"
+                + "EXPR$0=21611; state_province=OR; S=67659\n"
+                + "EXPR$0=40784; state_province=WA; S=124366\n");
     }
 
     public void testCompositeGroupBy() {
@@ -185,9 +185,9 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
                 + "group by c.\"state_province\", c.\"country\"\n"
                 + "order by c.\"state_province\", 2")
             .returns(
-                "state_province=CA; S=74748.0000; DC=24442\n"
-                + "state_province=OR; S=67659.0000; DC=21611\n"
-                + "state_province=WA; S=124366.0000; DC=40784\n");
+                "state_province=CA; S=74748; DC=24442\n"
+                + "state_province=OR; S=67659; DC=21611\n"
+                + "state_province=WA; S=124366; DC=40784\n");
     }
 }
 

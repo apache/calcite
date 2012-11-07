@@ -332,6 +332,16 @@ public class SqlFunctions {
     public static Boolean ge(String b0, String b1) {
         return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) >= 0);
     }
+
+    /** Helper for implementing MIN. Somewhat similar to LEAST operator. */
+    public static <T extends Comparable<T>> T lesser(T b0, T b1) {
+        return b0 == null || b0.compareTo(b1) > 0 ? b1 : b0;
+    }
+
+    /** Helper for implementing MAX. Somewhat similar to GREATEST operator. */
+    public static <T extends Comparable<T>> T greater(T b0, T b1) {
+        return b0 == null || b0.compareTo(b1) < 0 ? b1 : b0;
+    }
 }
 
 // End SqlFunctions.java

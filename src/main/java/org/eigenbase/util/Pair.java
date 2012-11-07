@@ -114,6 +114,31 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
         }
         return map;
     }
+
+    /**
+     * Converts two lists into a list of {@link Pair}s.
+     *
+     * <p>The length of the combined list is the lesser of the lengths of the
+     * source lists. But typically the source lists will be the same length.</p>
+     *
+     * @param ks Left list
+     * @param vs Right list
+     * @return List of pairs
+     */
+    public static <K, V> List<Pair<K, V>> zip(
+        final List<K> ks,
+        final List<V> vs)
+    {
+        return new AbstractList<Pair<K, V>>() {
+            public Pair<K, V> get(int index) {
+                return Pair.of(ks.get(index), vs.get(index));
+            }
+
+            public int size() {
+                return Math.min(ks.size(), vs.size());
+            }
+        };
+    }
 }
 
 // End Pair.java

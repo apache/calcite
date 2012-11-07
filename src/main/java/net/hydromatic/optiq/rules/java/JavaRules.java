@@ -35,6 +35,7 @@ import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.RexMultisetUtil;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.rex.RexProgram;
+import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
 import java.lang.reflect.*;
@@ -148,7 +149,8 @@ public class JavaRules {
                     leftKeys,
                     rightKeys);
             assert remaining.isAlwaysTrue()
-                : "EnumerableJoin is equi only"; // TODO: stricter pre-check
+                : "EnumerableJoin is equi only; "
+                + remaining; // TODO: stricter pre-check
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) left.getCluster().getTypeFactory();
             BlockBuilder list = new BlockBuilder();
@@ -710,24 +712,40 @@ public class JavaRules {
             //             return a0.deptno;
             //         }
             //     };
-            // Function1<Grouping<Integer, Employee>, Object[]> selector =
-            //     new Function1<Grouping<Integer, Employee>, Object[]>() {
-            //         public Object[] apply(Grouping<Integer, Employee> a0) {
-            //             return new Object[] {
-            //                 a0.getKey(),
-            //                 a0.sum(
-            //                     new IntegerFunction1<Employee>() {
-            //                         public int apply(Employee a0) {
-            //                             return a0.empid;
-            //                         }
-            //                     }
-            //                 ),
-            //                 a0.count()
-            //             };
+            // Function1<Employee, Object[]> accumulatorInitializer =
+            //     new Function1<Employee, Object[]>() {
+            //         public Object[] apply(Employee a0) {
+            //             return new Object[] {0, 0};
             //         }
             //     };
-            // return childEnumerable.groupBy(keySelector)
-            //     .select(selector);
+            // Function2<Object[], Employee, Object[]> accumulatorAdder =
+            //     new Function2<Object[], Employee, Object[]>() {
+            //         public Object[] apply(Object[] a1, Employee a0) {
+            //              a1[0] = ((Integer) a1[0]) + 1;
+            //              a1[1] = ((Integer) a1[1]) + a0.salary;
+            //             return a1;
+            //         }
+            //     };
+            // Function2<Integer, Object[], Object[]> resultSelector =
+            //     new Function2<Integer, Object[], Object[]>() {
+            //         public Object[] apply(Integer a0, Object[] a1) {
+            //             return new Object[] { a0, a1[0], a1[1] };
+            //         }
+            //     };
+            // return childEnumerable
+            //     .groupBy(
+            //        keySelector, accumulatorInitializer, accumulatorAdder,
+            //        resultSelector);
+            //
+            // or, if key has 0 columns,
+            //
+            // return childEnumerable
+            //     .aggregate(
+            //       accumulatorInitializer.apply(),
+            //       accumulatorAdder,
+            //       resultSelector);
+            //
+            // with a slightly different resultSelector.
             Class inputJavaType = EnumUtil.javaRowClass(
                 typeFactory, inputRowType);
 
@@ -755,112 +773,224 @@ public class JavaRules {
                                     Object.class, keyExpressions),
                             parameter));
 
-            ParameterExpression grouping =
-                Expressions.parameter(Grouping.class, "grouping");
-            final Expressions.FluentList<Statement> statements2 =
-                Expressions.list();
-            final List<Expression> expressions = Expressions.list();
-            switch (getGroupCount()) {
-            case 0:
-                for (AggregateCall aggCall : aggCalls) {
-                    expressions.add(
-                        translate(
-                            typeFactory, inputRowType, childExp, aggCall));
+            final List<RexToLixTranslator.AggregateImplementor2> implementors =
+                new ArrayList<RexToLixTranslator.AggregateImplementor2>();
+            for (AggregateCall aggCall : aggCalls) {
+                RexToLixTranslator.AggregateImplementor2 implementor2 =
+                    RexToLixTranslator.ImpTable.INSTANCE.get2(
+                        aggCall.getAggregation());
+                if (implementor2 == null) {
+                    throw new RuntimeException(
+                        "cannot implement aggregate " + aggCall);
                 }
+                implementors.add(implementor2);
+            }
+            List<Pair<AggregateCall, RexToLixTranslator.AggregateImplementor2>>
+                aggImps = Pair.zip(aggCalls, implementors);
+
+            // Function0<Object[]> accumulatorInitializer =
+            //     new Function0<Object[]>() {
+            //         public Object[] apply() {
+            //             return new Object[] {0, 0};
+            //         }
+            //     };
+            final List<Expression> initExpressions =
+                new ArrayList<Expression>();
+            for (Pair<AggregateCall, RexToLixTranslator.AggregateImplementor2>
+                pair : aggImps)
+            {
+                initExpressions.add(
+                    pair.right.implementInit(
+                        pair.left.getAggregation(),
+                        EnumUtil.javaClass(typeFactory, pair.left.getType()),
+                        fieldTypes(
+                            typeFactory,
+                            inputRowType,
+                            pair.left.getArgList())));
+            }
+            final Expression accumulatorInitializer =
+                statements.append(
+                    "accumulatorInitializer",
+                    Expressions.lambda(
+                        Function0.class,
+                        Expressions.newArrayInit(
+                            Object.class, initExpressions)));
+
+            // Function2<Object[], Employee, Object[]> accumulatorAdder =
+            //     new Function2<Object[], Employee, Object[]>() {
+            //         public Object[] apply(Object[] acc, Employee in) {
+            //              acc[0] = ((Integer) acc[0]) + 1;
+            //              acc[1] = ((Integer) acc[1]) + in.salary;
+            //             return acc;
+            //         }
+            //     };
+            BlockBuilder bb2 = new BlockBuilder();
+            final ParameterExpression inParameter =
+                Expressions.parameter(inputJavaType, "in");
+            final ParameterExpression accParameter =
+                Expressions.parameter(Object[].class, "acc");
+            int i = 0;
+            for (Pair<AggregateCall, RexToLixTranslator.AggregateImplementor2>
+                aggImp : aggImps)
+            {
+                final Type type = initExpressions.get(i).type;
+                final IndexExpression accumulator =
+                    Expressions.arrayIndex(
+                        accParameter,
+                        Expressions.constant(i));
+                ++i;
+                bb2.add(
+                    Expressions.statement(
+                        Expressions.assign(
+                            accumulator,
+                            aggImp.right.implementAdd(
+                                aggImp.left.getAggregation(),
+                                Types.castIfNecessary(type, accumulator),
+                                accessors(
+                                    typeFactory,
+                                    inputRowType,
+                                    inParameter,
+                                    aggImp.left)))));
+            }
+            bb2.add(accParameter);
+            final Expression accumulatorAdder =
+                statements.append(
+                    "accumulatorAdder",
+                    Expressions.lambda(
+                        Function2.class,
+                        bb2.toBlock(),
+                        Arrays.asList(accParameter, inParameter)));
+
+            // Function2<Integer, Object[], Object[]> resultSelector =
+            //     new Function2<Integer, Object[], Object[]>() {
+            //         public Object[] apply(Integer key, Object[] acc) {
+            //             return new Object[] { key, acc[0], acc[1] };
+            //         }
+            //     };
+            final List<Expression> results = Expressions.list();
+            final ParameterExpression keyParameter;
+            if (keyExpressions.size() == 0) {
+                keyParameter = null;
+            } else {
+                final Type keyType =
+                    keyExpressions.size() == 1
+                        ? keyExpressions.get(0).type
+                        : Object[].class;
+                keyParameter = Expressions.parameter(keyType, "key");
+                if (keyExpressions.size() == 1) {
+                    results.add(keyParameter);
+                } else {
+                    for (int j = 0; j < keyExpressions.size(); j++) {
+                        results.add(
+                            Expressions.arrayIndex(
+                                keyParameter, Expressions.constant(j)));
+                    }
+                }
+            }
+            i = 0;
+            for (Pair<AggregateCall, RexToLixTranslator.AggregateImplementor2>
+                aggImp : aggImps)
+            {
+                results.add(
+                    aggImp.right.implementResult(
+                        aggImp.left.getAggregation(),
+                        Expressions.arrayIndex(
+                            accParameter,
+                            Expressions.constant(i++))));
+            }
+            if (keyExpressions.size() == 0) {
+                final Expression resultSelector =
+                    statements.append(
+                        "resultSelector",
+                        Expressions.lambda(
+                            Function1.class,
+                            results.size() == 1
+                                ? results.get(0)
+                                : Expressions.newArrayInit(
+                                    Object.class, results),
+                            accParameter));
                 statements.add(
                     Expressions.return_(
                         null,
                         Expressions.call(
-                            null,
                             BuiltinMethod.SINGLETON_ENUMERABLE.method,
-                            expressions.size() == 1
-                                ? expressions.get(0)
-                                : Expressions.newArrayInit(
-                                    Object.class, expressions))));
-                return statements.toBlock();
-            case 1:
-                expressions.add(
-                    Expressions.call(
-                        grouping, "getKey"));
-                break;
-            default:
-                DeclarationExpression keyDeclaration =
-                    Expressions.declare(
-                        Modifier.FINAL,
-                        "key",
-                        Expressions.convert_(
                             Expressions.call(
-                                grouping, "getKey"),
-                            Object[].class));
-                statements2.append(keyDeclaration);
-                for (int groupKey : Util.toIter(groupSet)) {
-                    expressions.add(
-                        Expressions.arrayIndex(
-                            keyDeclaration.parameter,
-                            Expressions.constant(groupKey)));
-                }
-                break;
-            }
-            for (AggregateCall aggCall : aggCalls) {
-                expressions.add(
-                    translate(typeFactory, inputRowType, grouping, aggCall));
-            }
-            statements2.add(
-                Expressions.return_(
-                    null,
-                    expressions.size() == 1
-                        ? expressions.get(0)
-                        : Expressions.newArrayInit(
-                            Object.class, expressions)));
-
-            final Expression selector =
-                statements.append(
-                    "selector",
-                    Expressions.lambda(
-                        Function1.class,
-                        Expressions.block(statements2),
-                        grouping));
-            statements.add(
-                Expressions.return_(
-                    null,
-                    Expressions.call(
+                                childExp,
+                                BuiltinMethod.AGGREGATE.method,
+                                Expressions.<Expression>list()
+                                    .append(
+                                        Expressions.call(
+                                            accumulatorInitializer,
+                                            "apply"))
+                                    .append(accumulatorAdder)
+                                    .append(resultSelector)))));
+            } else {
+                final Expression resultSelector =
+                    statements.append(
+                        "resultSelector",
+                        Expressions.lambda(
+                            Function2.class,
+                            Expressions.newArrayInit(
+                                Object.class, results),
+                            Expressions.list(keyParameter, accParameter)));
+                statements.add(
+                    Expressions.return_(
+                        null,
                         Expressions.call(
                             childExp,
-                            BuiltinMethod.GROUP_BY.method,
-                            Expressions.<Expression>list()
-                                .append(keySelector)
+                            BuiltinMethod.GROUP_BY2.method,
+                            Expressions
+                                .list(
+                                    keySelector,
+                                    accumulatorInitializer,
+                                    accumulatorAdder,
+                                    resultSelector)
                                 .appendIf(
                                     keyExpressions.size() > 1,
                                     Expressions.call(
                                         null,
-                                        BuiltinMethod.ARRAY_COMPARER.method))),
-                        BuiltinMethod.SELECT.method,
-                        selector)));
+                                        BuiltinMethod.ARRAY_COMPARER
+                                            .method)))));
+            }
             return statements.toBlock();
         }
 
-        private Expression translate(
+        private List<Type> fieldTypes(
+            final JavaTypeFactory typeFactory,
+            final RelDataType inputRowType,
+            final List<Integer> argList)
+        {
+            return new AbstractList<Type>() {
+                public Type get(int index) {
+                    return EnumUtil.javaClass(
+                        typeFactory,
+                        inputRowType.getFieldList()
+                            .get(argList.get(index))
+                            .getType());
+                }
+                public int size() {
+                    return argList.size();
+                }
+            };
+        }
+
+        private List<Expression> accessors(
             JavaTypeFactory typeFactory,
             RelDataType rowType,
-            Expression grouping,
+            ParameterExpression v1,
             AggregateCall aggCall)
         {
-            Expression accessor;
-            switch (aggCall.getArgList().size()) {
-            case 0:
-                accessor = null;
-                break;
-            case 1:
-                accessor =
-                    EnumUtil.generateAccessor(
-                        typeFactory, rowType, aggCall.getArgList(), true);
-                break;
-            default:
-                throw new RuntimeException(
-                    "composite aggregates not yet implemented");
+            final List<Expression> expressions = new ArrayList<Expression>();
+            for (int field : aggCall.getArgList()) {
+                Class returnType =
+                    EnumUtil.javaRowClass(
+                        typeFactory,
+                        rowType.getFieldList().get(field).getType());
+                expressions.add(
+                    Types.castIfNecessary(
+                        returnType, EnumUtil.fieldReference(v1, field)));
             }
-            return RexToLixTranslator.translateAggregate(
-                grouping, aggCall.getAggregation(), accessor);
+            return expressions;
         }
     }
 

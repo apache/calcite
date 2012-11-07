@@ -128,7 +128,7 @@ public class UtilTest
             "1.2345001E4",
             Util.toScientificNotation(bd));
 
-        //test truncate
+        // test truncate
         bd = new BigDecimal("1.23456789012345678901");
         TestUtil.assertEqualsVerbose(
             "1.2345678901234567890E0",
@@ -900,6 +900,21 @@ public class UtilTest
         assertEquals("         ", Util.spaces(9));
         assertEquals("     ", Util.spaces(5));
         assertEquals(1000, Util.spaces(1000).length());
+    }
+
+    /** Unit test for {@link Pair#zip(java.util.List, java.util.List)}. */
+    public void testPairZip() {
+        List<String> strings = Arrays.asList("paul", "george", "john", "ringo");
+        List<Integer> integers = Arrays.asList(1942, 1943, 1940);
+        List<Pair<String, Integer>> zip = Pair.zip(strings, integers);
+        assertEquals(3, zip.size());
+        assertEquals("paul:1942", zip.get(0).left + ":" + zip.get(0).right);
+        assertEquals("john", zip.get(2).left);
+        int x = 0;
+        for (Pair<String, Integer> pair : zip) {
+            x += pair.right;
+        }
+        assertEquals(5825, x);
     }
 
     /**
