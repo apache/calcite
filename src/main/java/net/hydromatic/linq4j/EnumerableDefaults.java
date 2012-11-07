@@ -17,10 +17,8 @@
 */
 package net.hydromatic.linq4j;
 
-import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.function.*;
 
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -518,6 +516,100 @@ public abstract class EnumerableDefaults {
         EqualityComparer<TKey> comparer)
     {
         throw Extensions.todo();
+    }
+
+    /** Groups the elements of a sequence according to a
+     * specified key selector function, initializing an accumulator for each
+     * group and adding to it each time an element with the same key is seen.
+     * Creates a result value from each accumulator and its key using a
+     * specified function. */
+    public static <TSource, TKey, TAccumulate, TResult>
+    Enumerable<TResult> groupBy(
+        Enumerable<TSource> enumerable,
+        Function1<TSource, TKey> keySelector,
+        Function0<TAccumulate> accumulatorInitializer,
+        Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
+        final Function2<TKey, TAccumulate, TResult> resultSelector)
+    {
+        return groupBy_(
+            new HashMap<TKey, TAccumulate>(),
+            enumerable,
+            keySelector,
+            accumulatorInitializer,
+            accumulatorAdder,
+            resultSelector);
+    }
+
+    /** Groups the elements of a sequence according to a
+     * specified key selector function, initializing an accumulator for each
+     * group and adding to it each time an element with the same key is seen.
+     * Creates a result value from each accumulator and its key using a
+     * specified function. Key values are compared by using a
+     * specified comparer. */
+    public static <TSource, TKey, TAccumulate, TResult>
+    Enumerable<TResult> groupBy(
+        Enumerable<TSource> enumerable,
+        Function1<TSource, TKey> keySelector,
+        Function0<TAccumulate> accumulatorInitializer,
+        Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
+        Function2<TKey, TAccumulate, TResult> resultSelector,
+        EqualityComparer<TKey> comparer)
+    {
+        return groupBy_(
+            new WrapMap<TKey, TAccumulate>(comparer),
+            enumerable,
+            keySelector,
+            accumulatorInitializer,
+            accumulatorAdder,
+            resultSelector);
+    }
+
+    private static <TSource, TKey, TAccumulate, TResult>
+    Enumerable<TResult> groupBy_(
+        final Map<TKey, TAccumulate> map,
+        Enumerable<TSource> enumerable,
+        Function1<TSource, TKey> keySelector,
+        Function0<TAccumulate> accumulatorInitializer,
+        Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
+        final Function2<TKey, TAccumulate, TResult> resultSelector)
+    {
+        for (TSource source : enumerable) {
+            TKey key = keySelector.apply(source);
+            TAccumulate accumulator = map.get(key);
+            if (accumulator == null) {
+                accumulator = accumulatorInitializer.apply();
+                accumulator = accumulatorAdder.apply(accumulator, source);
+                map.put(key, accumulator);
+            } else {
+                TAccumulate accumulator0 = accumulator;
+                accumulator = accumulatorAdder.apply(accumulator, source);
+                if (accumulator != accumulator0) {
+                    map.put(key, accumulator);
+                }
+            }
+        }
+        return new AbstractEnumerable2<TResult>() {
+            public Iterator<TResult> iterator() {
+                final Iterator<Map.Entry<TKey, TAccumulate>> iterator =
+                    map.entrySet().iterator();
+                return new Iterator<TResult>() {
+                    public boolean hasNext() {
+                        return iterator.hasNext();
+                    }
+
+                    public TResult next() {
+                        final Map.Entry<TKey, TAccumulate> entry =
+                            iterator.next();
+                        return resultSelector.apply(
+                            entry.getKey(), entry.getValue());
+                    }
+
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+            }
+        };
     }
 
     /** Correlates the elements of two sequences based on

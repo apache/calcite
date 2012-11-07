@@ -315,6 +315,30 @@ public interface ExtendedEnumerable<TSource> {
         Function2<TKey, Enumerable<TElement>, TResult> resultSelector,
         EqualityComparer<TKey> comparer);
 
+    /** Groups the elements of a sequence according to a
+     * specified key selector function, initializing an accumulator for each
+     * group and adding to it each time an element with the same key is seen.
+     * Creates a result value from each accumulator and its key using a
+     * specified function. */
+    <TKey, TAccumulate, TResult> Enumerable<TResult> groupBy(
+        Function1<TSource, TKey> keySelector,
+        Function0<TAccumulate> accumulatorInitializer,
+        Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
+        Function2<TKey, TAccumulate, TResult> resultSelector);
+
+    /** Groups the elements of a sequence according to a
+     * specified key selector function, initializing an accumulator for each
+     * group and adding to it each time an element with the same key is seen.
+     * Creates a result value from each accumulator and its key using a
+     * specified function. Key values are compared by using a
+     * specified comparer. */
+    <TKey, TAccumulate, TResult> Enumerable<TResult> groupBy(
+        Function1<TSource, TKey> keySelector,
+        Function0<TAccumulate> accumulatorInitializer,
+        Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
+        Function2<TKey, TAccumulate, TResult> resultSelector,
+        EqualityComparer<TKey> comparer);
+
     /** Correlates the elements of two sequences based on
      * equality of keys and groups the results. The default equality
      * comparer is used to compare keys. */

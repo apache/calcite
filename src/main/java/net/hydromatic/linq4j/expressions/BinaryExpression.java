@@ -36,20 +36,7 @@ public class BinaryExpression extends Expression {
         super(nodeType, type);
         this.expression0 = expression0;
         this.expression1 = expression1;
-        this.primitive = deducePrimitive();
-    }
-
-    private Primitive deducePrimitive() {
-        if (expression0.getType() == Integer.TYPE) {
-            return Primitive.INT;
-        }
-        if (expression0.getType() == Double.TYPE) {
-            return Primitive.DOUBLE;
-        }
-        if (expression0.getType() == Boolean.TYPE) {
-            return Primitive.BOOLEAN;
-        }
-        return Primitive.OTHER;
+        this.primitive = Primitive.of(expression0.getType());
     }
 
     @Override
@@ -180,13 +167,6 @@ public class BinaryExpression extends Expression {
             "cannot evaluate " + this
             + ", nodeType=" + nodeType
             + ", primitive=" + primitive);
-    }
-
-    enum Primitive {
-        INT,
-        DOUBLE,
-        BOOLEAN,
-        OTHER
     }
 }
 

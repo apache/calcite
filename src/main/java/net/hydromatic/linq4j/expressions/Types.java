@@ -26,27 +26,9 @@ import java.util.*;
  * Utilities for converting between {@link Expression}, {@link Type} and
  * {@link Class}.
  *
- * @author jhyde
+ * @see Primitive
  */
 public class Types {
-    static final Map<Class, Class> PRIMITIVES = new HashMap<Class, Class>();
-    static final Map<Class, Class> UNPRIMITIVES = new HashMap<Class, Class>();
-
-    static {
-        PRIMITIVES.put(Boolean.TYPE, Boolean.class);
-        PRIMITIVES.put(Byte.TYPE, Byte.class);
-        PRIMITIVES.put(Character.TYPE, Character.class);
-        PRIMITIVES.put(Short.TYPE, Short.class);
-        PRIMITIVES.put(Integer.TYPE, Integer.class);
-        PRIMITIVES.put(Long.TYPE, Long.class);
-        PRIMITIVES.put(Float.TYPE, Float.class);
-        PRIMITIVES.put(Double.TYPE, Double.class);
-        PRIMITIVES.put(Void.TYPE, Void.class);
-        for (Map.Entry<Class, Class> entry : PRIMITIVES.entrySet()) {
-            UNPRIMITIVES.put(entry.getValue(), entry.getKey());
-        }
-    }
-
     /** Creates a type with generic parameters. */
     public static Type of(Type type, Type... typeArguments) {
         if (typeArguments.length == 0) {
@@ -151,30 +133,21 @@ public class Types {
         if (!(type instanceof Class)) {
             return type.toString();
         }
-        Class clazz = (Class) type;
-        if (clazz.isPrimitive()) {
-            return PRIMITIVES.get(clazz).getSimpleName();
+        Primitive primitive = Primitive.of(type);
+        if (primitive != null) {
+            return primitive.boxClass.getSimpleName();
         } else {
-            return className(clazz);
+            return className(type);
         }
     }
 
     public static Type box(Type type) {
-        if (type instanceof Class
-            && ((Class) type).isPrimitive())
-        {
-            return PRIMITIVES.get(type);
+        Primitive primitive = Primitive.of(type);
+        if (primitive != null) {
+            return primitive.boxClass;
         } else {
             return type;
         }
-    }
-
-    /**
-     * If a class is a wrapper for a primitive, returns the primitive. For
-     * example, {@code toPrimitive(Boolean.class)} returns {@code Boolean.TYPE}.
-     */
-    public static Class toPrimitive(Class clazz) {
-        return UNPRIMITIVES.get(clazz);
     }
 
     static String className(Type type) {
@@ -343,6 +316,19 @@ public class Types {
     {
         if (Types.isAssignableFrom(returnType, expression.getType())) {
             return expression;
+        }
+        if (returnType instanceof Class
+            && Number.class.isAssignableFrom((Class) returnType)
+            && expression.getType() instanceof Class
+            && Number.class.isAssignableFrom((Class) expression.getType()))
+        {
+            // E.g.
+            //   Integer foo(BigDecimal o) {
+            //     return o.intValue();
+            //   }
+            return Expressions.call(
+                expression,
+                Primitive.ofBox(returnType).primitiveName + "Value");
         }
         if (Types.isPrimitive(returnType)
             && !Types.isPrimitive(expression.getType()))

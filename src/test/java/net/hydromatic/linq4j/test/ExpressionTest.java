@@ -97,13 +97,15 @@ public class ExpressionTest extends TestCase {
 
     public void testWrite() {
         assertEquals(
-            "1 + 2 + 3",
+            "1 + 2f + 3l + Long.valueOf(4)",
             Expressions.toString(
                 Expressions.add(
                     Expressions.add(
-                        Expressions.constant(1),
-                        Expressions.constant(2)),
-                    Expressions.constant(3))));
+                        Expressions.add(
+                            Expressions.constant(1),
+                            Expressions.constant(2, Float.TYPE)),
+                        Expressions.constant(3, Long.TYPE)),
+                    Expressions.constant(4, Long.class))));
 
         // Parentheses needed, to override the left-associativity of +.
         assertEquals(

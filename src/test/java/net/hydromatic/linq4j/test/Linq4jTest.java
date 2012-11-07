@@ -316,15 +316,16 @@ public class Linq4jTest extends TestCase {
     public void testToLookupSelectorComparer() {
         final Lookup<String, Employee> lookup =
             Linq4j.asEnumerable(emps).toLookup(
-                EMP_NAME_SELECTOR, new EqualityComparer<String>() {
-                public boolean equal(String v1, String v2) {
-                    return v1.length() == v2.length();
-                }
+                EMP_NAME_SELECTOR,
+                new EqualityComparer<String>() {
+                    public boolean equal(String v1, String v2) {
+                        return v1.length() == v2.length();
+                    }
 
-                public int hashCode(String s) {
-                    return s.length();
-                }
-            });
+                    public int hashCode(String s) {
+                        return s.length();
+                    }
+                });
         assertEquals(2, lookup.size());
         assertEquals("[Fred, Janet]", lookup.keySet().toString());
 
@@ -336,6 +337,68 @@ public class Linq4jTest extends TestCase {
             "Fred: [Employee(name: Fred, deptno:10), Employee(name: Bill, deptno:30), Employee(name: Eric, deptno:10)]\n"
             + "Janet: [Employee(name: Janet, deptno:10)]\n",
             buf.toString());
+    }
+
+    /**
+     * Tests the version of {@link ExtendedEnumerable#groupBy}
+     * that uses an accumulator; does not build intermediate lists.
+     */
+    public void testGroupBy() {
+        String s =
+            Linq4j.asEnumerable(emps)
+                .groupBy(
+                    EMP_DEPTNO_SELECTOR,
+                    new Function0<String>() {
+                        public String apply() {
+                            return null;
+                        }
+                    },
+                    new Function2<String, Employee, String>() {
+                        public String apply(String v1, Employee e0) {
+                            return v1 == null ? e0.name : (v1 + "+" + e0.name);
+                        }
+                    },
+                    new Function2<Integer, String, String>() {
+                        public String apply(Integer v1, String v2) {
+                            return v1 + ": " + v2;
+                        }
+                    })
+                .toList()
+                .toString();
+        assertEquals(
+            "[10: Fred+Eric+Janet, 30: Bill]",
+            s);
+    }
+
+    /**
+     * Tests the version of
+     * {@link ExtendedEnumerable#aggregate}
+     * that has a result selector. Note how similar it is to
+     * {@link #testGroupBy()}.
+     */
+    public void testAggregate2() {
+        String s =
+            Linq4j.asEnumerable(emps)
+                .aggregate(
+                    new Function0<String>() {
+                        public String apply() {
+                            return null;
+                        }
+                    }.apply(),
+                    new Function2<String, Employee, String>() {
+                        public String apply(String v1, Employee e0) {
+                            return v1 == null ? e0.name : (v1 + "+" + e0.name);
+                        }
+                    },
+                    new Function1<String, String>() {
+                        public String apply(String v2) {
+                            return "<no key>: " + v2;
+                        }
+                    })
+                .toString();
+        assertEquals(
+            "<no key>: Fred+Bill+Eric+Janet",
+            s);
     }
 
     public void testCast() {

@@ -156,13 +156,18 @@ public final class FunctionExpression<F extends Function<?>>
             .append(Blocks.toFunctionBlock(body));
 
         // Generate a bridge method. Argument types are looser (as if every
-        // type parameter is set to 'Object')
-        writer.append("public ")
-            .append(Types.className(bridgeResultType))
-            .list(" apply(", ", ", ") ", bridgeParams)
-            .begin("{\n")
-            .list("return apply(\n", ",\n", ");\n", bridgeArgs)
-            .end("}\n");
+        // type parameter is set to 'Object').
+        //
+        // Skip the bridge method if there are no arguments. It would have the
+        // same overload as the regular method.
+        if (!bridgeParams.isEmpty()) {
+            writer.append("public ")
+                .append(Types.className(bridgeResultType))
+                .list(" apply(", ", ", ") ", bridgeParams)
+                .begin("{\n")
+                .list("return apply(\n", ",\n", ");\n", bridgeArgs)
+                .end("}\n");
+        }
 
         writer.end("}\n");
     }

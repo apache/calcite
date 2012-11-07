@@ -530,9 +530,9 @@ public class Expressions {
             type = Object.class;
         } else {
             final Class clazz = value.getClass();
-            final Class primitiveType = Types.toPrimitive(clazz);
-            if (primitiveType != null) {
-                type = primitiveType;
+            final Primitive primitive = Primitive.ofBox(clazz);
+            if (primitive != null) {
+                type = primitive.primitiveClass;
             } else {
                 type = clazz;
             }

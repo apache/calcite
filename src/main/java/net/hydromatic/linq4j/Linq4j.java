@@ -57,10 +57,6 @@ public class Linq4j {
         };
 
     /**
-     *
-     */
-
-    /**
      * Adapter that converts an enumerator into an iterator.
      *
      * @param enumerator Enumerator
@@ -159,14 +155,6 @@ public class Linq4j {
      */
     public static <T> Enumerable<T> asEnumerable(final T[] ts) {
         return new ListEnumerable<T>(Arrays.asList(ts));
-    }
-
-    public static String asEnumerable2(final Object[] ts) {
-        return asEnumerable(ts).toString();
-    }
-
-    public static Enumerable asEnumerable3(final Object[] ts) {
-        return asEnumerable(ts);
     }
 
     /**

@@ -46,58 +46,83 @@ public class ConstantExpression extends Expression {
 
     @Override
     void accept(ExpressionWriter writer, int lprec, int rprec) {
-        write(writer, value);
+        write(writer, value, type);
     }
 
-    private static void write(ExpressionWriter writer, final Object value) {
+    private static ExpressionWriter write(
+        ExpressionWriter writer, final Object value, Type type)
+    {
         if (value == null) {
-            writer.append("null");
-        } else if (value instanceof String) {
+            return writer.append("null");
+        }
+        if (value instanceof String) {
             escapeString(writer.getBuf(), (String) value);
-        } else if (value instanceof Class) {
+            return writer;
+        }
+        final Primitive primitive = Primitive.of(type);
+        if (primitive != null) {
+            switch (primitive) {
+            case FLOAT:
+                return writer.append(value).append("f");
+            case DOUBLE:
+                return writer.append(value).append("d");
+            case LONG:
+                return writer.append(value).append("l");
+            default:
+                return writer.append(value);
+            }
+        }
+        final Primitive primitive2 = Primitive.ofBox(type);
+        if (primitive2 != null) {
+            return writer.append(
+                primitive2.boxClass.getSimpleName() + ".valueOf(" + value
+                + ")");
+        }
+        if (value instanceof Class) {
             Class clazz = (Class) value;
-            writer.append(clazz.getCanonicalName()).append(".class");
-        } else if (value.getClass().isArray()) {
+            return writer.append(clazz.getCanonicalName()).append(".class");
+        }
+        if (value.getClass().isArray()) {
             writer.append("new ")
                 .append(value.getClass().getComponentType());
             list(
                 writer,
                 new AbstractList<Object>() {
-                public Object get(int index) {
-                    return Array.get(value, index);
-                }
+                    public Object get(int index) {
+                        return Array.get(value, index);
+                    }
 
-                public int size() {
-                    return Array.getLength(value);
-                }
-            }, "[] {\n", ",\n", "}");
-        } else {
-            Constructor constructor = matchingConstructor(value);
-            if (constructor != null) {
-                final Field[] fields = value.getClass().getFields();
-                writer
-                    .append("new ")
-                    .append(value.getClass());
-                list(
-                    writer,
-                    new AbstractList<Object>() {
-                        public Object get(int index) {
-                            try {
-                                return fields[index].get(value);
-                            } catch (IllegalAccessException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-
-                        public int size() {
-                            return fields.length;
-                        }
-                    },
-                    "(\n", ",\n", ")");
-            } else {
-                writer.append(value);
-            }
+                    public int size() {
+                        return Array.getLength(value);
+                    }
+                }, "[] {\n", ",\n", "}");
+            return writer;
         }
+        Constructor constructor = matchingConstructor(value);
+        if (constructor != null) {
+            final Field[] fields = value.getClass().getFields();
+            writer
+                .append("new ")
+                .append(value.getClass());
+            list(
+                writer,
+                new AbstractList<Object>() {
+                    public Object get(int index) {
+                        try {
+                            return fields[index].get(value);
+                        } catch (IllegalAccessException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    public int size() {
+                        return fields.length;
+                    }
+                },
+                "(\n", ",\n", ")");
+            return writer;
+        }
+        return writer.append(value);
     }
 
     private static void list(
@@ -113,7 +138,7 @@ public class ConstantExpression extends Expression {
             if (i > 0) {
                 writer.append(sep).indent();
             }
-            write(writer, value);
+            write(writer, value, null);
         }
         writer.end(end);
     }
