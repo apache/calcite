@@ -150,6 +150,15 @@ public class Types {
         }
     }
 
+    public static Type unbox(Type type) {
+        Primitive primitive = Primitive.ofBox(type);
+        if (primitive != null) {
+            return primitive.primitiveClass;
+        } else {
+            return type;
+        }
+    }
+
     static String className(Type type) {
         if (!(type instanceof Class)) {
             return type.toString();
