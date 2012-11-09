@@ -157,6 +157,10 @@ public class RexToLixTranslator {
                     Types.box(
                         JavaRules.EnumUtil.javaClass(
                             typeFactory, field.getType())));
+            } else if (Types.isPrimitive(Types.unbox(input.getType()))
+                || input.getType() == String.class)
+            {
+                return input;
             } else {
                 return Expressions.field(input, field.getName());
             }
