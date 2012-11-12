@@ -50,11 +50,11 @@ public class OptiqAssert {
         return testSuite;
     }
 
-    static Function1<Exception, Void> checkException(
+    static Function1<Throwable, Void> checkException(
         final String expected)
     {
-        return new Function1<Exception, Void>() {
-            public Void apply(Exception p0) {
+        return new Function1<Throwable, Void>() {
+            public Void apply(Throwable p0) {
                 StringWriter stringWriter = new StringWriter();
                 PrintWriter printWriter = new PrintWriter(stringWriter);
                 p0.printStackTrace(printWriter);
@@ -79,7 +79,7 @@ public class OptiqAssert {
         Connection connection,
         String sql,
         Function1<String, Void> resultChecker,
-        Function1<Exception, Void> exceptionChecker)
+        Function1<Throwable, Void> exceptionChecker)
         throws Exception
     {
         Statement statement = connection.createStatement();
@@ -91,6 +91,12 @@ public class OptiqAssert {
                 return;
             }
         } catch (Exception e) {
+            if (exceptionChecker != null) {
+                exceptionChecker.apply(e);
+                return;
+            }
+            throw e;
+        } catch (Error e) {
             if (exceptionChecker != null) {
                 exceptionChecker.apply(e);
                 return;

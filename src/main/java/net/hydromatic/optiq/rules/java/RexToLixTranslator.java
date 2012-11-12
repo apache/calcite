@@ -277,7 +277,8 @@ public class RexToLixTranslator {
         final AggregateImplementor implementor =
             ImpTable.INSTANCE.aggMap.get(aggregation);
         if (aggregation == countOperator) {
-            accessor = null; // FIXME
+            // FIXME: count(x) and count(distinct x) don't work currently
+            accessor = null;
         }
         if (implementor != null) {
             return implementor.implementAggregate(grouping, accessor);

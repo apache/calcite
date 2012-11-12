@@ -35,11 +35,13 @@ import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.RexMultisetUtil;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.rex.RexProgram;
+import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * Rules and relational operators for the {@link Enumerable} calling convention.
@@ -50,6 +52,7 @@ public class JavaRules {
     private static final Constructor ABSTRACT_ENUMERABLE_CTOR =
         Types.lookupConstructor(AbstractEnumerable.class);
 
+    protected static final Logger tracer = EigenbaseTrace.getPlannerTracer();
 
     public static final boolean BRIDGE_METHODS = true;
 
@@ -80,14 +83,19 @@ public class JavaRules {
             if (newInputs == null) {
                 return null;
             }
-            return new EnumerableJoinRel(
-                join.getCluster(),
-                join.getTraitSet().replace(CallingConvention.ENUMERABLE),
-                newInputs.get(0),
-                newInputs.get(1),
-                join.getCondition(),
-                join.getJoinType(),
-                join.getVariablesStopped());
+            try {
+                return new EnumerableJoinRel(
+                    join.getCluster(),
+                    join.getTraitSet().replace(CallingConvention.ENUMERABLE),
+                    newInputs.get(0),
+                    newInputs.get(1),
+                    join.getCondition(),
+                    join.getJoinType(),
+                    join.getVariablesStopped());
+            } catch (InvalidRelException e) {
+                tracer.warning(e.toString());
+                return null;
+            }
         }
     }
 
@@ -103,6 +111,7 @@ public class JavaRules {
             RexNode condition,
             JoinRelType joinType,
             Set<String> variablesStopped)
+            throws InvalidRelException
         {
             super(
                 cluster,
@@ -112,6 +121,10 @@ public class JavaRules {
                 condition,
                 joinType,
                 variablesStopped);
+            if (!RelOptUtil.isEqui(left, right, condition)) {
+                throw new InvalidRelException(
+                    "EnumerableJoinRel only supports equi-join");
+            }
         }
 
         @Override
@@ -121,14 +134,20 @@ public class JavaRules {
             RelNode left,
             RelNode right)
         {
-            return new EnumerableJoinRel(
-                getCluster(),
-                traitSet,
-                left,
-                right,
-                conditionExpr,
-                joinType,
-                variablesStopped);
+            try {
+                return new EnumerableJoinRel(
+                    getCluster(),
+                    traitSet,
+                    left,
+                    right,
+                    conditionExpr,
+                    joinType,
+                    variablesStopped);
+            } catch (InvalidRelException e) {
+                // Semantic error not possible. Must be a bug. Convert to
+                // internal error.
+                throw new RuntimeException(e);
+            }
         }
 
         @Override
@@ -148,9 +167,11 @@ public class JavaRules {
                     condition,
                     leftKeys,
                     rightKeys);
-            assert remaining.isAlwaysTrue()
-                : "EnumerableJoin is equi only; "
-                + remaining; // TODO: stricter pre-check
+            if (!remaining.isAlwaysTrue()) {
+                // We checked "isEqui" in constructor. Something went wrong.
+                throw new AssertionError(
+                    "not equi-join condition: " + remaining);
+            }
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) left.getCluster().getTypeFactory();
             BlockBuilder list = new BlockBuilder();
@@ -493,7 +514,7 @@ public class JavaRules {
                 Expressions.parameter(
                     Types.of(
                         Enumerator.class, inputJavaType),
-                "inputEnumerator");
+                    "inputEnumerator");
             Expression input =
                 Expressions.convert_(
                     Expressions.call(

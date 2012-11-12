@@ -427,7 +427,7 @@ public abstract class RelOptUtil
      *
      * <p>
      *
-     * @param cluster
+     * @param cluster Cluster
      * @param seekRel A query rel, for example the resulting rel from 'select *
      * from emp' or 'values (1,2,3)' or '('Foo', 34)'.
      * @param conditions May be null
@@ -880,6 +880,31 @@ public abstract class RelOptUtil
                 left.getCluster().getRexBuilder(),
                 residualList);
         }
+    }
+
+    /**
+     * Returns whether a join condition an "equi-join" condition.
+     *
+     * @param left Left input of join
+     * @param right Right input of join
+     * @param condition Condition
+     * @return Whether condition is equi-join
+     */
+    public static boolean isEqui(
+        RelNode left,
+        RelNode right,
+        RexNode condition)
+    {
+        final List<Integer> leftKeys = new ArrayList<Integer>();
+        final List<Integer> rightKeys = new ArrayList<Integer>();
+        final List<RexNode> nonEquiList = new ArrayList<RexNode>();
+        splitJoinCondition(
+            left.getRowType().getFieldCount(),
+            condition,
+            leftKeys,
+            rightKeys,
+            nonEquiList);
+        return nonEquiList.size() == 0;
     }
 
     /**
@@ -1715,9 +1740,9 @@ public abstract class RelOptUtil
     /**
      * Returns whether two types are equal using '='.
      *
-     * @param desc1
+     * @param desc1 Description of first type
      * @param type1 First type
-     * @param desc2
+     * @param desc2 Description of second type
      * @param type2 Second type
      * @param fail Whether to assert if they are not equal
      *

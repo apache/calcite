@@ -115,6 +115,22 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
             .returns("C=7\n");
     }
 
+    /** Tests that a theta join (a join whose condition cannot be decomposed
+     * into input0.x = input1.x and ... input0.z = input1.z) throws a reasonably
+     * civilized "cannot be implemented" exception. Of course, we'd like to be
+     * able to implement it one day. */
+    public void testJoinTheta() {
+        assertThat()
+            .inJdbcFoodmart()
+            .query(
+                "select count(*) from (\n"
+                + "  select *\n"
+                + "  from \"foodmart\".\"sales_fact_1997\" as s\n"
+                + "  join \"foodmart\".\"customer\" as c\n"
+                + "  on s.\"customer_id\" - c.\"customer_id\" = 0)")
+            .throws_("node could not be implemented");
+    }
+
     public void testJoinGroupByEmpty() {
         assertThat()
             .inJdbcFoodmart()
