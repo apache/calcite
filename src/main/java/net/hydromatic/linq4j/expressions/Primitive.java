@@ -28,7 +28,7 @@ import java.util.Map;
  * known as {@link Integer#TYPE}) and the boxing class
  * (e.g. {@link Integer}).</p>
 */
-enum Primitive {
+public enum Primitive {
     BOOLEAN(Boolean.TYPE, Boolean.class),
     BYTE(Byte.TYPE, Byte.class),
     CHARACTER(Character.TYPE, Character.class),

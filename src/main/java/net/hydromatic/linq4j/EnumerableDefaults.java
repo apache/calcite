@@ -1142,8 +1142,9 @@ public abstract class EnumerableDefaults {
         Function1<TSource, TKey> keySelector,
         Comparator<TKey> comparator)
     {
-        // NOTE: TreeMap allows null comparator. But I'm not sure that orderBy
-        // should.
+        // NOTE: TreeMap allows null comparator. But the caller of this method
+        // must supply a comparator if the key does not extend Comparable.
+        // Otherwise there will be a ClassCastException while retrieving.
         final Map<TKey, List<TSource>> map =
             new TreeMap<TKey, List<TSource>>(comparator);
         LookupImpl<TKey, TSource> lookup =

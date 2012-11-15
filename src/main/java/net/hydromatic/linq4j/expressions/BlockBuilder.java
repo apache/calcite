@@ -81,7 +81,8 @@ public class BlockBuilder {
                     result = ((DeclarationExpression) statement).parameter;
                 } else if (statement instanceof GotoExpression) {
                     statements.remove(statements.size() - 1);
-                    result = ((GotoExpression) statement).expression;
+                    result =
+                        append_(name, ((GotoExpression) statement).expression);
                     if (result instanceof ParameterExpression
                         || result instanceof ConstantExpression)
                     {
@@ -119,11 +120,26 @@ public class BlockBuilder {
                         ((GotoExpression) lastStatement).expression));
             }
         }
-        DeclarationExpression declare =
-            Expressions.declare(
-                Modifier.FINAL, newName(name), block);
-        add(declare);
-        return block;
+        return append_(name, block);
+    }
+
+    private Expression append_(String name, Expression expression) {
+        // We treat "1" and "null" as atoms, but not "(Comparator) null".
+        if (expression instanceof ParameterExpression
+            || (expression instanceof ConstantExpression
+                && (((ConstantExpression) expression).value != null
+                    || expression.type == Object.class)))
+        {
+            // already simple; no need to declare a variable or
+            // even to evaluate the expression
+            return expression;
+        } else {
+            DeclarationExpression declare =
+                Expressions.declare(
+                    Modifier.FINAL, newName(name), expression);
+            add(declare);
+            return declare.parameter;
+        }
     }
 
     public void add(Statement statement) {

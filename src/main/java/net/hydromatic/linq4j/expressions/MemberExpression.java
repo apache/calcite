@@ -58,7 +58,12 @@ public class MemberExpression extends Expression {
         if (writer.requireParentheses(this, lprec, rprec)) {
             return;
         }
-        expression.accept(writer, lprec, nodeType.lprec);
+        if (expression != null) {
+            expression.accept(writer, lprec, nodeType.lprec);
+        } else {
+            assert (field.getModifiers() & Modifier.STATIC) != 0;
+            writer.append(field.getDeclaringClass());
+        }
         writer.append('.')
             .append(field.getName());
     }

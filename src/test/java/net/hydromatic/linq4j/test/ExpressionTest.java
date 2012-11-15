@@ -184,6 +184,12 @@ public class ExpressionTest extends TestCase {
                     Expressions.parameter(Linq4jTest.Employee.class, "a"),
                     "empno")));
 
+        assertEquals(
+            "java.util.Collections.EMPTY_LIST",
+            Expressions.toString(
+                Expressions.field(
+                    null, Collections.class, "EMPTY_LIST")));
+
         final ParameterExpression paramX =
             Expressions.parameter(String.class, "x");
         assertEquals(
@@ -431,6 +437,67 @@ public class ExpressionTest extends TestCase {
                 .getFunction()
                 .apply("1234");
         assertEquals(1234, x);
+    }
+
+    public void testBlockBuilder() {
+        BlockBuilder statements = new BlockBuilder();
+        Expression one =
+            statements.append(
+                "one", Expressions.constant(1));
+        Expression two =
+            statements.append(
+                "two", Expressions.constant(2));
+        Expression three =
+            statements.append(
+                "three", Expressions.add(one, two));
+        Expression six =
+            statements.append(
+                "six",
+                Expressions.multiply(three, two));
+        Expression eighteen =
+            statements.append(
+                "eighteen",
+                Expressions.multiply(three, six));
+        statements.add(Expressions.return_(null, eighteen));
+        assertEquals(
+            "{\n"
+            + "  final int three = 1 + 2;\n"
+            + "  final int six = three * 2;\n"
+            + "  final int eighteen = three * six;\n"
+            + "  return eighteen;\n"
+            + "}\n",
+            Expressions.toString(statements.toBlock()));
+    }
+
+    public void testBlockBuilder2() {
+        BlockBuilder statements = new BlockBuilder();
+        Expression element =
+            statements.append(
+                "element", Expressions.constant(null));
+        Expression comparator =
+            statements.append(
+                "comparator", Expressions.constant(null, Comparator.class));
+        Expression treeSet =
+            statements.append(
+                "treeSet",
+                Expressions.new_(
+                    TreeSet.class,
+                    Arrays.asList(comparator)));
+        statements.add(
+            Expressions.return_(
+                null,
+                Expressions.call(
+                    treeSet,
+                    "add",
+                    element)));
+        assertEquals(
+            "{\n"
+            + "  final java.util.Comparator comparator = null;\n"
+            + "  final java.util.TreeSet treeSet = new java.util.TreeSet(\n"
+            + "    comparator);\n"
+            + "  return treeSet.add(null);\n"
+            + "}\n",
+            Expressions.toString(statements.toBlock()));
     }
 }
 
