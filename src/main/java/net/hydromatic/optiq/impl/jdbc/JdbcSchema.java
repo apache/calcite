@@ -50,7 +50,7 @@ public class JdbcSchema implements Schema {
     final DataSource dataSource;
     private final String catalog;
     private final String schema;
-    private final JavaTypeFactory typeFactory;
+    final JavaTypeFactory typeFactory;
     private final Expression expression;
     final SqlDialect dialect;
 

@@ -23,6 +23,8 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import java.sql.*;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Implementation of {@link java.sql.Statement}
@@ -378,6 +380,13 @@ abstract class OptiqStatement
 
         public Schema getRootSchema() {
             return connection.getRootSchema();
+        }
+
+        public List<String> getDefaultSchemaPath() {
+            final String schemaName = connection.getSchema();
+            return schemaName == null
+                ? Collections.<String>emptyList()
+                : Collections.singletonList(schemaName);
         }
     }
 }

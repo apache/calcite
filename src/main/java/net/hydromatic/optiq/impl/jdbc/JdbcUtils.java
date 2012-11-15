@@ -19,6 +19,8 @@ package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.Enumerator;
 
+import net.hydromatic.linq4j.expressions.Primitive;
+
 import org.eigenbase.sql.SqlDialect;
 
 import java.sql.*;
@@ -39,8 +41,7 @@ final class JdbcUtils {
      * parameterization not withstanding, the result type must be an array of
      * objects. */
     static <T> Enumerator<T> sqlEnumerator(
-        String sql,
-        JdbcSchema dataContext)
+        String sql, JdbcSchema dataContext, final Primitive[] primitives)
     {
         Connection connection;
         Statement statement;
@@ -55,12 +56,35 @@ final class JdbcUtils {
                     Object[] os = new Object[columnCount];
                     try {
                         for (int i = 0; i < os.length; i++) {
-                            os[i] = resultSet.getObject(i + 1);
+                            os[i] = value(i);
                         }
                     } catch (SQLException e) {
                         throw new RuntimeException(e);
                     }
                     return (T) os;
+                }
+
+                private Object value(int i) throws SQLException {
+                    switch (primitives[i]) {
+                    case BOOLEAN:
+                        return resultSet.getBoolean(i + 1);
+                    case BYTE:
+                        return resultSet.getByte(i + 1);
+                    case CHARACTER:
+                        return (char) resultSet.getShort(i + 1);
+                    case DOUBLE:
+                        return resultSet.getDouble(i + 1);
+                    case FLOAT:
+                        return resultSet.getFloat(i + 1);
+                    case INT:
+                        return resultSet.getBoolean(i + 1);
+                    case LONG:
+                        return resultSet.getLong(i + 1);
+                    case SHORT:
+                        return resultSet.getShort(i + 1);
+                    default:
+                        return resultSet.getObject(i + 1);
+                    }
                 }
 
                 public boolean moveNext() {

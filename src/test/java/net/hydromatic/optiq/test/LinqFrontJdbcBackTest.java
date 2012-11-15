@@ -21,7 +21,6 @@ import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
 import net.hydromatic.linq4j.function.Predicate1;
 import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import junit.framework.TestCase;
@@ -36,7 +35,8 @@ import org.eigenbase.util.Util;
 public class LinqFrontJdbcBackTest extends TestCase {
     public void testTableWhere() {
         try {
-            final OptiqConnection connection = JdbcTest.getConnection(null);
+            final OptiqConnection connection =
+                JdbcTest.getConnection(null, false);
             Schema schema =
                 connection.getRootSchema().getSubSchema("foodmart");
             ParameterExpression c =

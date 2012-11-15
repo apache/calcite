@@ -17,7 +17,19 @@
 */
 package net.hydromatic.optiq.test;
 
+import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.linq4j.Linq4j;
+import net.hydromatic.optiq.MutableSchema;
+import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.impl.java.MapSchema;
+import net.hydromatic.optiq.impl.java.ReflectiveSchema;
+import net.hydromatic.optiq.jdbc.OptiqConnection;
+
 import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.List;
 
 import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
 
@@ -182,6 +194,50 @@ public class JdbcFrontLinqBackTest extends TestCase {
                 + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n");
     }
 
+    public void testInsert() {
+        final List<JdbcTest.Employee> employees =
+            new ArrayList<JdbcTest.Employee>();
+        employees.add(new JdbcTest.Employee(0, 0, "first"));
+        OptiqAssert.AssertThat with = assertThat()
+            .with(
+                new OptiqAssert.ConnectionFactory() {
+                    public Connection createConnection() throws Exception {
+                        final Connection connection =
+                            JdbcTest.getConnectionWithHrFoodmart();
+                        OptiqConnection optiqConnection = connection.unwrap(
+                            OptiqConnection.class);
+                        MutableSchema rootSchema =
+                            optiqConnection.getRootSchema();
+                        MapSchema mapSchema = MapSchema.create(
+                            optiqConnection, rootSchema, "foo");
+                        mapSchema.addTable(
+                            "bar",
+                            new JdbcTest.AbstractTable(
+                                JdbcTest.Employee.class, mapSchema, "bar")
+                        {
+                            public Enumerator enumerator() {
+                                return Linq4j.enumerator(employees);
+                            }
+                        });
+                        return connection;
+                    }
+                });
+        with
+            .query("select * from \"foo\".\"bar\"")
+            .returns("empid=0; deptno=0; name=first\n");
+        if (false) {
+            // TODO: fix "Cannot assign to target field 'empid' of type
+            //   JavaType(int) from source field 'EXPR$0' of type INTEGER"
+            with
+                .query("insert into \"foo\".\"bar\" values (1, 1, 'second')")
+                .returns("1");
+        }
+        with.query("insert into \"foo\".\"bar\" select * from \"hr\".\"emps\"")
+            .returns(
+                "empid=100; deptno=10; name=Bill\n"
+                + "empid=200; deptno=20; name=Eric\n"
+                + "empid=150; deptno=10; name=Sebastian\n");
+    }
 }
 
 // End JdbcFrontLinqBackTest.java

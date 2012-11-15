@@ -35,7 +35,7 @@ import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
 public class JdbcFrontJdbcBackTest extends TestCase {
     public void testWhere2() {
         assertThat()
-            .inJdbcFoodmart2()
+            .with(OptiqAssert.Config.JDBC_FOODMART2)
             .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
             .returns(
                 "day=1; week_day=Sunday\n"

@@ -18,17 +18,18 @@
 package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
+import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.Table;
 
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.sql.SqlWriter;
 import org.eigenbase.sql.pretty.SqlPrettyWriter;
 
 import java.lang.reflect.Type;
-import java.util.Iterator;
+import java.util.*;
 
 /**
  * Queryable that gets its data from a table within a JDBC connection.
@@ -100,7 +101,21 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
         writer.identifier(tableName);
         final String sql = writer.toString();
 
-        return JdbcUtils.sqlEnumerator(sql, schema);
+        final List<RelDataTypeField> fields =
+            ((RelDataType) elementType).getFieldList();
+        final List<Primitive> primitiveList = new ArrayList<Primitive>();
+        for (RelDataTypeField field : fields) {
+            Class clazz =
+                (Class) schema.typeFactory.getJavaClass(field.getType());
+            primitiveList.add(
+                Primitive.of(clazz) != null
+                ? Primitive.of(clazz)
+                : Primitive.OTHER);
+        }
+        return JdbcUtils.sqlEnumerator(
+            sql,
+            schema,
+            primitiveList.toArray(new Primitive[primitiveList.size()]));
     }
 }
 

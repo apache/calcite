@@ -406,7 +406,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
         this.schema = schema;
     }
 
-    public String getSchema() throws SQLException {
+    public String getSchema() {
         return schema;
     }
 

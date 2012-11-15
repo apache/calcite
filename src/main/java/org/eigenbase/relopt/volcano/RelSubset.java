@@ -107,19 +107,6 @@ public class RelSubset
 
     //~ Methods ----------------------------------------------------------------
 
-    // REVIEW jvs 15-Mar-2005: I disabled this exception because there is
-    // actually code which walks over trees containing RelSubsets (in
-    // RelOptUtil), and that code was special casing traversal of RelSubset,
-    // which isn't right.
-    /**
-     * There are no children, as such. We throw an exception because you
-     * probably don't want to be walking over trees which contain <code>
-     * RelSubset</code>s.
-     */
-    /*
-    public RelNode [] getInputs() { throw new UnsupportedOperationException(); }
-     */
-
     public Set<String> getVariablesSet()
     {
         return set.variablesPropagated;
@@ -399,8 +386,8 @@ public class RelSubset
                         pw.flush();
                         tracer.warning(sw.toString());
                     }
-                    Error e =
-                        Util.newInternal(
+                    RuntimeException e =
+                        new RuntimeException(
                             "node could not be implemented: "
                             + subset.getDigest());
                     tracer.throwing(

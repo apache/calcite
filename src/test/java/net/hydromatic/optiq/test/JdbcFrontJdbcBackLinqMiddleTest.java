@@ -32,7 +32,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
 
     public void testTable() {
         assertThat()
-            .inJdbcFoodmart()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
             .query("select * from \"foodmart\".\"days\"")
             .returns(
                 "day=1; week_day=Sunday\n"
@@ -46,7 +46,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
 
     public void testWhere() {
         assertThat()
-            .inJdbcFoodmart()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
             .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
             .returns(
                 "day=1; week_day=Sunday\n"
@@ -55,7 +55,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
 
     public void testWhere2() {
         assertThat()
-            .inJdbcFoodmart()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
             .query(
                 "select * from \"foodmart\".\"days\"\n"
                 + "where not (lower(\"week_day\") = 'wednesday')")
@@ -70,7 +70,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
 
     public void testCase() {
         assertThat()
-            .inJdbcFoodmart()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
             .query(
                 "select \"day\",\n"
                 + " \"week_day\",\n"
@@ -91,7 +91,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
 
     public void testGroup() {
         assertThat()
-            .inJdbcFoodmart()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
             .query(
                 "select s, count(*) as c, min(\"week_day\") as mw from (\n"
                 + "select \"week_day\",\n"
@@ -108,10 +108,9 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
 
     public void testGroupEmpty() {
         assertThat()
-            .inJdbcFoodmart()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
             .query(
-                "select count(*) as c\n"
-                + "from \"foodmart\".\"days\"")
+                "select count(*) as c\n" + "from \"foodmart\".\"days\"")
             .returns("C=7\n");
     }
 
@@ -121,7 +120,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
      * able to implement it one day. */
     public void testJoinTheta() {
         assertThat()
-            .inJdbcFoodmart()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
             .query(
                 "select count(*) from (\n"
                 + "  select *\n"
@@ -133,7 +132,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
 
     public void testJoinGroupByEmpty() {
         assertThat()
-            .inJdbcFoodmart()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
             .query(
                 "select count(*) from (\n"
                 + "  select *\n"
@@ -145,7 +144,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
 
     public void testJoinGroupByOrderBy() {
         assertThat()
-            .inJdbcFoodmart()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
             .query(
                 "select count(*), c.\"state_province\", sum(s.\"unit_sales\") as s\n"
                 + "from \"foodmart\".\"sales_fact_1997\" as s\n"
@@ -161,7 +160,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
 
     public void testCompositeGroupBy() {
         assertThat()
-            .inJdbcFoodmart()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
             .query(
                 "select count(*) as c, c.\"state_province\"\n"
                 + "from \"foodmart\".\"customer\" as c\n"
@@ -190,7 +189,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
         // Distinct count
         // Not all GROUP columns are projected
         assertThat()
-            .inJdbcFoodmart()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
             .query(
                 "select c.\"state_province\",\n"
                 + "  sum(s.\"unit_sales\") as s,\n"

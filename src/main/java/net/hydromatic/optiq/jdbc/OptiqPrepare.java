@@ -60,6 +60,8 @@ public interface OptiqPrepare {
         JavaTypeFactory getTypeFactory();
 
         Schema getRootSchema();
+
+        List<String> getDefaultSchemaPath();
     }
 
     public static class ParseResult {

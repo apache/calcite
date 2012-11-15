@@ -1471,7 +1471,9 @@ public abstract class RelOptUtil
         }
 
         // Add this condition to the list of non-equi-join conditions.
-        nonEquiList.add(condition);
+        if (!condition.isAlwaysTrue()) {
+            nonEquiList.add(condition);
+        }
     }
 
     /**

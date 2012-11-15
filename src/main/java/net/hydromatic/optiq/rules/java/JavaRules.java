@@ -26,6 +26,7 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.function.*;
 
+import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
@@ -253,8 +254,22 @@ public class JavaRules {
             List<Integer> fields,
             boolean primitive)
         {
-            assert fields.size() == 1
-                : "composite keys not implemented yet";
+            ParameterExpression v1 =
+                Expressions.parameter(javaRowClass(typeFactory, rowType), "v1");
+            switch (fields.size()) {
+            case 0:
+                return Expressions.lambda(
+                    Function1.class,
+                    Expressions.field(
+                        null,
+                        Collections.class,
+                        "EMPTY_LIST"),
+                    v1);
+            case 1:
+                break;
+            default:
+                throw new AssertionError("composite keys not implemented yet");
+            }
             int field = fields.get(0);
 
             // new Function1<Employee, Res> {
@@ -262,8 +277,6 @@ public class JavaRules {
             //        return v1.<fieldN>;
             //    }
             // }
-            ParameterExpression v1 =
-                Expressions.parameter(javaRowClass(typeFactory, rowType), "v1");
             Class returnType =
                 javaRowClass(
                     typeFactory, rowType.getFieldList().get(field).getType());
@@ -331,6 +344,8 @@ public class JavaRules {
             if (Types.isArray(type)) {
                 return Expressions.arrayIndex(
                     expression, Expressions.constant(field));
+            } else if (Types.isPrimitive(type) && field == 0) {
+                return expression;
             } else {
                 return Expressions.field(
                     expression,
@@ -350,6 +365,18 @@ public class JavaRules {
             }
             return EnumUtil.fieldReference(
                 expression, fieldList.get(field));
+        }
+
+        /** Converts 'x' to 'Integer.valueOf(x)' if x is of type {@code int}. */
+        static Expression box(Expression expression) {
+            if (Types.isPrimitive(expression.getType())) {
+                Primitive primitive = Primitive.of(expression.getType());
+                return Expressions.call(
+                    primitive.boxClass,
+                    "valueOf",
+                    expression);
+            }
+            return expression;
         }
     }
 
@@ -951,8 +978,10 @@ public class JavaRules {
                         "resultSelector",
                         Expressions.lambda(
                             Function2.class,
-                            Expressions.newArrayInit(
-                                Object.class, results),
+                            results.size() == 1
+                                ? EnumUtil.box(results.get(0))
+                                : Expressions.newArrayInit(
+                                    Object.class, results),
                             Expressions.list(keyParameter, accParameter)));
                 statements.add(
                     Expressions.return_(
@@ -1127,7 +1156,8 @@ public class JavaRules {
                 RelFieldCollation collation = collations.get(0);
                 switch (collation.getDirection()) {
                 case Ascending:
-                    comparatorExp = Expressions.constant(null);
+                    comparatorExp =
+                        Expressions.constant(null, Comparator.class);
                     break;
                 default:
                     comparatorExp =
@@ -1472,6 +1502,91 @@ public class JavaRules {
 
             statements.add(minusExp);
             return statements.toBlock();
+        }
+    }
+
+    public static final EnumerableTableModificationRule
+        ENUMERABLE_TABLE_MODIFICATION_RULE =
+        new EnumerableTableModificationRule();
+
+    public static class EnumerableTableModificationRule extends ConverterRule {
+        private EnumerableTableModificationRule() {
+            super(
+                TableModificationRel.class,
+                CallingConvention.NONE,
+                CallingConvention.ENUMERABLE,
+                "EnumerableTableModificationRule");
+        }
+
+        @Override
+        public RelNode convert(RelNode rel) {
+            final TableModificationRel modificationRel =
+                (TableModificationRel) rel;
+            final RelNode convertedChild =
+                mergeTraitsAndConvert(
+                    modificationRel.getTraitSet(),
+                    CallingConvention.ENUMERABLE,
+                    modificationRel.getChild());
+            if (convertedChild == null) {
+                // We can't convert the child, so we can't convert rel.
+                return null;
+            }
+            return new EnumerableTableModificationRel(
+                modificationRel.getCluster(),
+                modificationRel.getTraitSet()
+                    .plus(CallingConvention.ENUMERABLE),
+                modificationRel.getTable(),
+                modificationRel.getCatalogReader(),
+                convertedChild,
+                modificationRel.getOperation(),
+                modificationRel.getUpdateColumnList(),
+                modificationRel.isFlattened());
+        }
+    }
+
+    public static class EnumerableTableModificationRel
+        extends TableModificationRelBase
+        implements EnumerableRel
+    {
+        protected EnumerableTableModificationRel(
+            RelOptCluster cluster,
+            RelTraitSet traits,
+            RelOptTable table,
+            OJPreparingStmt.CatalogReader catalogReader,
+            RelNode child,
+            Operation operation,
+            List<String> updateColumnList,
+            boolean flattened)
+        {
+            super(
+                cluster,
+                traits,
+                table,
+                catalogReader,
+                child,
+                operation,
+                updateColumnList,
+                flattened);
+        }
+
+        @Override
+        public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+            assert inputs.size() == 1;
+            return new EnumerableTableModificationRel(
+                getCluster(),
+                traitSet,
+                getTable(),
+                getCatalogReader(),
+                inputs.get(0),
+                getOperation(),
+                getUpdateColumnList(),
+                isFlattened());
+        }
+
+        public BlockExpression implement(EnumerableRelImplementor implementor) {
+            BlockExpression o =
+                implementor.visitChild(this, 0, (EnumerableRel) getChild());
+            return o;
         }
     }
 }

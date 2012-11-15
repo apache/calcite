@@ -139,6 +139,30 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
             }
         };
     }
+
+    public static <K, V> List<K> leftSlice(final List<Pair<K, V>> pairs) {
+        return new AbstractList<K>() {
+            public K get(int index) {
+                return pairs.get(index).left;
+            }
+
+            public int size() {
+                return pairs.size();
+            }
+        };
+    }
+
+    public static <K, V> List<V> rightSlice(final List<Pair<K, V>> pairs) {
+        return new AbstractList<V>() {
+            public V get(int index) {
+                return pairs.get(index).right;
+            }
+
+            public int size() {
+                return pairs.size();
+            }
+        };
+    }
 }
 
 // End Pair.java

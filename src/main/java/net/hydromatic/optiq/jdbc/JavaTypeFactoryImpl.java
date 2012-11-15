@@ -104,17 +104,17 @@ public class JavaTypeFactoryImpl
             case CHAR:
                 return String.class;
             case INTEGER:
-                return Integer.class;
+                return type.isNullable() ? int.class : Integer.class;
             case BIGINT:
-                return Long.class;
+                return type.isNullable() ? long.class : Long.class;
             case SMALLINT:
-                return Short.class;
+                return type.isNullable() ? short.class : Short.class;
             case TINYINT:
-                return Byte.class;
+                return type.isNullable() ? byte.class : Byte.class;
             case DECIMAL:
                 return BigDecimal.class;
             case BOOLEAN:
-                return Boolean.class;
+                return type.isNullable() ? boolean.class : Boolean.class;
             case BINARY:
             case VARBINARY:
                 return ByteString.class;

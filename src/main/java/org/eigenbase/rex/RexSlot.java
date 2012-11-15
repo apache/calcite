@@ -76,17 +76,24 @@ public abstract class RexSlot
         private final String prefix;
 
         SelfPopulatingList(final String prefix, final int initialSize) {
-            super(
-                new AbstractList<String>() {
-                    public String get(int index) {
-                        return prefix + index;
-                    }
-
-                    public int size() {
-                        return initialSize;
-                    }
-                });
+            super(fromTo(prefix, 0, initialSize));
             this.prefix = prefix;
+        }
+
+        private static AbstractList<String> fromTo(
+            final String prefix,
+            final int start,
+            final int end)
+        {
+            return new AbstractList<String>() {
+                public String get(int index) {
+                    return prefix + (index + start);
+                }
+
+                public int size() {
+                    return end - start;
+                }
+            };
         }
 
         @Override
@@ -98,7 +105,9 @@ public abstract class RexSlot
                     if (index < 0) {
                         throw new IllegalArgumentException();
                     }
-                    add(prefix + size());
+                    addAll(
+                        fromTo(
+                            prefix, size(), Math.max(index + 1, size() * 2)));
                 }
             }
         }

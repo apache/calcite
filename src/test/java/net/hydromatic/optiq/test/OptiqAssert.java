@@ -130,44 +130,68 @@ public class OptiqAssert {
      * Result of calling {@link OptiqAssert#assertThat}.
      */
     public static class AssertThat {
-        private final Config config;
+        private final ConnectionFactory connectionFactory;
 
         private AssertThat(Config config) {
+            this(new ConfigConnectionFactory(config));
+        }
+
+        private AssertThat(ConnectionFactory connectionFactory) {
+            this.connectionFactory = connectionFactory;
+        }
+
+        public AssertThat with(Config config) {
+            return new AssertThat(config);
+        }
+
+        public AssertThat with(ConnectionFactory connectionFactory) {
+            return new AssertThat(connectionFactory);
+        }
+
+        public AssertQuery query(String sql) {
+            return new AssertQuery(connectionFactory, sql);
+        }
+    }
+
+    public interface ConnectionFactory {
+        Connection createConnection() throws Exception;
+    }
+
+    private static class ConfigConnectionFactory implements ConnectionFactory {
+        private final Config config;
+
+        public ConfigConnectionFactory(Config config) {
             this.config = config;
         }
 
-        public AssertThat inJdbcFoodmart() {
-            return new AssertThat(Config.JDBC_FOODMART);
-        }
-
-        public AssertThat inJdbcFoodmart2() {
-            return new AssertThat(Config.JDBC_FOODMART2);
-        }
-
-        protected Connection createConnection() throws Exception {
+        public Connection createConnection() throws Exception {
             switch (config) {
             case REGULAR:
                 return JdbcTest.getConnectionWithHrFoodmart();
             case JDBC_FOODMART2:
-                return JdbcTest.getConnection(null);
+                return JdbcTest.getConnection(null, false);
             case JDBC_FOODMART:
-                return JdbcTest.getConnection(JdbcQueryProvider.INSTANCE);
+                return JdbcTest.getConnection(
+                    JdbcQueryProvider.INSTANCE, false);
+            case FOODMART_CLONE:
+                return JdbcTest.getConnection(JdbcQueryProvider.INSTANCE, true);
             default:
                 throw Util.unexpected(config);
             }
         }
-
-        public AssertQuery query(String sql) {
-            return new AssertQuery(config, sql);
-        }
     }
 
-    public static class AssertQuery extends AssertThat {
+    public static class AssertQuery {
         private final String sql;
+        private ConnectionFactory connectionFactory;
 
-        private AssertQuery(Config config, String sql) {
-            super(config);
+        private AssertQuery(ConnectionFactory connectionFactory, String sql) {
             this.sql = sql;
+            this.connectionFactory = connectionFactory;
+        }
+
+        protected Connection createConnection() throws Exception {
+            return connectionFactory.createConnection();
         }
 
         public void returns(String expected) {
@@ -175,7 +199,8 @@ public class OptiqAssert {
                 assertQuery(
                     createConnection(), sql, checkResult(expected), null);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException(
+                    "exception while executing [" + sql + "]", e);
             }
         }
 
@@ -184,7 +209,17 @@ public class OptiqAssert {
                 assertQuery(
                     createConnection(), sql, null, checkException(message));
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException(
+                    "exception while executing [" + sql + "]", e);
+            }
+        }
+
+        public void runs() {
+            try {
+                assertQuery(createConnection(), sql, null, null);
+            } catch (Exception e) {
+                throw new RuntimeException(
+                    "exception while executing [" + sql + "]", e);
             }
         }
     }
@@ -206,6 +241,10 @@ public class OptiqAssert {
          */
         JDBC_FOODMART,
         JDBC_FOODMART2,
+
+        /** Configuration that contains an in-memory clone of the FoodMart
+         * database. */
+        FOODMART_CLONE,
     }
 }
 

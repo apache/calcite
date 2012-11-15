@@ -29,6 +29,7 @@ import net.hydromatic.optiq.runtime.Executable;
 
 import org.eigenbase.oj.stmt.*;
 import org.eigenbase.rel.*;
+import org.eigenbase.rel.rules.PushFilterPastJoinRule;
 import org.eigenbase.rel.rules.TableAccessRule;
 import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.volcano.VolcanoPlanner;
@@ -68,6 +69,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
         OptiqCatalogReader catalogReader =
             new OptiqCatalogReader(
                 context.getRootSchema(),
+                context.getDefaultSchemaPath(),
                 typeFactory);
         final OptiqPreparingStmt preparingStmt =
             new OptiqPreparingStmt(
@@ -79,7 +81,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
         SqlParser parser = new SqlParser(sql);
         SqlNode sqlNode;
         try {
-            sqlNode = parser.parseQuery();
+            sqlNode = parser.parseStmt();
         } catch (SqlParseException e) {
             throw new RuntimeException("parse failed", e);
         }
@@ -118,6 +120,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
         OptiqCatalogReader catalogReader =
             new OptiqCatalogReader(
                 context.getRootSchema(),
+                context.getDefaultSchemaPath(),
                 typeFactory);
         final OptiqPreparingStmt preparingStmt =
             new OptiqPreparingStmt(
@@ -133,7 +136,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             SqlParser parser = new SqlParser(sql);
             SqlNode sqlNode;
             try {
-                sqlNode = parser.parseQuery();
+                sqlNode = parser.parseStmt();
             } catch (SqlParseException e) {
                 throw new RuntimeException("parse failed", e);
             }
@@ -237,7 +240,9 @@ class OptiqPrepareImpl implements OptiqPrepare {
             planner.addRule(JavaRules.ENUMERABLE_UNION_RULE);
             planner.addRule(JavaRules.ENUMERABLE_INTERSECT_RULE);
             planner.addRule(JavaRules.ENUMERABLE_MINUS_RULE);
+            planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
             planner.addRule(TableAccessRule.instance);
+            planner.addRule(PushFilterPastJoinRule.instance);
 
             rexBuilder = new RexBuilder(typeFactory);
         }
@@ -539,38 +544,64 @@ class OptiqPrepareImpl implements OptiqPrepare {
         }
 
         public SqlAccessType getAllowedAccess() {
-            return SqlAccessType.READ_ONLY;
+            return SqlAccessType.ALL;
         }
     }
 
     private static class OptiqCatalogReader
         implements OJPreparingStmt.CatalogReader
     {
-        private final Schema schema;
+        private final Schema rootSchema;
         private final JavaTypeFactory typeFactory;
+        private final List<String> defaultSchema;
 
         public OptiqCatalogReader(
-            Schema schema,
+            Schema rootSchema,
+            List<String> defaultSchema,
             JavaTypeFactory typeFactory)
         {
             super();
-            this.schema = schema;
+            assert rootSchema != defaultSchema;
+            this.rootSchema = rootSchema;
+            this.defaultSchema = defaultSchema;
             this.typeFactory = typeFactory;
         }
 
         public RelOptTableImpl getTable(final String[] names) {
+            // First look in the default schema, if any.
+            if (defaultSchema != null) {
+                RelOptTableImpl table = getTableFrom(names, defaultSchema);
+                if (table != null) {
+                    return table;
+                }
+            }
+            // If not found, look in the root schema
+            return getTableFrom(names, Collections.<String>emptyList());
+        }
+
+        private RelOptTableImpl getTableFrom(
+            String[] names,
+            List<String> schemaNames)
+        {
             List<Pair<String, Object>> pairs =
                 new ArrayList<Pair<String, Object>>();
-            Schema schema2 = schema;
+            Schema schema = rootSchema;
+            for (String schemaName : schemaNames) {
+                schema = schema.getSubSchema(schemaName);
+                if (schema == null) {
+                    return null;
+                }
+                pairs.add(Pair.<String, Object>of(schemaName, schema));
+            }
             for (int i = 0; i < names.length; i++) {
                 final String name = names[i];
-                Schema subSchema = schema2.getSubSchema(name);
+                Schema subSchema = schema.getSubSchema(name);
                 if (subSchema != null) {
                     pairs.add(Pair.<String, Object>of(name, subSchema));
-                    schema2 = subSchema;
+                    schema = subSchema;
                     continue;
                 }
-                final Table table = schema2.getTable(name);
+                final Table table = schema.getTable(name);
                 if (table != null) {
                     pairs.add(Pair.<String, Object>of(name, table));
                     if (i != names.length - 1) {
@@ -580,7 +611,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     return new RelOptTableImpl(
                         this,
                         typeFactory.createType(table.getElementType()),
-                        names,
+                        Pair.leftSlice(pairs).toArray(new String[pairs.size()]),
                         table);
                 }
                 return null;
