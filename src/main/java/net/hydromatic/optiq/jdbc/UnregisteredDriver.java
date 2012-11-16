@@ -31,18 +31,62 @@ import java.util.logging.Logger;
  *
  * <p>You can easily create a "vanity driver" that recognizes its own
  * URL prefix as a sub-class of this class. Per the JDBC specification it
- * must register itself.</p>
+ * must register itself when the class is loaded.</p>
+ *
+ * <p>Derived classes must implement {@link #createDriverVersion()} and
+ * {@link #getConnectStringPrefix()}, and may override
+ * {@link #createFactory()}.</p>
  */
 public abstract class UnregisteredDriver implements java.sql.Driver {
-    final DriverVersion version = new DriverVersion();
+    final DriverVersion version;
     final Factory factory;
 
     protected UnregisteredDriver() {
         this.factory = createFactory();
+        this.version = createDriverVersion();
     }
 
-    private static Factory createFactory() {
-        final String factoryClassName = getFactoryClassName();
+    /**
+     * Creates a factory for JDBC objects (connection, statement).
+     * Called from the driver constructor.
+     *
+     * <p>The default implementation calls {@link JdbcVersion#current},
+     * then {@link #getFactoryClassName} with that version,
+     * then passes that class name to {@link #instantiateFactory(String)}.
+     * This approach is recommended it does not include in the code references
+     * to classes that may not be instantiable in all JDK versions.
+     * But drivers are free to do it their own way.</p>
+     *
+     * @return JDBC object factory
+     */
+    protected Factory createFactory() {
+        return instantiateFactory(getFactoryClassName(JdbcVersion.current()));
+    }
+
+    /**
+     * Returns the name of a class to be factory for JDBC objects
+     * (connection, statement) appropriate for the current JDBC version.
+     */
+    protected String getFactoryClassName(JdbcVersion jdbcVersion) {
+        switch (jdbcVersion) {
+        case JDBC_30:
+            return "net.hydromatic.optiq.jdbc.FactoryJdbc3Impl";
+        case JDBC_40:
+            return "net.hydromatic.optiq.jdbc.FactoryJdbc4Impl";
+        case JDBC_41:
+        default:
+            return "net.hydromatic.optiq.jdbc.FactoryJdbc41";
+        }
+    }
+
+    /**
+     * Creates an object describing the name and version of this driver.
+     * Called from the driver constructor.
+     */
+    protected abstract DriverVersion createDriverVersion();
+
+    /** Helper method for creating factories. */
+    protected static Factory instantiateFactory(String factoryClassName) {
         try {
             final Class<?> clazz = Class.forName(factoryClassName);
             return (Factory) clazz.newInstance();
@@ -52,27 +96,6 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
             throw new RuntimeException(e);
         } catch (InstantiationException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    private static String getFactoryClassName() {
-        try {
-            // If java.sql.PseudoColumnUsage is present, we are running JDBC 4.1
-            // or later.
-            Class.forName("java.sql.PseudoColumnUsage");
-            return "net.hydromatic.optiq.jdbc.FactoryJdbc41";
-        } catch (ClassNotFoundException e) {
-            // java.sql.PseudoColumnUsage is not present. This means we are
-            // running JDBC 4.0 or earlier.
-            try {
-                Class.forName("java.sql.Wrapper");
-                return "net.hydromatic.optiq.jdbc.FactoryJdbc4Impl";
-            } catch (ClassNotFoundException e2) {
-                // java.sql.Wrapper is not present. This means we are running
-                // JDBC 3.0 or earlier (probably JDK 1.5). Load the JDBC 3.0
-                // factory.
-                return "net.hydromatic.optiq.jdbc.FactoryJdbc3Impl";
-            }
         }
     }
 
@@ -126,33 +149,24 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
     }
 
     /**
-     * Returns the driver name. Not in the JDBC API.
-     *
-     * @return Driver name
-     */
-    String getName() {
-        return version.name;
-    }
-
-    /**
-     * Returns the driver version. Not in the JDBC API.
+     * Returns the driver version object. Not in the JDBC API.
      *
      * @return Driver version
      */
-    String getVersion() {
-        return version.versionString;
+    public DriverVersion getDriverVersion() {
+        return version;
     }
 
-    public int getMajorVersion() {
+    public final int getMajorVersion() {
         return version.majorVersion;
     }
 
-    public int getMinorVersion() {
+    public final int getMinorVersion() {
         return version.minorVersion;
     }
 
     public boolean jdbcCompliant() {
-        return true;
+        return version.jdbcCompliant;
     }
 
     /**
@@ -165,6 +179,39 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
             System.out.println(
                 "Error occurred while registering JDBC driver "
                 + this + ": " + e.toString());
+        }
+    }
+
+    /** JDBC version. */
+    protected enum JdbcVersion {
+        /** Unknown JDBC version. */
+        JDBC_UNKNOWN,
+        /** JDBC version 3.0. Generally associated with JDK 1.5. */
+        JDBC_30,
+        /** JDBC version 4.0. Generally associated with JDK 1.6. */
+        JDBC_40,
+        /** JDBC version 4.1. Generally associated with JDK 1.7. */
+        JDBC_41;
+
+        /** Deduces the current JDBC version. */
+        protected static JdbcVersion current() {
+            try {
+                // If java.sql.PseudoColumnUsage is present, we are running JDBC
+                // 4.1 or later.
+                Class.forName("java.sql.PseudoColumnUsage");
+                return JDBC_41;
+            } catch (ClassNotFoundException e) {
+                // java.sql.PseudoColumnUsage is not present. This means we are
+                // running JDBC 4.0 or earlier.
+                try {
+                    Class.forName("java.sql.Wrapper");
+                    return JDBC_40;
+                } catch (ClassNotFoundException e2) {
+                    // java.sql.Wrapper is not present. This means we are
+                    // running JDBC 3.0 or earlier (probably JDK 1.5).
+                    return JDBC_30;
+                }
+            }
         }
     }
 }

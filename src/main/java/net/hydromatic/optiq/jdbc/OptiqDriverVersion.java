@@ -18,23 +18,22 @@
 package net.hydromatic.optiq.jdbc;
 
 /**
- * Optiq JDBC driver.
+ * Version information for Optiq JDBC Driver.
  */
-public class Driver extends UnregisteredDriver {
-    public static final String CONNECT_STRING_PREFIX = "jdbc:optiq:";
-
-    static {
-        new Driver().register();
-    }
-
-    @Override
-    protected String getConnectStringPrefix() {
-        return CONNECT_STRING_PREFIX;
-    }
-
-    protected DriverVersion createDriverVersion() {
-        return new OptiqDriverVersion();
+class OptiqDriverVersion extends DriverVersion {
+    /** Creates an OptiqDriverVersion. */
+    OptiqDriverVersion() {
+        super(
+            "Optiq JDBC Driver",
+            "0.1",
+            "Optiq",
+            "0.1",
+            true,
+            0,
+            1,
+            0,
+            1);
     }
 }
 
-// End Driver.java
+// End OptiqDriverVersion.java

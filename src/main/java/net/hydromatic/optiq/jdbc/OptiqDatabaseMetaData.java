@@ -84,11 +84,11 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public String getDriverName() throws SQLException {
-        return connection.driver.getName();
+        return connection.driver.version.name;
     }
 
     public String getDriverVersion() throws SQLException {
-        return connection.driver.getVersion();
+        return connection.driver.version.versionString;
     }
 
     public int getDriverMajorVersion() {
