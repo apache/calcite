@@ -23,6 +23,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.linq4j.QueryProvider;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Properties;
 
 /**
@@ -68,6 +69,9 @@ public interface OptiqConnection extends Connection, QueryProvider {
      * @return properties
      */
     Properties getProperties();
+
+    // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
+    void setSchema(String schema) throws SQLException;
 }
 
 // End OptiqConnection.java
