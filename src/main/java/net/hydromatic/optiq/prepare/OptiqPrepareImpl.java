@@ -29,8 +29,7 @@ import net.hydromatic.optiq.runtime.Executable;
 
 import org.eigenbase.oj.stmt.*;
 import org.eigenbase.rel.*;
-import org.eigenbase.rel.rules.PushFilterPastJoinRule;
-import org.eigenbase.rel.rules.TableAccessRule;
+import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.volcano.VolcanoPlanner;
 import org.eigenbase.reltype.RelDataType;
@@ -243,6 +242,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
             planner.addRule(TableAccessRule.instance);
             planner.addRule(PushFilterPastJoinRule.instance);
+            planner.addRule(RemoveDistinctAggregateRule.instance);
 
             rexBuilder = new RexBuilder(typeFactory);
         }

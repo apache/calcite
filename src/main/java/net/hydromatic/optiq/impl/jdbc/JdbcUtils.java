@@ -41,7 +41,9 @@ final class JdbcUtils {
      * parameterization not withstanding, the result type must be an array of
      * objects. */
     static <T> Enumerator<T> sqlEnumerator(
-        String sql, JdbcSchema dataContext, final Primitive[] primitives)
+        String sql,
+        JdbcSchema dataContext,
+        final Primitive[] primitives)
     {
         Connection connection;
         Statement statement;
@@ -77,7 +79,7 @@ final class JdbcUtils {
                     case FLOAT:
                         return resultSet.getFloat(i + 1);
                     case INT:
-                        return resultSet.getBoolean(i + 1);
+                        return resultSet.getInt(i + 1);
                     case LONG:
                         return resultSet.getLong(i + 1);
                     case SHORT:

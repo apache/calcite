@@ -147,7 +147,7 @@ public class JavaRules {
             } catch (InvalidRelException e) {
                 // Semantic error not possible. Must be a bug. Convert to
                 // internal error.
-                throw new RuntimeException(e);
+                throw new AssertionError(e);
             }
         }
 
@@ -701,13 +701,17 @@ public class JavaRules {
                 // We can't convert the child, so we can't convert rel.
                 return null;
             }
-
-            return new EnumerableAggregateRel(
-                rel.getCluster(),
-                rel.getTraitSet(),
-                convertedChild,
-                agg.getGroupSet(),
-                agg.getAggCallList());
+            try {
+                return new EnumerableAggregateRel(
+                    rel.getCluster(),
+                    rel.getTraitSet(),
+                    convertedChild,
+                    agg.getGroupSet(),
+                    agg.getAggCallList());
+            } catch (InvalidRelException e) {
+                tracer.warning(e.toString());
+                return null;
+            }
         }
     }
 
@@ -721,6 +725,7 @@ public class JavaRules {
             RelNode child,
             BitSet groupSet,
             List<AggregateCall> aggCalls)
+            throws InvalidRelException
         {
             super(
                 cluster,
@@ -728,18 +733,31 @@ public class JavaRules {
                 child,
                 groupSet,
                 aggCalls);
+
+            for (AggregateCall aggCall : aggCalls) {
+                if (aggCall.isDistinct()) {
+                    throw new InvalidRelException(
+                        "distinct aggregation not supported");
+                }
+            }
         }
 
         @Override
         public EnumerableAggregateRel copy(
             RelTraitSet traitSet, List<RelNode> inputs)
         {
+            try {
             return new EnumerableAggregateRel(
                 getCluster(),
                 traitSet,
                 sole(inputs),
                 groupSet,
                 aggCalls);
+            } catch (InvalidRelException e) {
+                // Semantic error not possible. Must be a bug. Convert to
+                // internal error.
+                throw new AssertionError(e);
+            }
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {

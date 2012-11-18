@@ -140,6 +140,21 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
         };
     }
 
+    /** Returns a numbered list. */
+    public static <E> List<Pair<Integer, E>> zip(
+        final List<E> elements)
+    {
+        return new AbstractList<Pair<Integer, E>>() {
+            public Pair<Integer, E> get(int index) {
+                return Pair.of(index, elements.get(index));
+            }
+
+            public int size() {
+                return elements.size();
+            }
+        };
+    }
+
     public static <K, V> List<K> leftSlice(final List<Pair<K, V>> pairs) {
         return new AbstractList<K>() {
             public K get(int index) {
