@@ -538,56 +538,56 @@ public class RexBuilder
         return encodeIntervalOrDecimal(value, toType, false);
     }
 
-/**
- * Casts a decimal's integer representation to a decimal node. If the
- * expression is not the expected integer type, then it is casted first.
- *
- * <p>An overflow check may be requested to ensure the internal value
- * does not exceed the maximum value of the decimal type.
- *
- * @param value integer representation of decimal
- * @param type type integer will be reinterpreted as
- * @param checkOverflow indicates whether an overflow check is required
- * when reinterpreting this particular value as the decimal type. A
- * check usually not required for arithmetic, but is often required for
- * rounding and explicit casts.
- *
- * @return the integer reinterpreted as an opaque decimal type
- */
-public RexNode encodeIntervalOrDecimal(
-    RexNode value,
-    RelDataType type,
-    boolean checkOverflow)
-{
-    RelDataType bigintType =
-        typeFactory.createSqlType(
-            SqlTypeName.BIGINT);
-    RexNode cast = ensureType(bigintType, value, true);
-    return makeReinterpretCast(
-        type,
-        cast,
-        makeLiteral(checkOverflow));
-}
+    /**
+     * Casts a decimal's integer representation to a decimal node. If the
+     * expression is not the expected integer type, then it is casted first.
+     *
+     * <p>An overflow check may be requested to ensure the internal value
+     * does not exceed the maximum value of the decimal type.
+     *
+     * @param value integer representation of decimal
+     * @param type type integer will be reinterpreted as
+     * @param checkOverflow indicates whether an overflow check is required
+     * when reinterpreting this particular value as the decimal type. A
+     * check usually not required for arithmetic, but is often required for
+     * rounding and explicit casts.
+     *
+     * @return the integer reinterpreted as an opaque decimal type
+     */
+    public RexNode encodeIntervalOrDecimal(
+        RexNode value,
+        RelDataType type,
+        boolean checkOverflow)
+    {
+        RelDataType bigintType =
+            typeFactory.createSqlType(
+                SqlTypeName.BIGINT);
+        RexNode cast = ensureType(bigintType, value, true);
+        return makeReinterpretCast(
+            type,
+            cast,
+            makeLiteral(checkOverflow));
+    }
 
-/**
- * Retrieves an interval or decimal node's integer representation
- *
- * @param node the interval or decimal value as an opaque type
- *
- * @return an integer representation of the decimal value
- */
-public RexNode decodeIntervalOrDecimal(RexNode node)
-{
-    assert (SqlTypeUtil.isDecimal(node.getType())
-        || SqlTypeUtil.isInterval(node.getType()));
-    RelDataType bigintType =
-        typeFactory.createSqlType(
-            SqlTypeName.BIGINT);
-    return makeReinterpretCast(
-        matchNullability(bigintType, node),
-        node,
-        makeLiteral(false));
-}
+    /**
+     * Retrieves an interval or decimal node's integer representation
+     *
+     * @param node the interval or decimal value as an opaque type
+     *
+     * @return an integer representation of the decimal value
+     */
+    public RexNode decodeIntervalOrDecimal(RexNode node)
+    {
+        assert (SqlTypeUtil.isDecimal(node.getType())
+                || SqlTypeUtil.isInterval(node.getType()));
+        RelDataType bigintType =
+            typeFactory.createSqlType(
+                SqlTypeName.BIGINT);
+        return makeReinterpretCast(
+            matchNullability(bigintType, node),
+            node,
+            makeLiteral(false));
+    }
 
     /**
      * Creates a call to the CAST operator.

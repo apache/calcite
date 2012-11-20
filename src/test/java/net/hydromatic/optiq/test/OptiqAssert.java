@@ -18,7 +18,9 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.function.Function1;
+
 import net.hydromatic.optiq.impl.jdbc.JdbcQueryProvider;
+import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import junit.framework.Assert;
 import junit.framework.TestSuite;
@@ -151,6 +153,17 @@ public class OptiqAssert {
         public AssertQuery query(String sql) {
             return new AssertQuery(connectionFactory, sql);
         }
+
+        public <T> T doWithConnection(Function1<OptiqConnection, T> fn)
+            throws Exception
+        {
+            Connection connection = connectionFactory.createConnection();
+            try {
+                return fn.apply((OptiqConnection) connection);
+            } finally {
+                connection.close();
+            }
+        }
     }
 
     public interface ConnectionFactory {
@@ -224,7 +237,7 @@ public class OptiqAssert {
         }
     }
 
-    enum Config {
+    public enum Config {
         /**
          * Configuration that creates a connection with two in-memory data sets:
          * {@link net.hydromatic.optiq.test.JdbcTest.HrSchema} and

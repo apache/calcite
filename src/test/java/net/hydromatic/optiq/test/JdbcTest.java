@@ -498,98 +498,112 @@ public class JdbcTest extends TestCase {
                 + "the_year=1998; C=365; M=April\n");
     }
 
+    private static final String[] queries = {
+        "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary\") as \"init\"",
+        "EXPR$0=21252\n",
+        "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary2\") as \"init\"",
+        "EXPR$0=21252\n",
+        "select count(*) from (select 1 as \"c0\" from \"department\" as \"department\") as \"init\"",
+        "EXPR$0=12\n",
+        "select count(*) from (select 1 as \"c0\" from \"employee\" as \"employee\") as \"init\"",
+        "EXPR$0=1155\n",
+        "select count(*) from (select 1 as \"c0\" from \"employee_closure\" as \"employee_closure\") as \"init\"",
+        "EXPR$0=7179\n",
+        "select count(*) from (select 1 as \"c0\" from \"position\" as \"position\") as \"init\"",
+        "EXPR$0=18\n",
+        "select count(*) from (select 1 as \"c0\" from \"promotion\" as \"promotion\") as \"init\"",
+        "EXPR$0=1864\n",
+        "select count(*) from (select 1 as \"c0\" from \"store\" as \"store\") as \"init\"",
+        "EXPR$0=25\n",
+        "select count(*) from (select 1 as \"c0\" from \"product\" as \"product\") as \"init\"",
+        "EXPR$0=1560\n",
+        "select count(*) from (select 1 as \"c0\" from \"product_class\" as \"product_class\") as \"init\"",
+        "EXPR$0=110\n",
+        "select count(*) from (select 1 as \"c0\" from \"time_by_day\" as \"time_by_day\") as \"init\"",
+        "EXPR$0=730\n",
+        "select count(*) from (select 1 as \"c0\" from \"customer\" as \"customer\") as \"init\"",
+        "EXPR$0=10281\n",
+        "select count(*) from (select 1 as \"c0\" from \"sales_fact_1997\" as \"sales_fact_1997\") as \"init\"",
+        "EXPR$0=86837\n",
+        "select count(*) from (select 1 as \"c0\" from \"inventory_fact_1997\" as \"inventory_fact_1997\") as \"init\"",
+        "EXPR$0=4070\n",
+        "select count(*) from (select 1 as \"c0\" from \"warehouse\" as \"warehouse\") as \"init\"",
+        "EXPR$0=24\n",
+        "select count(*) from (select 1 as \"c0\" from \"agg_c_special_sales_fact_1997\" as \"agg_c_special_sales_fact_1997\") as \"init\"",
+        "EXPR$0=86805\n",
+        "select count(*) from (select 1 as \"c0\" from \"agg_pl_01_sales_fact_1997\" as \"agg_pl_01_sales_fact_1997\") as \"init\"",
+        "EXPR$0=86829\n",
+        "select count(*) from (select 1 as \"c0\" from \"agg_l_05_sales_fact_1997\" as \"agg_l_05_sales_fact_1997\") as \"init\"",
+        "EXPR$0=86154\n",
+        "select count(*) from (select 1 as \"c0\" from \"agg_g_ms_pcat_sales_fact_1997\" as \"agg_g_ms_pcat_sales_fact_1997\") as \"init\"",
+        "EXPR$0=2637\n",
+        "select count(*) from (select 1 as \"c0\" from \"agg_c_14_sales_fact_1997\" as \"agg_c_14_sales_fact_1997\") as \"init\"",
+        "EXPR$0=86805\n",
+        "select \"time_by_day\".\"the_year\" as \"c0\" from \"time_by_day\" as \"time_by_day\" group by \"time_by_day\".\"the_year\" order by \"time_by_day\".\"the_year\" ASC",
+        "c0=1997\n"
+        + "c0=1998\n",
+        "select \"store\".\"store_country\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_country\") = UPPER('USA') group by \"store\".\"store_country\" order by \"store\".\"store_country\" ASC",
+        "c0=USA\n",
+        "select \"store\".\"store_state\" as \"c0\" from \"store\" as \"store\" where (\"store\".\"store_country\" = 'USA') and UPPER(\"store\".\"store_state\") = UPPER('CA') group by \"store\".\"store_state\" order by \"store\".\"store_state\" ASC",
+        "c0=CA\n",
+        "select \"store\".\"store_city\" as \"c0\", \"store\".\"store_state\" as \"c1\" from \"store\" as \"store\" where (\"store\".\"store_state\" = 'CA' and \"store\".\"store_country\" = 'USA') and UPPER(\"store\".\"store_city\") = UPPER('Los Angeles') group by \"store\".\"store_city\", \"store\".\"store_state\" order by \"store\".\"store_city\" ASC",
+        "c0=Los Angeles; c1=CA\n",
+        "select \"customer\".\"country\" as \"c0\" from \"customer\" as \"customer\" where UPPER(\"customer\".\"country\") = UPPER('USA') group by \"customer\".\"country\" order by \"customer\".\"country\" ASC",
+        "c0=USA\n",
+        "select \"customer\".\"state_province\" as \"c0\", \"customer\".\"country\" as \"c1\" from \"customer\" as \"customer\" where (\"customer\".\"country\" = 'USA') and UPPER(\"customer\".\"state_province\") = UPPER('CA') group by \"customer\".\"state_province\", \"customer\".\"country\" order by \"customer\".\"state_province\" ASC",
+        "c0=CA; c1=USA\n",
+        "select \"customer\".\"city\" as \"c0\", \"customer\".\"country\" as \"c1\", \"customer\".\"state_province\" as \"c2\" from \"customer\" as \"customer\" where (\"customer\".\"country\" = 'USA' and \"customer\".\"state_province\" = 'CA' and \"customer\".\"country\" = 'USA' and \"customer\".\"state_province\" = 'CA' and \"customer\".\"country\" = 'USA') and UPPER(\"customer\".\"city\") = UPPER('Los Angeles') group by \"customer\".\"city\", \"customer\".\"country\", \"customer\".\"state_province\" order by \"customer\".\"city\" ASC",
+        "c0=Los Angeles; c1=USA; c2=CA\n",
+        "select \"store\".\"store_country\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_country\") = UPPER('Gender') group by \"store\".\"store_country\" order by \"store\".\"store_country\" ASC",
+        "",
+        "select \"store\".\"store_type\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_type\") = UPPER('Gender') group by \"store\".\"store_type\" order by \"store\".\"store_type\" ASC",
+        "",
+        "select \"product_class\".\"product_family\" as \"c0\" from \"product\" as \"product\", \"product_class\" as \"product_class\" where \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" and UPPER(\"product_class\".\"product_family\") = UPPER('Gender') group by \"product_class\".\"product_family\" order by \"product_class\".\"product_family\" ASC",
+        "",
+        "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"media_type\") = UPPER('Gender') group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
+        "",
+        "select \"promotion\".\"promotion_name\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"promotion_name\") = UPPER('Gender') group by \"promotion\".\"promotion_name\" order by \"promotion\".\"promotion_name\" ASC",
+        "",
+        "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"media_type\") = UPPER('No Media') group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
+        "c0=No Media\n",
+        "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
+        "c0=Bulk Mail\n"
+        + "c0=Cash Register Handout\n"
+        + "c0=Daily Paper\n"
+        + "c0=Daily Paper, Radio\n"
+        + "c0=Daily Paper, Radio, TV\n"
+        + "c0=In-Store Coupon\n"
+        + "c0=No Media\n"
+        + "c0=Product Attachment\n"
+        + "c0=Radio\n"
+        + "c0=Street Handout\n"
+        + "c0=Sunday Paper\n"
+        + "c0=Sunday Paper, Radio\n"
+        + "c0=Sunday Paper, Radio, TV\n"
+        + "c0=TV\n",
+        "select count(distinct \"the_year\") from \"time_by_day\"",
+        "EXPR$0=2\n",
+        "select \"time_by_day\".\"the_year\" as \"c0\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 group by \"time_by_day\".\"the_year\"",
+        "c0=1997; m0=266773\n",
+        "select \"time_by_day\".\"the_year\" as \"c0\", \"promotion\".\"media_type\" as \"c1\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"promotion\" as \"promotion\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"promotion_id\" = \"promotion\".\"promotion_id\" group by \"time_by_day\".\"the_year\", \"promotion\".\"media_type\"",
+        "c0=1997; c1=Bulk Mail; m0=4320\n"
+        + "c0=1997; c1=Radio; m0=2454\n"
+        + "c0=1997; c1=Street Handout; m0=5753\n"
+        + "c0=1997; c1=TV; m0=3607\n"
+        + "c0=1997; c1=No Media; m0=195448\n"
+        + "c0=1997; c1=In-Store Coupon; m0=3798\n"
+        + "c0=1997; c1=Sunday Paper, Radio, TV; m0=2726\n"
+        + "c0=1997; c1=Product Attachment; m0=7544\n"
+        + "c0=1997; c1=Daily Paper; m0=7738\n"
+        + "c0=1997; c1=Cash Register Handout; m0=6697\n"
+        + "c0=1997; c1=Daily Paper, Radio; m0=6891\n"
+        + "c0=1997; c1=Daily Paper, Radio, TV; m0=9513\n"
+        + "c0=1997; c1=Sunday Paper, Radio; m0=5945\n"
+        + "c0=1997; c1=Sunday Paper; m0=4339\n",
+    };
+
     /** A selection of queries generated by Mondrian. */
     public void testCloneQueries() {
-        String[] queries = {
-            "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary\") as \"init\"",
-            "EXPR$0=21252\n",
-            "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary2\") as \"init\"",
-            "EXPR$0=21252\n",
-            "select count(*) from (select 1 as \"c0\" from \"department\" as \"department\") as \"init\"",
-            "EXPR$0=12\n",
-            "select count(*) from (select 1 as \"c0\" from \"employee\" as \"employee\") as \"init\"",
-            "EXPR$0=1155\n",
-            "select count(*) from (select 1 as \"c0\" from \"employee_closure\" as \"employee_closure\") as \"init\"",
-            "EXPR$0=7179\n",
-            "select count(*) from (select 1 as \"c0\" from \"position\" as \"position\") as \"init\"",
-            "EXPR$0=18\n",
-            "select count(*) from (select 1 as \"c0\" from \"promotion\" as \"promotion\") as \"init\"",
-            "EXPR$0=1864\n",
-            "select count(*) from (select 1 as \"c0\" from \"store\" as \"store\") as \"init\"",
-            "EXPR$0=25\n",
-            "select count(*) from (select 1 as \"c0\" from \"product\" as \"product\") as \"init\"",
-            "EXPR$0=1560\n",
-            "select count(*) from (select 1 as \"c0\" from \"product_class\" as \"product_class\") as \"init\"",
-            "EXPR$0=110\n",
-            "select count(*) from (select 1 as \"c0\" from \"time_by_day\" as \"time_by_day\") as \"init\"",
-            "EXPR$0=730\n",
-            "select count(*) from (select 1 as \"c0\" from \"customer\" as \"customer\") as \"init\"",
-            "EXPR$0=10281\n",
-            "select count(*) from (select 1 as \"c0\" from \"sales_fact_1997\" as \"sales_fact_1997\") as \"init\"",
-            "EXPR$0=86837\n",
-            "select count(*) from (select 1 as \"c0\" from \"inventory_fact_1997\" as \"inventory_fact_1997\") as \"init\"",
-            "EXPR$0=4070\n",
-            "select count(*) from (select 1 as \"c0\" from \"warehouse\" as \"warehouse\") as \"init\"",
-            "EXPR$0=24\n",
-            "select count(*) from (select 1 as \"c0\" from \"agg_c_special_sales_fact_1997\" as \"agg_c_special_sales_fact_1997\") as \"init\"",
-            "EXPR$0=86805\n",
-            "select count(*) from (select 1 as \"c0\" from \"agg_pl_01_sales_fact_1997\" as \"agg_pl_01_sales_fact_1997\") as \"init\"",
-            "EXPR$0=86829\n",
-            "select count(*) from (select 1 as \"c0\" from \"agg_l_05_sales_fact_1997\" as \"agg_l_05_sales_fact_1997\") as \"init\"",
-            "EXPR$0=86154\n",
-            "select count(*) from (select 1 as \"c0\" from \"agg_g_ms_pcat_sales_fact_1997\" as \"agg_g_ms_pcat_sales_fact_1997\") as \"init\"",
-            "EXPR$0=2637\n",
-            "select count(*) from (select 1 as \"c0\" from \"agg_c_14_sales_fact_1997\" as \"agg_c_14_sales_fact_1997\") as \"init\"",
-            "EXPR$0=86805\n",
-            "select \"time_by_day\".\"the_year\" as \"c0\" from \"time_by_day\" as \"time_by_day\" group by \"time_by_day\".\"the_year\" order by \"time_by_day\".\"the_year\" ASC",
-            "c0=1997\n"
-            + "c0=1998\n",
-            "select \"store\".\"store_country\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_country\") = UPPER('USA') group by \"store\".\"store_country\" order by \"store\".\"store_country\" ASC",
-            "c0=USA\n",
-            "select \"store\".\"store_state\" as \"c0\" from \"store\" as \"store\" where (\"store\".\"store_country\" = 'USA') and UPPER(\"store\".\"store_state\") = UPPER('CA') group by \"store\".\"store_state\" order by \"store\".\"store_state\" ASC",
-            "c0=CA\n",
-            "select \"store\".\"store_city\" as \"c0\", \"store\".\"store_state\" as \"c1\" from \"store\" as \"store\" where (\"store\".\"store_state\" = 'CA' and \"store\".\"store_country\" = 'USA') and UPPER(\"store\".\"store_city\") = UPPER('Los Angeles') group by \"store\".\"store_city\", \"store\".\"store_state\" order by \"store\".\"store_city\" ASC",
-            "c0=Los Angeles; c1=CA\n",
-            "select \"customer\".\"country\" as \"c0\" from \"customer\" as \"customer\" where UPPER(\"customer\".\"country\") = UPPER('USA') group by \"customer\".\"country\" order by \"customer\".\"country\" ASC",
-            "c0=USA\n",
-            "select \"customer\".\"state_province\" as \"c0\", \"customer\".\"country\" as \"c1\" from \"customer\" as \"customer\" where (\"customer\".\"country\" = 'USA') and UPPER(\"customer\".\"state_province\") = UPPER('CA') group by \"customer\".\"state_province\", \"customer\".\"country\" order by \"customer\".\"state_province\" ASC",
-            "c0=CA; c1=USA\n",
-            "select \"customer\".\"city\" as \"c0\", \"customer\".\"country\" as \"c1\", \"customer\".\"state_province\" as \"c2\" from \"customer\" as \"customer\" where (\"customer\".\"country\" = 'USA' and \"customer\".\"state_province\" = 'CA' and \"customer\".\"country\" = 'USA' and \"customer\".\"state_province\" = 'CA' and \"customer\".\"country\" = 'USA') and UPPER(\"customer\".\"city\") = UPPER('Los Angeles') group by \"customer\".\"city\", \"customer\".\"country\", \"customer\".\"state_province\" order by \"customer\".\"city\" ASC",
-            "c0=Los Angeles; c1=USA; c2=CA\n",
-            "select \"store\".\"store_country\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_country\") = UPPER('Gender') group by \"store\".\"store_country\" order by \"store\".\"store_country\" ASC",
-            "",
-            "select \"store\".\"store_type\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_type\") = UPPER('Gender') group by \"store\".\"store_type\" order by \"store\".\"store_type\" ASC",
-            "",
-            "select \"product_class\".\"product_family\" as \"c0\" from \"product\" as \"product\", \"product_class\" as \"product_class\" where \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" and UPPER(\"product_class\".\"product_family\") = UPPER('Gender') group by \"product_class\".\"product_family\" order by \"product_class\".\"product_family\" ASC",
-            "",
-            "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"media_type\") = UPPER('Gender') group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
-            "",
-            "select \"promotion\".\"promotion_name\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"promotion_name\") = UPPER('Gender') group by \"promotion\".\"promotion_name\" order by \"promotion\".\"promotion_name\" ASC",
-            "",
-            "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"media_type\") = UPPER('No Media') group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
-            "c0=No Media\n",
-            "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
-            "c0=Bulk Mail\n"
-            + "c0=Cash Register Handout\n"
-            + "c0=Daily Paper\n"
-            + "c0=Daily Paper, Radio\n"
-            + "c0=Daily Paper, Radio, TV\n"
-            + "c0=In-Store Coupon\n"
-            + "c0=No Media\n"
-            + "c0=Product Attachment\n"
-            + "c0=Radio\n"
-            + "c0=Street Handout\n"
-            + "c0=Sunday Paper\n"
-            + "c0=Sunday Paper, Radio\n"
-            + "c0=Sunday Paper, Radio, TV\n"
-            + "c0=TV\n",
-            "select count(distinct \"the_year\") from \"time_by_day\"",
-            "EXPR$0=2\n",
-            "select \"time_by_day\".\"the_year\" as \"c0\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 group by \"time_by_day\".\"the_year\"",
-            // TODO: "c0=1997; m0=266773\n",
-            "select \"time_by_day\".\"the_year\" as \"c0\", \"promotion\".\"media_type\" as \"c1\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"promotion\" as \"promotion\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"promotion_id\" = \"promotion\".\"promotion_id\" group by \"time_by_day\".\"the_year\", \"promotion\".\"media_type\"",
-            // TODO: "c0=1997; c1=Bulk Mail; m0=4320\n" etc,
-        };
         OptiqAssert.AssertThat with =
             OptiqAssert.assertThat()
                 .with(OptiqAssert.Config.FOODMART_CLONE);

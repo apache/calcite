@@ -18,6 +18,8 @@
 package org.eigenbase.sql2rel;
 
 import java.math.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
@@ -727,7 +729,26 @@ public class StandardConvertletTable
         }
 
         final RexNode [] exprs = convertExpressionList(cx, operands);
+        if (op.getOperandTypeChecker()
+            == SqlTypeStrategies.otcComparableUnorderedX2)
+        {
+            ensureSameType(cx, exprs);
+        }
         return cx.getRexBuilder().makeCall(op, exprs);
+    }
+
+    private void ensureSameType(SqlRexContext cx, RexNode[] exprs) {
+        // TODO: make leastRestrictive take a list
+        List<RelDataType> types = new ArrayList<RelDataType>();
+        for (RexNode expr : exprs) {
+            types.add(expr.getType());
+        }
+        RelDataType type =
+            cx.getTypeFactory().leastRestrictive(
+                types.toArray(new RelDataType[types.size()]));
+        for (int i = 0; i < exprs.length; i++) {
+            exprs[i] = cx.getRexBuilder().ensureType(type, exprs[i], false);
+        }
     }
 
     private static RexNode [] convertExpressionList(

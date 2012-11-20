@@ -188,12 +188,18 @@ public class JavaRules {
                 Expressions.call(
                     leftExpression,
                     BuiltinMethod.JOIN.method,
-                    rightExpression,
-                    EnumUtil.generateAccessor(
-                        typeFactory, left.getRowType(), leftKeys, false),
-                    EnumUtil.generateAccessor(
-                        typeFactory, right.getRowType(), rightKeys, false),
-                    generateSelector(typeFactory)))
+                    Expressions.list(
+                        rightExpression,
+                        EnumUtil.generateAccessor(
+                            typeFactory, left.getRowType(), leftKeys, false),
+                        EnumUtil.generateAccessor(
+                            typeFactory, right.getRowType(), rightKeys, false),
+                        generateSelector(typeFactory))
+                        .appendIf(
+                            leftKeys.size() > 1,
+                            Expressions.call(
+                                null,
+                                BuiltinMethod.ARRAY_COMPARER.method))))
                 .toBlock();
         }
 
@@ -268,7 +274,21 @@ public class JavaRules {
             case 1:
                 break;
             default:
-                throw new AssertionError("composite keys not implemented yet");
+                // new Function1<Employee, Object[]> {
+                //    public Object[] apply(Employee v1) {
+                //        return new Object[] {v1.<fieldN>, v1.<fieldM>};
+                //    }
+                // }
+                Expressions.FluentList<Expression> list = Expressions.list();
+                for (int field : fields) {
+                    list.add(fieldReference(v1, field));
+                }
+                return Expressions.lambda(
+                    Function1.class,
+                    Expressions.newArrayInit(
+                        Object.class,
+                        list),
+                    v1);
             }
             int field = fields.get(0);
 

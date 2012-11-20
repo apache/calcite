@@ -1422,7 +1422,8 @@ public abstract class RelOptUtil
     {
         if (condition instanceof RexCall) {
             RexCall call = (RexCall) condition;
-            if (call.getOperator() == SqlStdOperatorTable.andOperator) {
+            final SqlOperator operator = call.getOperator();
+            if (operator == SqlStdOperatorTable.andOperator) {
                 for (RexNode operand : call.getOperands()) {
                     splitJoinCondition(
                         leftFieldCount,
@@ -1434,7 +1435,11 @@ public abstract class RelOptUtil
                 return;
             }
 
-            if (call.getOperator() == SqlStdOperatorTable.equalsOperator) {
+            // "=" and "IS NOT DISTINCT FROM" are the same except for how they
+            // treat nulls. TODO: record null treatment
+            if (operator == SqlStdOperatorTable.equalsOperator
+                || operator == SqlStdOperatorTable.isNotDistinctFromOperator)
+            {
                 final RexNode [] operands = call.getOperands();
                 if ((operands[0] instanceof RexInputRef)
                     && (operands[1] instanceof RexInputRef))

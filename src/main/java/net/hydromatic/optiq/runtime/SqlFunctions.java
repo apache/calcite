@@ -133,6 +133,28 @@ public class SqlFunctions {
             : (b0.intValue() == b1.intValue());
     }
 
+    /** SQL = operator applied to short values. */
+    public static boolean eq(short b0, short b1) {
+        return b0 == b1;
+    }
+
+    /** SQL == operator to short values; left side may be null. */
+    public static Boolean eq(Short b0, short b1) {
+        return b0 == null ? null : (b0 == b1);
+    }
+
+    /** SQL = operator applied to short values; right side may be null. */
+    public static Boolean eq(short b0, Short b1) {
+        return b1 == null ? null : (b0 == b1);
+    }
+
+    /** SQL = operator applied to short values; either side may be null. */
+    public static Boolean eq(Short b0, Short b1) {
+        return (b0 == null || b1 == null)
+            ? null
+            : (b0.shortValue() == b1.shortValue());
+    }
+
     /** SQL = operator applied to Object values (including String; either
      * side may be null). */
     public static Boolean eq(Object b0, Object b1) {

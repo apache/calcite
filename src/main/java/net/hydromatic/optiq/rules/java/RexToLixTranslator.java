@@ -26,6 +26,7 @@ import org.eigenbase.rel.Aggregation;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlOperator;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.util.Util;
 
 import java.lang.reflect.Method;
@@ -364,6 +365,37 @@ public class RexToLixTranslator {
                                 translator.translate(operands[i + 1]),
                                 implementRecurse(translator, call, i + 2));
                         }
+                    }
+                });
+            map.put(
+                SqlStdOperatorTable.castFunc,
+                new CallImplementor() {
+                    public Expression implement(
+                        RexToLixTranslator translator,
+                        RexCall call)
+                    {
+                        assert call.getOperands().length == 1;
+                        RexNode expr = call.getOperands()[0];
+                        Type type =
+                            translator.typeFactory.getJavaClass(call.getType());
+                        Expression operand = translator.translate(expr);
+                        if (operand.getType().equals(type)) {
+                            return operand;
+                        }
+                        // E.g. from "Short" to "int".
+                        // Generate x.intValue().
+                        final Primitive primitive = Primitive.of(type);
+                        final Primitive fromPrimitive =
+                            Primitive.ofBox(operand.getType());
+                        if (primitive != null
+                            && fromPrimitive != null
+                            && fromPrimitive != primitive)
+                        {
+                            return Expressions.call(
+                                operand,
+                                primitive.primitiveName + "Value");
+                        }
+                        return Expressions.convert_(operand, type);
                     }
                 });
             aggMap.put(
