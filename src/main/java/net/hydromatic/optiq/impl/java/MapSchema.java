@@ -106,6 +106,10 @@ public class MapSchema implements MutableSchema {
         return getTable(name);
     }
 
+    public Collection<String> getTableNames() {
+        return tableMap.keySet();
+    }
+
     public Table getTable(String name) {
         // First look for a table.
         Table<Object> table = tableMap.get(name);
@@ -134,6 +138,10 @@ public class MapSchema implements MutableSchema {
             return members;
         }
         return Collections.emptyList();
+    }
+
+    public Collection<String> getSubSchemaNames() {
+        return subSchemaMap.keySet();
     }
 
     public Schema getSubSchema(String name) {

@@ -34,9 +34,11 @@ import java.util.Collections;
  */
 class OptiqDatabaseMetaData implements DatabaseMetaData {
     private final OptiqConnectionImpl connection;
+    private final Meta meta;
 
     OptiqDatabaseMetaData(OptiqConnectionImpl connection) {
         this.connection = connection;
+        this.meta = new Meta(connection);
     }
 
     public boolean allProceduresAreCallable() throws SQLException {
@@ -56,7 +58,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean isReadOnly() throws SQLException {
-        throw connection.helper.todo();
+        return true;
     }
 
     public boolean nullsAreSortedHigh() throws SQLException {
@@ -108,7 +110,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean supportsMixedCaseIdentifiers() throws SQLException {
-        throw connection.helper.todo();
+        return false;
     }
 
     public boolean storesUpperCaseIdentifiers() throws SQLException {
@@ -404,19 +406,19 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public int getMaxBinaryLiteralLength() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxCharLiteralLength() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxColumnNameLength() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxColumnsInGroupBy() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxColumnsInIndex() throws SQLException {
@@ -424,19 +426,19 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public int getMaxColumnsInOrderBy() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxColumnsInSelect() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxColumnsInTable() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxConnections() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxCursorNameLength() throws SQLException {
@@ -448,19 +450,19 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public int getMaxSchemaNameLength() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxProcedureNameLength() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxCatalogNameLength() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxRowSize() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public boolean doesMaxRowSizeIncludeBlobs() throws SQLException {
@@ -468,23 +470,23 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public int getMaxStatementLength() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxStatements() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxTableNameLength() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxTablesInSelect() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getMaxUserNameLength() throws SQLException {
-        throw connection.helper.todo();
+        return 0;
     }
 
     public int getDefaultTransactionIsolation() throws SQLException {
@@ -540,11 +542,11 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
 
     public ResultSet getTables(
         String catalog,
-        String schemaPattern,
+        final String schemaPattern,
         String tableNamePattern,
         String[] types) throws SQLException
     {
-        return createEmptyResultSet();
+        return meta.getTables(catalog, schemaPattern, tableNamePattern, types);
     }
 
     public ResultSet getSchemas() throws SQLException {
@@ -565,7 +567,8 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String tableNamePattern,
         String columnNamePattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return meta.getColumns(
+            catalog, schemaPattern, tableNamePattern, columnNamePattern);
     }
 
     public ResultSet getColumnPrivileges(
@@ -645,13 +648,14 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean supportsResultSetType(int type) throws SQLException {
-        throw connection.helper.todo();
+        return type == ResultSet.TYPE_FORWARD_ONLY;
     }
 
     public boolean supportsResultSetConcurrency(
         int type, int concurrency) throws SQLException
     {
-        throw connection.helper.todo();
+        return type == ResultSet.TYPE_FORWARD_ONLY
+            && concurrency == ResultSet.CONCUR_READ_ONLY;
     }
 
     public boolean ownUpdatesAreVisible(int type) throws SQLException {
@@ -861,6 +865,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
             Collections.EMPTY_LIST.iterator(),
             new AbstractIterResultSet.FieldGetter(Object.class));
     }
+
 }
 
 // End OptiqDatabaseMetaData.java

@@ -31,9 +31,7 @@ import org.eigenbase.sql.type.SqlTypeName;
 
 import java.lang.reflect.Type;
 import java.sql.*;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.sql.DataSource;
 
 /**
@@ -138,6 +136,30 @@ public class JdbcSchema implements Schema {
         return Collections.emptyList();
     }
 
+    public Collection<String> getTableNames() {
+        Connection connection = null;
+        ResultSet resultSet = null;
+        try {
+            connection = dataSource.getConnection();
+            DatabaseMetaData metaData = connection.getMetaData();
+            resultSet = metaData.getTables(
+                catalog,
+                schema,
+                null,
+                null);
+            final List<String> names = new ArrayList<String>();
+            while (resultSet.next()) {
+                names.add(resultSet.getString(3));
+            }
+            return names;
+        } catch (SQLException e) {
+            throw new RuntimeException(
+                "Exception while reading tables", e);
+        } finally {
+            close(connection, null, resultSet);
+        }
+    }
+
     public <T> Table<T> getTable(String name, Class<T> elementType) {
         assert elementType != null;
         //noinspection unchecked
@@ -218,6 +240,10 @@ public class JdbcSchema implements Schema {
     public Schema getSubSchema(String name) {
         // JDBC does not support sub-schemas.
         return null;
+    }
+
+    public Collection<String> getSubSchemaNames() {
+        return Collections.emptyList();
     }
 
     private static void close(

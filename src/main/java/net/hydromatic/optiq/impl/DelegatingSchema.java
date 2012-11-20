@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -55,6 +56,10 @@ public class DelegatingSchema implements Schema {
         return schema.getQueryProvider();
     }
 
+    public Collection<String> getTableNames() {
+        return schema.getTableNames();
+    }
+
     public Table getTable(String name) {
         return schema.getTable(name);
     }
@@ -67,10 +72,13 @@ public class DelegatingSchema implements Schema {
         return schema.getTableFunctions(name);
     }
 
+    public Collection<String> getSubSchemaNames() {
+        return schema.getSubSchemaNames();
+    }
+
     public Schema getSubSchema(String name) {
         return schema.getSubSchema(name);
     }
-
 }
 
 // End DelegatingSchema.java

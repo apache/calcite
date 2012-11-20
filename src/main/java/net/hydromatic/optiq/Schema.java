@@ -20,6 +20,7 @@ package net.hydromatic.optiq;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -78,6 +79,10 @@ public interface Schema extends DataContext {
     QueryProvider getQueryProvider();
 
     Map<String, List<TableFunction>> getTableFunctions();
+
+    Collection<String> getSubSchemaNames();
+
+    Collection<String> getTableNames();
 }
 
 // End Schema.java

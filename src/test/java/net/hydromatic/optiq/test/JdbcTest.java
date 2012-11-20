@@ -439,8 +439,7 @@ public class JdbcTest extends TestCase {
         Connection connection = getConnectionWithHrFoodmart();
         DatabaseMetaData metaData = connection.getMetaData();
         ResultSet resultSet = metaData.getColumns(null, null, null, null);
-        // result set is empty (for now)
-        assertFalse(resultSet.next());
+        assertTrue(resultSet.next()); // there's something
         resultSet.close();
         connection.close();
     }
