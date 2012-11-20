@@ -134,44 +134,51 @@ public abstract class RelDataTypeFactoryImpl
     }
 
     // implement RelDataTypeFactory
-    public RelDataType leastRestrictive(RelDataType [] types)
+    public RelDataType leastRestrictive(List<RelDataType> types)
     {
         assert (types != null);
-        assert (types.length >= 1);
-        RelDataType type0 = types[0];
+        assert (types.size() >= 1);
+        RelDataType type0 = types.get(0);
         if (type0.isStruct()) {
             return leastRestrictiveStructuredType(types);
         }
         return null;
     }
 
-    protected RelDataType leastRestrictiveStructuredType(RelDataType [] types)
+    protected RelDataType leastRestrictiveStructuredType(
+        final List<RelDataType> types)
     {
-        RelDataType type0 = types[0];
+        RelDataType type0 = types.get(0);
         int nFields = type0.getFieldList().size();
 
         // precheck that all types are structs with same number of fields
-        for (int i = 0; i < types.length; ++i) {
-            if (!types[i].isStruct()) {
+        for (RelDataType type : types) {
+            if (!type.isStruct()) {
                 return null;
             }
-            if (types[i].getFieldList().size() != nFields) {
+            if (type.getFieldList().size() != nFields) {
                 return null;
             }
         }
 
         // recursively compute column-wise least restrictive
-        RelDataType [] inputTypes = new RelDataType[types.length];
         RelDataType [] outputTypes = new RelDataType[nFields];
         String [] fieldNames = new String[nFields];
         for (int j = 0; j < nFields; ++j) {
             // REVIEW jvs 22-Jan-2004:  Always use the field name from the
             // first type?
             fieldNames[j] = type0.getFields()[j].getName();
-            for (int i = 0; i < types.length; ++i) {
-                inputTypes[i] = types[i].getFields()[j].getType();
-            }
-            outputTypes[j] = leastRestrictive(inputTypes);
+            final int k = j;
+            outputTypes[j] = leastRestrictive(
+                new AbstractList<RelDataType>() {
+                    public RelDataType get(int index) {
+                        return types.get(index).getFieldList().get(k).getType();
+                    }
+
+                    public int size() {
+                        return types.size();
+                    }
+                });
         }
         return createStructType(outputTypes, fieldNames);
     }

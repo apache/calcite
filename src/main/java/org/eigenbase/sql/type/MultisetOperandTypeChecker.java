@@ -17,6 +17,8 @@
 */
 package org.eigenbase.sql.type;
 
+import java.util.Arrays;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
@@ -60,21 +62,17 @@ public class MultisetOperandTypeChecker
             return false;
         }
 
-        RelDataType [] argTypes = new RelDataType[2];
-        argTypes[0] =
-            callBinding.getValidator().deriveType(
-                callBinding.getScope(),
-                op0).getComponentType();
-        argTypes[1] =
-            callBinding.getValidator().deriveType(
-                callBinding.getScope(),
-                op1).getComponentType();
-
-        //TODO this wont work if element types are of ROW types and there is a
-        //mismatch.
+        // TODO: this won't work if element types are of ROW types and there is
+        // a mismatch.
         RelDataType biggest =
             callBinding.getTypeFactory().leastRestrictive(
-                argTypes);
+                Arrays.asList(
+                    callBinding.getValidator()
+                        .deriveType(callBinding.getScope(), op0)
+                        .getComponentType(),
+                    callBinding.getValidator()
+                        .deriveType(callBinding.getScope(), op1)
+                        .getComponentType()));
         if (null == biggest) {
             if (throwOnFailure) {
                 throw callBinding.newError(

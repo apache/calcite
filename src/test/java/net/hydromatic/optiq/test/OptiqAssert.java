@@ -25,6 +25,7 @@ import net.hydromatic.optiq.jdbc.OptiqConnection;
 import junit.framework.Assert;
 import junit.framework.TestSuite;
 
+import org.eigenbase.test.SqlToRelConverterTest;
 import org.eigenbase.util.Util;
 
 import java.io.PrintWriter;
@@ -49,6 +50,7 @@ public class OptiqAssert {
         testSuite.addTestSuite(JdbcFrontLinqBackTest.class);
         testSuite.addTestSuite(JdbcFrontJdbcBackLinqMiddleTest.class);
         testSuite.addTestSuite(JdbcFrontJdbcBackTest.class);
+        testSuite.addTestSuite(SqlToRelConverterTest.class);
         return testSuite;
     }
 

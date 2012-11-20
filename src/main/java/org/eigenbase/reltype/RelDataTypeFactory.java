@@ -199,14 +199,14 @@ public interface RelDataTypeFactory
      * may be a new type which is less restrictive than any of the input types,
      * e.g. leastRestrictive(INT, NUMERIC(3,2)) could be NUMERIC(12,2).
      *
-     * @param types input types to be unioned
+     * @param types input types to be combined using union
      *
      * @return canonical union type descriptor
      *
      * @pre types != null
      * @pre types.length >= 1
      */
-    public RelDataType leastRestrictive(RelDataType [] types);
+    public RelDataType leastRestrictive(List<RelDataType> types);
 
     /**
      * Creates a SQL type with no precision or scale.

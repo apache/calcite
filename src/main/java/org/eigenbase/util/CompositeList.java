@@ -59,7 +59,7 @@ public class CompositeList<T> extends AbstractList<T>
      * {@link java.util.Arrays#asList(Object[])} or
      * {@link java.util.EnumSet#of(Enum, Enum[])}.
      *
-     * @param lists Consistituent lists
+     * @param lists Constituent lists
      * @param <T> Element type
      * @return List consisting of all lists
      */

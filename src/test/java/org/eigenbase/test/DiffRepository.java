@@ -109,17 +109,28 @@ public class DiffRepository
 {
     //~ Static fields/initializers ---------------------------------------------
 
-    /*
+/*
     Example XML document:
 
-     <Root> <TestCase name="testFoo">     <Resource name="sql"> <![CDATA[select
-     from emps]]>     </Resource>     <Resource name="plan">
-     <![CDATA[MockTableImplRel.FENNEL_EXEC(table=[SALES, EMP])]]> </Resource>
-     </TestCase> <TestCase name="testBar">     <Resource name="sql">
-     <![CDATA[select * from depts where deptno = 10]]>     </Resource> <Resource
-     name="output">         <![CDATA[10, 'Sales']]>     </Resource> </TestCase>
+    <Root>
+      <TestCase name="testFoo">
+        <Resource name="sql">
+          <![CDATA[select from emps]]>
+         </Resource>
+         <Resource name="plan">
+           <![CDATA[MockTableImplRel.FENNEL_EXEC(table=[SALES, EMP])]]>
+         </Resource>
+       </TestCase>
+       <TestCase name="testBar">
+         <Resource name="sql">
+           <![CDATA[select * from depts where deptno = 10]]>
+         </Resource>
+         <Resource name="output">
+           <![CDATA[10, 'Sales']]>
+         </Resource>
+       </TestCase>
      </Root>
-     */
+*/
     private static final String RootTag = "Root";
     private static final String TestCaseTag = "TestCase";
     private static final String TestCaseNameAttr = "name";
@@ -248,19 +259,11 @@ public class DiffRepository
             clazz.getName().replace('.', File.separatorChar) + ".java";
         File file = new File(root);
         while (true) {
-            File file2 = new File(file, "src");
+            File file2 = new File(file, "src/test/java");
             if (new File(file2, javaFileName).exists()) {
                 return file2;
             }
-            file2 = new File(file, "java");
-            if (new File(file2, javaFileName).exists()) {
-                return file2;
-            }
-            file2 = new File(file, "farrago/src");
-            if (new File(file2, javaFileName).exists()) {
-                return file2;
-            }
-            file2 = new File(file, "saffron/src");
+            file2 = new File(file, "src/main/java");
             if (new File(file2, javaFileName).exists()) {
                 return file2;
             }

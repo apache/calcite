@@ -140,6 +140,43 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
         };
     }
 
+    /**
+     * Converts two iterables into an iterable of {@link Pair}s.
+     *
+     * <p>The resulting iterator ends whenever the first of the input iterators
+     * ends. But typically the source iterators will be the same length.</p>
+     *
+     * @param ks Left iterable
+     * @param vs Right iterable
+     * @return Iterable over pairs
+     */
+    public static <K, V> Iterable<Pair<K, V>> zip(
+        final Iterable<K> ks,
+        final Iterable<V> vs)
+    {
+        return new Iterable<Pair<K, V>>() {
+            public Iterator<Pair<K, V>> iterator() {
+                final Iterator<K> kIterator = ks.iterator();
+                final Iterator<V> vIterator = vs.iterator();
+
+                return new Iterator<Pair<K, V>>() {
+                    public boolean hasNext() {
+                        return kIterator.hasNext() && vIterator.hasNext();
+                    }
+
+                    public Pair<K, V> next() {
+                        return Pair.of(kIterator.next(), vIterator.next());
+                    }
+
+                    public void remove() {
+                        kIterator.remove();
+                        vIterator.remove();
+                    }
+                };
+            }
+        };
+    }
+
     /** Returns a numbered list. */
     public static <E> List<Pair<Integer, E>> zip(
         final List<E> elements)

@@ -116,9 +116,7 @@ public class SqlLiteralChainOperator
             : "LiteralChain has impossible operand type "
             + typeName;
         int size = 0;
-        RelDataType [] types = opBinding.collectOperandTypes();
-        for (int i = 0; i < types.length; i++) {
-            RelDataType type = types[i];
+        for (RelDataType type : opBinding.collectOperandTypes()) {
             size += type.getPrecision();
             assert (type.getSqlTypeName().equals(typeName));
         }
@@ -202,11 +200,10 @@ public class SqlLiteralChainOperator
         assert call.operands.length > 0;
         assert call.operands[0] instanceof SqlLiteral : call.operands[0]
             .getClass();
+        final List<SqlNode> operandList = Arrays.asList(call.operands);
         SqlLiteral [] fragments =
-            (SqlLiteral []) Arrays.asList(call.operands).toArray(
-                new SqlLiteral[call.operands.length]);
-        SqlLiteral sum = SqlUtil.concatenateLiterals(fragments);
-        return sum;
+            operandList.toArray(new SqlLiteral[operandList.size()]);
+        return SqlUtil.concatenateLiterals(fragments);
     }
 }
 

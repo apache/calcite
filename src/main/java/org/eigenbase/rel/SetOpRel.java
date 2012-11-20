@@ -17,6 +17,7 @@
 */
 package org.eigenbase.rel;
 
+import java.util.AbstractList;
 import java.util.List;
 
 import org.eigenbase.relopt.*;
@@ -90,11 +91,16 @@ public abstract class SetOpRel
 
     protected RelDataType deriveRowType()
     {
-        RelDataType [] types = new RelDataType[inputs.size()];
-        for (int i = 0; i < inputs.size(); i++) {
-            types[i] = inputs.get(i).getRowType();
-        }
-        return getCluster().getTypeFactory().leastRestrictive(types);
+        return getCluster().getTypeFactory().leastRestrictive(
+            new AbstractList<RelDataType>() {
+                public RelDataType get(int index) {
+                    return inputs.get(index).getRowType();
+                }
+
+                public int size() {
+                    return inputs.size();
+                }
+            });
     }
 
     /**

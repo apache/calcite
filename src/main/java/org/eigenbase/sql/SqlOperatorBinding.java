@@ -129,17 +129,20 @@ public abstract class SqlOperatorBinding
     public abstract RelDataType getOperandType(int ordinal);
 
     /**
-     * Collects the types of the bound operands into an array.
+     * Collects the types of the bound operands into a list.
      *
-     * @return collected array
+     * @return collected list
      */
-    public RelDataType [] collectOperandTypes()
+    public List<RelDataType> collectOperandTypes()
     {
-        RelDataType [] ret = new RelDataType[getOperandCount()];
-        for (int i = 0; i < ret.length; i++) {
-            ret[i] = getOperandType(i);
-        }
-        return ret;
+        return new AbstractList<RelDataType>() {
+            public RelDataType get(int index) {
+                return getOperandType(index);
+            }
+            public int size() {
+                return getOperandCount();
+            }
+        };
     }
 
     /**

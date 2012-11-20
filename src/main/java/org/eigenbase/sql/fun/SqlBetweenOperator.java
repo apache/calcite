@@ -136,23 +136,18 @@ public class SqlBetweenOperator
         return negated;
     }
 
-    private RelDataType [] collectOperandTypes(
+    private List<RelDataType> collectOperandTypes(
         SqlValidator validator,
         SqlValidatorScope scope,
         SqlCall call)
     {
-        RelDataType [] argTypes =
+        List<RelDataType> argTypes =
             SqlTypeUtil.deriveAndCollectTypes(
-                validator,
-                scope,
-                call.operands);
-        RelDataType [] newArgTypes =
-        {
-            argTypes[VALUE_OPERAND],
-            argTypes[LOWER_OPERAND],
-            argTypes[UPPER_OPERAND]
-        };
-        return newArgTypes;
+                validator, scope, call.operands);
+        return Arrays.asList(
+            argTypes.get(VALUE_OPERAND),
+            argTypes.get(LOWER_OPERAND),
+            argTypes.get(UPPER_OPERAND));
     }
 
     public RelDataType inferReturnType(
@@ -178,7 +173,7 @@ public class SqlBetweenOperator
 
     public SqlOperandCountRange getOperandCountRange()
     {
-        //exp1 [ASYMMETRIC|SYMMETRIC] BETWEEN exp4 AND exp4
+        // exp1 [ASYMMETRIC|SYMMETRIC] BETWEEN exp4 AND exp4
         return SqlOperandCountRange.Four;
     }
 

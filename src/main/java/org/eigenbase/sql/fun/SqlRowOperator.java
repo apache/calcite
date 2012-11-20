@@ -17,9 +17,13 @@
 */
 package org.eigenbase.sql.fun;
 
+import java.util.AbstractList;
+import java.util.Map;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
+import org.eigenbase.util.Pair;
 
 
 /**
@@ -58,19 +62,22 @@ public class SqlRowOperator
     }
 
     public RelDataType inferReturnType(
-        SqlOperatorBinding opBinding)
+        final SqlOperatorBinding opBinding)
     {
         // The type of a ROW(e1,e2) expression is a record with the types
         // {e1type,e2type}.  According to the standard, field names are
         // implementation-defined.
-        RelDataType [] argTypes = opBinding.collectOperandTypes();
-        final String [] fieldNames = new String[argTypes.length];
-        for (int i = 0; i < fieldNames.length; i++) {
-            fieldNames[i] = SqlUtil.deriveAliasFromOrdinal(i);
-        }
         return opBinding.getTypeFactory().createStructType(
-            argTypes,
-            fieldNames);
+            new AbstractList<Map.Entry<String, RelDataType>>() {
+                public Map.Entry<String, RelDataType> get(int index) {
+                    return Pair.of(
+                        SqlUtil.deriveAliasFromOrdinal(index),
+                        opBinding.getOperandType(index));
+                }
+                public int size() {
+                    return opBinding.getOperandCount();
+                }
+            });
     }
 
     public void unparse(

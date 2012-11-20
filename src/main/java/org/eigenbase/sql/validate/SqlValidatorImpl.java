@@ -355,7 +355,7 @@ public class SqlValidatorImpl
                     for (RelDataTypeField field : rowType.getFields()) {
                         String columnName = field.getName();
 
-                        //todo: do real implicit collation here
+                        // TODO: do real implicit collation here
                         final SqlNode exp =
                             new SqlIdentifier(
                                 new String[] { tableName, columnName },
@@ -391,7 +391,7 @@ public class SqlValidatorImpl
                 for (RelDataTypeField field : rowType.getFields()) {
                     String columnName = field.getName();
 
-                    //todo: do real implicit collation here
+                    // TODO: do real implicit collation here
                     final SqlIdentifier exp =
                         new SqlIdentifier(
                             new String[] { tableName, columnName },
@@ -1388,7 +1388,7 @@ public class SqlValidatorImpl
         SqlValidatorScope scope)
     {
         assert values.getOperands().length >= 1;
-        RelDataType [] rowTypes = new RelDataType[values.getOperands().length];
+        List<RelDataType> rowTypes = new ArrayList<RelDataType>();
         for (int iRow = 0; iRow < values.getOperands().length; ++iRow) {
             final SqlNode operand = values.getOperands()[iRow];
             assert (operand.getKind() == SqlKind.ROW);
@@ -1405,12 +1405,12 @@ public class SqlValidatorImpl
                 final RelDataType type = deriveType(scope, operands[iCol]);
                 typeList.add(type);
             }
-            rowTypes[iRow] = typeFactory.createStructType(typeList, aliasList);
+            rowTypes.add(typeFactory.createStructType(typeList, aliasList));
         }
         if (values.getOperands().length == 1) {
             // TODO jvs 10-Oct-2005:  get rid of this workaround once
             // leastRestrictive can handle all cases
-            return rowTypes[0];
+            return rowTypes.get(0);
         }
         return typeFactory.leastRestrictive(rowTypes);
     }
@@ -3334,7 +3334,7 @@ public class SqlValidatorImpl
             validateExpr(selectItem, selectScope);
         }
 
-        assert fieldList.size() == aliases.size();
+        assert fieldList.size() >= aliases.size();
         return typeFactory.createStructType(fieldList);
     }
 
@@ -3743,7 +3743,7 @@ public class SqlValidatorImpl
     protected void validateValues(
         SqlCall node,
         RelDataType targetRowType,
-        SqlValidatorScope scope)
+        final SqlValidatorScope scope)
     {
         assert node.getKind() == SqlKind.VALUES;
 
@@ -3794,14 +3794,20 @@ public class SqlValidatorImpl
 
             // 2. check if types at i:th position in each row are compatible
             for (int col = 0; col < columnCount; col++) {
-                RelDataType [] types = new RelDataType[rowCount];
-                for (int row = 0; row < rowCount; row++) {
-                    SqlCall thisRow = (SqlCall) operands[row];
-                    final SqlNode operand = thisRow.operands[col];
-                    types[row] = deriveType(scope, operand);
-                }
+                final int c = col;
+                final RelDataType type =
+                    typeFactory.leastRestrictive(
+                        new AbstractList<RelDataType>() {
+                            public RelDataType get(int row) {
+                                SqlCall thisRow = (SqlCall) operands[row];
+                                return deriveType(scope, thisRow.operands[c]);
+                            }
 
-                final RelDataType type = typeFactory.leastRestrictive(types);
+                            public int size() {
+                                return rowCount;
+                            }
+                        }
+                    );
 
                 if (null == type) {
                     throw newValidationError(

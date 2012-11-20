@@ -47,7 +47,7 @@ public class SetopOperandTypeChecker
     {
         assert callBinding.getOperandCount() == 2
             : "setops are binary (for now)";
-        RelDataType [] argTypes =
+        final RelDataType [] argTypes =
             new RelDataType[callBinding.getOperandCount()];
         int colCount = -1;
         final SqlValidator validator = callBinding.getValidator();
@@ -85,15 +85,18 @@ public class SetopOperandTypeChecker
         // The columns must be pairwise union compatible. For each column
         // ordinal, form a 'slice' containing the types of the ordinal'th
         // column j.
-        RelDataType [] colTypes =
-            new RelDataType[callBinding.getOperandCount()];
         for (int i = 0; i < colCount; i++) {
-            for (int j = 0; j < argTypes.length; j++) {
-                final RelDataTypeField field = argTypes[j].getFields()[i];
-                colTypes[j] = field.getType();
-            }
+            final int i2 = i;
             final RelDataType type =
-                callBinding.getTypeFactory().leastRestrictive(colTypes);
+                callBinding.getTypeFactory().leastRestrictive(
+                    new AbstractList<RelDataType>() {
+                        public RelDataType get(int index) {
+                            return argTypes[index].getFields()[i2].getType();
+                        }
+                        public int size() {
+                            return argTypes.length;
+                        }
+                    });
             if (type == null) {
                 if (throwOnFailure) {
                     SqlNode field =

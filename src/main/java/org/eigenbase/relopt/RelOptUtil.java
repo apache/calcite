@@ -1152,9 +1152,7 @@ public abstract class RelOptUtil
                         // perform casting
                         RelDataType targetKeyType =
                             typeFactory.leastRestrictive(
-                                new RelDataType[] {
-                                    leftKeyType, rightKeyType
-                                });
+                                Arrays.asList(leftKeyType, rightKeyType));
 
                         if (targetKeyType == null) {
                             throw Util.newInternal(

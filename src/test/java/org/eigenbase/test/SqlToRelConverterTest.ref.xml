@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<!--    $Id$    -->
+<!--    $Id: //open/dev/farrago/src/org/eigenbase/test/SqlToRelConverterTest.ref.xml#31 $    -->
 <Root>
     <TestCase name="testCase">
         <Resource name="plan">
@@ -23,7 +23,7 @@ ProjectRel(EXPR$0=[$0])
     <TestCase name="testGroup">
         <Resource name="plan">
             <![CDATA[
-AggregateRel(groupCount=[1])
+AggregateRel(group=[{0}])
   ProjectRel(DEPTNO=[$7])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -43,7 +43,7 @@ ProjectRel(DEPTNO=[$0])
     <TestCase name="testGroupJustOneAgg">
         <Resource name="plan">
             <![CDATA[
-AggregateRel(groupCount=[1], SUM_SAL=[SUM($1)])
+AggregateRel(group=[{0}], SUM_SAL=[SUM($1)])
   ProjectRel(DEPTNO=[$7], SAL=[$5])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -64,7 +64,7 @@ ProjectRel(DEPTNO=[$0], EXPR$1=[$1])
         <Resource name="plan">
             <![CDATA[
 ProjectRel(EXPR$0=[+($0, 4)], EXPR$1=[$1], EXPR$2=[$2], EXPR$3=[*(2, $3)])
-  AggregateRel(groupCount=[1], EXPR$1=[SUM($1)], EXPR$2=[SUM($2)], agg#2=[COUNT($1)])
+  AggregateRel(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM($2)], agg#2=[COUNT($1)])
     ProjectRel(DEPTNO=[$7], SAL=[$5], $f2=[+(3, $5)])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -86,7 +86,7 @@ ProjectRel(EXPR$0=[+($0, 4)], EXPR$1=[$1], EXPR$2=[$2], EXPR$3=[*(2, $3)])
             <![CDATA[
 ProjectRel(EXPR$0=[$0])
   FilterRel(condition=[>($1, 10)])
-    AggregateRel(groupCount=[0], EXPR$0=[SUM($0)], agg#1=[SUM($1)])
+    AggregateRel(group=[{}], EXPR$0=[SUM($0)], agg#1=[SUM($1)])
       ProjectRel($f0=[+($5, $5)], SAL=[$5])
         TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -108,7 +108,7 @@ ProjectRel(EXPR$0=[$0])
         <Resource name="plan">
             <![CDATA[
 ProjectRel(NAME=[$0])
-  AggregateRel(groupCount=[1])
+  AggregateRel(group=[{0}])
     ProjectRel(NAME=[$1])
       TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -130,9 +130,9 @@ ProjectRel(NAME=[$0])
         <Resource name="plan">
             <![CDATA[
 ProjectRel(NAME=[$1], FOO=[$2])
-  ProjectRel(DEPTNO=[$1], NAME=[$0], FOO=[$3])
-    AggregateRel(groupCount=[3], FOO=[COUNT($1)])
-      ProjectRel(NAME=[$1], DEPTNO=[$0], $f2=[$1])
+  ProjectRel(DEPTNO=[$1], NAME=[$0], FOO=[$2])
+    AggregateRel(group=[{0, 1}], FOO=[COUNT($1)])
+      ProjectRel(NAME=[$1], DEPTNO=[$0])
         TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
@@ -152,7 +152,7 @@ ProjectRel(NAME=[$1], FOO=[$2])
     <TestCase name="testAggDistinct">
         <Resource name="plan">
             <![CDATA[
-AggregateRel(groupCount=[1], EXPR$1=[SUM($1)], EXPR$2=[SUM(DISTINCT $1)], EXPR$3=[COUNT()])
+AggregateRel(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM(DISTINCT $1)], EXPR$3=[COUNT()])
   ProjectRel(DEPTNO=[$7], SAL=[$5])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -337,7 +337,7 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
   FilterRel(condition=[IS TRUE($9)])
     JoinRel(condition=[true], joinType=[left])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      AggregateRel(groupCount=[0], agg#0=[MIN($0)])
+      AggregateRel(group=[{}], agg#0=[MIN($0)])
         ProjectRel($f0=[true])
           ProjectRel(EXPR$0=[1])
             FilterRel(condition=[=($0, 55)])
@@ -367,7 +367,7 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
   FilterRel(condition=[IS TRUE($9)])
     CorrelatorRel(condition=[true], joinType=[left], correlations=[[var0=offset7]])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      AggregateRel(groupCount=[0], agg#0=[MIN($0)])
+      AggregateRel(group=[{}], agg#0=[MIN($0)])
         ProjectRel($f0=[true])
           ProjectRel(EXPR$0=[1])
             FilterRel(condition=[=($cor0.DEPTNO, $0)])
@@ -788,7 +788,7 @@ ProjectRel(EXPR$0=[1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-AggregateRel(groupCount=[1])
+AggregateRel(group=[{0}])
   ProjectRel(EXPR$0=[+($5, 5)])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -800,9 +800,9 @@ AggregateRel(groupCount=[1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-AggregateRel(groupCount=[1])
+AggregateRel(group=[{0}])
   ProjectRel(EXPR$0=[$1])
-    AggregateRel(groupCount=[1], EXPR$0=[SUM($1)])
+    AggregateRel(group=[{0}], EXPR$0=[SUM($1)])
       ProjectRel(DEPTNO=[$7], SAL=[$5])
         TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -852,7 +852,7 @@ ProjectRel(EMPNO=[$0])
   JoinRel(condition=[=($9, $10)], joinType=[inner])
     ProjectRel($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$7])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    AggregateRel(groupCount=[1])
+    AggregateRel(group=[{0}])
       ValuesRel(tuples=[[{ 10 }, { 20 }, { 30 }, { 40 }, { 50 }, { 60 }, { 70 }, { 80 }, { 90 }, { 100 }, { 110 }, { 120 }, { 130 }, { 140 }, { 150 }, { 160 }, { 170 }, { 180 }, { 190 }, { 200 }, { 210 }, { 220 }, { 230 }]])
 ]]>
         </Resource>
@@ -867,7 +867,7 @@ ProjectRel(EMPNO=[$0])
   JoinRel(condition=[=($9, $10)], joinType=[inner])
     ProjectRel($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[$7], $f8=[$8], $f9=[$7])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    AggregateRel(groupCount=[1])
+    AggregateRel(group=[{0}])
       ProjectRel(DEPTNO=[$0])
         TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -1044,7 +1044,7 @@ ProjectRel(EMPNO=[$0], SAL=[$1])
 ProjectRel(DEPTNO=[$0], EXPR$1=[$1])
   SortRel(sort0=[$2], sort1=[$3], dir0=[Descending], dir1=[Ascending])
     ProjectRel(DEPTNO=[$0], EXPR$1=[$1], EXPR$2=[*($0, $2)], EXPR$3=[$3])
-      AggregateRel(groupCount=[1], EXPR$1=[COUNT()], agg#1=[SUM($1)], agg#2=[MIN($2)])
+      AggregateRel(group=[{0}], EXPR$1=[COUNT()], agg#1=[SUM($1)], agg#2=[MIN($2)])
         ProjectRel(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
           TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1058,7 +1058,7 @@ ProjectRel(DEPTNO=[$0], EXPR$1=[$1])
             <![CDATA[
 ProjectRel(EMPNO=[$0], EXPR$1=[$1])
   SortRel(sort0=[$2], dir0=[Ascending])
-    AggregateRel(groupCount=[3])
+    AggregateRel(group=[{0, 1, 2}])
       ProjectRel(EMPNO=[$0], EXPR$1=[+($7, 1)], EXPR$2=[+(+($7, 1), $0)])
         TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1103,7 +1103,7 @@ SortRel(sort0=[$1], dir0=[Ascending])
             <![CDATA[
 ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   FilterRel(condition=[>($0, 5)])
-    TableAccessRel(table=[[CATALOG, SALES, EMP:DATASET1]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -1121,8 +1121,8 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
   FilterRel(condition=[>($0, 5)])
     ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
       JoinRel(condition=[=($7, $9)], joinType=[inner])
-        TableAccessRel(table=[[CATALOG, SALES, EMP:DATASET1]])
-        TableAccessRel(table=[[CATALOG, SALES, DEPT:DATASET2]])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -1293,7 +1293,7 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         <Resource name="plan">
             <![CDATA[
 ProjectRel(EXPR$0=[$0], DEPTNO=[$1], EXPR$2=[$0])
-  AggregateRel(groupCount=[2])
+  AggregateRel(group=[{0, 1}])
     ProjectRel(EXPR$0=[$0], DEPTNO=[$1])
       ProjectRel(EXPR$0=[+($5, 5)], DEPTNO=[$7], EXPR$2=[+($5, 5)])
         FilterRel(condition=[<($7, 10)])
@@ -1309,7 +1309,7 @@ where empno > 10]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-AggregateRel(groupCount=[0], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
+AggregateRel(group=[{}], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
   ProjectRel(SAL=[$5])
     FilterRel(condition=[>($0, 10)])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])

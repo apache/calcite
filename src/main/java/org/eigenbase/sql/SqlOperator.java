@@ -309,8 +309,8 @@ public abstract class SqlOperator
      * derivation methods). The default implementation is to just return the
      * original call without any rewrite.
      *
-     * @param validator
-     * @param call to be rewritten
+     * @param validator Validator
+     * @param call Call to be rewritten
      *
      * @return rewritten call
      */
@@ -550,7 +550,7 @@ public abstract class SqlOperator
             new ExplicitOperatorBinding(
                 typeFactory,
                 this,
-                operandTypes));
+                Arrays.asList(operandTypes)));
     }
 
     /**

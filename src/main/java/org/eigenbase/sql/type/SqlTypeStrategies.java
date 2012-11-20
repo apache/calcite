@@ -729,9 +729,7 @@ public abstract class SqlTypeStrategies
      */
     public static final SqlReturnTypeInference rtiLeastRestrictive =
         new SqlReturnTypeInference() {
-            public RelDataType inferReturnType(
-                SqlOperatorBinding opBinding)
-            {
+            public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
                 return opBinding.getTypeFactory().leastRestrictive(
                     opBinding.collectOperandTypes());
             }
@@ -992,9 +990,7 @@ public abstract class SqlTypeStrategies
                 SqlCollation pickedCollation = null;
                 if (SqlTypeUtil.inCharFamily(opBinding.getOperandType(0))) {
                     if (!SqlTypeUtil.isCharTypeComparable(
-                            opBinding.collectOperandTypes(),
-                            0,
-                            1))
+                            opBinding.collectOperandTypes().subList(0, 2)))
                     {
                         throw opBinding.newError(
                             EigenbaseResource.instance().TypeNotComparable.ex(
@@ -1094,18 +1090,23 @@ public abstract class SqlTypeStrategies
     public static final SqlReturnTypeInference rtiMultiset =
         new SqlReturnTypeInference() {
             public RelDataType inferReturnType(
-                SqlOperatorBinding opBinding)
+                final SqlOperatorBinding opBinding)
             {
-                RelDataType [] argElementTypes =
-                    new RelDataType[opBinding.getOperandCount()];
-                for (int i = 0; i < opBinding.getOperandCount(); i++) {
-                    argElementTypes[i] =
-                        opBinding.getOperandType(i).getComponentType();
-                    assert argElementTypes[i] != null;
-                }
-
                 ExplicitOperatorBinding newBinding =
-                    new ExplicitOperatorBinding(opBinding, argElementTypes);
+                    new ExplicitOperatorBinding(
+                        opBinding,
+                        new AbstractList<RelDataType>() {
+                            public RelDataType get(int index) {
+                                RelDataType type =
+                                    opBinding.getOperandType(index)
+                                        .getComponentType();
+                                assert type != null;
+                                return type;
+                            }
+                            public int size() {
+                                return opBinding.getOperandCount();
+                            }
+                        });
                 RelDataType biggestElementType =
                     rtiLeastRestrictive.inferReturnType(newBinding);
                 return opBinding.getTypeFactory().createMultisetType(
@@ -1254,9 +1255,7 @@ public abstract class SqlTypeStrategies
                 // because SqlAdvisorValidator produces
                 // unknown types for incomplete expressions.
                 // Maybe we need to distinguish the two kinds of unknown.
-                /*
-                assert !knownType.equals(unknownType);
-                */
+                //assert !knownType.equals(unknownType);
                 for (int i = 0; i < operandTypes.length; ++i) {
                     operandTypes[i] = knownType;
                 }

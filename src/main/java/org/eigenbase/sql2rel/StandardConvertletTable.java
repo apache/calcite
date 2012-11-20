@@ -18,6 +18,7 @@
 package org.eigenbase.sql2rel;
 
 import java.math.*;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -737,15 +738,17 @@ public class StandardConvertletTable
         return cx.getRexBuilder().makeCall(op, exprs);
     }
 
-    private void ensureSameType(SqlRexContext cx, RexNode[] exprs) {
-        // TODO: make leastRestrictive take a list
-        List<RelDataType> types = new ArrayList<RelDataType>();
-        for (RexNode expr : exprs) {
-            types.add(expr.getType());
-        }
+    private void ensureSameType(SqlRexContext cx, final RexNode[] exprs) {
         RelDataType type =
             cx.getTypeFactory().leastRestrictive(
-                types.toArray(new RelDataType[types.size()]));
+                new AbstractList<RelDataType>() {
+                    public RelDataType get(int index) {
+                        return exprs[index].getType();
+                    }
+                    public int size() {
+                        return exprs.length;
+                    }
+                });
         for (int i = 0; i < exprs.length; i++) {
             exprs[i] = cx.getRexBuilder().ensureType(type, exprs[i], false);
         }

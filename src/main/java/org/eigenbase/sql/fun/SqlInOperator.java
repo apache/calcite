@@ -98,10 +98,7 @@ public class SqlInOperator
                 RelDataType nodeType = validator.deriveType(scope, node);
                 rightTypeList.add(nodeType);
             }
-            RelDataType [] rightTypes =
-                rightTypeList.toArray(
-                    new RelDataType[rightTypeList.size()]);
-            rightType = typeFactory.leastRestrictive(rightTypes);
+            rightType = typeFactory.leastRestrictive(rightTypeList);
 
             // First check that the expressions in the IN list are compatible
             // with each other. Same rules as the VALUES operator (per
@@ -145,7 +142,7 @@ public class SqlInOperator
                         validator,
                         scope,
                         call),
-                    new RelDataType[] { leftRowType, rightRowType })))
+                    Arrays.asList(leftRowType, rightRowType))))
         {
             throw validator.newValidationError(
                 call,

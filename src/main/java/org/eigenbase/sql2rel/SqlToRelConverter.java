@@ -662,7 +662,7 @@ public class SqlToRelConverter
         rel =
             createAggregate(
                 bb,
-                rel.getRowType().getFieldCount(),
+                Util.bitSetBetween(0, rel.getRowType().getFieldCount()),
                 aggCalls);
 
         bb.setRoot(
@@ -1371,7 +1371,6 @@ public class SqlToRelConverter
             if (isRowConstructor(node)) {
                 call = (SqlCall) node;
                 List<RexLiteral> tuple = new ArrayList<RexLiteral>();
-                int i = 0;
                 for (SqlNode operand : call.operands) {
                     RexLiteral rexLiteral =
                         convertLiteralInValuesList(
@@ -1542,7 +1541,6 @@ public class SqlToRelConverter
             return;
         default:
             if (node instanceof SqlCall) {
-                SqlOperator operator = ((SqlCall) node).getOperator();
                 if (kind == SqlKind.OR
                     || kind == SqlKind.NOT)
                 {
@@ -1665,10 +1663,13 @@ public class SqlToRelConverter
             // ordering of this relation. There must be one, otherwise it would
             // have failed validation.
             orderList = bb.scope.getOrderList();
-            Util.permAssert(
-                orderList != null,
-                "Relation should have sort key for implicit ORDER BY");
-            Util.permAssert(orderList.size() > 0, "sort key must not be empty");
+            if (orderList == null) {
+                throw new AssertionError(
+                    "Relation should have sort key for implicit ORDER BY");
+            }
+            if (orderList.size() <= 0) {
+                throw new AssertionError("sort key must not be empty");
+            }
         }
         final RexNode [] orderKeys = new RexNode[orderList.size()];
         for (int i = 0; i < orderKeys.length; i++) {
@@ -2167,7 +2168,7 @@ public class SqlToRelConverter
             RexNode right =
                 rexBuilder.makeInputRef(
                     rightField.getType(),
-                    rightField.getIndex());
+                    leftRowType.getFieldList().size() + rightField.getIndex());
             RexNode equalsCall =
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.equalsOperator,
@@ -2395,7 +2396,7 @@ public class SqlToRelConverter
             bb.setRoot(
                 createAggregate(
                     bb,
-                    groupList.size(),
+                    Util.bitSetBetween(0, aggConverter.groupExprs.size()),
                     aggConverter.getAggCalls()),
                 false);
 
@@ -2487,21 +2488,21 @@ public class SqlToRelConverter
      * the grouping keys. The default implementation of this method ignores this
      * parameter.
      *
-     * @param bb Blackboard
-     * @param groupCount Number of expressions to group on
-     * @param aggCalls Array of calls to aggregate functions
      *
+     * @param bb Blackboard
+     * @param groupSet Bit set of ordinals of grouping columns
+     * @param aggCalls Array of calls to aggregate functions
      * @return AggregateRel
      */
     protected RelNode createAggregate(
         Blackboard bb,
-        int groupCount,
+        BitSet groupSet,
         List<AggregateCall> aggCalls)
     {
         return new AggregateRel(
             cluster,
             bb.root,
-            Util.bitSetBetween(0, groupCount),
+            groupSet,
             aggCalls);
     }
 
@@ -3683,7 +3684,8 @@ public class SqlToRelConverter
             } else {
                 RexNode joinCond = null;
 
-                int origLeftInputCount = root.getRowType().getFieldCount();
+                final int origLeftInputCount =
+                    root.getRowType().getFieldCount();
                 if (leftJoinKeysForIn != null) {
                     RexNode [] newLeftInputExpr =
                         new RexNode[origLeftInputCount
@@ -3738,7 +3740,7 @@ public class SqlToRelConverter
                 }
 
                 int leftFieldCount = root.getRowType().getFieldCount();
-                RelNode join =
+                final RelNode join =
                     createJoin(
                         this,
                         root,
@@ -3752,25 +3754,24 @@ public class SqlToRelConverter
                     && (joinType == JoinRelType.LEFT))
                 {
                     int rightFieldLength = rel.getRowType().getFieldCount();
-                    assert (leftJoinKeysForIn.length == (rightFieldLength - 1));
+                    assert leftJoinKeysForIn.length == rightFieldLength - 1;
 
-                    int rexRangeRefLength =
+                    final int rexRangeRefLength =
                         leftJoinKeysForIn.length + rightFieldLength;
-                    RelDataType [] returnTypes =
-                        new RelDataType[rexRangeRefLength];
-                    String [] returnNames = new String[rexRangeRefLength];
-
-                    for (int i = 0; i < rexRangeRefLength; i++) {
-                        returnTypes[i] =
-                            join.getRowType().getFields()[origLeftInputCount
-                                + i].getType();
-                        returnNames[i] =
-                            join.getRowType().getFields()[origLeftInputCount
-                                + i].getName();
-                    }
-
                     RelDataType returnType =
-                        typeFactory.createStructType(returnTypes, returnNames);
+                        typeFactory.createStructType(
+                            new AbstractList<Map.Entry<String, RelDataType>>() {
+                                public Map.Entry<String, RelDataType> get(
+                                    int index)
+                                {
+                                    return join.getRowType().getFields()[
+                                            origLeftInputCount + index];
+                                }
+
+                                public int size() {
+                                    return rexRangeRefLength;
+                                }
+                            });
 
                     return rexBuilder.makeRangeReference(
                         returnType,
@@ -4059,7 +4060,7 @@ public class SqlToRelConverter
                 }
 
                 if (needTruthTest) {
-                    assert (rex instanceof RexRangeRef);
+                    assert rex instanceof RexRangeRef;
                     rexNode =
                         rexBuilder.makeFieldAccess(
                             rex,
@@ -4133,7 +4134,7 @@ public class SqlToRelConverter
             if (rex instanceof RexCall) {
                 RexCall call = (RexCall) rex;
                 if (call.getOperator() == SqlStdOperatorTable.castFunc) {
-                    RexNode operand = (RexNode) call.getOperands()[0];
+                    RexNode operand = call.getOperands()[0];
                     if (operand instanceof RexLiteral) {
                         return true;
                     }
@@ -4195,9 +4196,10 @@ public class SqlToRelConverter
             if (agg != null) {
                 final SqlOperator op = call.getOperator();
                 if (op.isAggregator()) {
-                    Util.permAssert(
-                        agg != null,
-                        "aggregate fun must occur in aggregation mode");
+                    if (agg == null) {
+                        throw new AssertionError(
+                            "aggregate fun must occur in aggregation mode");
+                    }
                     return agg.lookupAggregates(call);
                 }
             }
@@ -4535,7 +4537,7 @@ public class SqlToRelConverter
                     bb.agg = null;
                     for (int i = 0; i < call.operands.length; i++) {
                         SqlNode operand = call.operands[i];
-                        RexNode convertedExpr = null;
+                        RexNode convertedExpr;
 
                         // special case for COUNT(*):  delete the *
                         if (operand instanceof SqlIdentifier) {

@@ -25,6 +25,7 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.Pair;
 
 
 /**
@@ -151,12 +152,10 @@ public class SqlCaseOperator
         final SqlNodeList whenOperands = sqlCase.getWhenOperands();
         final SqlNodeList thenOperands = sqlCase.getThenOperands();
         final SqlNode elseOperand = sqlCase.getElseOperand();
-        for (int i = 0; i < whenOperands.size(); i++) {
-            SqlNode operand = whenOperands.get(i);
+        for (SqlNode operand : whenOperands) {
             operand.validateExpr(validator, operandScope);
         }
-        for (int i = 0; i < thenOperands.size(); i++) {
-            SqlNode operand = thenOperands.get(i);
+        for (SqlNode operand : thenOperands) {
             operand.validateExpr(validator, operandScope);
         }
         if (elseOperand != null) {
@@ -183,11 +182,9 @@ public class SqlCaseOperator
         SqlNodeList thenList = caseCall.getThenOperands();
         assert (whenList.size() == thenList.size());
 
-        //checking that search conditions are ok...
-        for (int i = 0; i < whenList.size(); i++) {
-            SqlNode node = whenList.get(i);
-
-            //should throw validation error if something wrong...
+        // checking that search conditions are ok...
+        for (SqlNode node : whenList) {
+            // should throw validation error if something wrong...
             RelDataType type =
                 callBinding.getValidator().deriveType(
                     callBinding.getScope(),
@@ -202,8 +199,7 @@ public class SqlCaseOperator
         }
 
         boolean foundNotNull = false;
-        for (int i = 0; i < thenList.size(); i++) {
-            SqlNode node = thenList.get(i);
+        for (SqlNode node : thenList) {
             if (!SqlUtil.isNullLiteral(node, false)) {
                 foundNotNull = true;
             }
@@ -246,22 +242,19 @@ public class SqlCaseOperator
         SqlCase caseCall = (SqlCase) callBinding.getCall();
         SqlNodeList thenList = caseCall.getThenOperands();
         ArrayList<SqlNode> nullList = new ArrayList<SqlNode>();
-        RelDataType [] argTypes = new RelDataType[thenList.size() + 1];
-        for (int i = 0; i < thenList.size(); i++) {
-            SqlNode node = thenList.get(i);
-            argTypes[i] =
+        List<RelDataType> argTypes = new ArrayList<RelDataType>();
+        for (SqlNode node : thenList) {
+            argTypes.add(
                 callBinding.getValidator().deriveType(
-                    callBinding.getScope(),
-                    node);
+                    callBinding.getScope(), node));
             if (SqlUtil.isNullLiteral(node, false)) {
                 nullList.add(node);
             }
         }
         SqlNode elseOp = caseCall.getElseOperand();
-        argTypes[argTypes.length - 1] =
+        argTypes.add(
             callBinding.getValidator().deriveType(
-                callBinding.getScope(),
-                caseCall.getElseOperand());
+                callBinding.getScope(), caseCall.getElseOperand()));
         if (SqlUtil.isNullLiteral(elseOp, false)) {
             nullList.add(elseOp);
         }
@@ -273,8 +266,7 @@ public class SqlCaseOperator
             throw callBinding.newValidationError(
                 EigenbaseResource.instance().IllegalMixingOfTypes.ex());
         }
-        for (int i = 0; i < nullList.size(); i++) {
-            SqlNode node = nullList.get(i);
+        for (SqlNode node : nullList) {
             callBinding.getValidator().setValidatedNodeType(node, ret);
         }
         return ret;
@@ -282,19 +274,22 @@ public class SqlCaseOperator
 
     private RelDataType inferTypeFromOperands(
         RelDataTypeFactory typeFactory,
-        RelDataType [] argTypes)
+        List<RelDataType> argTypes)
     {
-        assert (argTypes.length % 2) == 1 : "odd number of arguments expected: "
-            + argTypes.length;
-        assert argTypes.length > 1 : argTypes.length;
-        RelDataType [] thenTypes =
-            new RelDataType[((argTypes.length - 1) / 2) + 1];
-        for (int i = 0, j = 1; j < (argTypes.length - 1); i++, j += 2) {
-            thenTypes[i] = argTypes[j];
+        assert (argTypes.size() % 2) == 1 : "odd number of arguments expected: "
+            + argTypes.size();
+        assert argTypes.size() > 1 : argTypes.size();
+        List<RelDataType> thenTypes = new ArrayList<RelDataType>();
+        for (int j = 1; j < (argTypes.size() - 1); j += 2) {
+            thenTypes.add(argTypes.get(j));
         }
 
-        thenTypes[thenTypes.length - 1] = argTypes[argTypes.length - 1];
+        thenTypes.add(last(argTypes));
         return typeFactory.leastRestrictive(thenTypes);
+    }
+
+    private static <T> T last(List<T> list) {
+        return list.get(list.size() - 1);
     }
 
     public SqlOperandCountRange getOperandCountRange()
@@ -368,13 +363,11 @@ public class SqlCaseOperator
         SqlNodeList whenList = (SqlNodeList) operands[SqlCase.WHEN_OPERANDS];
         SqlNodeList thenList = (SqlNodeList) operands[SqlCase.THEN_OPERANDS];
         assert whenList.size() == thenList.size();
-        for (int i = 0; i < whenList.size(); i++) {
+        for (Pair<SqlNode, SqlNode> pair : Pair.zip(whenList, thenList)) {
             writer.sep("WHEN");
-            SqlNode e = whenList.get(i);
-            e.unparse(writer, 0, 0);
+            pair.left.unparse(writer, 0, 0);
             writer.sep("THEN");
-            e = thenList.get(i);
-            e.unparse(writer, 0, 0);
+            pair.right.unparse(writer, 0, 0);
         }
 
         writer.sep("ELSE");

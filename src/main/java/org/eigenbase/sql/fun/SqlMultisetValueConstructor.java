@@ -17,11 +17,13 @@
 */
 package org.eigenbase.sql.fun;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
 
 
 /**
@@ -70,7 +72,7 @@ public class SqlMultisetValueConstructor
 
     private RelDataType getComponentType(
         RelDataTypeFactory typeFactory,
-        RelDataType [] argTypes)
+        List<RelDataType> argTypes)
     {
         return typeFactory.leastRestrictive(argTypes);
     }
@@ -79,7 +81,7 @@ public class SqlMultisetValueConstructor
         SqlCallBinding callBinding,
         boolean throwOnFailure)
     {
-        final RelDataType [] argTypes =
+        final List<RelDataType> argTypes =
             SqlTypeUtil.deriveAndCollectTypes(
                 callBinding.getValidator(),
                 callBinding.getScope(),

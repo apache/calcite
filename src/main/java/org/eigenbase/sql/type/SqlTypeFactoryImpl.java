@@ -18,6 +18,7 @@
 package org.eigenbase.sql.type;
 
 import java.nio.charset.*;
+import java.util.List;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
@@ -125,12 +126,12 @@ public class SqlTypeFactoryImpl
     }
 
     // implement RelDataTypeFactory
-    public RelDataType leastRestrictive(RelDataType [] types)
+    public RelDataType leastRestrictive(List<RelDataType> types)
     {
-        assert (types != null);
-        assert (types.length >= 1);
+        assert types != null;
+        assert types.size() >= 1;
 
-        RelDataType type0 = types[0];
+        RelDataType type0 = types.get(0);
         if (type0.getSqlTypeName() != null) {
             RelDataType resultType = leastRestrictiveSqlType(types);
             if (resultType != null) {
@@ -142,12 +143,12 @@ public class SqlTypeFactoryImpl
         return super.leastRestrictive(types);
     }
 
-    private RelDataType leastRestrictiveByCast(RelDataType [] types)
+    private RelDataType leastRestrictiveByCast(List<RelDataType> types)
     {
-        RelDataType resultType = types[0];
+        RelDataType resultType = types.get(0);
         boolean anyNullable = resultType.isNullable();
-        for (int i = 1; i < types.length; i++) {
-            RelDataType type = types[i];
+        for (int i = 1; i < types.size(); i++) {
+            RelDataType type = types.get(i);
             if (type.getSqlTypeName() == SqlTypeName.NULL) {
                 anyNullable = true;
                 continue;
@@ -204,13 +205,13 @@ public class SqlTypeFactoryImpl
             : "use createSqlIntervalType() instead";
     }
 
-    private RelDataType leastRestrictiveSqlType(RelDataType [] types)
+    private RelDataType leastRestrictiveSqlType(List<RelDataType> types)
     {
         RelDataType resultType = null;
         boolean anyNullable = false;
 
-        for (int i = 0; i < types.length; ++i) {
-            RelDataType type = types[i];
+        for (int i = 0; i < types.size(); ++i) {
+            RelDataType type = types.get(i);
             RelDataTypeFamily family = type.getFamily();
 
             SqlTypeName typeName = type.getSqlTypeName();
@@ -314,8 +315,8 @@ public class SqlTypeFactoryImpl
                 if (SqlTypeUtil.isExactNumeric(resultType)) {
                     // TODO: come up with a cleaner way to support
                     // interval + datetime = datetime
-                    if (types.length > (i + 1)) {
-                        RelDataType type1 = types[i + 1];
+                    if (types.size() > (i + 1)) {
+                        RelDataType type1 = types.get(i + 1);
                         if (SqlTypeUtil.isDatetime(type1)) {
                             resultType = type1;
                             return resultType;
@@ -394,8 +395,8 @@ public class SqlTypeFactoryImpl
             } else if (SqlTypeUtil.isInterval(type)) {
                 // TODO: come up with a cleaner way to support
                 // interval + datetime = datetime
-                if (types.length > (i + 1)) {
-                    RelDataType type1 = types[i + 1];
+                if (types.size() > (i + 1)) {
+                    RelDataType type1 = types.get(i + 1);
                     if (SqlTypeUtil.isDatetime(type1)) {
                         resultType = type1;
                         return resultType;
@@ -418,8 +419,8 @@ public class SqlTypeFactoryImpl
             } else if (SqlTypeUtil.isDatetime(type)) {
                 // TODO: come up with a cleaner way to support
                 // datetime +/- interval (or integer) = datetime
-                if (types.length > (i + 1)) {
-                    RelDataType type1 = types[i + 1];
+                if (types.size() > (i + 1)) {
+                    RelDataType type1 = types.get(i + 1);
                     if (SqlTypeUtil.isInterval(type1)
                         || SqlTypeUtil.isIntType(type1))
                     {

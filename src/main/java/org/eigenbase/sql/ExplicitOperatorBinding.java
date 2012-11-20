@@ -17,6 +17,8 @@
 */
 package org.eigenbase.sql;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
@@ -35,14 +37,14 @@ public class ExplicitOperatorBinding
 {
     //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType [] types;
+    private final List<RelDataType> types;
     private final SqlOperatorBinding delegate;
 
     //~ Constructors -----------------------------------------------------------
 
     public ExplicitOperatorBinding(
         SqlOperatorBinding delegate,
-        RelDataType [] types)
+        List<RelDataType> types)
     {
         this(
             delegate,
@@ -54,7 +56,7 @@ public class ExplicitOperatorBinding
     public ExplicitOperatorBinding(
         RelDataTypeFactory typeFactory,
         SqlOperator operator,
-        RelDataType [] types)
+        List<RelDataType> types)
     {
         this(null, typeFactory, operator, types);
     }
@@ -63,7 +65,7 @@ public class ExplicitOperatorBinding
         SqlOperatorBinding delegate,
         RelDataTypeFactory typeFactory,
         SqlOperator operator,
-        RelDataType [] types)
+        List<RelDataType> types)
     {
         super(typeFactory, operator);
         this.types = types;
@@ -75,13 +77,13 @@ public class ExplicitOperatorBinding
     // implement SqlOperatorBinding
     public int getOperandCount()
     {
-        return types.length;
+        return types.size();
     }
 
     // implement SqlOperatorBinding
     public RelDataType getOperandType(int ordinal)
     {
-        return types[ordinal];
+        return types.get(ordinal);
     }
 
     public EigenbaseException newError(

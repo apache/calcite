@@ -51,14 +51,14 @@ public abstract class SqlTypeUtil
      * @pre argTypes != null
      * @pre argTypes.length >= 2
      */
-    public static boolean isCharTypeComparable(RelDataType [] argTypes)
+    public static boolean isCharTypeComparable(List<RelDataType> argTypes)
     {
         assert null != argTypes : "precondition failed";
-        assert 2 <= argTypes.length : "precondition failed";
+        assert 2 <= argTypes.size() : "precondition failed";
 
-        for (int j = 0; j < (argTypes.length - 1); j++) {
-            RelDataType t0 = argTypes[j];
-            RelDataType t1 = argTypes[j + 1];
+        for (int j = 0; j < (argTypes.size() - 1); j++) {
+            RelDataType t0 = argTypes.get(j);
+            RelDataType t1 = argTypes.get(j + 1);
 
             if (!inCharFamily(t0) || !inCharFamily(t1)) {
                 return false;
@@ -85,21 +85,6 @@ public abstract class SqlTypeUtil
         }
 
         return true;
-    }
-
-    /**
-     * @param start zero based index
-     * @param stop zero based index
-     */
-    public static boolean isCharTypeComparable(
-        RelDataType [] argTypes,
-        int start,
-        int stop)
-    {
-        int n = stop - start + 1;
-        RelDataType [] subset = new RelDataType[n];
-        System.arraycopy(argTypes, start, subset, 0, n);
-        return isCharTypeComparable(subset);
     }
 
     /**
@@ -146,16 +131,18 @@ public abstract class SqlTypeUtil
 
     /**
      * Iterates over all operands, derives their types, and collects them into
-     * an array.
+     * a list.
      */
-    public static RelDataType [] deriveAndCollectTypes(
+    public static List<RelDataType> deriveAndCollectTypes(
         SqlValidator validator,
         SqlValidatorScope scope,
         SqlNode [] operands)
     {
-        RelDataType [] types = new RelDataType[operands.length];
-        for (int i = 0; i < operands.length; i++) {
-            types[i] = validator.deriveType(scope, operands[i]);
+        // NOTE: Do not use an AbstractList. Don't want to be lazy. We want
+        // errors.
+        List<RelDataType> types = new ArrayList<RelDataType>();
+        for (SqlNode operand : operands) {
+            types.add(validator.deriveType(scope, operand));
         }
         return types;
     }
@@ -230,7 +217,7 @@ public abstract class SqlTypeUtil
      */
     public static RelDataType makeNullableIfOperandsAre(
         final RelDataTypeFactory typeFactory,
-        final RelDataType [] argTypes,
+        final List<RelDataType> argTypes,
         RelDataType type)
     {
         if (containsNullable(argTypes)) {
@@ -242,7 +229,7 @@ public abstract class SqlTypeUtil
     /**
      * Returns whether one or more of an array of types is nullable.
      */
-    public static boolean containsNullable(RelDataType [] types)
+    public static boolean containsNullable(List<RelDataType> types)
     {
         for (RelDataType type : types) {
             if (containsNullable(type)) {
