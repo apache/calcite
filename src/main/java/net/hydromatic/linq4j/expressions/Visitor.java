@@ -129,7 +129,7 @@ public class Visitor {
         List<Expression> indexExpressions)
     {
         return indexExpression.array == array
-            && indexExpression.indexExpressions == indexExpressions
+            && indexExpression.indexExpressions.equals(indexExpressions)
             ? indexExpression
             : new IndexExpression(array, indexExpressions);
     }
@@ -140,7 +140,11 @@ public class Visitor {
     {
         return unaryExpression.expression == expression
             ? unaryExpression
-            : Expressions.makeUnary(unaryExpression.nodeType, expression);
+            : Expressions.makeUnary(
+                unaryExpression.nodeType,
+                expression,
+                unaryExpression.type,
+                null);
     }
 
     public Expression visit(
@@ -185,7 +189,7 @@ public class Visitor {
         return expressions.equals(newArrayExpression.expressions)
             ? newArrayExpression
             : Expressions.newArrayInit(
-                newArrayExpression.type,
+                Types.componentType(newArrayExpression.type),
                 expressions);
     }
 

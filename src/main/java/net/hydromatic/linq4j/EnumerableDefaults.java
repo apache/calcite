@@ -719,11 +719,44 @@ public abstract class EnumerableDefaults {
         final Function1<TInner, TKey> innerKeySelector,
         final Function2<TSource, TInner, TResult> resultSelector)
     {
+        return join_(
+            outer, inner, outerKeySelector, innerKeySelector, resultSelector,
+            null);
+    }
+
+    /** Correlates the elements of two sequences based on
+     * matching keys. A specified EqualityComparer<TSource> is used to
+     * compare keys. */
+    public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(
+        Enumerable<TSource> outer,
+        Enumerable<TInner> inner,
+        Function1<TSource, TKey> outerKeySelector,
+        Function1<TInner, TKey> innerKeySelector,
+        Function2<TSource, TInner, TResult> resultSelector,
+        EqualityComparer<TKey> comparer)
+    {
+        return join_(
+            outer, inner, outerKeySelector, innerKeySelector, resultSelector,
+            comparer);
+    }
+
+    private static <TSource, TInner, TKey, TResult> Enumerable<TResult> join_(
+        final Enumerable<TSource> outer,
+        final Enumerable<TInner> inner,
+        final Function1<TSource, TKey> outerKeySelector,
+        final Function1<TInner, TKey> innerKeySelector,
+        final Function2<TSource, TInner, TResult> resultSelector,
+        final EqualityComparer<TKey> comparer)
+    {
         return new AbstractEnumerable<TResult>() {
             final Lookup<TKey, TSource> outerMap =
-                outer.toLookup(outerKeySelector);
+                comparer == null
+                    ? outer.toLookup(outerKeySelector)
+                    : outer.toLookup(outerKeySelector, comparer);
             final Lookup<TKey, TInner> innerLookup =
-                inner.toLookup(innerKeySelector);
+                comparer == null
+                    ? inner.toLookup(innerKeySelector)
+                    : inner.toLookup(innerKeySelector, comparer);
             final Enumerator<Map.Entry<TKey, Enumerable<TSource>>> entries =
                 Linq4j.enumerator(outerMap.entrySet());
             public Enumerator<TResult> enumerator() {
@@ -764,7 +797,7 @@ public abstract class EnumerableDefaults {
                                             (Enumerator)
                                                 outerEnumerable.enumerator(),
                                             (Enumerator<Object>)
-                                                (Enumerator)
+                                            (Enumerator)
                                                 innerEnumerable.enumerator()));
                             }
                         }
@@ -776,20 +809,6 @@ public abstract class EnumerableDefaults {
                 };
             }
         };
-    }
-
-    /** Correlates the elements of two sequences based on
-     * matching keys. A specified EqualityComparer<TSource> is used to
-     * compare keys. */
-    public static <TSource, TInner, TKey, TResult> Enumerable<TResult> join(
-        Enumerable<TSource> outer,
-        Enumerable<TInner> inner,
-        Function1<TSource, TKey> outerKeySelector,
-        Function1<TInner, TKey> innerKeySelector,
-        Function2<TSource, TInner, TResult> resultSelector,
-        EqualityComparer<TKey> comparer)
-    {
-        throw Extensions.todo();
     }
 
     /** Returns the last element of a sequence. (Defined

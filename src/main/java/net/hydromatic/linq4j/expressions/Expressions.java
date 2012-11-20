@@ -1468,7 +1468,8 @@ public class Expressions {
         Method method)
     {
         assert type != null;
-        throw Extensions.todo();
+        return new UnaryExpression(
+            expressionType, type, expression);
     }
 
     /** Creates a MemberMemberBinding that represents the recursive

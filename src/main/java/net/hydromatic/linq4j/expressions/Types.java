@@ -118,6 +118,10 @@ public class Types {
         return classes.toArray(new Class[classes.size()]);
     }
 
+    static Type componentType(Type type) {
+        return toClass(type).getComponentType();
+    }
+
     /**
      * Boxes a type, if it is primitive, and returns the type name.
      * The type is abbreviated if it is in the "java.lang" package.
