@@ -351,15 +351,23 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
         int resultSetConcurrency,
         int resultSetHoldability) throws SQLException
     {
-        OptiqPreparedStatement statement =
-            factory.newPreparedStatement(
-                this,
-                sql,
-                resultSetType,
-                resultSetConcurrency,
-                resultSetHoldability);
-        server.addStatement(statement);
-        return statement;
+        try {
+            OptiqPreparedStatement statement =
+                factory.newPreparedStatement(
+                    this,
+                    sql,
+                    resultSetType,
+                    resultSetConcurrency,
+                    resultSetHoldability);
+            server.addStatement(statement);
+            return statement;
+        } catch (RuntimeException e) {
+            throw Helper.INSTANCE.createException(
+                "Error while preparing statement [" + sql + "]", e);
+        } catch (Exception e) {
+            throw Helper.INSTANCE.createException(
+                "Error while preparing statement [" + sql + "]", e);
+        }
     }
 
     public CallableStatement prepareCall(

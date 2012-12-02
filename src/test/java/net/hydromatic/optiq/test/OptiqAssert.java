@@ -166,6 +166,11 @@ public class OptiqAssert {
                 connection.close();
             }
         }
+
+        public AssertThat withSchema(String schema) {
+            return new AssertThat(
+                new SchemaConnectionFactory(connectionFactory, schema));
+        }
     }
 
     public interface ConnectionFactory {
@@ -193,6 +198,39 @@ public class OptiqAssert {
             default:
                 throw Util.unexpected(config);
             }
+        }
+    }
+
+    private static class DelegatingConnectionFactory
+        implements ConnectionFactory
+    {
+        private final ConnectionFactory factory;
+
+        public DelegatingConnectionFactory(ConnectionFactory factory) {
+            this.factory = factory;
+        }
+
+        public Connection createConnection() throws Exception {
+            return factory.createConnection();
+        }
+    }
+
+    private static class SchemaConnectionFactory
+        extends DelegatingConnectionFactory
+    {
+        private final String schema;
+
+        public SchemaConnectionFactory(ConnectionFactory factory, String schema)
+        {
+            super(factory);
+            this.schema = schema;
+        }
+
+        @Override
+        public Connection createConnection() throws Exception {
+            Connection connection = super.createConnection();
+            connection.setSchema(schema);
+            return connection;
         }
     }
 

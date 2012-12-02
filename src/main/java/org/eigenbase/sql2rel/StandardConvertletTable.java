@@ -255,19 +255,27 @@ public class StandardConvertletTable
     {
         SqlNodeList whenList = call.getWhenOperands();
         SqlNodeList thenList = call.getThenOperands();
-        RexNode [] whenThenElseExprs = new RexNode[(whenList.size() * 2) + 1];
         assert (whenList.size() == thenList.size());
 
+        final List<RexNode> exprList = new ArrayList<RexNode>();
         for (int i = 0; i < whenList.size(); i++) {
-            whenThenElseExprs[i * 2] = cx.convertExpression(whenList.get(i));
-            whenThenElseExprs[(i * 2) + 1] =
-                cx.convertExpression(thenList.get(i));
+            exprList.add(cx.convertExpression(whenList.get(i)));
+            exprList.add(cx.convertExpression(thenList.get(i)));
         }
-        whenThenElseExprs[whenThenElseExprs.length - 1] =
-            cx.convertExpression(call.getElseOperand());
-        return cx.getRexBuilder().makeCall(
-            SqlStdOperatorTable.caseOperator,
-            whenThenElseExprs);
+        exprList.add(cx.convertExpression(call.getElseOperand()));
+
+        RexNode[] exprs = exprList.toArray(new RexNode[exprList.size()]);
+        RexBuilder rexBuilder = cx.getRexBuilder();
+        RelDataType type =
+            rexBuilder.deriveReturnType(
+                call.getOperator(), cx.getTypeFactory(), exprs);
+        for (int i : elseArgs(exprs.length)) {
+            exprList.set(
+                i,
+                rexBuilder.ensureType(type, exprList.get(i), false));
+        }
+        return rexBuilder.makeCall(
+            SqlStdOperatorTable.caseOperator, exprList);
     }
 
     public RexNode convertMultiset(
@@ -613,9 +621,7 @@ public class StandardConvertletTable
         final RelDataTypeFactory typeFactory = cx.getTypeFactory();
         RelDataType type =
             rexBuilder.deriveReturnType(
-                constructor,
-                typeFactory,
-                exprs);
+                constructor, typeFactory, exprs);
 
         int n = type.getFieldCount();
         RexNode [] initializationExprs = new RexNode[n];
@@ -654,6 +660,7 @@ public class StandardConvertletTable
     {
         final SqlOperator op = call.getOperator();
         final SqlNode [] operands = call.getOperands();
+        final RexBuilder rexBuilder = cx.getRexBuilder();
         if (op instanceof SqlOverlapsOperator) {
             // for intervals [t0, t1] overlaps [t2, t3], we can find if the
             // intervals overlaps by: ~(t1 < t2 or t3 < t0)
@@ -718,7 +725,6 @@ public class StandardConvertletTable
                 == SqlTypeName.COLUMN_LIST))
         {
             RexNode [] columns = new RexNode[operands.length];
-            RexBuilder rexBuilder = cx.getRexBuilder();
             for (int i = 0; i < columns.length; i++) {
                 columns[i] =
                     rexBuilder.makeLiteral(
@@ -735,7 +741,22 @@ public class StandardConvertletTable
         {
             ensureSameType(cx, exprs);
         }
-        return cx.getRexBuilder().makeCall(op, exprs);
+        return rexBuilder.makeCall(op, exprs);
+    }
+
+    private List<Integer> elseArgs(int count) {
+        // If list is odd, e.g. [0, 1, 2, 3, 4] we get [1, 3, 4]
+        // If list is even, e.g. [0, 1, 2, 3, 4, 5] we get [2, 4, 5]
+        List<Integer> list = new ArrayList<Integer>();
+        for (int i = count % 2;;) {
+            list.add(i);
+            i += 2;
+            if (i >= count) {
+                list.add(i - 1);
+                break;
+            }
+        }
+        return list;
     }
 
     private void ensureSameType(SqlRexContext cx, final RexNode[] exprs) {
@@ -774,10 +795,7 @@ public class StandardConvertletTable
         RexNode op0 = cx.convertExpression(call.operands[0]);
         RexNode op1 = cx.convertExpression(call.operands[1]);
         return RelOptUtil.isDistinctFrom(
-            cx.getRexBuilder(),
-            op0,
-            op1,
-            neg);
+            cx.getRexBuilder(), op0, op1, neg);
     }
 
     /**

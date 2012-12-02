@@ -99,6 +99,16 @@ public class JdbcFrontJdbcBackTest extends TestCase {
                 }
             );
     }
+
+    public void testCase() {
+        assertThat()
+            .with(OptiqAssert.Config.JDBC_FOODMART2)
+            .withSchema("foodmart")
+            .query(
+                "select case when \"sales_fact_1997\".\"promotion_id\" = 1 then 0\n"
+                + "                        else \"sales_fact_1997\".\"store_sales\" end as \"c0\" from \"sales_fact_1997\" as \"sales_fact_1997\"")
+            .returns("xxx");
+    }
 }
 
 // End JdbcFrontJdbcBackTest.java

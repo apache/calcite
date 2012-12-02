@@ -429,7 +429,10 @@ public class RexBuilder
         RelDataType type,
         RexNode exp)
     {
-        if (SqlTypeUtil.isInterval(type)
+        if (exp instanceof RexLiteral) {
+            RexLiteral literal = (RexLiteral) exp;
+            return makeLiteral(literal.getValue(), type, literal.getTypeName());
+        } else if (SqlTypeUtil.isInterval(type)
             && SqlTypeUtil.isExactNumeric(exp.getType()))
         {
             return makeCastExactToInterval(type, exp);
@@ -748,6 +751,7 @@ public class RexBuilder
         if (typeName == SqlTypeName.CHAR) {
             // Character literals must have a charset and collation. Populate
             // from the type if necessary.
+            assert o instanceof NlsString;
             NlsString nlsString = (NlsString) o;
             if ((nlsString.getCollation() == null)
                 || (nlsString.getCharset() == null))
