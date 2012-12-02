@@ -563,7 +563,7 @@ public class JavaRules {
                         Enumerator.class, inputJavaType),
                     "inputEnumerator");
             Expression input =
-                Expressions.convert_(
+                RexToLixTranslator.convert(
                     Expressions.call(
                         inputEnumerator,
                         BuiltinMethod.ENUMERATOR_CURRENT.method),
