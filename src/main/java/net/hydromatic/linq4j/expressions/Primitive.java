@@ -28,20 +28,25 @@ import java.util.*;
  * (e.g. {@link Integer}).</p>
 */
 public enum Primitive {
-    BOOLEAN(Boolean.TYPE, Boolean.class),
-    BYTE(Byte.TYPE, Byte.class),
-    CHARACTER(Character.TYPE, Character.class),
-    SHORT(Short.TYPE, Short.class),
-    INT(Integer.TYPE, Integer.class),
-    LONG(Long.TYPE, Long.class),
-    FLOAT(Float.TYPE, Float.class),
-    DOUBLE(Double.TYPE, Double.class),
-    VOID(Void.TYPE, Void.class),
-    OTHER(null, null);
+    BOOLEAN(Boolean.TYPE, Boolean.class, true, Boolean.FALSE, Boolean.TRUE),
+    BYTE(Byte.TYPE, Byte.class, true, Byte.MIN_VALUE, Byte.MAX_VALUE),
+    CHARACTER(Character.TYPE, Character.class, true, Character.MIN_VALUE,
+        Character.MAX_VALUE),
+    SHORT(Short.TYPE, Short.class, true, Short.MIN_VALUE, Short.MAX_VALUE),
+    INT(Integer.TYPE, Integer.class, true, Short.MIN_VALUE, Short.MAX_VALUE),
+    LONG(Long.TYPE, Long.class, true, Long.MIN_VALUE, Long.MAX_VALUE),
+    FLOAT(Float.TYPE, Float.class, false, Float.MIN_VALUE, Float.MAX_VALUE),
+    DOUBLE(Double.TYPE, Double.class, false, Double.MIN_VALUE,
+        Double.MAX_VALUE),
+    VOID(Void.TYPE, Void.class, false, null, null),
+    OTHER(null, null, false, null, null);
 
     public final Class primitiveClass;
     public final Class boxClass;
     public final String primitiveName; // e.g. "int"
+    public final boolean fixed;
+    public final Object min;
+    public final Object max;
 
     private static final Map<Class, Primitive> PRIMITIVE_MAP =
         new HashMap<Class, Primitive>();
@@ -60,11 +65,20 @@ public enum Primitive {
         }
     }
 
-    Primitive(Class primitiveClass, Class boxClass) {
+    Primitive(
+        Class primitiveClass,
+        Class boxClass,
+        boolean fixed,
+        Object min,
+        Object max)
+    {
         this.primitiveClass = primitiveClass;
         this.primitiveName =
             primitiveClass != null ? primitiveClass.getSimpleName() : null;
         this.boxClass = boxClass;
+        this.fixed = fixed;
+        this.min = min;
+        this.max = max;
     }
 
     /** Returns the Primitive object for a given primitive class.
@@ -144,6 +158,63 @@ public enum Primitive {
             char[] chars = new char[collection.size()];
             for (char _char : (Collection<Character>) collection) {
                 chars[i++] = _char;
+            }
+            return chars;
+        default:
+            throw new RuntimeException("unexpected: " + this);
+        }
+    }
+
+    /** Converts a collection of {@link Number} to a primitive array. */
+    public Object toArray2(Collection<Number> collection) {
+        int i = 0;
+        switch (this) {
+        case DOUBLE:
+            double[] doubles = new double[collection.size()];
+            for (Number number : collection) {
+                doubles[i++] = number.doubleValue();
+            }
+            return doubles;
+        case FLOAT:
+            float[] floats = new float[collection.size()];
+            for (Number number : collection) {
+                floats[i++] = number.floatValue();
+            }
+            return floats;
+        case INT:
+            int[] ints = new int[collection.size()];
+            for (Number number : collection) {
+                ints[i++] = number.intValue();
+            }
+            return ints;
+        case LONG:
+            long[] longs = new long[collection.size()];
+            for (Number number : collection) {
+                longs[i++] = number.longValue();
+            }
+            return longs;
+        case SHORT:
+            short[] shorts = new short[collection.size()];
+            for (Number number : collection) {
+                shorts[i++] = number.shortValue();
+            }
+            return shorts;
+        case BOOLEAN:
+            boolean[] booleans = new boolean[collection.size()];
+            for (Number number : collection) {
+                booleans[i++] = number.byteValue() != 0;
+            }
+            return booleans;
+        case BYTE:
+            byte[] bytes = new byte[collection.size()];
+            for (Number number : collection) {
+                bytes[i++] = number.byteValue();
+            }
+            return bytes;
+        case CHARACTER:
+            char[] chars = new char[collection.size()];
+            for (Number number : collection) {
+                chars[i++] = (char) number.shortValue();
             }
             return chars;
         default:
