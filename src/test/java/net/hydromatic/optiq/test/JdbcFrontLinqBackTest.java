@@ -180,6 +180,16 @@ public class JdbcFrontLinqBackTest extends TestCase {
             .throws_("Column 'EMPID' not found in any table");
     }
 
+    /** Test case for https://github.com/julianhyde/optiq/issues/9. */
+    public void testWhereOr() {
+        assertThat()
+            .query(
+                "select * from \"hr\".\"emps\"\n"
+                + "where (\"empid\" = 100 or \"empid\" = 200)\n"
+                + "and \"deptno\" = 10")
+            .returns("empid=100; deptno=10; name=Bill\n");
+    }
+
     public void testWhereLike() {
         if (false)
          // TODO: fix current error "Operands E.name, 'B%' not comparable to

@@ -287,6 +287,31 @@ public class RexToLixTranslator {
         throw new AssertionError("unknown agg " + aggregation);
     }
 
+    public static Expression convert(
+        Expression operand, Type javaType)
+    {
+        if (operand.getType().equals(javaType)) {
+            return operand;
+        }
+        // E.g. from "Short" to "int".
+        // Generate "x.intValue()".
+        final Primitive primitive = Primitive.of(javaType);
+        final Primitive fromPrimitive =
+            Primitive.ofBox(operand.getType());
+        if (primitive != null) {
+            if (fromPrimitive == null) {
+                // E.g. from "Object" to "short".
+                // Generate "(Short) x".
+                return Expressions.convert_(operand, primitive.boxClass);
+            }
+            if (fromPrimitive != primitive) {
+                return Expressions.call(
+                    operand, primitive.primitiveName + "Value");
+            }
+        }
+        return Expressions.convert_(operand, javaType);
+    }
+
     private static class Slot {
         ParameterExpression parameterExpression;
         Expression expression;
@@ -341,6 +366,23 @@ public class RexToLixTranslator {
                 defineMethod(notOperator, "not");
             }
             map.put(
+                isNullOperator,
+                new CallImplementor() {
+                    public Expression implement(
+                        RexToLixTranslator translator,
+                        RexCall call)
+                    {
+                        RexNode[] operands = call.getOperands();
+                        assert operands.length == 1;
+                        final Expression translate =
+                            translator.translate(operands[0]);
+                        return Expressions.notEqual(
+                            translate,
+                            Expressions.constant(null));
+                    }
+                }
+            );
+            map.put(
                 caseOperator,
                 new CallImplementor() {
                     public Expression implement(
@@ -376,26 +418,11 @@ public class RexToLixTranslator {
                     {
                         assert call.getOperands().length == 1;
                         RexNode expr = call.getOperands()[0];
-                        Type type =
-                            translator.typeFactory.getJavaClass(call.getType());
                         Expression operand = translator.translate(expr);
-                        if (operand.getType().equals(type)) {
-                            return operand;
-                        }
-                        // E.g. from "Short" to "int".
-                        // Generate x.intValue().
-                        final Primitive primitive = Primitive.of(type);
-                        final Primitive fromPrimitive =
-                            Primitive.ofBox(operand.getType());
-                        if (primitive != null
-                            && fromPrimitive != null
-                            && fromPrimitive != primitive)
-                        {
-                            return Expressions.call(
-                                operand,
-                                primitive.primitiveName + "Value");
-                        }
-                        return Expressions.convert_(operand, type);
+                        return convert(
+                            operand,
+                            translator.typeFactory.getJavaClass(
+                                call.getType()));
                     }
                 });
             aggMap.put(

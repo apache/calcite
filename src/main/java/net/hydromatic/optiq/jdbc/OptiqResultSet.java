@@ -167,7 +167,7 @@ public class OptiqResultSet implements ResultSet {
     }
 
     public double getDouble(int columnIndex) throws SQLException {
-        return getAccessor(columnIndex).getDouble();
+        return getAccessor(columnIndex - 1).getDouble();
     }
 
     public BigDecimal getBigDecimal(
