@@ -188,6 +188,11 @@ class ColumnLoader<T> {
         }
 
         Pair<ArrayTable.Representation, Object> freeze(int ordinal) {
+            ArrayTable.Representation representation = chooseRep(ordinal);
+            return Pair.of(representation, representation.freeze(this));
+        }
+
+        ArrayTable.Representation chooseRep(int ordinal) {
             Primitive primitive = Primitive.of(clazz);
             Primitive boxPrimitive = Primitive.ofBox(clazz);
             Primitive p = primitive != null ? primitive : boxPrimitive;
@@ -195,20 +200,28 @@ class ColumnLoader<T> {
                 switch (p) {
                 case FLOAT:
                 case DOUBLE:
-                    return pair(
-                        new ArrayTable.PrimitiveArray(
-                            ordinal, p, p));
+                    return new ArrayTable.PrimitiveArray(ordinal, p, p);
                 case OTHER:
                 case VOID:
                     throw new AssertionError("wtf?!");
                 }
-                return freezeFixed(
-                    ordinal,
-                    p,
-                    toLong(min),
-                    toLong(max));
+                return chooseFixedRep(
+                    ordinal, p, toLong(min), toLong(max));
             }
-            return pair(new ArrayTable.ObjectArray(ordinal));
+
+            // We don't want to use a dictionary if:
+            // (a) there are so many values that an object pointer (with one
+            //     indirection) has about as many bits as a code (with two
+            //     indirections); or
+            // (b) if there are very few copies of each value.
+            // The condition kind of captures this, but needs to be tuned.
+            final int codeBitCount = log2(nextPowerOf2(map.size()));
+            if (codeBitCount < 10 && values.size() > 2000) {
+                final ArrayTable.Representation representation =
+                    chooseFixedRep(-1, Primitive.INT, 0, map.size() - 1);
+                return new ArrayTable.ObjectDictionary(ordinal, representation);
+            }
+            return new ArrayTable.ObjectArray(ordinal);
         }
 
         private long toLong(Object o) {
@@ -223,7 +236,16 @@ class ColumnLoader<T> {
             }
         }
 
-        private Pair<ArrayTable.Representation, Object> freezeFixed(
+        /** Chooses a representation for a fixed-precision primitive type
+         * (boolean, byte, char, short, int, long).
+         *
+         * @param ordinal Ordinal of this column in table
+         * @param p Type that values are to be returned as (not necessarily the
+         *     same as they will be stored)
+         * @param min Minimum value to be encoded
+         * @param max Maximum value to be encoded (inclusive)
+         */
+        private ArrayTable.Representation chooseFixedRep(
             int ordinal, Primitive p, long min, long max)
         {
             int bitCountMax = log2(nextPowerOf2(abs2(max)));
@@ -241,25 +263,20 @@ class ColumnLoader<T> {
             }
             switch (bitCount) {
             case 8:
-                return pair(
-                    new ArrayTable.PrimitiveArray(
-                        ordinal, Primitive.BYTE, p));
+                return new ArrayTable.PrimitiveArray(
+                    ordinal, Primitive.BYTE, p);
             case 16:
-                return pair(
-                    new ArrayTable.PrimitiveArray(
-                        ordinal, Primitive.SHORT, p));
+                return new ArrayTable.PrimitiveArray(
+                    ordinal, Primitive.SHORT, p);
             case 32:
-                return pair(
-                    new ArrayTable.PrimitiveArray(
-                        ordinal, Primitive.INT, p));
+                return new ArrayTable.PrimitiveArray(
+                    ordinal, Primitive.INT, p);
             case 64:
-                return pair(
-                    new ArrayTable.PrimitiveArray(
-                        ordinal, Primitive.LONG, p));
+                return new ArrayTable.PrimitiveArray(
+                    ordinal, Primitive.LONG, p);
             default:
-                return pair(
-                    new ArrayTable.BitSlicedPrimitiveArray(
-                        ordinal, bitCount, p));
+                return new ArrayTable.BitSlicedPrimitiveArray(
+                    ordinal, bitCount, p);
             }
         }
 
@@ -273,13 +290,6 @@ class ColumnLoader<T> {
         private static long abs2(long v) {
             // -128 becomes +127
             return v < 0 ? ~v : v;
-        }
-
-        private Pair<ArrayTable.Representation, Object> pair(
-            ArrayTable.Representation representation)
-        {
-            Object o = representation.freeze(values);
-            return Pair.of(representation, o);
         }
     }
 }

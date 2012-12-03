@@ -125,6 +125,13 @@ class ArrayTable<T>
          * sorted, so v1 &lt; v2 if and only if code(v1) &lt; code(v2). The
          * dictionary may or may not contain a null value.
          *
+         * <p>The dictionary is not beneficial unless the codes are
+         * significantly shorter than the values. A column of {@code long}
+         * values with many duplicates is a win; a column of mostly distinct
+         * {@code short} values is likely a loss. The other win is if there are
+         * null values; otherwise the best option would be an
+         * {@link #OBJECT_ARRAY}.</p>
+         *
          * @see PrimitiveDictionary
          */
         PRIMITIVE_DICTIONARY,
@@ -163,10 +170,9 @@ class ArrayTable<T>
 
     public interface Representation {
         RepresentationType getType();
-
-        <E> Object freeze(List<E> values);
-
+        Object freeze(ColumnLoader.ValueSet valueSet);
         Object getObject(Object dataSet, int ordinal);
+        int getInt(Object dataSet, int ordinal);
     }
 
     public static class ObjectArray implements Representation {
@@ -180,15 +186,19 @@ class ArrayTable<T>
             return RepresentationType.OBJECT_ARRAY;
         }
 
-        public <E> Object freeze(List<E> values) {
+        public Object freeze(ColumnLoader.ValueSet valueSet) {
             // We assume:
             // 1. The array does not need to be copied.
             // 2. The values have been canonized.
-            return values;
+            return valueSet.values;
         }
 
         public Object getObject(Object dataSet, int ordinal) {
             return ((List) dataSet).get(ordinal);
+        }
+
+        public int getInt(Object dataSet, int ordinal) {
+            return ((Number) getObject(dataSet, ordinal)).intValue();
         }
     }
 
@@ -207,8 +217,9 @@ class ArrayTable<T>
             return RepresentationType.PRIMITIVE_ARRAY;
         }
 
-        public <E> Object freeze(final List<E> values) {
-            return primitive.toArray2((List<Number>) values);
+        public Object freeze(final ColumnLoader.ValueSet valueSet) {
+            //noinspection unchecked
+            return primitive.toArray2((List) valueSet.values);
         }
 
         public Object getObject(Object dataSet, int ordinal) {
@@ -233,6 +244,10 @@ class ArrayTable<T>
                 throw new AssertionError("unexpected " + p);
             }
         }
+
+        public int getInt(Object dataSet, int ordinal) {
+            return Array.getInt(dataSet, ordinal);
+        }
     }
 
     public static class PrimitiveDictionary implements Representation {
@@ -240,26 +255,65 @@ class ArrayTable<T>
             return RepresentationType.PRIMITIVE_DICTIONARY;
         }
 
-        public <E> Object freeze(List<E> values) {
+        public Object freeze(ColumnLoader.ValueSet valueSet) {
             throw new UnsupportedOperationException(); // TODO:
         }
 
         public Object getObject(Object dataSet, int ordinal) {
+            throw new UnsupportedOperationException(); // TODO:
+        }
+
+        public int getInt(Object dataSet, int ordinal) {
             throw new UnsupportedOperationException(); // TODO:
         }
     }
 
     public static class ObjectDictionary implements Representation {
+        final int ordinal;
+        final Representation representation;
+
+        public ObjectDictionary(
+            int ordinal,
+            Representation representation)
+        {
+            this.ordinal = ordinal;
+            this.representation = representation;
+        }
+
         public RepresentationType getType() {
             return RepresentationType.OBJECT_DICTIONARY;
         }
 
-        public <E> Object freeze(List<E> values) {
-            throw new UnsupportedOperationException(); // TODO:
+        public Object freeze(ColumnLoader.ValueSet valueSet) {
+            final int n = valueSet.map.keySet().size();
+            int extra = valueSet.containsNull ? 1 : 0;
+            Comparable[] codeValues =
+                valueSet.map.keySet().toArray(new Comparable[n + extra]);
+            Arrays.sort(codeValues, 0, n);
+            ColumnLoader.ValueSet codeValueSet =
+                new ColumnLoader.ValueSet(int.class);
+            for (Comparable value : valueSet.values) {
+                int code;
+                if (value == null) {
+                    code = n;
+                } else {
+                    code = Arrays.binarySearch(codeValues, value);
+                    assert code >= 0 : code + ", " + value;
+                }
+                codeValueSet.add(code);
+            }
+            Object codes = representation.freeze(codeValueSet);
+            return Pair.of(codes, codeValues);
         }
 
         public Object getObject(Object dataSet, int ordinal) {
-            throw new UnsupportedOperationException(); // TODO:
+            Pair<Object, Object[]> pair = (Pair<Object, Object[]>) dataSet;
+            int code = representation.getInt(pair.left, ordinal);
+            return pair.right[code];
+        }
+
+        public int getInt(Object dataSet, int ordinal) {
+            return ((Number) getObject(dataSet, ordinal)).intValue();
         }
     }
 
@@ -268,11 +322,15 @@ class ArrayTable<T>
             return RepresentationType.STRING_DICTIONARY;
         }
 
-        public <E> Object freeze(List<E> values) {
+        public Object freeze(ColumnLoader.ValueSet valueSet) {
             throw new UnsupportedOperationException(); // TODO:
         }
 
         public Object getObject(Object dataSet, int ordinal) {
+            throw new UnsupportedOperationException(); // TODO:
+        }
+
+        public int getInt(Object dataSet, int ordinal) {
             throw new UnsupportedOperationException(); // TODO:
         }
     }
@@ -282,11 +340,15 @@ class ArrayTable<T>
             return RepresentationType.BYTE_STRING_DICTIONARY;
         }
 
-        public <E> Object freeze(List<E> values) {
+        public Object freeze(ColumnLoader.ValueSet valueSet) {
             throw new UnsupportedOperationException(); // TODO:
         }
 
         public Object getObject(Object dataSet, int ordinal) {
+            throw new UnsupportedOperationException(); // TODO:
+        }
+
+        public int getInt(Object dataSet, int ordinal) {
             throw new UnsupportedOperationException(); // TODO:
         }
     }
@@ -307,20 +369,22 @@ class ArrayTable<T>
             return RepresentationType.BIT_SLICED_PRIMITIVE_ARRAY;
         }
 
-        public <E> Object freeze(List<E> values) {
+        public Object freeze(ColumnLoader.ValueSet valueSet) {
             final int chunksPerWord = 64 / bitCount;
+            final List<Comparable> valueList = valueSet.values;
+            final int valueCount = valueList.size();
             final int wordCount =
-                (values.size() + (chunksPerWord - 1)) / chunksPerWord;
-            final int remainingChunkCount = values.size() % chunksPerWord;
+                (valueCount + (chunksPerWord - 1)) / chunksPerWord;
+            final int remainingChunkCount = valueCount % chunksPerWord;
             final long[] longs = new long[wordCount];
-            final int n = values.size() / chunksPerWord;
+            final int n = valueCount / chunksPerWord;
             int i;
             int k = 0;
-            if (values.size() > 0
-                && values.get(0) instanceof Boolean)
+            if (valueCount > 0
+                && valueList.get(0) instanceof Boolean)
             {
                 @SuppressWarnings("unchecked")
-                final List<Boolean> booleans = (List<Boolean>) values;
+                final List<Boolean> booleans = (List) valueSet.values;
                 for (i = 0; i < n; i++) {
                     long v = 0;
                     for (int j = 0; j < chunksPerWord; j++) {
@@ -337,7 +401,7 @@ class ArrayTable<T>
                 }
             } else {
                 @SuppressWarnings("unchecked")
-                final List<Number> numbers = (List<Number>) values;
+                final List<Number> numbers = (List) valueSet.values;
                 for (i = 0; i < n; i++) {
                     long v = 0;
                     for (int j = 0; j < chunksPerWord; j++) {
@@ -380,6 +444,17 @@ class ArrayTable<T>
             default:
                 throw new AssertionError(primitive + " unexpected");
             }
+        }
+
+        public int getInt(Object dataSet, int ordinal) {
+            final long[] longs = (long[]) dataSet;
+            final int chunksPerWord = 64 / bitCount;
+            final int word = ordinal / chunksPerWord;
+            final long v = longs[word];
+            final int chunk = ordinal % chunksPerWord;
+            final int mask = (1 << bitCount) - 1;
+            final long x = (v >> (chunk * bitCount)) & mask;
+            return (int) x;
         }
 
         public static long getLong(int bitCount, long[] values, int ordinal) {
