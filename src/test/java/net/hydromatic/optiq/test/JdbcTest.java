@@ -347,7 +347,7 @@ public class JdbcTest extends TestCase {
         };
     }
 
-    static Connection getConnectionWithHrFoodmart()
+    static OptiqConnection getConnectionWithHrFoodmart()
         throws ClassNotFoundException, SQLException
     {
         Class.forName("net.hydromatic.optiq.jdbc.Driver");
@@ -360,7 +360,7 @@ public class JdbcTest extends TestCase {
             optiqConnection, rootSchema, "hr", new HrSchema());
         ReflectiveSchema.create(
             optiqConnection, rootSchema, "foodmart", new FoodmartSchema());
-        return connection;
+        return optiqConnection;
     }
 
     /**

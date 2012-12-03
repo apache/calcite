@@ -20,9 +20,7 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.java.MapSchema;
-import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import junit.framework.TestCase;
@@ -211,7 +209,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
         OptiqAssert.AssertThat with = assertThat()
             .with(
                 new OptiqAssert.ConnectionFactory() {
-                    public Connection createConnection() throws Exception {
+                    public OptiqConnection createConnection() throws Exception {
                         final Connection connection =
                             JdbcTest.getConnectionWithHrFoodmart();
                         OptiqConnection optiqConnection = connection.unwrap(
@@ -229,7 +227,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
                                 return Linq4j.enumerator(employees);
                             }
                         });
-                        return connection;
+                        return optiqConnection;
                     }
                 });
         with

@@ -174,7 +174,7 @@ public class OptiqAssert {
     }
 
     public interface ConnectionFactory {
-        Connection createConnection() throws Exception;
+        OptiqConnection createConnection() throws Exception;
     }
 
     private static class ConfigConnectionFactory implements ConnectionFactory {
@@ -184,7 +184,7 @@ public class OptiqAssert {
             this.config = config;
         }
 
-        public Connection createConnection() throws Exception {
+        public OptiqConnection createConnection() throws Exception {
             switch (config) {
             case REGULAR:
                 return JdbcTest.getConnectionWithHrFoodmart();
@@ -210,7 +210,7 @@ public class OptiqAssert {
             this.factory = factory;
         }
 
-        public Connection createConnection() throws Exception {
+        public OptiqConnection createConnection() throws Exception {
             return factory.createConnection();
         }
     }
@@ -227,8 +227,8 @@ public class OptiqAssert {
         }
 
         @Override
-        public Connection createConnection() throws Exception {
-            Connection connection = super.createConnection();
+        public OptiqConnection createConnection() throws Exception {
+            OptiqConnection connection = super.createConnection();
             connection.setSchema(schema);
             return connection;
         }
