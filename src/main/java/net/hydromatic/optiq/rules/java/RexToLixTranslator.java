@@ -32,6 +32,7 @@ import org.eigenbase.util.Util;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.util.*;
 
 import static net.hydromatic.linq4j.expressions.ExpressionType.*;
@@ -171,9 +172,16 @@ public class RexToLixTranslator {
                 program.getExprList().get(((RexLocalRef) expr).getIndex()));
         }
         if (expr instanceof RexLiteral) {
+            Type javaClass = typeFactory.getJavaClass(expr.getType());
+            if (javaClass == BigDecimal.class) {
+                return Expressions.new_(
+                    BigDecimal.class,
+                    Arrays.<Expression>asList(
+                        Expressions.constant(
+                            ((RexLiteral) expr).getValue3().toString())));
+            }
             return Expressions.constant(
-                ((RexLiteral) expr).getValue2(),
-                typeFactory.getJavaClass(expr.getType()));
+                ((RexLiteral) expr).getValue3(), javaClass);
         }
         if (expr instanceof RexCall) {
             final RexCall call = (RexCall) expr;

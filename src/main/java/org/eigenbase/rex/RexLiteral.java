@@ -516,6 +516,21 @@ public class RexLiteral
         }
     }
 
+    /**
+     * Returns the value of this literal, in the form that the rex-to-lix
+     * translator wants it.
+     */
+    public Object getValue3()
+    {
+        switch (typeName) {
+        case DECIMAL:
+            assert value instanceof BigDecimal;
+            return value;
+        default:
+            return getValue2();
+        }
+    }
+
     public static boolean booleanValue(RexNode node)
     {
         return ((Boolean) ((RexLiteral) node).value).booleanValue();
