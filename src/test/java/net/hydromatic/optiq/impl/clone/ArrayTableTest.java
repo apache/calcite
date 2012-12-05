@@ -24,7 +24,7 @@ import org.eigenbase.util.Pair;
 import java.util.Arrays;
 
 /**
- * Unit test for {@link ArrayTable}.
+ * Unit test for {@link ArrayTable} and {@link ColumnLoader}.
  */
 public class ArrayTableTest extends TestCase {
     public void testPrimitiveArray() {
@@ -36,7 +36,6 @@ public class ArrayTableTest extends TestCase {
 
         values = new long[]{
             0x1213141516171819L, 0x232425262728292AL, 0x3435363738393A3BL};
-        System.out.println(Long.toHexString(2619));
         assertEquals(
             0x324, ArrayTable.BitSlicedPrimitiveArray.getLong(12, values, 9));
         assertEquals(
@@ -107,6 +106,10 @@ public class ArrayTableTest extends TestCase {
         representation = (ArrayTable.BitSlicedPrimitiveArray) pair.left;
         assertEquals(6, representation.bitCount);
         assertTrue(representation.signed);
+        assertEquals(10, representation.getInt(pair.right, 2));
+        assertEquals(10, representation.getObject(pair.right, 2));
+        assertEquals(-32, representation.getInt(pair.right, 3));
+        assertEquals(-32, representation.getObject(pair.right, 3));
 
         // 63 takes us to 7 bit signed
         valueSet.add(63);

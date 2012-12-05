@@ -466,11 +466,12 @@ class ArrayTable<T>
             final int word = ordinal / chunksPerWord;
             final long v = longs[word];
             final int chunk = ordinal % chunksPerWord;
-            final int signMask = 1 << bitCount;
-            final int mask = signMask - 1;
-            final long w = v >> (chunk * bitCount);
+            final int mask = (1 << bitCount) - 1;
+            final int signMask = 1 << (bitCount - 1);
+            final int shift = chunk * bitCount;
+            final long w = v >> shift;
             long x = w & mask;
-            if (signed && (w & signMask) == signMask) {
+            if (signed && (x & signMask) != 0) {
                 x = -x;
             }
             switch (primitive) {
@@ -498,10 +499,11 @@ class ArrayTable<T>
             final long v = longs[word];
             final int chunk = ordinal % chunksPerWord;
             final int mask = (1 << bitCount) - 1;
-            final int signMask = chunk * bitCount;
-            final long w = v >> signMask;
+            final int signMask = 1 << (bitCount - 1);
+            final int shift = chunk * bitCount;
+            final long w = v >> shift;
             long x = w & mask;
-            if (signed && (w & signMask) == signMask) {
+            if (signed && (x & signMask) != 0) {
                 x = -x;
             }
             return (int) x;
@@ -520,10 +522,11 @@ class ArrayTable<T>
             long[] values,
             int ordinal)
         {
-            int word = ordinal / chunksPerWord;
-            int chunk = ordinal % chunksPerWord;
-            long value = values[word];
-            return (value >> (chunk * bitCount)) & mask;
+            final int word = ordinal / chunksPerWord;
+            final int chunk = ordinal % chunksPerWord;
+            final long value = values[word];
+            final int shift = chunk * bitCount;
+            return (value >> shift) & mask;
         }
 
         public static void orLong(
@@ -536,9 +539,10 @@ class ArrayTable<T>
             int bitCount, int chunksPerWord, long[] values, int ordinal,
             long value)
         {
-            int word = ordinal / chunksPerWord;
-            int chunk = ordinal % chunksPerWord;
-            values[word] |= value << (chunk * bitCount);
+            final int word = ordinal / chunksPerWord;
+            final int chunk = ordinal % chunksPerWord;
+            final int shift = chunk * bitCount;
+            values[word] |= value << shift;
         }
     }
 }

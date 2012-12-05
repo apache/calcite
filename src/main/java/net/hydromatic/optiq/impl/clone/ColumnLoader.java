@@ -220,7 +220,7 @@ class ColumnLoader<T> {
             final int codeBitCount = log2(nextPowerOf2(map.size()));
             if (codeBitCount < 10 && values.size() > 2000) {
                 final ArrayTable.Representation representation =
-                    chooseFixedRep(-1, Primitive.INT, 0, map.size());
+                    chooseFixedRep(-1, Primitive.INT, 0, map.size() - 1);
                 return new ArrayTable.ObjectDictionary(ordinal, representation);
             }
             return new ArrayTable.ObjectArray(ordinal);
