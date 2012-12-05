@@ -285,6 +285,18 @@ public class Util
     }
 
     /**
+     * Computes a hash code over var args.
+     */
+    public static int hashV(Object... a)
+    {
+        int h = 19690721;
+        for (Object o : a) {
+            h = hash(h, o);
+        }
+        return h;
+    }
+
+    /**
      * Returns a set of the elements which are in <code>set1</code> but not in
      * <code>set2</code>, without modifying either.
      */

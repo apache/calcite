@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.runtime;
 
+import java.math.BigDecimal;
+
 /**
  * Helper methods to implement SQL functions in generated code.
  *
@@ -116,7 +118,7 @@ public class SqlFunctions {
         return b0 == b1;
     }
 
-    /** SQL == operator to int values; left side may be null. */
+    /** SQL == operator applied to int values; left side may be null. */
     public static Boolean eq(Integer b0, int b1) {
         return b0 == null ? null : (b0 == b1);
     }
@@ -138,7 +140,7 @@ public class SqlFunctions {
         return b0 == b1;
     }
 
-    /** SQL == operator to short values; left side may be null. */
+    /** SQL == operator applied to short values; left side may be null. */
     public static Boolean eq(Short b0, short b1) {
         return b0 == null ? null : (b0 == b1);
     }
@@ -168,7 +170,7 @@ public class SqlFunctions {
         return b0 != b1;
     }
 
-    /** SQL &lt;&gt; operator to int values; left side may be null. */
+    /** SQL &lt;&gt; operator applied to int values; left side may be null. */
     public static Boolean ne(Integer b0, int b1) {
         return b0 == null ? null : (b0 != b1);
     }
@@ -198,7 +200,7 @@ public class SqlFunctions {
         return b0 < b1;
     }
 
-    /** SQL &lt; operator to int values; left side may be null. */
+    /** SQL &lt; operator applied to int values; left side may be null. */
     public static Boolean lt(Integer b0, int b1) {
         return b0 == null ? null : (b0 < b1);
     }
@@ -239,7 +241,7 @@ public class SqlFunctions {
         return b0 <= b1;
     }
 
-    /** SQL &le; operator to int values; left side may be null. */
+    /** SQL &le; operator applied to int values; left side may be null. */
     public static Boolean le(Integer b0, int b1) {
         return b0 == null ? null : (b0 <= b1);
     }
@@ -280,7 +282,7 @@ public class SqlFunctions {
         return b0 > b1;
     }
 
-    /** SQL &gt; operator to int values; left side may be null. */
+    /** SQL &gt; operator applied to int values; left side may be null. */
     public static Boolean gt(Integer b0, int b1) {
         return b0 == null ? null : (b0 > b1);
     }
@@ -321,7 +323,7 @@ public class SqlFunctions {
         return b0 >= b1;
     }
 
-    /** SQL &ge; operator to int values; left side may be null. */
+    /** SQL &ge; operator applied to int values; left side may be null. */
     public static Boolean ge(Integer b0, int b1) {
         return b0 == null ? null : (b0 >= b1);
     }
@@ -354,6 +356,180 @@ public class SqlFunctions {
     public static Boolean ge(String b0, String b1) {
         return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) >= 0);
     }
+
+    // +
+
+    /** SQL <code>+</code> operator applied to int values. */
+    public static int plus(int b0, int b1) {
+        return b0 + b1;
+    }
+
+    /** SQL <code>+</code> operator applied to int values; left side may be
+     * null. */
+    public static Integer plus(Integer b0, int b1) {
+        return b0 == null ? null : (b0 + b1);
+    }
+
+    /** SQL <code>+</code> operator applied to int values; right side may be
+     * null. */
+    public static Integer plus(int b0, Integer b1) {
+        return b1 == null ? null : (b0 + b1);
+    }
+
+    /** SQL <code>+</code> operator applied to nullable int values. */
+    public static Integer plus(Integer b0, Integer b1) {
+        return (b0 == null || b1 == null) ? null : (b0 + b1);
+    }
+
+    /** SQL <code>+</code> operator applied to nullable long and int values. */
+    public static Long plus(Long b0, Integer b1) {
+        return (b0 == null || b1 == null)
+            ? null
+            : (b0.longValue() + b1.longValue());
+    }
+
+    /** SQL <code>+</code> operator applied to nullable int and long values. */
+    public static Long plus(Integer b0, Long b1) {
+        return (b0 == null || b1 == null)
+            ? null
+            : (b0.longValue() + b1.longValue());
+    }
+
+    /** SQL <code>+</code> operator applied to BigDecimal values. */
+    public static BigDecimal plus(BigDecimal b0, BigDecimal b1) {
+        return (b0 == null || b1 == null) ? null : b0.add(b1);
+    }
+
+    // -
+
+    /** SQL <code>-</code> operator applied to int values. */
+    public static int minus(int b0, int b1) {
+        return b0 - b1;
+    }
+
+    /** SQL <code>-</code> operator applied to int values; left side may be
+     * null. */
+    public static Integer minus(Integer b0, int b1) {
+        return b0 == null ? null : (b0 - b1);
+    }
+
+    /** SQL <code>-</code> operator applied to int values; right side may be
+     * null. */
+    public static Integer minus(int b0, Integer b1) {
+        return b1 == null ? null : (b0 - b1);
+    }
+
+    /** SQL <code>-</code> operator applied to nullable int values. */
+    public static Integer minus(Integer b0, Integer b1) {
+        return (b0 == null || b1 == null) ? null : (b0 - b1);
+    }
+
+    /** SQL <code>-</code> operator applied to nullable long and int values. */
+    public static Long minus(Long b0, Integer b1) {
+        return (b0 == null || b1 == null)
+            ? null
+            : (b0.longValue() - b1.longValue());
+    }
+
+    /** SQL <code>-</code> operator applied to nullable int and long values. */
+    public static Long minus(Integer b0, Long b1) {
+        return (b0 == null || b1 == null)
+            ? null
+            : (b0.longValue() - b1.longValue());
+    }
+
+    /** SQL <code>-</code> operator applied to BigDecimal values. */
+    public static BigDecimal minus(BigDecimal b0, BigDecimal b1) {
+        return (b0 == null || b1 == null) ? null : b0.subtract(b1);
+    }
+
+    // /
+
+    /** SQL <code>/</code> operator applied to int values. */
+    public static int divide(int b0, int b1) {
+        return b0 / b1;
+    }
+
+    /** SQL <code>/</code> operator applied to int values; left side may be
+     * null. */
+    public static Integer divide(Integer b0, int b1) {
+        return b0 == null ? null : (b0 / b1);
+    }
+
+    /** SQL <code>/</code> operator applied to int values; right side may be
+     * null. */
+    public static Integer divide(int b0, Integer b1) {
+        return b1 == null ? null : (b0 / b1);
+    }
+
+    /** SQL <code>/</code> operator applied to nullable int values. */
+    public static Integer divide(Integer b0, Integer b1) {
+        return (b0 == null || b1 == null) ? null : (b0 / b1);
+    }
+
+    /** SQL <code>/</code> operator applied to nullable long and int values. */
+    public static Long divide(Long b0, Integer b1) {
+        return (b0 == null || b1 == null)
+            ? null
+            : (b0.longValue() / b1.longValue());
+    }
+
+    /** SQL <code>/</code> operator applied to nullable int and long values. */
+    public static Long divide(Integer b0, Long b1) {
+        return (b0 == null || b1 == null)
+            ? null
+            : (b0.longValue() / b1.longValue());
+    }
+
+    /** SQL <code>/</code> operator applied to BigDecimal values. */
+    public static BigDecimal divide(BigDecimal b0, BigDecimal b1) {
+        return (b0 == null || b1 == null) ? null : b0.divide(b1);
+    }
+
+    // *
+
+    /** SQL <code>*</code> operator applied to int values. */
+    public static int multiply(int b0, int b1) {
+        return b0 * b1;
+    }
+
+    /** SQL <code>*</code> operator applied to int values; left side may be
+     * null. */
+    public static Integer multiply(Integer b0, int b1) {
+        return b0 == null ? null : (b0 * b1);
+    }
+
+    /** SQL <code>*</code> operator applied to int values; right side may be
+     * null. */
+    public static Integer multiply(int b0, Integer b1) {
+        return b1 == null ? null : (b0 * b1);
+    }
+
+    /** SQL <code>*</code> operator applied to nullable int values. */
+    public static Integer multiply(Integer b0, Integer b1) {
+        return (b0 == null || b1 == null) ? null : (b0 * b1);
+    }
+
+    /** SQL <code>*</code> operator applied to nullable long and int values. */
+    public static Long multiply(Long b0, Integer b1) {
+        return (b0 == null || b1 == null)
+            ? null
+            : (b0.longValue() * b1.longValue());
+    }
+
+    /** SQL <code>*</code> operator applied to nullable int and long values. */
+    public static Long multiply(Integer b0, Long b1) {
+        return (b0 == null || b1 == null)
+            ? null
+            : (b0.longValue() * b1.longValue());
+    }
+
+    /** SQL <code>*</code> operator applied to BigDecimal values. */
+    public static BigDecimal multiply(BigDecimal b0, BigDecimal b1) {
+        return (b0 == null || b1 == null) ? null : b0.multiply(b1);
+    }
+
+    // Helpers
 
     /** Helper for implementing MIN. Somewhat similar to LEAST operator. */
     public static <T extends Comparable<T>> T lesser(T b0, T b1) {

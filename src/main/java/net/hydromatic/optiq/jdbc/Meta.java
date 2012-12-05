@@ -189,8 +189,19 @@ class Meta {
                             table.tableSchem,
                             table.tableName,
                             a0.getName(),
-                            a0.getType().isNullable(),
-                            a0.getIndex() + 1);
+                            a0.getType().getSqlTypeName().getJdbcOrdinal(),
+                            a0.getType().getFullTypeString(),
+                            a0.getType().getPrecision(),
+                            a0.getType().getSqlTypeName().allowsScale()
+                                ? a0.getType().getScale()
+                                : null,
+                            10,
+                            a0.getType().isNullable()
+                                ? DatabaseMetaData.columnNullable
+                                : DatabaseMetaData.columnNoNulls,
+                            a0.getType().getPrecision(),
+                            a0.getIndex() + 1,
+                            a0.getType().isNullable() ? "YES" : "NO");
                     }
                 }
             );
@@ -205,20 +216,20 @@ class Meta {
         public final String tableSchem;
         public final String tableName;
         public final String columnName;
-        public final String dataType = null;
-        public final String typeName = null;
-        public final String columnSize = null;
+        public final int dataType;
+        public final String typeName;
+        public final int columnSize;
         public final String bufferLength = null;
-        public final String decimalDigits = null;
-        public final String numPrecRadix = null;
-        public final boolean nullable;
+        public final Integer decimalDigits;
+        public final int numPrecRadix;
+        public final int nullable;
         public final String remarks = null;
         public final String columnDef = null;
         public final String sqlDataType = null;
         public final String sqlDatetimeSub = null;
-        public final String charOctetLength = null;
+        public final int charOctetLength;
         public final int ordinalPosition;
-        public final String isNullable = null;
+        public final String isNullable;
         public final String scopeCatalog = null;
         public final String scopeTable = null;
         public final String sourceDataType = null;
@@ -230,15 +241,29 @@ class Meta {
             String tableSchem,
             String tableName,
             String columnName,
-            boolean nullable,
-            int ordinalPosition)
+            int dataType,
+            String typeName,
+            int columnSize,
+            Integer decimalDigits,
+            int numPrecRadix,
+            int nullable,
+            int charOctetLength,
+            int ordinalPosition,
+            String isNullable)
         {
             this.tableCat = tableCat;
             this.tableSchem = tableSchem;
             this.tableName = tableName;
             this.columnName = columnName;
+            this.dataType = dataType;
+            this.typeName = typeName;
+            this.columnSize = columnSize;
+            this.decimalDigits = decimalDigits;
+            this.numPrecRadix = numPrecRadix;
             this.nullable = nullable;
+            this.charOctetLength = charOctetLength;
             this.ordinalPosition = ordinalPosition;
+            this.isNullable = isNullable;
         }
 
         public String getName() {

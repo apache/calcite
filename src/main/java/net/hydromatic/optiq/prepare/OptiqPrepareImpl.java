@@ -180,7 +180,9 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     false,
                     type.isNullable() ? 1 : 0,
                     true,
-                    0,
+                    sqlTypeName.allowsPrec()
+                        ? type.getPrecision()
+                        : -1,
                     field.getName(),
                     origins == null ? null : origins.get(2),
                     origins == null ? null : origins.get(0),

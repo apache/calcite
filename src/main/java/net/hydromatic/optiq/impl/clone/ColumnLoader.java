@@ -205,8 +205,10 @@ class ColumnLoader<T> {
                 case VOID:
                     throw new AssertionError("wtf?!");
                 }
-                return chooseFixedRep(
-                    ordinal, p, toLong(min), toLong(max));
+                if (canBeLong(min) && canBeLong(max)) {
+                    return chooseFixedRep(
+                        ordinal, p, toLong(min), toLong(max));
+                }
             }
 
             // We don't want to use a dictionary if:
@@ -218,7 +220,7 @@ class ColumnLoader<T> {
             final int codeBitCount = log2(nextPowerOf2(map.size()));
             if (codeBitCount < 10 && values.size() > 2000) {
                 final ArrayTable.Representation representation =
-                    chooseFixedRep(-1, Primitive.INT, 0, map.size() - 1);
+                    chooseFixedRep(-1, Primitive.INT, 0, map.size());
                 return new ArrayTable.ObjectDictionary(ordinal, representation);
             }
             return new ArrayTable.ObjectArray(ordinal);
@@ -230,10 +232,16 @@ class ColumnLoader<T> {
             if (o instanceof Boolean) {
                 return ((Boolean) o ? 1 : 0);
             } else if (o instanceof Character) {
-                return ((Character) o).charValue();
+                return (long) (Character) o;
             } else {
                 return ((Number) o).longValue();
             }
+        }
+
+        private boolean canBeLong(Object o) {
+            return o instanceof Boolean
+                   || o instanceof Character
+                   || o instanceof Number;
         }
 
         /** Chooses a representation for a fixed-precision primitive type
@@ -248,36 +256,51 @@ class ColumnLoader<T> {
         private ArrayTable.Representation chooseFixedRep(
             int ordinal, Primitive p, long min, long max)
         {
-            int bitCountMax = log2(nextPowerOf2(abs2(max)));
-            int bitCountMin = log2(nextPowerOf2(abs2(min)));
-            int bitCount = Math.max(bitCountMin, bitCountMax) + 1; // 1 for sign
+            if (min == max) {
+                return new ArrayTable.Constant(ordinal);
+            }
+            final int bitCountMax = log2(nextPowerOf2(abs2(max) + 1));
+            int bitCount; // 1 for sign
+            boolean signed;
+
+            if (min >= 0) {
+                signed = false;
+                bitCount = bitCountMax;
+            } else {
+                signed = true;
+                int bitCountMin = log2(nextPowerOf2(abs2(min) + 1));
+                bitCount = Math.max(bitCountMin, bitCountMax) + 1;
+            }
 
             // Must be a fixed point primitive.
             if (bitCount > 21 && bitCount < 32) {
                 // Can't get more than 2 into a word.
+                signed = true;
                 bitCount = 32;
             }
             if (bitCount >= 33 && bitCount < 64) {
                 // Can't get more than one into a word.
+                signed = true;
                 bitCount = 64;
             }
-            switch (bitCount) {
-            case 8:
-                return new ArrayTable.PrimitiveArray(
-                    ordinal, Primitive.BYTE, p);
-            case 16:
-                return new ArrayTable.PrimitiveArray(
-                    ordinal, Primitive.SHORT, p);
-            case 32:
-                return new ArrayTable.PrimitiveArray(
-                    ordinal, Primitive.INT, p);
-            case 64:
-                return new ArrayTable.PrimitiveArray(
-                    ordinal, Primitive.LONG, p);
-            default:
-                return new ArrayTable.BitSlicedPrimitiveArray(
-                    ordinal, bitCount, p);
+            if (signed) {
+                switch (bitCount) {
+                case 8:
+                    return new ArrayTable.PrimitiveArray(
+                        ordinal, Primitive.BYTE, p);
+                case 16:
+                    return new ArrayTable.PrimitiveArray(
+                        ordinal, Primitive.SHORT, p);
+                case 32:
+                    return new ArrayTable.PrimitiveArray(
+                        ordinal, Primitive.INT, p);
+                case 64:
+                    return new ArrayTable.PrimitiveArray(
+                        ordinal, Primitive.LONG, p);
+                }
             }
+            return new ArrayTable.BitSlicedPrimitiveArray(
+                ordinal, bitCount, p, signed);
         }
 
         /** Two's complement absolute on int value. */

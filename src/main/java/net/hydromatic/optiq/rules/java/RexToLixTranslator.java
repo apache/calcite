@@ -363,15 +363,26 @@ public class RexToLixTranslator {
                 defineBinary(notEqualsOperator, NotEqual);
                 defineUnary(notOperator, Not);
             } else {
+                // logical
                 defineMethod(andOperator, "and");
                 defineMethod(orOperator, "or");
+                defineMethod(notOperator, "not");
+
+                // comparisons
                 defineMethod(lessThanOperator, "lt");
                 defineMethod(lessThanOrEqualOperator, "le");
                 defineMethod(greaterThanOperator, "gt");
                 defineMethod(greaterThanOrEqualOperator, "ge");
                 defineMethod(equalsOperator, "eq");
                 defineMethod(notEqualsOperator, "ne");
-                defineMethod(notOperator, "not");
+
+                // arithmetic
+                defineMethod(plusOperator, "plus");
+                defineMethod(minusOperator, "minus");
+                defineMethod(multiplyOperator, "multiply");
+                defineMethod(divideOperator, "divide");
+                defineMethod(modFunc, "mod");
+                defineMethod(expFunc, "exp");
             }
             map.put(
                 isNullOperator,

@@ -547,12 +547,13 @@ public class RexLiteral
     public boolean equals(Object obj)
     {
         return (obj instanceof RexLiteral)
-            && equals(((RexLiteral) obj).value, value);
+            && equals(((RexLiteral) obj).value, value)
+            && equals(((RexLiteral) obj).type, type);
     }
 
     public int hashCode()
     {
-        return (value == null) ? 0 : value.hashCode();
+        return Util.hashV(value, type);
     }
 
     public static int intValue(RexNode node)

@@ -92,6 +92,15 @@ class ArrayTable<T>
     }
 
     enum RepresentationType {
+        /** Constant. Contains only one value.
+         *
+         * <p>We can't store 0-bit values in
+         * an array: we'd have no way of knowing how many there were.</p>
+         *
+         * @see Constant
+         */
+        CONSTANT,
+
         /** Object array. Null values are represented by null. Values may or may
          * not be canonized; if canonized, = and != can be implemented using
          * pointer.
@@ -353,16 +362,47 @@ class ArrayTable<T>
         }
     }
 
-    public static class BitSlicedPrimitiveArray implements Representation {
-        final int bitCount;
-        private final Primitive primitive;
-        private final int ordinal;
+    public static class Constant implements Representation {
+        final int ordinal;
 
-        BitSlicedPrimitiveArray(int ordinal, int bitCount, Primitive primitive)
+        public Constant(int ordinal) {
+            this.ordinal = ordinal;
+        }
+
+        public RepresentationType getType() {
+            return RepresentationType.CONSTANT;
+        }
+
+        public Object freeze(ColumnLoader.ValueSet valueSet) {
+            final int size = valueSet.values.size();
+            return Pair.of(size == 0 ? null : valueSet.values.get(0), size);
+        }
+
+        public Object getObject(Object dataSet, int ordinal) {
+            Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
+            return pair.left;
+        }
+
+        public int getInt(Object dataSet, int ordinal) {
+            Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
+            return ((Number) pair.left).intValue();
+        }
+    }
+
+    public static class BitSlicedPrimitiveArray implements Representation {
+        final int ordinal;
+        final int bitCount;
+        final Primitive primitive;
+        final boolean signed;
+
+        BitSlicedPrimitiveArray(
+            int ordinal, int bitCount, Primitive primitive, boolean signed)
         {
+            assert bitCount > 0;
             this.ordinal = ordinal;
             this.bitCount = bitCount;
             this.primitive = primitive;
+            this.signed = signed;
         }
 
         public RepresentationType getType() {
@@ -426,8 +466,13 @@ class ArrayTable<T>
             final int word = ordinal / chunksPerWord;
             final long v = longs[word];
             final int chunk = ordinal % chunksPerWord;
-            final int mask = (1 << bitCount) - 1;
-            final long x = (v >> (chunk * bitCount)) & mask;
+            final int signMask = 1 << bitCount;
+            final int mask = signMask - 1;
+            final long w = v >> (chunk * bitCount);
+            long x = w & mask;
+            if (signed && (w & signMask) == signMask) {
+                x = -x;
+            }
             switch (primitive) {
             case BOOLEAN:
                 return x != 0;
@@ -453,7 +498,12 @@ class ArrayTable<T>
             final long v = longs[word];
             final int chunk = ordinal % chunksPerWord;
             final int mask = (1 << bitCount) - 1;
-            final long x = (v >> (chunk * bitCount)) & mask;
+            final int signMask = chunk * bitCount;
+            final long w = v >> signMask;
+            long x = w & mask;
+            if (signed && (w & signMask) == signMask) {
+                x = -x;
+            }
             return (int) x;
         }
 
