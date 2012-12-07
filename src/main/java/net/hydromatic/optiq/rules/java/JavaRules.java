@@ -33,12 +33,9 @@ import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.rex.RexMultisetUtil;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.rex.RexProgram;
+import org.eigenbase.rex.*;
 import org.eigenbase.trace.EigenbaseTrace;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.eigenbase.util.*;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -217,12 +214,13 @@ public class JavaRules {
             // Generate all fields.
             final List<Expression> expressions =
                 new ArrayList<Expression>();
-            int i = 0;
-            for (RelNode rel : getInputs()) {
-                RelDataType inputRowType = rel.getRowType();
-                final ParameterExpression parameter = parameters.get(i++);
-                for (RelDataTypeField field : inputRowType.getFields()) {
-                    expressions.add(EnumUtil.fieldReference(parameter, field));
+            for (Ord<RelNode> rel : Ord.zip(getInputs())) {
+                RelDataType inputRowType = rel.e.getRowType();
+                final ParameterExpression parameter = parameters.get(rel.i);
+                for (int i = 0; i < inputRowType.getFieldCount(); i++) {
+                    expressions.add(
+                        EnumUtil.inputFieldReference(
+                            inputRowType, parameter, i));
                 }
             }
             return Expressions.lambda(
@@ -301,7 +299,9 @@ public class JavaRules {
                 javaRowClass(
                     typeFactory, rowType.getFieldList().get(field).getType());
             Expression fieldReference =
-                Types.castIfNecessary(returnType, fieldReference(v1, field));
+                Types.castIfNecessary(
+                    returnType,
+                    EnumUtil.inputFieldReference(rowType, v1, field));
             return Expressions.lambda(
                 primitive
                     ? Functions.functionClass(returnType)
@@ -1622,9 +1622,84 @@ public class JavaRules {
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
-            BlockExpression o =
-                implementor.visitChild(this, 0, (EnumerableRel) getChild());
-            return o;
+            return implementor.visitChild(this, 0, (EnumerableRel) getChild());
+        }
+    }
+
+    public static final EnumerableValuesRule ENUMERABLE_VALUES_RULE =
+        new EnumerableValuesRule();
+
+    public static class EnumerableValuesRule extends ConverterRule {
+        private EnumerableValuesRule() {
+            super(
+                ValuesRel.class,
+                CallingConvention.NONE,
+                CallingConvention.ENUMERABLE,
+                "EnumerableValuesRule");
+        }
+
+        @Override
+        public RelNode convert(RelNode rel) {
+            ValuesRel valuesRel = (ValuesRel) rel;
+            return new EnumerableValuesRel(
+                valuesRel.getCluster(),
+                valuesRel.getRowType(),
+                valuesRel.getTuples(),
+                valuesRel.getTraitSet().plus(CallingConvention.ENUMERABLE));
+        }
+    }
+
+    public static class EnumerableValuesRel
+        extends ValuesRelBase
+        implements EnumerableRel
+    {
+        EnumerableValuesRel(
+            RelOptCluster cluster,
+            RelDataType rowType,
+            List<List<RexLiteral>> tuples,
+            RelTraitSet traitSet)
+        {
+            super(
+                cluster, rowType, tuples,
+                traitSet.plus(CallingConvention.ENUMERABLE));
+        }
+
+        public BlockExpression implement(EnumerableRelImplementor implementor) {
+/*
+            return Linq4j.asEnumerable(
+                new Object[][] {
+                    new Object[] {1, 2},
+                    new Object[] {3, 4}
+                });
+*/
+            final JavaTypeFactory typeFactory =
+                (JavaTypeFactory) getCluster().getTypeFactory();
+            final BlockBuilder statements = new BlockBuilder();
+            final Class rowClass =
+                EnumUtil.javaRowClass(typeFactory, getRowType());
+
+            final List<Expression> expressions = new ArrayList<Expression>();
+            for (List<RexLiteral> tuple : tuples) {
+                final List<Expression> literals = new ArrayList<Expression>();
+                for (RexLiteral literal : tuple) {
+                    literals.add(
+                        RexToLixTranslator.translateLiteral(
+                            literal, typeFactory));
+                }
+                expressions.add(
+                    literals.size() == 1
+                        ? literals.get(0)
+                        : Expressions.newArrayInit(
+                            Object.class, literals));
+            }
+            statements.add(
+                Expressions.return_(
+                    null,
+                    Expressions.call(
+                        BuiltinMethod.AS_ENUMERABLE.method,
+                        Expressions.newArrayInit(
+                            rowClass, expressions))));
+            return statements.toBlock();
         }
     }
 }

@@ -172,16 +172,7 @@ public class RexToLixTranslator {
                 program.getExprList().get(((RexLocalRef) expr).getIndex()));
         }
         if (expr instanceof RexLiteral) {
-            Type javaClass = typeFactory.getJavaClass(expr.getType());
-            if (javaClass == BigDecimal.class) {
-                return Expressions.new_(
-                    BigDecimal.class,
-                    Arrays.<Expression>asList(
-                        Expressions.constant(
-                            ((RexLiteral) expr).getValue3().toString())));
-            }
-            return Expressions.constant(
-                ((RexLiteral) expr).getValue3(), javaClass);
+            return translateLiteral(expr, typeFactory);
         }
         if (expr instanceof RexCall) {
             final RexCall call = (RexCall) expr;
@@ -196,6 +187,23 @@ public class RexToLixTranslator {
             throw new RuntimeException(
                 "cannot translate expression " + expr);
         }
+    }
+
+    /** Translates a literal. */
+    public static Expression translateLiteral(
+        RexNode expr,
+        JavaTypeFactory typeFactory)
+    {
+        Type javaClass = typeFactory.getJavaClass(expr.getType());
+        if (javaClass == BigDecimal.class) {
+            return Expressions.new_(
+                BigDecimal.class,
+                Arrays.<Expression>asList(
+                    Expressions.constant(
+                        ((RexLiteral) expr).getValue3().toString())));
+        }
+        return Expressions.constant(
+            ((RexLiteral) expr).getValue3(), javaClass);
     }
 
     /**

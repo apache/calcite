@@ -206,6 +206,57 @@ public class ArrayTableTest extends TestCase {
         assertEquals("foo", representation3.getObject(pair.right, 1000));
         assertEquals("bar", representation3.getObject(pair.right, 2003));
     }
+
+    public void testAllNull() {
+        Pair<ArrayTable.Representation, Object> pair;
+
+        final ColumnLoader.ValueSet valueSet =
+            new ColumnLoader.ValueSet(String.class);
+
+        valueSet.add(null);
+        pair = valueSet.freeze(0);
+        assertTrue(pair.left instanceof ArrayTable.ObjectArray);
+        final ArrayTable.ObjectArray representation =
+            (ArrayTable.ObjectArray) pair.left;
+        assertNull(representation.getObject(pair.right, 0));
+
+        for (int i = 0; i < 3000; i++) {
+            valueSet.add(null);
+        }
+        pair = valueSet.freeze(0);
+        final ArrayTable.ObjectDictionary representation2 =
+            (ArrayTable.ObjectDictionary) pair.left;
+        assertTrue(
+            representation2.representation instanceof ArrayTable.Constant);
+    }
+
+    public void testOneValueOneNull() {
+        Pair<ArrayTable.Representation, Object> pair;
+
+        final ColumnLoader.ValueSet valueSet =
+            new ColumnLoader.ValueSet(String.class);
+        valueSet.add(null);
+        valueSet.add("foo");
+
+        pair = valueSet.freeze(0);
+        assertTrue(pair.left instanceof ArrayTable.ObjectArray);
+        final ArrayTable.ObjectArray representation =
+            (ArrayTable.ObjectArray) pair.left;
+        assertNull(representation.getObject(pair.right, 0));
+
+        for (int i = 0; i < 3000; i++) {
+            valueSet.add(null);
+        }
+        pair = valueSet.freeze(0);
+        final ArrayTable.ObjectDictionary representation2 =
+            (ArrayTable.ObjectDictionary) pair.left;
+        assertEquals(
+            1,
+            ((ArrayTable.BitSlicedPrimitiveArray)
+                representation2.representation).bitCount);
+        assertEquals("foo", representation2.getObject(pair.right, 1));
+        assertNull(representation2.getObject(pair.right, 10));
+    }
 }
 
 // End ArrayTableTest.java

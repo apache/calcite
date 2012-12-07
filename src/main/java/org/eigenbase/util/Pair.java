@@ -124,6 +124,8 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
      * @param ks Left list
      * @param vs Right list
      * @return List of pairs
+     *
+     * @see Ord#zip
      */
     public static <K, V> List<Pair<K, V>> zip(
         final List<K> ks,
@@ -173,21 +175,6 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
                         vIterator.remove();
                     }
                 };
-            }
-        };
-    }
-
-    /** Returns a numbered list. */
-    public static <E> List<Pair<Integer, E>> zip(
-        final List<E> elements)
-    {
-        return new AbstractList<Pair<Integer, E>>() {
-            public Pair<Integer, E> get(int index) {
-                return Pair.of(index, elements.get(index));
-            }
-
-            public int size() {
-                return elements.size();
             }
         };
     }

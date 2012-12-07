@@ -24,6 +24,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.util.Ord;
 import org.eigenbase.util.Pair;
 
 import java.lang.reflect.Type;
@@ -121,30 +122,28 @@ class ColumnLoader<T> {
                     return fields.size();
                 }
             };
-        for (Pair<Integer, Type> pair : Pair.zip(types)) {
-            final int i = pair.left;
+        for (final Ord<Type> pair : Ord.zip(types)) {
             @SuppressWarnings("unchecked")
             final List<?> sliceList =
                 types.size() == 1
                     ? list
                     : new AbstractList<Object>() {
                         public Object get(int index) {
-                            return ((Object[]) list.get(index))[i];
+                            return ((Object[]) list.get(index))[pair.i];
                         }
 
                         public int size() {
                             return list.size();
                         }
                     };
-            final Type type = pair.right;
-            final Class clazz = type instanceof Class
-                ? (Class) type
+            final Class clazz = pair.e instanceof Class
+                ? (Class) pair.e
                 : Object.class;
             ValueSet valueSet = new ValueSet(clazz);
             for (Object o : sliceList) {
                 valueSet.add((Comparable) o);
             }
-            representationValues.add(valueSet.freeze(i));
+            representationValues.add(valueSet.freeze(pair.i));
         }
     }
 
@@ -217,10 +216,11 @@ class ColumnLoader<T> {
             //     indirections); or
             // (b) if there are very few copies of each value.
             // The condition kind of captures this, but needs to be tuned.
-            final int codeBitCount = log2(nextPowerOf2(map.size()));
+            final int codeCount = map.size() + (containsNull ? 1 : 0);
+            final int codeBitCount = log2(nextPowerOf2(codeCount));
             if (codeBitCount < 10 && values.size() > 2000) {
                 final ArrayTable.Representation representation =
-                    chooseFixedRep(-1, Primitive.INT, 0, map.size() - 1);
+                    chooseFixedRep(-1, Primitive.INT, 0, codeCount - 1);
                 return new ArrayTable.ObjectDictionary(ordinal, representation);
             }
             return new ArrayTable.ObjectArray(ordinal);

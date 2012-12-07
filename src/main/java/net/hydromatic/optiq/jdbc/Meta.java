@@ -25,8 +25,7 @@ import net.hydromatic.linq4j.function.Predicate1;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.Table;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.reltype.*;
 import org.eigenbase.runtime.*;
 import org.eigenbase.util.Util;
 
@@ -184,6 +183,12 @@ class Meta {
             .select(
                 new Function1<RelDataTypeField, MetaColumn>() {
                     public MetaColumn apply(RelDataTypeField a0) {
+                        final int precision =
+                            a0.getType().getSqlTypeName().allowsPrec()
+                            && !(a0.getType()
+                                 instanceof RelDataTypeFactoryImpl.JavaType)
+                                ? a0.getType().getPrecision()
+                                : -1;
                         return new MetaColumn(
                             table.tableCat,
                             table.tableSchem,
@@ -191,7 +196,7 @@ class Meta {
                             a0.getName(),
                             a0.getType().getSqlTypeName().getJdbcOrdinal(),
                             a0.getType().getFullTypeString(),
-                            a0.getType().getPrecision(),
+                            precision,
                             a0.getType().getSqlTypeName().allowsScale()
                                 ? a0.getType().getScale()
                                 : null,
@@ -199,7 +204,7 @@ class Meta {
                             a0.getType().isNullable()
                                 ? DatabaseMetaData.columnNullable
                                 : DatabaseMetaData.columnNoNulls,
-                            a0.getType().getPrecision(),
+                            precision,
                             a0.getIndex() + 1,
                             a0.getType().isNullable() ? "YES" : "NO");
                     }

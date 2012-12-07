@@ -32,9 +32,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.volcano.VolcanoPlanner;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.reltype.*;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.sql.*;
@@ -45,6 +43,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
+import org.eigenbase.util.Ord;
 import org.eigenbase.util.Pair;
 
 import org.codehaus.janino.*;
@@ -166,10 +165,10 @@ class OptiqPrepareImpl implements OptiqPrepare {
             new ArrayList<ColumnMetaData>();
         RelDataType jdbcType = makeStruct(typeFactory, x);
         final List<List<String>> originList = preparedResult.getFieldOrigins();
-        int i = 0;
-        for (RelDataTypeField field : jdbcType.getFields()) {
+        for (Ord<RelDataTypeField> pair : Ord.zip(jdbcType.getFields())) {
+            final RelDataTypeField field = pair.e;
             RelDataType type = field.getType();
-            List<String> origins = originList.get(i++);
+            List<String> origins = originList.get(pair.i);
             SqlTypeName sqlTypeName = type.getSqlTypeName();
             columns.add(
                 new ColumnMetaData(
@@ -181,6 +180,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     type.isNullable() ? 1 : 0,
                     true,
                     sqlTypeName.allowsPrec()
+                        && !(type instanceof RelDataTypeFactoryImpl.JavaType)
                         ? type.getPrecision()
                         : -1,
                     field.getName(),
@@ -242,7 +242,9 @@ class OptiqPrepareImpl implements OptiqPrepare {
             planner.addRule(JavaRules.ENUMERABLE_INTERSECT_RULE);
             planner.addRule(JavaRules.ENUMERABLE_MINUS_RULE);
             planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
+            planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
             planner.addRule(TableAccessRule.instance);
+            planner.addRule(PushFilterPastProjectRule.instance);
             planner.addRule(PushFilterPastJoinRule.instance);
             planner.addRule(RemoveDistinctAggregateRule.instance);
 

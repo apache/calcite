@@ -109,10 +109,8 @@ public class NestedLoopsJoinRule
         if (leftKeys.size() > 0) {
             final RelOptCluster cluster = join.getCluster();
             final RexBuilder rexBuilder = cluster.getRexBuilder();
-            int k = 0;
             RexNode condition = null;
-            for (Integer leftKey : leftKeys) {
-                Integer rightKey = rightKeys.get(k++);
+            for (Pair<Integer, Integer> p : Pair.zip(leftKeys, rightKeys)) {
                 final String dyn_inIdStr = cluster.getQuery().createCorrel();
                 final int dyn_inId = RelOptQuery.getCorrelOrdinal(dyn_inIdStr);
 
@@ -121,7 +119,7 @@ public class NestedLoopsJoinRule
                 correlationList.add(
                     new CorrelatorRel.Correlation(
                         dyn_inId,
-                        leftKey));
+                        p.left));
                 condition =
                     RelOptUtil.andJoinFilters(
                         rexBuilder,
@@ -130,11 +128,11 @@ public class NestedLoopsJoinRule
                             SqlStdOperatorTable.equalsOperator,
                             rexBuilder.makeInputRef(
                                 right.getRowType().getFieldList().get(
-                                    rightKey).getType(),
-                                rightKey),
+                                    p.right).getType(),
+                                p.right),
                             rexBuilder.makeCorrel(
                                 left.getRowType().getFieldList().get(
-                                    leftKey).getType(),
+                                    p.left).getType(),
                                 dyn_inIdStr)));
             }
             right =

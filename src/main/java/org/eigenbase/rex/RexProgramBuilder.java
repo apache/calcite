@@ -115,9 +115,12 @@ public class RexProgramBuilder
 
         // Register project expressions
         // and create a named project item.
-        int i = 0;
-        for (RexLocalRef projectRef : projectRefList) {
-            final String name = outputRowType.getFieldList().get(i++).getName();
+        final List<RelDataTypeField> fieldList = outputRowType.getFieldList();
+        for (Pair<RexLocalRef, RelDataTypeField> pair
+            : Pair.zip(projectRefList, fieldList))
+        {
+            final RexLocalRef projectRef = pair.left;
+            final String name = pair.right.getName();
             final int oldIndex = projectRef.getIndex();
             final RexNode expr = exprList.get(oldIndex);
             final RexLocalRef ref = (RexLocalRef) expr.accept(shuttle);

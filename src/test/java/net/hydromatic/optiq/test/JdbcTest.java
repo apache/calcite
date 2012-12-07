@@ -620,6 +620,51 @@ public class JdbcTest extends TestCase {
         }
     }
 
+    public void testValues() {
+        OptiqAssert.assertThat()
+            .query("values (1), (2)")
+            .returns(
+                "EXPR$0=1\n"
+                + "EXPR$0=2\n");
+    }
+
+    public void testValuesComposite() {
+        OptiqAssert.assertThat()
+            .query("values (1, 'a'), (2, 'abc')")
+            .returns(
+                "EXPR$0=1; EXPR$1=a  \n"
+                + "EXPR$0=2; EXPR$1=abc\n");
+    }
+
+    /** A difficult query: an IN list so large that the planner promotes it
+     * to a semi-join against a VALUES relation. */
+    public void testIn() {
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.FOODMART_CLONE)
+            .query(
+                "select \"time_by_day\".\"the_year\" as \"c0\",\n"
+                + " \"product_class\".\"product_family\" as \"c1\",\n"
+                + " \"customer\".\"country\" as \"c2\",\n"
+                + " \"customer\".\"state_province\" as \"c3\",\n"
+                + " \"customer\".\"city\" as \"c4\",\n"
+                + " sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\"\n"
+                + "from \"time_by_day\" as \"time_by_day\",\n"
+                + " \"sales_fact_1997\" as \"sales_fact_1997\",\n"
+                + " \"product_class\" as \"product_class\",\n"
+                + " \"product\" as \"product\", \"customer\" as \"customer\"\n"
+                + "where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\"\n"
+                + "and \"time_by_day\".\"the_year\" = 1997\n"
+                + "and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
+                + "and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\"\n"
+                + "and \"product_class\".\"product_family\" = 'Drink'\n"
+                + "and \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\"\n"
+                + "and \"customer\".\"country\" = 'USA'\n"
+                + "and \"customer\".\"state_province\" = 'WA'\n"
+                + "and \"customer\".\"city\" in ('Anacortes', 'Ballard', 'Bellingham', 'Bremerton', 'Burien', 'Edmonds', 'Everett', 'Issaquah', 'Kirkland', 'Lynnwood', 'Marysville', 'Olympia', 'Port Orchard', 'Puyallup', 'Redmond', 'Renton', 'Seattle', 'Sedro Woolley', 'Spokane', 'Tacoma', 'Walla Walla', 'Yakima') group by \"time_by_day\".\"the_year\", \"product_class\".\"product_family\", \"customer\".\"country\", \"customer\".\"state_province\", \"customer\".\"city\"")
+            .returns(
+                "c0=1997; c1=Drink; c2=USA; c3=WA; c4=Sedro Woolley; m0=58\n");
+    }
+
     public static class HrSchema {
         public final Employee[] emps = {
             new Employee(100, 10, "Bill"),

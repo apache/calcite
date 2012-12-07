@@ -25,6 +25,7 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
+import org.eigenbase.util.Pair;
 
 
 /**
@@ -82,11 +83,12 @@ public abstract class ValuesRelBase
     private boolean assertRowType()
     {
         for (List<RexLiteral> tuple : tuples) {
-            RelDataTypeField [] fields = rowType.getFields();
-            assert (tuple.size() == fields.length);
-            int i = 0;
-            for (RexLiteral literal : tuple) {
-                RelDataType fieldType = fields[i++].getType();
+            assert tuple.size() == rowType.getFieldCount();
+            for (Pair<RexLiteral, RelDataTypeField> pair
+                : Pair.zip(tuple, rowType.getFieldList()))
+            {
+                RexLiteral literal = pair.left;
+                RelDataType fieldType = pair.right.getType();
 
                 // TODO jvs 19-Feb-2006: strengthen this a bit.  For example,
                 // overflow, rounding, and padding/truncation must already have

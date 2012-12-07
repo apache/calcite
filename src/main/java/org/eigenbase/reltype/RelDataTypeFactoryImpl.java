@@ -534,7 +534,7 @@ public abstract class RelDataTypeFactoryImpl
     /**
      * Type which is based upon a Java class.
      */
-    protected class JavaType
+    public class JavaType
         extends RelDataTypeImpl
     {
         private final Class clazz;
