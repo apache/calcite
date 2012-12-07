@@ -86,11 +86,12 @@ public class RelTraitSet
      *
      * @return the RelTrait, or null if not found
      */
-    public RelTrait getTrait(RelTraitDef traitDef)
+    public <T extends RelTrait> T getTrait(RelTraitDef<T> traitDef)
     {
         int index = findIndex(traitDef);
         if (index >= 0) {
-            return getTrait(index);
+            //noinspection unchecked
+            return (T) getTrait(index);
         }
 
         return null;

@@ -351,7 +351,7 @@ public class RelStructuredTypeFlattener
         SortRel newRel =
             new SortRel(
                 rel.getCluster(),
-                rel.getCluster().traitSetOf(CallingConvention.NONE),
+                rel.getCluster().traitSetOf(Convention.NONE),
                 getNewForOldRel(rel.getChild()),
                 newCollations);
         setNewForOldRel(rel, newRel);

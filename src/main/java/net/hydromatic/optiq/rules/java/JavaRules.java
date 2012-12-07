@@ -47,6 +47,13 @@ import java.util.logging.Logger;
  * @author jhyde
  */
 public class JavaRules {
+    /**
+     * Convention that presents query results as an
+     * {@link net.hydromatic.linq4j.Enumerable}.
+     */
+    public static final Convention CONVENTION =
+        new Convention.Impl("ENUMERABLE", EnumerableRel.class);
+
     private static final Constructor ABSTRACT_ENUMERABLE_CTOR =
         Types.lookupConstructor(AbstractEnumerable.class);
 
@@ -67,8 +74,8 @@ public class JavaRules {
         private EnumerableJoinRule() {
             super(
                 JoinRel.class,
-                CallingConvention.NONE,
-                CallingConvention.ENUMERABLE,
+                Convention.NONE,
+                CONVENTION,
                 "EnumerableJoinRule");
         }
 
@@ -76,7 +83,7 @@ public class JavaRules {
         public RelNode convert(RelNode rel) {
             JoinRel join = (JoinRel) rel;
             List<RelNode> newInputs = convert(
-                CallingConvention.ENUMERABLE,
+                CONVENTION,
                 join.getInputs());
             if (newInputs == null) {
                 return null;
@@ -84,7 +91,7 @@ public class JavaRules {
             try {
                 return new EnumerableJoinRel(
                     join.getCluster(),
-                    join.getTraitSet().replace(CallingConvention.ENUMERABLE),
+                    join.getTraitSet().replace(CONVENTION),
                     newInputs.get(0),
                     newInputs.get(1),
                     join.getCondition(),
@@ -413,7 +420,7 @@ public class JavaRules {
         {
             super(
                 cluster,
-                cluster.traitSetOf(CallingConvention.ENUMERABLE),
+                cluster.traitSetOf(CONVENTION),
                 table);
             if (Types.isArray(expression.getType())) {
                 expression =
@@ -443,8 +450,8 @@ public class JavaRules {
         {
             super(
                 CalcRel.class,
-                CallingConvention.NONE,
-                CallingConvention.ENUMERABLE,
+                Convention.NONE,
+                CONVENTION,
                 "EnumerableCalcRule");
         }
 
@@ -453,8 +460,7 @@ public class JavaRules {
             final CalcRel calc = (CalcRel) rel;
             final RelNode convertedChild =
                 mergeTraitsAndConvert(
-                    calc.getTraitSet(),
-                    CallingConvention.ENUMERABLE,
+                    calc.getTraitSet(), CONVENTION,
                     calc.getChild());
             if (convertedChild == null) {
                 // We can't convert the child, so we can't convert rel.
@@ -496,7 +502,7 @@ public class JavaRules {
         {
             super(
                 cluster,
-                traitSet.plus(CallingConvention.ENUMERABLE),
+                traitSet.plus(CONVENTION),
                 child);
             this.flags = flags;
             this.program = program;
@@ -704,8 +710,8 @@ public class JavaRules {
         {
             super(
                 AggregateRel.class,
-                CallingConvention.NONE,
-                CallingConvention.ENUMERABLE,
+                Convention.NONE,
+                CONVENTION,
                 "EnumerableAggregateRule");
         }
 
@@ -715,7 +721,7 @@ public class JavaRules {
             final RelNode convertedChild =
                 mergeTraitsAndConvert(
                     agg.getTraitSet(),
-                    CallingConvention.ENUMERABLE,
+                    CONVENTION,
                     agg.getChild());
             if (convertedChild == null) {
                 // We can't convert the child, so we can't convert rel.
@@ -749,7 +755,7 @@ public class JavaRules {
         {
             super(
                 cluster,
-                traitSet.plus(CallingConvention.ENUMERABLE),
+                traitSet.plus(CONVENTION),
                 child,
                 groupSet,
                 aggCalls);
@@ -1096,8 +1102,8 @@ public class JavaRules {
         {
             super(
                 SortRel.class,
-                CallingConvention.NONE,
-                CallingConvention.ENUMERABLE,
+                Convention.NONE,
+                CONVENTION,
                 "EnumerableSortRule");
         }
 
@@ -1107,7 +1113,7 @@ public class JavaRules {
             final RelNode convertedChild =
                 mergeTraitsAndConvert(
                     sort.getTraitSet(),
-                    CallingConvention.ENUMERABLE,
+                    CONVENTION,
                     sort.getChild());
             if (convertedChild == null) {
                 // We can't convert the child, so we can't convert rel.
@@ -1134,7 +1140,7 @@ public class JavaRules {
         {
             super(
                 cluster,
-                traitSet.plus(CallingConvention.ENUMERABLE),
+                traitSet.plus(CONVENTION),
                 child,
                 collations);
         }
@@ -1254,8 +1260,8 @@ public class JavaRules {
         {
             super(
                 UnionRel.class,
-                CallingConvention.NONE,
-                CallingConvention.ENUMERABLE,
+                Convention.NONE,
+                CONVENTION,
                 "EnumerableUnionRule");
         }
 
@@ -1267,7 +1273,7 @@ public class JavaRules {
                 final RelNode convertedChild =
                     mergeTraitsAndConvert(
                         union.getTraitSet(),
-                        CallingConvention.ENUMERABLE,
+                        CONVENTION,
                         child);
                 if (convertedChild == null) {
                     // We can't convert the child, so we can't convert rel.
@@ -1295,7 +1301,7 @@ public class JavaRules {
         {
             super(
                 cluster,
-                traitSet.plus(CallingConvention.ENUMERABLE),
+                traitSet.plus(CONVENTION),
                 inputs,
                 all);
         }
@@ -1353,8 +1359,8 @@ public class JavaRules {
         {
             super(
                 IntersectRel.class,
-                CallingConvention.NONE,
-                CallingConvention.ENUMERABLE,
+                Convention.NONE,
+                CONVENTION,
                 "EnumerableIntersectRule");
         }
 
@@ -1369,7 +1375,7 @@ public class JavaRules {
                 final RelNode convertedChild =
                     mergeTraitsAndConvert(
                         intersect.getTraitSet(),
-                        CallingConvention.ENUMERABLE,
+                        CONVENTION,
                         child);
                 if (convertedChild == null) {
                     // We can't convert the child, so we can't convert rel.
@@ -1397,7 +1403,7 @@ public class JavaRules {
         {
             super(
                 cluster,
-                traitSet.plus(CallingConvention.ENUMERABLE),
+                traitSet.plus(CONVENTION),
                 inputs,
                 all);
             assert !all;
@@ -1456,8 +1462,8 @@ public class JavaRules {
         {
             super(
                 MinusRel.class,
-                CallingConvention.NONE,
-                CallingConvention.ENUMERABLE,
+                Convention.NONE,
+                CONVENTION,
                 "EnumerableMinusRule");
         }
 
@@ -1472,7 +1478,7 @@ public class JavaRules {
                 final RelNode convertedChild =
                     mergeTraitsAndConvert(
                         minus.getTraitSet(),
-                        CallingConvention.ENUMERABLE,
+                        CONVENTION,
                         child);
                 if (convertedChild == null) {
                     // We can't convert the child, so we can't convert rel.
@@ -1500,7 +1506,7 @@ public class JavaRules {
         {
             super(
                 cluster,
-                traitSet.plus(CallingConvention.ENUMERABLE),
+                traitSet.plus(CONVENTION),
                 inputs,
                 all);
             assert !all;
@@ -1551,8 +1557,8 @@ public class JavaRules {
         private EnumerableTableModificationRule() {
             super(
                 TableModificationRel.class,
-                CallingConvention.NONE,
-                CallingConvention.ENUMERABLE,
+                Convention.NONE,
+                CONVENTION,
                 "EnumerableTableModificationRule");
         }
 
@@ -1563,7 +1569,7 @@ public class JavaRules {
             final RelNode convertedChild =
                 mergeTraitsAndConvert(
                     modificationRel.getTraitSet(),
-                    CallingConvention.ENUMERABLE,
+                    CONVENTION,
                     modificationRel.getChild());
             if (convertedChild == null) {
                 // We can't convert the child, so we can't convert rel.
@@ -1572,7 +1578,7 @@ public class JavaRules {
             return new EnumerableTableModificationRel(
                 modificationRel.getCluster(),
                 modificationRel.getTraitSet()
-                    .plus(CallingConvention.ENUMERABLE),
+                    .plus(CONVENTION),
                 modificationRel.getTable(),
                 modificationRel.getCatalogReader(),
                 convertedChild,
@@ -1633,8 +1639,8 @@ public class JavaRules {
         private EnumerableValuesRule() {
             super(
                 ValuesRel.class,
-                CallingConvention.NONE,
-                CallingConvention.ENUMERABLE,
+                Convention.NONE,
+                CONVENTION,
                 "EnumerableValuesRule");
         }
 
@@ -1645,7 +1651,7 @@ public class JavaRules {
                 valuesRel.getCluster(),
                 valuesRel.getRowType(),
                 valuesRel.getTuples(),
-                valuesRel.getTraitSet().plus(CallingConvention.ENUMERABLE));
+                valuesRel.getTraitSet().plus(CONVENTION));
         }
     }
 
@@ -1659,9 +1665,7 @@ public class JavaRules {
             List<List<RexLiteral>> tuples,
             RelTraitSet traitSet)
         {
-            super(
-                cluster, rowType, tuples,
-                traitSet.plus(CallingConvention.ENUMERABLE));
+            super(cluster, rowType, tuples, traitSet.plus(CONVENTION));
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
@@ -1702,6 +1706,7 @@ public class JavaRules {
             return statements.toBlock();
         }
     }
+
 }
 
 // End JavaRules.java

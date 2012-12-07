@@ -41,7 +41,7 @@ import org.eigenbase.rel.convert.*;
  * #convert(RelOptPlanner, RelNode, RelTrait, boolean)} do not require
  * planner-instance-specific information, <b>or</b></li>
  * <li>the RelTraitDef manages separate sets of conversion data internally. See
- * {@link CallingConventionTraitDef} for an example of this.</li>
+ * {@link ConventionTraitDef} for an example of this.</li>
  * </ul>
  * </li>
  * </ol>
@@ -52,7 +52,7 @@ import org.eigenbase.rel.convert.*;
  * @author Stephan Zuercher
  * @version $Id$
  */
-public abstract class RelTraitDef
+public abstract class RelTraitDef<T extends RelTrait>
 {
     //~ Instance fields --------------------------------------------------------
 
@@ -71,7 +71,7 @@ public abstract class RelTraitDef
     /**
      * @return the specific RelTrait type associated with this RelTraitDef.
      */
-    public abstract Class getTraitClass();
+    public abstract Class<T> getTraitClass();
 
     /**
      * @return a simple name for this RelTraitDef (for use in {@link
@@ -94,7 +94,8 @@ public abstract class RelTraitDef
      */
     public final RelTrait canonize(RelTrait trait)
     {
-        assert (getTraitClass().isInstance(trait)) : getClass().getName()
+        assert getTraitClass().isInstance(trait)
+            : getClass().getName()
             + " cannot canonize a "
             + trait.getClass().getName();
 
@@ -130,7 +131,7 @@ public abstract class RelTraitDef
      * @param rel RelNode to convert
      * @param toTrait RelTrait to convert to
      * @param allowInfiniteCostConverters flag indicating whether infinite cost
-     * converters are allowe
+     * converters are allowed
      *
      * @return a converted RelNode or null if conversion is not possible
      */
@@ -145,7 +146,7 @@ public abstract class RelTraitDef
      *
      * @param planner the planner requesting the conversion test
      * @param fromTrait the RelTrait to convert from
-     * @param toTrait the RelTrait to conver to
+     * @param toTrait the RelTrait to convert to
      *
      * @return true if fromTrait can be converted to toTrait
      */
@@ -170,7 +171,7 @@ public abstract class RelTraitDef
 
     /**
      * Provides notification that a particular {@link ConverterRule} has been
-     * deregistered from a {@link RelOptPlanner}. The default implementation
+     * de-registered from a {@link RelOptPlanner}. The default implementation
      * does nothing.
      *
      * @param planner the planner registering the rule

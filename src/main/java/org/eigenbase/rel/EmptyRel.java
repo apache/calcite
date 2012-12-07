@@ -60,7 +60,7 @@ public class EmptyRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE));
+            cluster.traitSetOf(Convention.NONE));
         this.rowType = rowType;
     }
 
@@ -68,7 +68,7 @@ public class EmptyRel
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs)
     {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         assert inputs.isEmpty();
         // immutable with no children
         return this;

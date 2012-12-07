@@ -287,8 +287,8 @@ public class SqlToRelConverter
 
     /**
      * Controls whether table access references are converted to physical rels
-     * immediately. The optimizer doesn't like leaf rels to have {@link
-     * CallingConvention#NONE}. However, if we are doing further conversion
+     * immediately. The optimizer doesn't like leaf rels to have
+     * {@ling Convention#NONE}. However, if we are doing further conversion
      * passes (e.g. {@link RelStructuredTypeFlattener}), then we may need to
      * defer conversion. To have any effect, this must be called before any
      * convert method.
@@ -705,12 +705,12 @@ public class SqlToRelConverter
         bb.setRoot(
             new SortRel(
                 cluster,
-                cluster.traitSetOf(CallingConvention.NONE),
+                cluster.traitSetOf(Convention.NONE),
                 bb.root,
                 collationList),
             false);
 
-        // If extra exressions were added to the project list for sorting,
+        // If extra expressions were added to the project list for sorting,
         // add another project to remove them.
         if (orderExprList.size() > 0) {
             List<RexNode> exprs = new ArrayList<RexNode>();

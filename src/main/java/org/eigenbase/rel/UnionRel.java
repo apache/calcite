@@ -42,7 +42,7 @@ public final class UnionRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
+            cluster.traitSetOf(Convention.NONE),
             inputs,
             all);
     }
@@ -52,7 +52,7 @@ public final class UnionRel
     public UnionRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new UnionRel(
             getCluster(),
             inputs,

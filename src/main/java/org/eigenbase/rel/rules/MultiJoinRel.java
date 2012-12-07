@@ -84,7 +84,7 @@ public final class MultiJoinRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE));
+            cluster.traitSetOf(Convention.NONE));
         this.inputs = inputs;
         this.joinFilter = joinFilter;
         this.rowType = rowType;
@@ -99,7 +99,7 @@ public final class MultiJoinRel
     //~ Methods ----------------------------------------------------------------
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new MultiJoinRel(
             getCluster(),
             inputs,

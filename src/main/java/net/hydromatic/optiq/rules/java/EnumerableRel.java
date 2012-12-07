@@ -23,8 +23,8 @@ import org.eigenbase.rel.RelNode;
 
 
 /**
- * A relational expression of one of the
- * {@link org.eigenbase.relopt.CallingConvention#ENUMERABLE} calling convention.
+ * A relational expression of the
+ * {@link JavaRules#CONVENTION} calling convention.
  *
  * @author jhyde
  */

@@ -65,7 +65,7 @@ public final class CorrelatorRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
+            cluster.traitSetOf(Convention.NONE),
             left,
             right,
             joinCond,
@@ -111,7 +111,7 @@ public final class CorrelatorRel
         RelNode left,
         RelNode right)
     {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new CorrelatorRel(
             getCluster(),
             left,

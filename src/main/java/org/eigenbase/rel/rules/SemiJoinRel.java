@@ -62,7 +62,7 @@ public final class SemiJoinRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
+            cluster.traitSetOf(Convention.NONE),
             left,
             right,
             condition,

@@ -202,20 +202,6 @@ public class VolcanoPlanner
         };
     }
 
-    // REVIEW: SWZ: 3/1/2005: No one calls this.  Remove?
-    // todo: pre-compute
-    public RelOptRuleOperand [] getConversionOperands(
-        CallingConvention toConvention)
-    {
-        List<RelOptRuleOperand> list = new ArrayList<RelOptRuleOperand>();
-        for (RelOptRuleOperand operand : allOperands) {
-            if (operand.getRule().getOutConvention() == toConvention) {
-                list.add(operand);
-            }
-        }
-        return list.toArray(new RelOptRuleOperand[list.size()]);
-    }
-
     // implement RelOptPlanner
     public boolean isRegistered(RelNode rel)
     {
@@ -566,7 +552,7 @@ public class VolcanoPlanner
 
     /**
      * Finds RelSubsets in the plan that contain only rels of {@link
-     * CallingConvention#NONE} and boosts their importance by 25%.
+     * Convention#NONE} and boosts their importance by 25%.
      */
     private void injectImportanceBoost()
     {
@@ -575,7 +561,7 @@ public class VolcanoPlanner
 SUBSET_LOOP:
         for (RelSubset subset : ruleQueue.subsetImportances.keySet()) {
             for (RelNode rel : subset.rels) {
-                if (rel.getConvention() != CallingConvention.NONE) {
+                if (rel.getConvention() != Convention.NONE) {
                     continue SUBSET_LOOP;
                 }
             }
@@ -755,7 +741,7 @@ SUBSET_LOOP:
         if (rel instanceof RelSubset) {
             return ((RelSubset) rel).bestCost;
         }
-        if (rel.getTraitSet().getTrait(0) == CallingConvention.NONE) {
+        if (rel.getTraitSet().getTrait(0) == Convention.NONE) {
             return makeInfiniteCost();
         }
         RelOptCost cost = RelMetadataQuery.getNonCumulativeCost(rel);
@@ -1224,8 +1210,8 @@ SUBSET_LOOP:
         // Now is a good time to ensure that the relational expression
         // implements the interface required by its calling convention.
         final RelTraitSet traits = rel.getTraitSet();
-        final CallingConvention convention =
-            (CallingConvention) traits.getTrait(0);
+        final Convention convention =
+            (Convention) traits.getTrait(0);
         if (!convention.getInterface().isInstance(rel)
             && !(rel instanceof ConverterRel))
         {

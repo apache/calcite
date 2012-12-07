@@ -90,7 +90,7 @@ public final class ProjectRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
+            cluster.traitSetOf(Convention.NONE),
             child,
             exps,
             rowType,
@@ -101,7 +101,7 @@ public final class ProjectRel
     //~ Methods ----------------------------------------------------------------
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new ProjectRel(
             getCluster(),
             sole(inputs),

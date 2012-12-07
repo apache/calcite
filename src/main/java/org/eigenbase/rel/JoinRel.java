@@ -114,7 +114,7 @@ public final class JoinRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
+            cluster.traitSetOf(Convention.NONE),
             left,
             right,
             condition,
@@ -134,7 +134,7 @@ public final class JoinRel
         RelNode left,
         RelNode right)
     {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new JoinRel(
             getCluster(),
             left,

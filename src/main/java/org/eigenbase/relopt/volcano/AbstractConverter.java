@@ -45,7 +45,7 @@ public class AbstractConverter
     public AbstractConverter(
         RelOptCluster cluster,
         RelNode rel,
-        CallingConvention outConvention)
+        Convention outConvention)
     {
         this(
             cluster,

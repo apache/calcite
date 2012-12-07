@@ -57,7 +57,7 @@ public class TableFunctionRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
+            cluster.traitSetOf(Convention.NONE),
             inputs,
             rexCall,
             rowType,
@@ -68,7 +68,7 @@ public class TableFunctionRel
 
     @Override
     public TableFunctionRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new TableFunctionRel(
             getCluster(),
             inputs,

@@ -65,9 +65,9 @@ public class CoerceInputsRule
     //~ Methods ----------------------------------------------------------------
 
     // implement RelOptRule
-    public CallingConvention getOutConvention()
+    public Convention getOutConvention()
     {
-        return CallingConvention.NONE;
+        return Convention.NONE;
     }
 
     // implement RelOptRule

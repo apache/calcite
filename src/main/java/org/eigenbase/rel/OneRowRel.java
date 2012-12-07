@@ -45,12 +45,12 @@ public final class OneRowRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE));
+            cluster.traitSetOf(Convention.NONE));
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs)
     {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         assert inputs.isEmpty();
         return this;
     }

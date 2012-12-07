@@ -26,7 +26,7 @@ import org.eigenbase.util.*;
 
 /**
  * <code>NoneConverter</code> converts a plan from <code>inConvention</code> to
- * {@link org.eigenbase.relopt.CallingConvention#NONE_ORDINAL}.
+ * {@link org.eigenbase.relopt.Convention#NONE}.
  *
  * @author jhyde
  * @version $Id$
@@ -43,8 +43,8 @@ public class NoneConverterRel
     {
         super(
             cluster,
-            CallingConventionTraitDef.instance,
-            cluster.traitSetOf(CallingConvention.NONE),
+            ConventionTraitDef.instance,
+            cluster.traitSetOf(Convention.NONE),
             child);
     }
 
@@ -52,7 +52,7 @@ public class NoneConverterRel
 
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new NoneConverterRel(
             getCluster(),
             sole(inputs));

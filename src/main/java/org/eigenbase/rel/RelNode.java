@@ -87,7 +87,7 @@ public interface RelNode
      *
      * @return this RelNode's CallingConvention
      */
-    public CallingConvention getConvention();
+    public Convention getConvention();
 
     /**
      * Sets the name of the variable which is to be implicitly set at runtime

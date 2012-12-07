@@ -19,34 +19,16 @@ package org.eigenbase.relopt;
 
 import org.eigenbase.oj.rel.*;
 import org.eigenbase.rel.*;
-import org.eigenbase.util.*;
-
-import net.hydromatic.optiq.rules.java.EnumerableRel;
 
 
 /**
- * <code>CallingConvention</code> enumerates the calling conventions built in to
- * the Saffron project. This set can be extended by applications by defining new
- * instances of CallingConvention and registering them with a planner, along
- * with the desired conversion rules. Extended ordinals must be greater than
- * CallingConvention.enumeration.getMax().
+ * Obsolete set of {@link Convention}s. The code that uses these conventions
+ * will be removed from Optiq shortly.
  */
 public class CallingConvention
-    implements RelTrait
+    implements Convention
 {
     //~ Static fields/initializers ---------------------------------------------
-
-    private static int maxOrdinal;
-
-    /**
-     * The <code>NONE</code> calling convention means that expression does not
-     * support any calling convention -- in other words, it is not
-     * implementable, and has to be transformed to something else in order to be
-     * implemented.
-     */
-    public static final int NONE_ORDINAL = -1;
-    public static final CallingConvention NONE =
-        new CallingConvention("NONE", NONE_ORDINAL, RelNode.class);
 
     /**
      * The <code>JAVA</code> calling convention means that the expression is
@@ -66,17 +48,17 @@ public class CallingConvention
      * </ul>
      * </p>
      */
-    public static final int JAVA_ORDINAL = 0;
+    private static final int JAVA_ORDINAL = 0;
     public static final CallingConvention JAVA =
         new CallingConvention("JAVA", JAVA_ORDINAL, JavaLoopRel.class);
 
     /**
      * The <code>ITERATOR</code> calling convention means that the expression is
      * converted to an openjava expression ({@link openjava.ptree.Expression})
-     * which evalutes to an {@link org.eigenbase.runtime.TupleIter}. See {@link
+     * which evaluates to an {@link org.eigenbase.runtime.TupleIter}. See {@link
      * org.eigenbase.rel.convert.ConverterRel}.
      */
-    public static final int ITERATOR_ORDINAL = 1;
+    private static final int ITERATOR_ORDINAL = 1;
     public static final CallingConvention ITERATOR =
         new CallingConvention("ITERATOR", ITERATOR_ORDINAL, JavaRel.class);
 
@@ -86,7 +68,7 @@ public class CallingConvention
      * {@link #JAVA_ORDINAL}, where a loop <em>does something</em> for each row
      * returned).
      */
-    public static final int ARRAY_ORDINAL = 2;
+    private static final int ARRAY_ORDINAL = 2;
     public static final CallingConvention ARRAY =
         new CallingConvention("ARRAY", ARRAY_ORDINAL, JavaRel.class);
 
@@ -95,22 +77,22 @@ public class CallingConvention
      * expression which evaluates to a {@link java.util.Collection}, typically a
      * {@link java.util.ArrayList}.
      */
-    public static final int COLLECTION_ORDINAL = 3;
+    private static final int COLLECTION_ORDINAL = 3;
     public static final CallingConvention COLLECTION =
         new CallingConvention("COLLECTION", COLLECTION_ORDINAL, JavaRel.class);
-    public static final int VECTOR_ORDINAL = 4;
+    private static final int VECTOR_ORDINAL = 4;
     public static final CallingConvention VECTOR =
         new CallingConvention("VECTOR", VECTOR_ORDINAL, JavaRel.class);
-    public static final int ENUMERATION_ORDINAL = 5;
+    private static final int ENUMERATION_ORDINAL = 5;
     public static final CallingConvention ENUMERATION =
         new CallingConvention(
             "ENUMERATION",
             ENUMERATION_ORDINAL,
             JavaRel.class);
-    public static final int MAP_ORDINAL = 6;
+    private static final int MAP_ORDINAL = 6;
     public static final CallingConvention MAP =
         new CallingConvention("MAP", MAP_ORDINAL, JavaRel.class);
-    public static final int HASHTABLE_ORDINAL = 7;
+    private static final int HASHTABLE_ORDINAL = 7;
     public static final CallingConvention HASHTABLE =
         new CallingConvention("HASHTABLE", HASHTABLE_ORDINAL, JavaRel.class);
 
@@ -119,7 +101,7 @@ public class CallingConvention
      * converted to an openjava expression ({@link openjava.ptree.Expression})
      * which evaluates to an object which implements {@link Iterable}.
      */
-    public static final int ITERABLE_ORDINAL = 8;
+    private static final int ITERABLE_ORDINAL = 8;
     public static final CallingConvention ITERABLE =
         new CallingConvention("ITERABLE", ITERABLE_ORDINAL, JavaRel.class);
 
@@ -127,7 +109,7 @@ public class CallingConvention
      * The <code>EXISTS</code> calling convention is only allowed for a
      * terminator.
      */
-    public static final int EXISTS_ORDINAL = 9;
+    private static final int EXISTS_ORDINAL = 9;
     public static final CallingConvention EXISTS =
         new CallingConvention("EXISTS", EXISTS_ORDINAL, JavaRel.class);
 
@@ -138,28 +120,17 @@ public class CallingConvention
      * converted to another convention such as array or iterator, the default
      * object type is {@link org.eigenbase.runtime.Row}.
      */
-    public static final int RESULT_SET_ORDINAL = 10;
+    private static final int RESULT_SET_ORDINAL = 10;
     public static final CallingConvention RESULT_SET =
         new CallingConvention(
             "RESULT_SET",
             RESULT_SET_ORDINAL,
             ResultSetRel.class);
 
-    /**
-     * The <code>ENUMERABLE</code> calling convention means that the expression
-     * is a {@link net.hydromatic.linq4j.Enumerable}.
-     */
-    public static final int ENUMERABLE_ORDINAL = 11;
-    public static final CallingConvention ENUMERABLE =
-        new CallingConvention(
-            "ENUMERABLE",
-            ENUMERABLE_ORDINAL,
-            EnumerableRel.class);
-
     public static final CallingConvention [] values =
         new CallingConvention[] {
-            NONE, JAVA, ITERATOR, ARRAY, COLLECTION, VECTOR, ENUMERATION, MAP,
-            HASHTABLE, ITERABLE, EXISTS, RESULT_SET, ENUMERABLE,
+            JAVA, ITERATOR, ARRAY, COLLECTION, VECTOR, ENUMERATION, MAP,
+            HASHTABLE, ITERABLE, EXISTS, RESULT_SET,
         };
 
     //~ Instance fields --------------------------------------------------------
@@ -178,36 +149,28 @@ public class CallingConvention
      * Interface that a relational expression of this calling convention must
      * implement. Must be a sub-interface of {@link RelNode}.
      */
-    private final Class interfaze;
+    private final Class interface_;
 
     //~ Constructors -----------------------------------------------------------
 
-    public CallingConvention(
+    private CallingConvention(
         String name,
         int ordinal,
-        Class interfaze)
+        Class interface_)
     {
-        Util.pre(name != null, "name != null");
+        assert name != null;
+        assert RelNode.class.isAssignableFrom(interface_);
 
         this.name = name;
         this.ordinal = ordinal;
-        this.interfaze = interfaze;
-        Util.pre(
-            RelNode.class.isAssignableFrom(interfaze),
-            "RelNode.class.isAssignableFrom(interfaze)");
-        maxOrdinal = Math.max(ordinal, maxOrdinal);
+        this.interface_ = interface_;
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public Class getInterface()
     {
-        return interfaze;
-    }
-
-    public static int generateOrdinal()
-    {
-        return maxOrdinal + 1;
+        return interface_;
     }
 
     public String getName()
@@ -215,15 +178,10 @@ public class CallingConvention
         return name;
     }
 
-    public int getOrdinal()
-    {
-        return ordinal;
-    }
-
     // Implement RelTrait
     public RelTraitDef getTraitDef()
     {
-        return CallingConventionTraitDef.instance;
+        return ConventionTraitDef.instance;
     }
 
     /**

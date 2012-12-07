@@ -280,10 +280,10 @@ public abstract class RelOptRule
     public abstract void onMatch(RelOptRuleCall call);
 
     /**
-     * Returns the calling convention of the result of firing this rule, null if
+     * Returns the convention of the result of firing this rule, null if
      * not known.
      */
-    public CallingConvention getOutConvention()
+    public Convention getOutConvention()
     {
         return null;
     }

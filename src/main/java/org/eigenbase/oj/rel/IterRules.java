@@ -20,8 +20,6 @@ package org.eigenbase.oj.rel;
 import java.util.ArrayList;
 import java.util.List;
 
-import openjava.ptree.*;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
 import org.eigenbase.relopt.*;
@@ -54,7 +52,7 @@ public abstract class IterRules
         {
             super(
                 UnionRel.class,
-                CallingConvention.NONE,
+                Convention.NONE,
                 CallingConvention.ITERATOR,
                 description);
         }
@@ -140,7 +138,7 @@ public abstract class IterRules
         {
             super(
                 OneRowRel.class,
-                CallingConvention.NONE,
+                Convention.NONE,
                 CallingConvention.ITERATOR,
                 "OneRowToIteratorRule");
         }
@@ -164,7 +162,7 @@ public abstract class IterRules
         {
             super(
                 CalcRel.class,
-                CallingConvention.NONE,
+                Convention.NONE,
                 CallingConvention.ITERATOR,
                 "IterCalcRule");
         }

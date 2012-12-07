@@ -315,7 +315,7 @@ public class JavaRelImplementor extends RelImplementorImpl {
     @Override
     public ParseTree visitChildInternal(RelNode child, int ordinal)
     {
-        final CallingConvention convention = child.getConvention();
+        final Convention convention = child.getConvention();
         if (!(child instanceof JavaRel)) {
             throw Util.newInternal(
                 "Relational expression '" + child

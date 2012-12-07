@@ -74,7 +74,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 catalogReader,
                 typeFactory,
                 context.getRootSchema());
-        preparingStmt.setResultCallingConvention(CallingConvention.ENUMERABLE);
+        preparingStmt.setResultConvention(JavaRules.CONVENTION);
 
         SqlParser parser = new SqlParser(sql);
         SqlNode sqlNode;
@@ -125,7 +125,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 catalogReader,
                 typeFactory,
                 context.getRootSchema());
-        preparingStmt.setResultCallingConvention(CallingConvention.ENUMERABLE);
+        preparingStmt.setResultConvention(JavaRules.CONVENTION);
 
         final RelDataType x;
         final PreparedResult preparedResult;
@@ -232,7 +232,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             super(catalogReader);
             this.schema = schema;
             planner = new VolcanoPlanner();
-            planner.addRelTraitDef(CallingConventionTraitDef.instance);
+            planner.addRelTraitDef(ConventionTraitDef.instance);
             RelOptUtil.registerAbstractRels(planner);
             planner.addRule(JavaRules.ENUMERABLE_JOIN_RULE);
             planner.addRule(JavaRules.ENUMERABLE_CALC_RULE);

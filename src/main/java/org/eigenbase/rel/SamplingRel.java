@@ -44,7 +44,7 @@ public class SamplingRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
+            cluster.traitSetOf(Convention.NONE),
             child);
         this.params = params;
     }
@@ -52,7 +52,7 @@ public class SamplingRel
     //~ Methods ----------------------------------------------------------------
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new SamplingRel(
             getCluster(),
             sole(inputs),

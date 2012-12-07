@@ -153,10 +153,9 @@ public abstract class AbstractRelNode
         return cluster;
     }
 
-    public final CallingConvention getConvention()
+    public final Convention getConvention()
     {
-        return (CallingConvention) traitSet.getTrait(
-            CallingConventionTraitDef.instance);
+        return traitSet.getTrait(ConventionTraitDef.instance);
     }
 
     public RelTraitSet getTraitSet()

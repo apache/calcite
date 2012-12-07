@@ -41,7 +41,7 @@ import org.eigenbase.rel.*;
  * <li>{@link org.eigenbase.relopt.CallingConvention#VECTOR VECTOR},
  * <li>{@link org.eigenbase.relopt.CallingConvention#HASHTABLE HASHTABLE},
  * <li>{@link org.eigenbase.relopt.CallingConvention#JAVA JAVA},
- * <li>{@link org.eigenbase.relopt.CallingConvention#ENUMERABLE ENUMERABLE}.
+ * <li>{@link net.hydromatic.optiq.rules.java.JavaRules#CONVENTION ENUMERABLE}.
  * </ul>
  * </li>
  * </ul>

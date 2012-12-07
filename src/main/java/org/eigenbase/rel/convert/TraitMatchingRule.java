@@ -61,7 +61,7 @@ public class TraitMatchingRule
     //~ Methods ----------------------------------------------------------------
 
     // implement RelOptRule
-    public CallingConvention getOutConvention()
+    public Convention getOutConvention()
     {
         return converter.getOutConvention();
     }

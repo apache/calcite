@@ -47,7 +47,7 @@ public final class TableModificationRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
+            cluster.traitSetOf(Convention.NONE),
             table,
             schema,
             child,
@@ -61,7 +61,7 @@ public final class TableModificationRel
     @Override
     public TableModificationRel copy(RelTraitSet traitSet, List<RelNode> inputs)
     {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new TableModificationRel(
             getCluster(),
             table,

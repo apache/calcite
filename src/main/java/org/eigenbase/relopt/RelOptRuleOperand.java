@@ -110,8 +110,8 @@ public class RelOptRuleOperand
         this.trait = trait;
         this.children = children;
         if (children != null) {
-            for (int i = 0; i < this.children.length; i++) {
-                this.children[i].parent = this;
+            for (RelOptRuleOperand child : this.children) {
+                child.parent = this;
             }
         }
         this.matchAnyChildren = matchAnyChild;
@@ -271,7 +271,7 @@ public class RelOptRuleOperand
 
     /**
      * Returns whether a relational expression matches this operand. It must be
-     * of the right class and calling convention.
+     * of the right class and trait.
      */
     public boolean matches(RelNode rel)
     {

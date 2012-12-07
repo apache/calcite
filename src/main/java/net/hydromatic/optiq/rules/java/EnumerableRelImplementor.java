@@ -30,7 +30,7 @@ import java.util.Map;
 
 /**
  * Subclass of {@link RelImplementor} for relational operators
- * of {@link org.eigenbase.relopt.CallingConvention#ENUMERABLE} calling
+ * of {@link JavaRules#CONVENTION} calling
  * convention.
  *
  * @author jhyde

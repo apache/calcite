@@ -64,7 +64,7 @@ public final class CollectRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
+            cluster.traitSetOf(Convention.NONE),
             child);
         this.fieldName = fieldName;
     }
@@ -72,7 +72,7 @@ public final class CollectRel
     //~ Methods ----------------------------------------------------------------
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new CollectRel(
             getCluster(),
             sole(inputs),

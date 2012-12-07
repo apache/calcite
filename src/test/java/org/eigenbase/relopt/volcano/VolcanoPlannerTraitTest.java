@@ -45,10 +45,9 @@ public class VolcanoPlannerTraitTest
      * Private calling convention representing a generic "physical" calling
      * convention.
      */
-    private static final CallingConvention PHYS_CALLING_CONVENTION =
-        new CallingConvention(
+    private static final Convention PHYS_CALLING_CONVENTION =
+        new Convention.Impl(
             "PHYS",
-            CallingConvention.generateOrdinal(),
             RelNode.class);
 
     /**
@@ -87,7 +86,7 @@ public class VolcanoPlannerTraitTest
     {
         VolcanoPlanner planner = new VolcanoPlanner();
 
-        planner.addRelTraitDef(CallingConventionTraitDef.instance);
+        planner.addRelTraitDef(ConventionTraitDef.instance);
         planner.addRelTraitDef(ALT_TRAIT_DEF);
 
         planner.addRule(new PhysToIteratorConverterRule());
@@ -121,7 +120,7 @@ public class VolcanoPlannerTraitTest
         assertTrue(result instanceof IterSingleRel);
         assertEquals(
             CallingConvention.ITERATOR,
-            result.getTraitSet().getTrait(CallingConventionTraitDef.instance));
+            result.getTraitSet().getTrait(ConventionTraitDef.instance));
         assertEquals(
             ALT_TRAIT2,
             result.getTraitSet().getTrait(ALT_TRAIT_DEF));
@@ -144,7 +143,7 @@ public class VolcanoPlannerTraitTest
     {
         VolcanoPlanner planner = new VolcanoPlanner();
 
-        planner.addRelTraitDef(CallingConventionTraitDef.instance);
+        planner.addRelTraitDef(ConventionTraitDef.instance);
         planner.addRelTraitDef(ALT_TRAIT_DEF);
 
         planner.addRule(new PhysToIteratorConverterRule());
@@ -180,7 +179,7 @@ public class VolcanoPlannerTraitTest
         assertTrue(result instanceof IterSingleRel);
         assertEquals(
             CallingConvention.ITERATOR,
-            result.getTraitSet().getTrait(CallingConventionTraitDef.instance));
+            result.getTraitSet().getTrait(ConventionTraitDef.instance));
         assertEquals(
             ALT_TRAIT2,
             result.getTraitSet().getTrait(ALT_TRAIT_DEF));
@@ -189,7 +188,7 @@ public class VolcanoPlannerTraitTest
         assertTrue(child instanceof IterSingleRel);
         assertEquals(
             CallingConvention.ITERATOR,
-            child.getTraitSet().getTrait(CallingConventionTraitDef.instance));
+            child.getTraitSet().getTrait(ConventionTraitDef.instance));
         assertEquals(
             ALT_TRAIT2,
             child.getTraitSet().getTrait(ALT_TRAIT_DEF));
@@ -251,13 +250,13 @@ public class VolcanoPlannerTraitTest
     }
 
     private static class AltTraitDef
-        extends RelTraitDef
+        extends RelTraitDef<AltTrait>
     {
         private MultiMap<RelTrait, Pair<RelTrait, ConverterRule>>
             conversionMap =
                 new MultiMap<RelTrait, Pair<RelTrait, ConverterRule>>();
 
-        public Class getTraitClass()
+        public Class<AltTrait> getTraitClass()
         {
             return AltTrait.class;
         }
@@ -387,7 +386,7 @@ public class VolcanoPlannerTraitTest
         {
             super(
                 cluster,
-                cluster.traitSetOf(CallingConvention.NONE),
+                cluster.traitSetOf(Convention.NONE),
                 label);
         }
     }
@@ -449,12 +448,12 @@ public class VolcanoPlannerTraitTest
         {
             super(
                 cluster,
-                cluster.traitSetOf(CallingConvention.NONE),
+                cluster.traitSetOf(Convention.NONE),
                 child);
         }
 
         public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-            assert traitSet.comprises(CallingConvention.NONE);
+            assert traitSet.comprises(Convention.NONE);
             return new NoneSingleRel(
                 getCluster(),
                 sole(inputs));
@@ -501,7 +500,7 @@ public class VolcanoPlannerTraitTest
         }
 
         // implement RelOptRule
-        public CallingConvention getOutConvention()
+        public Convention getOutConvention()
         {
             return PHYS_CALLING_CONVENTION;
         }
@@ -526,7 +525,7 @@ public class VolcanoPlannerTraitTest
         }
 
         // implement RelOptRule
-        public CallingConvention getOutConvention()
+        public Convention getOutConvention()
         {
             return CallingConvention.ITERATOR;
         }
@@ -563,7 +562,7 @@ public class VolcanoPlannerTraitTest
         }
 
         // implement RelOptRule
-        public CallingConvention getOutConvention()
+        public Convention getOutConvention()
         {
             return CallingConvention.ITERATOR;
         }
@@ -685,7 +684,7 @@ public class VolcanoPlannerTraitTest
         {
             super(
                 cluster,
-                CallingConventionTraitDef.instance,
+                ConventionTraitDef.instance,
                 child.getTraitSet().replace(CallingConvention.ITERATOR),
                 child);
         }

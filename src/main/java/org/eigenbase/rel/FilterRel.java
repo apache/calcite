@@ -49,7 +49,7 @@ public final class FilterRel
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
+            cluster.traitSetOf(Convention.NONE),
             child,
             condition);
     }
@@ -58,7 +58,7 @@ public final class FilterRel
 
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new FilterRel(
             getCluster(),
             sole(inputs),

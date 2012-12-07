@@ -82,12 +82,6 @@ public abstract class ConverterRelImpl
         return getChild().isDistinct();
     }
 
-    protected CallingConvention getInputConvention()
-    {
-        return (CallingConvention) inTraits.getTrait(
-            CallingConventionTraitDef.instance);
-    }
-
     public RelTraitSet getInputTraits()
     {
         return inTraits;

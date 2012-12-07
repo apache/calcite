@@ -73,9 +73,9 @@ public abstract class ConverterRule
 
     //~ Methods ----------------------------------------------------------------
 
-    public CallingConvention getOutConvention()
+    public Convention getOutConvention()
     {
-        return (CallingConvention) outTrait;
+        return (Convention) outTrait;
     }
 
     public RelTrait getOutTrait()

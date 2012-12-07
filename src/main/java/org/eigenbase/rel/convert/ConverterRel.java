@@ -27,10 +27,6 @@ import org.eigenbase.relopt.*;
  * org.eigenbase.relopt.RelTrait trait}, of a relational expression from one
  * value to another.
  *
- * <p>A typical example of a trait is {@link CallingConvention calling
- * convention}, and {@link net.sf.farrago.query.FennelToIteratorConverter} is an
- * example of a relational expression which converts that trait.</p>
- *
  * <p>Sometimes this conversion is expensive; for example, to convert a
  * non-distinct to a distinct object stream, we have to clone every object in
  * the input.</p>

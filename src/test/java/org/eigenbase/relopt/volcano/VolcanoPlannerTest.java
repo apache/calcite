@@ -48,10 +48,9 @@ public class VolcanoPlannerTest
     /**
      * Private calling convention representing a physical implementation.
      */
-    private static final CallingConvention PHYS_CALLING_CONVENTION =
-        new CallingConvention(
+    private static final Convention PHYS_CALLING_CONVENTION =
+        new Convention.Impl(
             "PHYS",
-            CallingConvention.generateOrdinal(),
             RelNode.class);
 
     //~ Constructors -----------------------------------------------------------
@@ -80,7 +79,7 @@ public class VolcanoPlannerTest
     {
         VolcanoPlanner planner = new VolcanoPlanner();
 
-        planner.addRelTraitDef(CallingConventionTraitDef.instance);
+        planner.addRelTraitDef(ConventionTraitDef.instance);
 
         planner.addRule(new PhysLeafRule());
 
@@ -104,7 +103,7 @@ public class VolcanoPlannerTest
     public void testTransformSingleGood()
     {
         VolcanoPlanner planner = new VolcanoPlanner();
-        planner.addRelTraitDef(CallingConventionTraitDef.instance);
+        planner.addRelTraitDef(ConventionTraitDef.instance);
 
         planner.addRule(new PhysLeafRule());
         planner.addRule(new GoodSingleRule());
@@ -134,7 +133,7 @@ public class VolcanoPlannerTest
     public void testTransformSingleReformed()
     {
         VolcanoPlanner planner = new VolcanoPlanner();
-        planner.addRelTraitDef(CallingConventionTraitDef.instance);
+        planner.addRelTraitDef(ConventionTraitDef.instance);
 
         planner.addRule(new PhysLeafRule());
         planner.addRule(new ReformedSingleRule());
@@ -162,7 +161,7 @@ public class VolcanoPlannerTest
         VolcanoPlanner planner = new VolcanoPlanner();
         planner.ambitious = true;
 
-        planner.addRelTraitDef(CallingConventionTraitDef.instance);
+        planner.addRelTraitDef(ConventionTraitDef.instance);
 
         if (useRule) {
             planner.addRule(RemoveTrivialProjectRule.instance);
@@ -235,7 +234,7 @@ public class VolcanoPlannerTest
     {
         VolcanoPlanner planner = new VolcanoPlanner();
         planner.ambitious = true;
-        planner.addRelTraitDef(CallingConventionTraitDef.instance);
+        planner.addRelTraitDef(ConventionTraitDef.instance);
 
         planner.addRule(new PhysLeafRule());
         planner.addRule(new ReformedRemoveSingleRule());
@@ -271,7 +270,7 @@ public class VolcanoPlannerTest
     {
         VolcanoPlanner planner = new VolcanoPlanner();
         planner.ambitious = true;
-        planner.addRelTraitDef(CallingConventionTraitDef.instance);
+        planner.addRelTraitDef(ConventionTraitDef.instance);
 
         planner.addRule(new PhysLeafRule());
         planner.addRule(new GoodSingleRule());
@@ -309,7 +308,7 @@ public class VolcanoPlannerTest
         VolcanoPlanner planner = new VolcanoPlanner();
         planner.addListener(listener);
 
-        planner.addRelTraitDef(CallingConventionTraitDef.instance);
+        planner.addRelTraitDef(ConventionTraitDef.instance);
 
         planner.addRule(new PhysLeafRule());
 
@@ -522,12 +521,12 @@ public class VolcanoPlannerTest
         {
             super(
                 cluster,
-                cluster.traitSetOf(CallingConvention.NONE),
+                cluster.traitSetOf(Convention.NONE),
                 child);
         }
 
         public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-            assert traitSet.comprises(CallingConvention.NONE);
+            assert traitSet.comprises(Convention.NONE);
             return new NoneSingleRel(
                 getCluster(),
                 sole(inputs));
@@ -543,12 +542,12 @@ public class VolcanoPlannerTest
         {
             super(
                 cluster,
-                cluster.traitSetOf(CallingConvention.NONE),
+                cluster.traitSetOf(Convention.NONE),
                 label);
         }
 
         public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-            assert traitSet.comprises(CallingConvention.NONE);
+            assert traitSet.comprises(Convention.NONE);
             assert inputs.isEmpty();
             return this;
         }
@@ -616,7 +615,7 @@ public class VolcanoPlannerTest
         {
             super(
                 cluster,
-                CallingConventionTraitDef.instance,
+                ConventionTraitDef.instance,
                 cluster.traitSetOf(CallingConvention.ITERATOR),
                 child);
         }
@@ -638,7 +637,7 @@ public class VolcanoPlannerTest
         }
 
         // implement RelOptRule
-        public CallingConvention getOutConvention()
+        public Convention getOutConvention()
         {
             return PHYS_CALLING_CONVENTION;
         }
@@ -666,7 +665,7 @@ public class VolcanoPlannerTest
         }
 
         // implement RelOptRule
-        public CallingConvention getOutConvention()
+        public Convention getOutConvention()
         {
             return PHYS_CALLING_CONVENTION;
         }
@@ -706,7 +705,7 @@ public class VolcanoPlannerTest
         }
 
         // implement RelOptRule
-        public CallingConvention getOutConvention()
+        public Convention getOutConvention()
         {
             return PHYS_CALLING_CONVENTION;
         }
@@ -740,7 +739,7 @@ public class VolcanoPlannerTest
         }
 
         // implement RelOptRule
-        public CallingConvention getOutConvention()
+        public Convention getOutConvention()
         {
             return PHYS_CALLING_CONVENTION;
         }
@@ -768,7 +767,7 @@ public class VolcanoPlannerTest
         }
 
         // implement RelOptRule
-        public CallingConvention getOutConvention()
+        public Convention getOutConvention()
         {
             return PHYS_CALLING_CONVENTION;
         }
@@ -797,7 +796,7 @@ public class VolcanoPlannerTest
         }
 
         // implement RelOptRule
-        public CallingConvention getOutConvention()
+        public Convention getOutConvention()
         {
             return PHYS_CALLING_CONVENTION;
         }

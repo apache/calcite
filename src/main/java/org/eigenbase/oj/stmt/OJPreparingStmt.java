@@ -65,7 +65,7 @@ public abstract class OJPreparingStmt
     /**
      * CallingConvention via which results should be returned by execution.
      */
-    private CallingConvention resultCallingConvention;
+    private Convention resultConvention;
 
     protected JavaCompiler javaCompiler;
     protected final CatalogReader catalogReader;
@@ -89,16 +89,16 @@ public abstract class OJPreparingStmt
     public OJPreparingStmt(CatalogReader catalogReader)
     {
         this.catalogReader = catalogReader;
-        this.resultCallingConvention = CallingConvention.RESULT_SET;
+        this.resultConvention = CallingConvention.RESULT_SET;
         this.containsJava = true;
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public void setResultCallingConvention(
-        CallingConvention resultCallingConvention)
+    public void setResultConvention(
+        Convention resultConvention)
     {
-        this.resultCallingConvention = resultCallingConvention;
+        this.resultConvention = resultConvention;
     }
 
     protected BoundMethod compileAndBind(
@@ -343,7 +343,7 @@ public abstract class OJPreparingStmt
     {
         // Make sure non-CallingConvention traits, if any, are preserved
         return rootRel.getTraitSet()
-            .replace(resultCallingConvention);
+            .replace(resultConvention);
     }
 
     /**

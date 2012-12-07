@@ -19,7 +19,6 @@ package org.eigenbase.rel;
 
 import java.util.List;
 
-import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 
 
@@ -42,7 +41,7 @@ public final class IntersectRel extends IntersectRelBase {
     {
         super(
             cluster,
-            cluster.traitSetOf(CallingConvention.NONE),
+            cluster.traitSetOf(Convention.NONE),
             inputs,
             all);
     }
@@ -53,7 +52,7 @@ public final class IntersectRel extends IntersectRelBase {
     public IntersectRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {
-        assert traitSet.comprises(CallingConvention.NONE);
+        assert traitSet.comprises(Convention.NONE);
         return new IntersectRel(
             getCluster(),
             inputs,

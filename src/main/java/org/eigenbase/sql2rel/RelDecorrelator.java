@@ -291,7 +291,7 @@ public class RelDecorrelator
         SortRel newRel =
             new SortRel(
                 rel.getCluster(),
-                rel.getCluster().traitSetOf(CallingConvention.NONE),
+                rel.getCluster().traitSetOf(Convention.NONE),
                 newChildRel,
                 newCollations);
 
@@ -1160,9 +1160,9 @@ public class RelDecorrelator
      * Pull projRel above the joinRel from its RHS input. Enforce nullability
      * for join output.
      *
-     * @param joinRel
+     * @param joinRel Join
      * @param projRel the orginal projRel as the RHS input of the join.
-     * @param nullIndicatorPos
+     * @param nullIndicatorPos Position of null indicator
      *
      * @return the subtree with the new ProjectRel at the root
      */
@@ -1347,7 +1347,7 @@ public class RelDecorrelator
     /**
      * Remove correlated variables from the tree at root corRel
      *
-     * @param corRel
+     * @param corRel Correlator
      */
     private void removeCorVarFromTree(
         CorrelatorRel corRel)
@@ -1366,9 +1366,9 @@ public class RelDecorrelator
     /**
      * Project all childRel output fields plus the additional expressions.
      *
-     * @param childRel
-     * @param additionalExprs
-     * @param additionalExprNames
+     * @param childRel Child relational expression
+     * @param additionalExprs Additional expressions
+     * @param additionalExprNames Names of additional expressions
      *
      * @return the new ProjectRel
      */
@@ -1447,7 +1447,7 @@ public class RelDecorrelator
             if (!found) {
                 decorrelateRelGeneric(p);
             }
-            //else no rewrite will occur. This will terminate the bottom-up
+            // else no rewrite will occur. This will terminate the bottom-up
             // rewrite. If root node of a RelNode tree is not rewritten, the
             // original tree will be returned. See decorrelate() method.
         }
@@ -1478,7 +1478,7 @@ public class RelDecorrelator
                         mapNewRelToMapCorVarToOutputPos.get(newInputRel);
 
                     if (childMapCorVarToOutputPos != null) {
-                        //try to find in this input rel the position of cor var
+                        // try to find in this input rel the position of cor var
                         CorrelatorRel.Correlation corVar =
                             mapFieldAccessToCorVar.get(fieldAccess);
 
