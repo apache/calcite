@@ -106,8 +106,12 @@ public class JdbcFrontJdbcBackTest extends TestCase {
             .withSchema("foodmart")
             .query(
                 "select case when \"sales_fact_1997\".\"promotion_id\" = 1 then 0\n"
-                + "                        else \"sales_fact_1997\".\"store_sales\" end as \"c0\" from \"sales_fact_1997\" as \"sales_fact_1997\"")
-            .returns("xxx");
+                + "                        else \"sales_fact_1997\".\"store_sales\" end as \"c0\"\n"
+                + "from \"sales_fact_1997\" as \"sales_fact_1997\""
+                + "where \"product_id\" = 1\n" + "and \"time_id\" < 400")
+            .returns(
+                "c0=11.4000\n"
+                + "c0=8.5500\n");
     }
 }
 
