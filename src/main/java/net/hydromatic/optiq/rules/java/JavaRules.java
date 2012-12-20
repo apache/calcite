@@ -19,6 +19,7 @@ package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.rules.java.RexToLixTranslator.AggImplementor2;
 import net.hydromatic.optiq.runtime.ArrayComparator;
 
 import net.hydromatic.linq4j.*;
@@ -108,6 +109,8 @@ public class JavaRules {
         extends JoinRelBase
         implements EnumerableRel
     {
+        private final PhysType physType;
+
         protected EnumerableJoinRel(
             RelOptCluster cluster,
             RelTraitSet traits,
@@ -130,6 +133,13 @@ public class JavaRules {
                 throw new InvalidRelException(
                     "EnumerableJoinRel only supports equi-join");
             }
+            this.physType =
+                PhysTypeImpl.of(
+                    (JavaTypeFactory) cluster.getTypeFactory(), getRowType());
+        }
+
+        public PhysType getPhysType() {
+            return physType;
         }
 
         @Override
@@ -188,22 +198,20 @@ public class JavaRules {
                 list.append(
                     "right",
                     implementor.visitChild(this, 1, (EnumerableRel) right));
+            final PhysType keyPhysType =
+                ((EnumerableRel) left).getPhysType().project(leftKeys);
             return list.append(
                 Expressions.call(
                     leftExpression,
                     BuiltinMethod.JOIN.method,
                     Expressions.list(
                         rightExpression,
-                        EnumUtil.generateAccessor(
-                            typeFactory, left.getRowType(), leftKeys, false),
-                        EnumUtil.generateAccessor(
-                            typeFactory, right.getRowType(), rightKeys, false),
+                        ((EnumerableRel) left).getPhysType()
+                            .generateAccessor(leftKeys),
+                        ((EnumerableRel) right).getPhysType()
+                            .generateAccessor(rightKeys),
                         generateSelector(typeFactory))
-                        .appendIf(
-                            leftKeys.size() > 1,
-                            Expressions.call(
-                                null,
-                                BuiltinMethod.ARRAY_COMPARER.method))))
+                        .appendIfNotNull(keyPhysType.comparer())))
                 .toBlock();
         }
 
@@ -224,10 +232,11 @@ public class JavaRules {
             for (Ord<RelNode> rel : Ord.zip(getInputs())) {
                 RelDataType inputRowType = rel.e.getRowType();
                 final ParameterExpression parameter = parameters.get(rel.i);
+                PhysType physType = PhysTypeImpl.of(
+                    typeFactory, inputRowType);
                 for (int i = 0; i < inputRowType.getFieldCount(); i++) {
                     expressions.add(
-                        EnumUtil.inputFieldReference(
-                            inputRowType, parameter, i));
+                        physType.fieldReference(parameter, i));
                 }
             }
             return Expressions.lambda(
@@ -259,63 +268,6 @@ public class JavaRules {
                 body);
         }
 
-        static Expression generateAccessor(
-            JavaTypeFactory typeFactory,
-            RelDataType rowType,
-            List<Integer> fields,
-            boolean primitive)
-        {
-            ParameterExpression v1 =
-                Expressions.parameter(javaRowClass(typeFactory, rowType), "v1");
-            switch (fields.size()) {
-            case 0:
-                return Expressions.lambda(
-                    Function1.class,
-                    Expressions.field(
-                        null,
-                        Collections.class,
-                        "EMPTY_LIST"),
-                    v1);
-            case 1:
-                break;
-            default:
-                // new Function1<Employee, Object[]> {
-                //    public Object[] apply(Employee v1) {
-                //        return new Object[] {v1.<fieldN>, v1.<fieldM>};
-                //    }
-                // }
-                Expressions.FluentList<Expression> list = Expressions.list();
-                for (int field : fields) {
-                    list.add(fieldReference(v1, field));
-                }
-                return Expressions.lambda(
-                    Function1.class,
-                    Expressions.newArrayInit(
-                        Object.class,
-                        list),
-                    v1);
-            }
-            int field = fields.get(0);
-
-            // new Function1<Employee, Res> {
-            //    public Res apply(Employee v1) {
-            //        return v1.<fieldN>;
-            //    }
-            // }
-            Class returnType =
-                javaRowClass(
-                    typeFactory, rowType.getFieldList().get(field).getType());
-            Expression fieldReference =
-                Types.castIfNecessary(
-                    returnType,
-                    EnumUtil.inputFieldReference(rowType, v1, field));
-            return Expressions.lambda(
-                primitive
-                    ? Functions.functionClass(returnType)
-                    : Function1.class,
-                fieldReference,
-                v1);
-        }
 
         static Type javaClass(
             JavaTypeFactory typeFactory, RelDataType type)
@@ -351,49 +303,6 @@ public class JavaRules {
             return outputJavaType;
         }
 
-        static Expression fieldReference(
-            Expression expression,
-            RelDataTypeField field)
-        {
-            if (Types.isArray(expression.getType())) {
-                return Expressions.arrayIndex(
-                    expression, Expressions.constant(field.getIndex()));
-            } else {
-                return Expressions.field(
-                    expression, field.getName());
-            }
-        }
-
-        static Expression fieldReference(
-            Expression expression, int field)
-        {
-            final Type type = expression.getType();
-            if (Types.isArray(type)) {
-                return Expressions.arrayIndex(
-                    expression, Expressions.constant(field));
-            } else if (Types.isPrimitive(type) && field == 0) {
-                return expression;
-            } else {
-                return Expressions.field(
-                    expression,
-                    Types.nthField(field, type));
-            }
-        }
-
-        static Expression inputFieldReference(
-            RelDataType inputRowType,
-            Expression expression,
-            int field)
-        {
-            List<RelDataTypeField> fieldList = inputRowType.getFieldList();
-            if (fieldList.size() == 1) {
-                assert field == 0;
-                return expression;
-            }
-            return EnumUtil.fieldReference(
-                expression, fieldList.get(field));
-        }
-
         /** Converts 'x' to 'Integer.valueOf(x)' if x is of type {@code int}. */
         static Expression box(Expression expression) {
             if (Types.isPrimitive(expression.getType())) {
@@ -412,6 +321,7 @@ public class JavaRules {
         implements EnumerableRel
     {
         private final Expression expression;
+        private final PhysType physType;
 
         public EnumerableTableAccessRel(
             RelOptCluster cluster,
@@ -429,6 +339,14 @@ public class JavaRules {
                         expression);
             }
             this.expression = expression;
+            this.physType =
+                PhysTypeImpl.of(
+                    (JavaTypeFactory) cluster.getTypeFactory(),
+                    getRowType());
+        }
+
+        public PhysType getPhysType() {
+            return physType;
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
@@ -488,6 +406,8 @@ public class JavaRules {
     {
         private final RexProgram program;
 
+        private final PhysType physType;
+
         /**
          * Values defined in {@link org.eigenbase.rel.ProjectRelBase.Flags}.
          */
@@ -507,6 +427,13 @@ public class JavaRules {
             this.flags = flags;
             this.program = program;
             this.rowType = program.getOutputRowType();
+            this.physType =
+                PhysTypeImpl.of(
+                    (JavaTypeFactory) cluster.getTypeFactory(), getRowType());
+        }
+
+        public PhysType getPhysType() {
+            return physType;
         }
 
         public void explain(RelOptPlanWriter pw)
@@ -745,6 +672,8 @@ public class JavaRules {
         extends AggregateRelBase
         implements EnumerableRel
     {
+        private final PhysType physType;
+
         public EnumerableAggregateRel(
             RelOptCluster cluster,
             RelTraitSet traitSet,
@@ -766,6 +695,10 @@ public class JavaRules {
                         "distinct aggregation not supported");
                 }
             }
+            this.physType =
+                PhysTypeImpl.of(
+                    (JavaTypeFactory) cluster.getTypeFactory(),
+                    getRowType());
         }
 
         @Override
@@ -784,6 +717,10 @@ public class JavaRules {
                 // internal error.
                 throw new AssertionError(e);
             }
+        }
+
+        public PhysType getPhysType() {
+            return physType;
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
@@ -845,30 +782,24 @@ public class JavaRules {
                 Expressions.parameter(inputJavaType, "a0");
 
             final List<Expression> keyExpressions = Expressions.list();
+            PhysType physType = PhysTypeImpl.of(typeFactory, inputRowType);
+            PhysType keyPhysType = physType.project(Util.toList(groupSet));
+            final int keyArity = groupSet.cardinality();
             for (int groupKey : Util.toIter(groupSet)) {
                 keyExpressions.add(
-                    EnumUtil.inputFieldReference(
-                        inputRowType, parameter, groupKey));
+                    physType.fieldReference(parameter, groupKey));
             }
             final Expression keySelector =
                 statements.append(
                     "keySelector",
-                    inputRowType.getFieldCount() == 1
-                        ? Expressions.call(
-                            Functions.class,
-                            "identitySelector")
-                        : Expressions.lambda(
-                            Function1.class,
-                            keyExpressions.size() == 1
-                                ? keyExpressions.get(0)
-                                : Expressions.newArrayInit(
-                                    Object.class, keyExpressions),
-                            parameter));
+                    ((EnumerableRel) getChild()).getPhysType().generateSelector(
+                        parameter,
+                        Util.toList(groupSet)));
 
-            final List<RexToLixTranslator.AggregateImplementor2> implementors =
-                new ArrayList<RexToLixTranslator.AggregateImplementor2>();
+            final List<AggImplementor2> implementors =
+                new ArrayList<AggImplementor2>();
             for (AggregateCall aggCall : aggCalls) {
-                RexToLixTranslator.AggregateImplementor2 implementor2 =
+                AggImplementor2 implementor2 =
                     RexToLixTranslator.ImpTable.INSTANCE.get2(
                         aggCall.getAggregation());
                 if (implementor2 == null) {
@@ -877,8 +808,6 @@ public class JavaRules {
                 }
                 implementors.add(implementor2);
             }
-            List<Pair<AggregateCall, RexToLixTranslator.AggregateImplementor2>>
-                aggImps = Pair.zip(aggCalls, implementors);
 
             // Function0<Object[]> accumulatorInitializer =
             //     new Function0<Object[]>() {
@@ -888,17 +817,17 @@ public class JavaRules {
             //     };
             final List<Expression> initExpressions =
                 new ArrayList<Expression>();
-            for (Pair<AggregateCall, RexToLixTranslator.AggregateImplementor2>
-                pair : aggImps)
+            for (Ord<Pair<AggregateCall, AggImplementor2>> ord
+                : Ord.zip(Pair.zip(aggCalls, implementors)))
             {
                 initExpressions.add(
-                    pair.right.implementInit(
-                        pair.left.getAggregation(),
-                        EnumUtil.javaClass(typeFactory, pair.left.getType()),
+                    ord.e.right.implementInit(
+                        ord.e.left.getAggregation(),
+                        EnumUtil.javaClass(typeFactory, ord.e.left.getType()),
                         fieldTypes(
                             typeFactory,
                             inputRowType,
-                            pair.left.getArgList())));
+                            ord.e.left.getArgList())));
             }
             final Expression accumulatorInitializer =
                 statements.append(
@@ -921,28 +850,26 @@ public class JavaRules {
                 Expressions.parameter(inputJavaType, "in");
             final ParameterExpression accParameter =
                 Expressions.parameter(Object[].class, "acc");
-            int i = 0;
-            for (Pair<AggregateCall, RexToLixTranslator.AggregateImplementor2>
-                aggImp : aggImps)
+            for (Ord<Pair<AggregateCall, AggImplementor2>> ord
+                : Ord.zip(Pair.zip(aggCalls, implementors)))
             {
-                final Type type = initExpressions.get(i).type;
+                final Type type = initExpressions.get(ord.i).type;
                 final IndexExpression accumulator =
                     Expressions.arrayIndex(
                         accParameter,
-                        Expressions.constant(i));
-                ++i;
+                        Expressions.constant(ord.i));
                 bb2.add(
                     Expressions.statement(
                         Expressions.assign(
                             accumulator,
-                            aggImp.right.implementAdd(
-                                aggImp.left.getAggregation(),
+                            ord.e.right.implementAdd(
+                                ord.e.left.getAggregation(),
                                 Types.castIfNecessary(type, accumulator),
                                 accessors(
                                     typeFactory,
                                     inputRowType,
                                     inParameter,
-                                    aggImp.left)))));
+                                    ord.e.left)))));
             }
             bb2.add(accParameter);
             final Expression accumulatorAdder =
@@ -961,36 +888,27 @@ public class JavaRules {
             //     };
             final List<Expression> results = Expressions.list();
             final ParameterExpression keyParameter;
-            if (keyExpressions.size() == 0) {
+            if (keyArity == 0) {
                 keyParameter = null;
             } else {
-                final Type keyType =
-                    keyExpressions.size() == 1
-                        ? keyExpressions.get(0).type
-                        : Object[].class;
+                final Type keyType = keyPhysType.getJavaRowClass();
                 keyParameter = Expressions.parameter(keyType, "key");
-                if (keyExpressions.size() == 1) {
-                    results.add(keyParameter);
-                } else {
-                    for (int j = 0; j < keyExpressions.size(); j++) {
-                        results.add(
-                            Expressions.arrayIndex(
-                                keyParameter, Expressions.constant(j)));
-                    }
+                for (int j = 0; j < keyArity; j++) {
+                    results.add(
+                        keyPhysType.fieldReference(keyParameter, j));
                 }
             }
-            i = 0;
-            for (Pair<AggregateCall, RexToLixTranslator.AggregateImplementor2>
-                aggImp : aggImps)
+            for (Ord<Pair<AggregateCall, AggImplementor2>> ord
+                : Ord.zip(Pair.zip(aggCalls, implementors)))
             {
                 results.add(
-                    aggImp.right.implementResult(
-                        aggImp.left.getAggregation(),
+                    ord.e.right.implementResult(
+                        ord.e.left.getAggregation(),
                         Expressions.arrayIndex(
                             accParameter,
-                            Expressions.constant(i++))));
+                            Expressions.constant(ord.i))));
             }
-            if (keyExpressions.size() == 0) {
+            if (keyArity == 0) {
                 final Expression resultSelector =
                     statements.append(
                         "resultSelector",
@@ -1039,12 +957,8 @@ public class JavaRules {
                                     accumulatorInitializer,
                                     accumulatorAdder,
                                     resultSelector)
-                                .appendIf(
-                                    keyExpressions.size() > 1,
-                                    Expressions.call(
-                                        null,
-                                        BuiltinMethod.ARRAY_COMPARER
-                                            .method)))));
+                                .appendIfNotNull(
+                                    keyPhysType.comparer()))));
             }
             return statements.toBlock();
         }
@@ -1075,14 +989,12 @@ public class JavaRules {
             AggregateCall aggCall)
         {
             final List<Expression> expressions = new ArrayList<Expression>();
+            PhysType physType = PhysTypeImpl.of(typeFactory, rowType);
             for (int field : aggCall.getArgList()) {
-                Class returnType =
-                    EnumUtil.javaRowClass(
-                        typeFactory,
-                        rowType.getFieldList().get(field).getType());
                 expressions.add(
                     Types.castIfNecessary(
-                        returnType, EnumUtil.fieldReference(v1, field)));
+                        physType.fieldClass(field),
+                        physType.fieldReference(v1, field)));
             }
             return expressions;
         }
@@ -1132,6 +1044,8 @@ public class JavaRules {
         extends SortRel
         implements EnumerableRel
     {
+        private final PhysType physType;
+
         public EnumerableSortRel(
             RelOptCluster cluster,
             RelTraitSet traitSet,
@@ -1143,6 +1057,10 @@ public class JavaRules {
                 traitSet.plus(CONVENTION),
                 child,
                 collations);
+            this.physType =
+                PhysTypeImpl.of(
+                    (JavaTypeFactory) cluster.getTypeFactory(),
+                    getRowType());
         }
 
         @Override
@@ -1156,6 +1074,10 @@ public class JavaRules {
                 traitSet,
                 newInput,
                 newCollations);
+        }
+
+        public PhysType getPhysType() {
+            return physType;
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
@@ -1175,10 +1097,12 @@ public class JavaRules {
             ParameterExpression parameter =
                 Expressions.parameter(inputJavaType, "a0");
             final List<Expression> keyExpressions = Expressions.list();
+            PhysType physType = PhysTypeImpl.of(
+                typeFactory, inputRowType);
             for (RelFieldCollation collation : collations) {
                 keyExpressions.add(
-                    EnumUtil.inputFieldReference(
-                        inputRowType, parameter, collation.getFieldIndex()));
+                    physType.fieldReference(
+                        parameter, collation.getFieldIndex()));
             }
             final Expression keySelector =
                 statements.append(
@@ -1293,6 +1217,8 @@ public class JavaRules {
         extends UnionRelBase
         implements EnumerableRel
     {
+        private final PhysType physType;
+
         public EnumerableUnionRel(
             RelOptCluster cluster,
             RelTraitSet traitSet,
@@ -1304,6 +1230,10 @@ public class JavaRules {
                 traitSet.plus(CONVENTION),
                 inputs,
                 all);
+            this.physType =
+                PhysTypeImpl.of(
+                    (JavaTypeFactory) cluster.getTypeFactory(),
+                    getRowType());
         }
 
         public EnumerableUnionRel copy(
@@ -1314,6 +1244,10 @@ public class JavaRules {
                 traitSet,
                 inputs,
                 all);
+        }
+
+        public PhysType getPhysType() {
+            return physType;
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
@@ -1395,6 +1329,8 @@ public class JavaRules {
         extends IntersectRelBase
         implements EnumerableRel
     {
+        private final PhysType physType;
+
         public EnumerableIntersectRel(
             RelOptCluster cluster,
             RelTraitSet traitSet,
@@ -1407,6 +1343,10 @@ public class JavaRules {
                 inputs,
                 all);
             assert !all;
+            this.physType =
+                PhysTypeImpl.of(
+                    (JavaTypeFactory) cluster.getTypeFactory(),
+                    getRowType());
         }
 
         public EnumerableIntersectRel copy(
@@ -1417,6 +1357,10 @@ public class JavaRules {
                 traitSet,
                 inputs,
                 all);
+        }
+
+        public PhysType getPhysType() {
+            return physType;
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
@@ -1498,6 +1442,8 @@ public class JavaRules {
         extends MinusRelBase
         implements EnumerableRel
     {
+        private final PhysType physType;
+
         public EnumerableMinusRel(
             RelOptCluster cluster,
             RelTraitSet traitSet,
@@ -1510,6 +1456,10 @@ public class JavaRules {
                 inputs,
                 all);
             assert !all;
+            this.physType =
+                PhysTypeImpl.of(
+                    (JavaTypeFactory) cluster.getTypeFactory(),
+                    getRowType());
         }
 
         public EnumerableMinusRel copy(
@@ -1520,6 +1470,10 @@ public class JavaRules {
                 traitSet,
                 inputs,
                 all);
+        }
+
+        public PhysType getPhysType() {
+            return physType;
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
@@ -1592,6 +1546,8 @@ public class JavaRules {
         extends TableModificationRelBase
         implements EnumerableRel
     {
+        private final PhysType physType;
+
         protected EnumerableTableModificationRel(
             RelOptCluster cluster,
             RelTraitSet traits,
@@ -1611,6 +1567,10 @@ public class JavaRules {
                 operation,
                 updateColumnList,
                 flattened);
+            this.physType =
+                PhysTypeImpl.of(
+                    (JavaTypeFactory) cluster.getTypeFactory(),
+                    getRowType());
         }
 
         @Override
@@ -1625,6 +1585,10 @@ public class JavaRules {
                 getOperation(),
                 getUpdateColumnList(),
                 isFlattened());
+        }
+
+        public PhysType getPhysType() {
+            return physType;
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
@@ -1659,6 +1623,8 @@ public class JavaRules {
         extends ValuesRelBase
         implements EnumerableRel
     {
+        private final PhysType physType;
+
         EnumerableValuesRel(
             RelOptCluster cluster,
             RelDataType rowType,
@@ -1666,6 +1632,14 @@ public class JavaRules {
             RelTraitSet traitSet)
         {
             super(cluster, rowType, tuples, traitSet.plus(CONVENTION));
+            this.physType =
+                PhysTypeImpl.of(
+                    (JavaTypeFactory) cluster.getTypeFactory(),
+                    getRowType());
+        }
+
+        public PhysType getPhysType() {
+            return physType;
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
@@ -1707,6 +1681,191 @@ public class JavaRules {
         }
     }
 
+    /** Implementation of {@link net.hydromatic.optiq.rules.java.EnumerableRel.PhysType}. */
+    public static class PhysTypeImpl implements EnumerableRel.PhysType {
+        private final JavaTypeFactory typeFactory;
+        private final RelDataType rowType;
+        private final Class javaRowClass;
+        private final List<Class> fieldClasses = new ArrayList<Class>();
+        private final Repr repr;
+
+        private PhysTypeImpl(JavaTypeFactory typeFactory, RelDataType rowType) {
+            this.typeFactory = typeFactory;
+            this.rowType = rowType;
+            this.javaRowClass = EnumUtil.javaRowClass(typeFactory, rowType);
+            for (RelDataTypeField field : rowType.getFieldList()) {
+                fieldClasses.add(
+                    EnumUtil.javaRowClass(typeFactory, field.getType()));
+            }
+            this.repr = chooseRepr(rowType);
+        }
+
+        private Repr chooseRepr(RelDataType rowType) {
+            switch (rowType.getFieldCount()) {
+            case 0:
+                return Repr.EMPTY_LIST;
+            case 1:
+                return Repr.SCALAR;
+            default:
+                return Repr.ARRAY;
+            }
+        }
+
+        static EnumerableRel.PhysType of(
+            JavaTypeFactory typeFactory, RelDataType rowType)
+        {
+            return new PhysTypeImpl(typeFactory, rowType);
+        }
+
+        public EnumerableRel.PhysType project(final List<Integer> integers) {
+            RelDataType projectedRowType =
+                typeFactory.createStructType(
+                    new AbstractList<Map.Entry<String, RelDataType>>() {
+                        public Map.Entry<String, RelDataType> get(int index) {
+                            return rowType.getFieldList().get(index);
+                        }
+
+                        public int size() {
+                            return integers.size();
+                        }
+                    }
+                );
+            return of(typeFactory, projectedRowType);
+        }
+
+        public Expression generateSelector(
+            ParameterExpression parameter, List<Integer> fields)
+        {
+            switch (repr) {
+            case SCALAR:
+                return Expressions.call(
+                    Functions.class, "identitySelector");
+            case ARRAY:
+                return Expressions.lambda(
+                    Function1.class,
+                    fields.size() == 1
+                        ? fieldReference(
+                            parameter, fields.get(0))
+                        : Expressions.newArrayInit(
+                            Object.class, fieldReferences(parameter, fields)),
+                    parameter);
+            default:
+                throw new AssertionError(repr);
+            }
+        }
+
+        public Class getJavaRowClass() {
+            return javaRowClass;
+        }
+
+        public Expression comparer() {
+            switch (repr) {
+            case EMPTY_LIST:
+            case SCALAR:
+                return null;
+            case ARRAY:
+                return Expressions.call(
+                    null, BuiltinMethod.ARRAY_COMPARER.method);
+            default:
+                throw new AssertionError(repr);
+            }
+        }
+
+        private List<Expression> fieldReferences(
+            final Expression parameter, final List<Integer> fields)
+        {
+            return new AbstractList<Expression>() {
+                public Expression get(int index) {
+                    return fieldReference(parameter, fields.get(index));
+                }
+
+                public int size() {
+                    return fields.size();
+                }
+            };
+        }
+
+        public Class fieldClass(int field) {
+            return fieldClasses.get(field);
+        }
+
+        public Expression generateAccessor(
+            List<Integer> fields)
+        {
+            ParameterExpression v1 =
+                Expressions.parameter(javaRowClass, "v1");
+            switch (fields.size()) {
+            case 0:
+                return Expressions.lambda(
+                    Function1.class,
+                    Expressions.field(
+                        null,
+                        Collections.class,
+                        "EMPTY_LIST"),
+                    v1);
+            case 1:
+                int field0 = fields.get(0);
+
+                // new Function1<Employee, Res> {
+                //    public Res apply(Employee v1) {
+                //        return v1.<fieldN>;
+                //    }
+                // }
+                Class returnType = fieldClasses.get(field0);
+                Expression fieldReference =
+                    Types.castIfNecessary(
+                        returnType,
+                        fieldReference(v1, field0));
+                return Expressions.lambda(
+                    Function1.class,
+                    fieldReference,
+                    v1);
+            default:
+                // new Function1<Employee, Object[]> {
+                //    public Object[] apply(Employee v1) {
+                //        return new Object[] {v1.<fieldN>, v1.<fieldM>};
+                //    }
+                // }
+                Expressions.FluentList<Expression> list = Expressions.list();
+                for (int field : fields) {
+                    list.add(fieldReference(v1, field));
+                }
+                return Expressions.lambda(
+                    Function1.class,
+                    Expressions.newArrayInit(
+                        Object.class,
+                        list),
+                    v1);
+            }
+        }
+
+        public Expression fieldReference(
+            Expression expression, int field)
+        {
+            final Type type = expression.getType();
+            switch (repr) {
+            case SCALAR:
+                return expression;
+            case ARRAY:
+                if (Types.isArray(type)) {
+                return Expressions.arrayIndex(
+                    expression, Expressions.constant(field));
+                }
+                // fall through
+            default:
+                return Expressions.field(
+                    expression,
+                    Types.nthField(field, type));
+            }
+        }
+
+        private enum Repr {
+            EMPTY_LIST,
+            SCALAR,
+            ARRAY,
+            CUSTOM
+        }
+    }
 }
 
 // End JavaRules.java

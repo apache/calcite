@@ -18,8 +18,14 @@
 package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.expressions.BlockExpression;
+import net.hydromatic.linq4j.expressions.Expression;
+import net.hydromatic.linq4j.expressions.ParameterExpression;
 
 import org.eigenbase.rel.RelNode;
+import org.eigenbase.util.IntList;
+
+import java.lang.reflect.Type;
+import java.util.List;
 
 
 /**
@@ -39,6 +45,33 @@ public interface EnumerableRel
      * @param implementor implementor
      */
     BlockExpression implement(EnumerableRelImplementor implementor);
+
+    /**
+     * Describes the Java type returned by this relational expression, and the
+     * mapping between it and the fields of the logical row type.
+     */
+    PhysType getPhysType();
+
+    /** Physical type. Consists of a Java type and how it maps onto the row
+     * type. */
+    interface PhysType {
+        Expression generateAccessor(List<Integer> fields);
+
+        Expression fieldReference(Expression expression, int field);
+
+        Class fieldClass(int field);
+
+        PhysType project(List<Integer> integers);
+
+        Expression generateSelector(
+            ParameterExpression parameter, List<Integer> fields);
+
+        Class getJavaRowClass();
+
+        /** Returns a expression that yields a comparer, or null if this type
+         * is comparable. */
+        Expression comparer();
+    }
 }
 
 // End EnumerableRel.java

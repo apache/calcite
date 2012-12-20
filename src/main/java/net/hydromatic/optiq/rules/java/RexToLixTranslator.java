@@ -353,8 +353,8 @@ public class RexToLixTranslator {
             new HashMap<SqlOperator, CallImplementor>();
         private final Map<Aggregation, AggregateImplementor> aggMap =
             new HashMap<Aggregation, AggregateImplementor>();
-        private final Map<Aggregation, AggregateImplementor2> agg2Map =
-            new HashMap<Aggregation, AggregateImplementor2>();
+        private final Map<Aggregation, AggImplementor2> agg2Map =
+            new HashMap<Aggregation, AggImplementor2>();
 
         private ImpTable() {
             defineMethod(upperFunc, "upper");
@@ -498,7 +498,7 @@ public class RexToLixTranslator {
             return aggMap.get(aggregation);
         }
 
-        public AggregateImplementor2 get2(final Aggregation aggregation) {
+        public AggImplementor2 get2(final Aggregation aggregation) {
             return agg2Map.get(aggregation);
         }
     }
@@ -562,7 +562,7 @@ public class RexToLixTranslator {
 
     /** Implements an aggregate function by generating expressions to
      * initialize, add to, and get a result from, an accumulator. */
-    interface AggregateImplementor2 {
+    interface AggImplementor2 {
         Expression implementInit(
             Aggregation aggregation,
             Type returnType,
@@ -594,7 +594,7 @@ public class RexToLixTranslator {
         }
     }
 
-    private static class CountImplementor2 implements AggregateImplementor2 {
+    private static class CountImplementor2 implements AggImplementor2 {
         public Expression implementInit(
             Aggregation aggregation,
             Type returnType,
@@ -622,7 +622,7 @@ public class RexToLixTranslator {
         }
     }
 
-    private static class SumImplementor2 implements AggregateImplementor2 {
+    private static class SumImplementor2 implements AggImplementor2 {
         public Expression implementInit(
             Aggregation aggregation,
             Type returnType,
@@ -649,7 +649,7 @@ public class RexToLixTranslator {
         }
     }
 
-    private static class MinMaxImplementor2 implements AggregateImplementor2 {
+    private static class MinMaxImplementor2 implements AggImplementor2 {
         public Expression implementInit(
             Aggregation aggregation,
             Type returnType,

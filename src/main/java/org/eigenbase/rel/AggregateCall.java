@@ -36,14 +36,6 @@ public class AggregateCall
 
     private final Aggregation aggregation;
 
-    /**
-     * TODO jvs 24-Apr-2006: make this array and its contents immutable
-     *
-     * @deprecated todo: change all public uses to use {@link #getArgList}, then
-     * make private
-     */
-    public final int [] args;
-
     private final boolean distinct;
     private final RelDataType type;
     private final String name;
@@ -74,9 +66,7 @@ public class AggregateCall
         assert type != null;
         this.aggregation = aggregation;
 
-        // Conversion from list to array to list is intentional. We want the
-        // argList member to point to the same data as the args member.
-        this.args = IntList.toArray(argList);
+        int[] args = IntList.toArray(argList);
         this.argList = Collections.unmodifiableList(IntList.asList(args));
         this.distinct = distinct;
     }

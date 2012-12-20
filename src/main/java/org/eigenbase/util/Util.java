@@ -482,24 +482,6 @@ public class Util
     }
 
     /**
-     * Prints a flat array of objects as [e1,e2,...]
-     */
-    public static String flatArrayToString(Object [] a)
-    {
-        StringBuffer sb = new StringBuffer("[");
-        for (int i = 0; i < a.length; i++) {
-            if (i > 0) {
-                sb.append(",");
-            }
-            if (a[i] != null) {
-                sb.append(a[i].toString());
-            }
-        }
-        sb.append("]");
-        return sb.toString();
-    }
-
-    /**
      * Formats a {@link BigDecimal} value to a string in scientific notation For
      * example<br>
      *
@@ -2047,9 +2029,9 @@ public class Util
      * @param bitSet Bit set
      * @return List of set bits
      */
-    public static List<Integer> toList(final BitSet bitSet)
+    public static IntList toList(final BitSet bitSet)
     {
-        final List<Integer> list = new ArrayList<Integer>();
+        final IntList list = new IntList();
         for (int i = bitSet.nextSetBit(0); i >= 0; i = bitSet.nextSetBit(i + 1))
         {
             list.add(i);
