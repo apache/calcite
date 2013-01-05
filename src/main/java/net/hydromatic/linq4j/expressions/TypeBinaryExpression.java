@@ -17,17 +17,36 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Type;
+
 /**
  * Represents an operation between an expression and a type.
  */
 public class TypeBinaryExpression extends Expression {
-    public TypeBinaryExpression(ExpressionType nodeType) {
+    private final Expression expression;
+    private final Type type;
+
+    public TypeBinaryExpression(
+        ExpressionType nodeType, Expression expression, Type type)
+    {
         super(nodeType, Boolean.TYPE);
+        this.expression = expression;
+        this.type = type;
     }
 
     @Override
     public Expression accept(Visitor visitor) {
-        return visitor.visit(this);
+        Expression expression = this.expression.accept(visitor);
+        return visitor.visit(this, expression);
+    }
+
+    void accept(ExpressionWriter writer, int lprec, int rprec) {
+        if (writer.requireParentheses(this, lprec, rprec)) {
+            return;
+        }
+        expression.accept(writer, lprec, nodeType.lprec);
+        writer.append(nodeType.op);
+        writer.append(type);
     }
 }
 

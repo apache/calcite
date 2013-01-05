@@ -59,7 +59,7 @@ public class NewExpression extends Expression {
             .append(type)
             .list("(\n", ",\n", ")", arguments);
         if (memberDeclarations != null) {
-            writer.list("{\n", "\n\n", "}", memberDeclarations);
+            writer.list("{\n", "", "}", memberDeclarations);
         }
     }
 }

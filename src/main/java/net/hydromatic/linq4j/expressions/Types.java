@@ -75,17 +75,33 @@ public class Types {
         }
     }
 
-    static Field getField(String fieldName, Type type) {
-        Field field;
+    static Field getField(String fieldName, Class clazz) {
         try {
-            field = toClass(type).getField(fieldName);
+            return clazz.getField(fieldName);
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(
-                "while resolving field '" + fieldName + "' in class "
-                + type,
-                e);
+                "Unknown field '" + fieldName + "' in class " + clazz, e);
         }
-        return field;
+    }
+
+    static PseudoField getField(String fieldName, Type type) {
+        if (type instanceof RecordType) {
+            return getRecordField(fieldName, (RecordType) type);
+        } else {
+            return field(getField(fieldName, toClass(type)));
+        }
+    }
+
+    private static RecordField getRecordField(
+        String fieldName, RecordType type)
+    {
+        for (RecordField field : type.getRecordFields()) {
+            if (field.getName().equals(fieldName)) {
+                return field;
+            }
+        }
+        throw new RuntimeException(
+            "Unknown field '" + fieldName + "' in type " + type);
     }
 
     public static Class toClass(Type type) {
@@ -188,8 +204,16 @@ public class Types {
         return toClass(type).isArray();
     }
 
-    public static Field nthField(int ordinal, Type clazz) {
-        return Types.toClass(clazz).getFields()[ordinal];
+    public static Field nthField(int ordinal, Class clazz) {
+        return clazz.getFields()[ordinal];
+    }
+
+    public static PseudoField nthField(int ordinal, Type clazz) {
+        if (clazz instanceof RecordType) {
+            RecordType recordType = (RecordType) clazz;
+            return recordType.getRecordFields().get(ordinal);
+        }
+        return field(toClass(clazz).getFields()[ordinal]);
     }
 
     static boolean allAssignable(
@@ -209,11 +233,26 @@ public class Types {
                 !varArgs || i < parameterTypes.length - 1
                     ? parameterTypes[i]
                     : Object.class;
-            if (!parameterType.isAssignableFrom(argumentTypes[i])) {
+            if (!assignableFrom(parameterType, argumentTypes[i])) {
                 return false;
             }
         }
         return true;
+    }
+
+    /** Returns whether a parameter is assignable from an argument by virtue
+     * of (a) sub-classing (e.g. Writer is assignable from PrintWriter) and (b)
+     * up-casting (e.g. int is assignable from short).
+     *
+     * @param parameter Parameter type
+     * @param argument Argument type
+     * @return Whether parameter can be assigned from argument
+     */
+    private static boolean assignableFrom(Class parameter, Class argument) {
+        return parameter.isAssignableFrom(argument)
+            || parameter.isPrimitive()
+            && argument.isPrimitive()
+            && Primitive.of(parameter).assignableFrom(Primitive.of(argument));
     }
 
     /**
@@ -348,11 +387,39 @@ public class Types {
         {
             // E.g.
             //   int foo(Object o) {
-            //     return (Integer) o;
+            //     return (int) (Integer) o;
             //   }
-            return Expressions.convert_(expression, Types.box(returnType));
+            return Expressions.convert_(
+                Expressions.convert_(
+                    expression,
+                    Types.box(returnType)),
+                returnType);
         }
         return Expressions.convert_(expression, returnType);
+    }
+
+    public static PseudoField field(final Field field) {
+        return new PseudoField() {
+            public String getName() {
+                return field.getName();
+            }
+
+            public Type getType() {
+                return field.getType();
+            }
+
+            public int getModifiers() {
+                return field.getModifiers();
+            }
+
+            public Object get(Object o) throws IllegalAccessException {
+                return field.get(o);
+            }
+
+            public Class<?> getDeclaringClass() {
+                return field.getDeclaringClass();
+            }
+        };
     }
 
     static class ParameterizedTypeImpl implements ParameterizedType {
@@ -402,13 +469,19 @@ public class Types {
         }
     }
 
-    public interface RecordType {
+    /** Base class for record-like types that do not mapped to (currently
+     * loaded) Java {@link Class} objects. Gives the opportunity to generate
+     * code that references temporary types, then generate classes for those
+     * types along with the code that uses them. */
+    public interface RecordType extends Type {
         List<RecordField> getRecordFields();
+
+        String getName();
     }
 
-    public interface RecordField {
-        String getName();
-        Type getType();
+    /** Field that belongs to a record. */
+    public interface RecordField extends PseudoField {
+        boolean nullable();
     }
 }
 

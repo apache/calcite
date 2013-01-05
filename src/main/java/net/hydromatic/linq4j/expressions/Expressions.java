@@ -21,23 +21,30 @@ import net.hydromatic.linq4j.Extensions;
 import net.hydromatic.linq4j.function.*;
 
 import java.lang.reflect.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.*;
 
 /**
  * Utility methods for expressions, including a lot of factory methods.
  */
 public class Expressions {
-    /** Converts an expression to Java source code, optionally omitting
+    /** Converts a list of expressions to Java source code, optionally emitting
      * extra type information in generics. */
-    public static String toString(Node expression, boolean generics) {
+    public static String toString(
+        List<? extends Node> expressions, String sep, boolean generics)
+    {
         final ExpressionWriter writer = new ExpressionWriter(generics);
-        writer.write(expression);
+        for (Node expression : expressions) {
+            writer.write(expression);
+            writer.append(sep);
+        }
         return writer.toString();
     }
 
     /** Converts an expression to Java source code. */
     public static String toString(Node expression) {
-        return toString(expression, true);
+        return toString(Collections.singletonList(expression), "", true);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
@@ -543,6 +550,26 @@ public class Expressions {
     /** Creates a ConstantExpression that has the Value and Type
      * properties set to the specified values. */
     public static ConstantExpression constant(Object value, Type type) {
+        if (value != null && type instanceof Class) {
+            // Fix up value so that it matches type.
+            Class clazz = (Class) type;
+            Primitive primitive = Primitive.of(clazz);
+            if (primitive != null) {
+                clazz = primitive.boxClass;
+            }
+            if (!clazz.isInstance(value)) {
+                String stringValue = String.valueOf(value);
+                if (type == BigDecimal.class) {
+                    value = new BigDecimal(stringValue);
+                }
+                if (type == BigInteger.class) {
+                    value = new BigInteger(stringValue);
+                }
+                if (primitive != null) {
+                    value = primitive.parse(stringValue);
+                }
+            }
+        }
         return new ConstantExpression(type, value);
     }
 
@@ -792,6 +819,13 @@ public class Expressions {
 
     /** Creates a MemberExpression that represents accessing a field. */
     public static MemberExpression field(Expression expression, Field field) {
+        return makeMemberAccess(expression, Types.field(field));
+    }
+
+    /** Creates a MemberExpression that represents accessing a field. */
+    public static MemberExpression field(
+        Expression expression, PseudoField field)
+    {
         return makeMemberAccess(expression, field);
     }
 
@@ -800,7 +834,7 @@ public class Expressions {
     public static MemberExpression field(
         Expression expression, String fieldName)
     {
-        Field field = Types.getField(fieldName, expression.getType());
+        PseudoField field = Types.getField(fieldName, expression.getType());
         return makeMemberAccess(expression, field);
     }
 
@@ -808,13 +842,8 @@ public class Expressions {
     public static MemberExpression field(
         Expression expression, Type type, String fieldName)
     {
-        try {
-            Field field = Types.toClass(type).getField(fieldName);
-            return makeMemberAccess(expression, field);
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(
-                "Unknown field '" + fieldName + "' in class " + type, e);
-        }
+        PseudoField field = Types.getField(fieldName, type);
+        return makeMemberAccess(expression, field);
     }
 
     /** Creates a Type object that represents a generic System.Action
@@ -1433,7 +1462,7 @@ public class Expressions {
     /** Creates a MemberExpression that represents accessing a field. */
     public static MemberExpression makeMemberAccess(
         Expression expression,
-        Field member)
+        PseudoField member)
     {
         return new MemberExpression(expression, member);
     }
@@ -1533,6 +1562,17 @@ public class Expressions {
             modifier, name, resultType, toList(parameters), body);
     }
 
+    /** Declares a constructor. */
+    public static ConstructorDeclaration constructorDecl(
+        int modifier,
+        Type declaredAgainst,
+        Iterable<ParameterExpression> parameters,
+        BlockExpression body)
+    {
+        return new ConstructorDeclaration(
+            modifier, declaredAgainst, toList(parameters), body);
+    }
+
     /** Declares a field. */
     public static FieldDeclaration fieldDecl(
         int modifier,
@@ -1540,6 +1580,18 @@ public class Expressions {
         Expression initializer)
     {
         return new FieldDeclaration(modifier, parameter, initializer);
+    }
+
+    /** Declares a class. */
+    public static ClassDeclaration classDecl(
+        int modifier,
+        String name,
+        Type extended,
+        List<Type> implemented,
+        List<MemberDeclaration> memberDeclarations)
+    {
+        return new ClassDeclaration(
+            modifier, name, extended, implemented, memberDeclarations);
     }
 
     /** Creates a BinaryExpression that represents an arithmetic
@@ -2009,8 +2061,7 @@ public class Expressions {
      * original expression. */
     public static UnaryExpression postDecrementAssign(Expression expression) {
         return makeUnary(
-            ExpressionType.PostDecrementAssign,
-            expression);
+            ExpressionType.PostDecrementAssign, expression);
     }
 
     /** Creates a UnaryExpression that represents the assignment of
@@ -2269,7 +2320,7 @@ public class Expressions {
 
     /** Creates a GotoExpression representing a return statement. */
     public static GotoExpression return_(LabelTarget labelTarget) {
-        throw Extensions.todo();
+        return return_(labelTarget, (Expression) null);
     }
 
     /** Creates a GotoExpression representing a return statement. The
@@ -2686,7 +2737,10 @@ public class Expressions {
     public static TypeBinaryExpression typeIs(
         Expression expression, Type type)
     {
-        throw Extensions.todo();
+        return new TypeBinaryExpression(
+            ExpressionType.TypeIs,
+            expression,
+            type);
     }
 
     /** Creates a UnaryExpression that represents a unary plus
@@ -2895,7 +2949,9 @@ public class Expressions {
     static List<MemberDeclaration> acceptMemberDeclarations(
         List<MemberDeclaration> memberDeclarations, Visitor visitor)
     {
-        if (memberDeclarations.isEmpty()) {
+        if (memberDeclarations == null
+            || memberDeclarations.isEmpty())
+        {
             return memberDeclarations; // short cut
         }
         final List<MemberDeclaration> memberDeclarations1 =

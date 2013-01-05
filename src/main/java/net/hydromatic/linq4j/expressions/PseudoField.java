@@ -20,24 +20,19 @@ package net.hydromatic.linq4j.expressions;
 import java.lang.reflect.Type;
 
 /**
- * <p>Statement.</p>
+ * Contains the parts of the {@link java.lang.reflect.Field} class needed
+ * for code generation, but might be implemented differently.
  */
-public abstract class Statement extends AbstractNode {
-    protected Statement(ExpressionType nodeType, Type type) {
-        super(nodeType, type);
-    }
+public interface PseudoField {
+    String getName();
 
-    @Override
-    final void accept(ExpressionWriter writer, int lprec, int rprec) {
-        assert lprec == 0;
-        assert rprec == 0;
-        accept0(writer);
-    }
+    Type getType();
 
-    @Override
-    // Make return type more specific. A statement can only become a different
-    // kind of statement; it can't become an expression.
-    public abstract Statement accept(Visitor visitor);
+    int getModifiers();
+
+    Object get(Object o) throws IllegalAccessException;
+
+    Type getDeclaringClass();
 }
 
-// End Statement.java
+// End PseudoField.java

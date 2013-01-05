@@ -17,10 +17,14 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import net.hydromatic.linq4j.Linq4j;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.AbstractList;
 import java.util.List;
 
@@ -33,6 +37,33 @@ public class ConstantExpression extends Expression {
     public ConstantExpression(Type type, Object value) {
         super(ExpressionType.Constant, type);
         this.value = value;
+        if (value != null) {
+            if (type instanceof Class) {
+                Class clazz = (Class) type;
+                Primitive primitive = Primitive.of(clazz);
+                if (primitive != null) {
+                    clazz = primitive.boxClass;
+                }
+                if (!clazz.isInstance(value)) {
+                    throw new AssertionError(
+                        "value " + value + " does not match type " + type);
+                }
+            }
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return value == null ? 1 : value.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        // REVIEW: Should constants with the same value and different type
+        // (e.g. 3L and 3) be considered equal.
+        return obj == this
+               || obj instanceof ConstantExpression
+                  && Linq4j.equals(value, ((ConstantExpression) obj).value);
     }
 
     public Object evaluate(Evaluator evaluator) {
@@ -63,24 +94,53 @@ public class ConstantExpression extends Expression {
         if (primitive != null) {
             switch (primitive) {
             case FLOAT:
-                return writer.append(value).append("f");
+                return writer.append(value).append("F");
             case DOUBLE:
-                return writer.append(value).append("d");
+                return writer.append(value).append("D");
             case LONG:
-                return writer.append(value).append("l");
+                return writer.append(value).append("L");
             default:
                 return writer.append(value);
             }
         }
         final Primitive primitive2 = Primitive.ofBox(type);
         if (primitive2 != null) {
-            return writer.append(
-                primitive2.boxClass.getSimpleName() + ".valueOf(" + value
-                + ")");
+            writer.append(
+                primitive2.boxClass.getSimpleName() + ".valueOf(");
+            write(writer, value, primitive2.primitiveClass);
+            return writer.append(")");
+        }
+        if (value instanceof BigDecimal) {
+            BigDecimal bigDecimal = ((BigDecimal) value).stripTrailingZeros();
+            try {
+                final int scale = bigDecimal.scale();
+                final long exact =
+                    bigDecimal.scaleByPowerOfTen(scale).longValueExact();
+                writer.append("new java.math.BigDecimal(").append(exact)
+                    .append("L");
+                if (scale != 0) {
+                    writer.append(", ").append(scale);
+                }
+                return writer.append(")");
+            } catch (ArithmeticException e) {
+                return writer.append("new java.math.BigDecimal(\"")
+                    .append(bigDecimal.toString())
+                    .append("\")");
+            }
+        }
+        if (value instanceof BigInteger) {
+            BigInteger bigInteger = (BigInteger) value;
+            return writer.append("new java.math.BigInteger(\"")
+                .append(bigInteger.toString())
+                .append("\")");
         }
         if (value instanceof Class) {
             Class clazz = (Class) value;
             return writer.append(clazz.getCanonicalName()).append(".class");
+        }
+        if (value instanceof Types.RecordType) {
+            final Types.RecordType recordType = (Types.RecordType) value;
+            return writer.append(recordType.getName()).append(".class");
         }
         if (value.getClass().isArray()) {
             writer.append("new ")

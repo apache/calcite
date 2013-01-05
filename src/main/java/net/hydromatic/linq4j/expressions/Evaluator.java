@@ -54,7 +54,7 @@ class Evaluator {
     }
 
     Object evaluate(Node expression) {
-        return expression.evaluate(this);
+        return ((AbstractNode) expression).evaluate(this);
     }
 
     void clear() {

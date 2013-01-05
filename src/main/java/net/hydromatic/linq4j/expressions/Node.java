@@ -17,50 +17,13 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import java.lang.reflect.Type;
-
 /**
 * <p>Parse tree node.</p>
  */
-public abstract class Node {
-    public final ExpressionType nodeType;
-    public final Type type;
+public interface Node {
+    public Node accept(Visitor visitor);
 
-    public Node(ExpressionType nodeType, Type type)
-    {
-        this.type = type;
-        this.nodeType = nodeType;
-    }
-
-    /** Gets the node type of this Expression. */
-    public ExpressionType getNodeType() {
-        return nodeType;
-    }
-
-    /** Gets the static type of the expression that this Expression
-     * represents. */
-    public Type getType() {
-        return type;
-    }
-
-    void accept0(ExpressionWriter writer) {
-        accept(writer, 0, 0);
-    }
-
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        throw new RuntimeException(
-            "un-parse not supported: " + this + ":" + nodeType);
-    }
-
-    public Node accept(Visitor visitor) {
-        throw new RuntimeException(
-            "visit not supported: " + this + ":" + nodeType);
-    }
-
-    public Object evaluate(Evaluator evaluator) {
-        throw new RuntimeException(
-            "evaluation not supported: " + this + ":" + nodeType);
-    }
+    void accept(ExpressionWriter expressionWriter);
 }
 
 // End Node.java

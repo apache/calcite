@@ -25,13 +25,13 @@ public enum GotoExpressionKind {
     Goto("goto "),
 
     /** A GotoExpression that represents a return statement. */
-    Return("return "),
+    Return("return"),
 
     /** A GotoExpression that represents a break statement. */
-    Break("break "),
+    Break("break"),
 
     /** A GotoExpression that represents a continue statement. */
-    Continue("continue "),
+    Continue("continue"),
 
     /** A GotoExpression that evaluates an expression and carries on. */
     Sequence("");

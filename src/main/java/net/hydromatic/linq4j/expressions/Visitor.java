@@ -203,7 +203,7 @@ public class Visitor {
         List<MemberDeclaration> memberDeclarations)
     {
         return arguments.equals(newExpression.arguments)
-            && memberDeclarations.equals(newExpression.memberDeclarations)
+            && equal(memberDeclarations, newExpression.memberDeclarations)
             ? newExpression
             : Expressions.new_(
                 newExpression.type,
@@ -223,7 +223,10 @@ public class Visitor {
         return memberInitExpression;
     }
 
-    public Expression visit(TypeBinaryExpression typeBinaryExpression) {
+    public Expression visit(
+        TypeBinaryExpression typeBinaryExpression,
+        Expression expression)
+    {
         return typeBinaryExpression;
     }
 
@@ -263,6 +266,25 @@ public class Visitor {
 
     public ConstantExpression visit(ConstantExpression constantExpression) {
         return constantExpression;
+    }
+
+    private static <T> boolean equal(T t1, T t2) {
+        return t1 == t2 || t1 != null && t1.equals(t2);
+    }
+
+    public ClassDeclaration visit(
+        ClassDeclaration classDeclaration,
+        List<MemberDeclaration> memberDeclarations)
+    {
+        return classDeclaration;
+    }
+
+    public MemberDeclaration visit(
+        ConstructorDeclaration constructorDeclaration,
+        List<ParameterExpression> parameters,
+        BlockExpression body)
+    {
+        return constructorDeclaration;
     }
 }
 

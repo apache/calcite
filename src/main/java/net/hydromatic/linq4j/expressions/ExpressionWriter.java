@@ -41,7 +41,12 @@ class ExpressionWriter {
     }
 
     public void write(Node expression) {
-        expression.accept(this, 0, 0);
+        if (expression instanceof Expression) {
+            Expression expression1 = (Expression) expression;
+            expression1.accept(this, 0, 0);
+        } else {
+            expression.accept(this);
+        }
     }
 
     @Override
@@ -49,6 +54,9 @@ class ExpressionWriter {
         return buf.toString();
     }
 
+    /** If parentheses are required, writes this expression out with
+     * parentheses and returns true. If they are not required, does nothing
+     * and returns false. */
     public boolean requireParentheses(
         Expression expression, int lprec, int rprec)
     {
@@ -112,13 +120,15 @@ class ExpressionWriter {
         checkIndent();
         if (generics) {
             buf.append(Types.className(type));
+        } else if (type instanceof Types.RecordType) {
+            buf.append(((Types.RecordType) type).getName());
         } else {
             buf.append(Types.className(Types.toClass(type)));
         }
         return this;
     }
 
-    public ExpressionWriter append(Node o) {
+    public ExpressionWriter append(AbstractNode o) {
         o.accept0(this);
         return this;
     }
@@ -159,6 +169,8 @@ class ExpressionWriter {
                     ((Expression) o).accept(this, 0, 0);
                 } else if (o instanceof MemberDeclaration) {
                     ((MemberDeclaration) o).accept(this);
+                } else if (o instanceof Type) {
+                    append((Type) o);
                 } else {
                     append(o);
                 }

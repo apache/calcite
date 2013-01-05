@@ -31,6 +31,12 @@ public class BlockBuilder {
     final List<Statement> statements = new ArrayList<Statement>();
     final Set<String> variables = new HashSet<String>();
 
+    /** Clears this BlockBuilder. */
+    public void clear() {
+        statements.clear();
+        variables.clear();
+    }
+
     /** Appends a block to a list of statements and returns an expression
      * (possibly a variable) that represents the result of the newly added
      * block. */

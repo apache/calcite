@@ -32,7 +32,7 @@ import java.util.List;
  * "if (c0) e0 else if (c1) e1 ... else if (c<sub>n-1</sub>) e<sub>n-1</sub>".
  * </p>
  */
-public class ConditionalExpression extends Node {
+public class ConditionalExpression extends AbstractNode {
     private final List<Node> expressionList;
 
     public ConditionalExpression(

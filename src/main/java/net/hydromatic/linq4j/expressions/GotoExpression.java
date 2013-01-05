@@ -66,10 +66,13 @@ public class GotoExpression extends Statement {
     void accept0(ExpressionWriter writer) {
         writer.append(kind.prefix);
         if (labelTarget != null) {
-            writer.append(labelTarget.name)
-                .append(' ');
+            writer.append(' ')
+                .append(labelTarget.name);
         }
         if (expression != null) {
+            if (!kind.prefix.isEmpty()) {
+                writer.append(' ');
+            }
             switch (kind) {
             case Sequence:
                 // don't indent for sequence

@@ -18,30 +18,32 @@
 package net.hydromatic.linq4j.expressions;
 
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.util.List;
 
 /**
- * Declaration of a field.
+ * Declaration of a class.
  */
-public class FieldDeclaration extends MemberDeclaration {
+public class ClassDeclaration extends MemberDeclaration {
     public final int modifier;
-    public final ParameterExpression parameter;
-    public final Expression initializer;
+    public final String classClass = "class";
+    public final String name;
+    public final List<MemberDeclaration> memberDeclarations;
+    private final Type extended;
+    private final List<Type> implemented;
 
-    public FieldDeclaration(
+    public ClassDeclaration(
         int modifier,
-        ParameterExpression parameter,
-        Expression initializer)
+        String name,
+        Type extended,
+        List<Type> implemented,
+        List<MemberDeclaration> memberDeclarations)
     {
         this.modifier = modifier;
-        this.parameter = parameter;
-        this.initializer = initializer;
-    }
-
-    @Override
-    public MemberDeclaration accept(Visitor visitor) {
-        final ParameterExpression parameter = this.parameter.accept(visitor);
-        final Expression initializer = this.initializer.accept(visitor);
-        return visitor.visit(this, parameter, initializer);
+        this.name = name;
+        this.memberDeclarations = memberDeclarations;
+        this.extended = extended;
+        this.implemented = implemented;
     }
 
     public void accept(ExpressionWriter writer) {
@@ -50,16 +52,25 @@ public class FieldDeclaration extends MemberDeclaration {
         if (!modifiers.isEmpty()) {
             writer.append(' ');
         }
-        writer.append(parameter.type)
+        writer.append(classClass)
             .append(' ')
-            .append(parameter.name);
-        if (initializer != null) {
-            writer.append(" = ")
-                .append(initializer);
+            .append(name);
+        if (extended != null) {
+            writer.append(" extends ")
+                .append(extended);
         }
-        writer.append(';');
+        if (!implemented.isEmpty()) {
+            writer.list(" implements ", ", ", "", implemented);
+        }
+        writer.list(" {\n", "", "}", memberDeclarations);
         writer.newlineAndIndent();
+    }
+
+    public ClassDeclaration accept(Visitor visitor) {
+        final List<MemberDeclaration> members1 =
+            Expressions.acceptMemberDeclarations(memberDeclarations, visitor);
+        return visitor.visit(this, members1);
     }
 }
 
-// End FieldDeclaration.java
+// End ClassDeclaration.java

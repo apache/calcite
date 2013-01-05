@@ -22,7 +22,7 @@ import java.lang.reflect.Type;
 /**
  * <p>Analogous to LINQ's System.Linq.Expression.</p>
  */
-public abstract class Expression extends Node {
+public abstract class Expression extends AbstractNode {
 
     /**
      * Creates an Expression.

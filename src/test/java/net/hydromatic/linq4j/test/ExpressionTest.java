@@ -23,6 +23,8 @@ import net.hydromatic.linq4j.function.Function1;
 import junit.framework.TestCase;
 
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.util.*;
 
 /**
@@ -97,15 +99,21 @@ public class ExpressionTest extends TestCase {
 
     public void testWrite() {
         assertEquals(
-            "1 + 2f + 3l + Long.valueOf(4)",
+            "1 + 2.0F + 3L + Long.valueOf(4L)",
             Expressions.toString(
                 Expressions.add(
                     Expressions.add(
                         Expressions.add(
                             Expressions.constant(1),
-                            Expressions.constant(2, Float.TYPE)),
-                        Expressions.constant(3, Long.TYPE)),
-                    Expressions.constant(4, Long.class))));
+                            Expressions.constant(2F, Float.TYPE)),
+                        Expressions.constant(3L, Long.TYPE)),
+                    Expressions.constant(4L, Long.class))));
+
+        assertEquals(
+            "new java.math.BigDecimal(31415926L, 7)",
+            Expressions.toString(
+                Expressions.constant(
+                    BigDecimal.valueOf(314159260, 8))));
 
         // Parentheses needed, to override the left-associativity of +.
         assertEquals(
@@ -245,6 +253,25 @@ public class ExpressionTest extends TestCase {
                     "valueOf",
                     Collections.<Expression>singletonList(
                         Expressions.constant("0123")))));
+
+        // precedence of not and instanceof
+        assertEquals(
+            "!(o instanceof String)",
+            Expressions.toString(
+                Expressions.not(
+                    Expressions.typeIs(
+                        Expressions.parameter(Object.class, "o"),
+                        String.class))));
+
+        // not not
+        assertEquals(
+            "!!(o instanceof String)",
+            Expressions.toString(
+                Expressions.not(
+                    Expressions.not(
+                        Expressions.typeIs(
+                            Expressions.parameter(Object.class, "o"),
+                        String.class)))));
     }
 
     public void testWriteConstant() {
@@ -373,15 +400,14 @@ public class ExpressionTest extends TestCase {
             + "  final java.util.List<String> baz = java.util.Arrays.asList(\"foo\", \"bar\");\n"
             + "  new java.util.AbstractList<String>(){\n"
             + "    public final String qux = \"xyzzy\";\n"
-            + "\n"
             + "    public int size() {\n"
             + "      return baz.size();\n"
             + "    }\n"
             + "\n"
-            + "\n"
             + "    public String get(int index) {\n"
             + "      return ((String) baz.get(index)).toUpperCase();\n"
             + "    }\n"
+            + "\n"
             + "  };\n"
             + "}\n",
             Expressions.toString(e));
@@ -498,6 +524,52 @@ public class ExpressionTest extends TestCase {
             + "  return treeSet.add(null);\n"
             + "}\n",
             Expressions.toString(statements.toBlock()));
+    }
+
+    public void testClassDecl() {
+        final NewExpression newExpression =
+            Expressions.new_(
+                Object.class,
+                Collections.<Expression>emptyList(),
+                Arrays.<MemberDeclaration>asList(
+                    new FieldDeclaration(
+                        Modifier.PUBLIC | Modifier.FINAL,
+                        new ParameterExpression(String.class, "foo"),
+                        Expressions.constant("bar")),
+                    new ClassDeclaration(
+                        Modifier.PUBLIC | Modifier.STATIC,
+                        "MyClass",
+                        null,
+                        Collections.<Type>emptyList(),
+                        Arrays.<MemberDeclaration>asList(
+                            new FieldDeclaration(
+                                0,
+                                new ParameterExpression(int.class, "x"),
+                                Expressions.constant(0)))),
+                    new FieldDeclaration(
+                        0,
+                        new ParameterExpression(int.class, "i"),
+                        null)));
+        assertEquals(
+            "new Object(){\n"
+            + "  public final String foo = \"bar\";\n"
+            + "  public static class MyClass {\n"
+            + "    int x = 0;\n"
+            + "  }\n"
+            + "  int i;\n"
+            + "}",
+            Expressions.toString(newExpression));
+    }
+
+    public void testReturn() {
+        assertEquals(
+            "if (true) {\n"
+            + "  return;\n"
+            + "}\n",
+            Expressions.toString(
+                Expressions.ifThen(
+                    Expressions.constant(true),
+                    Expressions.return_(null))));
     }
 }
 

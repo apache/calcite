@@ -51,11 +51,11 @@ public class UnaryExpression extends Expression {
             return;
         }
         if (nodeType.postfix) {
-            expression.accept(writer, lprec, rprec);
+            expression.accept(writer, lprec, nodeType.rprec);
             writer.append(nodeType.op);
         } else {
             writer.append(nodeType.op);
-            expression.accept(writer, lprec, rprec);
+            expression.accept(writer, nodeType.lprec, rprec);
         }
     }
 }

@@ -20,6 +20,7 @@ package net.hydromatic.linq4j;
 import net.hydromatic.linq4j.expressions.FunctionExpression;
 import net.hydromatic.linq4j.function.*;
 
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.Comparator;
 
@@ -794,6 +795,11 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
         return new NonLeafReplayableQueryable<T>(source) {
             public void replay(QueryableFactory<T> factory) {
                 factory.select(source, selector);
+            }
+
+            @Override
+            public Type getElementType() {
+                return selector.body.type;
             }
         }.castQueryable();
     }

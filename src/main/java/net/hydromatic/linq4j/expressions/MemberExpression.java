@@ -25,9 +25,13 @@ import java.lang.reflect.Modifier;
  */
 public class MemberExpression extends Expression {
     public final Expression expression;
-    public final Field field;
+    public final PseudoField field;
 
     public MemberExpression(Expression expression, Field field) {
+        this(expression, Types.field(field));
+    }
+
+    public MemberExpression(Expression expression, PseudoField field) {
         super(ExpressionType.MemberAccess, field.getType());
         this.expression = expression;
         this.field = field;
@@ -37,8 +41,11 @@ public class MemberExpression extends Expression {
 
     @Override
     public Expression accept(Visitor visitor) {
-        Expression expression = this.expression.accept(visitor);
-        return visitor.visit(this, expression);
+        Expression expression1 =
+            expression == null
+                ? null
+                : expression.accept(visitor);
+        return visitor.visit(this, expression1);
     }
 
     public Object evaluate(Evaluator evaluator) {

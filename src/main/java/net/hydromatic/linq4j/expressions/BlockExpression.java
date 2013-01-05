@@ -64,8 +64,7 @@ public class BlockExpression extends Statement {
             return;
         }
         writer.begin("{\n");
-        for (Node node : statements) {
-            assert node instanceof Statement : node; // if not, need semicolon
+        for (Statement node : statements) {
             node.accept(writer, 0, 0);
         }
         writer.end("}\n");

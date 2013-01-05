@@ -23,25 +23,22 @@ import java.util.AbstractList;
 import java.util.List;
 
 /**
- * Declaration of a method.
+ * Declaration of a constructor.
  */
-public class MethodDeclaration extends MemberDeclaration {
+public class ConstructorDeclaration extends MemberDeclaration {
     public final int modifier;
-    public final String name;
     public final Type resultType;
     public final List<ParameterExpression> parameters;
     public final BlockExpression body;
 
-    public MethodDeclaration(
+    public ConstructorDeclaration(
         int modifier,
-        String name,
-        Type resultType,
+        Type declaredAgainst,
         List<ParameterExpression> parameters,
         BlockExpression body)
     {
         this.modifier = modifier;
-        this.name = name;
-        this.resultType = resultType;
+        this.resultType = declaredAgainst;
         this.parameters = parameters;
         this.body = body;
     }
@@ -61,8 +58,6 @@ public class MethodDeclaration extends MemberDeclaration {
             writer.append(' ');
         }
         writer.append(resultType)
-            .append(' ')
-            .append(name)
             .list(
                 "(", ", ", ")",
                 new AbstractList<String>() {
@@ -83,4 +78,4 @@ public class MethodDeclaration extends MemberDeclaration {
     }
 }
 
-// End MethodDeclaration.java
+// End ConstructorDeclaration.java

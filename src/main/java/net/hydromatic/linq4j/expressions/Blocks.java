@@ -38,7 +38,7 @@ public final class Blocks {
         if (body instanceof Statement) {
             statement = (Statement) body;
         } else if (body instanceof Expression) {
-            if (Types.toClass(body.getType()) == Void.TYPE && function) {
+            if (((Expression) body).getType() == Void.TYPE && function) {
                 statement = Expressions.statement((Expression) body);
             } else {
                 statement = Expressions.return_(null, (Expression) body);
