@@ -82,18 +82,21 @@ public interface OptiqPrepare {
         public final List<Parameter> parameterList;
         public final List<ColumnMetaData> columnList;
         public final RawEnumerable<T> enumerable;
+        public final Class resultClazz;
 
         public PrepareResult(
             String sql,
             List<Parameter> parameterList,
             List<ColumnMetaData> columnList,
-            RawEnumerable<T> enumerable)
+            RawEnumerable<T> enumerable,
+            Class resultClazz)
         {
             super();
             this.sql = sql;
             this.parameterList = parameterList;
             this.columnList = columnList;
             this.enumerable = enumerable;
+            this.resultClazz = resultClazz;
         }
 
         public Enumerator<T> execute() {

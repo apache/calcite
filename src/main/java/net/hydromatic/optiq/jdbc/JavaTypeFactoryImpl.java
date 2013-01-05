@@ -17,20 +17,24 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.expressions.Primitive;
+import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.ByteString;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.BasicSqlType;
 import org.eigenbase.sql.type.SqlTypeFactoryImpl;
+import org.eigenbase.util.Ord;
+import org.eigenbase.util.Pair;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Implementation of {@link JavaTypeFactory}.
@@ -42,15 +46,21 @@ public class JavaTypeFactoryImpl
     extends SqlTypeFactoryImpl
     implements JavaTypeFactory
 {
+    private final Map<List<Pair<Type, Boolean>>, SyntheticRecordType>
+        syntheticTypes =
+        new HashMap<List<Pair<Type, Boolean>>, SyntheticRecordType>();
+
     public RelDataType createStructType(Class type) {
         List<RelDataTypeField> list = new ArrayList<RelDataTypeField>();
         for (Field field : type.getFields()) {
-            // FIXME: watch out for recursion
-            list.add(
-                new RelDataTypeFieldImpl(
-                    field.getName(),
-                    list.size(),
-                    createType(field.getType())));
+            if ((field.getModifiers() & Modifier.STATIC) == 0) {
+                // FIXME: watch out for recursion
+                list.add(
+                    new RelDataTypeFieldImpl(
+                        field.getName(),
+                        list.size(),
+                        createType(field.getType())));
+            }
         }
         return canonize(
             new JavaRecordType(
@@ -61,6 +71,11 @@ public class JavaTypeFactoryImpl
     public RelDataType createType(Type type) {
         if (type instanceof RelDataType) {
             return (RelDataType) type;
+        }
+        if (type instanceof SyntheticRecordType) {
+            SyntheticRecordType syntheticRecordType =
+                (SyntheticRecordType) type;
+            return syntheticRecordType.relType;
         }
         if (!(type instanceof Class)) {
             throw new UnsupportedOperationException(
@@ -88,7 +103,7 @@ public class JavaTypeFactoryImpl
                 javaRecordType = (JavaRecordType) type;
                 return javaRecordType.clazz;
             } else {
-                return type;
+                return createSyntheticType((RelRecordType)type);
             }
         }
         if (type instanceof JavaType) {
@@ -104,17 +119,22 @@ public class JavaTypeFactoryImpl
             case CHAR:
                 return String.class;
             case INTEGER:
-                return type.isNullable() ? int.class : Integer.class;
+                return type.isNullable() ? Integer.class : int.class;
             case BIGINT:
-                return type.isNullable() ? long.class : Long.class;
+                return type.isNullable() ? Long.class : long.class;
             case SMALLINT:
-                return type.isNullable() ? short.class : Short.class;
+                return type.isNullable() ? Short.class : short.class;
             case TINYINT:
-                return type.isNullable() ? byte.class : Byte.class;
+                return type.isNullable() ? Byte.class : byte.class;
             case DECIMAL:
                 return BigDecimal.class;
             case BOOLEAN:
-                return type.isNullable() ? boolean.class : Boolean.class;
+                return type.isNullable() ? Boolean.class : boolean.class;
+            case DOUBLE:
+                return type.isNullable() ? Double.class : double.class;
+            case REAL:
+            case FLOAT:
+                return type.isNullable() ? Float.class : float.class;
             case BINARY:
             case VARBINARY:
                 return ByteString.class;
@@ -127,6 +147,140 @@ public class JavaTypeFactoryImpl
             }
         }
         return null;
+    }
+
+    public Type createSyntheticType(List<Type> types) {
+        final String name =
+            "Record" + types.size() + "_" + syntheticTypes.size();
+        final SyntheticRecordType syntheticType =
+            new SyntheticRecordType(null, name);
+        for (final Ord<Type> ord : Ord.zip(types)) {
+            syntheticType.fields.add(
+                new RecordFieldImpl(
+                    syntheticType,
+                    "f" + ord.i,
+                    ord.e,
+                    Primitive.of(ord.e) == null));
+        }
+        return register(syntheticType);
+    }
+
+    private SyntheticRecordType register(
+        final SyntheticRecordType syntheticType)
+    {
+        final List<Pair<Type, Boolean>> key =
+            new AbstractList<Pair<Type, Boolean>>() {
+                public Pair<Type, Boolean> get(int index) {
+                    final
+                    Types.RecordField
+                        field =
+                        syntheticType.getRecordFields().get(index);
+                    return Pair.of(field.getType(), field.nullable());
+                }
+
+                public int size() {
+                    return syntheticType.getRecordFields().size();
+                }
+            };
+        SyntheticRecordType syntheticType2 = syntheticTypes.get(key);
+        if (syntheticType2 == null) {
+            syntheticTypes.put(key, syntheticType);
+            return syntheticType;
+        } else {
+            return syntheticType2;
+        }
+    }
+
+    /** Creates a synthetic Java class whose fields have the same names and
+     * relational types. */
+    private Type createSyntheticType(RelRecordType type) {
+        final String name =
+            "Record" + type.getFieldCount() + "_" + syntheticTypes.size();
+        final SyntheticRecordType syntheticType =
+            new SyntheticRecordType(type, name);
+        for (final RelDataTypeField recordField : type.getFieldList()) {
+            final Type javaClass = getJavaClass(recordField.getType());
+            syntheticType.fields.add(
+                new RecordFieldImpl(
+                    syntheticType,
+                    recordField.getName(),
+                    javaClass,
+                    recordField.getType().isNullable()
+                    && Primitive.of(javaClass) == null));
+        }
+        return register(syntheticType);
+    }
+
+    public static class SyntheticRecordType implements Types.RecordType {
+        final List<Types.RecordField> fields =
+            new ArrayList<Types.RecordField>();
+        final RelDataType relType;
+        private final String name;
+
+        private SyntheticRecordType(RelDataType relType, String name) {
+            this.relType = relType;
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public List<Types.RecordField> getRecordFields() {
+            return fields;
+        }
+
+        public String toString() {
+            return name;
+        }
+    }
+
+    private static class RecordFieldImpl implements Types.RecordField {
+        private final SyntheticRecordType syntheticType;
+        private final String name;
+        private final Type type;
+        private final boolean nullable;
+
+        public RecordFieldImpl(
+            SyntheticRecordType syntheticType,
+            String name,
+            Type type,
+            boolean nullable)
+        {
+            this.syntheticType = syntheticType;
+            this.name = name;
+            this.type = type;
+            this.nullable = nullable;
+            assert syntheticType != null;
+            assert name != null;
+            assert type != null;
+            assert !(nullable && Primitive.of(type) != null)
+                : "type [" + type + "] can never be null";
+        }
+
+        public Type getType() {
+            return type;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int getModifiers() {
+            return Modifier.PUBLIC;
+        }
+
+        public boolean nullable() {
+            return nullable;
+        }
+
+        public Object get(Object o) {
+            throw new UnsupportedOperationException();
+        }
+
+        public Type getDeclaringClass() {
+            return syntheticType;
+        }
     }
 }
 

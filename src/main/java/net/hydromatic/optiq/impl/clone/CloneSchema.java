@@ -24,8 +24,6 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
-import org.eigenbase.reltype.*;
-
 /**
  * Schema that contains in-memory copies of tables from a JDBC schema.
  */
@@ -69,13 +67,13 @@ public class CloneSchema extends MapSchema {
 
     private <T> Table<T> createCloneTable(Table<T> sourceTable, String name) {
         // More efficient: table based on an array per column.
-        final RelDataType elementType =
-            (RelDataType) sourceTable.getElementType();
         final ColumnLoader loader =
-            new ColumnLoader<T>(typeFactory, sourceTable, elementType);
+            new ColumnLoader<T>(
+                typeFactory, sourceTable, sourceTable.getRowType());
         return new ArrayTable<T>(
             this,
             sourceTable.getElementType(),
+            sourceTable.getRowType(),
             Expressions.call(
                 getExpression(),
                 BuiltinMethod.SCHEMA_GET_TABLE.method,

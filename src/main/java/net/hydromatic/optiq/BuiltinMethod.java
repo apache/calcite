@@ -19,11 +19,15 @@ package net.hydromatic.optiq;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.FunctionExpression;
+import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.*;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
+import net.hydromatic.optiq.runtime.Executable;
+import net.hydromatic.optiq.runtime.Typed;
 
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 
@@ -78,8 +82,12 @@ public enum BuiltinMethod {
         Linq4j.class, "singletonEnumerable", Object.class),
     ARRAY_COMPARER(
         Functions.class, "arrayComparer"),
+    IDENTITY_SELECTOR(
+        Functions.class, "identitySelector"),
     AS_ENUMERABLE(
         Linq4j.class, "asEnumerable", Object[].class),
+    AS_LIST(
+        Primitive.class, "asList", Object.class),
     ENUMERATOR_CURRENT(
         Enumerator.class, "current"),
     ENUMERATOR_MOVE_NEXT(
@@ -87,7 +95,17 @@ public enum BuiltinMethod {
     ENUMERATOR_RESET(
         Enumerator.class, "reset"),
     ENUMERABLE_ENUMERATOR(
-        Enumerable.class, "enumerator");
+        Enumerable.class, "enumerator"),
+    TYPED_GET_ELEMENT_TYPE(
+        Typed.class, "getElementType"),
+    EXECUTABLE_EXECUTE(
+        Executable.class, "execute", DataContext.class),
+    COMPARATOR_COMPARE(
+        Comparator.class, "compare", Object.class, Object.class),
+    COLLECTIONS_REVERSE_ORDER(
+        Collections.class, "reverseOrder"),
+    MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(
+        ModifiableTable.class, "getModifiableCollection");
 
     public final Method method;
 

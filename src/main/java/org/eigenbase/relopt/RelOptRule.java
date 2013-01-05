@@ -275,7 +275,6 @@ public abstract class RelOptRule
      * @param call Rule call
      *
      * @see #matches(RelOptRuleCall)
-     * @pre matches(call)
      */
     public abstract void onMatch(RelOptRuleCall call);
 
@@ -310,10 +309,7 @@ public abstract class RelOptRule
      * @param rel Relexp to convert
      * @param toTraits desired traits
      *
-     * @return a relational expression with the desired traits, or null if no
-     * conversion is possible
-     *
-     * @post return == null || return.getTraits().matches(toTraits)
+     * @return a relational expression with the desired traits; never null
      */
     public static RelNode convert(RelNode rel, RelTraitSet toTraits)
     {
@@ -339,56 +335,6 @@ public abstract class RelOptRule
     }
 
     /**
-     * Creates a new RelTraitSet based on the given traits and converts the
-     * relational expression to that trait set. Clones <code>baseTraits</code>
-     * and merges <code>newTraits</code> with the cloned set, then converts rel
-     * to that set. Normally, during a rule call, baseTraits are the traits of
-     * the rel's parent and newTraits are the traits that the rule wishes to
-     * guarantee.
-     *
-     * @param baseTraits base traits for converted rel
-     * @param newTraits altered traits
-     * @param rel the rel to convert
-     *
-     * @return converted rel or null if conversion could not be made
-     */
-    public static RelNode mergeTraitsAndConvert(
-        RelTraitSet baseTraits,
-        RelTraitSet newTraits,
-        RelNode rel)
-    {
-        RelTraitSet traits = baseTraits.merge(newTraits);
-
-        return convert(rel, traits);
-    }
-
-    /**
-     * Creates a new RelTraitSet based on the given traits and converts the
-     * relational expression to that trait set. Clones <code>baseTraits</code>
-     * and merges <code>newTrait</code> with the cloned set, then converts rel
-     * to that set. Normally, during a rule call, baseTraits are the traits of
-     * the rel's parent and newTrait is the trait that the rule wishes to
-     * guarantee.
-     *
-     * @param baseTraits base traits for converted rel
-     * @param newTrait altered trait
-     * @param rel the rel to convert
-     *
-     * @return converted rel or null if conversion could not be made
-     */
-    public static RelNode mergeTraitsAndConvert(
-        RelTraitSet baseTraits,
-        RelTrait newTrait,
-        RelNode rel)
-    {
-        RelTraitSet traits = baseTraits
-            .replace(
-                newTrait.getTraitDef(), newTrait);
-
-        return convert(rel, traits);
-    }
-
-    /**
      * Converts a list of relational expressions.
      *
      * @param trait Trait to apply to each relational expression
@@ -403,7 +349,9 @@ public abstract class RelOptRule
         ArrayList<RelNode> list = new ArrayList<RelNode>();
         for (RelNode rel : rels) {
             RelNode convertedRel =
-                mergeTraitsAndConvert(rel.getTraitSet(), trait, rel);
+                convert(
+                    rel,
+                    rel.getTraitSet().replace(trait));
             if (convertedRel == null) {
                 return null;
             }

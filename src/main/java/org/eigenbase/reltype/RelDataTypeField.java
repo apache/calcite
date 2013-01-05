@@ -35,7 +35,7 @@ import net.hydromatic.linq4j.expressions.Types;
  * @since May 29, 2003
  */
 public interface RelDataTypeField
-    extends Types.RecordField, Map.Entry<String, RelDataType>
+    extends /*Types.RecordField, */Map.Entry<String, RelDataType>
 {
     //~ Methods ----------------------------------------------------------------
 

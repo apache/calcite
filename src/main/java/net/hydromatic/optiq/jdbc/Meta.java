@@ -176,10 +176,7 @@ class Meta {
     }
 
     public Enumerable<MetaColumn> columns(final MetaTable table) {
-        RelDataType x =
-            connection.getTypeFactory()
-                .createType(table.optiqTable.getElementType());
-        return Linq4j.asEnumerable(x.getFieldList())
+        return Linq4j.asEnumerable(table.optiqTable.getRowType().getFieldList())
             .select(
                 new Function1<RelDataTypeField, MetaColumn>() {
                     public MetaColumn apply(RelDataTypeField a0) {

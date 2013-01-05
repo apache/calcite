@@ -109,6 +109,7 @@ public class ReflectiveSchema
     public <T> TableFunction<T> methodMember(final Method method) {
         final ReflectiveSchema schema = this;
         final Type elementType = getElementType(method.getReturnType());
+        final RelDataType relDataType = typeFactory.createType(elementType);
         final Class<?>[] parameterTypes = method.getParameterTypes();
         return new TableFunction<T>() {
             public String toString() {
@@ -154,6 +155,7 @@ public class ReflectiveSchema
                     return new ReflectiveTable<T>(
                         schema,
                         elementType,
+                        relDataType,
                         Expressions.call(
                             schema.getTargetExpression(),
                             method,
@@ -188,9 +190,11 @@ public class ReflectiveSchema
 
     private <T> Table<T> fieldRelation(final Field field) {
         final Type elementType = getElementType(field.getType());
+        final RelDataType relDataType = typeFactory.createType(elementType);
         return new ReflectiveTable<T>(
             this,
             elementType,
+            relDataType,
             Expressions.field(
                 ReflectiveSchema.this.getTargetExpression(),
                 field))
@@ -245,18 +249,25 @@ public class ReflectiveSchema
         implements Table<T>
     {
         private final ReflectiveSchema schema;
+        private final RelDataType relDataType;
 
         public ReflectiveTable(
             ReflectiveSchema schema,
             Type elementType,
+            RelDataType relDataType,
             Expression expression)
         {
             super(schema.getQueryProvider(), elementType, expression);
             this.schema = schema;
+            this.relDataType = relDataType;
         }
 
         public DataContext getDataContext() {
             return schema;
+        }
+
+        public RelDataType getRowType() {
+            return relDataType;
         }
     }
 }

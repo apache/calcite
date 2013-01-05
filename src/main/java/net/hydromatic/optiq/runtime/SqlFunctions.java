@@ -277,6 +277,11 @@ public class SqlFunctions {
 
     // >
 
+    /** SQL &gt; operator applied to long values. */
+    public static boolean gt(long b0, long b1) {
+        return b0 > b1;
+    }
+
     /** SQL &gt; operator applied to int values. */
     public static boolean gt(int b0, int b1) {
         return b0 > b1;
@@ -534,6 +539,10 @@ public class SqlFunctions {
     /** Helper for implementing MIN. Somewhat similar to LEAST operator. */
     public static <T extends Comparable<T>> T lesser(T b0, T b1) {
         return b0 == null || b0.compareTo(b1) > 0 ? b1 : b0;
+    }
+
+    public static int lesser(int b0, int b1) {
+        return b0 > b1 ? b1 : b0;
     }
 
     /** Helper for implementing MAX. Somewhat similar to GREATEST operator. */

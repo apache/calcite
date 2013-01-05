@@ -23,6 +23,8 @@ import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
 
+import net.hydromatic.optiq.ModifiableTable;
+
 
 /**
  * Represents a relational dataset in a {@link RelOptSchema}. It has methods to
@@ -79,6 +81,9 @@ public interface RelOptTable
      * @post return != null
      */
     public List<RelCollation> getCollationList();
+
+    /** Finds an interface implemented by this table. */
+    <T> T unwrap(Class<T> clazz);
 
     interface ToRelContext {
         RelOptCluster getCluster();

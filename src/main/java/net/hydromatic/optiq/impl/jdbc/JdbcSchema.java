@@ -206,8 +206,7 @@ public class JdbcSchema implements Schema {
             }
             final RelDataType type =
                 typeFactory.createStructType(fieldInfo);
-            Type javaType = typeFactory.getJavaClass(type);
-            return new JdbcTable<Object>(javaType, this, name);
+            return new JdbcTable(type, this, name);
         } catch (SQLException e) {
             throw new RuntimeException(
                 "Exception while reading definition of table '" + name + "'",

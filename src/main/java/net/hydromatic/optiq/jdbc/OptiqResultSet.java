@@ -18,9 +18,7 @@
 package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.optiq.runtime.ArrayEnumeratorCursor;
-import net.hydromatic.optiq.runtime.Cursor;
-import net.hydromatic.optiq.runtime.ObjectEnumeratorCursor;
+import net.hydromatic.optiq.runtime.*;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -104,6 +102,9 @@ public class OptiqResultSet implements ResultSet {
         this.cursor =
             prepareResult.columnList.size() == 1
                 ? new ObjectEnumeratorCursor(enumerator)
+                : prepareResult.resultClazz != null
+                ? new RecordEnumeratorCursor(
+                    enumerator, prepareResult.resultClazz)
                 : new ArrayEnumeratorCursor(enumerator);
         final List<OptiqPrepare.ColumnMetaData> columnMetaDataList =
             prepareResult.columnList;

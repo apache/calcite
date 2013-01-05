@@ -71,14 +71,12 @@ public abstract class IterRules
             if (union.isDistinct()) {
                 return null; // can only convert non-distinct Union
             }
+            final RelTraitSet traitSet =
+                union.getTraitSet().replace(CallingConvention.ITERATOR);
             List<RelNode> newInputs = new ArrayList<RelNode>();
             for (RelNode input : union.getInputs()) {
                 // Stubborn, because inputs don't appear as operands.
-                RelNode newInput =
-                    mergeTraitsAndConvert(
-                        union.getTraitSet(),
-                        CallingConvention.ITERATOR,
-                        input);
+                RelNode newInput = convert(input, traitSet);
                 if (newInput == null) {
                     return null; // cannot convert this input
                 }
@@ -171,10 +169,9 @@ public abstract class IterRules
         {
             final CalcRel calc = (CalcRel) rel;
             final RelNode convertedChild =
-                mergeTraitsAndConvert(
-                    calc.getTraitSet(),
-                    CallingConvention.ITERATOR,
-                    calc.getChild());
+                convert(
+                    calc.getChild(),
+                    calc.getTraitSet().replace(CallingConvention.ITERATOR));
             if (convertedChild == null) {
                 // We can't convert the child, so we can't convert rel.
                 return null;

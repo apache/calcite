@@ -23,16 +23,17 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
-import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlOperator;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.*;
 
 import static net.hydromatic.linq4j.expressions.ExpressionType.*;
@@ -56,7 +57,7 @@ public class RexToLixTranslator {
     private final Map<RexNode, Slot> map = new HashMap<RexNode, Slot>();
     private final JavaTypeFactory typeFactory;
     private final RexProgram program;
-    private final List<Slot> inputSlots = new ArrayList<Slot>();
+    private final List<InputSlot> inputSlots = new ArrayList<InputSlot>();
 
     /** Set of expressions which are to be translated inline. That is, they
      * should not be assigned to variables on first use. At present, the
@@ -80,12 +81,12 @@ public class RexToLixTranslator {
     private RexToLixTranslator(
         RexProgram program,
         JavaTypeFactory typeFactory,
-        List<Expression> inputs)
+        List<Pair<Expression, PhysType>> inputs)
     {
         this.program = program;
         this.typeFactory = typeFactory;
-        for (Expression input : inputs) {
-            inputSlots.add(new Slot(null, input));
+        for (Pair<Expression, PhysType> input : inputs) {
+            inputSlots.add(new InputSlot(input.left, input.right));
         }
     }
 
@@ -99,7 +100,7 @@ public class RexToLixTranslator {
      * @return Sequence of expressions, optional condition
      */
     public static List<Expression> translateProjects(
-        List<Expression> inputs,
+        List<Pair<Expression, PhysType>> inputs,
         RexProgram program,
         JavaTypeFactory typeFactory,
         List<Statement> list)
@@ -145,27 +146,9 @@ public class RexToLixTranslator {
     private Expression translate0(RexNode expr) {
         if (expr instanceof RexInputRef) {
             // TODO: multiple inputs, e.g. joins
-            final Expression input = getInput(0);
+            final InputSlot input = getInput(0);
             final int index = ((RexInputRef) expr).getIndex();
-            final List<RelDataTypeField> fields =
-                program.getInputRowType().getFieldList();
-            final RelDataTypeField field = fields.get(index);
-            if (fields.size() == 1) {
-                return input;
-            } else if (input.getType() == Object[].class) {
-                return Expressions.convert_(
-                    Expressions.arrayIndex(
-                        input, Expressions.constant(field.getIndex())),
-                    Types.box(
-                        JavaRules.EnumUtil.javaClass(
-                            typeFactory, field.getType())));
-            } else if (Types.isPrimitive(Types.unbox(input.getType()))
-                || input.getType() == String.class)
-            {
-                return input;
-            } else {
-                return Expressions.field(input, field.getName());
-            }
+            return input.physType.fieldReference(input.expression(), index);
         }
         if (expr instanceof RexLocalRef) {
             return translate(
@@ -212,8 +195,8 @@ public class RexToLixTranslator {
      * @param index Input ordinal
      * @return Expression to which an input should be translated
      */
-    private Expression getInput(int index) {
-        Slot slot = inputSlots.get(index);
+    private InputSlot getInput(int index) {
+        InputSlot slot = inputSlots.get(index);
         if (list == null) {
             slot.count++;
         } else {
@@ -228,9 +211,7 @@ public class RexToLixTranslator {
                         slot.expression));
             }
         }
-        return slot.parameterExpression != null
-            ? slot.parameterExpression
-            : slot.expression;
+        return slot;
     }
 
     private List<Expression> translateList(List<RexNode> operandList) {
@@ -273,7 +254,7 @@ public class RexToLixTranslator {
     }
 
     public static Expression translateCondition(
-        List<Expression> inputs,
+        List<Pair<Expression, PhysType>> inputs,
         RexProgram program,
         JavaTypeFactory typeFactory,
         List<Statement> list)
@@ -330,7 +311,7 @@ public class RexToLixTranslator {
 
     private static class Slot {
         ParameterExpression parameterExpression;
-        Expression expression;
+        final Expression expression;
         int count;
 
         public Slot(
@@ -339,6 +320,24 @@ public class RexToLixTranslator {
         {
             this.parameterExpression = parameterExpression;
             this.expression = expression;
+        }
+
+        Expression expression() {
+            return parameterExpression != null
+                ? parameterExpression
+                : expression;
+        }
+    }
+
+    private static class InputSlot extends Slot {
+        final PhysType physType;
+
+        public InputSlot(
+            Expression expression,
+            PhysType physType)
+        {
+            super(null, expression);
+            this.physType = physType;
         }
     }
 
@@ -563,6 +562,11 @@ public class RexToLixTranslator {
     /** Implements an aggregate function by generating expressions to
      * initialize, add to, and get a result from, an accumulator. */
     interface AggImplementor2 {
+        /** Whether "add" code is called if any of the arguments are null. If
+         * false, the container will ensure that the "add" arguments are always
+         * not-null. If true, the container code must handle null values
+         * appropriately. */
+        boolean callOnNull();
         Expression implementInit(
             Aggregation aggregation,
             Type returnType,
@@ -595,6 +599,10 @@ public class RexToLixTranslator {
     }
 
     private static class CountImplementor2 implements AggImplementor2 {
+        public boolean callOnNull() {
+            return false;
+        }
+
         public Expression implementInit(
             Aggregation aggregation,
             Type returnType,
@@ -608,9 +616,8 @@ public class RexToLixTranslator {
             Expression accumulator,
             List<Expression> arguments)
         {
-            // REVIEW: Should we check whether value is NOT NULL?
-            //  Or should the container do that, and only call us if
-            //  the value is NOT NULL?
+            // We don't need to check whether the argument is NULL. callOnNull()
+            // returned false, so that container has checked for us.
             return Expressions.add(
                 accumulator, Expressions.constant(1, accumulator.type));
         }
@@ -623,12 +630,16 @@ public class RexToLixTranslator {
     }
 
     private static class SumImplementor2 implements AggImplementor2 {
+        public boolean callOnNull() {
+            return false;
+        }
+
         public Expression implementInit(
             Aggregation aggregation,
             Type returnType,
             List<Type> parameterTypes)
         {
-            return Expressions.constant(0);
+            return Expressions.constant(0, returnType);
         }
 
         public Expression implementAdd(
@@ -637,6 +648,14 @@ public class RexToLixTranslator {
             List<Expression> arguments)
         {
             assert arguments.size() == 1;
+            if (accumulator.type == BigDecimal.class
+                || accumulator.type == BigInteger.class)
+            {
+                return Expressions.call(
+                    accumulator,
+                    "add",
+                    arguments.get(0));
+            }
             return Expressions.add(
                 accumulator,
                 Types.castIfNecessary(accumulator.type, arguments.get(0)));
@@ -650,11 +669,20 @@ public class RexToLixTranslator {
     }
 
     private static class MinMaxImplementor2 implements AggImplementor2 {
+        public boolean callOnNull() {
+            return false;
+        }
+
         public Expression implementInit(
             Aggregation aggregation,
             Type returnType,
             List<Type> parameterTypes)
         {
+            final Primitive primitive = Primitive.of(returnType);
+            if (primitive != null) {
+                // allow nulls even if input does not
+                returnType = primitive.boxClass;
+            }
             return Types.castIfNecessary(
                 returnType,
                 Expressions.constant(null));
@@ -665,12 +693,56 @@ public class RexToLixTranslator {
             Expression accumulator,
             List<Expression> arguments)
         {
+            // Need to check for null accumulator (e.g. first call to "add"
+            // after "init") but because callWithNull() returned false, the
+            // container has ensured that argument is not null.
+            //
+            // acc = acc == null
+            //   ? arg
+            //   : lesser(acc, arg)
             assert arguments.size() == 1;
-            return Expressions.call(
-                SqlFunctions.class,
-                aggregation == minOperator ? "lesser" : "greater",
-                accumulator,
-                arguments.get(0));
+            final Expression arg = arguments.get(0);
+            final ConstantExpression constantNull = Expressions.constant(null);
+            return Expressions.condition(
+                Expressions.equal(accumulator, constantNull),
+                arg,
+                Expressions.convert_(
+                    Expressions.call(
+                        SqlFunctions.class,
+                        aggregation == minOperator ? "lesser" : "greater",
+                        unbox(accumulator),
+                        arg), arg.getType()));
+        }
+
+        /** Converts e.g. "anInteger" to "anInteger.intValue()". */
+        private static Expression unbox(Expression expression) {
+            Primitive primitive = Primitive.ofBox(expression.getType());
+            if (primitive != null) {
+                return convert(expression, primitive.primitiveClass);
+            }
+            return expression;
+        }
+
+        private static Expression optimizedCondition(
+            Expression condition,
+            Expression ifTrue,
+            Expression ifFalse)
+        {
+            if (alwaysTrue(condition)) {
+                return ifTrue;
+            } else if (alwaysFalse(condition)) {
+                return ifFalse;
+            } else {
+                return Expressions.condition(condition, ifTrue, ifFalse);
+            }
+        }
+
+        private static boolean alwaysFalse(Expression x) {
+            return x.equals(Expressions.constant(false));
+        }
+
+        private static boolean alwaysTrue(Expression x) {
+            return x.equals(Expressions.constant(true));
         }
 
         public Expression implementResult(

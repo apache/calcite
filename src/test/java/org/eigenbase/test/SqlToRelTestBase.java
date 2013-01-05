@@ -307,6 +307,13 @@ public abstract class SqlToRelTestBase
                 this.collationList = collationList;
             }
 
+            public <T> T unwrap(Class<T> clazz) {
+                if (clazz.isInstance(this)) {
+                    return clazz.cast(this);
+                }
+                return null;
+            }
+
             public String [] getQualifiedName()
             {
                 return names;
@@ -355,6 +362,13 @@ public abstract class SqlToRelTestBase
         public DelegatingRelOptTable(RelOptTable parent)
         {
             this.parent = parent;
+        }
+
+        public <T> T unwrap(Class<T> clazz) {
+            if (clazz.isInstance(this)) {
+                return clazz.cast(this);
+            }
+            return parent.unwrap(clazz);
         }
 
         public String [] getQualifiedName()

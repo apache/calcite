@@ -18,9 +18,9 @@
 package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.optiq.BuiltinMethod;
+import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.rules.java.RexToLixTranslator.AggImplementor2;
-import net.hydromatic.optiq.runtime.ArrayComparator;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
@@ -33,7 +33,6 @@ import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
@@ -48,12 +47,6 @@ import java.util.logging.Logger;
  * @author jhyde
  */
 public class JavaRules {
-    /**
-     * Convention that presents query results as an
-     * {@link net.hydromatic.linq4j.Enumerable}.
-     */
-    public static final Convention CONVENTION =
-        new Convention.Impl("ENUMERABLE", EnumerableRel.class);
 
     private static final Constructor ABSTRACT_ENUMERABLE_CTOR =
         Types.lookupConstructor(AbstractEnumerable.class);
@@ -70,29 +63,35 @@ public class JavaRules {
 
     public static final RelOptRule ENUMERABLE_JOIN_RULE =
         new EnumerableJoinRule();
+    public static final String[] LEFT_RIGHT = new String[]{"left", "right"};
 
     private static class EnumerableJoinRule extends ConverterRule {
         private EnumerableJoinRule() {
             super(
                 JoinRel.class,
                 Convention.NONE,
-                CONVENTION,
+                EnumerableConvention.CUSTOM,
                 "EnumerableJoinRule");
         }
 
         @Override
         public RelNode convert(RelNode rel) {
             JoinRel join = (JoinRel) rel;
-            List<RelNode> newInputs = convert(
-                CONVENTION,
-                join.getInputs());
-            if (newInputs == null) {
-                return null;
+            List<RelNode> newInputs = new ArrayList<RelNode>();
+            for (RelNode input : join.getInputs()) {
+                if (!(input.getConvention() instanceof EnumerableConvention)) {
+                    input =
+                        convert(
+                            input,
+                            input.getTraitSet()
+                                .replace(EnumerableConvention.CUSTOM));
+                }
+                newInputs.add(input);
             }
             try {
                 return new EnumerableJoinRel(
                     join.getCluster(),
-                    join.getTraitSet().replace(CONVENTION),
+                    join.getTraitSet().replace(EnumerableConvention.CUSTOM),
                     newInputs.get(0),
                     newInputs.get(1),
                     join.getCondition(),
@@ -135,7 +134,9 @@ public class JavaRules {
             }
             this.physType =
                 PhysTypeImpl.of(
-                    (JavaTypeFactory) cluster.getTypeFactory(), getRowType());
+                    (JavaTypeFactory) cluster.getTypeFactory(),
+                    getRowType(),
+                    (EnumerableConvention) getConvention());
         }
 
         public PhysType getPhysType() {
@@ -187,8 +188,6 @@ public class JavaRules {
                 throw new AssertionError(
                     "not equi-join condition: " + remaining);
             }
-            final JavaTypeFactory typeFactory =
-                (JavaTypeFactory) left.getCluster().getTypeFactory();
             BlockBuilder list = new BlockBuilder();
             Expression leftExpression =
                 list.append(
@@ -199,7 +198,8 @@ public class JavaRules {
                     "right",
                     implementor.visitChild(this, 1, (EnumerableRel) right));
             final PhysType keyPhysType =
-                ((EnumerableRel) left).getPhysType().project(leftKeys);
+                ((EnumerableRel) left).getPhysType().project(
+                    leftKeys, JavaRowFormat.CUSTOM);
             return list.append(
                 Expressions.call(
                     leftExpression,
@@ -210,40 +210,37 @@ public class JavaRules {
                             .generateAccessor(leftKeys),
                         ((EnumerableRel) right).getPhysType()
                             .generateAccessor(rightKeys),
-                        generateSelector(typeFactory))
+                        generateSelector())
                         .appendIfNotNull(keyPhysType.comparer())))
                 .toBlock();
         }
 
-        Expression generateSelector(JavaTypeFactory typeFactory) {
+        Expression generateSelector() {
             // A parameter for each input.
             final List<ParameterExpression> parameters =
-                Arrays.asList(
-                    Expressions.parameter(
-                        EnumUtil.javaRowClass(typeFactory, left.getRowType()),
-                        "left"),
-                    Expressions.parameter(
-                        EnumUtil.javaRowClass(typeFactory, right.getRowType()),
-                        "right"));
+                new ArrayList<ParameterExpression>();
 
             // Generate all fields.
             final List<Expression> expressions =
                 new ArrayList<Expression>();
             for (Ord<RelNode> rel : Ord.zip(getInputs())) {
-                RelDataType inputRowType = rel.e.getRowType();
-                final ParameterExpression parameter = parameters.get(rel.i);
-                PhysType physType = PhysTypeImpl.of(
-                    typeFactory, inputRowType);
-                for (int i = 0; i < inputRowType.getFieldCount(); i++) {
+                PhysType inputPhysType = ((EnumerableRel) rel.e).getPhysType();
+                final ParameterExpression parameter =
+                    Expressions.parameter(
+                        inputPhysType.getJavaRowType(),
+                        LEFT_RIGHT[rel.i]);
+                parameters.add(parameter);
+                int fieldCount = inputPhysType.getRowType().getFieldCount();
+                for (int i = 0; i < fieldCount; i++) {
                     expressions.add(
-                        physType.fieldReference(parameter, i));
+                        Types.castIfNecessary(
+                            inputPhysType.fieldClass(i),
+                            inputPhysType.fieldReference(parameter, i)));
                 }
             }
             return Expressions.lambda(
                 Function2.class,
-                Expressions.newArrayInit(
-                    Object.class,
-                    expressions),
+                physType.record(expressions),
                 parameters);
         }
     }
@@ -286,33 +283,19 @@ public class JavaRules {
             return clazz instanceof Class ? (Class) clazz : Object[].class;
         }
 
-        static Type computeOutputJavaType(
-            JavaTypeFactory typeFactory, RelDataType outputRowType)
-        {
-            Type outputJavaType = typeFactory.getJavaClass(outputRowType);
-            if (outputJavaType == null || !(outputJavaType instanceof Class)) {
-                if (outputRowType.getFieldCount() == 1) {
-                    outputJavaType =
-                        typeFactory.getJavaClass(
-                            outputRowType.getFieldList().get(0).getType());
-                }
-                if (outputJavaType == null) {
-                    outputJavaType = Object.class;
+        public static Expression foldAnd(List<Expression> conditions) {
+            Expression e = null;
+            for (Expression condition : conditions) {
+                if (e == null) {
+                    e = condition;
+                } else {
+                    e = Expressions.andAlso(e, condition);
                 }
             }
-            return outputJavaType;
-        }
-
-        /** Converts 'x' to 'Integer.valueOf(x)' if x is of type {@code int}. */
-        static Expression box(Expression expression) {
-            if (Types.isPrimitive(expression.getType())) {
-                Primitive primitive = Primitive.of(expression.getType());
-                return Expressions.call(
-                    primitive.boxClass,
-                    "valueOf",
-                    expression);
+            if (e == null) {
+                return Expressions.constant(true);
             }
-            return expression;
+            return e;
         }
     }
 
@@ -322,27 +305,52 @@ public class JavaRules {
     {
         private final Expression expression;
         private final PhysType physType;
+        private final Class elementType;
 
         public EnumerableTableAccessRel(
             RelOptCluster cluster,
+            RelTraitSet traitSet,
             RelOptTable table,
-            Expression expression)
+            Expression expression,
+            Class elementType)
         {
-            super(
-                cluster,
-                cluster.traitSetOf(CONVENTION),
-                table);
+            super(cluster, traitSet, table);
+            assert getConvention() instanceof EnumerableConvention;
+            this.elementType = elementType;
             if (Types.isArray(expression.getType())) {
+                if (Types.toClass(expression.getType()).getComponentType()
+                    .isPrimitive())
+                {
+                    expression = Expressions.call(
+                        BuiltinMethod.AS_LIST.method,
+                        expression);
+                }
                 expression =
                     Expressions.call(
                         BuiltinMethod.AS_ENUMERABLE.method,
                         expression);
             }
             this.expression = expression;
+
+            // Note that representation is ARRAY. This assumes that the table
+            // returns a Object[] for each record. Actually a Table<T> can
+            // return any type T. And, if it is a JdbcTable, we'd like to be
+            // able to generate alternate accessors that return e.g. synthetic
+            // records {T0 f0; T1 f1; ...} and don't box every primitive value.
             this.physType =
                 PhysTypeImpl.of(
                     (JavaTypeFactory) cluster.getTypeFactory(),
-                    getRowType());
+                    getRowType(),
+                    ((EnumerableConvention) getConvention()).format);
+        }
+
+
+        @Override
+        public RelNode copy(
+            RelTraitSet traitSet, List<RelNode> inputs)
+        {
+            return new EnumerableTableAccessRel(
+                getCluster(), traitSet, table, expression, elementType);
         }
 
         public PhysType getPhysType() {
@@ -359,7 +367,7 @@ public class JavaRules {
 
     /**
      * Rule to convert a {@link CalcRel} to an
-     * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableCalcRel}.
+     * {@link EnumerableCalcRel}.
      */
     private static class EnumerableCalcRule
         extends ConverterRule
@@ -369,7 +377,7 @@ public class JavaRules {
             super(
                 CalcRel.class,
                 Convention.NONE,
-                CONVENTION,
+                EnumerableConvention.ARRAY,
                 "EnumerableCalcRule");
         }
 
@@ -377,9 +385,9 @@ public class JavaRules {
         {
             final CalcRel calc = (CalcRel) rel;
             final RelNode convertedChild =
-                mergeTraitsAndConvert(
-                    calc.getTraitSet(), CONVENTION,
-                    calc.getChild());
+                convert(
+                    calc.getChild(),
+                    calc.getTraitSet().replace(EnumerableConvention.ARRAY));
             if (convertedChild == null) {
                 // We can't convert the child, so we can't convert rel.
                 return null;
@@ -393,10 +401,100 @@ public class JavaRules {
 
             return new EnumerableCalcRel(
                 rel.getCluster(),
-                rel.getTraitSet(),
+                rel.getTraitSet().replace(
+                    EnumerableConvention.ARRAY),
                 convertedChild,
                 calc.getProgram(),
                 ProjectRelBase.Flags.Boxed);
+        }
+    }
+
+    /**
+     * Rule to convert an {@link EnumerableCalcRel} on an
+     * {@link EnumerableConvention#ARRAY} input to one on a
+     * {@link EnumerableConvention#CUSTOM} input.
+     */
+    public static class EnumerableCustomCalcRule extends RelOptRule {
+        public static final RelOptRule INSTANCE =
+            new EnumerableCustomCalcRule();
+
+        private EnumerableCustomCalcRule() {
+            super(
+                new RelOptRuleOperand(
+                    EnumerableCalcRel.class,
+                    (RelTrait) null,
+                    new RelOptRuleOperand(
+                        RelNode.class,
+                        EnumerableConvention.ARRAY,
+                        RelOptRuleOperand.Dummy.ANY)),
+                "EnumerableCustomCalcRule");
+        }
+
+        public void onMatch(RelOptRuleCall call) {
+            final EnumerableCalcRel calc =
+                (EnumerableCalcRel) call.getRels()[0];
+            final RelNode convertedChild =
+                convert(
+                    call.getRels()[1],
+                    calc.getTraitSet().replace(EnumerableConvention.CUSTOM));
+            if (convertedChild == null) {
+                // We can't convert the child, so we can't convert rel.
+                return;
+            }
+
+            call.transformTo(
+                new EnumerableCalcRel(
+                    calc.getCluster(),
+                    calc.getTraitSet(),
+                    convertedChild,
+                    calc.getProgram(),
+                    calc.flags));
+        }
+    }
+
+    public static final ConverterRule ENUMERABLE_ARRAY_TO_CUSTOM_RULE =
+        new EnumerableConverterRule(
+            EnumerableConvention.ARRAY,
+            EnumerableConvention.CUSTOM);
+
+    public static final ConverterRule ENUMERABLE_CUSTOM_TO_ARRAY_RULE =
+        new EnumerableConverterRule(
+            EnumerableConvention.CUSTOM,
+            EnumerableConvention.ARRAY);
+
+    /**
+     * Rule to convert a relational expression from
+     * {@link EnumerableConvention#ARRAY} to another
+     * {@link EnumerableConvention}.
+     */
+    private static class EnumerableConverterRule extends ConverterRule {
+        private EnumerableConverterRule(
+            EnumerableConvention out, EnumerableConvention in)
+        {
+            super(
+                RelNode.class, in, out,
+                "Enumerable-" + in.name() + "-to-" + out.name());
+        }
+
+        @Override
+        public RelNode convert(RelNode rel) {
+            if (rel instanceof EnumerableTableAccessRel) {
+                // The physical row type of a table access is baked in.
+                return null;
+            }
+            RelTraitSet newTraitSet =
+                rel.getTraitSet().replace(
+                    ConventionTraitDef.instance, getOutTrait());
+            if (rel instanceof EnumerableSortRel) {
+                // The physical row type of a sort must be the same as its
+                // input.
+                EnumerableSortRel sortRel = (EnumerableSortRel) rel;
+                return sortRel.copy(
+                    newTraitSet,
+                    convert(sortRel.getChild(), newTraitSet),
+                    sortRel.getCollations());
+            }
+            return rel.copy(newTraitSet, rel.getInputs());
         }
     }
 
@@ -420,16 +518,16 @@ public class JavaRules {
             RexProgram program,
             int flags)
         {
-            super(
-                cluster,
-                traitSet.plus(CONVENTION),
-                child);
+            super(cluster, traitSet, child);
+            assert getConvention() instanceof EnumerableConvention;
             this.flags = flags;
             this.program = program;
             this.rowType = program.getOutputRowType();
             this.physType =
                 PhysTypeImpl.of(
-                    (JavaTypeFactory) cluster.getTypeFactory(), getRowType());
+                    (JavaTypeFactory) cluster.getTypeFactory(),
+                    getRowType(),
+                    (EnumerableConvention) getConvention());
         }
 
         public PhysType getPhysType() {
@@ -474,8 +572,7 @@ public class JavaRules {
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) implementor.getTypeFactory();
             final BlockBuilder statements = new BlockBuilder();
-            RelDataType outputRowType = getRowType();
-            RelDataType inputRowType = getChild().getRowType();
+            final EnumerableRel child = (EnumerableRel) getChild();
 
             // final Enumerable<Employee> inputEnumerable = <<child impl>>;
             // return new Enumerable<IntString>() {
@@ -483,13 +580,11 @@ public class JavaRules {
             //         return new Enumerator<IntString>() {
             //             public void reset() {
             // ...
-            Type outputJavaType =
-                EnumUtil.computeOutputJavaType(typeFactory, outputRowType);
+            Type outputJavaType = getPhysType().getJavaRowType();
             final Type enumeratorType =
                 Types.of(
                     Enumerator.class, outputJavaType);
-            Class inputJavaType = EnumUtil.javaRowClass(
-                typeFactory, inputRowType);
+            Type inputJavaType = child.getPhysType().getJavaRowType();
             ParameterExpression inputEnumerator =
                 Expressions.parameter(
                     Types.of(
@@ -513,7 +608,8 @@ public class JavaRules {
                 final List<Statement> list = Expressions.list();
                 Expression condition =
                     RexToLixTranslator.translateCondition(
-                        Collections.<Expression>singletonList(input),
+                        Collections.singletonList(
+                            Pair.of(input, child.getPhysType())),
                         program,
                         typeFactory,
                         list);
@@ -537,18 +633,15 @@ public class JavaRules {
             final List<Statement> list = Expressions.list();
             List<Expression> expressions =
                 RexToLixTranslator.translateProjects(
-                    Collections.<Expression>singletonList(input),
+                    Collections.singletonList(
+                        Pair.of(input, child.getPhysType())),
                     program,
                     typeFactory,
                     list);
             list.add(
                 Expressions.return_(
                     null,
-                    expressions.size() == 1
-                        ? expressions.get(0)
-                        : Expressions.newArrayInit(
-                            Object.class,
-                            stripCasts(expressions))));
+                    physType.record(expressions)));
             BlockExpression currentBody =
                 Expressions.block(list);
 
@@ -556,7 +649,7 @@ public class JavaRules {
                 statements.append(
                     "inputEnumerable",
                     implementor.visitChild(
-                        this, 0, (EnumerableRel) getChild()));
+                        this, 0, child));
             final Expression body =
                 Expressions.new_(
                     enumeratorType,
@@ -607,17 +700,6 @@ public class JavaRules {
             return statements.toBlock();
         }
 
-        private Iterable<Expression> stripCasts(List<Expression> expressions) {
-            final List<Expression> list = new ArrayList<Expression>();
-            for (Expression expression : expressions) {
-                while (expression.getNodeType() == ExpressionType.Convert) {
-                    expression = ((UnaryExpression) expression).expression;
-                }
-                list.add(expression);
-            }
-            return list;
-        }
-
         public RexProgram getProgram() {
             return program;
         }
@@ -638,7 +720,7 @@ public class JavaRules {
             super(
                 AggregateRel.class,
                 Convention.NONE,
-                CONVENTION,
+                EnumerableConvention.ARRAY,
                 "EnumerableAggregateRule");
         }
 
@@ -646,10 +728,9 @@ public class JavaRules {
         {
             final AggregateRel agg = (AggregateRel) rel;
             final RelNode convertedChild =
-                mergeTraitsAndConvert(
-                    agg.getTraitSet(),
-                    CONVENTION,
-                    agg.getChild());
+                convert(
+                    agg.getChild(),
+                    agg.getTraitSet().replace(EnumerableConvention.ARRAY));
             if (convertedChild == null) {
                 // We can't convert the child, so we can't convert rel.
                 return null;
@@ -657,7 +738,7 @@ public class JavaRules {
             try {
                 return new EnumerableAggregateRel(
                     rel.getCluster(),
-                    rel.getTraitSet(),
+                    rel.getTraitSet().plus(EnumerableConvention.ARRAY),
                     convertedChild,
                     agg.getGroupSet(),
                     agg.getAggCallList());
@@ -682,12 +763,8 @@ public class JavaRules {
             List<AggregateCall> aggCalls)
             throws InvalidRelException
         {
-            super(
-                cluster,
-                traitSet.plus(CONVENTION),
-                child,
-                groupSet,
-                aggCalls);
+            super(cluster, traitSet, child, groupSet, aggCalls);
+            assert getConvention() instanceof EnumerableConvention;
 
             for (AggregateCall aggCall : aggCalls) {
                 if (aggCall.isDistinct()) {
@@ -698,7 +775,8 @@ public class JavaRules {
             this.physType =
                 PhysTypeImpl.of(
                     (JavaTypeFactory) cluster.getTypeFactory(),
-                    getRowType());
+                    getRowType(),
+                    (EnumerableConvention) getConvention());
         }
 
         @Override
@@ -706,12 +784,12 @@ public class JavaRules {
             RelTraitSet traitSet, List<RelNode> inputs)
         {
             try {
-            return new EnumerableAggregateRel(
-                getCluster(),
-                traitSet,
-                sole(inputs),
-                groupSet,
-                aggCalls);
+                return new EnumerableAggregateRel(
+                    getCluster(),
+                    traitSet,
+                    sole(inputs),
+                    groupSet,
+                    aggCalls);
             } catch (InvalidRelException e) {
                 // Semantic error not possible. Must be a bug. Convert to
                 // internal error.
@@ -727,11 +805,12 @@ public class JavaRules {
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) implementor.getTypeFactory();
             final BlockBuilder statements = new BlockBuilder();
+            final EnumerableRel child = (EnumerableRel) getChild();
             Expression childExp =
                 statements.append(
                     "child",
                     implementor.visitChild(
-                        this, 0, (EnumerableRel) getChild()));
+                        this, 0, child));
             RelDataType inputRowType = getChild().getRowType();
 
             // final Enumerable<Employee> child = <<child impl>>;
@@ -775,24 +854,25 @@ public class JavaRules {
             //       resultSelector);
             //
             // with a slightly different resultSelector.
-            Class inputJavaType = EnumUtil.javaRowClass(
-                typeFactory, inputRowType);
+            PhysType inputPhysType = child.getPhysType();
 
             ParameterExpression parameter =
-                Expressions.parameter(inputJavaType, "a0");
+                Expressions.parameter(inputPhysType.getJavaRowType(), "a0");
 
             final List<Expression> keyExpressions = Expressions.list();
-            PhysType physType = PhysTypeImpl.of(typeFactory, inputRowType);
-            PhysType keyPhysType = physType.project(Util.toList(groupSet));
+            PhysType keyPhysType =
+                inputPhysType.project(
+                    Util.toList(groupSet),
+                    JavaRowFormat.CUSTOM);
             final int keyArity = groupSet.cardinality();
             for (int groupKey : Util.toIter(groupSet)) {
                 keyExpressions.add(
-                    physType.fieldReference(parameter, groupKey));
+                    inputPhysType.fieldReference(parameter, groupKey));
             }
             final Expression keySelector =
                 statements.append(
                     "keySelector",
-                    ((EnumerableRel) getChild()).getPhysType().generateSelector(
+                    child.getPhysType().generateSelector(
                         parameter,
                         Util.toList(groupSet)));
 
@@ -823,19 +903,33 @@ public class JavaRules {
                 initExpressions.add(
                     ord.e.right.implementInit(
                         ord.e.left.getAggregation(),
-                        EnumUtil.javaClass(typeFactory, ord.e.left.getType()),
+                        physType.fieldClass(keyArity + ord.i),
                         fieldTypes(
                             typeFactory,
                             inputRowType,
                             ord.e.left.getArgList())));
             }
+
+            final PhysType accPhysType =
+                PhysTypeImpl.of(
+                    typeFactory,
+                    typeFactory.createSyntheticType(
+                        new AbstractList<Type>() {
+                            public Type get(int index) {
+                                return initExpressions.get(index).getType();
+                            }
+
+                            public int size() {
+                                return initExpressions.size();
+                            }
+                        }));
+
             final Expression accumulatorInitializer =
                 statements.append(
                     "accumulatorInitializer",
                     Expressions.lambda(
                         Function0.class,
-                        Expressions.newArrayInit(
-                            Object.class, initExpressions)));
+                        accPhysType.record(initExpressions)));
 
             // Function2<Object[], Employee, Object[]> accumulatorAdder =
             //     new Function2<Object[], Employee, Object[]>() {
@@ -847,18 +941,25 @@ public class JavaRules {
             //     };
             BlockBuilder bb2 = new BlockBuilder();
             final ParameterExpression inParameter =
-                Expressions.parameter(inputJavaType, "in");
+                Expressions.parameter(inputPhysType.getJavaRowType(), "in");
             final ParameterExpression accParameter =
-                Expressions.parameter(Object[].class, "acc");
+                Expressions.parameter(accPhysType.getJavaRowType(), "acc");
             for (Ord<Pair<AggregateCall, AggImplementor2>> ord
                 : Ord.zip(Pair.zip(aggCalls, implementors)))
             {
                 final Type type = initExpressions.get(ord.i).type;
-                final IndexExpression accumulator =
-                    Expressions.arrayIndex(
-                        accParameter,
-                        Expressions.constant(ord.i));
-                bb2.add(
+                final Expression accumulator =
+                    accPhysType.fieldReference(accParameter, ord.i);
+                final List<Expression> conditions = new ArrayList<Expression>();
+                for (int arg : ord.e.left.getArgList()) {
+                    if (inputPhysType.fieldNullable(arg)) {
+                        conditions.add(
+                            Expressions.notEqual(
+                                inputPhysType.fieldReference(inParameter, arg),
+                                Expressions.constant(null)));
+                    }
+                }
+                final Statement assign =
                     Expressions.statement(
                         Expressions.assign(
                             accumulator,
@@ -866,10 +967,15 @@ public class JavaRules {
                                 ord.e.left.getAggregation(),
                                 Types.castIfNecessary(type, accumulator),
                                 accessors(
-                                    typeFactory,
-                                    inputRowType,
-                                    inParameter,
-                                    ord.e.left)))));
+                                    inputPhysType, inParameter, ord.e.left))));
+                if (conditions.isEmpty()) {
+                    bb2.add(assign);
+                } else {
+                    bb2.add(
+                        Expressions.ifThen(
+                            EnumUtil.foldAnd(conditions),
+                            assign));
+                }
             }
             bb2.add(accParameter);
             final Expression accumulatorAdder =
@@ -891,7 +997,7 @@ public class JavaRules {
             if (keyArity == 0) {
                 keyParameter = null;
             } else {
-                final Type keyType = keyPhysType.getJavaRowClass();
+                final Type keyType = keyPhysType.getJavaRowType();
                 keyParameter = Expressions.parameter(keyType, "key");
                 for (int j = 0; j < keyArity; j++) {
                     results.add(
@@ -904,20 +1010,17 @@ public class JavaRules {
                 results.add(
                     ord.e.right.implementResult(
                         ord.e.left.getAggregation(),
-                        Expressions.arrayIndex(
-                            accParameter,
-                            Expressions.constant(ord.i))));
+                        accPhysType.fieldReference(
+                            accParameter, ord.i)));
             }
+            final PhysType resultPhysType = physType;
             if (keyArity == 0) {
                 final Expression resultSelector =
                     statements.append(
                         "resultSelector",
                         Expressions.lambda(
                             Function1.class,
-                            results.size() == 1
-                                ? results.get(0)
-                                : Expressions.newArrayInit(
-                                    Object.class, results),
+                            resultPhysType.record(results),
                             accParameter));
                 statements.add(
                     Expressions.return_(
@@ -940,10 +1043,7 @@ public class JavaRules {
                         "resultSelector",
                         Expressions.lambda(
                             Function2.class,
-                            results.size() == 1
-                                ? EnumUtil.box(results.get(0))
-                                : Expressions.newArrayInit(
-                                    Object.class, results),
+                            resultPhysType.record(results),
                             Expressions.list(keyParameter, accParameter)));
                 statements.add(
                     Expressions.return_(
@@ -983,13 +1083,11 @@ public class JavaRules {
         }
 
         private List<Expression> accessors(
-            JavaTypeFactory typeFactory,
-            RelDataType rowType,
+            PhysType physType,
             ParameterExpression v1,
             AggregateCall aggCall)
         {
             final List<Expression> expressions = new ArrayList<Expression>();
-            PhysType physType = PhysTypeImpl.of(typeFactory, rowType);
             for (int field : aggCall.getArgList()) {
                 expressions.add(
                     Types.castIfNecessary(
@@ -1015,7 +1113,7 @@ public class JavaRules {
             super(
                 SortRel.class,
                 Convention.NONE,
-                CONVENTION,
+                EnumerableConvention.ARRAY,
                 "EnumerableSortRule");
         }
 
@@ -1023,10 +1121,9 @@ public class JavaRules {
         {
             final SortRel sort = (SortRel) rel;
             final RelNode convertedChild =
-                mergeTraitsAndConvert(
-                    sort.getTraitSet(),
-                    CONVENTION,
-                    sort.getChild());
+                convert(
+                    sort.getChild(),
+                    sort.getTraitSet().replace(EnumerableConvention.ARRAY));
             if (convertedChild == null) {
                 // We can't convert the child, so we can't convert rel.
                 return null;
@@ -1034,7 +1131,7 @@ public class JavaRules {
 
             return new EnumerableSortRel(
                 rel.getCluster(),
-                rel.getTraitSet(),
+                rel.getTraitSet().replace(EnumerableConvention.ARRAY),
                 convertedChild,
                 sort.getCollations());
         }
@@ -1052,15 +1149,14 @@ public class JavaRules {
             RelNode child,
             List<RelFieldCollation> collations)
         {
-            super(
-                cluster,
-                traitSet.plus(CONVENTION),
-                child,
-                collations);
+            super(cluster, traitSet, child, collations);
+            assert getConvention() instanceof EnumerableConvention;
+            assert getConvention() == child.getConvention();
             this.physType =
                 PhysTypeImpl.of(
                     (JavaTypeFactory) cluster.getTypeFactory(),
-                    getRowType());
+                    getRowType(),
+                    (EnumerableConvention) getConvention());
         }
 
         @Override
@@ -1081,91 +1177,41 @@ public class JavaRules {
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
-            final JavaTypeFactory typeFactory =
-                (JavaTypeFactory) implementor.getTypeFactory();
             final BlockBuilder statements = new BlockBuilder();
+            final EnumerableRel child = (EnumerableRel) getChild();
             Expression childExp =
                 statements.append(
                     "child",
                     implementor.visitChild(
-                        this, 0, (EnumerableRel) getChild()));
+                        this, 0, child));
 
-            RelDataType inputRowType = getChild().getRowType();
-            Class inputJavaType = EnumUtil.javaRowClass(
-                typeFactory, inputRowType);
+            PhysType inputPhysType = child.getPhysType();
+            final Pair<Expression, Expression> pair =
+                inputPhysType.generateCollationKey(
+                    collations);
 
-            ParameterExpression parameter =
-                Expressions.parameter(inputJavaType, "a0");
-            final List<Expression> keyExpressions = Expressions.list();
-            PhysType physType = PhysTypeImpl.of(
-                typeFactory, inputRowType);
-            for (RelFieldCollation collation : collations) {
-                keyExpressions.add(
-                    physType.fieldReference(
-                        parameter, collation.getFieldIndex()));
-            }
             final Expression keySelector =
                 statements.append(
-                    "keySelector",
-                    inputRowType.getFieldCount() == 1
-                        ? Expressions.call(
-                            Functions.class,
-                            "identitySelector")
-                        : Expressions.lambda(
-                            Function1.class,
-                            keyExpressions.size() == 1
-                                ? keyExpressions.get(0)
-                                : Expressions.newArrayInit(
-                                    Object.class, keyExpressions),
-                            parameter));
+                    "keySelector", pair.left);
 
-            Expression comparatorExp;
-            if (collations.size() == 1) {
-                RelFieldCollation collation = collations.get(0);
-                switch (collation.getDirection()) {
-                case Ascending:
-                    comparatorExp =
-                        Expressions.constant(null, Comparator.class);
-                    break;
-                default:
-                    comparatorExp =
-                        Expressions.call(
-                            Collections.class,
-                            "reverseOrder");
-                }
-            } else {
-                List<Expression> directions =
-                    new AbstractList<Expression>() {
-                        public Expression get(int index) {
-                            return Expressions.constant(
-                                collations.get(index).getDirection()
-                                == RelFieldCollation.Direction.Descending);
-                        }
-                        public int size() {
-                            return collations.size();
-                        }
-                    };
-                comparatorExp =
-                    Expressions.new_(
-                        ArrayComparator.class,
-                        Collections.<Expression>singletonList(
-                            Expressions.newArrayInit(
-                                Boolean.TYPE,
-                                directions)));
+            final Expression comparatorExp = pair.right;
+
+            final List<Expression> arguments =
+                Expressions.list(keySelector);
+            if (comparatorExp != null) {
+                final Expression comparator =
+                    statements.append(
+                        "comparator",
+                        comparatorExp);
+                arguments.add(comparator);
             }
-            final Expression comparator =
-                statements.append(
-                    "comparator",
-                    comparatorExp);
-
             statements.add(
                 Expressions.return_(
                     null,
                     Expressions.call(
                         childExp,
                         BuiltinMethod.ORDER_BY.method,
-                        keySelector,
-                        comparator)));
+                        arguments)));
             return statements.toBlock();
         }
     }
@@ -1185,20 +1231,19 @@ public class JavaRules {
             super(
                 UnionRel.class,
                 Convention.NONE,
-                CONVENTION,
+                EnumerableConvention.ARRAY,
                 "EnumerableUnionRule");
         }
 
         public RelNode convert(RelNode rel)
         {
             final UnionRel union = (UnionRel) rel;
+            final RelTraitSet traitSet =
+                union.getTraitSet().replace(
+                    EnumerableConvention.ARRAY);
             List<RelNode> convertedChildren = new ArrayList<RelNode>();
             for (RelNode child : union.getInputs()) {
-                final RelNode convertedChild =
-                    mergeTraitsAndConvert(
-                        union.getTraitSet(),
-                        CONVENTION,
-                        child);
+                final RelNode convertedChild = convert(child, traitSet);
                 if (convertedChild == null) {
                     // We can't convert the child, so we can't convert rel.
                     return null;
@@ -1207,7 +1252,7 @@ public class JavaRules {
             }
             return new EnumerableUnionRel(
                 rel.getCluster(),
-                rel.getTraitSet(),
+                traitSet,
                 convertedChildren,
                 !union.isDistinct());
         }
@@ -1225,15 +1270,12 @@ public class JavaRules {
             List<RelNode> inputs,
             boolean all)
         {
-            super(
-                cluster,
-                traitSet.plus(CONVENTION),
-                inputs,
-                all);
+            super(cluster, traitSet, inputs, all);
             this.physType =
                 PhysTypeImpl.of(
                     (JavaTypeFactory) cluster.getTypeFactory(),
-                    getRowType());
+                    getRowType(),
+                    (EnumerableConvention) getConvention());
         }
 
         public EnumerableUnionRel copy(
@@ -1253,13 +1295,12 @@ public class JavaRules {
         public BlockExpression implement(EnumerableRelImplementor implementor) {
             final BlockBuilder statements = new BlockBuilder();
             Expression unionExp = null;
-            for (int i = 0; i < inputs.size(); i++) {
-                RelNode input = inputs.get(i);
+            for (Ord<RelNode> ord : Ord.zip(inputs)) {
+                EnumerableRel input = (EnumerableRel) ord.e;
                 Expression childExp =
                     statements.append(
-                        "child" + i,
-                        implementor.visitChild(
-                            this, i, (EnumerableRel) input));
+                        "child" + ord.i,
+                        implementor.visitChild(this, ord.i, input));
 
                 if (unionExp == null) {
                     unionExp = childExp;
@@ -1294,7 +1335,7 @@ public class JavaRules {
             super(
                 IntersectRel.class,
                 Convention.NONE,
-                CONVENTION,
+                EnumerableConvention.ARRAY,
                 "EnumerableIntersectRule");
         }
 
@@ -1304,13 +1345,12 @@ public class JavaRules {
             if (!intersect.isDistinct()) {
                 return null; // INTERSECT ALL not implemented
             }
+            final RelTraitSet traitSet =
+                intersect.getTraitSet().replace(
+                    EnumerableConvention.ARRAY);
             List<RelNode> convertedChildren = new ArrayList<RelNode>();
             for (RelNode child : intersect.getInputs()) {
-                final RelNode convertedChild =
-                    mergeTraitsAndConvert(
-                        intersect.getTraitSet(),
-                        CONVENTION,
-                        child);
+                final RelNode convertedChild = convert(child, traitSet);
                 if (convertedChild == null) {
                     // We can't convert the child, so we can't convert rel.
                     return null;
@@ -1319,7 +1359,7 @@ public class JavaRules {
             }
             return new EnumerableIntersectRel(
                 rel.getCluster(),
-                rel.getTraitSet(),
+                traitSet,
                 convertedChildren,
                 !intersect.isDistinct());
         }
@@ -1337,16 +1377,13 @@ public class JavaRules {
             List<RelNode> inputs,
             boolean all)
         {
-            super(
-                cluster,
-                traitSet.plus(CONVENTION),
-                inputs,
-                all);
+            super(cluster, traitSet, inputs, all);
             assert !all;
             this.physType =
                 PhysTypeImpl.of(
                     (JavaTypeFactory) cluster.getTypeFactory(),
-                    getRowType());
+                    getRowType(),
+                    (EnumerableConvention) getConvention());
         }
 
         public EnumerableIntersectRel copy(
@@ -1407,7 +1444,7 @@ public class JavaRules {
             super(
                 MinusRel.class,
                 Convention.NONE,
-                CONVENTION,
+                EnumerableConvention.ARRAY,
                 "EnumerableMinusRule");
         }
 
@@ -1417,13 +1454,12 @@ public class JavaRules {
             if (!minus.isDistinct()) {
                 return null; // EXCEPT ALL not implemented
             }
+            final RelTraitSet traitSet =
+                rel.getTraitSet().replace(
+                    EnumerableConvention.ARRAY);
             List<RelNode> convertedChildren = new ArrayList<RelNode>();
             for (RelNode child : minus.getInputs()) {
-                final RelNode convertedChild =
-                    mergeTraitsAndConvert(
-                        minus.getTraitSet(),
-                        CONVENTION,
-                        child);
+                final RelNode convertedChild = convert(child, traitSet);
                 if (convertedChild == null) {
                     // We can't convert the child, so we can't convert rel.
                     return null;
@@ -1432,7 +1468,7 @@ public class JavaRules {
             }
             return new EnumerableMinusRel(
                 rel.getCluster(),
-                rel.getTraitSet(),
+                traitSet,
                 convertedChildren,
                 !minus.isDistinct());
         }
@@ -1450,16 +1486,13 @@ public class JavaRules {
             List<RelNode> inputs,
             boolean all)
         {
-            super(
-                cluster,
-                traitSet.plus(CONVENTION),
-                inputs,
-                all);
+            super(cluster, traitSet, inputs, all);
             assert !all;
             this.physType =
                 PhysTypeImpl.of(
                     (JavaTypeFactory) cluster.getTypeFactory(),
-                    getRowType());
+                    getRowType(),
+                    (EnumerableConvention) getConvention());
         }
 
         public EnumerableMinusRel copy(
@@ -1512,33 +1545,31 @@ public class JavaRules {
             super(
                 TableModificationRel.class,
                 Convention.NONE,
-                CONVENTION,
+                EnumerableConvention.ARRAY,
                 "EnumerableTableModificationRule");
         }
 
         @Override
         public RelNode convert(RelNode rel) {
-            final TableModificationRel modificationRel =
+            final TableModificationRel modify =
                 (TableModificationRel) rel;
             final RelNode convertedChild =
-                mergeTraitsAndConvert(
-                    modificationRel.getTraitSet(),
-                    CONVENTION,
-                    modificationRel.getChild());
+                convert(
+                    modify.getChild(),
+                    modify.getTraitSet().replace(EnumerableConvention.CUSTOM));
             if (convertedChild == null) {
                 // We can't convert the child, so we can't convert rel.
                 return null;
             }
             return new EnumerableTableModificationRel(
-                modificationRel.getCluster(),
-                modificationRel.getTraitSet()
-                    .plus(CONVENTION),
-                modificationRel.getTable(),
-                modificationRel.getCatalogReader(),
+                modify.getCluster(),
+                modify.getTraitSet().replace(EnumerableConvention.CUSTOM),
+                modify.getTable(),
+                modify.getCatalogReader(),
                 convertedChild,
-                modificationRel.getOperation(),
-                modificationRel.getUpdateColumnList(),
-                modificationRel.isFlattened());
+                modify.getOperation(),
+                modify.getUpdateColumnList(),
+                modify.isFlattened());
         }
     }
 
@@ -1547,8 +1578,9 @@ public class JavaRules {
         implements EnumerableRel
     {
         private final PhysType physType;
+        private final ModifiableTable modifiableTable;
 
-        protected EnumerableTableModificationRel(
+        public EnumerableTableModificationRel(
             RelOptCluster cluster,
             RelTraitSet traits,
             RelOptTable table,
@@ -1567,10 +1599,17 @@ public class JavaRules {
                 operation,
                 updateColumnList,
                 flattened);
+            assert child.getConvention() instanceof EnumerableConvention;
+            assert getConvention() instanceof EnumerableConvention;
+            modifiableTable = table.unwrap(ModifiableTable.class);
+            if (modifiableTable == null) {
+                throw new AssertionError(); // TODO: user error in validator
+            }
             this.physType =
                 PhysTypeImpl.of(
                     (JavaTypeFactory) cluster.getTypeFactory(),
-                    getRowType());
+                    getRowType(),
+                    (EnumerableConvention) getConvention());
         }
 
         @Override
@@ -1592,7 +1631,46 @@ public class JavaRules {
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
-            return implementor.visitChild(this, 0, (EnumerableRel) getChild());
+            final BlockBuilder builder = new BlockBuilder();
+            Expression childExp =
+                builder.append(
+                    "child",
+                    implementor.visitChild(
+                        this, 0, (EnumerableRel) getChild()));
+            final ParameterExpression collectionParameter =
+                Expressions.parameter(Collection.class, "collection");
+            builder.add(
+                Expressions.declare(
+                    0,
+                    collectionParameter,
+                    Expressions.call(
+                        Expressions.convert_(
+                            modifiableTable.getExpression(),
+                            ModifiableTable.class),
+                        BuiltinMethod.MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION
+                            .method)));
+            final ParameterExpression countParameter =
+                Expressions.parameter(long.class, "count");
+            builder.add(
+                Expressions.declare(
+                    0,
+                    countParameter,
+                    Expressions.call(collectionParameter, "size")));
+            builder.add(
+                Expressions.statement(
+                    Expressions.call(
+                        childExp, "into", collectionParameter)));
+            builder.add(
+                Expressions.return_(
+                    null,
+                    Expressions.call(
+                        BuiltinMethod.SINGLETON_ENUMERABLE.method,
+                        Expressions.convert_(
+                            Expressions.subtract(
+                                Expressions.call(
+                                    collectionParameter, "size"),
+                                countParameter), long.class))));
+            return builder.toBlock();
         }
     }
 
@@ -1604,7 +1682,7 @@ public class JavaRules {
             super(
                 ValuesRel.class,
                 Convention.NONE,
-                CONVENTION,
+                EnumerableConvention.ARRAY,
                 "EnumerableValuesRule");
         }
 
@@ -1615,7 +1693,7 @@ public class JavaRules {
                 valuesRel.getCluster(),
                 valuesRel.getRowType(),
                 valuesRel.getTuples(),
-                valuesRel.getTraitSet().plus(CONVENTION));
+                valuesRel.getTraitSet().plus(EnumerableConvention.ARRAY));
         }
     }
 
@@ -1631,11 +1709,21 @@ public class JavaRules {
             List<List<RexLiteral>> tuples,
             RelTraitSet traitSet)
         {
-            super(cluster, rowType, tuples, traitSet.plus(CONVENTION));
+            super(cluster, rowType, tuples, traitSet);
             this.physType =
                 PhysTypeImpl.of(
                     (JavaTypeFactory) cluster.getTypeFactory(),
-                    getRowType());
+                    getRowType(),
+                    (EnumerableConvention) getConvention());
+        }
+
+        @Override
+        public RelNode copy(
+            RelTraitSet traitSet, List<RelNode> inputs)
+        {
+            assert inputs.isEmpty();
+            return new EnumerableValuesRel(
+                getCluster(), rowType, tuples, traitSet);
         }
 
         public PhysType getPhysType() {
@@ -1653,8 +1741,7 @@ public class JavaRules {
             final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) getCluster().getTypeFactory();
             final BlockBuilder statements = new BlockBuilder();
-            final Class rowClass =
-                EnumUtil.javaRowClass(typeFactory, getRowType());
+            final Type rowClass = physType.getJavaRowType();
 
             final List<Expression> expressions = new ArrayList<Expression>();
             for (List<RexLiteral> tuple : tuples) {
@@ -1676,196 +1763,11 @@ public class JavaRules {
                     Expressions.call(
                         BuiltinMethod.AS_ENUMERABLE.method,
                         Expressions.newArrayInit(
-                            rowClass, expressions))));
+                            Primitive.box(rowClass), expressions))));
             return statements.toBlock();
         }
     }
 
-    /** Implementation of {@link net.hydromatic.optiq.rules.java.EnumerableRel.PhysType}. */
-    public static class PhysTypeImpl implements EnumerableRel.PhysType {
-        private final JavaTypeFactory typeFactory;
-        private final RelDataType rowType;
-        private final Class javaRowClass;
-        private final List<Class> fieldClasses = new ArrayList<Class>();
-        private final Repr repr;
-
-        private PhysTypeImpl(JavaTypeFactory typeFactory, RelDataType rowType) {
-            this.typeFactory = typeFactory;
-            this.rowType = rowType;
-            this.javaRowClass = EnumUtil.javaRowClass(typeFactory, rowType);
-            for (RelDataTypeField field : rowType.getFieldList()) {
-                fieldClasses.add(
-                    EnumUtil.javaRowClass(typeFactory, field.getType()));
-            }
-            this.repr = chooseRepr(rowType);
-        }
-
-        private Repr chooseRepr(RelDataType rowType) {
-            switch (rowType.getFieldCount()) {
-            case 0:
-                return Repr.EMPTY_LIST;
-            case 1:
-                return Repr.SCALAR;
-            default:
-                return Repr.ARRAY;
-            }
-        }
-
-        static EnumerableRel.PhysType of(
-            JavaTypeFactory typeFactory, RelDataType rowType)
-        {
-            return new PhysTypeImpl(typeFactory, rowType);
-        }
-
-        public EnumerableRel.PhysType project(final List<Integer> integers) {
-            RelDataType projectedRowType =
-                typeFactory.createStructType(
-                    new AbstractList<Map.Entry<String, RelDataType>>() {
-                        public Map.Entry<String, RelDataType> get(int index) {
-                            return rowType.getFieldList().get(index);
-                        }
-
-                        public int size() {
-                            return integers.size();
-                        }
-                    }
-                );
-            return of(typeFactory, projectedRowType);
-        }
-
-        public Expression generateSelector(
-            ParameterExpression parameter, List<Integer> fields)
-        {
-            switch (repr) {
-            case SCALAR:
-                return Expressions.call(
-                    Functions.class, "identitySelector");
-            case ARRAY:
-                return Expressions.lambda(
-                    Function1.class,
-                    fields.size() == 1
-                        ? fieldReference(
-                            parameter, fields.get(0))
-                        : Expressions.newArrayInit(
-                            Object.class, fieldReferences(parameter, fields)),
-                    parameter);
-            default:
-                throw new AssertionError(repr);
-            }
-        }
-
-        public Class getJavaRowClass() {
-            return javaRowClass;
-        }
-
-        public Expression comparer() {
-            switch (repr) {
-            case EMPTY_LIST:
-            case SCALAR:
-                return null;
-            case ARRAY:
-                return Expressions.call(
-                    null, BuiltinMethod.ARRAY_COMPARER.method);
-            default:
-                throw new AssertionError(repr);
-            }
-        }
-
-        private List<Expression> fieldReferences(
-            final Expression parameter, final List<Integer> fields)
-        {
-            return new AbstractList<Expression>() {
-                public Expression get(int index) {
-                    return fieldReference(parameter, fields.get(index));
-                }
-
-                public int size() {
-                    return fields.size();
-                }
-            };
-        }
-
-        public Class fieldClass(int field) {
-            return fieldClasses.get(field);
-        }
-
-        public Expression generateAccessor(
-            List<Integer> fields)
-        {
-            ParameterExpression v1 =
-                Expressions.parameter(javaRowClass, "v1");
-            switch (fields.size()) {
-            case 0:
-                return Expressions.lambda(
-                    Function1.class,
-                    Expressions.field(
-                        null,
-                        Collections.class,
-                        "EMPTY_LIST"),
-                    v1);
-            case 1:
-                int field0 = fields.get(0);
-
-                // new Function1<Employee, Res> {
-                //    public Res apply(Employee v1) {
-                //        return v1.<fieldN>;
-                //    }
-                // }
-                Class returnType = fieldClasses.get(field0);
-                Expression fieldReference =
-                    Types.castIfNecessary(
-                        returnType,
-                        fieldReference(v1, field0));
-                return Expressions.lambda(
-                    Function1.class,
-                    fieldReference,
-                    v1);
-            default:
-                // new Function1<Employee, Object[]> {
-                //    public Object[] apply(Employee v1) {
-                //        return new Object[] {v1.<fieldN>, v1.<fieldM>};
-                //    }
-                // }
-                Expressions.FluentList<Expression> list = Expressions.list();
-                for (int field : fields) {
-                    list.add(fieldReference(v1, field));
-                }
-                return Expressions.lambda(
-                    Function1.class,
-                    Expressions.newArrayInit(
-                        Object.class,
-                        list),
-                    v1);
-            }
-        }
-
-        public Expression fieldReference(
-            Expression expression, int field)
-        {
-            final Type type = expression.getType();
-            switch (repr) {
-            case SCALAR:
-                return expression;
-            case ARRAY:
-                if (Types.isArray(type)) {
-                return Expressions.arrayIndex(
-                    expression, Expressions.constant(field));
-                }
-                // fall through
-            default:
-                return Expressions.field(
-                    expression,
-                    Types.nthField(field, type));
-            }
-        }
-
-        private enum Repr {
-            EMPTY_LIST,
-            SCALAR,
-            ARRAY,
-            CUSTOM
-        }
-    }
 }
 
 // End JavaRules.java

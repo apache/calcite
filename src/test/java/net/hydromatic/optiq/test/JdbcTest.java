@@ -168,11 +168,8 @@ public class JdbcTest extends TestCase {
                     Collections.<Expression>emptyList()), Employee.class)
                 .select(
                     Expressions.<Function1<Employee, Integer>>lambda(
-                        Expressions.new_(
-                            AnInt.class,
-                            Arrays.<Expression>asList(
-                                Expressions.field(
-                                    e, "empid"))),
+                        Expressions.field(
+                            e, "empid"),
                         Arrays.asList(e)))
                 .toList();
         assertEquals(Arrays.asList(100, 200, 150), list);
@@ -335,8 +332,9 @@ public class JdbcTest extends TestCase {
                         },
                         viewSql);
                 return new ViewTable<T>(
-                    typeFactory.getJavaClass(parsed.rowType),
                     schema,
+                    typeFactory.getJavaClass(parsed.rowType),
+                    parsed.rowType,
                     name,
                     viewSql);
             }
@@ -608,14 +606,18 @@ public class JdbcTest extends TestCase {
                 .with(OptiqAssert.Config.FOODMART_CLONE);
         for (int i = 0; i < queries.length; i++) {
             String query = queries[i];
-            if (i + 1 < queries.length
-                && queries[i + 1] != null
-                && !queries[i + 1].startsWith("select"))
-            {
-                String expected = queries[++i];
-                with.query(query).returns(expected);
-            } else {
-                with.query(query).runs();
+            try {
+                if (i + 1 < queries.length
+                    && queries[i + 1] != null
+                    && !queries[i + 1].startsWith("select"))
+                {
+                    String expected = queries[++i];
+                    with.query(query).returns(expected);
+                } else {
+                    with.query(query).runs();
+                }
+            } catch (Throwable e) {
+                throw new RuntimeException("while running query #" + i, e);
             }
         }
     }
@@ -776,19 +778,23 @@ public class JdbcTest extends TestCase {
         implements Table<T>
     {
         protected final Type elementType;
+        private final RelDataType relDataType;
         protected final Schema schema;
         protected final String tableName;
 
         protected AbstractTable(
-            Type elementType,
             Schema schema,
+            Type elementType,
+            RelDataType relDataType,
             String tableName)
         {
-            this.elementType = elementType;
             this.schema = schema;
+            this.elementType = elementType;
+            this.relDataType = relDataType;
             this.tableName = tableName;
-            assert elementType != null;
             assert schema != null;
+            assert relDataType != null;
+            assert elementType != null;
             assert tableName != null;
         }
 
@@ -802,6 +808,10 @@ public class JdbcTest extends TestCase {
 
         public Type getElementType() {
             return elementType;
+        }
+
+        public RelDataType getRowType() {
+            return relDataType;
         }
 
         public Expression getExpression() {
@@ -820,6 +830,20 @@ public class JdbcTest extends TestCase {
         }
     }
 
+    public static abstract class AbstractModifiableTable<T>
+        extends AbstractTable<T>
+        implements ModifiableTable<T>
+    {
+        protected AbstractModifiableTable(
+            Schema schema,
+            Type elementType,
+            RelDataType relDataType,
+            String tableName)
+        {
+            super(schema, elementType, relDataType, tableName);
+        }
+    }
+
     static class ViewTable<T>
         extends AbstractTable<T>
         implements TranslatableTable<T>
@@ -827,12 +851,13 @@ public class JdbcTest extends TestCase {
         private final String viewSql;
 
         protected ViewTable(
-            Type elementType,
             Schema schema,
+            Type elementType,
+            RelDataType relDataType,
             String tableName,
             String viewSql)
         {
-            super(elementType, schema, tableName);
+            super(schema, elementType, relDataType, tableName);
             this.viewSql = viewSql;
         }
 

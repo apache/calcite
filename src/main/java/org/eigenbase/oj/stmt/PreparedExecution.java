@@ -26,6 +26,8 @@ import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.runtime.Typed;
+
 
 /**
  * PreparedExecution is a PreparedResult of a statement for which Java code was
@@ -35,7 +37,7 @@ import org.eigenbase.util.*;
  * @version $Id$
  */
 public class PreparedExecution
-    implements PreparedResult
+    implements PreparedResult, Typed
 {
     //~ Instance fields --------------------------------------------------------
 
@@ -96,6 +98,10 @@ public class PreparedExecution
     public RelDataType getPhysicalRowType()
     {
         return rowType;
+    }
+
+    public Type getElementType() {
+        return Object.class;
     }
 
     public Method getMethod()

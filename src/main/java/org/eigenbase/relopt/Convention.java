@@ -50,6 +50,11 @@ public interface Convention
             this.relClass = relClass;
         }
 
+        @Override
+        public String toString() {
+            return getName();
+        }
+
         public Class getInterface() {
             return relClass;
         }

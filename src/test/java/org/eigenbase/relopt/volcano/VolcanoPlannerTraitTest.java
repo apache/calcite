@@ -541,10 +541,9 @@ public class VolcanoPlannerTraitTest
             NoneSingleRel rel = (NoneSingleRel) call.rels[0];
 
             RelNode converted =
-                mergeTraitsAndConvert(
-                    rel.getTraitSet(),
-                    getOutTrait(),
-                    rel.getInput(0));
+                convert(
+                    rel.getInput(0),
+                    rel.getTraitSet().replace(getOutTrait()));
 
             call.transformTo(
                 new IterSingleRel(
@@ -578,10 +577,9 @@ public class VolcanoPlannerTraitTest
             NoneSingleRel rel = (NoneSingleRel) call.rels[0];
 
             RelNode converted =
-                mergeTraitsAndConvert(
-                    rel.getTraitSet(),
-                    getOutTrait(),
-                    rel.getInput(0));
+                convert(
+                    rel.getInput(0),
+                    rel.getTraitSet().replace(getOutTrait()));
 
             IterSingleRel child =
                 new IterSingleRel(

@@ -25,7 +25,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.Helper;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.rules.java.*;
-import net.hydromatic.optiq.runtime.Executable;
+import net.hydromatic.optiq.runtime.*;
 
 import org.eigenbase.oj.stmt.*;
 import org.eigenbase.rel.*;
@@ -47,8 +47,9 @@ import org.eigenbase.util.Ord;
 import org.eigenbase.util.Pair;
 
 import org.codehaus.janino.*;
+import org.codehaus.janino.Scanner;
 
-import java.lang.reflect.Modifier;
+import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
@@ -74,7 +75,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 catalogReader,
                 typeFactory,
                 context.getRootSchema());
-        preparingStmt.setResultConvention(JavaRules.CONVENTION);
+        preparingStmt.setResultConvention(EnumerableConvention.ARRAY);
 
         SqlParser parser = new SqlParser(sql);
         SqlNode sqlNode;
@@ -125,7 +126,13 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 catalogReader,
                 typeFactory,
                 context.getRootSchema());
-        preparingStmt.setResultConvention(JavaRules.CONVENTION);
+        final EnumerableConvention convention;
+        if (elementType == Object[].class) {
+            convention = EnumerableConvention.ARRAY;
+        } else {
+            convention = EnumerableConvention.CUSTOM;
+        }
+        preparingStmt.setResultConvention(convention);
 
         final RelDataType x;
         final PreparedResult preparedResult;
@@ -150,7 +157,12 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     SqlConformance.Default) { };
             preparedResult = preparingStmt.prepareSql(
                 sqlNode, Object.class, validator, true);
-            x = validator.getValidatedNodeType(sqlNode);
+            if (sqlNode instanceof SqlInsert) {
+                // FIXME: getValidatedNodeType is wrong for DML
+                x = RelOptUtil.createDmlRowType(typeFactory);
+            } else {
+                x = validator.getValidatedNodeType(sqlNode);
+            }
         } else {
             assert queryable != null;
             x = context.getTypeFactory().createType(elementType);
@@ -199,11 +211,18 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     false,
                     null));
         }
+        final Enumerable<T> enumerable =
+            (Enumerable<T>) preparedResult.execute();
+        Class resultClazz = null;
+        if (preparedResult instanceof Typed) {
+            resultClazz = (Class) ((Typed) preparedResult).getElementType();
+        }
         return new PrepareResult<T>(
             sql,
             parameters,
             columns,
-            (Enumerable<T>) preparedResult.execute());
+            enumerable,
+            resultClazz);
     }
 
     private static RelDataType makeStruct(
@@ -243,6 +262,9 @@ class OptiqPrepareImpl implements OptiqPrepare {
             planner.addRule(JavaRules.ENUMERABLE_MINUS_RULE);
             planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
             planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
+            planner.addRule(JavaRules.ENUMERABLE_CUSTOM_TO_ARRAY_RULE);
+            planner.addRule(JavaRules.ENUMERABLE_ARRAY_TO_CUSTOM_RULE);
+            planner.addRule(JavaRules.EnumerableCustomCalcRule.INSTANCE);
             planner.addRule(TableAccessRule.instance);
             planner.addRule(PushFilterPastProjectRule.instance);
             planner.addRule(PushFilterPastJoinRule.instance);
@@ -425,24 +447,20 @@ class OptiqPrepareImpl implements OptiqPrepare {
             javaCompiler = createCompiler();
             EnumerableRelImplementor relImplementor =
                 getRelImplementor(rootRel.getCluster().getRexBuilder());
-            BlockExpression expr =
+            ClassDeclaration expr =
                 relImplementor.implementRoot((EnumerableRel) rootRel);
-            ParameterExpression root0 =
-                Expressions.parameter(DataContext.class, "root0");
-            String s = Expressions.toString(
-                Blocks.create(
-                    Expressions.declare(
-                        Modifier.FINAL,
-                        (ParameterExpression) schema.getExpression(),
-                        root0),
-                    expr),
-                false);
+            String s =
+                Expressions.toString(expr.memberDeclarations, "\n", false);
 
             final Executable executable;
             try {
                 executable = (Executable)
-                    ExpressionEvaluator.createFastScriptEvaluator(
-                        s, Executable.class, new String[]{root0.name});
+                    ClassBodyEvaluator.createFastClassBodyEvaluator(
+                        new Scanner(null, new StringReader(s)),
+                        expr.name,
+                        Utilities.class,
+                        new Class[]{Executable.class, Typed.class},
+                        getClass().getClassLoader());
             } catch (Exception e) {
                 throw Helper.INSTANCE.wrap(
                     "Error while compiling generated Java code:\n" + s, e);
@@ -465,8 +483,14 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 null,
                 fieldOrigins)
             {
+                @Override
                 public Object execute() {
                     return executable.execute(schema);
+                }
+
+                @Override
+                public Type getElementType() {
+                    return ((Typed) executable).getElementType();
                 }
             };
         }
@@ -514,6 +538,18 @@ class OptiqPrepareImpl implements OptiqPrepare {
             assert expression != null;
         }
 
+        public <T> T unwrap(
+            Class<T> clazz)
+        {
+            if (clazz.isInstance(this)) {
+                return clazz.cast(this);
+            }
+            if (clazz.isInstance(table)) {
+                return clazz.cast(table);
+            }
+            return null;
+        }
+
         public double getRowCount() {
             return 100;
         }
@@ -527,8 +563,20 @@ class OptiqPrepareImpl implements OptiqPrepare {
             if (table instanceof TranslatableTable) {
                 return ((TranslatableTable) table).toRel(context, this);
             }
+            RelOptCluster cluster = context.getCluster();
+            EnumerableConvention convention = EnumerableConvention.CUSTOM;
+            Class elementType = Object[].class;
+            if (table != null && table.getElementType() instanceof Class) {
+                elementType = (Class) table.getElementType();
+                if (Object[].class.isAssignableFrom(elementType)) {
+                    convention = EnumerableConvention.ARRAY;
+                } else {
+                    convention = EnumerableConvention.CUSTOM;
+                }
+            }
             return new JavaRules.EnumerableTableAccessRel(
-                context.getCluster(), this, expression);
+                cluster, cluster.traitSetOf(convention),
+                this, expression, elementType);
         }
 
         public List<RelCollation> getCollationList() {
@@ -614,7 +662,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     }
                     return new RelOptTableImpl(
                         this,
-                        typeFactory.createType(table.getElementType()),
+                        table.getRowType(),
                         Pair.leftSlice(pairs).toArray(new String[pairs.size()]),
                         table);
                 }
@@ -841,7 +889,6 @@ class OptiqPrepareImpl implements OptiqPrepare {
         private SqlOperator toOp(String name, TableFunction fun) {
             List<RelDataType> argTypes = new ArrayList<RelDataType>();
             List<SqlTypeFamily> typeFamilies = new ArrayList<SqlTypeFamily>();
-            Parameter p;
             for (net.hydromatic.optiq.Parameter o
                 : (List< net.hydromatic.optiq.Parameter>) fun.getParameters())
             {

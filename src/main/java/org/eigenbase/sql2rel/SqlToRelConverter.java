@@ -1758,15 +1758,7 @@ public class SqlToRelConverter
             final RelNode tableRel;
             if (shouldConvertTableAccess) {
                 tableRel = table.toRel(
-                    new RelOptTable.ToRelContext() {
-                        public RelOptCluster getCluster() {
-                            return cluster;
-                        }
-
-                        public OJPreparingStmt getPreparingStmt() {
-                            return preparingStmt;
-                        }
-                    });
+                    makeToRelContext());
             } else {
                 tableRel = new TableAccessRel(cluster, table);
             }
@@ -2777,6 +2769,18 @@ public class SqlToRelConverter
             TableModificationRel.Operation.INSERT,
             null,
             false);
+    }
+
+    private RelOptTable.ToRelContext makeToRelContext() {
+        return new RelOptTable.ToRelContext() {
+            public RelOptCluster getCluster() {
+                return cluster;
+            }
+
+            public OJPreparingStmt getPreparingStmt() {
+                return preparingStmt;
+            }
+        };
     }
 
     protected RelOptTable getTargetTable(SqlNode call)

@@ -19,6 +19,7 @@ package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Linq4j;
+
 import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
@@ -27,6 +28,7 @@ import junit.framework.TestCase;
 
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
@@ -220,13 +222,21 @@ public class JdbcFrontLinqBackTest extends TestCase {
                             optiqConnection, rootSchema, "foo");
                         mapSchema.addTable(
                             "bar",
-                            new JdbcTest.AbstractTable(
-                                JdbcTest.Employee.class, mapSchema, "bar")
-                        {
-                            public Enumerator enumerator() {
-                                return Linq4j.enumerator(employees);
-                            }
-                        });
+                            new JdbcTest.AbstractModifiableTable(
+                                mapSchema,
+                                JdbcTest.Employee.class,
+                                optiqConnection.getTypeFactory().createType(
+                                    JdbcTest.Employee.class),
+                                "bar")
+                            {
+                                public Enumerator enumerator() {
+                                    return Linq4j.enumerator(employees);
+                                }
+
+                                public Collection getModifiableCollection() {
+                                    return employees;
+                                }
+                            });
                         return optiqConnection;
                     }
                 });
@@ -241,10 +251,21 @@ public class JdbcFrontLinqBackTest extends TestCase {
                 .returns("1");
         }
         with.query("insert into \"foo\".\"bar\" select * from \"hr\".\"emps\"")
+            .returns("ROWCOUNT=3\n");
+        with.query("select count(*) as c from \"foo\".\"bar\"")
+            .returns("C=4\n");
+        with.query(
+            "insert into \"foo\".\"bar\" "
+            + "select * from \"hr\".\"emps\" where \"deptno\" = 10")
+            .returns("ROWCOUNT=2\n");
+        with.query(
+            "select \"name\", count(*) as c from \"foo\".\"bar\" "
+            + "group by \"name\"")
             .returns(
-                "empid=100; deptno=10; name=Bill\n"
-                + "empid=200; deptno=20; name=Eric\n"
-                + "empid=150; deptno=10; name=Sebastian\n");
+                "name=Bill; C=2\n"
+                + "name=Eric; C=1\n"
+                + "name=first; C=1\n"
+                + "name=Sebastian; C=2\n");
     }
 }
 

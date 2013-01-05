@@ -21,6 +21,8 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
 
+import org.eigenbase.reltype.RelDataType;
+
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -34,18 +36,28 @@ class ListTable<T>
     implements Table<T>
 {
     private final Schema schema;
+    private final RelDataType relDataType;
     private final List<T> list;
 
+    /** Creates a ListTable. */
     public ListTable(
-        Schema schema, Type elementType, Expression expression, List<T> list)
+        Schema schema,
+        Type elementType,
+        RelDataType relDataType,
+        Expression expression, List<T> list)
     {
         super(schema.getQueryProvider(), elementType, expression);
         this.schema = schema;
+        this.relDataType = relDataType;
         this.list = list;
     }
 
     public DataContext getDataContext() {
         return schema;
+    }
+
+    public RelDataType getRowType() {
+        return relDataType;
     }
 
     @Override

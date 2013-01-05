@@ -23,6 +23,7 @@ import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.relopt.RelOptSchema;
+import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
@@ -353,6 +354,13 @@ public class MockCatalogReader
                     schema.getCatalogName(), schema.name, name
                 };
             schema.addTable(name);
+        }
+
+        public <T> T unwrap(Class<T> clazz) {
+            if (clazz.isInstance(this)) {
+                return clazz.cast(this);
+            }
+            return null;
         }
 
         public double getRowCount() {

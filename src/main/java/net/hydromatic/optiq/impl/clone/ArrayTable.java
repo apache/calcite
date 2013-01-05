@@ -22,7 +22,7 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.optiq.*;
 
-import org.eigenbase.reltype.RelRecordType;
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Pair;
 
 import java.lang.reflect.Array;
@@ -40,6 +40,7 @@ class ArrayTable<T>
     implements Table<T>
 {
     private final Schema schema;
+    private final RelDataType relDataType;
     private final List<Pair<Representation, Object>> pairs;
     private final int size;
 
@@ -47,21 +48,26 @@ class ArrayTable<T>
     public ArrayTable(
         Schema schema,
         Type elementType,
+        RelDataType relDataType,
         Expression expression,
         List<Pair<Representation, Object>> pairs,
         int size)
     {
         super(schema.getQueryProvider(), elementType, expression);
         this.schema = schema;
+        this.relDataType = relDataType;
         this.pairs = pairs;
         this.size = size;
 
-        assert ((RelRecordType) elementType).getRecordFields().size()
-               == pairs.size();
+        assert relDataType.getFieldCount() == pairs.size();
     }
 
     public DataContext getDataContext() {
         return schema;
+    }
+
+    public RelDataType getRowType() {
+        return relDataType;
     }
 
     @SuppressWarnings("unchecked")
@@ -232,26 +238,7 @@ class ArrayTable<T>
         }
 
         public Object getObject(Object dataSet, int ordinal) {
-            switch (p) {
-            case DOUBLE:
-                return Array.getDouble(dataSet, ordinal);
-            case FLOAT:
-                return Array.getFloat(dataSet, ordinal);
-            case BOOLEAN:
-                return Array.getBoolean(dataSet, ordinal);
-            case BYTE:
-                return Array.getByte(dataSet, ordinal);
-            case CHARACTER:
-                return Array.getChar(dataSet, ordinal);
-            case SHORT:
-                return Array.getShort(dataSet, ordinal);
-            case INT:
-                return Array.getInt(dataSet, ordinal);
-            case LONG:
-                return Array.getLong(dataSet, ordinal);
-            default:
-                throw new AssertionError("unexpected " + p);
-            }
+            return p.arrayItem(dataSet, ordinal);
         }
 
         public int getInt(Object dataSet, int ordinal) {
@@ -479,7 +466,7 @@ class ArrayTable<T>
                 return x != 0;
             case BYTE:
                 return (byte) x;
-            case CHARACTER:
+            case CHAR:
                 return (char) x;
             case SHORT:
                 return (short) x;

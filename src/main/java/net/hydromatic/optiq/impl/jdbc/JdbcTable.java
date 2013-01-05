@@ -20,15 +20,16 @@ package net.hydromatic.optiq.impl.jdbc;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 
+import net.hydromatic.linq4j.function.*;
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.Table;
 
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.sql.SqlWriter;
 import org.eigenbase.sql.pretty.SqlPrettyWriter;
 
 import java.lang.reflect.Type;
+import java.sql.ResultSet;
 import java.util.*;
 
 /**
@@ -42,20 +43,20 @@ import java.util.*;
  *
  * @author jhyde
  */
-class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
-    private final Type elementType;
+class JdbcTable extends AbstractQueryable<Object[]> implements Table<Object[]> {
     private final JdbcSchema schema;
     private final String tableName;
+    private final RelDataType rowType;
 
     public JdbcTable(
-        Type elementType,
+        RelDataType rowType,
         JdbcSchema schema,
         String tableName)
     {
-        this.elementType = elementType;
+        this.rowType = rowType;
         this.schema = schema;
         this.tableName = tableName;
-        assert elementType != null;
+        assert rowType != null;
         assert schema != null;
         assert tableName != null;
     }
@@ -73,7 +74,7 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
     }
 
     public Type getElementType() {
-        return elementType;
+        return Object[].class;
     }
 
     public Expression getExpression() {
@@ -82,16 +83,14 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
             "getTable",
             Expressions.<Expression>list()
                 .append(Expressions.constant(tableName))
-                .appendIf(
-                    elementType instanceof Class,
-                    Expressions.constant(elementType)));
+                .append(Expressions.constant(getElementType())));
     }
 
-    public Iterator<T> iterator() {
+    public Iterator<Object[]> iterator() {
         return Linq4j.enumeratorIterator(enumerator());
     }
 
-    public Enumerator<T> enumerator() {
+    public Enumerator<Object[]> enumerator() {
         SqlWriter writer = new SqlPrettyWriter(schema.dialect);
         writer.keyword("select");
         writer.literal("*");
@@ -101,21 +100,16 @@ class JdbcTable<T> extends AbstractQueryable<T> implements Table<T> {
         writer.identifier(tableName);
         final String sql = writer.toString();
 
-        final List<RelDataTypeField> fields =
-            ((RelDataType) elementType).getFieldList();
-        final List<Primitive> primitiveList = new ArrayList<Primitive>();
-        for (RelDataTypeField field : fields) {
-            Class clazz =
-                (Class) schema.typeFactory.getJavaClass(field.getType());
-            primitiveList.add(
-                Primitive.of(clazz) != null
-                ? Primitive.of(clazz)
-                : Primitive.OTHER);
-        }
-        return JdbcUtils.sqlEnumerator(
-            sql,
-            schema,
-            primitiveList.toArray(new Primitive[primitiveList.size()]));
+        Function1<ResultSet, Function0<Object[]>> rowBuilderFactory;
+            rowBuilderFactory =
+                JdbcUtils.ObjectArrayRowBuilder.factory(
+                    JdbcUtils.getPrimitives(
+                        schema.typeFactory, rowType));
+        return JdbcUtils.sqlEnumerator(sql, schema, rowBuilderFactory);
+    }
+
+    public RelDataType getRowType() {
+        return rowType;
     }
 }
 

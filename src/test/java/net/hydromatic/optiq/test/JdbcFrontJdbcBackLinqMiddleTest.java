@@ -153,9 +153,9 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
                 + "group by c.\"state_province\"\n"
                 + "order by c.\"state_province\"")
             .returns(
-                "EXPR$0=24442; state_province=CA; S=74748\n"
-                + "EXPR$0=21611; state_province=OR; S=67659\n"
-                + "EXPR$0=40784; state_province=WA; S=124366\n");
+                "EXPR$0=24442; state_province=CA; S=74748.0000\n"
+                + "EXPR$0=21611; state_province=OR; S=67659.0000\n"
+                + "EXPR$0=40784; state_province=WA; S=124366.0000\n");
     }
 
     public void testCompositeGroupBy() {

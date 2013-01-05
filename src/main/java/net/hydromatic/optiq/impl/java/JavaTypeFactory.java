@@ -21,6 +21,7 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 
 import java.lang.reflect.Type;
+import java.util.List;
 
 /**
  * Type factory that can register Java classes as record types.
@@ -47,6 +48,10 @@ public interface JavaTypeFactory extends RelDataTypeFactory {
     RelDataType createType(Type type);
 
     Type getJavaClass(RelDataType type);
+
+    /** Creates a synthetic Java class whose fields have the given Java
+     * types. */
+    Type createSyntheticType(List<Type> types);
 }
 
 // End JavaTypeFactory.java

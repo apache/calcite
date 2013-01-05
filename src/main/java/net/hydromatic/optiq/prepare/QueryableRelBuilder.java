@@ -70,8 +70,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
                 translator.cluster,
                 new OptiqPrepareImpl.RelOptTableImpl(
                     null,
-                    translator.typeFactory.createType(
-                        queryable.getElementType()),
+                    ((Table) queryable).getRowType(),
                     new String[0],
                     (Table) queryable));
         }

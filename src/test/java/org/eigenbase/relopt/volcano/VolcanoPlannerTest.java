@@ -676,10 +676,9 @@ public class VolcanoPlannerTest
             NoneSingleRel singleRel = (NoneSingleRel) call.rels[0];
             RelNode childRel = singleRel.getChild();
             RelNode physInput =
-                mergeTraitsAndConvert(
-                    singleRel.getTraitSet(),
-                    PHYS_CALLING_CONVENTION,
-                    childRel);
+                convert(
+                    childRel,
+                    singleRel.getTraitSet().replace(PHYS_CALLING_CONVENTION));
             call.transformTo(
                 new PhysSingleRel(
                     singleRel.getCluster(),
@@ -716,10 +715,9 @@ public class VolcanoPlannerTest
             NoneSingleRel singleRel = (NoneSingleRel) call.rels[0];
             RelNode childRel = call.rels[1];
             RelNode physInput =
-                mergeTraitsAndConvert(
-                    singleRel.getTraitSet(),
-                    PHYS_CALLING_CONVENTION,
-                    childRel);
+                convert(
+                    childRel,
+                    singleRel.getTraitSet().replace(PHYS_CALLING_CONVENTION));
             call.transformTo(
                 new PhysSingleRel(
                     singleRel.getCluster(),

@@ -15,22 +15,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq;
+package net.hydromatic.optiq.runtime;
 
-import net.hydromatic.linq4j.Queryable;
-
-import org.eigenbase.reltype.RelDataType;
-
+import java.lang.reflect.Type;
 
 /**
- * Table.
- *
- * @see TableFunction
+ * Adds type information to a {@link net.hydromatic.linq4j.Enumerable}.
  */
-public interface Table<T> extends Queryable<T> {
-    DataContext getDataContext();
-
-    RelDataType getRowType();
+public interface Typed {
+    /**
+     * Gets the type of the element(s) that are returned in this collection.
+     */
+    public Type getElementType();
 }
 
-// End Table.java
+// End Typed.java

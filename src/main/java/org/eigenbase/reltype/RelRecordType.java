@@ -18,12 +18,8 @@
 package org.eigenbase.reltype;
 
 import java.io.*;
-import java.lang.reflect.Type;
-import java.util.List;
 
 import org.eigenbase.sql.type.*;
-
-import net.hydromatic.linq4j.expressions.Types;
 
 
 /**
@@ -34,7 +30,7 @@ import net.hydromatic.linq4j.expressions.Types;
  */
 public class RelRecordType
     extends RelDataTypeImpl
-    implements Serializable, Type, Types.RecordType
+    implements Serializable /* , Type, Types.RecordType */
 {
     //~ Constructors -----------------------------------------------------------
 
@@ -49,11 +45,6 @@ public class RelRecordType
     }
 
     //~ Methods ----------------------------------------------------------------
-
-
-    public List<Types.RecordField> getRecordFields() {
-        return (List) getFieldList();
-    }
 
     // implement RelDataType
     public SqlTypeName getSqlTypeName()

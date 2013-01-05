@@ -40,15 +40,14 @@ import org.eigenbase.rel.*;
  * <li>{@link org.eigenbase.relopt.CallingConvention#MAP MAP},
  * <li>{@link org.eigenbase.relopt.CallingConvention#VECTOR VECTOR},
  * <li>{@link org.eigenbase.relopt.CallingConvention#HASHTABLE HASHTABLE},
- * <li>{@link org.eigenbase.relopt.CallingConvention#JAVA JAVA},
- * <li>{@link net.hydromatic.optiq.rules.java.JavaRules#CONVENTION ENUMERABLE}.
+ * <li>{@link org.eigenbase.relopt.CallingConvention#JAVA JAVA}.
  * </ul>
  * </li>
  * </ul>
  *
  * <p>For {@link org.eigenbase.relopt.CallingConvention#JAVA JAVA
  * calling-convention}, see the sub-interface {@link JavaLoopRel}, and the
- * auxilliary interface {@link JavaSelfRel}.
+ * auxiliary interface {@link JavaSelfRel}.
  *
  * @author jhyde
  * @version $Id$

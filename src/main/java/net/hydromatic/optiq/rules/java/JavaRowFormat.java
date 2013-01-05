@@ -17,36 +17,24 @@
 */
 package net.hydromatic.optiq.rules.java;
 
-import net.hydromatic.linq4j.expressions.BlockExpression;
-
-import org.eigenbase.rel.RelNode;
-
+import org.eigenbase.reltype.RelDataType;
 
 /**
- * A relational expression of one of the
- * {@link net.hydromatic.optiq.rules.java.EnumerableConvention} calling
- * conventions.
- *
- * @author jhyde
+ * How a row is represented as a Java value.
  */
-public interface EnumerableRel
-    extends RelNode
-{
-    //~ Methods ----------------------------------------------------------------
+public enum JavaRowFormat {
+    CUSTOM, SCALAR, EMPTY_LIST, ARRAY;
 
-    /**
-     * Creates a plan for this expression according to a calling convention.
-     *
-     * @param implementor implementor
-     */
-    BlockExpression implement(EnumerableRelImplementor implementor);
-
-    /**
-     * Describes the Java type returned by this relational expression, and the
-     * mapping between it and the fields of the logical row type.
-     */
-    PhysType getPhysType();
-
+    public JavaRowFormat optimize(RelDataType rowType) {
+        switch (rowType.getFieldCount()) {
+        case 0:
+            return EMPTY_LIST;
+        case 1:
+            return SCALAR;
+        default:
+            return this;
+        }
+    }
 }
 
-// End EnumerableRel.java
+// End JavaRowFormat.java

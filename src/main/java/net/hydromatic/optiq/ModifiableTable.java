@@ -17,20 +17,18 @@
 */
 package net.hydromatic.optiq;
 
-import net.hydromatic.linq4j.Queryable;
-
-import org.eigenbase.reltype.RelDataType;
-
+import java.util.Collection;
 
 /**
- * Table.
+ * A table that can be modified.
  *
- * @see TableFunction
+ * <p>NOTE: The current API is inefficient and experimental. It will change
+ * without notice.</p>
  */
-public interface Table<T> extends Queryable<T> {
-    DataContext getDataContext();
-
-    RelDataType getRowType();
+public interface ModifiableTable<E> extends Table<E> {
+    /** Returns the modifiable collection.
+     * Modifying the collection will change the table's contents. */
+    Collection getModifiableCollection();
 }
 
-// End Table.java
+// End ModifiableTable.java
