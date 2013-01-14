@@ -3,13 +3,17 @@
     <words>
       <w>accessor</w>
       <w>accessors</w>
+      <w>convertlet</w>
       <w>deserialization</w>
       <w>implementor</w>
+      <w>initializers</w>
+      <w>inlining</w>
       <w>optiq</w>
       <w>parameterization</w>
       <w>splunk</w>
       <w>sqlxml</w>
       <w>struct</w>
+      <w>unary</w>
     </words>
   </dictionary>
 </component>
