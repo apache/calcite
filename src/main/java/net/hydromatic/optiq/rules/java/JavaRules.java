@@ -605,14 +605,15 @@ public class JavaRules {
                             inputEnumerator,
                             BuiltinMethod.ENUMERATOR_MOVE_NEXT.method));
             } else {
-                final List<Statement> list = Expressions.list();
+                final BlockBuilder list = new BlockBuilder();
                 Expression condition =
                     RexToLixTranslator.translateCondition(
-                        Collections.singletonList(
-                            Pair.of(input, child.getPhysType())),
                         program,
                         typeFactory,
-                        list);
+                        list,
+                        new RexToLixTranslator.InputGetterImpl(
+                            Collections.singletonList(
+                                Pair.of(input, child.getPhysType()))));
                 list.add(
                     Expressions.ifThen(
                         condition,
@@ -624,26 +625,27 @@ public class JavaRules {
                             Expressions.call(
                                 inputEnumerator,
                                 BuiltinMethod.ENUMERATOR_MOVE_NEXT.method),
-                            Expressions.block(list)),
+                            list.toBlock()),
                         Expressions.return_(
                             null,
                             Expressions.constant(false)));
             }
 
-            final List<Statement> list = Expressions.list();
+            final BlockBuilder list = new BlockBuilder();
             List<Expression> expressions =
                 RexToLixTranslator.translateProjects(
-                    Collections.singletonList(
-                        Pair.of(input, child.getPhysType())),
                     program,
                     typeFactory,
-                    list);
+                    list,
+                    new RexToLixTranslator.InputGetterImpl(
+                        Collections.singletonList(
+                            Pair.of(input, child.getPhysType()))));
             list.add(
                 Expressions.return_(
                     null,
                     physType.record(expressions)));
             BlockExpression currentBody =
-                Expressions.block(list);
+                list.toBlock();
 
             final Expression inputEnumerable =
                 statements.append(

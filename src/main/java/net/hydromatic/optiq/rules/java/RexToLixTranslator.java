@@ -41,7 +41,7 @@ import static org.eigenbase.sql.fun.SqlStdOperatorTable.*;
 
 /**
  * Translates {@link org.eigenbase.rex.RexNode REX expressions} to
- * {@link net.hydromatic.linq4j.expressions.Expression linq4j expressions}.
+ * {@link Expression linq4j expressions}.
  *
  * @author jhyde
  */
@@ -57,7 +57,6 @@ public class RexToLixTranslator {
     private final Map<RexNode, Slot> map = new HashMap<RexNode, Slot>();
     private final JavaTypeFactory typeFactory;
     private final RexProgram program;
-    private final List<InputSlot> inputSlots = new ArrayList<InputSlot>();
 
     /** Set of expressions which are to be translated inline. That is, they
      * should not be assigned to variables on first use. At present, the
@@ -65,8 +64,9 @@ public class RexToLixTranslator {
      * expression is used, and expressions are marked for inlining if they are
      * used at most once. */
     private final Set<RexNode> inlineRexSet = new HashSet<RexNode>();
+    private final RexToLixTranslator.InputGetter inputGetter;
 
-    private List<Statement> list;
+    private BlockBuilder list;
 
     private static Method findMethod(
         Class<?> clazz, String name, Class... parameterTypes)
@@ -81,32 +81,33 @@ public class RexToLixTranslator {
     private RexToLixTranslator(
         RexProgram program,
         JavaTypeFactory typeFactory,
-        List<Pair<Expression, PhysType>> inputs)
+        InputGetter inputGetter,
+        BlockBuilder list)
     {
         this.program = program;
         this.typeFactory = typeFactory;
-        for (Pair<Expression, PhysType> input : inputs) {
-            inputSlots.add(new InputSlot(input.left, input.right));
-        }
+        this.inputGetter = inputGetter;
+        this.list = list;
     }
 
     /**
      * Translates a {@link RexProgram} to a sequence of expressions and
      * declarations.
      *
-     * @param inputs Variables holding the current record of each input
-     * relational expression
      * @param program Program to be translated
+     * @param typeFactory Type factory
+     * @param list List of statements, populated with declarations
+     * @param inputGetter Generates expressions for inputs
      * @return Sequence of expressions, optional condition
      */
     public static List<Expression> translateProjects(
-        List<Pair<Expression, PhysType>> inputs,
         RexProgram program,
         JavaTypeFactory typeFactory,
-        List<Statement> list)
+        BlockBuilder list,
+        InputGetter inputGetter)
     {
-        return new RexToLixTranslator(program, typeFactory, inputs)
-            .translate(list, program.getProjectList());
+        return new RexToLixTranslator(program, typeFactory, inputGetter, list)
+            .translate(program.getProjectList());
     }
 
     private Expression translate(RexNode expr) {
@@ -145,10 +146,8 @@ public class RexToLixTranslator {
 
     private Expression translate0(RexNode expr) {
         if (expr instanceof RexInputRef) {
-            // TODO: multiple inputs, e.g. joins
-            final InputSlot input = getInput(0);
             final int index = ((RexInputRef) expr).getIndex();
-            return input.physType.fieldReference(input.expression(), index);
+            return inputGetter.field(list, index);
         }
         if (expr instanceof RexLocalRef) {
             return translate(
@@ -189,31 +188,6 @@ public class RexToLixTranslator {
             ((RexLiteral) expr).getValue3(), javaClass);
     }
 
-    /**
-     * Gets the expression for an input and counts it.
-     *
-     * @param index Input ordinal
-     * @return Expression to which an input should be translated
-     */
-    private InputSlot getInput(int index) {
-        InputSlot slot = inputSlots.get(index);
-        if (list == null) {
-            slot.count++;
-        } else {
-            if (slot.count > 1 && slot.parameterExpression == null) {
-                slot.parameterExpression =
-                    Expressions.parameter(
-                        slot.expression.type, "current" + index);
-                list.add(
-                    Expressions.declare(
-                        Modifier.FINAL,
-                        slot.parameterExpression,
-                        slot.expression));
-            }
-        }
-        return slot;
-    }
-
     private List<Expression> translateList(List<RexNode> operandList) {
         final List<Expression> list = new ArrayList<Expression>();
         for (RexNode rex : operandList) {
@@ -223,29 +197,8 @@ public class RexToLixTranslator {
     }
 
     private List<Expression> translate(
-        List<Statement> list,
         List<RexLocalRef> rexList)
     {
-        // First pass. Count how many times each sub-expression is used.
-        this.list = null;
-        for (RexNode rexExpr : rexList) {
-            translate(rexExpr);
-        }
-
-        // Mark expressions as inline if they are not used more than once.
-        for (Map.Entry<RexNode, Slot> entry : map.entrySet()) {
-            if (entry.getValue().count < 2
-                || entry.getKey() instanceof RexLiteral)
-            {
-                inlineRexSet.add(entry.getKey());
-            }
-        }
-
-        // Second pass. When translating each expression, if it is used more
-        // than once, the first time it is encountered, add a declaration to the
-        // list and set its usage count to 0.
-        this.list = list;
-        this.map.clear();
         List<Expression> translateds = new ArrayList<Expression>();
         for (RexNode rexExpr : rexList) {
             translateds.add(translate(rexExpr));
@@ -254,15 +207,18 @@ public class RexToLixTranslator {
     }
 
     public static Expression translateCondition(
-        List<Pair<Expression, PhysType>> inputs,
         RexProgram program,
         JavaTypeFactory typeFactory,
-        List<Statement> list)
+        BlockBuilder list,
+        InputGetter inputGetter)
     {
+        if (program.getCondition() == null) {
+            return Expressions.constant(true);
+        }
         List<Expression> x =
-            new RexToLixTranslator(program, typeFactory, inputs)
+            new RexToLixTranslator(program, typeFactory, inputGetter, list)
                 .translate(
-                    list, Collections.singletonList(program.getCondition()));
+                    Collections.singletonList(program.getCondition()));
         assert x.size() == 1;
         return x.get(0);
     }
@@ -329,15 +285,25 @@ public class RexToLixTranslator {
         }
     }
 
-    private static class InputSlot extends Slot {
-        final PhysType physType;
+    /** Translates a field of an input to an expression. */
+    public interface InputGetter {
+        Expression field(BlockBuilder list, int index);
+    }
 
-        public InputSlot(
-            Expression expression,
-            PhysType physType)
-        {
-            super(null, expression);
-            this.physType = physType;
+    /** Implementation of {@link InputGetter} that calls
+     * {@link PhysType#fieldReference}. */
+    public static class InputGetterImpl implements InputGetter {
+        private List<Pair<Expression,PhysType>> inputs;
+
+        public InputGetterImpl(List<Pair<Expression, PhysType>> inputs) {
+            this.inputs = inputs;
+        }
+
+        public Expression field(BlockBuilder list, int index) {
+            final Pair<Expression, PhysType> input = inputs.get(0);
+            final PhysType physType = input.right;
+            final Expression left = list.append("current" + index, input.left);
+            return physType.fieldReference(left, index);
         }
     }
 

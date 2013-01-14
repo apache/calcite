@@ -61,24 +61,34 @@ public class Utilities {
         return h * 37 + (v == null ? 1 : v.hashCode());
     }
 
+    public static int compare(boolean v0, boolean v1) {
+        // Same as Boolean.compare (introduced in JDK 1.7)
+        return (v0 == v1) ? 0 : (v0 ? 1 : -1);
+    }
+
     public static int compare(byte v0, byte v1) {
-        return Byte.compare(v0, v1);
+        // Same as Byte.compare (introduced in JDK 1.7)
+        return v0 - v1;
     }
 
     public static int compare(char v0, char v1) {
-        return Character.compare(v0, v1);
+        // Same as Character.compare (introduced in JDK 1.7)
+        return v0 - v1;
     }
 
     public static int compare(short v0, short v1) {
-        return Short.compare(v0, v1);
+        // Same as Short.compare (introduced in JDK 1.7)
+        return v0 - v1;
     }
 
     public static int compare(int v0, int v1) {
-        return Integer.compare(v0, v1);
+        // Same as Integer.compare (introduced in JDK 1.7)
+        return (v0 < v1) ? -1 : ((v0 == v1) ? 0 : 1);
     }
 
     public static int compare(long v0, long v1) {
-        return Long.compare(v0, v1);
+        // Same as Long.compare (introduced in JDK 1.7)
+        return (v0 < v1) ? -1 : ((v0 == v1) ? 0 : 1);
     }
 
     public static int compare(float v0, float v1) {

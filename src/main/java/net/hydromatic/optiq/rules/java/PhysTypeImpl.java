@@ -33,7 +33,7 @@ import java.lang.reflect.Type;
 import java.util.*;
 
 /** Implementation of {@link PhysType}. */
-class PhysTypeImpl implements PhysType {
+public class PhysTypeImpl implements PhysType {
     private final JavaTypeFactory typeFactory;
     private final RelDataType rowType;
     private final Type javaRowClass;
@@ -57,31 +57,6 @@ class PhysTypeImpl implements PhysType {
         }
     }
 
-    private static Type javaRowClass(
-        JavaTypeFactory typeFactory,
-        RelDataType type,
-        JavaRowFormat format)
-    {
-        switch (format) {
-        case EMPTY_LIST:
-            assert type.getFieldCount() == 0;
-            return Collections.EMPTY_LIST.getClass();
-        case SCALAR:
-            assert type.getFieldCount() == 1;
-            return typeFactory.getJavaClass(
-                type.getFieldList().get(0).getType());
-        case ARRAY:
-            assert type.getFieldCount() > 1;
-            return Object[].class;
-        case CUSTOM:
-            assert type.getFieldCount() > 1;
-            return typeFactory.getJavaClass(type);
-        default:
-            throw new AssertionError(
-                "could not convert " + type + " in " + format);
-        }
-    }
-
     static PhysType of(
         JavaTypeFactory typeFactory,
         RelDataType rowType,
@@ -90,14 +65,13 @@ class PhysTypeImpl implements PhysType {
         return of(typeFactory, rowType, convention.format);
     }
 
-    static PhysType of(
+    public static PhysType of(
         JavaTypeFactory typeFactory,
         RelDataType rowType,
         JavaRowFormat format)
     {
         final JavaRowFormat format2 = format.optimize(rowType);
-        final Type javaRowClass =
-            javaRowClass(typeFactory, rowType, format2);
+        final Type javaRowClass = format2.javaRowClass(typeFactory, rowType);
         return new PhysTypeImpl(
             typeFactory, rowType, javaRowClass, format2);
     }
@@ -312,40 +286,7 @@ class PhysTypeImpl implements PhysType {
     }
 
     public Expression record(List<Expression> expressions) {
-        switch (format) {
-        case EMPTY_LIST:
-            return Expressions.field(
-                null,
-                Collections.class,
-                "EMPTY_LIST");
-        case SCALAR:
-            assert expressions.size() == 1;
-            return expressions.get(0);
-        case ARRAY:
-            return Expressions.newArrayInit(
-                Object.class, stripCasts(expressions));
-        case CUSTOM:
-            return Expressions.new_(
-                javaRowClass, expressions);
-        default:
-            throw new AssertionError("unknown " + format);
-        }
-    }
-
-    private List<Expression> stripCasts(final List<Expression> expressions) {
-        return new AbstractList<Expression>() {
-            public Expression get(int index) {
-                Expression expression = expressions.get(index);
-                while (expression.getNodeType() == ExpressionType.Convert) {
-                    expression = ((UnaryExpression) expression).expression;
-                }
-                return expression;
-            }
-
-            public int size() {
-                return expressions.size();
-            }
-        };
+        return format.record(javaRowClass, expressions);
     }
 
     public Type getJavaRowType() {
@@ -353,17 +294,7 @@ class PhysTypeImpl implements PhysType {
     }
 
     public Expression comparer() {
-        switch (format) {
-        case EMPTY_LIST:
-        case SCALAR:
-        case CUSTOM:
-            return null;
-        case ARRAY:
-            return Expressions.call(
-                null, BuiltinMethod.ARRAY_COMPARER.method);
-        default:
-            throw new AssertionError(format);
-        }
+        return format.comparer();
     }
 
     private List<Expression> fieldReferences(
@@ -441,38 +372,7 @@ class PhysTypeImpl implements PhysType {
     public Expression fieldReference(
         Expression expression, int field)
     {
-        final Type type = expression.getType();
-        switch (format) {
-        case SCALAR:
-            assert field == 0;
-            return expression;
-        case ARRAY:
-            return Types.castIfNecessary(
-                fieldClass(field),
-                Expressions.arrayIndex(
-                    expression, Expressions.constant(field)));
-        case CUSTOM:
-            return field(expression, field, type);
-        default:
-            throw new AssertionError(format);
-        }
-    }
-
-    private MemberExpression field(
-        Expression expression, int field, Type type)
-    {
-        if (type instanceof Types.RecordType) {
-            Types.RecordType recordType = (Types.RecordType) type;
-            Types.RecordField recordField =
-                recordType.getRecordFields().get(field);
-            return Expressions.field(
-                expression,
-                recordField.getDeclaringClass(),
-                recordField.getName());
-        } else {
-            return Expressions.field(
-                expression, Types.nthField(field, type));
-        }
+        return format.field(expression, field, fieldClass(field));
     }
 }
 

@@ -194,7 +194,7 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
         JDBC_41;
 
         /** Deduces the current JDBC version. */
-        protected static JdbcVersion current() {
+        public static JdbcVersion current() {
             try {
                 // If java.sql.PseudoColumnUsage is present, we are running JDBC
                 // 4.1 or later.
