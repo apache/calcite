@@ -77,7 +77,19 @@ abstract class OptiqStatement
     }
 
     public int executeUpdate(String sql) throws SQLException {
-        throw new UnsupportedOperationException();
+        ResultSet resultSet = executeQuery(sql);
+        if (resultSet.getMetaData().getColumnCount() != 1) {
+            throw new SQLException("expected one result column");
+        }
+        if (!resultSet.next()) {
+            throw new SQLException("expected one row, got zero");
+        }
+        int result = resultSet.getInt(1);
+        if (resultSet.next()) {
+            throw new SQLException("expected one row, got two or more");
+        }
+        resultSet.close();
+        return result;
     }
 
     public synchronized void close() {
@@ -358,7 +370,7 @@ abstract class OptiqStatement
 
     protected <T> OptiqPrepare.PrepareResult<T> parseQuery(String sql) {
         return net.hydromatic.optiq.prepare.Factory.implement().prepareSql(
-            new ContextImpl(connection), sql, null, null);
+            new ContextImpl(connection), sql, null, Object[].class);
     }
 
     protected <T> OptiqPrepare.PrepareResult prepare(Queryable<T> queryable) {

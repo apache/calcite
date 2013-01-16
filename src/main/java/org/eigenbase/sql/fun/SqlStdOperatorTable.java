@@ -422,7 +422,7 @@ public class SqlStdOperatorTable
             "IS NOT NULL",
             SqlKind.OTHER,
             30,
-            SqlTypeStrategies.rtiBoolean,
+            SqlTypeStrategies.rtiBooleanNotNull,
             SqlTypeStrategies.otiVarchar1024,
             SqlTypeStrategies.otcAny);
 
@@ -431,7 +431,7 @@ public class SqlStdOperatorTable
             "IS NULL",
             SqlKind.IS_NULL,
             30,
-            SqlTypeStrategies.rtiBoolean,
+            SqlTypeStrategies.rtiBooleanNotNull,
             SqlTypeStrategies.otiVarchar1024,
             SqlTypeStrategies.otcAny);
 
@@ -440,7 +440,7 @@ public class SqlStdOperatorTable
             "IS NOT TRUE",
             SqlKind.OTHER,
             30,
-            SqlTypeStrategies.rtiBoolean,
+            SqlTypeStrategies.rtiBooleanNotNull,
             SqlTypeStrategies.otiBoolean,
             SqlTypeStrategies.otcBool);
 
@@ -449,7 +449,7 @@ public class SqlStdOperatorTable
             "IS TRUE",
             SqlKind.IS_TRUE,
             30,
-            SqlTypeStrategies.rtiBoolean,
+            SqlTypeStrategies.rtiBooleanNotNull,
             SqlTypeStrategies.otiBoolean,
             SqlTypeStrategies.otcBool);
 
@@ -458,7 +458,7 @@ public class SqlStdOperatorTable
             "IS NOT FALSE",
             SqlKind.OTHER,
             30,
-            SqlTypeStrategies.rtiBoolean,
+            SqlTypeStrategies.rtiBooleanNotNull,
             SqlTypeStrategies.otiBoolean,
             SqlTypeStrategies.otcBool);
 
@@ -467,7 +467,7 @@ public class SqlStdOperatorTable
             "IS FALSE",
             SqlKind.IS_FALSE,
             30,
-            SqlTypeStrategies.rtiBoolean,
+            SqlTypeStrategies.rtiBooleanNotNull,
             SqlTypeStrategies.otiBoolean,
             SqlTypeStrategies.otcBool);
 
@@ -476,7 +476,7 @@ public class SqlStdOperatorTable
             "IS NOT UNKNOWN",
             SqlKind.OTHER,
             30,
-            SqlTypeStrategies.rtiBoolean,
+            SqlTypeStrategies.rtiBooleanNotNull,
             SqlTypeStrategies.otiBoolean,
             SqlTypeStrategies.otcBool);
 
@@ -485,7 +485,7 @@ public class SqlStdOperatorTable
             "IS UNKNOWN",
             SqlKind.IS_NULL,
             30,
-            SqlTypeStrategies.rtiBoolean,
+            SqlTypeStrategies.rtiBooleanNotNull,
             SqlTypeStrategies.otiBoolean,
             SqlTypeStrategies.otcBool);
 

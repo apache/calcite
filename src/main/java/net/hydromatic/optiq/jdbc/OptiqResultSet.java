@@ -103,6 +103,7 @@ public class OptiqResultSet implements ResultSet {
             prepareResult.columnList.size() == 1
                 ? new ObjectEnumeratorCursor(enumerator)
                 : prepareResult.resultClazz != null
+                    && !prepareResult.resultClazz.isArray()
                 ? new RecordEnumeratorCursor(
                     enumerator, prepareResult.resultClazz)
                 : new ArrayEnumeratorCursor(enumerator);

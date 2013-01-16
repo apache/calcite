@@ -58,6 +58,22 @@ public abstract class SqlTypeTransforms
 
     /**
      * Parameter type-inference transform strategy where a derived type is
+     * transformed into the same type but not nullable.
+     */
+    public static final SqlTypeTransform toNotNullable =
+        new SqlTypeTransform() {
+            public RelDataType transformType(
+                SqlOperatorBinding opBinding,
+                RelDataType typeToTransform)
+            {
+                return opBinding.getTypeFactory().createTypeWithNullability(
+                    typeToTransform,
+                    false);
+            }
+        };
+
+    /**
+     * Parameter type-inference transform strategy where a derived type is
      * transformed into the same type with nulls allowed.
      */
     public static final SqlTypeTransform forceNullable =

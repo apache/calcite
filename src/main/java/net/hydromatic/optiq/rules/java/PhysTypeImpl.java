@@ -57,7 +57,7 @@ public class PhysTypeImpl implements PhysType {
         }
     }
 
-    static PhysType of(
+    public static PhysType of(
         JavaTypeFactory typeFactory,
         RelDataType rowType,
         EnumerableConvention convention)

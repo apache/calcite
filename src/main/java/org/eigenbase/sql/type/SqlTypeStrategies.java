@@ -612,6 +612,15 @@ public abstract class SqlTypeStrategies
         new ExplicitReturnTypeInference(SqlTypeName.BOOLEAN);
 
     /**
+     * Type-inference strategy whereby the result type of a call is Boolean
+     * not null.
+     */
+    public static final SqlReturnTypeInference rtiBooleanNotNull =
+        new SqlTypeTransformCascade(
+            rtiBoolean,
+            SqlTypeTransforms.toNotNullable);
+
+    /**
      * Type-inference strategy whereby the result type of a call is Boolean,
      * with nulls allowed if any of the operands allow nulls.
      */

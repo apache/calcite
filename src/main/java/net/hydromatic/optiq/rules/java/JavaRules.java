@@ -1555,6 +1555,13 @@ public class JavaRules {
         public RelNode convert(RelNode rel) {
             final TableModificationRel modify =
                 (TableModificationRel) rel;
+            final ModifiableTable modifiableTable =
+                modify.getTable().unwrap(ModifiableTable.class);
+            if (modifiableTable == null
+                || modifiableTable.getExpression() == null)
+            {
+                return null;
+            }
             final RelNode convertedChild =
                 convert(
                     modify.getChild(),
