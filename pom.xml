@@ -5,7 +5,7 @@
   <!-- The basics. -->
   <groupId>net.hydromatic</groupId>
   <artifactId>linq4j</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.1</version>
   <packaging>jar</packaging>
 
   <!-- More project information. -->
@@ -44,6 +44,15 @@
   </properties>
 
   <!-- Environment settings. -->
+  <distributionManagement>
+    <repository>
+      <id>conjars</id>
+      <name>Concurrent Conjars repository</name>
+      <url>http://conjars.org/repo</url>
+      <layout>default</layout>
+    </repository>
+  </distributionManagement>
+
   <issueManagement>
     <system>github</system>
     <url>https://github.com/julianhyde/linq4j/issues</url>
@@ -75,6 +84,16 @@
   </dependencies>
 
   <build>
+<!--
+ <extensions>
+    <extension>
+      <groupId>org.apache.maven.wagon</groupId>
+      <artifactId>wagon-ssh</artifactId>
+      <version>1.0-beta-6</version>
+    </extension>
+ </extensions>  
+-->
+
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -98,6 +117,18 @@
             </execution>
             </executions>
       </plugin>
+<!--
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>wagon-maven-plugin</artifactId>
+        <version>1.0-beta-3</version>
+        <configuration>
+          <fromFile>${project.build.directory}/${project.build.finalName}.jar</fromFile> 
+          <url>scp://servername/</url>
+          <toDir>.</toDir>
+        </configuration>
+      </plugin>
+-->
     </plugins>
   </build>
 
