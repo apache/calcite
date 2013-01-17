@@ -5,7 +5,7 @@
   <!-- The basics. -->
   <groupId>net.hydromatic</groupId>
   <artifactId>optiq</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.1</version>
   <packaging>jar</packaging>
 
   <!-- More project information. -->
@@ -54,6 +54,15 @@
   </properties>
 
   <!-- Environment settings. -->
+  <distributionManagement>
+    <repository>
+      <id>conjars</id>
+      <name>Concurrent Conjars repository</name>
+      <url>http://conjars.org/repo</url>
+      <layout>default</layout>
+    </repository>
+  </distributionManagement>
+
   <issueManagement/>
 
   <scm>
