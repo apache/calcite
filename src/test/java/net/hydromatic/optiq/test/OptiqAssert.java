@@ -79,6 +79,17 @@ public class OptiqAssert {
         };
     }
 
+    public static Function1<String, Void> checkResultContains(
+        final String expected)
+    {
+        return new Function1<String, Void>() {
+            public Void apply(String p0) {
+                Assert.assertTrue(p0, p0.contains(expected));
+                return null;
+            }
+        };
+    }
+
     static void assertQuery(
         Connection connection,
         String sql,
@@ -153,6 +164,7 @@ public class OptiqAssert {
         }
 
         public AssertQuery query(String sql) {
+            System.out.println(sql);
             return new AssertQuery(connectionFactory, sql);
         }
 
@@ -187,7 +199,9 @@ public class OptiqAssert {
         public OptiqConnection createConnection() throws Exception {
             switch (config) {
             case REGULAR:
-                return JdbcTest.getConnectionWithHrFoodmart();
+                return JdbcTest.getConnection("hr", "foodmart");
+            case REGULAR_PLUS_METADATA:
+                return JdbcTest.getConnection("hr", "foodmart", "metadata");
             case JDBC_FOODMART2:
                 return JdbcTest.getConnection(null, false);
             case JDBC_FOODMART:
@@ -248,9 +262,13 @@ public class OptiqAssert {
         }
 
         public void returns(String expected) {
+            returns(checkResult(expected));
+        }
+
+        public void returns(Function1<String, Void> checker) {
             try {
                 assertQuery(
-                    createConnection(), sql, checkResult(expected), null);
+                    createConnection(), sql, checker, null);
             } catch (Exception e) {
                 throw new RuntimeException(
                     "exception while executing [" + sql + "]", e);
@@ -298,6 +316,9 @@ public class OptiqAssert {
         /** Configuration that contains an in-memory clone of the FoodMart
          * database. */
         FOODMART_CLONE,
+
+        /** Configuration that includes the metadata schema. */
+        REGULAR_PLUS_METADATA,
     }
 }
 

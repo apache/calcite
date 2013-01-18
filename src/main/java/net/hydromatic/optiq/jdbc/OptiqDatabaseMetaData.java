@@ -34,7 +34,7 @@ import java.util.Collections;
  */
 class OptiqDatabaseMetaData implements DatabaseMetaData {
     private final OptiqConnectionImpl connection;
-    private final Meta meta;
+    final Meta meta;
 
     OptiqDatabaseMetaData(OptiqConnectionImpl connection) {
         this.connection = connection;

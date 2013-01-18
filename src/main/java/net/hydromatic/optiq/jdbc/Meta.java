@@ -17,13 +17,16 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.linq4j.Enumerable;
-import net.hydromatic.linq4j.Linq4j;
+import net.hydromatic.linq4j.*;
+import net.hydromatic.linq4j.expressions.Expression;
+import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Predicate1;
 
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.Table;
+import net.hydromatic.optiq.impl.java.MapSchema;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.runtime.*;
@@ -37,7 +40,7 @@ import java.util.*;
  * Helper for implementing the {@code getXxx} methods such as
  * {@link OptiqDatabaseMetaData#getTables}.
  */
-class Meta {
+public class Meta {
     final OptiqConnectionImpl connection;
 
     public Meta(OptiqConnectionImpl connection) {
@@ -52,6 +55,65 @@ class Meta {
                 return matches(v1, pattern);
             }
         };
+    }
+
+    /** Creates the data dictionary, also called the information schema. It is a
+     * schema called "metadata" that contains tables "TABLES", "COLUMNS" etc. */
+    MapSchema createInformationSchema() {
+        final MapSchema mapSchema =
+            MapSchema.create(
+                connection, connection.getRootSchema(), "metadata");
+        mapSchema.addTable(
+            "TABLES",
+            new MetadataTable<MetaTable>(
+                connection,
+                mapSchema,
+                "TABLES",
+                MetaTable.class)
+            {
+                public Enumerator<MetaTable> enumerator() {
+                    return schemas(connection.getCatalog())
+                        .selectMany(
+                            new Function1<MetaSchema, Enumerable<MetaTable>>() {
+                                public Enumerable<MetaTable> apply(
+                                    MetaSchema a0)
+                                {
+                                    return tables(a0);
+                                }
+                            })
+                        .enumerator();
+                }
+            });
+        mapSchema.addTable(
+            "COLUMNS",
+            new MetadataTable<MetaColumn>(
+                connection,
+                mapSchema,
+                "COLUMNS",
+                MetaColumn.class)
+            {
+                public Enumerator<MetaColumn> enumerator() {
+                    return schemas(connection.getCatalog())
+                        .selectMany(
+                            new Function1<MetaSchema, Enumerable<MetaTable>>() {
+                                public Enumerable<MetaTable> apply(
+                                    MetaSchema a0)
+                                {
+                                    return tables(a0);
+                                }
+                            })
+                        .selectMany(
+                            new Function1<MetaTable, Enumerable<MetaColumn>>() {
+                                public Enumerable<MetaColumn> apply(
+                                    MetaTable a0)
+                                {
+                                    return columns(a0);
+                                }
+                            })
+                        .enumerator();
+                }
+            });
+        return mapSchema;
     }
 
     ResultSet getTables(
@@ -213,7 +275,7 @@ class Meta {
         String getName();
     }
 
-    static class MetaColumn implements Named {
+    public static class MetaColumn implements Named {
         public final String tableCat;
         public final String tableSchem;
         public final String tableName;
@@ -273,7 +335,7 @@ class Meta {
         }
     }
 
-    static class MetaTable implements Named {
+    public static class MetaTable implements Named {
         private final Table optiqTable;
         public final String tableCat;
         public final String tableSchem;
@@ -382,6 +444,56 @@ class Meta {
                     e,
                     "Error while retrieving field " + fields[columnIndex - 1]);
             }
+        }
+    }
+
+    private static abstract class MetadataTable<E>
+        extends AbstractQueryable<E>
+        implements Table<E>
+    {
+        private final MapSchema schema;
+        private final String tableName;
+        private final Class<E> clazz;
+        private final OptiqConnectionImpl connection;
+
+        public MetadataTable(
+            OptiqConnectionImpl connection, MapSchema schema, String tableName,
+            Class<E> clazz)
+        {
+            super();
+            this.schema = schema;
+            this.tableName = tableName;
+            this.clazz = clazz;
+            this.connection = connection;
+        }
+
+        public DataContext getDataContext() {
+            return schema;
+        }
+
+        public RelDataType getRowType() {
+            return connection.typeFactory.createType(getElementType());
+        }
+
+        public Class<E> getElementType() {
+            return clazz;
+        }
+
+        public Expression getExpression() {
+            return Expressions.call(
+                schema.getExpression(),
+                "getTable",
+                Expressions.<Expression>list()
+                    .append(Expressions.constant(tableName))
+                    .append(Expressions.constant(getElementType())));
+        }
+
+        public QueryProvider getProvider() {
+            return connection;
+        }
+
+        public Iterator<E> iterator() {
+            return Linq4j.enumeratorIterator(enumerator());
         }
     }
 }

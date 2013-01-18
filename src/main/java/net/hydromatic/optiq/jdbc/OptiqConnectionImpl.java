@@ -22,8 +22,7 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
 
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.MutableSchema;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
@@ -79,6 +78,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
             statementList.add(statement);
         }
     };
+    private final Schema informationSchema;
 
     /**
      * Creates an OptiqConnectionImpl.
@@ -102,6 +102,8 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
         this.info = info;
         this.metaData = factory.newDatabaseMetaData(this);
         this.holdability = metaData.getResultSetHoldability();
+        this.informationSchema =
+            metaData.meta.createInformationSchema();
 
         // Temporary... for testing under Mondrian.
         if (info.getProperty("cloneFoodMart") != null) {

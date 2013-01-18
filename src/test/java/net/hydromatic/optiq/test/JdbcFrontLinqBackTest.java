@@ -213,7 +213,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
                 new OptiqAssert.ConnectionFactory() {
                     public OptiqConnection createConnection() throws Exception {
                         final Connection connection =
-                            JdbcTest.getConnectionWithHrFoodmart();
+                            JdbcTest.getConnection("hr", "foodmart");
                         OptiqConnection optiqConnection = connection.unwrap(
                             OptiqConnection.class);
                         MutableSchema rootSchema =

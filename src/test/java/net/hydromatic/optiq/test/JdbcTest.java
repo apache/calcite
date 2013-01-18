@@ -95,7 +95,7 @@ public class JdbcTest extends TestCase {
      * @throws Exception on error
      */
     public void testQueryProvider() throws Exception {
-        Connection connection = getConnectionWithHrFoodmart();
+        Connection connection = getConnection("hr", "foodmart");
         QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
         ParameterExpression e = Expressions.parameter(Employee.class, "e");
 
@@ -149,7 +149,7 @@ public class JdbcTest extends TestCase {
     }
 
     public void testQueryProviderSingleColumn() throws Exception {
-        Connection connection = getConnectionWithHrFoodmart();
+        Connection connection = getConnection("hr", "foodmart");
         QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
         ParameterExpression e = Expressions.parameter(Employee.class, "e");
 
@@ -345,7 +345,7 @@ public class JdbcTest extends TestCase {
         };
     }
 
-    static OptiqConnection getConnectionWithHrFoodmart()
+    static OptiqConnection getConnection(String... schema)
         throws ClassNotFoundException, SQLException
     {
         Class.forName("net.hydromatic.optiq.jdbc.Driver");
@@ -354,10 +354,18 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         MutableSchema rootSchema = optiqConnection.getRootSchema();
-        ReflectiveSchema.create(
-            optiqConnection, rootSchema, "hr", new HrSchema());
-        ReflectiveSchema.create(
-            optiqConnection, rootSchema, "foodmart", new FoodmartSchema());
+        final List<String> schemaList = Arrays.asList(schema);
+        if (schemaList.contains("hr")) {
+            ReflectiveSchema.create(
+                optiqConnection, rootSchema, "hr", new HrSchema());
+        }
+        if (schemaList.contains("foodmart")) {
+            ReflectiveSchema.create(
+                optiqConnection, rootSchema, "foodmart", new FoodmartSchema());
+        }
+        if (schemaList.contains("metadata")) {
+            // always present
+        }
         return optiqConnection;
     }
 
@@ -434,7 +442,7 @@ public class JdbcTest extends TestCase {
     public void testMetaDataColumns()
         throws ClassNotFoundException, SQLException
     {
-        Connection connection = getConnectionWithHrFoodmart();
+        Connection connection = getConnection("hr", "foodmart");
         DatabaseMetaData metaData = connection.getMetaData();
         ResultSet resultSet = metaData.getColumns(null, null, null, null);
         assertTrue(resultSet.next()); // there's something
@@ -446,7 +454,7 @@ public class JdbcTest extends TestCase {
     public void testResultSetMetaData()
         throws ClassNotFoundException, SQLException
     {
-        Connection connection = getConnectionWithHrFoodmart();
+        Connection connection = getConnection("hr", "foodmart");
         Statement statement = connection.createStatement();
         ResultSet resultSet =
             statement.executeQuery(
@@ -665,6 +673,23 @@ public class JdbcTest extends TestCase {
                 + "and \"customer\".\"city\" in ('Anacortes', 'Ballard', 'Bellingham', 'Bremerton', 'Burien', 'Edmonds', 'Everett', 'Issaquah', 'Kirkland', 'Lynnwood', 'Marysville', 'Olympia', 'Port Orchard', 'Puyallup', 'Redmond', 'Renton', 'Seattle', 'Sedro Woolley', 'Spokane', 'Tacoma', 'Walla Walla', 'Yakima') group by \"time_by_day\".\"the_year\", \"product_class\".\"product_family\", \"customer\".\"country\", \"customer\".\"state_province\", \"customer\".\"city\"")
             .returns(
                 "c0=1997; c1=Drink; c2=USA; c3=WA; c4=Sedro Woolley; m0=58\n");
+    }
+
+    /** Tests the TABLES table in the information schema. */
+    public void testMetaTables() {
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.REGULAR_PLUS_METADATA)
+            .query("select * from \"metadata\".TABLES")
+            .returns(
+                OptiqAssert.checkResultContains(
+                    "tableSchem=metadata; tableName=COLUMNS; tableType=null; "));
+
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.REGULAR_PLUS_METADATA)
+            .query(
+                "select count(distinct \"tableSchem\") as c\n"
+                + "from \"metadata\".TABLES")
+            .returns("C=3\n");
     }
 
     public static class HrSchema {
