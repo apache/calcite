@@ -48,8 +48,7 @@ public class MethodDeclaration extends MemberDeclaration {
 
     @Override
     public MemberDeclaration accept(Visitor visitor) {
-        final List<ParameterExpression> parameters =
-            Expressions.acceptParameterExpressions(this.parameters, visitor);
+        // do not visit parameters
         final BlockExpression body = this.body.accept(visitor);
         return visitor.visit(this, parameters, body);
     }
@@ -68,7 +67,11 @@ public class MethodDeclaration extends MemberDeclaration {
                 new AbstractList<String>() {
                     public String get(int index) {
                         ParameterExpression parameter = parameters.get(index);
-                        return Types.className(parameter.getType())
+                        final String modifiers =
+                            Modifier.toString(parameter.modifier);
+                        return modifiers
+                            + (modifiers.isEmpty() ? "" : " ")
+                            + Types.className(parameter.getType())
                             + " "
                             + parameter.name;
                     }

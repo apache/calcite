@@ -65,8 +65,6 @@ public final class FunctionExpression<F extends Function<?>>
     @Override
     public Expression accept(Visitor visitor) {
         BlockExpression body = this.body.accept(visitor);
-        List<ParameterExpression> parameterList =
-            Expressions.acceptParameterExpressions(this.parameterList, visitor);
         return visitor.visit(this, body, parameterList);
     }
 

@@ -2053,7 +2053,14 @@ public class Expressions {
     /** Creates a ParameterExpression node that can be used to
      * identify a parameter or a variable in an expression tree. */
     public static ParameterExpression parameter(Type type, String name) {
-        return new ParameterExpression(type, name);
+        return new ParameterExpression(0, type, name);
+    }
+
+    /** Creates a ParameterExpression. */
+    public static ParameterExpression parameter(
+        int modifiers, Type type, String name)
+    {
+        return new ParameterExpression(modifiers, type, name);
     }
 
     /** Creates a UnaryExpression that represents the assignment of
@@ -2775,7 +2782,7 @@ public class Expressions {
     /** Creates a ParameterExpression node that can be used to
      * identify a parameter or a variable in an expression tree. */
     public static ParameterExpression variable(Type type, String name) {
-        return new ParameterExpression(type, name);
+        return new ParameterExpression(0, type, name);
     }
 
     /** Reduces the node and then calls the visitor delegate on the
@@ -2932,14 +2939,14 @@ public class Expressions {
         return statements1;
     }
 
-    static List<ParameterExpression> acceptParameterExpressions(
+    static List<Expression> acceptParameterExpressions(
         List<ParameterExpression> parameterExpressions, Visitor visitor)
     {
         if (parameterExpressions.isEmpty()) {
-            return parameterExpressions; // short cut
+            return Collections.emptyList(); // short cut
         }
-        final List<ParameterExpression> parameterExpressions1 =
-            new ArrayList<ParameterExpression>();
+        final List<Expression> parameterExpressions1 =
+            new ArrayList<Expression>();
         for (ParameterExpression parameterExpression : parameterExpressions) {
             parameterExpressions1.add(parameterExpression.accept(visitor));
         }

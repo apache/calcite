@@ -260,7 +260,7 @@ public class Visitor {
                 initializer);
     }
 
-    public ParameterExpression visit(ParameterExpression parameterExpression) {
+    public Expression visit(ParameterExpression parameterExpression) {
         return parameterExpression;
     }
 

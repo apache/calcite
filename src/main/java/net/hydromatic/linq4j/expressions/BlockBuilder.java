@@ -30,6 +30,20 @@ import java.util.*;
 public class BlockBuilder {
     final List<Statement> statements = new ArrayList<Statement>();
     final Set<String> variables = new HashSet<String>();
+    private final boolean optimizing;
+
+    /** Creates a non-optimizing BlockBuilder. */
+    public BlockBuilder() {
+        this(true);
+    }
+
+    /** Creates a BlockBuilder.
+     *
+     * @param optimizing Whether to eliminate common sub-expressions
+     */
+    public BlockBuilder(boolean optimizing) {
+        this.optimizing = optimizing;
+    }
 
     /** Clears this BlockBuilder. */
     public void clear() {
@@ -55,8 +69,8 @@ public class BlockBuilder {
             }
         }
         Expression result = null;
-        Map<ParameterExpression, ParameterExpression> replacements =
-            new HashMap<ParameterExpression, ParameterExpression>();
+        Map<ParameterExpression, Expression> replacements =
+            new HashMap<ParameterExpression, Expression>();
         final Visitor visitor =
             new SubstituteVariableVisitor(replacements);
         for (int i = 0; i < block.statements.size(); i++) {
@@ -139,13 +153,26 @@ public class BlockBuilder {
             // already simple; no need to declare a variable or
             // even to evaluate the expression
             return expression;
-        } else {
-            DeclarationExpression declare =
-                Expressions.declare(
-                    Modifier.FINAL, newName(name), expression);
-            add(declare);
-            return declare.parameter;
         }
+        if (optimizing) {
+            for (Statement statement : statements) {
+                if (statement instanceof DeclarationExpression) {
+                    DeclarationExpression decl =
+                        (DeclarationExpression) statement;
+                    if ((decl.modifiers & Modifier.FINAL) != 0
+                        && decl.initializer != null
+                        && decl.initializer.equals(expression))
+                    {
+                        return decl.parameter;
+                    }
+                }
+            }
+        }
+        DeclarationExpression declare =
+            Expressions.declare(
+                Modifier.FINAL, newName(name), expression);
+        add(declare);
+        return declare.parameter;
     }
 
     public void add(Statement statement) {
@@ -165,10 +192,84 @@ public class BlockBuilder {
 
     /** Returns a block consisting of the current list of statements. */
     public BlockExpression toBlock() {
+        if (optimizing) {
+            optimize();
+        }
         return Expressions.block(statements);
     }
 
-    /** Creates a name for a new variable, unique within this block. */
+    /** Optimizes the list of statements. If an expression is used only once,
+     * it is inlined. */
+    private void optimize() {
+        List<Slot> slots = new ArrayList<Slot>();
+        final UseCounter useCounter = new UseCounter();
+        for (Statement statement : statements) {
+            if (statement instanceof DeclarationExpression) {
+                final Slot slot =
+                    new Slot((DeclarationExpression) statement);
+                useCounter.map.put(slot.parameter, slot);
+                slots.add(slot);
+            }
+        }
+        for (Statement statement : statements) {
+            statement.accept(useCounter);
+        }
+        final Map<ParameterExpression, Expression> subMap =
+            new HashMap<ParameterExpression, Expression>();
+        final SubstituteVariableVisitor visitor =
+            new SubstituteVariableVisitor(subMap);
+        final ArrayList<Statement> oldStatements =
+            new ArrayList<Statement>(statements);
+        statements.clear();
+        for (Statement oldStatement : oldStatements) {
+            if (oldStatement instanceof DeclarationExpression) {
+                DeclarationExpression statement =
+                    (DeclarationExpression) oldStatement;
+                final Slot slot = useCounter.map.get(statement.parameter);
+                int count = slot.count;
+                if (slot.expression instanceof ConstantExpression
+                    && ((ConstantExpression) slot.expression).value == null)
+                {
+                    // Don't allow 'final Type t = null' to be inlined. There
+                    // is an implicit cast.
+                    count = 100;
+                }
+                if (slot.expression instanceof NewExpression
+                    && ((NewExpression) slot.expression).memberDeclarations
+                       != null)
+                {
+                    // Don't inline anonymous inner classes. Janino gets
+                    // confused referencing variables from deeply nested
+                    // anonymous classes.
+                    count = 100;
+                }
+                switch (count) {
+                case 0:
+                    // Only declared, never used. Throw away declaration.
+                    break;
+                case 1:
+                    // declared, used once. inline it.
+                    subMap.put(slot.parameter, slot.expression);
+                    break;
+                default:
+                    statements.add(statement);
+                    break;
+                }
+            } else {
+                statements.add(oldStatement.accept(visitor));
+            }
+        }
+        if (!subMap.isEmpty()) {
+            oldStatements.clear();
+            oldStatements.addAll(statements);
+            statements.clear();
+            for (Statement oldStatement : oldStatements) {
+                statements.add(oldStatement.accept(visitor));
+            }
+        }
+    }
+
+     /** Creates a name for a new variable, unique within this block. */
     private String newName(String suggestion) {
         int i = 0;
         String candidate = suggestion;
@@ -186,23 +287,62 @@ public class BlockBuilder {
     }
 
     private static class SubstituteVariableVisitor extends Visitor {
-        private final Map<ParameterExpression, ParameterExpression> map;
+        private final Map<ParameterExpression, Expression> map;
+        private final Map<ParameterExpression, Boolean> actives =
+            new IdentityHashMap<ParameterExpression, Boolean>();
 
         public SubstituteVariableVisitor(
-            Map<ParameterExpression, ParameterExpression> map)
+            Map<ParameterExpression, Expression> map)
         {
             this.map = map;
         }
 
         @Override
-        public ParameterExpression visit(
-            ParameterExpression parameterExpression)
-        {
-            ParameterExpression e = map.get(parameterExpression);
+        public Expression visit(ParameterExpression parameterExpression) {
+            Expression e = map.get(parameterExpression);
             if (e != null) {
-                return e;
+                try {
+                    final Boolean put = actives.put(parameterExpression, true);
+                    if (put != null) {
+                        throw new AssertionError(
+                            "recursive expansion of " + parameterExpression
+                            + " in " + actives.keySet());
+                    }
+                    // recursively substitute
+                    return e.accept(this);
+                } finally {
+                    actives.remove(parameterExpression);
+                }
             }
             return super.visit(parameterExpression);
+        }
+    }
+
+    private static class UseCounter extends Visitor {
+        private final Map<ParameterExpression, Slot> map =
+            new HashMap<ParameterExpression, Slot>();
+
+        public Expression visit(ParameterExpression parameter) {
+            final Slot slot = map.get(parameter);
+            if (slot != null) {
+                // Count use of parameter, if it's registered. It's OK if
+                // parameter is not registered. It might be beyond the control
+                // of this block.
+                slot.count++;
+            }
+            return super.visit(parameter);
+        }
+    }
+
+    /** Workspace for optimization. */
+    private static class Slot {
+        private final ParameterExpression parameter;
+        private final Expression expression;
+        private int count;
+
+        public Slot(DeclarationExpression declarationExpression) {
+            this.parameter = declarationExpression.parameter;
+            this.expression = declarationExpression.initializer;
         }
     }
 }

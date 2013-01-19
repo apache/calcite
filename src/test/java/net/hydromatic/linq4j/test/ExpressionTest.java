@@ -466,7 +466,25 @@ public class ExpressionTest extends TestCase {
     }
 
     public void testBlockBuilder() {
-        BlockBuilder statements = new BlockBuilder();
+        checkBlockBuilder(
+            false,
+            "{\n"
+            + "  final int three = 1 + 2;\n"
+            + "  final int six = three * 2;\n"
+            + "  final int nine = three * three;\n"
+            + "  final int eighteen = three + six + nine;\n"
+            + "  return eighteen;\n"
+            + "}\n");
+        checkBlockBuilder(
+            true,
+            "{\n"
+            + "  final int three = 1 + 2;\n"
+            + "  return three + three * 2 + three * three;\n"
+            + "}\n");
+    }
+
+    public void checkBlockBuilder(boolean optimizing, String expected) {
+        BlockBuilder statements = new BlockBuilder(optimizing);
         Expression one =
             statements.append(
                 "one", Expressions.constant(1));
@@ -480,19 +498,18 @@ public class ExpressionTest extends TestCase {
             statements.append(
                 "six",
                 Expressions.multiply(three, two));
+        Expression nine =
+            statements.append(
+                "nine",
+                Expressions.multiply(three, three));
         Expression eighteen =
             statements.append(
                 "eighteen",
-                Expressions.multiply(three, six));
+                Expressions.add(
+                    Expressions.add(three, six),
+                    nine));
         statements.add(Expressions.return_(null, eighteen));
-        assertEquals(
-            "{\n"
-            + "  final int three = 1 + 2;\n"
-            + "  final int six = three * 2;\n"
-            + "  final int eighteen = three * six;\n"
-            + "  return eighteen;\n"
-            + "}\n",
-            Expressions.toString(statements.toBlock()));
+        assertEquals(expected, Expressions.toString(statements.toBlock()));
     }
 
     public void testBlockBuilder2() {
@@ -519,9 +536,8 @@ public class ExpressionTest extends TestCase {
         assertEquals(
             "{\n"
             + "  final java.util.Comparator comparator = null;\n"
-            + "  final java.util.TreeSet treeSet = new java.util.TreeSet(\n"
-            + "    comparator);\n"
-            + "  return treeSet.add(null);\n"
+            + "  return new java.util.TreeSet(\n"
+            + "      comparator).add(null);\n"
             + "}\n",
             Expressions.toString(statements.toBlock()));
     }
@@ -534,7 +550,7 @@ public class ExpressionTest extends TestCase {
                 Arrays.<MemberDeclaration>asList(
                     new FieldDeclaration(
                         Modifier.PUBLIC | Modifier.FINAL,
-                        new ParameterExpression(String.class, "foo"),
+                        Expressions.parameter(String.class, "foo"),
                         Expressions.constant("bar")),
                     new ClassDeclaration(
                         Modifier.PUBLIC | Modifier.STATIC,
@@ -544,11 +560,11 @@ public class ExpressionTest extends TestCase {
                         Arrays.<MemberDeclaration>asList(
                             new FieldDeclaration(
                                 0,
-                                new ParameterExpression(int.class, "x"),
+                                Expressions.parameter(int.class, "x"),
                                 Expressions.constant(0)))),
                     new FieldDeclaration(
                         0,
-                        new ParameterExpression(int.class, "i"),
+                        Expressions.parameter(int.class, "i"),
                         null)));
         assertEquals(
             "new Object(){\n"

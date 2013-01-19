@@ -25,19 +25,21 @@ import java.lang.reflect.Type;
 public class ParameterExpression extends Expression {
     private static int seq = 0;
 
+    public final int modifier;
     public final String name;
 
     public ParameterExpression(Type type) {
-        this(type, "p" + seq++);
+        this(0, type, "p" + seq++);
     }
 
-    public ParameterExpression(Type type, String name) {
+    public ParameterExpression(int modifier, Type type, String name) {
         super(ExpressionType.Parameter, type);
+        this.modifier = modifier;
         this.name = name;
     }
 
     @Override
-    public ParameterExpression accept(Visitor visitor) {
+    public Expression accept(Visitor visitor) {
         return visitor.visit(this);
     }
 
