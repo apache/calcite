@@ -69,7 +69,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
         declareSyntheticClasses(implement, memberDeclarations);
 
         ParameterExpression root =
-            Expressions.parameter(DataContext.class, "root");
+            Expressions.parameter(Modifier.FINAL, DataContext.class, "root");
         memberDeclarations.add(
             Expressions.methodDecl(
                 Modifier.PUBLIC,

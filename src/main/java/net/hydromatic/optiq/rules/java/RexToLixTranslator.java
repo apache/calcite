@@ -30,7 +30,6 @@ import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -54,16 +53,8 @@ public class RexToLixTranslator {
                 Integer.TYPE),
             substringFunc);
 
-    private final Map<RexNode, Slot> map = new HashMap<RexNode, Slot>();
     private final JavaTypeFactory typeFactory;
     private final RexProgram program;
-
-    /** Set of expressions which are to be translated inline. That is, they
-     * should not be assigned to variables on first use. At present, the
-     * algorithm is to use a first pass to determine how many times each
-     * expression is used, and expressions are marked for inlining if they are
-     * used at most once. */
-    private final Set<RexNode> inlineRexSet = new HashSet<RexNode>();
     private final RexToLixTranslator.InputGetter inputGetter;
 
     private BlockBuilder list;
@@ -111,37 +102,9 @@ public class RexToLixTranslator {
     }
 
     private Expression translate(RexNode expr) {
-        Slot slot = map.get(expr);
-        if (slot == null) {
-            Expression expression = translate0(expr);
-            assert expression != null;
-            final ParameterExpression parameter;
-            if (!inlineRexSet.contains(expr)
-                && !(expr instanceof RexLocalRef))
-            {
-                parameter =
-                    Expressions.parameter(
-                        expression.getType(),
-                        "v" + map.size());
-            } else {
-                parameter = null;
-            }
-            slot = new Slot(
-                parameter,
-                expression);
-            if (parameter != null && list != null) {
-                list.add(
-                    Expressions.declare(
-                        Modifier.FINAL,
-                        slot.parameterExpression,
-                        slot.expression));
-            }
-            map.put(expr, slot);
-        }
-        slot.count++;
-        return slot.parameterExpression != null
-            ? slot.parameterExpression
-            : slot.expression;
+        Expression expression = translate0(expr);
+        assert expression != null;
+        return list.append("v", expression);
     }
 
     private Expression translate0(RexNode expr) {
@@ -265,26 +228,6 @@ public class RexToLixTranslator {
         return Expressions.convert_(operand, javaType);
     }
 
-    private static class Slot {
-        ParameterExpression parameterExpression;
-        final Expression expression;
-        int count;
-
-        public Slot(
-            ParameterExpression parameterExpression,
-            Expression expression)
-        {
-            this.parameterExpression = parameterExpression;
-            this.expression = expression;
-        }
-
-        Expression expression() {
-            return parameterExpression != null
-                ? parameterExpression
-                : expression;
-        }
-    }
-
     /** Translates a field of an input to an expression. */
     public interface InputGetter {
         Expression field(BlockBuilder list, int index);
@@ -293,7 +236,7 @@ public class RexToLixTranslator {
     /** Implementation of {@link InputGetter} that calls
      * {@link PhysType#fieldReference}. */
     public static class InputGetterImpl implements InputGetter {
-        private List<Pair<Expression,PhysType>> inputs;
+        private List<Pair<Expression, PhysType>> inputs;
 
         public InputGetterImpl(List<Pair<Expression, PhysType>> inputs) {
             this.inputs = inputs;
