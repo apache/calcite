@@ -43,7 +43,6 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
-import org.eigenbase.util.Ord;
 import org.eigenbase.util.Pair;
 
 import org.codehaus.janino.*;

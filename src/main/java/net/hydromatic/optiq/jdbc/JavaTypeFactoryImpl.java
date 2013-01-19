@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
@@ -25,7 +26,6 @@ import net.hydromatic.optiq.runtime.ByteString;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.BasicSqlType;
 import org.eigenbase.sql.type.SqlTypeFactoryImpl;
-import org.eigenbase.util.Ord;
 import org.eigenbase.util.Pair;
 
 import java.lang.reflect.Field;

@@ -125,7 +125,7 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
      * @param vs Right list
      * @return List of pairs
      *
-     * @see Ord#zip
+     * @see net.hydromatic.linq4j.Ord#zip(java.util.List)
      */
     public static <K, V> List<Pair<K, V>> zip(
         final List<K> ks,

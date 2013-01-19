@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.impl.clone;
 
+import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.Primitive;
 
 import net.hydromatic.optiq.Table;
@@ -24,7 +25,6 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.util.Ord;
 import org.eigenbase.util.Pair;
 
 import java.lang.reflect.Type;
