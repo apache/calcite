@@ -25,17 +25,14 @@ import net.hydromatic.optiq.runtime.SqlFunctions;
 import org.eigenbase.rel.Aggregation;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlOperator;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.*;
 
-import static net.hydromatic.linq4j.expressions.ExpressionType.*;
 import static org.eigenbase.sql.fun.SqlStdOperatorTable.*;
 
 /**
@@ -53,7 +50,7 @@ public class RexToLixTranslator {
                 Integer.TYPE),
             substringFunc);
 
-    private final JavaTypeFactory typeFactory;
+    final JavaTypeFactory typeFactory;
     private final RexProgram program;
     private final RexToLixTranslator.InputGetter inputGetter;
 
@@ -101,7 +98,7 @@ public class RexToLixTranslator {
             .translate(program.getProjectList());
     }
 
-    private Expression translate(RexNode expr) {
+    Expression translate(RexNode expr) {
         Expression expression = translate0(expr);
         assert expression != null;
         return list.append("v", expression);
@@ -122,7 +119,8 @@ public class RexToLixTranslator {
         if (expr instanceof RexCall) {
             final RexCall call = (RexCall) expr;
             final SqlOperator operator = call.getOperator();
-            CallImplementor implementor = ImpTable.INSTANCE.get(operator);
+            RexImpTable.CallImplementor implementor =
+                RexImpTable.INSTANCE.get(operator);
             if (implementor != null) {
                 return implementor.implement(this, call);
             }
@@ -151,7 +149,7 @@ public class RexToLixTranslator {
             ((RexLiteral) expr).getValue3(), javaClass);
     }
 
-    private List<Expression> translateList(List<RexNode> operandList) {
+    List<Expression> translateList(List<RexNode> operandList) {
         final List<Expression> list = new ArrayList<Expression>();
         for (RexNode rex : operandList) {
             list.add(translate(rex));
@@ -191,8 +189,8 @@ public class RexToLixTranslator {
         Aggregation aggregation,
         Expression accessor)
     {
-        final AggregateImplementor implementor =
-            ImpTable.INSTANCE.aggMap.get(aggregation);
+        final RexImpTable.AggregateImplementor implementor =
+            RexImpTable.INSTANCE.aggMap.get(aggregation);
         if (aggregation == countOperator) {
             // FIXME: count(x) and count(distinct x) don't work currently
             accessor = null;
@@ -247,417 +245,6 @@ public class RexToLixTranslator {
             final PhysType physType = input.right;
             final Expression left = list.append("current" + index, input.left);
             return physType.fieldReference(left, index);
-        }
-    }
-
-    private interface CallImplementor {
-        Expression implement(
-            RexToLixTranslator translator,
-            RexCall call);
-    }
-
-    public static class ImpTable {
-        private final Map<SqlOperator, CallImplementor> map =
-            new HashMap<SqlOperator, CallImplementor>();
-        private final Map<Aggregation, AggregateImplementor> aggMap =
-            new HashMap<Aggregation, AggregateImplementor>();
-        private final Map<Aggregation, AggImplementor2> agg2Map =
-            new HashMap<Aggregation, AggImplementor2>();
-
-        private ImpTable() {
-            defineMethod(upperFunc, "upper");
-            defineMethod(lowerFunc, "lower");
-            defineMethod(substringFunc, "substring");
-            if (false) {
-                defineBinary(andOperator, AndAlso);
-                defineBinary(orOperator, OrElse);
-                defineBinary(lessThanOperator, LessThan);
-                defineBinary(lessThanOrEqualOperator, LessThanOrEqual);
-                defineBinary(greaterThanOperator, GreaterThan);
-                defineBinary(greaterThanOrEqualOperator, GreaterThanOrEqual);
-                defineBinary(equalsOperator, Equal);
-                defineBinary(notEqualsOperator, NotEqual);
-                defineUnary(notOperator, Not);
-            } else {
-                // logical
-                defineMethod(andOperator, "and");
-                defineMethod(orOperator, "or");
-                defineMethod(notOperator, "not");
-
-                // comparisons
-                defineMethod(lessThanOperator, "lt");
-                defineMethod(lessThanOrEqualOperator, "le");
-                defineMethod(greaterThanOperator, "gt");
-                defineMethod(greaterThanOrEqualOperator, "ge");
-                defineMethod(equalsOperator, "eq");
-                defineMethod(notEqualsOperator, "ne");
-
-                // arithmetic
-                defineMethod(plusOperator, "plus");
-                defineMethod(minusOperator, "minus");
-                defineMethod(multiplyOperator, "multiply");
-                defineMethod(divideOperator, "divide");
-                defineMethod(modFunc, "mod");
-                defineMethod(expFunc, "exp");
-            }
-            map.put(
-                isNullOperator,
-                new CallImplementor() {
-                    public Expression implement(
-                        RexToLixTranslator translator,
-                        RexCall call)
-                    {
-                        RexNode[] operands = call.getOperands();
-                        assert operands.length == 1;
-                        final Expression translate =
-                            translator.translate(operands[0]);
-                        return Expressions.notEqual(
-                            translate,
-                            Expressions.constant(null));
-                    }
-                }
-            );
-            map.put(
-                caseOperator,
-                new CallImplementor() {
-                    public Expression implement(
-                        RexToLixTranslator translator,
-                        RexCall call)
-                    {
-                        return implementRecurse(translator, call, 0);
-                    }
-
-                    private Expression implementRecurse(
-                        RexToLixTranslator translator,
-                        RexCall call,
-                        int i)
-                    {
-                        RexNode[] operands = call.getOperands();
-                        if (i == operands.length - 1) {
-                            // the "else" clause
-                            return translator.translate(operands[i]);
-                        } else {
-                            return Expressions.condition(
-                                translator.translate(operands[i]),
-                                translator.translate(operands[i + 1]),
-                                implementRecurse(translator, call, i + 2));
-                        }
-                    }
-                });
-            map.put(
-                SqlStdOperatorTable.castFunc,
-                new CallImplementor() {
-                    public Expression implement(
-                        RexToLixTranslator translator,
-                        RexCall call)
-                    {
-                        assert call.getOperands().length == 1;
-                        RexNode expr = call.getOperands()[0];
-                        Expression operand = translator.translate(expr);
-                        return convert(
-                            operand,
-                            translator.typeFactory.getJavaClass(
-                                call.getType()));
-                    }
-                });
-            aggMap.put(
-                countOperator,
-                new BuiltinAggregateImplementor("longCount"));
-            aggMap.put(
-                sumOperator,
-                new BuiltinAggregateImplementor("sum"));
-            aggMap.put(
-                minOperator,
-                new BuiltinAggregateImplementor("min"));
-            aggMap.put(
-                maxOperator,
-                new BuiltinAggregateImplementor("max"));
-
-            agg2Map.put(countOperator, new CountImplementor2());
-            agg2Map.put(sumOperator, new SumImplementor2());
-            final MinMaxImplementor2 minMax = new MinMaxImplementor2();
-            agg2Map.put(minOperator, minMax);
-            agg2Map.put(maxOperator, minMax);
-        }
-
-        private void defineMethod(SqlOperator operator, String functionName) {
-            map.put(operator, new MethodImplementor(functionName));
-        }
-
-        private void defineUnary(
-            SqlOperator operator, ExpressionType expressionType)
-        {
-            map.put(operator, new UnaryImplementor(expressionType));
-        }
-
-        private void defineBinary(
-            SqlOperator operator, ExpressionType expressionType)
-        {
-            map.put(operator, new BinaryImplementor(expressionType));
-        }
-
-        public static final ImpTable INSTANCE = new ImpTable();
-
-        public CallImplementor get(final SqlOperator operator) {
-            return map.get(operator);
-        }
-
-        public AggregateImplementor get(final Aggregation aggregation) {
-            return aggMap.get(aggregation);
-        }
-
-        public AggImplementor2 get2(final Aggregation aggregation) {
-            return agg2Map.get(aggregation);
-        }
-    }
-
-    private static class MethodImplementor implements CallImplementor {
-        private final String methodName;
-
-        MethodImplementor(String methodName) {
-            this.methodName = methodName;
-        }
-
-        public Expression implement(
-            RexToLixTranslator translator, RexCall call)
-        {
-            return Expressions.call(
-                SqlFunctions.class,
-                methodName,
-                translator.translateList(Arrays.asList(call.getOperands())));
-        }
-    }
-
-    private static class BinaryImplementor implements CallImplementor {
-        private final ExpressionType expressionType;
-
-        BinaryImplementor(ExpressionType expressionType) {
-            this.expressionType = expressionType;
-        }
-
-        public Expression implement(
-            RexToLixTranslator translator, RexCall call)
-        {
-            return Expressions.makeBinary(
-                expressionType,
-                translator.translate(call.getOperands()[0]),
-                translator.translate(call.getOperands()[1]));
-        }
-    }
-
-    private static class UnaryImplementor implements CallImplementor {
-        private final ExpressionType expressionType;
-
-        UnaryImplementor(ExpressionType expressionType) {
-            this.expressionType = expressionType;
-        }
-
-        public Expression implement(
-            RexToLixTranslator translator, RexCall call)
-        {
-            return Expressions.makeUnary(
-                expressionType,
-                translator.translate(call.getOperands()[0]));
-        }
-    }
-
-    /** Implements an aggregate function by generating a call to a method that
-     * takes an enumeration and an accessor function. */
-    interface AggregateImplementor {
-        Expression implementAggregate(
-            Expression grouping, Expression accessor);
-    }
-
-    /** Implements an aggregate function by generating expressions to
-     * initialize, add to, and get a result from, an accumulator. */
-    interface AggImplementor2 {
-        /** Whether "add" code is called if any of the arguments are null. If
-         * false, the container will ensure that the "add" arguments are always
-         * not-null. If true, the container code must handle null values
-         * appropriately. */
-        boolean callOnNull();
-        Expression implementInit(
-            Aggregation aggregation,
-            Type returnType,
-            List<Type> parameterTypes);
-        Expression implementAdd(
-            Aggregation aggregation,
-            Expression accumulator,
-            List<Expression> arguments);
-        Expression implementResult(
-            Aggregation aggregation,
-            Expression accumulator);
-    }
-
-    private static class BuiltinAggregateImplementor
-        implements AggregateImplementor
-    {
-        private final String methodName;
-
-        public BuiltinAggregateImplementor(String methodName) {
-            this.methodName = methodName;
-        }
-
-        public Expression implementAggregate(
-            Expression grouping, Expression accessor)
-        {
-            return accessor == null
-                ?  Expressions.call(grouping, methodName)
-                :  Expressions.call(grouping, methodName, accessor);
-        }
-    }
-
-    private static class CountImplementor2 implements AggImplementor2 {
-        public boolean callOnNull() {
-            return false;
-        }
-
-        public Expression implementInit(
-            Aggregation aggregation,
-            Type returnType,
-            List<Type> parameterTypes)
-        {
-            return Expressions.constant(0, returnType);
-        }
-
-        public Expression implementAdd(
-            Aggregation aggregation,
-            Expression accumulator,
-            List<Expression> arguments)
-        {
-            // We don't need to check whether the argument is NULL. callOnNull()
-            // returned false, so that container has checked for us.
-            return Expressions.add(
-                accumulator, Expressions.constant(1, accumulator.type));
-        }
-
-        public Expression implementResult(
-            Aggregation aggregation, Expression accumulator)
-        {
-            return accumulator;
-        }
-    }
-
-    private static class SumImplementor2 implements AggImplementor2 {
-        public boolean callOnNull() {
-            return false;
-        }
-
-        public Expression implementInit(
-            Aggregation aggregation,
-            Type returnType,
-            List<Type> parameterTypes)
-        {
-            return Expressions.constant(0, returnType);
-        }
-
-        public Expression implementAdd(
-            Aggregation aggregation,
-            Expression accumulator,
-            List<Expression> arguments)
-        {
-            assert arguments.size() == 1;
-            if (accumulator.type == BigDecimal.class
-                || accumulator.type == BigInteger.class)
-            {
-                return Expressions.call(
-                    accumulator,
-                    "add",
-                    arguments.get(0));
-            }
-            return Expressions.add(
-                accumulator,
-                Types.castIfNecessary(accumulator.type, arguments.get(0)));
-        }
-
-        public Expression implementResult(
-            Aggregation aggregation, Expression accumulator)
-        {
-            return accumulator;
-        }
-    }
-
-    private static class MinMaxImplementor2 implements AggImplementor2 {
-        public boolean callOnNull() {
-            return false;
-        }
-
-        public Expression implementInit(
-            Aggregation aggregation,
-            Type returnType,
-            List<Type> parameterTypes)
-        {
-            final Primitive primitive = Primitive.of(returnType);
-            if (primitive != null) {
-                // allow nulls even if input does not
-                returnType = primitive.boxClass;
-            }
-            return Types.castIfNecessary(
-                returnType,
-                Expressions.constant(null));
-        }
-
-        public Expression implementAdd(
-            Aggregation aggregation,
-            Expression accumulator,
-            List<Expression> arguments)
-        {
-            // Need to check for null accumulator (e.g. first call to "add"
-            // after "init") but because callWithNull() returned false, the
-            // container has ensured that argument is not null.
-            //
-            // acc = acc == null
-            //   ? arg
-            //   : lesser(acc, arg)
-            assert arguments.size() == 1;
-            final Expression arg = arguments.get(0);
-            final ConstantExpression constantNull = Expressions.constant(null);
-            return Expressions.condition(
-                Expressions.equal(accumulator, constantNull),
-                arg,
-                Expressions.convert_(
-                    Expressions.call(
-                        SqlFunctions.class,
-                        aggregation == minOperator ? "lesser" : "greater",
-                        unbox(accumulator),
-                        arg), arg.getType()));
-        }
-
-        /** Converts e.g. "anInteger" to "anInteger.intValue()". */
-        private static Expression unbox(Expression expression) {
-            Primitive primitive = Primitive.ofBox(expression.getType());
-            if (primitive != null) {
-                return convert(expression, primitive.primitiveClass);
-            }
-            return expression;
-        }
-
-        private static Expression optimizedCondition(
-            Expression condition,
-            Expression ifTrue,
-            Expression ifFalse)
-        {
-            if (alwaysTrue(condition)) {
-                return ifTrue;
-            } else if (alwaysFalse(condition)) {
-                return ifFalse;
-            } else {
-                return Expressions.condition(condition, ifTrue, ifFalse);
-            }
-        }
-
-        private static boolean alwaysFalse(Expression x) {
-            return x.equals(Expressions.constant(false));
-        }
-
-        private static boolean alwaysTrue(Expression x) {
-            return x.equals(Expressions.constant(true));
-        }
-
-        public Expression implementResult(
-            Aggregation aggregation, Expression accumulator)
-        {
-            return accumulator;
         }
     }
 }

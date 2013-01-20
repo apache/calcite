@@ -20,7 +20,6 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.rules.java.RexToLixTranslator.AggImplementor2;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
@@ -879,11 +878,11 @@ public class JavaRules {
                         parameter,
                         Util.toList(groupSet)));
 
-            final List<AggImplementor2> implementors =
-                new ArrayList<AggImplementor2>();
+            final List<RexImpTable.AggImplementor2> implementors =
+                new ArrayList<RexImpTable.AggImplementor2>();
             for (AggregateCall aggCall : aggCalls) {
-                AggImplementor2 implementor2 =
-                    RexToLixTranslator.ImpTable.INSTANCE.get2(
+                RexImpTable.AggImplementor2 implementor2 =
+                    RexImpTable.INSTANCE.get2(
                         aggCall.getAggregation());
                 if (implementor2 == null) {
                     throw new RuntimeException(
@@ -900,7 +899,7 @@ public class JavaRules {
             //     };
             final List<Expression> initExpressions =
                 new ArrayList<Expression>();
-            for (Ord<Pair<AggregateCall, AggImplementor2>> ord
+            for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
                 : Ord.zip(Pair.zip(aggCalls, implementors)))
             {
                 initExpressions.add(
@@ -947,7 +946,7 @@ public class JavaRules {
                 Expressions.parameter(inputPhysType.getJavaRowType(), "in");
             final ParameterExpression accParameter =
                 Expressions.parameter(accPhysType.getJavaRowType(), "acc");
-            for (Ord<Pair<AggregateCall, AggImplementor2>> ord
+            for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
                 : Ord.zip(Pair.zip(aggCalls, implementors)))
             {
                 final Type type = initExpressions.get(ord.i).type;
@@ -1007,7 +1006,7 @@ public class JavaRules {
                         keyPhysType.fieldReference(keyParameter, j));
                 }
             }
-            for (Ord<Pair<AggregateCall, AggImplementor2>> ord
+            for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
                 : Ord.zip(Pair.zip(aggCalls, implementors)))
             {
                 results.add(
@@ -1812,7 +1811,6 @@ public class JavaRules {
             return statements.toBlock();
         }
     }
-
 }
 
 // End JavaRules.java
