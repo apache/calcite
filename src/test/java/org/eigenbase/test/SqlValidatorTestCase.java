@@ -574,8 +574,8 @@ public class SqlValidatorTestCase
      * which talks to a mock catalog.
      *
      * <p>It is also a pure-Java implementation of the {@link SqlTester} used by
-     * {@link SqlOperatorTests}. It can parse and validate queries, but it does
-     * not invoke Farrago, so it is very fast but cannot execute functions.
+     * {@link SqlOperatorBaseTest}. It can parse and validate queries, but it
+     * does not invoke Farrago, so it is very fast but cannot execute functions.
      */
     public static class TesterImpl
         implements Tester,

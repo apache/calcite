@@ -261,6 +261,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             planner.addRule(JavaRules.ENUMERABLE_MINUS_RULE);
             planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
             planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
+            planner.addRule(JavaRules.ENUMERABLE_ONE_ROW_RULE);
             planner.addRule(JavaRules.ENUMERABLE_CUSTOM_TO_ARRAY_RULE);
             planner.addRule(JavaRules.ENUMERABLE_ARRAY_TO_CUSTOM_RULE);
             planner.addRule(JavaRules.EnumerableCustomCalcRule.INSTANCE);

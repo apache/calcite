@@ -22,13 +22,14 @@ import org.eigenbase.test.*;
 
 
 /**
- * Concrete subclass of {@link SqlOperatorTests} which checks against
+ * Concrete subclass of {@link SqlOperatorBaseTest} which checks against
+ * a {@link SqlValidator}. Tests that involve execution trivially succeed.
  *
  * @author Julian Hyde
  * @since July 7, 2005
  */
 public class SqlOperatorTest
-    extends SqlOperatorTests
+    extends SqlOperatorBaseTest
 {
     //~ Instance fields --------------------------------------------------------
 

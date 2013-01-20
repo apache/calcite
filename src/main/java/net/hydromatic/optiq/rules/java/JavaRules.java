@@ -38,6 +38,7 @@ import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
 
 import java.lang.reflect.*;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -1696,6 +1697,41 @@ public class JavaRules {
         }
 
         @Override
+        public RelNode convert(RelNode rel) {
+            ValuesRel valuesRel = (ValuesRel) rel;
+            return new EnumerableValuesRel(
+                valuesRel.getCluster(),
+                valuesRel.getRowType(),
+                valuesRel.getTuples(),
+                valuesRel.getTraitSet().plus(EnumerableConvention.ARRAY));
+        }
+    }
+
+    public static final EnumerableOneRowRule ENUMERABLE_ONE_ROW_RULE =
+        new EnumerableOneRowRule();
+
+    public static class EnumerableOneRowRule extends RelOptRule {
+        private EnumerableOneRowRule() {
+            super(
+                new RelOptRuleOperand(
+                    OneRowRel.class,
+                    Convention.NONE),
+                "EnumerableOneRowRule");
+        }
+
+        @Override
+        public void onMatch(RelOptRuleCall call) {
+            final OneRowRel rel = (OneRowRel) call.getRels()[0];
+            call.transformTo(
+                new ValuesRel(
+                    rel.getCluster(),
+                    rel.getRowType(),
+                    Collections.singletonList(
+                        Collections.singletonList(
+                            rel.getCluster().getRexBuilder().makeExactLiteral(
+                                BigDecimal.ZERO)))));
+        }
+
         public RelNode convert(RelNode rel) {
             ValuesRel valuesRel = (ValuesRel) rel;
             return new EnumerableValuesRel(

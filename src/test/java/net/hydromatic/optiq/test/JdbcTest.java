@@ -638,6 +638,12 @@ public class JdbcTest extends TestCase {
                 + "EXPR$0=2\n");
     }
 
+    public void testValuesMinus() {
+        OptiqAssert.assertThat()
+            .query("values (-2-1)")
+            .returns("EXPR$0=-3\n");
+    }
+
     public void testValuesComposite() {
         OptiqAssert.assertThat()
             .query("values (1, 'a'), (2, 'abc')")

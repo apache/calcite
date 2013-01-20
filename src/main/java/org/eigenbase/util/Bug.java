@@ -247,6 +247,9 @@ public abstract class Bug
      * potentially dont match SQL:2008 spec in a few cases.</a> is fixed.
      */
     public static final boolean Frg378Fixed = false;
+
+    /** Temporary. */
+    public static final boolean TodoFixed = false;
 }
 
 // End Bug.java
