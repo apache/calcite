@@ -55,6 +55,42 @@ public class SqlFunctions {
         return s.toLowerCase();
     }
 
+    /** SQL CHARACTER_LENGTH(string) function. */
+    public static Integer charLength(String s) {
+        if (s == null) {
+            return null;
+        }
+        return s.length();
+    }
+
+    /** SQL {@code string || string} operator. */
+    public static String concat(String s0, String s1) {
+        if (s0 == null || s1 == null) {
+            return null;
+        }
+        return s0 + s1;
+    }
+
+    /** SQL {@code OVERLAY} function. */
+    public static String overlay(String s, String r, int start) {
+        if (s == null || r == null) {
+            return null;
+        }
+        return s.substring(0, start - 1)
+            + r
+            + s.substring(start - 1 + r.length());
+    }
+
+    /** SQL {@code OVERLAY} function. */
+    public static String overlay(String s, String r, int start, int length) {
+        if (s == null || r == null) {
+            return null;
+        }
+        return s.substring(0, start - 1)
+            + r
+            + s.substring(start - 1 + length);
+    }
+
     // AND
 
     /** SQL AND operator. */
@@ -69,12 +105,14 @@ public class SqlFunctions {
 
     /** SQL AND operator; right side may be null. */
     public static Boolean and(boolean b0, Boolean b1) {
-        return b1 == null ? null : (b0 && b1);
+        return b1 == null ? b0 : (b0 && b1);
     }
 
     /** SQL AND operator; either side may be null. */
     public static Boolean and(Boolean b0, Boolean b1) {
-        return (b0 == null || b1 == null) ? null : (b0 && b1);
+        return b0 == null ? b1
+            : b1 == null ? b0
+            : b0 && b1;
     }
 
     // OR
@@ -195,170 +233,49 @@ public class SqlFunctions {
 
     // <
 
-    /** SQL &lt; operator applied to int values. */
-    public static boolean lt(int b0, int b1) {
-        return b0 < b1;
-    }
-
-    /** SQL &lt; operator applied to int values; left side may be null. */
-    public static Boolean lt(Integer b0, int b1) {
-        return b0 == null ? null : (b0 < b1);
-    }
-
-    /** SQL &lt; operator applied to int values (right side may be null). */
-    public static Boolean lt(int b0, Integer b1) {
-        return b1 == null ? null : (b0 < b1);
-    }
-
-    /** SQL &lt; operator applied to nullable int values. */
-    public static Boolean lt(Integer b0, Integer b1) {
-        return (b0 == null || b1 == null) ? null : (b0 < b1);
-    }
-
-    /** SQL &lt; operator applied to nullable long and int values. */
-    public static Boolean lt(Long b0, Integer b1) {
-        return (b0 == null || b1 == null)
-            ? null
-            : (b0.longValue() < b1.longValue());
-    }
-
-    /** SQL &lt; operator applied to nullable int and long values. */
-    public static Boolean lt(Integer b0, Long b1) {
-        return (b0 == null || b1 == null)
-            ? null
-            : (b0.longValue() < b1.longValue());
-    }
-
     /** SQL &lt; operator applied to String values. */
     public static Boolean lt(String b0, String b1) {
         return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) < 0);
     }
 
+    /** SQL &lt; operator applied to BigDecimal values. */
+    public static Boolean lt(BigDecimal b0, BigDecimal b1) {
+        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) < 0);
+    }
+
     // <=
-
-    /** SQL &le; operator applied to int values. */
-    public static boolean le(int b0, int b1) {
-        return b0 <= b1;
-    }
-
-    /** SQL &le; operator applied to int values; left side may be null. */
-    public static Boolean le(Integer b0, int b1) {
-        return b0 == null ? null : (b0 <= b1);
-    }
-
-    /** SQL &le; operator applied to int values (right side may be null). */
-    public static Boolean le(int b0, Integer b1) {
-        return b1 == null ? null : (b0 <= b1);
-    }
-
-    /** SQL &le; operator applied to nullable int values. */
-    public static Boolean le(Integer b0, Integer b1) {
-        return (b0 == null || b1 == null) ? null : (b0 <= b1);
-    }
-
-    /** SQL &le; operator applied to nullable long and int values. */
-    public static Boolean le(Long b0, Integer b1) {
-        return (b0 == null || b1 == null)
-            ? null
-            : (b0.longValue() <= b1.longValue());
-    }
-
-    /** SQL &le; operator applied to nullable int and long values. */
-    public static Boolean le(Integer b0, Long b1) {
-        return (b0 == null || b1 == null)
-            ? null
-            : (b0.longValue() <= b1.longValue());
-    }
 
     /** SQL &le; operator applied to String values. */
     public static Boolean le(String b0, String b1) {
         return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) <= 0);
     }
 
+    /** SQL &le; operator applied to BigDecimal values. */
+    public static Boolean le(BigDecimal b0, BigDecimal b1) {
+        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) <= 0);
+    }
+
     // >
-
-    /** SQL &gt; operator applied to long values. */
-    public static boolean gt(long b0, long b1) {
-        return b0 > b1;
-    }
-
-    /** SQL &gt; operator applied to int values. */
-    public static boolean gt(int b0, int b1) {
-        return b0 > b1;
-    }
-
-    /** SQL &gt; operator applied to int values; left side may be null. */
-    public static Boolean gt(Integer b0, int b1) {
-        return b0 == null ? null : (b0 > b1);
-    }
-
-    /** SQL &gt; operator applied to int values (right side may be null). */
-    public static Boolean gt(int b0, Integer b1) {
-        return b1 == null ? null : (b0 > b1);
-    }
-
-    /** SQL &gt; operator applied to nullable int values. */
-    public static Boolean gt(Integer b0, Integer b1) {
-        return (b0 == null || b1 == null) ? null : (b0 > b1);
-    }
-
-    /** SQL &gt; operator applied to nullable long and int values. */
-    public static Boolean gt(Long b0, Integer b1) {
-        return (b0 == null || b1 == null)
-            ? null
-            : (b0.longValue() > b1.longValue());
-    }
-
-    /** SQL &gt; operator applied to nullable int and long values. */
-    public static Boolean gt(Integer b0, Long b1) {
-        return (b0 == null || b1 == null)
-            ? null
-            : (b0.longValue() > b1.longValue());
-    }
 
     /** SQL &gt; operator applied to String values. */
     public static Boolean gt(String b0, String b1) {
         return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) > 0);
     }
 
+    /** SQL &gt; operator applied to BigDecimal values. */
+    public static Boolean gt(BigDecimal b0, BigDecimal b1) {
+        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) > 0);
+    }
+
     // >=
-
-    /** SQL &ge; operator applied to int values. */
-    public static boolean ge(int b0, int b1) {
-        return b0 >= b1;
-    }
-
-    /** SQL &ge; operator applied to int values; left side may be null. */
-    public static Boolean ge(Integer b0, int b1) {
-        return b0 == null ? null : (b0 >= b1);
-    }
-
-    /** SQL &ge; operator applied to int values; right side may be null. */
-    public static Boolean ge(int b0, Integer b1) {
-        return b1 == null ? null : (b0 >= b1);
-    }
-
-    /** SQL &ge; operator applied to nullable int values. */
-    public static Boolean ge(Integer b0, Integer b1) {
-        return (b0 == null || b1 == null) ? null : (b0 >= b1);
-    }
-
-    /** SQL &ge; operator applied to nullable long and int values. */
-    public static Boolean ge(Long b0, Integer b1) {
-        return (b0 == null || b1 == null)
-            ? null
-            : (b0.longValue() >= b1.longValue());
-    }
-
-    /** SQL &ge; operator applied to nullable int and long values. */
-    public static Boolean ge(Integer b0, Long b1) {
-        return (b0 == null || b1 == null)
-            ? null
-            : (b0.longValue() >= b1.longValue());
-    }
 
     /** SQL &ge; operator applied to String values. */
     public static Boolean ge(String b0, String b1) {
+        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) >= 0);
+    }
+
+    /** SQL &ge; operator applied to BigDecimal values. */
+    public static Boolean ge(BigDecimal b0, BigDecimal b1) {
         return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) >= 0);
     }
 
@@ -532,6 +449,45 @@ public class SqlFunctions {
     /** SQL <code>*</code> operator applied to BigDecimal values. */
     public static BigDecimal multiply(BigDecimal b0, BigDecimal b1) {
         return (b0 == null || b1 == null) ? null : b0.multiply(b1);
+    }
+
+    // POWER
+
+    /** SQL <code>POWER</code> operator applied to double values. */
+    public static double power(double b0, double b1) {
+        return Math.pow(b0, b1);
+    }
+
+    // temporary
+    public static double power(int b0, BigDecimal b1) {
+        return Math.pow(b0, b1.doubleValue());
+    }
+
+    // MOD
+
+    /** SQL <code>MOD</code> operator applied to int values. */
+    public static int mod(int b0, int b1) {
+        return b0 % b1;
+    }
+
+    /** SQL <code>MOD</code> operator applied to long values. */
+    public static long mod(long b0, long b1) {
+        return b0 % b1;
+    }
+
+    // temporary
+    public static BigDecimal mod(BigDecimal b0, int b1) {
+        return mod(b0, new BigDecimal(b1));
+    }
+
+    // temporary
+    public static int mod(int b0, BigDecimal b1) {
+        return mod(b0, b1.intValue());
+    }
+
+    public static BigDecimal mod(BigDecimal b0, BigDecimal b1) {
+        final BigDecimal[] bigDecimals = b0.divideAndRemainder(b1);
+        return bigDecimals[1];
     }
 
     // Helpers

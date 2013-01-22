@@ -1701,6 +1701,19 @@ public abstract class SqlOperatorBaseTest
         getTester().checkBoolean("true and (not false)", Boolean.TRUE);
     }
 
+    public void testAndOperator2()
+    {
+        getTester().checkBoolean(
+            "case when false then unknown else true end and true",
+            Boolean.TRUE);
+        getTester().checkBoolean(
+            "case when false then cast(null as boolean) else true end and true",
+            Boolean.TRUE);
+        getTester().checkBoolean(
+            "case when false then null else true end and true",
+            Boolean.TRUE);
+    }
+
     public void testAndOperatorLazy()
     {
         getTester().setFor(SqlStdOperatorTable.andOperator);
@@ -3413,7 +3426,7 @@ public abstract class SqlOperatorBaseTest
         // The extra CASE expression is to fool Janino.  It does constant
         // reduction and will throw the divide by zero exception while
         // compiling the expression.  The test frame work would then issue
-        // unexpected exception occured during "validation".  You cannot
+        // unexpected exception occurred during "validation".  You cannot
         // submit as non-runtime because the janino exception does not have
         // error position information and the framework is unhappy with that.
         getTester().checkFails(

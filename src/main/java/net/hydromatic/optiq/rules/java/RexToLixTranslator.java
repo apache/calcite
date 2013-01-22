@@ -23,6 +23,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlOperator;
 import org.eigenbase.util.Pair;
@@ -48,9 +49,14 @@ public class RexToLixTranslator {
             findMethod(
                 SqlFunctions.class, "substring", String.class, Integer.TYPE,
                 Integer.TYPE),
-            substringFunc);
+            substringFunc,
+            findMethod(SqlFunctions.class, "charLength", String.class),
+            characterLengthFunc,
+            findMethod(SqlFunctions.class, "charLength", String.class),
+            charLengthFunc);
 
     final JavaTypeFactory typeFactory;
+    final RexBuilder builder;
     private final RexProgram program;
     private final RexToLixTranslator.InputGetter inputGetter;
 
@@ -76,6 +82,7 @@ public class RexToLixTranslator {
         this.typeFactory = typeFactory;
         this.inputGetter = inputGetter;
         this.list = list;
+        this.builder = new RexBuilder(typeFactory);
     }
 
     /**
@@ -102,6 +109,13 @@ public class RexToLixTranslator {
         Expression expression = translate0(expr);
         assert expression != null;
         return list.append("v", expression);
+    }
+
+    Expression translateCast(RexNode expr, RelDataType type) {
+        Expression operand = translate(expr);
+        return convert(
+            operand,
+            typeFactory.getJavaClass(type));
     }
 
     private Expression translate0(RexNode expr) {
@@ -218,10 +232,8 @@ public class RexToLixTranslator {
                 // Generate "(Short) x".
                 return Expressions.convert_(operand, primitive.boxClass);
             }
-            if (fromPrimitive != primitive) {
-                return Expressions.call(
-                    operand, primitive.primitiveName + "Value");
-            }
+            return Expressions.call(
+                operand, primitive.primitiveName + "Value");
         }
         return Expressions.convert_(operand, javaType);
     }

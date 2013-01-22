@@ -297,6 +297,21 @@ public class JavaRules {
             }
             return e;
         }
+
+        public static Expression foldOr(List<Expression> conditions) {
+            Expression e = null;
+            for (Expression condition : conditions) {
+                if (e == null) {
+                    e = condition;
+                } else {
+                    e = Expressions.orElse(e, condition);
+                }
+            }
+            if (e == null) {
+                return Expressions.constant(false);
+            }
+            return e;
+        }
     }
 
     public static class EnumerableTableAccessRel

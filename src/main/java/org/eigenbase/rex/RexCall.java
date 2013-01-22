@@ -17,6 +17,8 @@
 */
 package org.eigenbase.rex;
 
+import java.util.*;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Util;
@@ -84,9 +86,7 @@ public class RexCall
 
     /**
      * Returns the {@link RexKind} corresponding to a {@link SqlKind}. Fails if
-     * there is none.
-     *
-     * @post return != null
+     * there is none. Never returns null.
      */
     static RexKind sqlKindToRexKind(SqlKind kind)
     {
@@ -230,6 +230,11 @@ public class RexCall
     public RexNode [] getOperands()
     {
         return operands;
+    }
+
+    public List<RexNode> getOperandList()
+    {
+        return Collections.unmodifiableList(Arrays.asList(operands));
     }
 
     public SqlOperator getOperator()
