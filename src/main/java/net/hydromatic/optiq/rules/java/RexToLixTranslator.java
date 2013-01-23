@@ -215,27 +215,34 @@ public class RexToLixTranslator {
         throw new AssertionError("unknown agg " + aggregation);
     }
 
-    public static Expression convert(
-        Expression operand, Type javaType)
-    {
-        if (operand.getType().equals(javaType)) {
+    public static Expression convert(Expression operand, Type toType) {
+        final Type fromType = operand.getType();
+        if (fromType.equals(toType)) {
             return operand;
         }
         // E.g. from "Short" to "int".
         // Generate "x.intValue()".
-        final Primitive primitive = Primitive.of(javaType);
-        final Primitive fromPrimitive =
-            Primitive.ofBox(operand.getType());
-        if (primitive != null) {
-            if (fromPrimitive == null) {
+        final Primitive toPrimitive = Primitive.of(toType);
+        final Primitive fromBox = Primitive.ofBox(fromType);
+        final Primitive fromPrimitive = Primitive.of(fromType);
+        if (toPrimitive != null) {
+            if (fromPrimitive != null) {
+                // E.g. from "float" to "double"
+                return Expressions.convert_(
+                    operand, toPrimitive.primitiveClass);
+            }
+            if (fromBox == null
+                && !(fromType instanceof Class
+                     && Number.class.isAssignableFrom((Class) fromType)))
+            {
                 // E.g. from "Object" to "short".
                 // Generate "(Short) x".
-                return Expressions.convert_(operand, primitive.boxClass);
+                return Expressions.convert_(operand, toPrimitive.boxClass);
             }
             return Expressions.call(
-                operand, primitive.primitiveName + "Value");
+                operand, toPrimitive.primitiveName + "Value");
         }
-        return Expressions.convert_(operand, javaType);
+        return Expressions.convert_(operand, toType);
     }
 
     /** Translates a field of an input to an expression. */

@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlOperator;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
@@ -64,38 +65,23 @@ public class RexImpTable {
         defineMethod(charLengthFunc, "charLength", NullPolicy.ANY);
         defineMethod(concatOperator, "concat", NullPolicy.ANY);
         defineMethod(overlayFunc, "overlay", NullPolicy.ANY);
-        if (true) {
-            // logical
-            defineBinary(andOperator, AndAlso, NullPolicy.AND, null);
-            defineBinary(orOperator, OrElse, NullPolicy.OR, null);
-            defineUnary(notOperator, Not);
 
-            // comparisons
-            defineBinary(lessThanOperator, LessThan, NullPolicy.ANY, "lt");
-            defineBinary(
-                lessThanOrEqualOperator, LessThanOrEqual,
-                NullPolicy.ANY, "le");
-            defineBinary(
-                greaterThanOperator, GreaterThan, NullPolicy.ANY, "gt");
-            defineBinary(
-                greaterThanOrEqualOperator, GreaterThanOrEqual,
-                NullPolicy.ANY, "ge");
-            defineBinary(equalsOperator, Equal, NullPolicy.ANY, "eq");
-            defineBinary(notEqualsOperator, NotEqual, NullPolicy.ANY, "ne");
-        } else {
-            // logical
-            defineMethod(andOperator, "and", NullPolicy.ANY);
-            defineMethod(orOperator, "or", NullPolicy.ANY);
-            defineMethod(notOperator, "not", NullPolicy.ANY);
+        // logical
+        defineBinary(andOperator, AndAlso, NullPolicy.AND, null);
+        defineBinary(orOperator, OrElse, NullPolicy.OR, null);
+        defineUnary(notOperator, Not);
 
-            // comparisons
-            defineMethod(lessThanOperator, "lt", NullPolicy.ANY);
-            defineMethod(lessThanOrEqualOperator, "le", NullPolicy.ANY);
-            defineMethod(greaterThanOperator, "gt", NullPolicy.ANY);
-            defineMethod(greaterThanOrEqualOperator, "ge", NullPolicy.ANY);
-            defineMethod(equalsOperator, "eq", NullPolicy.ANY);
-            defineMethod(notEqualsOperator, "ne", NullPolicy.ANY);
-        }
+        // comparisons
+        defineBinary(lessThanOperator, LessThan, NullPolicy.ANY, "lt");
+        defineBinary(
+            lessThanOrEqualOperator, LessThanOrEqual, NullPolicy.ANY, "le");
+        defineBinary(
+            greaterThanOperator, GreaterThan, NullPolicy.ANY, "gt");
+        defineBinary(
+            greaterThanOrEqualOperator, GreaterThanOrEqual, NullPolicy.ANY,
+            "ge");
+        defineBinary(equalsOperator, Equal, NullPolicy.ANY, "eq");
+        defineBinary(notEqualsOperator, NotEqual, NullPolicy.ANY, "ne");
 
         // arithmetic
         defineMethod(plusOperator, "plus", NullPolicy.ANY);
@@ -105,159 +91,21 @@ public class RexImpTable {
         defineMethod(modFunc, "mod", NullPolicy.ANY);
         defineMethod(expFunc, "exp", NullPolicy.ANY);
         defineMethod(powerFunc, "power", NullPolicy.ANY);
+        defineMethod(lnFunc, "ln", NullPolicy.ANY);
 
-        map.put(
-            isNullOperator,
-            new CallImplementor() {
-                public Expression implement(
-                    RexToLixTranslator translator, RexCall call)
-                {
-                    RexNode[] operands = call.getOperands();
-                    assert operands.length == 1;
-                    final Expression translate =
-                        translator.translate(operands[0]);
-                    if (!isNullable(translate.getType())) {
-                        return Expressions.constant(false);
-                    }
-                    return Expressions.equal(
-                        translate, Expressions.constant(null));
-                }
-            });
-        map.put(
-            isNotNullOperator,
-            new CallImplementor() {
-                public Expression implement(
-                    RexToLixTranslator translator, RexCall call)
-                {
-                    RexNode[] operands = call.getOperands();
-                    assert operands.length == 1;
-                    final Expression translate =
-                        translator.translate(operands[0]);
-                    if (!isNullable(translate.getType())) {
-                        return TRUE_EXPR;
-                    }
-                    return Expressions.notEqual(
-                        translate, NULL_EXPR);
-                }
-            });
-        map.put(
-            isTrueOperator,
-            new CallImplementor() {
-                public Expression implement(
-                    RexToLixTranslator translator, RexCall call)
-                {
-                    RexNode[] operands = call.getOperands();
-                    assert operands.length == 1;
-                    final Expression translate =
-                        translator.translate(operands[0]);
-                    if (!isNullable(translate.getType())) {
-                        return translate;
-                    }
-                    return Expressions.andAlso(
-                        Expressions.notEqual(translate, NULL_EXPR),
-                        translate);
-                }
-            });
-        map.put(
-            isNotTrueOperator,
-            new CallImplementor() {
-                public Expression implement(
-                    RexToLixTranslator translator, RexCall call)
-                {
-                    RexNode[] operands = call.getOperands();
-                    assert operands.length == 1;
-                    final Expression translate =
-                        translator.translate(operands[0]);
-                    if (!isNullable(translate.getType())) {
-                        return Expressions.not(translate);
-                    }
-                    return Expressions.orElse(
-                        Expressions.equal(translate, NULL_EXPR),
-                        Expressions.not(translate));
-                }
-            });
-        map.put(
-            isFalseOperator,
-            new CallImplementor() {
-                public Expression implement(
-                    RexToLixTranslator translator, RexCall call)
-                {
-                    RexNode[] operands = call.getOperands();
-                    assert operands.length == 1;
-                    final Expression translate =
-                        translator.translate(operands[0]);
-                    if (!isNullable(translate.getType())) {
-                        return Expressions.not(translate);
-                    }
-                    return Expressions.andAlso(
-                        Expressions.notEqual(translate, NULL_EXPR),
-                        Expressions.not(translate));
-                }
-            });
-        map.put(
-            isNotFalseOperator,
-            new CallImplementor() {
-                public Expression implement(
-                    RexToLixTranslator translator, RexCall call)
-                {
-                    RexNode[] operands = call.getOperands();
-                    assert operands.length == 1;
-                    final Expression translate =
-                        translator.translate(operands[0]);
-                    if (!isNullable(translate.getType())) {
-                        return translate;
-                    }
-                    return Expressions.orElse(
-                        Expressions.equal(translate, NULL_EXPR),
-                        translate);
-                }
-            });
-        map.put(
-            caseOperator, new CallImplementor() {
-            public Expression implement(
-                RexToLixTranslator translator, RexCall call)
-            {
-                return implementRecurse(translator, call, 0);
-            }
+        map.put(isNullOperator, new IsNullImplementor());
+        map.put(isNotNullOperator, new IsNotNullImplementor());
+        map.put(isTrueOperator, new IsTrueImplementor());
+        map.put(isNotTrueOperator, new IsNotTrueImplementor());
+        map.put(isFalseOperator, new IsFalseImplementor());
+        map.put(isNotFalseOperator, new IsNotFalseImplementor());
+        map.put(caseOperator, new CaseImplementor());
+        map.put(SqlStdOperatorTable.castFunc, new CastImplementor());
 
-            private Expression implementRecurse(
-                RexToLixTranslator translator, RexCall call, int i)
-            {
-                RexNode[] operands = call.getOperands();
-                if (i == operands.length - 1) {
-                    // the "else" clause
-                    return translator.translate(operands[i]);
-                } else {
-                    return Expressions.condition(
-                        translator.translate(operands[i]),
-                        translator.translate(operands[i + 1]),
-                        implementRecurse(translator, call, i + 2));
-                }
-            }
-        });
-        map.put(
-            SqlStdOperatorTable.castFunc,
-            new CallImplementor() {
-                public Expression implement(
-                    RexToLixTranslator translator, RexCall call)
-                {
-                    assert call.getOperands().length == 1;
-                    RexNode expr = call.getOperands()[0];
-                    return translator.translateCast(expr, call.getType());
-                }
-            });
-        aggMap.put(
-            countOperator,
-            new BuiltinAggregateImplementor("longCount"));
-        aggMap.put(
-            sumOperator,
-            new BuiltinAggregateImplementor("sum"));
-        aggMap.put(
-            minOperator,
-            new BuiltinAggregateImplementor("min"));
-        aggMap.put(
-            maxOperator,
-            new BuiltinAggregateImplementor("max"));
+        aggMap.put(countOperator, new BuiltinAggregateImplementor("longCount"));
+        aggMap.put(sumOperator, new BuiltinAggregateImplementor("sum"));
+        aggMap.put(minOperator, new BuiltinAggregateImplementor("min"));
+        aggMap.put(maxOperator, new BuiltinAggregateImplementor("max"));
 
         agg2Map.put(countOperator, new CountImplementor2());
         agg2Map.put(sumOperator, new SumImplementor2());
@@ -267,7 +115,7 @@ public class RexImpTable {
         agg2Map.put(maxOperator, minMax);
     }
 
-    private boolean isNullable(Type type) {
+    private static boolean isNullable(Type type) {
         return Primitive.of(type) == null;
     }
 
@@ -320,28 +168,42 @@ public class RexImpTable {
     private static List<RexNode> harmonize(
         final RexBuilder builder, final List<RexNode> operands)
     {
-        // Currently only works for 2 operands and deals with nullability.
-        if (operands.get(0).getType().isNullable()
-            == operands.get(1).getType().isNullable())
-        {
+        int nullCount = 0;
+        final List<RelDataType> types = new ArrayList<RelDataType>();
+        for (RexNode operand : operands) {
+            if (operand.getType().isNullable()) {
+                ++nullCount;
+            }
+            types.add(operand.getType());
+        }
+        if (allSame(types)) {
+            // Operands have the same nullability and type. Return them
+            // unchanged.
             return operands;
         }
-        return new AbstractList<RexNode>() {
-            public RexNode get(int index) {
-                final RexNode operand = operands.get(index);
-                if (!operand.getType().isNullable()) {
-                    return builder.makeCast(
-                        builder.getTypeFactory().createTypeWithNullability(
-                            operand.getType(), true),
-                        operand);
-                }
-                return operand;
-            }
+        final RelDataType type =
+            builder.getTypeFactory().leastRestrictive(types);
+        assert (nullCount > 0) == type.isNullable();
+        final List<RexNode> list = new ArrayList<RexNode>();
+        for (RexNode operand : operands) {
+            list.add(
+                builder.ensureType(
+                    type,
+                    operand,
+                    true));
+        }
+        return list;
+    }
 
-            public int size() {
-                return operands.size();
+    private static <E> boolean allSame(List<E> list) {
+        E prev = null;
+        for (E e : list) {
+            if (prev != null && !prev.equals(e)) {
+                return false;
             }
-        };
+            prev = e;
+        }
+        return true;
     }
 
     private static Expression implementNullSemantics(
@@ -352,7 +214,7 @@ public class RexImpTable {
     {
         final List<Expression> list = new ArrayList<Expression>();
         final List<RexNode> operands2 =
-            new ArrayList<RexNode>(call.getOperandList());
+            new ArrayList<RexNode>(operands);
         for (Ord<RexNode> operand : Ord.zip(operands)) {
             if (operand.e.getType().isNullable()) {
                 list.add(
@@ -614,6 +476,18 @@ public class RexImpTable {
     }
 
     private static class BinaryImplementor implements NullableCallImplementor {
+        /** Types that can be arguments to comparison operators such as
+         * {@code <}. */
+        private static final List<Primitive> COMP_OP_TYPES =
+            Arrays.asList(
+                Primitive.BYTE,
+                Primitive.CHAR,
+                Primitive.SHORT,
+                Primitive.INT,
+                Primitive.LONG,
+                Primitive.FLOAT,
+                Primitive.DOUBLE);
+
         private final ExpressionType expressionType;
         private final NullPolicy nullPolicy;
         private final String backupMethodName;
@@ -715,14 +589,16 @@ public class RexImpTable {
                             BOXED_TRUE_EXPR)));
 
             case NONE:
-                if (backupMethodName != null
-                    && (Primitive.of(t0.getType()) == null
-                        || Primitive.of(t1.getType()) == null))
-                {
-                    return Expressions.call(
-                        SqlFunctions.class,
-                        backupMethodName,
-                        translator.translateList(operands));
+                if (backupMethodName != null) {
+                    final Primitive primitive = Primitive.of(t0.getType());
+                    if (primitive == null
+                        || !COMP_OP_TYPES.contains(primitive))
+                    {
+                        return Expressions.call(
+                            SqlFunctions.class,
+                            backupMethodName,
+                            translator.translateList(operands));
+                    }
                 }
                 return Expressions.makeBinary(expressionType, t0, t1);
 
@@ -732,7 +608,7 @@ public class RexImpTable {
         }
     }
 
-    private static class UnaryImplementor implements CallImplementor {
+    private static class UnaryImplementor implements NullableCallImplementor {
         private final ExpressionType expressionType;
 
         UnaryImplementor(ExpressionType expressionType) {
@@ -742,8 +618,29 @@ public class RexImpTable {
         public Expression implement(
             RexToLixTranslator translator, RexCall call)
         {
-            return Expressions.makeUnary(
-                expressionType, translator.translate(call.getOperands()[0]));
+            return implement(
+                translator, call, call.getOperandList(), NullPolicy.ANY);
+        }
+
+        public Expression implement(
+            RexToLixTranslator translator,
+            RexCall call,
+            List<RexNode> operands,
+            NullPolicy nullPolicy)
+        {
+            switch (nullPolicy) {
+            case ANY:
+                final List<RexNode> operands2 =
+                    harmonize(translator.builder, operands);
+                return implementNullSemantics(
+                    translator, call, operands2, this);
+            case NONE:
+                return Expressions.makeUnary(
+                    expressionType,
+                    translator.translate(operands.get(0)));
+            default:
+                throw new AssertionError(nullPolicy);
+            }
         }
     }
 
@@ -865,6 +762,136 @@ public class RexImpTable {
                 return Boolean.TRUE;
             }
             return null;
+        }
+    }
+
+    private static class CaseImplementor implements CallImplementor {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call)
+        {
+            return implementRecurse(translator, call, 0);
+        }
+
+        private Expression implementRecurse(
+            RexToLixTranslator translator, RexCall call, int i)
+        {
+            RexNode[] operands = call.getOperands();
+            if (i == operands.length - 1) {
+                // the "else" clause
+                return translator.translate(operands[i]);
+            } else {
+                return Expressions.condition(
+                    translator.translate(operands[i]),
+                    translator.translate(operands[i + 1]),
+                    implementRecurse(translator, call, i + 2));
+            }
+        }
+    }
+
+    private static class CastImplementor implements CallImplementor {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call)
+        {
+            assert call.getOperands().length == 1;
+            RexNode expr = call.getOperands()[0];
+            return translator.translateCast(expr, call.getType());
+        }
+    }
+
+    private static class IsNullImplementor implements CallImplementor {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call)
+        {
+            RexNode[] operands = call.getOperands();
+            assert operands.length == 1;
+            final Expression translate =
+                translator.translate(operands[0]);
+            if (!isNullable(translate.getType())) {
+                return Expressions.constant(false);
+            }
+            return Expressions.equal(
+                translate, Expressions.constant(null));
+        }
+    }
+
+    private static class IsNotNullImplementor implements CallImplementor {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call)
+        {
+            RexNode[] operands = call.getOperands();
+            assert operands.length == 1;
+            final Expression translate =
+                translator.translate(operands[0]);
+            if (!isNullable(translate.getType())) {
+                return TRUE_EXPR;
+            }
+            return Expressions.notEqual(translate, NULL_EXPR);
+        }
+    }
+
+    private static class IsTrueImplementor implements CallImplementor {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call)
+        {
+            RexNode[] operands = call.getOperands();
+            assert operands.length == 1;
+            final Expression translate =
+                translator.translate(operands[0]);
+            if (!isNullable(translate.getType())) {
+                return translate;
+            }
+            return Expressions.andAlso(
+                Expressions.notEqual(translate, NULL_EXPR), translate);
+        }
+    }
+
+    private static class IsNotTrueImplementor implements CallImplementor {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call)
+        {
+            RexNode[] operands = call.getOperands();
+            assert operands.length == 1;
+            final Expression translate =
+                translator.translate(operands[0]);
+            if (!isNullable(translate.getType())) {
+                return Expressions.not(translate);
+            }
+            return Expressions.orElse(
+                Expressions.equal(translate, NULL_EXPR),
+                Expressions.not(translate));
+        }
+    }
+
+    private static class IsFalseImplementor implements CallImplementor {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call)
+        {
+            RexNode[] operands = call.getOperands();
+            assert operands.length == 1;
+            final Expression translate =
+                translator.translate(operands[0]);
+            if (!isNullable(translate.getType())) {
+                return Expressions.not(translate);
+            }
+            return Expressions.andAlso(
+                Expressions.notEqual(translate, NULL_EXPR),
+                Expressions.not(translate));
+        }
+    }
+
+    private static class IsNotFalseImplementor implements CallImplementor {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call)
+        {
+            RexNode[] operands = call.getOperands();
+            assert operands.length == 1;
+            final Expression translate =
+                translator.translate(operands[0]);
+            if (!isNullable(translate.getType())) {
+                return translate;
+            }
+            return Expressions.orElse(
+                Expressions.equal(translate, NULL_EXPR), translate);
         }
     }
 }

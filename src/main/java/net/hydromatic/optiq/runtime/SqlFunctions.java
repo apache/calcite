@@ -233,6 +233,11 @@ public class SqlFunctions {
 
     // <
 
+    /** SQL &lt; operator applied to boolean values. */
+    public static boolean lt(boolean b0, boolean b1) {
+        return compare(b0, b1) < 0;
+    }
+
     /** SQL &lt; operator applied to String values. */
     public static Boolean lt(String b0, String b1) {
         return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) < 0);
@@ -244,6 +249,11 @@ public class SqlFunctions {
     }
 
     // <=
+
+    /** SQL &le; operator applied to boolean values. */
+    public static boolean le(boolean b0, boolean b1) {
+        return compare(b0, b1) <= 0;
+    }
 
     /** SQL &le; operator applied to String values. */
     public static Boolean le(String b0, String b1) {
@@ -257,6 +267,11 @@ public class SqlFunctions {
 
     // >
 
+    /** SQL &gt; operator applied to boolean values. */
+    public static boolean gt(boolean b0, boolean b1) {
+        return compare(b0, b1) > 0;
+    }
+
     /** SQL &gt; operator applied to String values. */
     public static Boolean gt(String b0, String b1) {
         return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) > 0);
@@ -268,6 +283,11 @@ public class SqlFunctions {
     }
 
     // >=
+
+    /** SQL &ge; operator applied to boolean values. */
+    public static boolean ge(boolean b0, boolean b1) {
+        return compare(b0, b1) >= 0;
+    }
 
     /** SQL &ge; operator applied to String values. */
     public static Boolean ge(String b0, String b1) {
@@ -463,6 +483,16 @@ public class SqlFunctions {
         return Math.pow(b0, b1.doubleValue());
     }
 
+    /** SQL {@code LN(number)} function applied to double values. */
+    public static double ln(double d) {
+        return Math.log(d);
+    }
+
+    /** SQL {@code LN(number)} function applied to BigDecimal values. */
+    public static BigDecimal ln(BigDecimal d) {
+        return BigDecimal.valueOf(Math.log(d.doubleValue()));
+    }
+
     // MOD
 
     /** SQL <code>MOD</code> operator applied to int values. */
@@ -504,6 +534,11 @@ public class SqlFunctions {
     /** Helper for implementing MAX. Somewhat similar to GREATEST operator. */
     public static <T extends Comparable<T>> T greater(T b0, T b1) {
         return b0 == null || b0.compareTo(b1) < 0 ? b1 : b0;
+    }
+
+    /** Boolean comparison. */
+    public static int compare(boolean x, boolean y) {
+        return x == y ? 0 : x ? 1 : -1;
     }
 }
 
