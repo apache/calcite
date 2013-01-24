@@ -592,7 +592,8 @@ public enum Primitive {
     public boolean assignableFrom(Primitive primitive) {
         return family == primitive.family
             && ordinal() >= primitive.ordinal()
-            && !(this == SHORT && primitive == CHAR);
+            && !(this == SHORT && primitive == CHAR)
+            && !(this == CHAR && primitive == BYTE);
     }
 
     /** A place to send a value. */

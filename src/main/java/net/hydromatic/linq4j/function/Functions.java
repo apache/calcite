@@ -241,6 +241,34 @@ public class Functions {
         };
     }
 
+    /** Creates a view of a list that applies a function to each element. */
+    public static <T1, R> List<R> adapt(
+        final List<T1> list,
+        final Function1<T1, R> f)
+    {
+        return new AbstractList<R>() {
+            public R get(int index) {
+                return f.apply(list.get(index));
+            }
+
+            public int size() {
+                return list.size();
+            }
+        };
+    }
+
+    /** Creates a copy of a list, applying a function to each element. */
+    public static <T1, R> List<R> apply(
+        final List<T1> list,
+        final Function1<T1, R> f)
+    {
+        final ArrayList<R> list2 = new ArrayList<R>(list.size());
+        for (T1 t : list) {
+            list2.add(f.apply(t));
+        }
+        return list2;
+    }
+
     /** Returns an {@link EqualityComparer} that uses object identity and hash
      * code. */
     @SuppressWarnings("unchecked")

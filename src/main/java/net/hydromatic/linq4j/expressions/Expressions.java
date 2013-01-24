@@ -505,10 +505,20 @@ public class Expressions {
         Expression ifTrue,
         Expression ifFalse)
     {
-        return new TernaryExpression(
-            ExpressionType.Conditional,
-            Types.gcd(ifTrue.getType(), ifFalse.getType()),
-            test, ifTrue, ifFalse);
+        return makeTernary(ExpressionType.Conditional, test, ifTrue, ifFalse);
+    }
+
+    private static Type box(Type type) {
+        Primitive primitive = Primitive.of(type);
+        if (primitive != null) {
+            return primitive.boxClass;
+        }
+        return type;
+    }
+
+    static boolean isConstantNull(Expression e) {
+        return e instanceof ConstantExpression
+               && ((ConstantExpression) e).value == null;
     }
 
     /** Creates a ConditionalExpression that represents a conditional
@@ -1396,7 +1406,17 @@ public class Expressions {
         Expression e1,
         Expression e2)
     {
-        final Type type = e1.getType();
+        final Type type;
+        switch (ternaryType) {
+        case Conditional:
+            type =
+                isConstantNull(e1) ? box(e2.getType())
+                    : isConstantNull(e2) ? box(e1.getType())
+                    : Types.gcd(e1.getType(), e2.getType());
+            break;
+        default:
+            type = e1.getType();
+        }
         return new TernaryExpression(
             ternaryType, type, e0, e1, e2);
     }

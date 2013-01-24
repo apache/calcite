@@ -48,7 +48,7 @@ public class PrimitiveTest extends TestCase {
         assertFalse(Primitive.SHORT.assignableFrom(Primitive.INT));
         assertFalse(Primitive.SHORT.assignableFrom(Primitive.LONG));
 
-        assertTrue(Primitive.CHAR.assignableFrom(Primitive.BYTE));
+        assertFalse(Primitive.CHAR.assignableFrom(Primitive.BYTE));
         assertFalse(Primitive.CHAR.assignableFrom(Primitive.SHORT));
         assertTrue(Primitive.CHAR.assignableFrom(Primitive.CHAR));
         assertFalse(Primitive.CHAR.assignableFrom(Primitive.INT));

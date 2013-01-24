@@ -442,6 +442,36 @@ public class ExpressionTest extends TestCase {
             Expressions.toString(node));
     }
 
+    public void testType() {
+        // Type of ternary operator is the gcd of its arguments.
+        assertEquals(
+            long.class,
+            Expressions.condition(
+                Expressions.constant(true),
+                Expressions.constant(5),
+                Expressions.constant(6L)).getType());
+        assertEquals(
+            long.class,
+            Expressions.condition(
+                Expressions.constant(true),
+                Expressions.constant(5L),
+                Expressions.constant(6)).getType());
+
+        // If one of the arguments is null constant, it is implicitly coerced.
+        assertEquals(
+            String.class,
+            Expressions.condition(
+                Expressions.constant(true),
+                Expressions.constant("xxx"),
+                Expressions.constant(null)).getType());
+        assertEquals(
+            Integer.class,
+            Expressions.condition(
+                Expressions.constant(true),
+                Expressions.constant(Integer.valueOf(0)),
+                Expressions.constant(null)).getType());
+    }
+
     public void testCompile() throws NoSuchMethodException {
         // Creating a parameter for the expression tree.
         ParameterExpression param = Expressions.parameter(String.class);

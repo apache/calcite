@@ -227,9 +227,7 @@ public class BlockBuilder {
                     (DeclarationExpression) oldStatement;
                 final Slot slot = useCounter.map.get(statement.parameter);
                 int count = slot.count;
-                if (slot.expression instanceof ConstantExpression
-                    && ((ConstantExpression) slot.expression).value == null)
-                {
+                if (Expressions.isConstantNull(slot.expression)) {
                     // Don't allow 'final Type t = null' to be inlined. There
                     // is an implicit cast.
                     count = 100;

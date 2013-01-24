@@ -346,9 +346,36 @@ public class Types {
         if (types.length == 0) {
             return Object.class;
         }
-        for (int i = 1; i < types.length; i++) {
-            if (types[i] != types[0]) {
-                return Object.class;
+        Type best = types[0];
+        Primitive bestPrimitive = Primitive.of(best);
+        if (bestPrimitive != null) {
+            for (int i = 1; i < types.length; i++) {
+                final Primitive primitive = Primitive.of(types[i]);
+                if (primitive == null) {
+                    return Object.class;
+                }
+                if (primitive.assignableFrom(bestPrimitive)) {
+                    bestPrimitive = primitive;
+                } else if (bestPrimitive.assignableFrom(primitive)) {
+                    // ok
+                } else if (bestPrimitive == Primitive.CHAR
+                           || bestPrimitive == Primitive.BYTE)
+                {
+                    // 'char' and 'byte' are problematic, because they don't
+                    // assign to each other. 'char' can't even assign to
+                    // 'short'. Before we give up, try one last time with 'int'.
+                    bestPrimitive = Primitive.INT;
+                    --i;
+                } else {
+                    return Object.class;
+                }
+            }
+            return bestPrimitive.primitiveClass;
+        } else {
+            for (int i = 1; i < types.length; i++) {
+                if (types[i] != types[0]) {
+                    return Object.class;
+                }
             }
         }
         return types[0];
