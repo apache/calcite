@@ -83,10 +83,9 @@ class OptiqPrepareImpl implements OptiqPrepare {
         } catch (SqlParseException e) {
             throw new RuntimeException("parse failed", e);
         }
-        SqlValidator validator =
-            new SqlValidatorImpl(
-                SqlStdOperatorTable.instance(), catalogReader, typeFactory,
-                SqlConformance.Default) { };
+        final SqlValidator validator =
+            new OptiqSqlValidator(
+                SqlStdOperatorTable.instance(), catalogReader, typeFactory);
         SqlNode sqlNode1 = validator.validate(sqlNode);
         return new ParseResult(
             sql, sqlNode1, validator.getValidatedNodeType(sqlNode1));
@@ -145,15 +144,13 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 throw new RuntimeException("parse failed", e);
             }
             final Schema rootSchema = context.getRootSchema();
-            SqlValidator validator =
-                new SqlValidatorImpl(
-                    new ChainedSqlOperatorTable(
-                        Arrays.<SqlOperatorTable>asList(
-                            SqlStdOperatorTable.instance(),
-                            new MySqlOperatorTable(rootSchema, typeFactory))),
-                    catalogReader,
-                    typeFactory,
-                    SqlConformance.Default) { };
+            final ChainedSqlOperatorTable opTab =
+                new ChainedSqlOperatorTable(
+                    Arrays.<SqlOperatorTable>asList(
+                        SqlStdOperatorTable.instance(),
+                        new OptiqSqlOperatorTable(rootSchema, typeFactory)));
+            final SqlValidator validator =
+                new OptiqSqlValidator(opTab, catalogReader, typeFactory);
             preparedResult = preparingStmt.prepareSql(
                 sqlNode, Object.class, validator, true);
             if (sqlNode instanceof SqlInsert) {
@@ -841,11 +838,11 @@ class OptiqPrepareImpl implements OptiqPrepare {
         }
     }
 
-    private static class MySqlOperatorTable implements SqlOperatorTable {
+    private static class OptiqSqlOperatorTable implements SqlOperatorTable {
         private final Schema rootSchema;
         private final JavaTypeFactory typeFactory;
 
-        public MySqlOperatorTable(
+        public OptiqSqlOperatorTable(
             Schema rootSchema,
             JavaTypeFactory typeFactory)
         {
@@ -910,6 +907,24 @@ class OptiqPrepareImpl implements OptiqPrepare {
 
         public List<SqlOperator> getOperatorList() {
             return null;
+        }
+    }
+
+    /** Validator. */
+    private static class OptiqSqlValidator extends SqlValidatorImpl {
+        public OptiqSqlValidator(
+            SqlOperatorTable opTab,
+            OptiqCatalogReader catalogReader,
+            JavaTypeFactory typeFactory)
+        {
+            super(opTab, catalogReader, typeFactory, SqlConformance.Default);
+        }
+
+        @Override
+        protected RelDataType getLogicalTargetRowType(
+            RelDataType targetRowType, SqlInsert insert)
+        {
+            return ((JavaTypeFactory) typeFactory).toSql(targetRowType);
         }
     }
 }

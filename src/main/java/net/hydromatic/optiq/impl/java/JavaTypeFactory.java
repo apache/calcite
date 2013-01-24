@@ -37,7 +37,6 @@ public interface JavaTypeFactory extends RelDataTypeFactory {
      */
     RelDataType createStructType(Class clazz);
 
-
     /**
      * Creates a type, deducing whether a record, scalar or primitive type
      * is needed.
@@ -52,6 +51,9 @@ public interface JavaTypeFactory extends RelDataTypeFactory {
     /** Creates a synthetic Java class whose fields have the given Java
      * types. */
     Type createSyntheticType(List<Type> types);
+
+    /** Converts a type in Java format to a SQL-oriented type. */
+    RelDataType toSql(RelDataType type);
 }
 
 // End JavaTypeFactory.java

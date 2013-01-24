@@ -20,6 +20,9 @@ package net.hydromatic.optiq.jdbc;
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.expressions.Types;
+import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Functions;
+
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.ByteString;
 
@@ -147,6 +150,28 @@ public class JavaTypeFactoryImpl
             }
         }
         return null;
+    }
+
+    public RelDataType toSql(RelDataType type) {
+        if (type instanceof RelRecordType) {
+            RelRecordType relRecordType = (RelRecordType) type;
+            final List<RelDataTypeField> fields = relRecordType.getFieldList();
+            return createStructType(
+                Functions.adapt(
+                    fields,
+                    new Function1<RelDataTypeField, Pair<String, RelDataType>>()
+                    {
+                        public Pair<String, RelDataType> apply(
+                            RelDataTypeField a0)
+                        {
+                            return Pair.of(a0.getName(), toSql(a0.getType()));
+                        }
+                    }));
+        }
+        if (type instanceof JavaType) {
+            return new BasicSqlType(type.getSqlTypeName());
+        }
+        return type;
     }
 
     public Type createSyntheticType(List<Type> types) {

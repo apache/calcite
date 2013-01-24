@@ -366,12 +366,13 @@ public class RexImpTable {
                         operand.e));
             }
         }
-        return Expressions.condition(
-            JavaRules.EnumUtil.foldOr(list),
-            NULL_EXPR,
-            box(
-                implementor.implement(
-                    translator, call, operands2, NullPolicy.NONE)));
+        return optimize(
+            Expressions.condition(
+                JavaRules.EnumUtil.foldOr(list),
+                NULL_EXPR,
+                box(
+                    implementor.implement(
+                        translator, call, operands2, NullPolicy.NONE))));
     }
 
     /** Converts e.g. "anInteger" to "anInteger.intValue()". */
@@ -807,15 +808,30 @@ public class RexImpTable {
                 always = always(binary.expression0);
                 if (always != null) {
                     return always
-                        ? optimize(binary.expression1)
+                        ? binary.expression1
+                        : FALSE_EXPR;
+                }
+                always = always(binary.expression1);
+                if (always != null) {
+                    return always
+                        ? binary.expression0
                         : FALSE_EXPR;
                 }
                 break;
             case OrElse:
                 always = always(binary.expression0);
                 if (always != null) {
+                    // true or x  --> true
+                    // null or x  --> x
+                    // false or x --> x
                     return !always
-                        ? optimize(binary.expression1)
+                        ? binary.expression1
+                        : TRUE_EXPR;
+                }
+                always = always(binary.expression1);
+                if (always != null) {
+                    return !always
+                        ? binary.expression0
                         : TRUE_EXPR;
                 }
                 break;
