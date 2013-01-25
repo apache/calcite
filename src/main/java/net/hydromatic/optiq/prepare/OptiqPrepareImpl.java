@@ -921,6 +921,13 @@ class OptiqPrepareImpl implements OptiqPrepare {
         }
 
         @Override
+        protected RelDataType getLogicalSourceRowType(
+            RelDataType sourceRowType, SqlInsert insert)
+        {
+            return ((JavaTypeFactory) typeFactory).toSql(sourceRowType);
+        }
+
+        @Override
         protected RelDataType getLogicalTargetRowType(
             RelDataType targetRowType, SqlInsert insert)
         {

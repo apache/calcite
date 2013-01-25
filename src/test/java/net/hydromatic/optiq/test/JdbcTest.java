@@ -38,9 +38,8 @@ import junit.framework.TestCase;
 import org.apache.commons.dbcp.BasicDataSource;
 
 import org.eigenbase.oj.stmt.OJPreparingStmt;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.relopt.RelOptUtil;
+import org.eigenbase.rel.*;
+import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.util.Util;
@@ -872,6 +871,20 @@ public class JdbcTest extends TestCase {
             String tableName)
         {
             super(schema, elementType, relDataType, tableName);
+        }
+
+        public TableModificationRelBase toModificationRel(
+            RelOptCluster cluster,
+            RelOptTable table,
+            OJPreparingStmt.CatalogReader catalogReader,
+            RelNode child,
+            TableModificationRelBase.Operation operation,
+            List<String> updateColumnList,
+            boolean flattened)
+        {
+            return new TableModificationRel(
+                cluster, table, catalogReader, child, operation,
+                updateColumnList, flattened);
         }
     }
 

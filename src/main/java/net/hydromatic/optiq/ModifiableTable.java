@@ -17,7 +17,13 @@
 */
 package net.hydromatic.optiq;
 
+import org.eigenbase.oj.stmt.OJPreparingStmt;
+import org.eigenbase.rel.RelNode;
+import org.eigenbase.rel.TableModificationRelBase;
+import org.eigenbase.relopt.*;
+
 import java.util.Collection;
+import java.util.List;
 
 /**
  * A table that can be modified.
@@ -29,6 +35,16 @@ public interface ModifiableTable<E> extends Table<E> {
     /** Returns the modifiable collection.
      * Modifying the collection will change the table's contents. */
     Collection getModifiableCollection();
+
+    /** Creates a relational expression that modifies this table. */
+    TableModificationRelBase toModificationRel(
+        RelOptCluster cluster,
+        RelOptTable table,
+        OJPreparingStmt.CatalogReader catalogReader,
+        RelNode child,
+        TableModificationRelBase.Operation operation,
+        List<String> updateColumnList,
+        boolean flattened);
 }
 
 // End ModifiableTable.java

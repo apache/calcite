@@ -1602,7 +1602,7 @@ public class JavaRules {
         implements EnumerableRel
     {
         private final PhysType physType;
-        private final ModifiableTable modifiableTable;
+        private final Expression expression;
 
         public EnumerableTableModificationRel(
             RelOptCluster cluster,
@@ -1625,8 +1625,13 @@ public class JavaRules {
                 flattened);
             assert child.getConvention() instanceof EnumerableConvention;
             assert getConvention() instanceof EnumerableConvention;
-            modifiableTable = table.unwrap(ModifiableTable.class);
+            final ModifiableTable modifiableTable =
+                table.unwrap(ModifiableTable.class);
             if (modifiableTable == null) {
+                throw new AssertionError(); // TODO: user error in validator
+            }
+            this.expression = modifiableTable.getExpression();
+            if (expression == null) {
                 throw new AssertionError(); // TODO: user error in validator
             }
             this.physType =
@@ -1669,7 +1674,7 @@ public class JavaRules {
                     collectionParameter,
                     Expressions.call(
                         Expressions.convert_(
-                            modifiableTable.getExpression(),
+                            expression,
                             ModifiableTable.class),
                         BuiltinMethod.MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION
                             .method)));

@@ -41,6 +41,8 @@ import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
+import net.hydromatic.optiq.ModifiableTable;
+
 
 /**
  * Converts a SQL parse tree (consisting of {@link org.eigenbase.sql.SqlNode}
@@ -2761,6 +2763,18 @@ public class SqlToRelConverter
                 false);
         RelNode massagedRel = convertColumnList(call, sourceRel);
 
+        final ModifiableTable modifiableTable =
+            targetTable.unwrap(ModifiableTable.class);
+        if (modifiableTable != null) {
+            return modifiableTable.toModificationRel(
+                cluster,
+                targetTable,
+                catalogReader,
+                massagedRel,
+                TableModificationRel.Operation.INSERT,
+                null,
+                false);
+        }
         return new TableModificationRel(
             cluster,
             targetTable,
