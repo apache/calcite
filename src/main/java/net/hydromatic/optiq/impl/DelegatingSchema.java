@@ -60,11 +60,7 @@ public class DelegatingSchema implements Schema {
         return schema.getTableNames();
     }
 
-    public Table getTable(String name) {
-        return schema.getTable(name);
-    }
-
-    public <T> Queryable<T> getTable(String name, Class<T> elementType) {
+    public <T> Table<T> getTable(String name, Class<T> elementType) {
         return schema.getTable(name, elementType);
     }
 

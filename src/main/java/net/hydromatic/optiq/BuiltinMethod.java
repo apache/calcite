@@ -45,8 +45,6 @@ public enum BuiltinMethod {
         DataContext.class, "getSubSchema", String.class),
     GET_TARGET(
         ReflectiveSchema.class, "getTarget"),
-    SCHEMA_GET_TABLE(
-        Schema.class, "getTable", String.class),
     DATA_CONTEXT_GET_TABLE(
         DataContext.class, "getTable", String.class, Class.class),
     JOIN(

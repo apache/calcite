@@ -70,9 +70,10 @@ public interface Schema extends DataContext {
      * Returns a table with the given name, or null.
      *
      * @param name Table name
+     * @param elementType Element type
      * @return Table, or null
      */
-    Table getTable(String name);
+    <E> Table<E> getTable(String name, Class<E> elementType);
 
     Expression getExpression();
 

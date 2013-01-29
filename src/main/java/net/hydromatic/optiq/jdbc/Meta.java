@@ -225,7 +225,7 @@ public class Meta {
                 new Function1<String, MetaTable>() {
                     public MetaTable apply(String name) {
                         return new MetaTable(
-                            schema.optiqSchema.getTable(name),
+                            schema.optiqSchema.getTable(name, Object.class),
                             schema.catalogName, schema.schemaName, name);
                     }
                 });

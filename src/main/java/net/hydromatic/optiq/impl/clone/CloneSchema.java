@@ -49,13 +49,16 @@ public class CloneSchema extends MapSchema {
     }
 
     @Override
-    public Table getTable(String name) {
-        Table table = super.getTable(name);
+    public <E> Table<E> getTable(String name, Class<E> elementType) {
+        // TODO: check elementType matches table.elementType
+        assert elementType != null;
+
+        Table<E> table = super.getTable(name, elementType);
         if (table != null) {
             return table;
         }
         // TODO: make thread safe!
-        Table sourceTable = sourceSchema.getTable(name);
+        Table<E> sourceTable = sourceSchema.getTable(name, elementType);
         if (sourceTable != null) {
             //noinspection unchecked
             table = createCloneTable(sourceTable, name);
@@ -76,8 +79,9 @@ public class CloneSchema extends MapSchema {
             sourceTable.getRowType(),
             Expressions.call(
                 getExpression(),
-                BuiltinMethod.SCHEMA_GET_TABLE.method,
-                Expressions.constant(name)),
+                BuiltinMethod.DATA_CONTEXT_GET_TABLE.method,
+                Expressions.constant(name),
+                Expressions.constant(Object.class)),
             loader.representationValues,
             loader.size());
     }

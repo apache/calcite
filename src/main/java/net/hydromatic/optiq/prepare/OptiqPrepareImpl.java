@@ -650,7 +650,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     schema = subSchema;
                     continue;
                 }
-                final Table table = schema.getTable(name);
+                final Table table = schema.getTable(name, Object.class);
                 if (table != null) {
                     pairs.add(Pair.<String, Object>of(name, table));
                     if (i != names.length - 1) {

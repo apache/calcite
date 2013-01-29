@@ -100,19 +100,16 @@ public class MapSchema implements MutableSchema {
         return queryProvider;
     }
 
-    public <T> Table<T> getTable(String name, Class<T> elementType) {
-        // TODO: check elementType matches table.elementType
-        assert elementType != null;
-        return getTable(name);
-    }
-
     public Collection<String> getTableNames() {
         return tableMap.keySet();
     }
 
-    public Table getTable(String name) {
+    public <E> Table<E> getTable(String name, Class<E> elementType) {
+        // TODO: check elementType matches table.elementType
+        assert elementType != null;
+
         // First look for a table.
-        Table<Object> table = tableMap.get(name);
+        Table table = tableMap.get(name);
         if (table != null) {
             return table;
         }

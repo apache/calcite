@@ -29,7 +29,6 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.sql.type.SqlTypeName;
 
-import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.*;
 import javax.sql.DataSource;
@@ -162,11 +161,7 @@ public class JdbcSchema implements Schema {
 
     public <T> Table<T> getTable(String name, Class<T> elementType) {
         assert elementType != null;
-        //noinspection unchecked
-        return getTable(name);
-    }
 
-    public Table getTable(String name) {
         Connection connection = null;
         ResultSet resultSet = null;
         try {
@@ -206,7 +201,7 @@ public class JdbcSchema implements Schema {
             }
             final RelDataType type =
                 typeFactory.createStructType(fieldInfo);
-            return new JdbcTable(type, this, name);
+            return (Table) new JdbcTable(type, this, name);
         } catch (SQLException e) {
             throw new RuntimeException(
                 "Exception while reading definition of table '" + name + "'",

@@ -84,7 +84,6 @@ class LixToRelTranslator {
                         child));
 
             case AS_QUERYABLE:
-            case SCHEMA_GET_TABLE:
                 return new TableAccessRel(
                     cluster,
                     new OptiqPrepareImpl.RelOptTableImpl(
