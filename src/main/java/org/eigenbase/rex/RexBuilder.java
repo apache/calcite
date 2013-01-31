@@ -929,7 +929,7 @@ public class RexBuilder
     }
 
     /**
-     * Ensure's type's nullability matches a value's nullability
+     * Ensures that a type's nullability matches a value's nullability.
      */
     public RelDataType matchNullability(
         RelDataType type,

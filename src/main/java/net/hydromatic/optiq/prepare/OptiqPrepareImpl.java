@@ -60,6 +60,9 @@ import java.util.*;
  */
 class OptiqPrepareImpl implements OptiqPrepare {
 
+    public static final boolean DEBUG =
+        "true".equals(System.getProperties().getProperty("optiq.debug"));
+
     public ParseResult parse(
         Context context, String sql)
     {
@@ -448,6 +451,11 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 relImplementor.implementRoot((EnumerableRel) rootRel);
             String s =
                 Expressions.toString(expr.memberDeclarations, "\n", false);
+
+            if (DEBUG) {
+                System.out.println();
+                System.out.println(s);
+            }
 
             final Executable executable;
             try {
