@@ -58,6 +58,27 @@ public class BlockBuilder {
         String name,
         BlockExpression block)
     {
+        return append(name, block, true);
+    }
+
+    /** Appends an expression to a list of statements, optionally optimizing it
+     * to a variable if it is used more than once.
+     *
+     * @param name Suggested variable name
+     * @param block Expression
+     * @param optimize Whether to try to optimize by assigning the expression to
+     *                 a variable. Do not do this if the expression has
+     *                 side-effects or a time-dependent value.
+     */
+    public Expression append(
+        String name,
+        BlockExpression block,
+        boolean optimize)
+    {
+        if (!optimize && !name.startsWith("_")) {
+            // "_" prefix reminds us not to consider the variable for inlining
+            name = '_' + name;
+        }
         if (statements.size() > 0) {
             Statement lastStatement = statements.get(statements.size() - 1);
             if (lastStatement instanceof GotoExpression) {
@@ -230,6 +251,14 @@ public class BlockBuilder {
                 if (Expressions.isConstantNull(slot.expression)) {
                     // Don't allow 'final Type t = null' to be inlined. There
                     // is an implicit cast.
+                    count = 100;
+                }
+                if (statement.parameter.name.startsWith("_")) {
+                    // Don't inline variables whose name begins with "_". This
+                    // is a hacky way to prevent inlining. E.g.
+                    //   final int _count = collection.size();
+                    //   foo(collection);
+                    //   return collection.size() - _count;
                     count = 100;
                 }
                 if (slot.expression instanceof NewExpression
