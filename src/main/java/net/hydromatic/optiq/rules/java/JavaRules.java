@@ -1678,13 +1678,11 @@ public class JavaRules {
                             ModifiableTable.class),
                         BuiltinMethod.MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION
                             .method)));
-            final ParameterExpression countParameter =
-                Expressions.parameter(long.class, "count");
-            builder.add(
-                Expressions.declare(
-                    0,
-                    countParameter,
-                    Expressions.call(collectionParameter, "size")));
+            final Expression countParameter =
+                builder.append(
+                    "count",
+                    Expressions.call(collectionParameter, "size"),
+                    false);
             builder.add(
                 Expressions.statement(
                     Expressions.call(
@@ -1698,7 +1696,8 @@ public class JavaRules {
                             Expressions.subtract(
                                 Expressions.call(
                                     collectionParameter, "size"),
-                                countParameter), long.class))));
+                                countParameter),
+                            long.class))));
             return builder.toBlock();
         }
     }

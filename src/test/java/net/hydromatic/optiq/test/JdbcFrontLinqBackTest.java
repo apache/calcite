@@ -207,8 +207,33 @@ public class JdbcFrontLinqBackTest extends TestCase {
     public void testInsert() {
         final List<JdbcTest.Employee> employees =
             new ArrayList<JdbcTest.Employee>();
+        OptiqAssert.AssertThat with = mutable(employees);
+        with
+            .query("select * from \"foo\".\"bar\"")
+            .returns("empid=0; deptno=0; name=first\n");
+        with.query("insert into \"foo\".\"bar\" select * from \"hr\".\"emps\"")
+            .returns("ROWCOUNT=3\n");
+        with.query("select count(*) as c from \"foo\".\"bar\"")
+            .returns("C=4\n");
+        with.query(
+            "insert into \"foo\".\"bar\" "
+            + "select * from \"hr\".\"emps\" where \"deptno\" = 10")
+            .returns("ROWCOUNT=2\n");
+        with.query(
+            "select \"name\", count(*) as c from \"foo\".\"bar\" "
+            + "group by \"name\"")
+            .returns(
+                "name=Bill; C=2\n"
+                + "name=Eric; C=1\n"
+                + "name=first; C=1\n"
+                + "name=Sebastian; C=2\n");
+    }
+
+    private OptiqAssert.AssertThat mutable(
+        final List<JdbcTest.Employee> employees)
+    {
         employees.add(new JdbcTest.Employee(0, 0, "first"));
-        OptiqAssert.AssertThat with = assertThat()
+        return assertThat()
             .with(
                 new OptiqAssert.ConnectionFactory() {
                     public OptiqConnection createConnection() throws Exception {
@@ -240,32 +265,20 @@ public class JdbcFrontLinqBackTest extends TestCase {
                         return optiqConnection;
                     }
                 });
-        with
-            .query("select * from \"foo\".\"bar\"")
-            .returns("empid=0; deptno=0; name=first\n");
-        if (false) {
-            // TODO: fix "Cannot assign to target field 'empid' of type
-            //   JavaType(int) from source field 'EXPR$0' of type INTEGER"
-            with
-                .query("insert into \"foo\".\"bar\" values (1, 1, 'second')")
-                .returns("1");
-        }
-        with.query("insert into \"foo\".\"bar\" select * from \"hr\".\"emps\"")
+    }
+
+    public void testInsert2() {
+        final List<JdbcTest.Employee> employees =
+            new ArrayList<JdbcTest.Employee>();
+        OptiqAssert.AssertThat with = mutable(employees);
+        with.query("insert into \"foo\".\"bar\" values (1, 1, 'second')")
+            .returns("ROWCOUNT=1\n");
+        with.query(
+            "insert into \"foo\".\"bar\"\n"
+            + "values (1, 3, 'third'), (1, 4, 'fourth'), (1, 5, 'fifth ')")
             .returns("ROWCOUNT=3\n");
         with.query("select count(*) as c from \"foo\".\"bar\"")
-            .returns("C=4\n");
-        with.query(
-            "insert into \"foo\".\"bar\" "
-            + "select * from \"hr\".\"emps\" where \"deptno\" = 10")
-            .returns("ROWCOUNT=2\n");
-        with.query(
-            "select \"name\", count(*) as c from \"foo\".\"bar\" "
-            + "group by \"name\"")
-            .returns(
-                "name=Bill; C=2\n"
-                + "name=Eric; C=1\n"
-                + "name=first; C=1\n"
-                + "name=Sebastian; C=2\n");
+            .returns("C=5\n");
     }
 }
 
