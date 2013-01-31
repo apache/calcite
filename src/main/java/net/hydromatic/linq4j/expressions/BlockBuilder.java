@@ -75,10 +75,6 @@ public class BlockBuilder {
         BlockExpression block,
         boolean optimize)
     {
-        if (!optimize && !name.startsWith("_")) {
-            // "_" prefix reminds us not to consider the variable for inlining
-            name = '_' + name;
-        }
         if (statements.size() > 0) {
             Statement lastStatement = statements.get(statements.size() - 1);
             if (lastStatement instanceof GotoExpression) {
@@ -105,7 +101,7 @@ public class BlockBuilder {
                     (DeclarationExpression) statement;
                 if (variables.contains(declaration.parameter.name)) {
                     append(
-                        newName(declaration.parameter.name),
+                        newName(declaration.parameter.name, optimize),
                         declaration.initializer);
                     statement = statements.get(statements.size() - 1);
                     ParameterExpression parameter2 =
@@ -123,7 +119,10 @@ public class BlockBuilder {
                 } else if (statement instanceof GotoExpression) {
                     statements.remove(statements.size() - 1);
                     result =
-                        append_(name, ((GotoExpression) statement).expression);
+                        append_(
+                            name,
+                            ((GotoExpression) statement).expression,
+                            optimize);
                     if (result instanceof ParameterExpression
                         || result instanceof ConstantExpression)
                     {
@@ -132,7 +131,9 @@ public class BlockBuilder {
                     } else {
                         DeclarationExpression declare =
                             Expressions.declare(
-                                Modifier.FINAL, newName(name), result);
+                                Modifier.FINAL,
+                                newName(name, optimize),
+                                result);
                         add(declare);
                         result = declare.parameter;
                     }
@@ -149,7 +150,17 @@ public class BlockBuilder {
      * block. */
     public Expression append(
         String name,
-        Expression block)
+        Expression expression)
+    {
+        return append(name, expression, true);
+    }
+
+    /** Appends an expression to a list of statements, optionally optimizing if
+     * the expression is used more than once. */
+    public Expression append(
+        String name,
+        Expression expression,
+        boolean optimize)
     {
         if (statements.size() > 0) {
             Statement lastStatement = statements.get(statements.size() - 1);
@@ -161,10 +172,12 @@ public class BlockBuilder {
                         ((GotoExpression) lastStatement).expression));
             }
         }
-        return append_(name, block);
+        return append_(name, expression, optimize);
     }
 
-    private Expression append_(String name, Expression expression) {
+    private Expression append_(
+        String name, Expression expression, boolean optimize)
+    {
         // We treat "1" and "null" as atoms, but not "(Comparator) null".
         if (expression instanceof ParameterExpression
             || (expression instanceof ConstantExpression
@@ -191,7 +204,7 @@ public class BlockBuilder {
         }
         DeclarationExpression declare =
             Expressions.declare(
-                Modifier.FINAL, newName(name), expression);
+                Modifier.FINAL, newName(name, optimize), expression);
         add(declare);
         return declare.parameter;
     }
@@ -297,7 +310,11 @@ public class BlockBuilder {
     }
 
      /** Creates a name for a new variable, unique within this block. */
-    private String newName(String suggestion) {
+    private String newName(String suggestion, boolean optimize) {
+        if (!optimize && !suggestion.startsWith("_")) {
+            // "_" prefix reminds us not to consider the variable for inlining
+            suggestion = '_' + suggestion;
+        }
         int i = 0;
         String candidate = suggestion;
         for (;;) {
