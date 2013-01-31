@@ -4,9 +4,8 @@
     <TestCase name="testCase">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$0])
-  ProjectRel(EXPR$0=[CASE(=('a', 'a'), 1, null)])
-    OneRowRel
+ProjectRel(EXPR$0=[CASE(=('a', 'a'), 1, null)])
+  OneRowRel
 ]]>
         </Resource>
         <Resource name="sql">
@@ -475,10 +474,9 @@ ProjectRel(EXPR$0=[ELEMENT($SLICE($8))])
     <TestCase name="testElementInValues">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$0])
-  ProjectRel(EXPR$0=[ELEMENT($SLICE($0))])
-    CollectRel
-      ValuesRel(tuples=[[{ 5 }]])
+ProjectRel(EXPR$0=[ELEMENT($SLICE($0))])
+  CollectRel
+    ValuesRel(tuples=[[{ 5 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -546,16 +544,14 @@ UnionRel(all=[false])
             <![CDATA[
 UnionRel(all=[true])
   UnionRel(all=[true])
-    ProjectRel(EXPR$0=[$0])
-      ValuesRel(tuples=[[{ 10 }, { 20 }]])
+    ValuesRel(tuples=[[{ 10 }, { 20 }]])
     ProjectRel(EXPR$0=[34])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(EXPR$0=[$0])
-    UnionRel(all=[true])
-      ProjectRel(EXPR$0=[30])
-        OneRowRel
-      ProjectRel(EXPR$0=[+(45, 10)])
-        OneRowRel
+  UnionRel(all=[true])
+    ProjectRel(EXPR$0=[30])
+      OneRowRel
+    ProjectRel(EXPR$0=[+(45, 10)])
+      OneRowRel
 ]]>
         </Resource>
         <Resource name="sql">
@@ -598,8 +594,7 @@ ProjectRel(DEPTNO=[$7])
         ProjectRel(DEPTNO=[$0])
           FilterRel(condition=[>($0, 20)])
             TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-      ProjectRel(EXPR$0=[$0])
-        ValuesRel(tuples=[[{ 45 }, { 67 }]])
+      ValuesRel(tuples=[[{ 45 }, { 67 }]])
 ]]>
         </Resource>
         <Resource name="sql">
@@ -670,9 +665,8 @@ ProjectRel(EXPR$0=[CASE(IS NULL(1), IS NULL(2), IS NULL(2), IS NULL(1), =(1, 2))
     <TestCase name="testNotLike">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$0])
-  ProjectRel(EXPR$0=[NOT(LIKE('a', 'b', 'c'))])
-    OneRowRel
+ProjectRel(EXPR$0=[NOT(LIKE('a', 'b', 'c'))])
+  OneRowRel
 ]]>
         </Resource>
         <Resource name="sql">
@@ -715,9 +709,8 @@ ProjectRel(EXPR$0=[SUM($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING)],
     <TestCase name="testCharLength">
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[$0])
-  ProjectRel(EXPR$0=[CHAR_LENGTH('foo')])
-    OneRowRel
+ProjectRel(EXPR$0=[CHAR_LENGTH('foo')])
+  OneRowRel
 ]]>
         </Resource>
         <Resource name="sql">

@@ -449,7 +449,7 @@ public class SqlToRelConverter
             query = validator.validate(query);
         }
 
-        RelNode result = convertQueryRecursive(query, top);
+        RelNode result = convertQueryRecursive(query, top, null);
         checkConvertedType(query, result);
 
         boolean dumpPlan = sqlToRelTracer.isLoggable(Level.FINE);
@@ -1343,7 +1343,7 @@ public class SqlToRelConverter
                 ((SqlNodeList) seek).getList(),
                 false);
         } else {
-            return convertQueryRecursive(seek, false);
+            return convertQueryRecursive(seek, false, null);
         }
     }
 
@@ -1818,12 +1818,12 @@ public class SqlToRelConverter
         case INTERSECT:
         case EXCEPT:
         case UNION:
-            final RelNode rel = convertQueryRecursive(from, false);
+            final RelNode rel = convertQueryRecursive(from, false, null);
             bb.setRoot(rel, true);
             return;
 
         case VALUES:
-            convertValues(bb, (SqlCall) from);
+            convertValuesImpl(bb, (SqlCall) from, null);
             return;
 
         case UNNEST:
@@ -2676,10 +2676,14 @@ public class SqlToRelConverter
      *
      * @param query Query
      * @param top Whether this query is the top-level query of the statement
+     * @param targetRowType Target row type, or null
      *
      * @return Relational expression
      */
-    protected RelNode convertQueryRecursive(SqlNode query, boolean top)
+    protected RelNode convertQueryRecursive(
+        SqlNode query,
+        boolean top,
+        RelDataType targetRowType)
     {
         switch (query.getKind()) {
         case SELECT:
@@ -2696,6 +2700,8 @@ public class SqlToRelConverter
         case INTERSECT:
         case EXCEPT:
             return convertSetOp((SqlCall) query);
+        case VALUES:
+            return convertValues((SqlCall) query, targetRowType);
         default:
             throw Util.newInternal("not a query: " + query);
         }
@@ -2711,8 +2717,8 @@ public class SqlToRelConverter
     protected RelNode convertSetOp(SqlCall call)
     {
         final SqlNode[] operands = call.getOperands();
-        final RelNode left = convertQueryRecursive(operands[0], false);
-        final RelNode right = convertQueryRecursive(operands[1], false);
+        final RelNode left = convertQueryRecursive(operands[0], false, null);
+        final RelNode right = convertQueryRecursive(operands[1], false, null);
         boolean all = false;
         if (call.getOperator() instanceof SqlSetOperator) {
             all = ((SqlSetOperator) (call.getOperator())).isAll();
@@ -2757,10 +2763,14 @@ public class SqlToRelConverter
     {
         RelOptTable targetTable = getTargetTable(call);
 
+        final RelDataType targetRowType =
+            validator.getValidatedNodeType(call);
+        assert targetRowType != null;
         RelNode sourceRel =
             convertQueryRecursive(
                 call.getSource(),
-                false);
+                false,
+                targetRowType);
         RelNode massagedRel = convertColumnList(call, sourceRel);
 
         final ModifiableTable modifiableTable =
@@ -3188,7 +3198,7 @@ public class SqlToRelConverter
             final RelNode input;
             if (op == SqlStdOperatorTable.multisetValueConstructor) {
                 final SqlNodeList list = SqlUtil.toNodeList(call.operands);
-                assert bb.scope instanceof SelectScope : bb.scope;
+//                assert bb.scope instanceof SelectScope : bb.scope;
                 CollectNamespace nss =
                     (CollectNamespace) validator.getNamespace(call);
                 Blackboard usedBb;
@@ -3421,15 +3431,34 @@ public class SqlToRelConverter
     }
 
     /**
+     * Converts a SELECT statement's parse tree into a relational expression.
+     */
+    public RelNode convertValues(
+        SqlCall values,
+        RelDataType targetRowType)
+    {
+        final SqlValidatorScope scope = validator.getOverScope(values);
+        assert scope != null;
+        final Blackboard bb = createBlackboard(scope, null);
+        convertValuesImpl(bb, values, targetRowType);
+        mapScopeToLux.put(
+            bb.scope,
+            new LookupContext(bb.root, bb.systemFieldList.size()));
+        return bb.root;
+    }
+
+    /**
      * Converts a values clause (as in "INSERT INTO T(x,y) VALUES (1,2)") into a
      * relational expression.
      *
      * @param bb Blackboard
      * @param values Call to SQL VALUES operator
+     * @param targetRowType Target row type
      */
-    private void convertValues(
+    private void convertValuesImpl(
         Blackboard bb,
-        SqlCall values)
+        SqlCall values,
+        RelDataType targetRowType)
     {
         // Attempt direct conversion to ValuesRel; if that fails, deal with
         // fancy stuff like subqueries below.
@@ -4803,14 +4832,14 @@ public class SqlToRelConverter
 
                 // For DECIMAL, since it's already represented as a bigint we
                 // want to do a reinterpretCast instead of a cast to avoid
-                // losing any precisision.
-                boolean renterpretCast =
+                // losing any precision.
+                boolean reinterpretCast =
                     type.getSqlTypeName() == SqlTypeName.DECIMAL;
 
-                // Replace orignal expression with CAST of not one
+                // Replace original expression with CAST of not one
                 // of the supported types
                 if (histogramType != type) {
-                    if (renterpretCast) {
+                    if (reinterpretCast) {
                         exprs[0] =
                             rexBuilder.makeReinterpretCast(
                                 histogramType,
@@ -4850,7 +4879,7 @@ public class SqlToRelConverter
                 // If needed, post Cast result back to original
                 // type.
                 if (histogramType != type) {
-                    if (renterpretCast) {
+                    if (reinterpretCast) {
                         histogramCall =
                             rexBuilder.makeReinterpretCast(
                                 type,

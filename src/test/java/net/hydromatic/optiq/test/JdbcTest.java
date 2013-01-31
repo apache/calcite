@@ -643,6 +643,15 @@ public class JdbcTest extends TestCase {
             .returns("EXPR$0=-3\n");
     }
 
+    /** Tests a table constructor that has multiple rows and multiple columns.
+     *
+     * <p>Note that the character literals become CHAR(3) and that the first is
+     * correctly rendered with trailing spaces: 'a  '. If we were inserting
+     * into a VARCHAR column the behavior would be different; the literals
+     * would be converted into VARCHAR(3) values and the implied cast from
+     * CHAR(1) to CHAR(3) that appends trailing spaces does not occur. See
+     * "contextually typed value specification" in the SQL spec.</p>
+     */
     public void testValuesComposite() {
         OptiqAssert.assertThat()
             .query("values (1, 'a'), (2, 'abc')")

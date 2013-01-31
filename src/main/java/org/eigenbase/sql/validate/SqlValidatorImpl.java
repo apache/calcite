@@ -1002,7 +1002,7 @@ public class SqlValidatorImpl
         final SqlKind kind = node.getKind();
         switch (kind) {
         case VALUES:
-            if (underFrom) {
+            if (underFrom || true) {
                 // leave FROM (VALUES(...)) [ AS alias ] clauses alone,
                 // otherwise they grow cancerously if this rewrite is invoked
                 // over and over
@@ -2294,6 +2294,7 @@ public class SqlValidatorImpl
 
         case VALUES:
             call = (SqlCall) node;
+            scopes.put(call, parentScope);
             final TableConstructorNamespace tableConstructorNamespace =
                 new TableConstructorNamespace(
                     this,
@@ -3493,6 +3494,7 @@ public class SqlValidatorImpl
         RelDataType sourceRowType = getNamespace(source).getRowType();
         RelDataType logicalTargetRowType =
             getLogicalTargetRowType(targetRowType, insert);
+        setValidatedNodeType(insert, logicalTargetRowType);
         RelDataType logicalSourceRowType =
             getLogicalSourceRowType(sourceRowType, insert);
 

@@ -58,7 +58,7 @@ class EmptyScope
 
     public SqlIdentifier fullyQualify(SqlIdentifier identifier)
     {
-        return null;
+        return identifier;
     }
 
     public SqlNode getNode()

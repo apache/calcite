@@ -703,6 +703,14 @@ public interface SqlValidator
      *     object
      */
     List<List<String>> getFieldOrigins(SqlNode sqlQuery);
+
+    /**
+     * Returns the scope of an OVER or VALUES node.
+     *
+     * @param node Node
+     * @return Scope
+     */
+    SqlValidatorScope getOverScope(SqlNode node);
 }
 
 // End SqlValidator.java
