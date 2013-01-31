@@ -303,14 +303,13 @@ public class Linq4jTest extends TestCase {
         assertEquals(
             "[10:3, 30:1]",
             lookup.applyResultSelector(
-                new Function2<Integer, Enumerable<String>, Object>() {
-                    public Object apply(Integer v1, Enumerable<String> v2) {
+                new Function2<Integer, Enumerable<String>, String>() {
+                    public String apply(Integer v1, Enumerable<String> v2) {
                         return v1 + ":" + v2.count();
                     }
-                }
-            )
-                .toList()
-                .toString());
+                })
+            .orderBy(Functions.<String>identitySelector())
+            .toList().toString());
     }
 
     public void testToLookupSelectorComparer() {
@@ -327,16 +326,29 @@ public class Linq4jTest extends TestCase {
                     }
                 });
         assertEquals(2, lookup.size());
-        assertEquals("[Fred, Janet]", lookup.keySet().toString());
+        assertEquals(
+            "[Fred, Janet]",
+            new TreeSet<String>(lookup.keySet()).toString());
 
         StringBuilder buf = new StringBuilder();
-        for (Grouping<String, Employee> grouping : lookup) {
+        for (Grouping<String, Employee> grouping : lookup.orderBy(
+            Linq4jTest.<String, Employee>groupingKeyExtractor()))
+        {
             buf.append(grouping).append("\n");
         }
         assertEquals(
             "Fred: [Employee(name: Fred, deptno:10), Employee(name: Bill, deptno:30), Employee(name: Eric, deptno:10)]\n"
             + "Janet: [Employee(name: Janet, deptno:10)]\n",
             buf.toString());
+    }
+
+    private static <K extends Comparable, V> Function1<Grouping<K, V>, K>
+    groupingKeyExtractor() {
+        return new Function1<Grouping<K, V>, K>() {
+            public K apply(Grouping<K, V> a0) {
+                return a0.getKey();
+            }
+        };
     }
 
     /**
@@ -347,22 +359,21 @@ public class Linq4jTest extends TestCase {
         String s =
             Linq4j.asEnumerable(emps)
                 .groupBy(
-                    EMP_DEPTNO_SELECTOR,
-                    new Function0<String>() {
+                    EMP_DEPTNO_SELECTOR, new Function0<String>() {
                         public String apply() {
                             return null;
                         }
-                    },
-                    new Function2<String, Employee, String>() {
+                    }, new Function2<String, Employee, String>() {
                         public String apply(String v1, Employee e0) {
                             return v1 == null ? e0.name : (v1 + "+" + e0.name);
                         }
-                    },
-                    new Function2<Integer, String, String>() {
+                    }, new Function2<Integer, String, String>() {
                         public String apply(Integer v1, String v2) {
                             return v1 + ": " + v2;
                         }
-                    })
+                    }
+                )
+                .orderBy(Functions.<String>identitySelector())
                 .toList()
                 .toString();
         assertEquals(
@@ -561,13 +572,14 @@ public class Linq4jTest extends TestCase {
                             return v1.name + " works in " + v2.name;
                         }
                     })
+                .orderBy(Functions.<String>identitySelector())
                 .toList()
                 .toString();
         assertEquals(
-            "[Fred works in Sales, "
+            "[Bill works in Marketing, "
             + "Eric works in Sales, "
-            + "Janet works in Sales, "
-            + "Bill works in Marketing]",
+            + "Fred works in Sales, "
+            + "Janet works in Sales]",
             s);
     }
 
