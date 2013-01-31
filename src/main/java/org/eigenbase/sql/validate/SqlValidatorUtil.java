@@ -102,7 +102,7 @@ public class SqlValidatorUtil
             }
         }
         // If record type is flagged as having "any field you ask for",
-        // return a type. (TODO: Better way to mark accomodating types.)
+        // return a type. (TODO: Better way to mark accommodating types.)
         RelDataTypeField extra = rowType.getField("_extra");
         if (extra != null) {
             return extra.getType();
@@ -128,6 +128,12 @@ public class SqlValidatorUtil
             if (field.getName().equals(columnName)) {
                 return field;
             }
+        }
+        // If record type is flagged as having "any field you ask for",
+        // return a type. (TODO: Better way to mark accommodating types.)
+        RelDataTypeField extra = rowType.getField("_extra");
+        if (extra != null) {
+            return new RelDataTypeFieldImpl(columnName, -1, extra.getType());
         }
         return null;
     }

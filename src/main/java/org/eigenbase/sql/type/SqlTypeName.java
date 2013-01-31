@@ -74,7 +74,7 @@ public enum SqlTypeName
     BINARY(PrecScale.NoNo | PrecScale.YesNo, false, Types.BINARY),
     VARBINARY(PrecScale.NoNo | PrecScale.YesNo, false, Types.VARBINARY),
     NULL(PrecScale.NoNo, true, Types.NULL),
-    ANY(PrecScale.NoNo, true, Types.OTHER),
+    ANY(PrecScale.NoNo, true, Types.JAVA_OBJECT),
     SYMBOL(PrecScale.NoNo, true, Types.OTHER),
     MULTISET(PrecScale.NoNo, false, Types.ARRAY),
     DISTINCT(PrecScale.NoNo, false, Types.DISTINCT),
@@ -836,7 +836,7 @@ public enum SqlTypeName
     public int getMinScale()
     {
         switch (this) {
-        //TODO: Minimum numeric scale for decimal
+        // TODO: Minimum numeric scale for decimal
         case INTERVAL_DAY_TIME:
         case INTERVAL_YEAR_MONTH:
             return MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION;

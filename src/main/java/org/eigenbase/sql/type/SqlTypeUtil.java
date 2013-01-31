@@ -794,9 +794,14 @@ public abstract class SqlTypeUtil
         if (toType == fromType) {
             return true;
         }
+        final SqlTypeName fromTypeName = fromType.getSqlTypeName();
+        if (fromTypeName == SqlTypeName.ANY) {
+            return true;
+        }
+        final SqlTypeName toTypeName = toType.getSqlTypeName();
         if (toType.isStruct() || fromType.isStruct()) {
-            if (toType.getSqlTypeName() == SqlTypeName.DISTINCT) {
-                if (fromType.getSqlTypeName() == SqlTypeName.DISTINCT) {
+            if (toTypeName == SqlTypeName.DISTINCT) {
+                if (fromTypeName == SqlTypeName.DISTINCT) {
                     // can't cast between different distinct types
                     return false;
                 }
@@ -804,13 +809,13 @@ public abstract class SqlTypeUtil
                     toType.getFields()[0].getType(),
                     fromType,
                     coerce);
-            } else if (fromType.getSqlTypeName() == SqlTypeName.DISTINCT) {
+            } else if (fromTypeName == SqlTypeName.DISTINCT) {
                 return canCastFrom(
                     toType,
                     fromType.getFields()[0].getType(),
                     coerce);
-            } else if (toType.getSqlTypeName() == SqlTypeName.ROW) {
-                if (fromType.getSqlTypeName() != SqlTypeName.ROW) {
+            } else if (toTypeName == SqlTypeName.ROW) {
+                if (fromTypeName != SqlTypeName.ROW) {
                     return false;
                 }
                 int n = toType.getFieldCount();
@@ -829,18 +834,18 @@ public abstract class SqlTypeUtil
                     }
                 }
                 return true;
-            } else if (toType.getSqlTypeName() == SqlTypeName.MULTISET) {
+            } else if (toTypeName == SqlTypeName.MULTISET) {
                 if (!fromType.isStruct()) {
                     return false;
                 }
-                if (fromType.getSqlTypeName() != SqlTypeName.MULTISET) {
+                if (fromTypeName != SqlTypeName.MULTISET) {
                     return false;
                 }
                 return canCastFrom(
                     toType.getComponentType(),
                     fromType.getComponentType(),
                     coerce);
-            } else if (fromType.getSqlTypeName() == SqlTypeName.MULTISET) {
+            } else if (fromTypeName == SqlTypeName.MULTISET) {
                 return false;
             } else {
                 return toType.getFamily() == fromType.getFamily();
@@ -865,8 +870,8 @@ public abstract class SqlTypeUtil
                 return false;
             }
         }
-        SqlTypeName tn1 = toType.getSqlTypeName();
-        SqlTypeName tn2 = fromType.getSqlTypeName();
+        SqlTypeName tn1 = toTypeName;
+        SqlTypeName tn2 = fromTypeName;
         if ((tn1 == null) || (tn2 == null)) {
             return false;
         }

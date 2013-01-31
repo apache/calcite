@@ -85,6 +85,8 @@ abstract class AbstractCursor implements Cursor {
         case Types.TIME:
         case Types.TIMESTAMP:
             return new DateTimeAccessor(getter);
+        case Types.JAVA_OBJECT:
+            return new ObjectAccessor(getter);
         default:
             throw new RuntimeException("unknown type " + type);
         }
@@ -597,6 +599,16 @@ abstract class AbstractCursor implements Cursor {
      */
     private static class DateTimeAccessor extends AccessorImpl {
         public DateTimeAccessor(Getter getter) {
+            super(getter);
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is an OBJECT;
+     * corresponds to {@link java.sql.Types#JAVA_OBJECT}.
+     */
+    private static class ObjectAccessor extends AccessorImpl {
+        public ObjectAccessor(Getter getter) {
             super(getter);
         }
     }

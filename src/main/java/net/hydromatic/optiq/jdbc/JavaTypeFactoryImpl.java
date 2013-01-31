@@ -147,6 +147,8 @@ public class JavaTypeFactoryImpl
                 return Time.class;
             case TIMESTAMP:
                 return Timestamp.class;
+            case ANY:
+                return Object.class;
             }
         }
         return null;
