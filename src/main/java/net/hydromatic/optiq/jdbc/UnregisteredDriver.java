@@ -40,10 +40,12 @@ import java.util.logging.Logger;
 public abstract class UnregisteredDriver implements java.sql.Driver {
     final DriverVersion version;
     final Factory factory;
+    final Handler handler;
 
     protected UnregisteredDriver() {
         this.factory = createFactory();
         this.version = createDriverVersion();
+        this.handler = createHandler();
     }
 
     /**
@@ -61,6 +63,11 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
      */
     protected Factory createFactory() {
         return instantiateFactory(getFactoryClassName(JdbcVersion.current()));
+    }
+
+    /** Creates a Handler. */
+    protected Handler createHandler() {
+        return new HandlerImpl();
     }
 
     /**
@@ -107,7 +114,10 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
         assert url.startsWith(prefix);
         final String urlSuffix = url.substring(prefix.length());
         final Properties info2 = ConnectStringParser.parse(urlSuffix, info);
-        return factory.newConnection(this, factory, url, info2);
+        final OptiqConnectionImpl connection =
+            factory.newConnection(this, factory, url, info2);
+        handler.onConnectionInit(connection);
+        return connection;
     }
 
     public boolean acceptsURL(String url) throws SQLException {
