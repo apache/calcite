@@ -17,7 +17,6 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -29,14 +28,8 @@ public class NewArrayExpression extends Expression {
     public final List<Expression> expressions;
 
     public NewArrayExpression(Type type, List<Expression> expressions) {
-        super(ExpressionType.NewArrayInit, arrayClass(type));
+        super(ExpressionType.NewArrayInit, Types.arrayType(type));
         this.expressions = expressions;
-    }
-
-    private static Class arrayClass(Type type) {
-        // REVIEW: Is there a way to do this without creating an instance? We
-        //  just need the inverse of Class.getComponentType().
-        return Array.newInstance(Types.toClass(type), 0).getClass();
     }
 
     @Override

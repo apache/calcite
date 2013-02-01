@@ -118,13 +118,10 @@ class ExpressionWriter {
 
     public ExpressionWriter append(Type type) {
         checkIndent();
-        if (generics) {
-            buf.append(Types.className(type));
-        } else if (type instanceof Types.RecordType) {
-            buf.append(((Types.RecordType) type).getName());
-        } else {
-            buf.append(Types.className(Types.toClass(type)));
+        if (!generics) {
+            type = Types.stripGenerics(type);
         }
+        buf.append(Types.className(type));
         return this;
     }
 

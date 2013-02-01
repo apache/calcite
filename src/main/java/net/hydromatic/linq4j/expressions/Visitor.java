@@ -189,7 +189,7 @@ public class Visitor {
         return expressions.equals(newArrayExpression.expressions)
             ? newArrayExpression
             : Expressions.newArrayInit(
-                Types.componentType(newArrayExpression.type),
+                Types.getComponentType(newArrayExpression.type),
                 expressions);
     }
 

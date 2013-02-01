@@ -37,13 +37,19 @@ public class Types {
         return new ParameterizedTypeImpl(type, toList(typeArguments), null);
     }
 
-    /** Returns the component type of a {@link Collection}, {@link Iterable}
+    /** Returns the element type of a {@link Collection}, {@link Iterable}
      * (including {@link net.hydromatic.linq4j.Queryable Queryable} and
      * {@link net.hydromatic.linq4j.Enumerable Enumerable}), {@link Iterator},
      * {@link Enumerator}, or an array.
      *
      * <p>Returns null if the type is not one of these.</p> */
-    public static Type getComponentType(Type type) {
+    public static Type getElementType(Type type) {
+        if (type instanceof ArrayType) {
+            return ((ArrayType) type).getComponentType();
+        }
+        if (type instanceof GenericArrayType) {
+            return ((GenericArrayType) type).getGenericComponentType();
+        }
         Class clazz = toClass(type);
         if (clazz.isArray()) {
             return clazz.getComponentType();
@@ -134,8 +140,25 @@ public class Types {
         return classes.toArray(new Class[classes.size()]);
     }
 
-    static Type componentType(Type type) {
-        return toClass(type).getComponentType();
+    /** Returns the component type of an array. */
+    public static Type getComponentType(Type type) {
+        if (type instanceof Class) {
+            return ((Class) type).getComponentType();
+        }
+        if (type instanceof ArrayType) {
+            return ((ArrayType) type).getComponentType();
+        }
+        if (type instanceof GenericArrayType) {
+            return ((GenericArrayType) type).getGenericComponentType();
+        }
+        if (type instanceof ParameterizedType) {
+            return getComponentType(((ParameterizedType) type).getRawType());
+        }
+        if (type instanceof TypeVariable) {
+            TypeVariable typeVariable = (TypeVariable) type;
+            return getComponentType(typeVariable.getBounds()[0]);
+        }
+        return null; // not an array type
     }
 
     /**
@@ -180,6 +203,9 @@ public class Types {
     }
 
     static String className(Type type) {
+        if (type instanceof ArrayType) {
+            return className(((ArrayType) type).getComponentType()) + "[]";
+        }
         if (!(type instanceof Class)) {
             return type.toString();
         }
@@ -449,6 +475,35 @@ public class Types {
         };
     }
 
+    static Class arrayClass(Type type) {
+        // REVIEW: Is there a way to do this without creating an instance? We
+        //  just need the inverse of Class.getComponentType().
+        return Array.newInstance(toClass(type), 0).getClass();
+    }
+
+    static Type arrayType(Type type) {
+        if (type instanceof Class) {
+            Class clazz = (Class) type;
+
+            // REVIEW: Is there a way to do this without creating an instance?
+            //   We just need the inverse of Class.getComponentType().
+            return Array.newInstance(clazz, 0).getClass();
+        }
+        return new ArrayType(type);
+    }
+
+    public static Type stripGenerics(Type type) {
+        if (type instanceof GenericArrayType) {
+            final Type componentType =
+                ((GenericArrayType) type).getGenericComponentType();
+            return new ArrayType(stripGenerics(componentType));
+        } else if (type instanceof ParameterizedType) {
+            return ((ParameterizedType) type).getRawType();
+        } else {
+            return type;
+        }
+    }
+
     static class ParameterizedTypeImpl implements ParameterizedType {
         private final Type rawType;
         private final List<Type> typeArguments;
@@ -509,6 +564,19 @@ public class Types {
     /** Field that belongs to a record. */
     public interface RecordField extends PseudoField {
         boolean nullable();
+    }
+
+    /** Array type. */
+    public static class ArrayType implements Type {
+        private final Type componentType;
+
+        public ArrayType(Type componentType) {
+            this.componentType = componentType;
+        }
+
+        public Type getComponentType() {
+            return componentType;
+        }
     }
 }
 
