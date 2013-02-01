@@ -22,14 +22,14 @@ package net.hydromatic.linq4j.expressions;
  * list of argument expressions.
  */
 public class InvocationExpression extends Expression {
-    public InvocationExpression(ExpressionType nodeType, Class type) {
-        super(nodeType, type);
-    }
+  public InvocationExpression(ExpressionType nodeType, Class type) {
+    super(nodeType, type);
+  }
 
-    @Override
-    public Expression accept(Visitor visitor) {
-        return visitor.visit(this);
-    }
+  @Override
+  public Expression accept(Visitor visitor) {
+    return visitor.visit(this);
+  }
 }
 
 // End InvocationExpression.java

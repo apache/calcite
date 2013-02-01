@@ -25,9 +25,9 @@ import net.hydromatic.lamdba.functions.Sink;
  * <p>Based on {@code java.util.streams.StatefulSink}.</p>
  */
 public interface StatefulSink<T, V> extends Sink<T> {
-    void begin(int size);
+  void begin(int size);
 
-    V end();
+  V end();
 }
 
 // End StatefulSink.java

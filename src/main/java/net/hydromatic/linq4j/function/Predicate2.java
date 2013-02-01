@@ -24,29 +24,29 @@ package net.hydromatic.linq4j.function;
  * @param <T2> type of parameter 2
  */
 public interface Predicate2<T1, T2> extends Function<Boolean> {
-    /**
-     * Predicate that always evaluates to {@code true}.
-     *
-     * @see net.hydromatic.linq4j.function.Functions#truePredicate1()
-     */
-    Predicate2<Object, Object> TRUE = new Predicate2<Object, Object>() {
-        public boolean apply(Object v1, Object v2) {
-            return true;
-        }
-    };
+  /**
+   * Predicate that always evaluates to {@code true}.
+   *
+   * @see net.hydromatic.linq4j.function.Functions#truePredicate1()
+   */
+  Predicate2<Object, Object> TRUE = new Predicate2<Object, Object>() {
+    public boolean apply(Object v1, Object v2) {
+      return true;
+    }
+  };
 
-    /**
-     * Predicate that always evaluates to {@code false}.
-     *
-     * @see net.hydromatic.linq4j.function.Functions#falsePredicate1()
-     */
-    Predicate2<Object, Object> FALSE = new Predicate2<Object, Object>() {
-        public boolean apply(Object v1, Object v2) {
-            return false;
-        }
-    };
+  /**
+   * Predicate that always evaluates to {@code false}.
+   *
+   * @see net.hydromatic.linq4j.function.Functions#falsePredicate1()
+   */
+  Predicate2<Object, Object> FALSE = new Predicate2<Object, Object>() {
+    public boolean apply(Object v1, Object v2) {
+      return false;
+    }
+  };
 
-    boolean apply(T1 v1, T2 v2);
+  boolean apply(T1 v1, T2 v2);
 }
 
 // End Predicate2.java

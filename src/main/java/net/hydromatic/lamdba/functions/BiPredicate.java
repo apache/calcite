@@ -21,11 +21,13 @@ package net.hydromatic.lamdba.functions;
  * Equivalent to {@link Predicate} for bi-values.
  */
 public interface BiPredicate<L, R> {
-    boolean eval(L l, R r);
+  boolean eval(L l, R r);
 
-    BiPredicate<L, R> and(BiPredicate<? super L, ? super R> p);
-    BiPredicate<L, R> or(BiPredicate<? super L, ? super R> p);
-    BiPredicate<L, R> xor(BiPredicate<? super L, ? super R> p);
+  BiPredicate<L, R> and(BiPredicate<? super L, ? super R> p);
+
+  BiPredicate<L, R> or(BiPredicate<? super L, ? super R> p);
+
+  BiPredicate<L, R> xor(BiPredicate<? super L, ? super R> p);
 }
 
 // End BiPredicate.java

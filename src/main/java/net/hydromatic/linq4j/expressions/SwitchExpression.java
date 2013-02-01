@@ -22,14 +22,14 @@ package net.hydromatic.linq4j.expressions;
  * control to {@link SwitchCase}.
  */
 public class SwitchExpression extends Statement {
-    public SwitchExpression(ExpressionType nodeType) {
-        super(nodeType, Void.TYPE);
-    }
+  public SwitchExpression(ExpressionType nodeType) {
+    super(nodeType, Void.TYPE);
+  }
 
-    @Override
-    public Statement accept(Visitor visitor) {
-        return visitor.visit(this);
-    }
+  @Override
+  public Statement accept(Visitor visitor) {
+    return visitor.visit(this);
+  }
 }
 
 // End SwitchExpression.java

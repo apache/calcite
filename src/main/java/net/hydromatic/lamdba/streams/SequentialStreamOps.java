@@ -25,21 +25,22 @@ import net.hydromatic.lamdba.functions.*;
  * <p>Based on {@code java.util.streams.SequentialStreamOps}.</p>
  */
 public interface SequentialStreamOps<T> {
-    Stream<T> filter(Predicate<? super T> predicate);
+  Stream<T> filter(Predicate<? super T> predicate);
 
-    <R> Stream<R> map(Mapper<? super T, ? extends R> mapper);
-    <R> Stream<R> flatMap(FlatMapper<? super T, R> mapper);
+  <R> Stream<R> map(Mapper<? super T, ? extends R> mapper);
 
-    public T reduce(T base, BinaryOperator<T> op);
+  <R> Stream<R> flatMap(FlatMapper<? super T, R> mapper);
 
-    public <U> U fold(
-        Factory<U> seedFactory,
-        Combiner<U, T, U> reducer,
-        BinaryOperator<U> combiner);
+  public T reduce(T base, BinaryOperator<T> op);
 
-    boolean anyMatch(Predicate<? super T> predicate);
-    boolean allMatch(Predicate<? super T> predicate);
-    boolean noneMatch(Predicate<? super T> predicate);
+  public <U> U fold(Factory<U> seedFactory, Combiner<U, T, U> reducer,
+      BinaryOperator<U> combiner);
+
+  boolean anyMatch(Predicate<? super T> predicate);
+
+  boolean allMatch(Predicate<? super T> predicate);
+
+  boolean noneMatch(Predicate<? super T> predicate);
 }
 
 // End SequentialStreamOps.java

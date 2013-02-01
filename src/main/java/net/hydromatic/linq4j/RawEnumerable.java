@@ -30,10 +30,10 @@ package net.hydromatic.linq4j;
  * @see Enumerable
  */
 public interface RawEnumerable<T> {
-    /**
-     * Returns an enumerator that iterates through a collection.
-     */
-    Enumerator<T> enumerator();
+  /**
+   * Returns an enumerator that iterates through a collection.
+   */
+  Enumerator<T> enumerator();
 }
 
 // End RawEnumerable.java

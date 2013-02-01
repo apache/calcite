@@ -21,11 +21,11 @@ package net.hydromatic.lamdba.functions;
  * Performs operations on a pair of values from a BiValue.
  */
 public interface BiBlock<L, R> {
-    void apply(L l, R r);
+  void apply(L l, R r);
 
-    BiBlock<L, R> chain(BiBlock<? super L, ? super R> second);
-    // default:
-    // throw new UnsupportedOperationException("Not yet implemented");
+  BiBlock<L, R> chain(BiBlock<? super L, ? super R> second);
+  // default:
+  // throw new UnsupportedOperationException("Not yet implemented");
 }
 
 // End BiBlock.java

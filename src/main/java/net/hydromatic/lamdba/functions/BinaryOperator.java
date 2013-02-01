@@ -23,11 +23,11 @@ package net.hydromatic.lamdba.functions;
  * <p>Based on {@code java.util.functions.BinaryOperator}.</p>
  */
 public interface BinaryOperator<T> extends Combiner<T, T, T> {
-    T operate(T left, T right);
+  T operate(T left, T right);
 
-    T combine(T t1, T t2);
-    // default:
-    // return operate(t1, t2);
+  T combine(T t1, T t2);
+  // default:
+  // return operate(t1, t2);
 }
 
 // End BinaryOperator.java

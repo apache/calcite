@@ -24,19 +24,18 @@ package net.hydromatic.linq4j.function;
  * @param <T1> type of parameter 1
  */
 public interface Function1<T1, R> extends Function<R> {
-    /**
-     * The identity function.
-     *
-     * @see Functions#identitySelector()
-     */
-    Function1<Object, Object> IDENTITY =
-        new Function1<Object, Object>() {
-            public Object apply(Object v1) {
-                return v1;
-            }
-        };
+  /**
+   * The identity function.
+   *
+   * @see Functions#identitySelector()
+   */
+  Function1<Object, Object> IDENTITY = new Function1<Object, Object>() {
+    public Object apply(Object v1) {
+      return v1;
+    }
+  };
 
-    R apply(T1 a0);
+  R apply(T1 a0);
 }
 
 // End Function1.java

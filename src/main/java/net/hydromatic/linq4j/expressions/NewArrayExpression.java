@@ -25,26 +25,24 @@ import java.util.List;
  * new array.
  */
 public class NewArrayExpression extends Expression {
-    public final List<Expression> expressions;
+  public final List<Expression> expressions;
 
-    public NewArrayExpression(Type type, List<Expression> expressions) {
-        super(ExpressionType.NewArrayInit, Types.arrayType(type));
-        this.expressions = expressions;
-    }
+  public NewArrayExpression(Type type, List<Expression> expressions) {
+    super(ExpressionType.NewArrayInit, Types.arrayType(type));
+    this.expressions = expressions;
+  }
 
-    @Override
-    public Expression accept(Visitor visitor) {
-        List<Expression> expressions =
-            Expressions.acceptExpressions(this.expressions, visitor);
-        return visitor.visit(this, expressions);
-    }
+  @Override
+  public Expression accept(Visitor visitor) {
+    List<Expression> expressions = Expressions.acceptExpressions(
+        this.expressions, visitor);
+    return visitor.visit(this, expressions);
+  }
 
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        writer.append("new ")
-            .append(type)
-            .list(" {\n", ",\n", "}", expressions);
-    }
+  @Override
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    writer.append("new ").append(type).list(" {\n", ",\n", "}", expressions);
+  }
 }
 
 // End NewArrayExpression.java

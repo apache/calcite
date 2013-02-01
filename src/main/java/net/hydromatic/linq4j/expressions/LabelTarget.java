@@ -21,11 +21,11 @@ package net.hydromatic.linq4j.expressions;
  * Used to represent the target of a {@link GotoExpression}.
  */
 public class LabelTarget {
-    public final String name;
+  public final String name;
 
-    public LabelTarget(String name) {
-        this.name = name;
-    }
+  public LabelTarget(String name) {
+    this.name = name;
+  }
 }
 
 // End LabelTarget.java

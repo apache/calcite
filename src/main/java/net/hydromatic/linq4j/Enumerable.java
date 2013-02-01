@@ -28,14 +28,13 @@ package net.hydromatic.linq4j;
  * @param <T> element type
  */
 public interface Enumerable<T>
-    extends RawEnumerable<T>, Iterable<T>, ExtendedEnumerable<T>
-{
-    /**
-     * Converts this Enumerable to a Queryable.
-     *
-     * @see EnumerableDefaults#asQueryable(Enumerable
-     */
-    Queryable<T> asQueryable();
+    extends RawEnumerable<T>, Iterable<T>, ExtendedEnumerable<T> {
+  /**
+   * Converts this Enumerable to a Queryable.
+   *
+   * @see EnumerableDefaults#asQueryable(Enumerable
+   */
+  Queryable<T> asQueryable();
 
 }
 

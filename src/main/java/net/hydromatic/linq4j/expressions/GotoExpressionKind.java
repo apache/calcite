@@ -21,26 +21,36 @@ package net.hydromatic.linq4j.expressions;
  * Specifies what kind of jump a {@link GotoExpression} represents.
  */
 public enum GotoExpressionKind {
-    /** A GotoExpression that represents a jump to some location. */
-    Goto("goto "),
+  /**
+   * A GotoExpression that represents a jump to some location.
+   */
+  Goto("goto "),
 
-    /** A GotoExpression that represents a return statement. */
-    Return("return"),
+  /**
+   * A GotoExpression that represents a return statement.
+   */
+  Return("return"),
 
-    /** A GotoExpression that represents a break statement. */
-    Break("break"),
+  /**
+   * A GotoExpression that represents a break statement.
+   */
+  Break("break"),
 
-    /** A GotoExpression that represents a continue statement. */
-    Continue("continue"),
+  /**
+   * A GotoExpression that represents a continue statement.
+   */
+  Continue("continue"),
 
-    /** A GotoExpression that evaluates an expression and carries on. */
-    Sequence("");
+  /**
+   * A GotoExpression that evaluates an expression and carries on.
+   */
+  Sequence("");
 
-    final String prefix;
+  final String prefix;
 
-    GotoExpressionKind(String prefix) {
-        this.prefix = prefix;
-    }
+  GotoExpressionKind(String prefix) {
+    this.prefix = prefix;
+  }
 }
 
 // End GotoExpressionKind.java

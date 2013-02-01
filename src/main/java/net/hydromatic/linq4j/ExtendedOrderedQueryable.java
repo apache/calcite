@@ -28,27 +28,35 @@ import java.util.Comparator;
  * @author jhyde
  */
 public interface ExtendedOrderedQueryable<T> extends Queryable<T> {
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * ascending order according to a key. */
-    <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(
-        FunctionExpression<Function1<T, TKey>> keySelector);
+  /**
+   * Performs a subsequent ordering of the elements in a sequence in
+   * ascending order according to a key.
+   */
+  <TKey extends Comparable<TKey>> OrderedQueryable<T> thenBy(
+      FunctionExpression<Function1<T, TKey>> keySelector);
 
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * ascending order according to a key, using a specified comparator. */
-    <TKey> OrderedQueryable<T> thenBy(
-        FunctionExpression<Function1<T, TKey>> keySelector,
-        Comparator<TKey> comparator);
+  /**
+   * Performs a subsequent ordering of the elements in a sequence in
+   * ascending order according to a key, using a specified comparator.
+   */
+  <TKey> OrderedQueryable<T> thenBy(
+      FunctionExpression<Function1<T, TKey>> keySelector,
+      Comparator<TKey> comparator);
 
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * descending order according to a key. */
-    <TKey extends Comparable<TKey>> OrderedQueryable<T> thenByDescending(
-        FunctionExpression<Function1<T, TKey>> keySelector);
+  /**
+   * Performs a subsequent ordering of the elements in a sequence in
+   * descending order according to a key.
+   */
+  <TKey extends Comparable<TKey>> OrderedQueryable<T> thenByDescending(
+      FunctionExpression<Function1<T, TKey>> keySelector);
 
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * descending order according to a key, using a specified comparator. */
-    <TKey> OrderedQueryable<T> thenByDescending(
-        FunctionExpression<Function1<T, TKey>> keySelector,
-        Comparator<TKey> comparator);
+  /**
+   * Performs a subsequent ordering of the elements in a sequence in
+   * descending order according to a key, using a specified comparator.
+   */
+  <TKey> OrderedQueryable<T> thenByDescending(
+      FunctionExpression<Function1<T, TKey>> keySelector,
+      Comparator<TKey> comparator);
 }
 
 // End ExtendedOrderedQueryable.java

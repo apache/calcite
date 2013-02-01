@@ -25,10 +25,8 @@ package net.hydromatic.linq4j;
  * {@code Queryable}, because {@code Queryable} has so many extension methods,
  * but it is not required.</p>
  */
-public abstract class AbstractQueryable<T>
-    extends DefaultQueryable<T>
-    implements Queryable<T>
-{
+public abstract class AbstractQueryable<T> extends DefaultQueryable<T>
+    implements Queryable<T> {
 }
 
 // End AbstractQueryable.java

@@ -24,8 +24,7 @@ package net.hydromatic.linq4j;
  * @author jhyde
  */
 public interface OrderedEnumerable<T>
-    extends Enumerable<T>, ExtendedOrderedEnumerable<T>
-{
+    extends Enumerable<T>, ExtendedOrderedEnumerable<T> {
 }
 
 // End OrderedEnumerable.java

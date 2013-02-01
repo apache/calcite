@@ -21,11 +21,11 @@ package net.hydromatic.lamdba.functions;
  * Equivalent fo {@link Mapper} for bi-values.
  */
 public interface BiMapper<T, U, V> {
-    V map(T t, U u);
+  V map(T t, U u);
 
-    public <W> BiMapper<T, U, W> compose(Mapper<? super V, ? extends W> after);
-    // default:
-    // throw new UnsupportedOperationException("Not yet implemented.");
+  public <W> BiMapper<T, U, W> compose(Mapper<? super V, ? extends W> after);
+  // default:
+  // throw new UnsupportedOperationException("Not yet implemented.");
 }
 
 // End BiMapper.java

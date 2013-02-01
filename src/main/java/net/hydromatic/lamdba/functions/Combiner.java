@@ -23,7 +23,7 @@ package net.hydromatic.lamdba.functions;
  * <p>Based on {@code java.util.functions.Combiner}.</p>
  */
 public interface Combiner<T, U, V> {
-    V combine(T t, U v);
+  V combine(T t, U v);
 }
 
 // End Combiner.java

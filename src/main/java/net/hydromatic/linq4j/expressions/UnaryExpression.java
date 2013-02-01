@@ -23,41 +23,37 @@ import java.lang.reflect.Type;
  * Represents an expression that has a unary operator.
  */
 public class UnaryExpression extends Expression {
-    public final Expression expression;
+  public final Expression expression;
 
-    UnaryExpression(
-        ExpressionType nodeType, Type type, Expression expression)
-    {
-        super(nodeType, type);
-        this.expression = expression;
+  UnaryExpression(ExpressionType nodeType, Type type, Expression expression) {
+    super(nodeType, type);
+    this.expression = expression;
+  }
+
+  @Override
+  public Expression accept(Visitor visitor) {
+    Expression expression = this.expression.accept(visitor);
+    return visitor.visit(this, expression);
+  }
+
+
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    switch (nodeType) {
+    case Convert:
+      if (!writer.requireParentheses(this, lprec, rprec)) {
+        writer.append("(").append(type).append(") ");
+        expression.accept(writer, nodeType.rprec, rprec);
+      }
+      return;
     }
-
-    @Override
-    public Expression accept(Visitor visitor) {
-        Expression expression = this.expression.accept(visitor);
-        return visitor.visit(this, expression);
+    if (nodeType.postfix) {
+      expression.accept(writer, lprec, nodeType.rprec);
+      writer.append(nodeType.op);
+    } else {
+      writer.append(nodeType.op);
+      expression.accept(writer, nodeType.lprec, rprec);
     }
-
-
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        switch (nodeType) {
-        case Convert:
-            if (!writer.requireParentheses(this, lprec, rprec)) {
-                writer.append("(")
-                    .append(type)
-                    .append(") ");
-                expression.accept(writer, nodeType.rprec, rprec);
-            }
-            return;
-        }
-        if (nodeType.postfix) {
-            expression.accept(writer, lprec, nodeType.rprec);
-            writer.append(nodeType.op);
-        } else {
-            writer.append(nodeType.op);
-            expression.accept(writer, nodeType.lprec, rprec);
-        }
-    }
+  }
 }
 
 // End UnaryExpression.java

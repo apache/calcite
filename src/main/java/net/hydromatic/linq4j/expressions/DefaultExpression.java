@@ -21,14 +21,14 @@ package net.hydromatic.linq4j.expressions;
  * Represents the default value of a type or an empty expression.
  */
 public class DefaultExpression extends Expression {
-    public DefaultExpression(Class type) {
-        super(ExpressionType.Default, type);
-    }
+  public DefaultExpression(Class type) {
+    super(ExpressionType.Default, type);
+  }
 
-    @Override
-    public Expression accept(Visitor visitor) {
-        return visitor.visit(this);
-    }
+  @Override
+  public Expression accept(Visitor visitor) {
+    return visitor.visit(this);
+  }
 }
 
 // End DefaultExpression.java

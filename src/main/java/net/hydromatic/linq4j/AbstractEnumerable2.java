@@ -26,9 +26,9 @@ package net.hydromatic.linq4j;
  * but it is not required.</p>
  */
 public abstract class AbstractEnumerable2<T> extends DefaultEnumerable<T> {
-    public Enumerator<T> enumerator() {
-        return Linq4j.iterableEnumerator(this);
-    }
+  public Enumerator<T> enumerator() {
+    return Linq4j.iterableEnumerator(this);
+  }
 }
 
 // End AbstractEnumerable2.java

@@ -23,7 +23,7 @@ package net.hydromatic.lamdba.functions;
  * <p>Based on {@code java.util.functions.Sink}.</p>
  */
 public interface Sink<T> {
-    void accept(T t);
+  void accept(T t);
 }
 
 // End Sink.java

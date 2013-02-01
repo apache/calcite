@@ -23,7 +23,7 @@ package net.hydromatic.linq4j.function;
  * @param <R> result type
  */
 public interface Function0<R> extends Function<R> {
-    R apply();
+  R apply();
 }
 
 // End Function0.java

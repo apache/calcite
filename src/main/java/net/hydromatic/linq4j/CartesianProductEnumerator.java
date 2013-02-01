@@ -24,62 +24,62 @@ import java.util.List;
  * Enumerator over the cartesian product of enumerators.
  */
 class CartesianProductEnumerator<T> implements Enumerator<List<T>> {
-    private final List<Enumerator<T>> enumerators;
-    private final T[] elements;
-    private boolean first = true;
+  private final List<Enumerator<T>> enumerators;
+  private final T[] elements;
+  private boolean first = true;
 
-    public CartesianProductEnumerator(List<Enumerator<T>> enumerators) {
-        this.enumerators = enumerators;
-        //noinspection unchecked
-        this.elements = (T[]) new Object[enumerators.size()];
-    }
+  public CartesianProductEnumerator(List<Enumerator<T>> enumerators) {
+    this.enumerators = enumerators;
+    //noinspection unchecked
+    this.elements = (T[]) new Object[enumerators.size()];
+  }
 
-    public List<T> current() {
-        return Arrays.asList(elements.clone());
-    }
+  public List<T> current() {
+    return Arrays.asList(elements.clone());
+  }
 
-    public boolean moveNext() {
-        if (first) {
-            if (enumerators.isEmpty()) {
-                return false;
-            }
-            int i = 0;
-            for (Enumerator<T> enumerator : enumerators) {
-                if (!enumerator.moveNext()) {
-                    return false;
-                }
-                elements[i++] = enumerator.current();
-            }
-            first = false;
-            return true;
+  public boolean moveNext() {
+    if (first) {
+      if (enumerators.isEmpty()) {
+        return false;
+      }
+      int i = 0;
+      for (Enumerator<T> enumerator : enumerators) {
+        if (!enumerator.moveNext()) {
+          return false;
         }
-        int ordinal = enumerators.size() - 1;
-        for (;;) {
-            final Enumerator<T> enumerator = enumerators.get(ordinal);
-            if (enumerator.moveNext()) {
-                elements[ordinal] = enumerator.current();
-                return true;
-            }
-
-            // Move back to first element.
-            enumerator.reset();
-            if (!enumerator.moveNext()) {
-                // Very strange... this was empty all along.
-                return false;
-            }
-            elements[ordinal] = enumerator.current();
-
-            // Advance higher rank enumerator.
-            if (ordinal == 0) {
-                return false;
-            }
-            --ordinal;
-        }
+        elements[i++] = enumerator.current();
+      }
+      first = false;
+      return true;
     }
+    int ordinal = enumerators.size() - 1;
+    for (;;) {
+      final Enumerator<T> enumerator = enumerators.get(ordinal);
+      if (enumerator.moveNext()) {
+        elements[ordinal] = enumerator.current();
+        return true;
+      }
 
-    public void reset() {
-        first = true;
+      // Move back to first element.
+      enumerator.reset();
+      if (!enumerator.moveNext()) {
+        // Very strange... this was empty all along.
+        return false;
+      }
+      elements[ordinal] = enumerator.current();
+
+      // Advance higher rank enumerator.
+      if (ordinal == 0) {
+        return false;
+      }
+      --ordinal;
     }
+  }
+
+  public void reset() {
+    first = true;
+  }
 }
 
 // End CartesianProductEnumerator.java

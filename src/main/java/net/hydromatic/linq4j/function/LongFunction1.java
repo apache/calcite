@@ -21,7 +21,7 @@ package net.hydromatic.linq4j.function;
  * Function that takes one parameter and returns a native {@code long} value.
  */
 public interface LongFunction1<T1> extends Function<Long> {
-    long apply(T1 v1);
+  long apply(T1 v1);
 }
 
 // End LongFunction1.java

@@ -25,45 +25,39 @@ import java.lang.reflect.Modifier;
  * @author jhyde
  */
 public class DeclarationExpression extends Statement {
-    public final int modifiers;
-    public final ParameterExpression parameter;
-    public final Expression initializer;
+  public final int modifiers;
+  public final ParameterExpression parameter;
+  public final Expression initializer;
 
-    public DeclarationExpression(
-        int modifiers, ParameterExpression parameter, Expression initializer)
-    {
-        super(ExpressionType.Declaration, Void.TYPE);
-        this.modifiers = modifiers;
-        this.parameter = parameter;
-        this.initializer = initializer;
-    }
+  public DeclarationExpression(int modifiers, ParameterExpression parameter,
+      Expression initializer) {
+    super(ExpressionType.Declaration, Void.TYPE);
+    this.modifiers = modifiers;
+    this.parameter = parameter;
+    this.initializer = initializer;
+  }
 
-    @Override
-    public Statement accept(Visitor visitor) {
-        // do not visit parameter - visit may not return a ParameterExpression
-        Expression initializer =
-            this.initializer != null
-                ? this.initializer.accept(visitor)
-                : null;
-        return visitor.visit(this, parameter, initializer);
-    }
+  @Override
+  public Statement accept(Visitor visitor) {
+    // do not visit parameter - visit may not return a ParameterExpression
+    Expression initializer = this.initializer != null ? this.initializer.accept(
+        visitor) : null;
+    return visitor.visit(this, parameter, initializer);
+  }
 
-    @Override
-    void accept0(ExpressionWriter writer) {
-        final String modifiers = Modifier.toString(this.modifiers);
-        if (!modifiers.isEmpty()) {
-            writer.append(modifiers).append(' ');
-        }
-        writer.append(parameter.type)
-            .append(' ')
-            .append(parameter.name);
-        if (initializer != null) {
-            writer.append(" = ")
-                .append(initializer);
-        }
-        writer.append(';');
-        writer.newlineAndIndent();
+  @Override
+  void accept0(ExpressionWriter writer) {
+    final String modifiers = Modifier.toString(this.modifiers);
+    if (!modifiers.isEmpty()) {
+      writer.append(modifiers).append(' ');
     }
+    writer.append(parameter.type).append(' ').append(parameter.name);
+    if (initializer != null) {
+      writer.append(" = ").append(initializer);
+    }
+    writer.append(';');
+    writer.newlineAndIndent();
+  }
 }
 
 // End DeclarationExpression.java

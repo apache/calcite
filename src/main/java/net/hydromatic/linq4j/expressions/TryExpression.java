@@ -21,14 +21,14 @@ package net.hydromatic.linq4j.expressions;
  * Represents a try/catch/finally/fault block.
  */
 public class TryExpression extends Statement {
-    public TryExpression(ExpressionType nodeType) {
-        super(nodeType, Void.TYPE);
-    }
+  public TryExpression(ExpressionType nodeType) {
+    super(nodeType, Void.TYPE);
+  }
 
-    @Override
-    public Statement accept(Visitor visitor) {
-        return visitor.visit(this);
-    }
+  @Override
+  public Statement accept(Visitor visitor) {
+    return visitor.visit(this);
+  }
 }
 
 // End TryExpression.java

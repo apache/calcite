@@ -21,6 +21,7 @@ package net.hydromatic.linq4j.function;
  * Function that takes one parameter and returns a {@link Float} value that
  * may be null.
  */
-public interface NullableFloatFunction1<T0> extends Function1<T0, Float> {}
+public interface NullableFloatFunction1<T0> extends Function1<T0, Float> {
+}
 
 // End NullableFloatFunction1.java

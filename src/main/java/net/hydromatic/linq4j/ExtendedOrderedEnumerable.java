@@ -27,42 +27,49 @@ import java.util.Comparator;
  * @author jhyde
  */
 public interface ExtendedOrderedEnumerable<T> extends Enumerable<T> {
-    /** Performs a subsequent ordering of the elements in an
-     * {@link OrderedEnumerable} according to a key, using a specified
-     * comparator.
-     *
-     * <p>The functionality provided by this method is like that provided by
-     * {@link #thenBy(net.hydromatic.linq4j.function.Function1, java.util.Comparator) thenBy}
-     * or {@link #thenByDescending(net.hydromatic.linq4j.function.Function1, java.util.Comparator) thenByDescending},
-     * depending on whether descending is true or false. They both perform a
-     * subordinate ordering of an already sorted sequence of type
-     * {@link OrderedEnumerable}.</p> */
-    <TKey> OrderedEnumerable<T> createOrderedEnumerable(
-        Function1<T, TKey> keySelector,
-        Comparator<TKey> comparator,
-        boolean descending);
+  /**
+   * Performs a subsequent ordering of the elements in an
+   * {@link OrderedEnumerable} according to a key, using a specified
+   * comparator.
+   *
+   * <p>The functionality provided by this method is like that provided by
+   * {@link #thenBy(net.hydromatic.linq4j.function.Function1, java.util.Comparator) thenBy}
+   * or {@link #thenByDescending(net.hydromatic.linq4j.function.Function1, java.util.Comparator) thenByDescending},
+   * depending on whether descending is true or false. They both perform a
+   * subordinate ordering of an already sorted sequence of type
+   * {@link OrderedEnumerable}.</p>
+   */
+  <TKey> OrderedEnumerable<T> createOrderedEnumerable(
+      Function1<T, TKey> keySelector, Comparator<TKey> comparator,
+      boolean descending);
 
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * ascending order according to a key. */
-    <TKey extends Comparable<TKey>> OrderedEnumerable<T> thenBy(
-        Function1<T, TKey> keySelector);
+  /**
+   * Performs a subsequent ordering of the elements in a sequence in
+   * ascending order according to a key.
+   */
+  <TKey extends Comparable<TKey>> OrderedEnumerable<T> thenBy(
+      Function1<T, TKey> keySelector);
 
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * ascending order according to a key, using a specified comparator. */
-    <TKey> OrderedEnumerable<T> thenBy(
-        Function1<T, TKey> keySelector,
-        Comparator<TKey> comparator);
+  /**
+   * Performs a subsequent ordering of the elements in a sequence in
+   * ascending order according to a key, using a specified comparator.
+   */
+  <TKey> OrderedEnumerable<T> thenBy(Function1<T, TKey> keySelector,
+      Comparator<TKey> comparator);
 
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * descending order according to a key. */
-    <TKey extends Comparable<TKey>> OrderedEnumerable<T> thenByDescending(
-        Function1<T, TKey> keySelector);
+  /**
+   * Performs a subsequent ordering of the elements in a sequence in
+   * descending order according to a key.
+   */
+  <TKey extends Comparable<TKey>> OrderedEnumerable<T> thenByDescending(
+      Function1<T, TKey> keySelector);
 
-    /** Performs a subsequent ordering of the elements in a sequence in
-     * descending order according to a key, using a specified comparator. */
-    <TKey> OrderedEnumerable<T> thenByDescending(
-        Function1<T, TKey> keySelector,
-        Comparator<TKey> comparator);
+  /**
+   * Performs a subsequent ordering of the elements in a sequence in
+   * descending order according to a key, using a specified comparator.
+   */
+  <TKey> OrderedEnumerable<T> thenByDescending(Function1<T, TKey> keySelector,
+      Comparator<TKey> comparator);
 }
 
 // End ExtendedOrderedEnumerable.java

@@ -32,39 +32,35 @@ import java.util.List;
  * </p>
  */
 public class ConditionalStatement extends Statement {
-    private final List<Node> expressionList;
+  private final List<Node> expressionList;
 
-    public ConditionalStatement(List<Node> expressionList) {
-        super(ExpressionType.Conditional, Void.TYPE);
-        this.expressionList = expressionList;
-    }
+  public ConditionalStatement(List<Node> expressionList) {
+    super(ExpressionType.Conditional, Void.TYPE);
+    this.expressionList = expressionList;
+  }
 
-    @Override
-    public ConditionalStatement accept(Visitor visitor) {
-        List<Node> list =
-            Expressions.acceptNodes(expressionList, visitor);
-        if (!list.equals(expressionList)) {
-            return new ConditionalStatement(list);
-        }
-        return this;
+  @Override
+  public ConditionalStatement accept(Visitor visitor) {
+    List<Node> list = Expressions.acceptNodes(expressionList, visitor);
+    if (!list.equals(expressionList)) {
+      return new ConditionalStatement(list);
     }
+    return this;
+  }
 
-    @Override
-    void accept0(ExpressionWriter writer) {
-        for (int i = 0; i < expressionList.size(); i += 2) {
-            writer.append(i > 0 ? " else if (" : "if (")
-                .append(expressionList.get(i))
-                .append(") ")
-                .append(
-                    Blocks.toBlock(expressionList.get(i + 1)));
-        }
-        if (expressionList.size() % 2 == 1) {
-            writer.append(" else ")
-                .append(
-                    Blocks.toBlock(
-                        expressionList.get(expressionList.size() - 1)));
-        }
+  @Override
+  void accept0(ExpressionWriter writer) {
+    for (int i = 0; i < expressionList.size(); i += 2) {
+      writer.append(i > 0 ? " else if (" : "if (")
+          .append(expressionList.get(i))
+          .append(") ")
+          .append(Blocks.toBlock(expressionList.get(i + 1)));
     }
+    if (expressionList.size() % 2 == 1) {
+      writer.append(" else ").append(Blocks.toBlock(expressionList.get(
+          expressionList.size() - 1)));
+    }
+  }
 }
 
 // End ConditionalStatement.java

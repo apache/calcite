@@ -24,56 +24,50 @@ import java.lang.reflect.Modifier;
  * Represents accessing a field or property.
  */
 public class MemberExpression extends Expression {
-    public final Expression expression;
-    public final PseudoField field;
+  public final Expression expression;
+  public final PseudoField field;
 
-    public MemberExpression(Expression expression, Field field) {
-        this(expression, Types.field(field));
-    }
+  public MemberExpression(Expression expression, Field field) {
+    this(expression, Types.field(field));
+  }
 
-    public MemberExpression(Expression expression, PseudoField field) {
-        super(ExpressionType.MemberAccess, field.getType());
-        this.expression = expression;
-        this.field = field;
-        assert expression != null || Modifier.isStatic(field.getModifiers())
-            : "must specify expression if field is not static";
-    }
+  public MemberExpression(Expression expression, PseudoField field) {
+    super(ExpressionType.MemberAccess, field.getType());
+    this.expression = expression;
+    this.field = field;
+    assert expression != null || Modifier.isStatic(field.getModifiers())
+        : "must specify expression if field is not static";
+  }
 
-    @Override
-    public Expression accept(Visitor visitor) {
-        Expression expression1 =
-            expression == null
-                ? null
-                : expression.accept(visitor);
-        return visitor.visit(this, expression1);
-    }
+  @Override
+  public Expression accept(Visitor visitor) {
+    Expression expression1 = expression == null ? null : expression.accept(
+        visitor);
+    return visitor.visit(this, expression1);
+  }
 
-    public Object evaluate(Evaluator evaluator) {
-        final Object o =
-            expression == null
-                ? null
-                : expression.evaluate(evaluator);
-        try {
-            return field.get(o);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("error while evaluating " + this, e);
-        }
+  public Object evaluate(Evaluator evaluator) {
+    final Object o = expression == null ? null : expression.evaluate(evaluator);
+    try {
+      return field.get(o);
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException("error while evaluating " + this, e);
     }
+  }
 
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        if (writer.requireParentheses(this, lprec, rprec)) {
-            return;
-        }
-        if (expression != null) {
-            expression.accept(writer, lprec, nodeType.lprec);
-        } else {
-            assert (field.getModifiers() & Modifier.STATIC) != 0;
-            writer.append(field.getDeclaringClass());
-        }
-        writer.append('.')
-            .append(field.getName());
+  @Override
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    if (writer.requireParentheses(this, lprec, rprec)) {
+      return;
     }
+    if (expression != null) {
+      expression.accept(writer, lprec, nodeType.lprec);
+    } else {
+      assert (field.getModifiers() & Modifier.STATIC) != 0;
+      writer.append(field.getDeclaringClass());
+    }
+    writer.append('.').append(field.getName());
+  }
 }
 
 // End MemberExpression.java

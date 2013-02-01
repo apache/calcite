@@ -26,59 +26,46 @@ import java.util.List;
  * Declaration of a constructor.
  */
 public class ConstructorDeclaration extends MemberDeclaration {
-    public final int modifier;
-    public final Type resultType;
-    public final List<ParameterExpression> parameters;
-    public final BlockExpression body;
+  public final int modifier;
+  public final Type resultType;
+  public final List<ParameterExpression> parameters;
+  public final BlockExpression body;
 
-    public ConstructorDeclaration(
-        int modifier,
-        Type declaredAgainst,
-        List<ParameterExpression> parameters,
-        BlockExpression body)
-    {
-        this.modifier = modifier;
-        this.resultType = declaredAgainst;
-        this.parameters = parameters;
-        this.body = body;
+  public ConstructorDeclaration(int modifier, Type declaredAgainst,
+      List<ParameterExpression> parameters, BlockExpression body) {
+    this.modifier = modifier;
+    this.resultType = declaredAgainst;
+    this.parameters = parameters;
+    this.body = body;
+  }
+
+  @Override
+  public MemberDeclaration accept(Visitor visitor) {
+    // do not visit parameters
+    final BlockExpression body = this.body.accept(visitor);
+    return visitor.visit(this, parameters, body);
+  }
+
+  public void accept(ExpressionWriter writer) {
+    String modifiers = Modifier.toString(modifier);
+    writer.append(modifiers);
+    if (!modifiers.isEmpty()) {
+      writer.append(' ');
     }
+    writer.append(resultType).list("(", ", ", ")", new AbstractList<String>() {
+      public String get(int index) {
+        ParameterExpression parameter = parameters.get(index);
+        final String modifiers = Modifier.toString(parameter.modifier);
+        return modifiers + (modifiers.isEmpty() ? "" : " ") + Types.className(
+            parameter.getType()) + " " + parameter.name;
+      }
 
-    @Override
-    public MemberDeclaration accept(Visitor visitor) {
-        // do not visit parameters
-        final BlockExpression body = this.body.accept(visitor);
-        return visitor.visit(this, parameters, body);
-    }
-
-    public void accept(ExpressionWriter writer) {
-        String modifiers = Modifier.toString(modifier);
-        writer.append(modifiers);
-        if (!modifiers.isEmpty()) {
-            writer.append(' ');
-        }
-        writer.append(resultType)
-            .list(
-                "(", ", ", ")",
-                new AbstractList<String>() {
-                    public String get(int index) {
-                        ParameterExpression parameter = parameters.get(index);
-                        final String modifiers =
-                            Modifier.toString(parameter.modifier);
-                        return modifiers
-                            + (modifiers.isEmpty() ? "" : " ")
-                            + Types.className(parameter.getType())
-                            + " "
-                            + parameter.name;
-                    }
-
-                    public int size() {
-                        return parameters.size();
-                    }
-                })
-            .append(' ')
-            .append(body);
-        writer.newlineAndIndent();
-    }
+      public int size() {
+        return parameters.size();
+      }
+    }).append(' ').append(body);
+    writer.newlineAndIndent();
+  }
 }
 
 // End ConstructorDeclaration.java

@@ -33,31 +33,26 @@ import java.util.List;
  * </p>
  */
 public class ConditionalExpression extends AbstractNode {
-    private final List<Node> expressionList;
+  private final List<Node> expressionList;
 
-    public ConditionalExpression(
-        List<Node> expressionList, Type type)
-    {
-        super(ExpressionType.Conditional, type);
-        this.expressionList = expressionList;
-    }
+  public ConditionalExpression(List<Node> expressionList, Type type) {
+    super(ExpressionType.Conditional, type);
+    this.expressionList = expressionList;
+  }
 
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        for (int i = 0; i < expressionList.size(); i += 2) {
-            writer.append(i > 0 ? " else if (" : "if (")
-                .append(expressionList.get(i))
-                .append(") ")
-                .append(
-                    Blocks.toBlock(expressionList.get(i + 1)));
-        }
-        if (expressionList.size() % 2 == 1) {
-            writer.append(" else ")
-                .append(
-                    Blocks.toBlock(
-                        expressionList.get(expressionList.size() - 1)));
-        }
+  @Override
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    for (int i = 0; i < expressionList.size(); i += 2) {
+      writer.append(i > 0 ? " else if (" : "if (")
+          .append(expressionList.get(i))
+          .append(") ")
+          .append(Blocks.toBlock(expressionList.get(i + 1)));
     }
+    if (expressionList.size() % 2 == 1) {
+      writer.append(" else ").append(Blocks.toBlock(expressionList.get(
+          expressionList.size() - 1)));
+    }
+  }
 }
 
 // End ConditionalExpression.java

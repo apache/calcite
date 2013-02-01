@@ -29,52 +29,43 @@ import java.lang.reflect.Type;
  * @author jhyde
  */
 public abstract class QueryProviderImpl implements QueryProvider {
-    /**
-     * Creates a QueryProviderImpl.
-     */
-    public QueryProviderImpl() {
-        super();
+  /**
+   * Creates a QueryProviderImpl.
+   */
+  public QueryProviderImpl() {
+    super();
+  }
+
+  public <T> Queryable<T> createQuery(Expression expression, Class<T> rowType) {
+    return new QueryableImpl<T>(this, rowType, expression);
+  }
+
+  public <T> Queryable<T> createQuery(Expression expression, Type rowType) {
+    return new QueryableImpl<T>(this, rowType, expression);
+  }
+
+  public <T> T execute(Expression expression, Class<T> type) {
+    throw new UnsupportedOperationException();
+  }
+
+  public <T> T execute(Expression expression, Type type) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Binds an expression to this query provider.
+   */
+  public static class QueryableImpl<T> extends BaseQueryable<T> {
+    public QueryableImpl(QueryProviderImpl provider, Type elementType,
+        Expression expression) {
+      super(provider, elementType, expression);
     }
 
-    public <T> Queryable<T> createQuery(
-        Expression expression,
-        Class<T> rowType)
-    {
-        return new QueryableImpl<T>(this, rowType, expression);
+    @Override
+    public String toString() {
+      return "Queryable(expr=" + expression + ")";
     }
-
-    public <T> Queryable<T> createQuery(
-        Expression expression,
-        Type rowType)
-    {
-        return new QueryableImpl<T>(this, rowType, expression);
-    }
-
-    public <T> T execute(Expression expression, Class<T> type) {
-        throw new UnsupportedOperationException();
-    }
-
-    public <T> T execute(Expression expression, Type type) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Binds an expression to this query provider.
-     */
-    public static class QueryableImpl<T>
-        extends BaseQueryable<T>
-    {
-        public QueryableImpl(
-            QueryProviderImpl provider, Type elementType, Expression expression)
-        {
-            super(provider, elementType, expression);
-        }
-
-        @Override
-        public String toString() {
-            return "Queryable(expr=" + expression + ")";
-        }
-    }
+  }
 }
 
 // End QueryProviderImpl.java

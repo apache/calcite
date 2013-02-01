@@ -27,152 +27,129 @@ import java.util.*;
  * of an expression tree. This class cannot be inherited.
  */
 public final class FunctionExpression<F extends Function<?>>
-    extends LambdaExpression
-{
-    public final F function;
-    public final BlockExpression body;
-    public final List<ParameterExpression> parameterList;
-    private F dynamicFunction;
+    extends LambdaExpression {
+  public final F function;
+  public final BlockExpression body;
+  public final List<ParameterExpression> parameterList;
+  private F dynamicFunction;
 
-    private FunctionExpression(
-        Class<F> type,
-        F function,
-        BlockExpression body,
-        List<ParameterExpression> parameterList)
-    {
-        super(ExpressionType.Lambda, type);
-        assert type != null;
-        assert function != null || body != null;
-        this.function = function;
-        this.body = body;
-        this.parameterList = parameterList;
+  private FunctionExpression(Class<F> type, F function, BlockExpression body,
+      List<ParameterExpression> parameterList) {
+    super(ExpressionType.Lambda, type);
+    assert type != null;
+    assert function != null || body != null;
+    this.function = function;
+    this.body = body;
+    this.parameterList = parameterList;
+  }
+
+  public FunctionExpression(F function) {
+    this((Class) function.getClass(), function, null,
+        Collections.<ParameterExpression>emptyList());
+  }
+
+  public FunctionExpression(Class<F> type, BlockExpression body,
+      List<ParameterExpression> parameters) {
+    this(type, null, body, parameters);
+  }
+
+  @Override
+  public Expression accept(Visitor visitor) {
+    BlockExpression body = this.body.accept(visitor);
+    return visitor.visit(this, body, parameterList);
+  }
+
+  public Invokable compile() {
+    return new Invokable() {
+      public Object dynamicInvoke(Object... args) {
+        final Evaluator evaluator = new Evaluator();
+        for (int i = 0; i < args.length; i++) {
+          evaluator.push(parameterList.get(i), args[i]);
+        }
+        return evaluator.evaluate(body);
+      }
+    };
+  }
+
+  public F getFunction() {
+    if (function != null) {
+      return function;
     }
+    if (dynamicFunction == null) {
+      final Invokable x = compile();
 
-    public FunctionExpression(F function) {
-        this(
-            (Class) function.getClass(), function, null,
-            Collections.<ParameterExpression>emptyList());
-    }
-
-    public FunctionExpression(
-        Class<F> type,
-        BlockExpression body,
-        List<ParameterExpression> parameters)
-    {
-        this(type, null, body, parameters);
-    }
-
-    @Override
-    public Expression accept(Visitor visitor) {
-        BlockExpression body = this.body.accept(visitor);
-        return visitor.visit(this, body, parameterList);
-    }
-
-    public Invokable compile() {
-        return new Invokable() {
-            public Object dynamicInvoke(Object... args) {
-                final Evaluator evaluator = new Evaluator();
-                for (int i = 0; i < args.length; i++) {
-                    evaluator.push(parameterList.get(i), args[i]);
-                }
-                return evaluator.evaluate(body);
+      //noinspection unchecked
+      dynamicFunction = (F) Proxy.newProxyInstance(getClass().getClassLoader(),
+          new Class[]{Types.toClass(type)},
+          new InvocationHandler() {
+            public Object invoke(Object proxy, Method method, Object[] args)
+                throws Throwable {
+              return x.dynamicInvoke(args);
             }
-        };
+          });
+    }
+    return dynamicFunction;
+  }
+
+  @Override
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    // "new Function1() {
+    //    public Result apply(T1 p1, ...) {
+    //        <body>
+    //    }
+    //    // bridge method
+    //    public Object apply(Object p1, ...) {
+    //        return apply((T1) p1, ...);
+    //    }
+    // }
+    List<String> params = new ArrayList<String>();
+    List<String> bridgeParams = new ArrayList<String>();
+    List<String> bridgeArgs = new ArrayList<String>();
+    for (ParameterExpression parameterExpression : parameterList) {
+      params.add(Types.boxClassName(parameterExpression.getType())
+                 + " "
+                 + parameterExpression.name);
+      bridgeParams.add("Object " + parameterExpression.name);
+      bridgeArgs.add("("
+                     + Types.boxClassName(parameterExpression.getType())
+                     + ") "
+                     + parameterExpression.name);
+    }
+    Type bridgeResultType = Functions.FUNCTION_RESULT_TYPES.get(this.type);
+    if (bridgeResultType == null) {
+      bridgeResultType = body.getType();
+    }
+    Type resultType2 = bridgeResultType;
+    if (bridgeResultType == Object.class
+        && !params.equals(bridgeParams)
+        && !(body.getType() instanceof TypeVariable)) {
+      resultType2 = body.getType();
+    }
+    writer.append("new ").append(type).append("()").begin(" {\n").append(
+        "public ").append(Types.className(resultType2)).list(" apply(", ", ",
+        ") ", params).append(Blocks.toFunctionBlock(body));
+
+    // Generate a bridge method. Argument types are looser (as if every
+    // type parameter is set to 'Object').
+    //
+    // Skip the bridge method if there are no arguments. It would have the
+    // same overload as the regular method.
+    if (!bridgeParams.isEmpty()) {
+      writer
+        .append("public ")
+        .append(Types.className(bridgeResultType))
+        .list(" apply(", ", ", ") ", bridgeParams)
+        .begin("{\n")
+        .list("return apply(\n", ",\n", ");\n", bridgeArgs)
+        .end("}\n");
     }
 
-    public F getFunction() {
-        if (function != null) {
-            return function;
-        }
-        if (dynamicFunction == null) {
-            final Invokable x = compile();
+    writer.end("}\n");
+  }
 
-            //noinspection unchecked
-            dynamicFunction = (F) Proxy.newProxyInstance(
-                getClass().getClassLoader(),
-                new Class[] {Types.toClass(type)},
-                new InvocationHandler() {
-                    public Object invoke(
-                        Object proxy,
-                        Method method,
-                        Object[] args) throws Throwable
-                    {
-                        return x.dynamicInvoke(args);
-                    }
-                }
-            );
-        }
-        return dynamicFunction;
-    }
-
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        // "new Function1() {
-        //    public Result apply(T1 p1, ...) {
-        //        <body>
-        //    }
-        //    // bridge method
-        //    public Object apply(Object p1, ...) {
-        //        return apply((T1) p1, ...);
-        //    }
-        // }
-        List<String> params = new ArrayList<String>();
-        List<String> bridgeParams = new ArrayList<String>();
-        List<String> bridgeArgs = new ArrayList<String>();
-        for (ParameterExpression parameterExpression : parameterList) {
-            params.add(
-                Types.boxClassName(parameterExpression.getType())
-                + " "
-                + parameterExpression.name);
-            bridgeParams.add(
-                "Object "
-                + parameterExpression.name);
-            bridgeArgs.add(
-                "("
-                + Types.boxClassName(parameterExpression.getType())
-                + ") "
-                + parameterExpression.name);
-        }
-        Type bridgeResultType = Functions.FUNCTION_RESULT_TYPES.get(this.type);
-        if (bridgeResultType == null) {
-            bridgeResultType = body.getType();
-        }
-        Type resultType2 = bridgeResultType;
-        if (bridgeResultType == Object.class
-            && !params.equals(bridgeParams)
-            && !(body.getType() instanceof TypeVariable))
-        {
-            resultType2 = body.getType();
-        }
-        writer.append("new ")
-            .append(type)
-            .append("()")
-            .begin(" {\n")
-            .append("public ")
-            .append(Types.className(resultType2))
-            .list(" apply(", ", ", ") ", params)
-            .append(Blocks.toFunctionBlock(body));
-
-        // Generate a bridge method. Argument types are looser (as if every
-        // type parameter is set to 'Object').
-        //
-        // Skip the bridge method if there are no arguments. It would have the
-        // same overload as the regular method.
-        if (!bridgeParams.isEmpty()) {
-            writer.append("public ")
-                .append(Types.className(bridgeResultType))
-                .list(" apply(", ", ", ") ", bridgeParams)
-                .begin("{\n")
-                .list("return apply(\n", ",\n", ");\n", bridgeArgs)
-                .end("}\n");
-        }
-
-        writer.end("}\n");
-    }
-
-    public interface Invokable {
-        Object dynamicInvoke(Object... args);
-    }
+  public interface Invokable {
+    Object dynamicInvoke(Object... args);
+  }
 }
 
 // End FunctionExpression.java

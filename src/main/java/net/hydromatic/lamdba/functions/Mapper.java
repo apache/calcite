@@ -21,11 +21,11 @@ package net.hydromatic.lamdba.functions;
  * Mapper.
  */
 public interface Mapper<T, R> {
-    R map(T t);
+  R map(T t);
 
-    <V> Mapper<T, V> compose(Mapper<? super R, ? extends V> after);
-    // default:
-    // return Mappers.chain(this, after);
+  <V> Mapper<T, V> compose(Mapper<? super R, ? extends V> after);
+  // default:
+  // return Mappers.chain(this, after);
 }
 
 // End Mapper.java

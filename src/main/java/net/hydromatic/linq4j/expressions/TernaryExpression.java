@@ -23,41 +23,36 @@ import java.lang.reflect.Type;
  * Represents an expression that has a ternary operator.
  */
 public class TernaryExpression extends Expression {
-    public final Expression expression0;
-    public final Expression expression1;
-    public final Expression expression2;
+  public final Expression expression0;
+  public final Expression expression1;
+  public final Expression expression2;
 
-    TernaryExpression(
-        ExpressionType nodeType,
-        Type type,
-        Expression expression0,
-        Expression expression1,
-        Expression expression2)
-    {
-        super(nodeType, type);
-        this.expression0 = expression0;
-        this.expression1 = expression1;
-        this.expression2 = expression2;
-    }
+  TernaryExpression(ExpressionType nodeType, Type type, Expression expression0,
+      Expression expression1, Expression expression2) {
+    super(nodeType, type);
+    this.expression0 = expression0;
+    this.expression1 = expression1;
+    this.expression2 = expression2;
+  }
 
-    @Override
-    public Expression accept(Visitor visitor) {
-        Expression expression0 = this.expression0.accept(visitor);
-        Expression expression1 = this.expression1.accept(visitor);
-        Expression expression2 = this.expression2.accept(visitor);
-        return visitor.visit(this, expression0, expression1, expression2);
-    }
+  @Override
+  public Expression accept(Visitor visitor) {
+    Expression expression0 = this.expression0.accept(visitor);
+    Expression expression1 = this.expression1.accept(visitor);
+    Expression expression2 = this.expression2.accept(visitor);
+    return visitor.visit(this, expression0, expression1, expression2);
+  }
 
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        if (writer.requireParentheses(this, lprec, rprec)) {
-            return;
-        }
-        expression0.accept(writer, lprec, nodeType.lprec);
-        writer.append(nodeType.op);
-        expression1.accept(writer, nodeType.rprec, nodeType.lprec);
-        writer.append(nodeType.op2);
-        expression2.accept(writer, nodeType.rprec, rprec);
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    if (writer.requireParentheses(this, lprec, rprec)) {
+      return;
     }
+    expression0.accept(writer, lprec, nodeType.lprec);
+    writer.append(nodeType.op);
+    expression1.accept(writer, nodeType.rprec, nodeType.lprec);
+    writer.append(nodeType.op2);
+    expression2.accept(writer, nodeType.rprec, rprec);
+  }
 }
 
 // End TernaryExpression.java

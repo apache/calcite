@@ -23,7 +23,7 @@ package net.hydromatic.lamdba.functions;
  * <p>Based on {@code java.util.functions.Factory}.</p>
  */
 public interface Factory<T> {
-    T make();
+  T make();
 }
 
 // End Factory.java

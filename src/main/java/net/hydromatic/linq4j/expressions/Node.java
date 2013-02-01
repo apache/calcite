@@ -18,12 +18,12 @@
 package net.hydromatic.linq4j.expressions;
 
 /**
-* <p>Parse tree node.</p>
+ * <p>Parse tree node.</p>
  */
 public interface Node {
-    public Node accept(Visitor visitor);
+  public Node accept(Visitor visitor);
 
-    void accept(ExpressionWriter expressionWriter);
+  void accept(ExpressionWriter expressionWriter);
 }
 
 // End Node.java

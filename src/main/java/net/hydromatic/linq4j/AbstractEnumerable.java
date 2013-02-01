@@ -28,9 +28,9 @@ import java.util.Iterator;
  * but it is not required.</p>
  */
 public abstract class AbstractEnumerable<T> extends DefaultEnumerable<T> {
-    public Iterator<T> iterator() {
-        return Linq4j.enumeratorIterator(enumerator());
-    }
+  public Iterator<T> iterator() {
+    return Linq4j.enumeratorIterator(enumerator());
+  }
 }
 
 // End AbstractEnumerable.java

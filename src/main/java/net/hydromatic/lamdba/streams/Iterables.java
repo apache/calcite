@@ -26,28 +26,28 @@ import java.util.NoSuchElementException;
  * <p>Based on API of {@code java.util.Iterables} in OpenJDK 8.</p>
  */
 public final class Iterables {
-    private Iterables() {
-        throw new AssertionError();
-    }
+  private Iterables() {
+    throw new AssertionError();
+  }
 
-    /**
-     * Returns the only element of an iterable.
-     *
-     * @throws NoSuchElementException if this Iterable contains no elements.
-     * @throws IllegalStateException if this Iterable contains more than one
-     * element.
-     */
-    public static <T> T only(Iterable<T> iterable) {
-        Iterator<T> iterator = iterable.iterator();
-        if (!iterator.hasNext()) {
-            throw new NoSuchElementException();
-        }
-        T t = iterator.next();
-        if (iterator.hasNext()) {
-            throw new IllegalStateException();
-        }
-        return t;
+  /**
+   * Returns the only element of an iterable.
+   *
+   * @throws NoSuchElementException if this Iterable contains no elements.
+   * @throws IllegalStateException  if this Iterable contains more than one
+   *                                element.
+   */
+  public static <T> T only(Iterable<T> iterable) {
+    Iterator<T> iterator = iterable.iterator();
+    if (!iterator.hasNext()) {
+      throw new NoSuchElementException();
     }
+    T t = iterator.next();
+    if (iterator.hasNext()) {
+      throw new IllegalStateException();
+    }
+    return t;
+  }
 }
 
 // End Iterables.java

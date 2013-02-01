@@ -25,52 +25,46 @@ import java.util.List;
  * Declaration of a class.
  */
 public class ClassDeclaration extends MemberDeclaration {
-    public final int modifier;
-    public final String classClass = "class";
-    public final String name;
-    public final List<MemberDeclaration> memberDeclarations;
-    private final Type extended;
-    private final List<Type> implemented;
+  public final int modifier;
+  public final String classClass = "class";
+  public final String name;
+  public final List<MemberDeclaration> memberDeclarations;
+  private final Type extended;
+  private final List<Type> implemented;
 
-    public ClassDeclaration(
-        int modifier,
-        String name,
-        Type extended,
-        List<Type> implemented,
-        List<MemberDeclaration> memberDeclarations)
-    {
-        this.modifier = modifier;
-        this.name = name;
-        this.memberDeclarations = memberDeclarations;
-        this.extended = extended;
-        this.implemented = implemented;
-    }
+  public ClassDeclaration(int modifier, String name, Type extended,
+      List<Type> implemented, List<MemberDeclaration> memberDeclarations) {
+    this.modifier = modifier;
+    this.name = name;
+    this.memberDeclarations = memberDeclarations;
+    this.extended = extended;
+    this.implemented = implemented;
+  }
 
-    public void accept(ExpressionWriter writer) {
-        String modifiers = Modifier.toString(modifier);
-        writer.append(modifiers);
-        if (!modifiers.isEmpty()) {
-            writer.append(' ');
-        }
-        writer.append(classClass)
-            .append(' ')
-            .append(name);
-        if (extended != null) {
-            writer.append(" extends ")
-                .append(extended);
-        }
-        if (!implemented.isEmpty()) {
-            writer.list(" implements ", ", ", "", implemented);
-        }
-        writer.list(" {\n", "", "}", memberDeclarations);
-        writer.newlineAndIndent();
+  public void accept(ExpressionWriter writer) {
+    String modifiers = Modifier.toString(modifier);
+    writer.append(modifiers);
+    if (!modifiers.isEmpty()) {
+      writer.append(' ');
     }
+    writer.append(classClass).append(' ').append(name);
+    if (extended != null) {
+      writer.append(" extends ").append(extended);
+    }
+    if (!implemented.isEmpty()) {
+      writer.list(" implements ", ", ", "", implemented);
+    }
+    writer.list(" {\n", "", "}", memberDeclarations);
+    writer.newlineAndIndent();
+  }
 
-    public ClassDeclaration accept(Visitor visitor) {
-        final List<MemberDeclaration> members1 =
-            Expressions.acceptMemberDeclarations(memberDeclarations, visitor);
-        return visitor.visit(this, members1);
-    }
+  public ClassDeclaration accept(Visitor visitor) {
+    final
+    List<MemberDeclaration>
+        members1 =
+        Expressions.acceptMemberDeclarations(memberDeclarations, visitor);
+    return visitor.visit(this, members1);
+  }
 }
 
 // End ClassDeclaration.java

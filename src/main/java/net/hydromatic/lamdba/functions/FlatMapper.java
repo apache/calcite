@@ -23,7 +23,7 @@ package net.hydromatic.lamdba.functions;
  * <p>Based on {@code java.util.functions.FlatMapper}.</p>
  */
 public interface FlatMapper<T, R> {
-    void flatMapInto(T element, Sink<? super R> sink);
+  void flatMapInto(T element, Sink<? super R> sink);
 }
 
 // End FlatMapper.java

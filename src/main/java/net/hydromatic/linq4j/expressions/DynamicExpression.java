@@ -21,14 +21,14 @@ package net.hydromatic.linq4j.expressions;
  * Represents a dynamic operation.
  */
 public class DynamicExpression extends Expression {
-    public DynamicExpression(Class type) {
-        super(ExpressionType.Dynamic, type);
-    }
+  public DynamicExpression(Class type) {
+    super(ExpressionType.Dynamic, type);
+  }
 
-    @Override
-    public Expression accept(Visitor visitor) {
-        return visitor.visit(this);
-    }
+  @Override
+  public Expression accept(Visitor visitor) {
+    return visitor.visit(this);
+  }
 }
 
 // End DynamicExpression.java

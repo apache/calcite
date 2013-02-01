@@ -27,57 +27,56 @@ import java.util.Set;
  * can be defined.
  */
 public class BlockExpression extends Statement {
-    public final List<Statement> statements;
+  public final List<Statement> statements;
 
-    BlockExpression(List<Statement> statements, Type type) {
-        super(ExpressionType.Block, type);
-        this.statements = statements;
-        assert distinctVariables(true);
-    }
+  BlockExpression(List<Statement> statements, Type type) {
+    super(ExpressionType.Block, type);
+    this.statements = statements;
+    assert distinctVariables(true);
+  }
 
-    private boolean distinctVariables(boolean fail) {
-        Set<String> names = new HashSet<String>();
-        for (Statement statement : statements) {
-            if (statement instanceof DeclarationExpression) {
-                String name =
-                    ((DeclarationExpression) statement).parameter.name;
-                if (!names.add(name)) {
-                    assert !fail : "duplicate variable " + name;
-                    return false;
-                }
-            }
+  private boolean distinctVariables(boolean fail) {
+    Set<String> names = new HashSet<String>();
+    for (Statement statement : statements) {
+      if (statement instanceof DeclarationExpression) {
+        String name = ((DeclarationExpression) statement).parameter.name;
+        if (!names.add(name)) {
+          assert !fail : "duplicate variable " + name;
+          return false;
         }
-        return true;
+      }
     }
+    return true;
+  }
 
-    @Override
-    public BlockExpression accept(Visitor visitor) {
-        List<Statement> newStatements =
-            Expressions.acceptStatements(statements, visitor);
-        return visitor.visit(this, newStatements);
-    }
+  @Override
+  public BlockExpression accept(Visitor visitor) {
+    List<Statement> newStatements = Expressions.acceptStatements(statements,
+        visitor);
+    return visitor.visit(this, newStatements);
+  }
 
-    @Override
-    void accept0(ExpressionWriter writer) {
-        if (statements.isEmpty()) {
-            writer.append("{}");
-            return;
-        }
-        writer.begin("{\n");
-        for (Statement node : statements) {
-            node.accept(writer, 0, 0);
-        }
-        writer.end("}\n");
+  @Override
+  void accept0(ExpressionWriter writer) {
+    if (statements.isEmpty()) {
+      writer.append("{}");
+      return;
     }
+    writer.begin("{\n");
+    for (Statement node : statements) {
+      node.accept(writer, 0, 0);
+    }
+    writer.end("}\n");
+  }
 
-    @Override
-    public Object evaluate(Evaluator evaluator) {
-        Object o = null;
-        for (Statement statement : statements) {
-            o = statement.evaluate(evaluator);
-        }
-        return o;
+  @Override
+  public Object evaluate(Evaluator evaluator) {
+    Object o = null;
+    for (Statement statement : statements) {
+      o = statement.evaluate(evaluator);
     }
+    return o;
+  }
 }
 
 // End BlockExpression.java

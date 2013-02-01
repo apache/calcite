@@ -23,10 +23,10 @@ package net.hydromatic.lamdba.functions;
  * <p>Based on {@code java.util.functions.Block}.</p>
  */
 public interface Block<T> {
-    void apply(T t);
+  void apply(T t);
 
-    Block<T> chain(Block<? super T> second);
-    // default: Blocks.chain(this, second);
+  Block<T> chain(Block<? super T> second);
+  // default: Blocks.chain(this, second);
 }
 
 // End Block.java

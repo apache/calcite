@@ -23,34 +23,30 @@ import java.util.List;
  * Represents indexing a property or array.
  */
 public class IndexExpression extends Expression {
-    public final Expression array;
-    public final List<Expression> indexExpressions;
+  public final Expression array;
+  public final List<Expression> indexExpressions;
 
-    public IndexExpression(
-        Expression array,
-        List<Expression> indexExpressions)
-    {
-        super(
-            ExpressionType.ArrayIndex, Types.getComponentType(array.getType()));
-        this.array = array;
-        this.indexExpressions = indexExpressions;
-        assert indexExpressions.size() >= 1;
-    }
+  public IndexExpression(Expression array, List<Expression> indexExpressions) {
+    super(ExpressionType.ArrayIndex, Types.getComponentType(array.getType()));
+    this.array = array;
+    this.indexExpressions = indexExpressions;
+    assert indexExpressions.size() >= 1;
+  }
 
-    @Override
-    public Expression accept(Visitor visitor) {
-        Expression array = this.array.accept(visitor);
-        List<Expression> indexExpressions =
-            Expressions.acceptExpressions(this.indexExpressions, visitor);
-        return visitor.visit(this, array, indexExpressions);
-    }
+  @Override
+  public Expression accept(Visitor visitor) {
+    Expression array = this.array.accept(visitor);
+    List<Expression> indexExpressions = Expressions.acceptExpressions(
+        this.indexExpressions, visitor);
+    return visitor.visit(this, array, indexExpressions);
+  }
 
 
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        array.accept(writer, lprec, nodeType.lprec);
-        writer.list("[", ", ", "]", indexExpressions);
-    }
+  @Override
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    array.accept(writer, lprec, nodeType.lprec);
+    writer.list("[", ", ", "]", indexExpressions);
+  }
 }
 
 // End IndexExpression.java

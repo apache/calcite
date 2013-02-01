@@ -27,93 +27,82 @@ import java.util.List;
  * Represents a call to either a static or an instance method.
  */
 public class MethodCallExpression extends Expression {
-    public final Method method;
-    public final Expression targetExpression; // null for call to static method
-    public final List<Expression> expressions;
+  public final Method method;
+  public final Expression targetExpression; // null for call to static method
+  public final List<Expression> expressions;
 
-    MethodCallExpression(
-        Type returnType,
-        Method method,
-        Expression targetExpression,
-        List<Expression> expressions)
-    {
-        super(ExpressionType.Call, returnType);
-        this.method = method;
-        this.targetExpression = targetExpression;
-        this.expressions = expressions;
-        assert expressions != null;
-        assert returnType != null;
-        assert (targetExpression == null)
-               == Modifier.isStatic(method.getModifiers());
-        assert Types.toClass(returnType) == method.getReturnType();
+  MethodCallExpression(Type returnType, Method method,
+      Expression targetExpression, List<Expression> expressions) {
+    super(ExpressionType.Call, returnType);
+    this.method = method;
+    this.targetExpression = targetExpression;
+    this.expressions = expressions;
+    assert expressions != null;
+    assert returnType != null;
+    assert (targetExpression == null) == Modifier.isStatic(
+        method.getModifiers());
+    assert Types.toClass(returnType) == method.getReturnType();
+  }
+
+  MethodCallExpression(Method method, Expression targetExpression,
+      List<Expression> expressions) {
+    this(method.getGenericReturnType(), method, targetExpression, expressions);
+  }
+
+  @Override
+  public Expression accept(Visitor visitor) {
+    Expression targetExpression = Expressions.accept(this.targetExpression,
+        visitor);
+    List<Expression> expressions = Expressions.acceptExpressions(
+        this.expressions, visitor);
+    return visitor.visit(this, targetExpression, expressions);
+  }
+
+
+  @Override
+  public Object evaluate(Evaluator evaluator) {
+    final Object target;
+    if (targetExpression == null) {
+      target = null;
+    } else {
+      target = targetExpression.evaluate(evaluator);
     }
-
-    MethodCallExpression(
-        Method method,
-        Expression targetExpression,
-        List<Expression> expressions)
-    {
-        this(
-            method.getGenericReturnType(), method, targetExpression,
-            expressions);
+    final Object[] args = new Object[expressions.size()];
+    for (int i = 0; i < expressions.size(); i++) {
+      Expression expression = expressions.get(i);
+      args[i] = expression.evaluate(evaluator);
     }
-
-    @Override
-    public Expression accept(Visitor visitor) {
-        Expression targetExpression =
-            Expressions.accept(this.targetExpression, visitor);
-        List<Expression> expressions =
-            Expressions.acceptExpressions(this.expressions, visitor);
-        return visitor.visit(this, targetExpression, expressions);
+    try {
+      return method.invoke(target, args);
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException("error while evaluating " + this, e);
+    } catch (InvocationTargetException e) {
+      throw new RuntimeException("error while evaluating " + this, e);
     }
+  }
 
-
-    @Override
-    public Object evaluate(Evaluator evaluator) {
-        final Object target;
-        if (targetExpression == null) {
-            target = null;
-        } else {
-            target = targetExpression.evaluate(evaluator);
-        }
-        final Object[] args = new Object[expressions.size()];
-        for (int i = 0; i < expressions.size(); i++) {
-            Expression expression = expressions.get(i);
-            args[i] = expression.evaluate(evaluator);
-        }
-        try {
-            return method.invoke(target, args);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("error while evaluating " + this, e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException("error while evaluating " + this, e);
-        }
+  @Override
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    if (writer.requireParentheses(this, lprec, rprec)) {
+      return;
     }
-
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        if (writer.requireParentheses(this, lprec, rprec)) {
-            return;
-        }
-        if (targetExpression != null) {
-            // instance method
-            targetExpression.accept(writer, lprec, nodeType.lprec);
-        } else {
-            // static method
-            writer.append(method.getDeclaringClass());
-        }
-        writer.append('.')
-            .append(method.getName())
-            .append('(');
-        int k = 0;
-        for (Expression expression : expressions) {
-            if (k++ > 0) {
-                writer.append(", ");
-            }
-            expression.accept(writer, 0, 0);
-        }
-        writer.append(')');
+    if (targetExpression != null) {
+      // instance method
+      targetExpression.accept(writer, lprec, nodeType.lprec);
+    } else {
+      // static method
+      writer.append(method.getDeclaringClass());
     }
+    writer.append('.').append(method.getName()).append('(');
+    int k = 0;
+    for (Expression expression : expressions) {
+      if (k++ > 0) {
+        writer.append(", ");
+      }
+      expression.accept(writer, 0, 0);
+    }
+    writer.append(')');
+  }
 }
 
 // End MethodCallExpression.java

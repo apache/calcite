@@ -20,66 +20,66 @@ package net.hydromatic.linq4j.expressions;
 /**
  * <p>Helper methods concerning {@link BlockExpression}s.</p>
  *
- * @see BlockBuilder
- *
  * @author jhyde
+ * @see BlockBuilder
  */
 public final class Blocks {
-    private Blocks() {
-        throw new AssertionError("no blocks for you!");
-    }
+  private Blocks() {
+    throw new AssertionError("no blocks for you!");
+  }
 
-    private static BlockExpression toFunctionBlock(Node body, boolean function)
-    {
-        if (body instanceof BlockExpression) {
-            return (BlockExpression) body;
-        }
-        Statement statement;
-        if (body instanceof Statement) {
-            statement = (Statement) body;
-        } else if (body instanceof Expression) {
-            if (((Expression) body).getType() == Void.TYPE && function) {
-                statement = Expressions.statement((Expression) body);
-            } else {
-                statement = Expressions.return_(null, (Expression) body);
-            }
-        } else {
-            throw new AssertionError(
-                "block cannot contain node that is neither statement nor "
-                + "expression: " + body);
-        }
-        return Expressions.block(statement);
+  private static BlockExpression toFunctionBlock(Node body, boolean function) {
+    if (body instanceof BlockExpression) {
+      return (BlockExpression) body;
     }
+    Statement statement;
+    if (body instanceof Statement) {
+      statement = (Statement) body;
+    } else if (body instanceof Expression) {
+      if (((Expression) body).getType() == Void.TYPE && function) {
+        statement = Expressions.statement((Expression) body);
+      } else {
+        statement = Expressions.return_(null, (Expression) body);
+      }
+    } else {
+      throw new AssertionError(
+          "block cannot contain node that is neither statement nor "
+          + "expression: "
+          + body);
+    }
+    return Expressions.block(statement);
+  }
 
-    public static BlockExpression toFunctionBlock(Node body) {
-        return toFunctionBlock(body, true);
-    }
+  public static BlockExpression toFunctionBlock(Node body) {
+    return toFunctionBlock(body, true);
+  }
 
-    public static BlockExpression toBlock(Node body) {
-        return toFunctionBlock(body, false);
-    }
+  public static BlockExpression toBlock(Node body) {
+    return toFunctionBlock(body, false);
+  }
 
-    /** Prepends a statement to a block. */
-    public static BlockExpression create(
-        Statement statement,
-        BlockExpression block)
-    {
-        return Expressions.block(
-            Expressions.list(statement)
-                .appendAll(block.statements));
-    }
+  /**
+   * Prepends a statement to a block.
+   */
+  public static BlockExpression create(Statement statement,
+      BlockExpression block) {
+    return Expressions.block(Expressions.list(statement).appendAll(
+        block.statements));
+  }
 
-    /** Converts a simple "{ return expr; }" block into "expr"; otherwise
-     * throws. */
-    public static Expression simple(BlockExpression block) {
-        if (block.statements.size() == 1) {
-            Statement statement = block.statements.get(0);
-            if (statement instanceof GotoExpression) {
-                return ((GotoExpression) statement).expression;
-            }
-        }
-        throw new AssertionError("not a simple block: " + block);
+  /**
+   * Converts a simple "{ return expr; }" block into "expr"; otherwise
+   * throws.
+   */
+  public static Expression simple(BlockExpression block) {
+    if (block.statements.size() == 1) {
+      Statement statement = block.statements.get(0);
+      if (statement instanceof GotoExpression) {
+        return ((GotoExpression) statement).expression;
+      }
     }
+    throw new AssertionError("not a simple block: " + block);
+  }
 }
 
 // End Blocks.java

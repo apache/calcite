@@ -31,17 +31,21 @@ import java.lang.reflect.Type;
  * @author jhyde
  */
 public interface RawQueryable<T> extends Enumerable<T> {
-    /**
-     * Gets the type of the element(s) that are returned when the expression
-     * tree associated with this Queryable is executed.
-     */
-    Type getElementType();
+  /**
+   * Gets the type of the element(s) that are returned when the expression
+   * tree associated with this Queryable is executed.
+   */
+  Type getElementType();
 
-    /** Gets the expression tree that is associated with this Queryable. */
-    Expression getExpression();
+  /**
+   * Gets the expression tree that is associated with this Queryable.
+   */
+  Expression getExpression();
 
-    /** Gets the query provider that is associated with this data source. */
-    QueryProvider getProvider();
+  /**
+   * Gets the query provider that is associated with this data source.
+   */
+  QueryProvider getProvider();
 }
 
 // End RawQueryable.java

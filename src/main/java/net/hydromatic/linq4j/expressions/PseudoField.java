@@ -24,15 +24,15 @@ import java.lang.reflect.Type;
  * for code generation, but might be implemented differently.
  */
 public interface PseudoField {
-    String getName();
+  String getName();
 
-    Type getType();
+  Type getType();
 
-    int getModifiers();
+  int getModifiers();
 
-    Object get(Object o) throws IllegalAccessException;
+  Object get(Object o) throws IllegalAccessException;
 
-    Type getDeclaringClass();
+  Type getDeclaringClass();
 }
 
 // End PseudoField.java

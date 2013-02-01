@@ -21,7 +21,7 @@ package net.hydromatic.linq4j;
  * @author jhyde
  */
 public enum OpType {
-    WHERE,
+  WHERE,
 }
 
 // End OpType.java

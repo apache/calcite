@@ -25,8 +25,9 @@ import java.util.Map;
  * <p>(Based upon java.lang.BiValue coming in JDK 8.)</p>
  */
 public interface BiValue<K, V> {
-    V getValue();
-    K getKey();
+  V getValue();
+
+  K getKey();
 }
 
 // End BiValue.java

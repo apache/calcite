@@ -25,17 +25,17 @@ package net.hydromatic.linq4j.expressions;
  * provided.
  */
 public class LabelExpression extends Statement {
-    public final Expression defaultValue;
+  public final Expression defaultValue;
 
-    public LabelExpression(Expression defaultValue, ExpressionType nodeType) {
-        super(nodeType, Void.TYPE);
-        this.defaultValue = defaultValue;
-    }
+  public LabelExpression(Expression defaultValue, ExpressionType nodeType) {
+    super(nodeType, Void.TYPE);
+    this.defaultValue = defaultValue;
+  }
 
-    @Override
-    public LabelExpression accept(Visitor visitor) {
-        return visitor.visit(this);
-    }
+  @Override
+  public LabelExpression accept(Visitor visitor) {
+    return visitor.visit(this);
+  }
 }
 
 // End LabelExpression.java

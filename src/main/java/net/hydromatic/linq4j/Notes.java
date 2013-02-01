@@ -23,44 +23,45 @@ package net.hydromatic.linq4j;
  * <h1>Mapping between linq4j and openjdk-lambda</h1>
  *
  * <table>
- *     <tr>
- *         <th>linq4j</th>
- *         <th>openjdk-lambda</th>
- *         <th>Remarks</th>
- *     </tr>
- *     <tr>
- *         <td>{@link net.hydromatic.linq4j.function.Predicate1 Predicate1}</td>
- *         <td>{@link net.hydromatic.lamdba.functions.Predicate Predicate}</td>
- *         <td></td>
- *     </tr>
- *     <tr>
- *         <td>{@link net.hydromatic.linq4j.function.Predicate2 Predicate2}</td>
- *         <td>{@link net.hydromatic.lamdba.functions.BiPredicate BiPredicate}</td>
- *         <td></td>
- *     </tr>
- *     <tr>
- *         <td>{@link net.hydromatic.linq4j.function.Function Function}</td>
- *         <td></td>
- *         <td>No equivalent in openjdk</td>
- *     </tr>
- *     <tr>
- *         <td>{@link Enumerable}</td>
- *         <td>{@link net.hydromatic.lamdba.streams.Stream Stream},
- *         {@link net.hydromatic.lamdba.streams.MapStream MapStream}</td>
- *     </tr>
- *     <tr>
- *         <td>{@link Grouping}&lt;K, V&gt;</td>
- *         <td>{@link net.hydromatic.lamdba.functions.BiValue BiValue}&lt;K, Iterable&lt;V&gt;</td>
- *     </tr>
- *     <tr>
- *         <td>{@link Queryable}</td>
- *         <td></td>
- *         <td>No equivalent in openjdk</td>
- *     </tr>
+ * <tr>
+ * <th>linq4j</th>
+ * <th>openjdk-lambda</th>
+ * <th>Remarks</th>
+ * </tr>
+ * <tr>
+ * <td>{@link net.hydromatic.linq4j.function.Predicate1 Predicate1}</td>
+ * <td>{@link net.hydromatic.lamdba.functions.Predicate Predicate}</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>{@link net.hydromatic.linq4j.function.Predicate2 Predicate2}</td>
+ * <td>{@link net.hydromatic.lamdba.functions.BiPredicate BiPredicate}</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>{@link net.hydromatic.linq4j.function.Function Function}</td>
+ * <td></td>
+ * <td>No equivalent in openjdk</td>
+ * </tr>
+ * <tr>
+ * <td>{@link Enumerable}</td>
+ * <td>{@link net.hydromatic.lamdba.streams.Stream Stream},
+ * {@link net.hydromatic.lamdba.streams.MapStream MapStream}</td>
+ * </tr>
+ * <tr>
+ * <td>{@link Grouping}&lt;K, V&gt;</td>
+ * <td>{@link net.hydromatic.lamdba.functions.BiValue BiValue}&lt;K, Iterable&lt;V&gt;</td>
+ * </tr>
+ * <tr>
+ * <td>{@link Queryable}</td>
+ * <td></td>
+ * <td>No equivalent in openjdk</td>
+ * </tr>
  * </table>
  */
 final class Notes {
-    private Notes() {}
+  private Notes() {
+  }
 }
 
 // End Notes.java

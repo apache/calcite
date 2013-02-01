@@ -28,40 +28,36 @@ import java.util.List;
  * an anonymous class.</p>
  */
 public class NewExpression extends Expression {
-    public final Type type;
-    public final List<Expression> arguments;
-    public final List<MemberDeclaration> memberDeclarations;
+  public final Type type;
+  public final List<Expression> arguments;
+  public final List<MemberDeclaration> memberDeclarations;
 
-    public NewExpression(
-        Type type,
-        List<Expression> arguments,
-        List<MemberDeclaration> memberDeclarations)
-    {
-        super(ExpressionType.New, type);
-        this.type = type;
-        this.arguments = arguments;
-        this.memberDeclarations = memberDeclarations;
-    }
+  public NewExpression(Type type, List<Expression> arguments,
+      List<MemberDeclaration> memberDeclarations) {
+    super(ExpressionType.New, type);
+    this.type = type;
+    this.arguments = arguments;
+    this.memberDeclarations = memberDeclarations;
+  }
 
-    @Override
-    public Expression accept(Visitor visitor) {
-        final List<Expression> arguments =
-            Expressions.acceptExpressions(this.arguments, visitor);
-        final List<MemberDeclaration> memberDeclarations =
-            Expressions.acceptMemberDeclarations(
-                this.memberDeclarations, visitor);
-        return visitor.visit(this, arguments, memberDeclarations);
-    }
+  @Override
+  public Expression accept(Visitor visitor) {
+    final List<Expression> arguments = Expressions.acceptExpressions(
+        this.arguments, visitor);
+    final
+    List<MemberDeclaration>
+        memberDeclarations =
+        Expressions.acceptMemberDeclarations(this.memberDeclarations, visitor);
+    return visitor.visit(this, arguments, memberDeclarations);
+  }
 
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        writer.append("new ")
-            .append(type)
-            .list("(\n", ",\n", ")", arguments);
-        if (memberDeclarations != null) {
-            writer.list("{\n", "", "}", memberDeclarations);
-        }
+  @Override
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    writer.append("new ").append(type).list("(\n", ",\n", ")", arguments);
+    if (memberDeclarations != null) {
+      writer.list("{\n", "", "}", memberDeclarations);
     }
+  }
 }
 
 // End NewExpression.java

@@ -23,8 +23,7 @@ package net.hydromatic.linq4j;
  * @author jhyde
  */
 public interface OrderedQueryable<T>
-    extends Queryable<T>, ExtendedOrderedQueryable<T>
-{
+    extends Queryable<T>, ExtendedOrderedQueryable<T> {
 }
 
 // End OrderedQueryable.java

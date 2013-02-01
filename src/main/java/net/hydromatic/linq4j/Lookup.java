@@ -22,21 +22,21 @@ import net.hydromatic.linq4j.function.Function2;
 import java.util.Map;
 
 /**
-* Represents a collection of keys each mapped to one or more values.
-*/
+ * Represents a collection of keys each mapped to one or more values.
+ */
 public interface Lookup<K, V>
-    extends Map<K, Enumerable<V>>, Enumerable<Grouping<K, V>>
-{
-    /**
-     * Applies a transform function to each key and its associated values and
-     * returns the results.
-     *
-     * @param resultSelector Result selector
-     * @param <TResult> Result type
-     * @return Enumerable over results
-     */
-    public <TResult> Enumerable<TResult> applyResultSelector(
-        Function2<K, Enumerable<V>, TResult> resultSelector);
+    extends Map<K, Enumerable<V>>, Enumerable<Grouping<K, V>> {
+  /**
+   * Applies a transform function to each key and its associated values and
+   * returns the results.
+   *
+   * @param resultSelector Result selector
+   * @param <TResult> Result type
+   *
+   * @return Enumerable over results
+   */
+  public <TResult> Enumerable<TResult> applyResultSelector(
+      Function2<K, Enumerable<V>, TResult> resultSelector);
 }
 
 // End Lookup.java

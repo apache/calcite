@@ -23,23 +23,23 @@ package net.hydromatic.lamdba.functions;
  * <p>Based on {@code java.util.functions.Predicate}.</p>
  */
 public interface Predicate<T> {
-    boolean test(T t);
+  boolean test(T t);
 
-    Predicate<T> and(Predicate<? super T> p);
-     // default:
-     // return Predicates.and(this, p);
+  Predicate<T> and(Predicate<? super T> p);
+  // default:
+  // return Predicates.and(this, p);
 
-    Predicate<T> negate();
-    // default:
-    // return Predicates.negate(this);
+  Predicate<T> negate();
+  // default:
+  // return Predicates.negate(this);
 
-             Predicate<T> or(Predicate<? super T> p);
-    // default:
-    // return Predicates.or(this, p);
+  Predicate<T> or(Predicate<? super T> p);
+  // default:
+  // return Predicates.or(this, p);
 
-    Predicate<T> xor(Predicate<? super T> p);
-    // default:
-    // return Predicates.xor(this, p);
+  Predicate<T> xor(Predicate<? super T> p);
+  // default:
+  // return Predicates.xor(this, p);
 }
 
 // End Predicate.java

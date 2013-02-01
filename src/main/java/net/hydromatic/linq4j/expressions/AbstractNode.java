@@ -23,48 +23,51 @@ import java.lang.reflect.Type;
  * Abstract implementation of {@link Node}.
  */
 public abstract class AbstractNode implements Node {
-    public final ExpressionType nodeType;
-    public final Type type;
+  public final ExpressionType nodeType;
+  public final Type type;
 
-    AbstractNode(ExpressionType nodeType, Type type)
-    {
-        this.type = type;
-        this.nodeType = nodeType;
-    }
+  AbstractNode(ExpressionType nodeType, Type type) {
+    this.type = type;
+    this.nodeType = nodeType;
+  }
 
-    /** Gets the node type of this Expression. */
-    public ExpressionType getNodeType() {
-        return nodeType;
-    }
+  /**
+   * Gets the node type of this Expression.
+   */
+  public ExpressionType getNodeType() {
+    return nodeType;
+  }
 
-    /** Gets the static type of the expression that this Expression
-     * represents. */
-    public Type getType() {
-        return type;
-    }
+  /**
+   * Gets the static type of the expression that this Expression
+   * represents.
+   */
+  public Type getType() {
+    return type;
+  }
 
-    public void accept(ExpressionWriter writer) {
-        accept(writer, 0, 0);
-    }
+  public void accept(ExpressionWriter writer) {
+    accept(writer, 0, 0);
+  }
 
-    void accept0(ExpressionWriter writer) {
-        accept(writer, 0, 0);
-    }
+  void accept0(ExpressionWriter writer) {
+    accept(writer, 0, 0);
+  }
 
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        throw new RuntimeException(
-            "un-parse not supported: " + getClass() + ":" + nodeType);
-    }
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    throw new RuntimeException(
+        "un-parse not supported: " + getClass() + ":" + nodeType);
+  }
 
-    public Node accept(Visitor visitor) {
-        throw new RuntimeException(
-            "visit not supported: " + getClass() + ":" + nodeType);
-    }
+  public Node accept(Visitor visitor) {
+    throw new RuntimeException(
+        "visit not supported: " + getClass() + ":" + nodeType);
+  }
 
-    public Object evaluate(Evaluator evaluator) {
-        throw new RuntimeException(
-            "evaluation not supported: " + getClass() + ":" + nodeType);
-    }
+  public Object evaluate(Evaluator evaluator) {
+    throw new RuntimeException(
+        "evaluation not supported: " + getClass() + ":" + nodeType);
+  }
 }
 
 // End AbstractNode.java

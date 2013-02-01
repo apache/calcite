@@ -23,43 +23,37 @@ import java.lang.reflect.Modifier;
  * Declaration of a field.
  */
 public class FieldDeclaration extends MemberDeclaration {
-    public final int modifier;
-    public final ParameterExpression parameter;
-    public final Expression initializer;
+  public final int modifier;
+  public final ParameterExpression parameter;
+  public final Expression initializer;
 
-    public FieldDeclaration(
-        int modifier,
-        ParameterExpression parameter,
-        Expression initializer)
-    {
-        this.modifier = modifier;
-        this.parameter = parameter;
-        this.initializer = initializer;
-    }
+  public FieldDeclaration(int modifier, ParameterExpression parameter,
+      Expression initializer) {
+    this.modifier = modifier;
+    this.parameter = parameter;
+    this.initializer = initializer;
+  }
 
-    @Override
-    public MemberDeclaration accept(Visitor visitor) {
-        // do not visit parameter - visit may not return a ParameterExpression
-        final Expression initializer = this.initializer.accept(visitor);
-        return visitor.visit(this, parameter, initializer);
-    }
+  @Override
+  public MemberDeclaration accept(Visitor visitor) {
+    // do not visit parameter - visit may not return a ParameterExpression
+    final Expression initializer = this.initializer.accept(visitor);
+    return visitor.visit(this, parameter, initializer);
+  }
 
-    public void accept(ExpressionWriter writer) {
-        String modifiers = Modifier.toString(modifier);
-        writer.append(modifiers);
-        if (!modifiers.isEmpty()) {
-            writer.append(' ');
-        }
-        writer.append(parameter.type)
-            .append(' ')
-            .append(parameter.name);
-        if (initializer != null) {
-            writer.append(" = ")
-                .append(initializer);
-        }
-        writer.append(';');
-        writer.newlineAndIndent();
+  public void accept(ExpressionWriter writer) {
+    String modifiers = Modifier.toString(modifier);
+    writer.append(modifiers);
+    if (!modifiers.isEmpty()) {
+      writer.append(' ');
     }
+    writer.append(parameter.type).append(' ').append(parameter.name);
+    if (initializer != null) {
+      writer.append(" = ").append(initializer);
+    }
+    writer.append(';');
+    writer.newlineAndIndent();
+  }
 }
 
 // End FieldDeclaration.java

@@ -21,14 +21,14 @@ package net.hydromatic.linq4j.expressions;
  * Represents an infinite loop. It can be exited with "break".
  */
 public class LoopExpression extends Statement {
-    public LoopExpression(ExpressionType nodeType) {
-        super(nodeType, Void.TYPE);
-    }
+  public LoopExpression(ExpressionType nodeType) {
+    super(nodeType, Void.TYPE);
+  }
 
-    @Override
-    public LoopExpression accept(Visitor visitor) {
-        return visitor.visit(this);
-    }
+  @Override
+  public LoopExpression accept(Visitor visitor) {
+    return visitor.visit(this);
+  }
 }
 
 // End LoopExpression.java

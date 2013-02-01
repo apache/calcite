@@ -23,34 +23,34 @@ import java.lang.reflect.Type;
  * Represents a named parameter expression.
  */
 public class ParameterExpression extends Expression {
-    private static int seq = 0;
+  private static int seq = 0;
 
-    public final int modifier;
-    public final String name;
+  public final int modifier;
+  public final String name;
 
-    public ParameterExpression(Type type) {
-        this(0, type, "p" + seq++);
-    }
+  public ParameterExpression(Type type) {
+    this(0, type, "p" + seq++);
+  }
 
-    public ParameterExpression(int modifier, Type type, String name) {
-        super(ExpressionType.Parameter, type);
-        this.modifier = modifier;
-        this.name = name;
-    }
+  public ParameterExpression(int modifier, Type type, String name) {
+    super(ExpressionType.Parameter, type);
+    this.modifier = modifier;
+    this.name = name;
+  }
 
-    @Override
-    public Expression accept(Visitor visitor) {
-        return visitor.visit(this);
-    }
+  @Override
+  public Expression accept(Visitor visitor) {
+    return visitor.visit(this);
+  }
 
-    public Object evaluate(Evaluator evaluator) {
-        return evaluator.peek(this);
-    }
+  public Object evaluate(Evaluator evaluator) {
+    return evaluator.peek(this);
+  }
 
-    @Override
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        writer.append(name);
-    }
+  @Override
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    writer.append(name);
+  }
 }
 
 // End ParameterExpression.java

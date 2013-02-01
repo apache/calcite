@@ -23,151 +23,149 @@ import java.lang.reflect.Type;
  * Represents an expression that has a binary operator.
  */
 public class BinaryExpression extends Expression {
-    public final Expression expression0;
-    public final Expression expression1;
-    private final Primitive primitive;
+  public final Expression expression0;
+  public final Expression expression1;
+  private final Primitive primitive;
 
-    BinaryExpression(
-        ExpressionType nodeType,
-        Type type,
-        Expression expression0,
-        Expression expression1)
-    {
-        super(nodeType, type);
-        this.expression0 = expression0;
-        this.expression1 = expression1;
-        this.primitive = Primitive.of(expression0.getType());
-    }
+  BinaryExpression(ExpressionType nodeType, Type type, Expression expression0,
+      Expression expression1) {
+    super(nodeType, type);
+    this.expression0 = expression0;
+    this.expression1 = expression1;
+    this.primitive = Primitive.of(expression0.getType());
+  }
 
-    @Override
-    public Expression accept(Visitor visitor) {
-        Expression expression0 = this.expression0.accept(visitor);
-        Expression expression1 = this.expression1.accept(visitor);
-        return visitor.visit(this, expression0, expression1);
-    }
+  @Override
+  public Expression accept(Visitor visitor) {
+    Expression expression0 = this.expression0.accept(visitor);
+    Expression expression1 = this.expression1.accept(visitor);
+    return visitor.visit(this, expression0, expression1);
+  }
 
-    public Object evaluate(Evaluator evaluator) {
-        switch (nodeType) {
-        case AndAlso:
-            return (Boolean) expression0.evaluate(evaluator)
-                && (Boolean) expression1.evaluate(evaluator);
-        case Add:
-            switch (primitive) {
-            case INT:
-                return (Integer) expression0.evaluate(evaluator)
-                    + (Integer) expression1.evaluate(evaluator);
-            case DOUBLE:
-                return (Double) expression0.evaluate(evaluator)
-                    + (Double) expression1.evaluate(evaluator);
-            default:
-                throw cannotEvaluate();
-            }
-        case Divide:
-            switch (primitive) {
-            case INT:
-                return (Integer) expression0.evaluate(evaluator)
-                       / (Integer) expression1.evaluate(evaluator);
-            case DOUBLE:
-                return (Double) expression0.evaluate(evaluator)
-                       / (Double) expression1.evaluate(evaluator);
-            default:
-                throw cannotEvaluate();
-            }
-        case Equal:
-            return expression0.evaluate(evaluator)
-                .equals(expression1.evaluate(evaluator));
-        case GreaterThan:
-            switch (primitive) {
-            case INT:
-                return (Integer) expression0.evaluate(evaluator)
-                       > (Integer) expression1.evaluate(evaluator);
-            case DOUBLE:
-                return (Double) expression0.evaluate(evaluator)
-                       > (Double) expression1.evaluate(evaluator);
-            default:
-                throw cannotEvaluate();
-            }
-        case GreaterThanOrEqual:
-            switch (primitive) {
-            case INT:
-                return (Integer) expression0.evaluate(evaluator)
-                       >= (Integer) expression1.evaluate(evaluator);
-            case DOUBLE:
-                return (Double) expression0.evaluate(evaluator)
-                       >= (Double) expression1.evaluate(evaluator);
-            default:
-                throw cannotEvaluate();
-            }
-        case LessThan:
-            switch (primitive) {
-            case INT:
-                return (Integer) expression0.evaluate(evaluator)
-                       < (Integer) expression1.evaluate(evaluator);
-            case DOUBLE:
-                return (Double) expression0.evaluate(evaluator)
-                       < (Double) expression1.evaluate(evaluator);
-            default:
-                throw cannotEvaluate();
-            }
-        case LessThanOrEqual:
-            switch (primitive) {
-            case INT:
-                return (Integer) expression0.evaluate(evaluator)
-                       <= (Integer) expression1.evaluate(evaluator);
-            case DOUBLE:
-                return (Double) expression0.evaluate(evaluator)
-                       <= (Double) expression1.evaluate(evaluator);
-            default:
-                throw cannotEvaluate();
-            }
-        case Multiply:
-            switch (primitive) {
-            case INT:
-                return (Integer) expression0.evaluate(evaluator)
-                       * (Integer) expression1.evaluate(evaluator);
-            case DOUBLE:
-                return (Double) expression0.evaluate(evaluator)
-                       * (Double) expression1.evaluate(evaluator);
-            default:
-                throw cannotEvaluate();
-            }
-        case NotEqual:
-            return !expression0.evaluate(evaluator)
-                .equals(expression1.evaluate(evaluator));
-        case OrElse:
-            return (Boolean) expression0.evaluate(evaluator)
-                   || (Boolean) expression1.evaluate(evaluator);
-        case Subtract:
-            switch (primitive) {
-            case INT:
-                return (Integer) expression0.evaluate(evaluator)
-                       - (Integer) expression1.evaluate(evaluator);
-            case DOUBLE:
-                return (Double) expression0.evaluate(evaluator)
-                       - (Double) expression1.evaluate(evaluator);
-            default:
-                throw cannotEvaluate();
-            }
-        default:
-            throw cannotEvaluate();
-        }
+  public Object evaluate(Evaluator evaluator) {
+    switch (nodeType) {
+    case AndAlso:
+      return (Boolean) expression0.evaluate(evaluator)
+             && (Boolean) expression1.evaluate(evaluator);
+    case Add:
+      switch (primitive) {
+      case INT:
+        return (Integer) expression0.evaluate(evaluator) + (Integer) expression1
+            .evaluate(evaluator);
+      case DOUBLE:
+        return (Double) expression0.evaluate(evaluator)
+               + (Double) expression1.evaluate(evaluator);
+      default:
+        throw cannotEvaluate();
+      }
+    case Divide:
+      switch (primitive) {
+      case INT:
+        return (Integer) expression0.evaluate(evaluator) / (Integer) expression1
+            .evaluate(evaluator);
+      case DOUBLE:
+        return (Double) expression0.evaluate(evaluator)
+               / (Double) expression1.evaluate(evaluator);
+      default:
+        throw cannotEvaluate();
+      }
+    case Equal:
+      return expression0.evaluate(evaluator).equals(expression1.evaluate(
+          evaluator));
+    case GreaterThan:
+      switch (primitive) {
+      case INT:
+        return (Integer) expression0.evaluate(evaluator) > (Integer) expression1
+            .evaluate(evaluator);
+      case DOUBLE:
+        return (Double) expression0.evaluate(evaluator)
+               > (Double) expression1.evaluate(evaluator);
+      default:
+        throw cannotEvaluate();
+      }
+    case GreaterThanOrEqual:
+      switch (primitive) {
+      case INT:
+        return (Integer) expression0.evaluate(evaluator)
+               >= (Integer) expression1.evaluate(evaluator);
+      case DOUBLE:
+        return (Double) expression0.evaluate(evaluator)
+               >= (Double) expression1.evaluate(evaluator);
+      default:
+        throw cannotEvaluate();
+      }
+    case LessThan:
+      switch (primitive) {
+      case INT:
+        return (Integer) expression0.evaluate(evaluator) < (Integer) expression1
+            .evaluate(evaluator);
+      case DOUBLE:
+        return (Double) expression0.evaluate(evaluator)
+               < (Double) expression1.evaluate(evaluator);
+      default:
+        throw cannotEvaluate();
+      }
+    case LessThanOrEqual:
+      switch (primitive) {
+      case INT:
+        return (Integer) expression0.evaluate(evaluator)
+               <= (Integer) expression1.evaluate(evaluator);
+      case DOUBLE:
+        return (Double) expression0.evaluate(evaluator)
+               <= (Double) expression1.evaluate(evaluator);
+      default:
+        throw cannotEvaluate();
+      }
+    case Multiply:
+      switch (primitive) {
+      case INT:
+        return (Integer) expression0.evaluate(evaluator) * (Integer) expression1
+            .evaluate(evaluator);
+      case DOUBLE:
+        return (Double) expression0.evaluate(evaluator)
+               * (Double) expression1.evaluate(evaluator);
+      default:
+        throw cannotEvaluate();
+      }
+    case NotEqual:
+      return !expression0.evaluate(evaluator).equals(expression1.evaluate(
+          evaluator));
+    case OrElse:
+      return (Boolean) expression0.evaluate(evaluator)
+             || (Boolean) expression1.evaluate(evaluator);
+    case Subtract:
+      switch (primitive) {
+      case INT:
+        return (Integer) expression0.evaluate(evaluator) - (Integer) expression1
+            .evaluate(evaluator);
+      case DOUBLE:
+        return (Double) expression0.evaluate(evaluator)
+               - (Double) expression1.evaluate(evaluator);
+      default:
+        throw cannotEvaluate();
+      }
+    default:
+      throw cannotEvaluate();
     }
+  }
 
-    void accept(ExpressionWriter writer, int lprec, int rprec) {
-        if (writer.requireParentheses(this, lprec, rprec)) {
-            return;
-        }
-        expression0.accept(writer, lprec, nodeType.lprec);
-        writer.append(nodeType.op);
-        expression1.accept(writer, nodeType.rprec, rprec);
+  void accept(ExpressionWriter writer, int lprec, int rprec) {
+    if (writer.requireParentheses(this, lprec, rprec)) {
+      return;
     }
+    expression0.accept(writer, lprec, nodeType.lprec);
+    writer.append(nodeType.op);
+    expression1.accept(writer, nodeType.rprec, rprec);
+  }
 
-    private RuntimeException cannotEvaluate() {
-        return new RuntimeException(
-            "cannot evaluate " + this
-            + ", nodeType=" + nodeType
-            + ", primitive=" + primitive);
-    }
+  private RuntimeException cannotEvaluate() {
+    return new RuntimeException("cannot evaluate "
+                                + this
+                                + ", nodeType="
+                                + nodeType
+                                + ", primitive="
+                                + primitive);
+  }
 }
 
 // End BinaryExpression.java

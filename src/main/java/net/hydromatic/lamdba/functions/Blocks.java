@@ -26,87 +26,84 @@ import net.hydromatic.linq4j.Linq4j;
  */
 public final class Blocks {
 
-    private static final Block<Object> NOP =
-        new Block<Object>() {
-            public void apply(Object o) {
-                // no thing
-            }
-
-            public Block<Object> chain(Block<? super Object> second) {
-                return Blocks.chain(this, second);            }
-        };
-
-    private static final Block<Object> REQUIRE_NON_NULL =
-        new Block<Object>() {
-            public void apply(Object o) {
-                Linq4j.requireNonNull(o);
-            }
-
-            public Block<Object> chain(Block<? super Object> second) {
-                return Blocks.chain(this, second);
-            }
-        };
-
-    private Blocks() {
-        throw new AssertionError();
+  private static final Block<Object> NOP = new Block<Object>() {
+    public void apply(Object o) {
+      // no thing
     }
 
+    public Block<Object> chain(Block<? super Object> second) {
+      return Blocks.chain(this, second);
+    }
+  };
 
-    public static <T> Block<T> nop() {
-        return (Block<T>) NOP;
+  private static final Block<Object> REQUIRE_NON_NULL = new Block<Object>() {
+    public void apply(Object o) {
+      Linq4j.requireNonNull(o);
     }
 
-    public static <T> Block<T> requireNonNull() {
-        return (Block<T>) REQUIRE_NON_NULL;
+    public Block<Object> chain(Block<? super Object> second) {
+      return Blocks.chain(this, second);
     }
+  };
 
-    public static <T> Block<T> chain(
-        final Block<? super T> first, final Block<? super T> second)
-    {
-        return new Block<T>() {
-            public void apply(T t) {
-                first.apply(t);
-                second.apply(t);
-            }
+  private Blocks() {
+    throw new AssertionError();
+  }
 
-            public Block<T> chain(Block<? super T> second) {
-                //noinspection unchecked
-                return Blocks.chain((Block) this, second);
-            }
-        };
-    }
 
-    public static <T> Block<T> chain(final Block<? super T>... sequence) {
-        return new Block<T>() {
-            public void apply(T t) {
-                for (Block<? super T> block : sequence) {
-                    block.apply(t);
-                }
-            }
+  public static <T> Block<T> nop() {
+    return (Block<T>) NOP;
+  }
 
-            public Block<T> chain(Block<? super T> second) {
-                //noinspection unchecked
-                return Blocks.chain((Block) this, second);
-            }
-        };
-    }
+  public static <T> Block<T> requireNonNull() {
+    return (Block<T>) REQUIRE_NON_NULL;
+  }
 
-    public static <T> Block<T> chain(
-        final Iterable<? extends Block<? super T>> sequence)
-    {
-        return new Block<T>() {
-            public void apply(T t) {
-                for (Block<? super T> block : sequence) {
-                    block.apply(t);
-                }
-            }
+  public static <T> Block<T> chain(final Block<? super T> first,
+      final Block<? super T> second) {
+    return new Block<T>() {
+      public void apply(T t) {
+        first.apply(t);
+        second.apply(t);
+      }
 
-            public Block<T> chain(Block<? super T> second) {
-                //noinspection unchecked
-                return Blocks.chain((Block) this, second);
-            }
-        };
-    }
+      public Block<T> chain(Block<? super T> second) {
+        //noinspection unchecked
+        return Blocks.chain((Block) this, second);
+      }
+    };
+  }
+
+  public static <T> Block<T> chain(final Block<? super T>... sequence) {
+    return new Block<T>() {
+      public void apply(T t) {
+        for (Block<? super T> block : sequence) {
+          block.apply(t);
+        }
+      }
+
+      public Block<T> chain(Block<? super T> second) {
+        //noinspection unchecked
+        return Blocks.chain((Block) this, second);
+      }
+    };
+  }
+
+  public static <T> Block<T> chain(
+      final Iterable<? extends Block<? super T>> sequence) {
+    return new Block<T>() {
+      public void apply(T t) {
+        for (Block<? super T> block : sequence) {
+          block.apply(t);
+        }
+      }
+
+      public Block<T> chain(Block<? super T> second) {
+        //noinspection unchecked
+        return Blocks.chain((Block) this, second);
+      }
+    };
+  }
 
 }
 

@@ -24,43 +24,45 @@ import java.util.List;
  * Holds context for evaluating expressions.
  */
 class Evaluator {
-    final List<ParameterExpression> parameters =
-        new ArrayList<ParameterExpression>();
-    final List<Object> values = new ArrayList<Object>();
+  final
+  List<ParameterExpression>
+      parameters =
+      new ArrayList<ParameterExpression>();
+  final List<Object> values = new ArrayList<Object>();
 
-    Evaluator() {
-    }
+  Evaluator() {
+  }
 
-    void push(ParameterExpression parameter, Object value) {
-        parameters.add(parameter);
-        values.add(value);
-    }
+  void push(ParameterExpression parameter, Object value) {
+    parameters.add(parameter);
+    values.add(value);
+  }
 
-    void pop(int n) {
-        while (n > 0) {
-            parameters.remove(parameters.size() - 1);
-            values.remove(values.size() - 1);
-            --n;
-        }
+  void pop(int n) {
+    while (n > 0) {
+      parameters.remove(parameters.size() - 1);
+      values.remove(values.size() - 1);
+      --n;
     }
+  }
 
-    Object peek(ParameterExpression param) {
-        for (int i = parameters.size() - 1; i >= 0; i--) {
-            if (parameters.get(i) == param) {
-                return values.get(i);
-            }
-        }
-        throw new RuntimeException("parameter " + param + " not on stack");
+  Object peek(ParameterExpression param) {
+    for (int i = parameters.size() - 1; i >= 0; i--) {
+      if (parameters.get(i) == param) {
+        return values.get(i);
+      }
     }
+    throw new RuntimeException("parameter " + param + " not on stack");
+  }
 
-    Object evaluate(Node expression) {
-        return ((AbstractNode) expression).evaluate(this);
-    }
+  Object evaluate(Node expression) {
+    return ((AbstractNode) expression).evaluate(this);
+  }
 
-    void clear() {
-        parameters.clear();
-        values.clear();
-    }
+  void clear() {
+    parameters.clear();
+    values.clear();
+  }
 }
 
 // End Evaluator.java
