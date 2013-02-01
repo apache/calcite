@@ -53,6 +53,7 @@ public class OptiqAssert {
         testSuite.addTestSuite(JdbcFrontJdbcBackLinqMiddleTest.class);
         testSuite.addTestSuite(JdbcFrontJdbcBackTest.class);
         testSuite.addTestSuite(SqlToRelConverterTest.class);
+        testSuite.addTestSuite(SqlFunctionsTest.class);
         testSuite.addTestSuite(SqlOperatorTest.class);
         if (Bug.TodoFixed) {
             // 96 failures currently

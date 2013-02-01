@@ -90,7 +90,7 @@ class LixToRelTranslator {
                         null,
                         typeFactory.createJavaType(
                             Types.toClass(
-                                Types.getComponentType(
+                                Types.getElementType(
                                     call.targetExpression.getType()))),
                         new String[0],
                         call.targetExpression));

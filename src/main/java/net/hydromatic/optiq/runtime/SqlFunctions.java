@@ -71,6 +71,20 @@ public class SqlFunctions {
         return s0 + s1;
     }
 
+    /** SQL {@code RTRIM} function. */
+    public static String rtrim(String s) {
+        int i = s.length();
+        for (;;) {
+            if (i == 0) {
+                return "";
+            }
+            --i;
+            if (s.charAt(i) != ' ') {
+                return s.substring(0, i + 1);
+            }
+        }
+    }
+
     /** SQL {@code OVERLAY} function. */
     public static String overlay(String s, String r, int start) {
         if (s == null || r == null) {

@@ -26,6 +26,7 @@ import org.eigenbase.rel.Aggregation;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlOperator;
+import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
@@ -128,7 +129,7 @@ public class RexToLixTranslator {
                 program.getExprList().get(((RexLocalRef) expr).getIndex()));
         }
         if (expr instanceof RexLiteral) {
-            return translateLiteral(expr, typeFactory);
+            return translateLiteral(expr, null, typeFactory);
         }
         if (expr instanceof RexCall) {
             final RexCall call = (RexCall) expr;
@@ -149,18 +150,27 @@ public class RexToLixTranslator {
     /** Translates a literal. */
     public static Expression translateLiteral(
         RexNode expr,
+        RelDataType type,
         JavaTypeFactory typeFactory)
     {
-        Type javaClass = typeFactory.getJavaClass(expr.getType());
+        Object o = ((RexLiteral) expr).getValue3();
+        Type javaClass;
+        if (type == null) {
+            javaClass = typeFactory.getJavaClass(expr.getType());
+        } else {
+            if (type.getSqlTypeName() == SqlTypeName.VARCHAR) {
+                o = SqlFunctions.rtrim(o.toString());
+            }
+            javaClass = typeFactory.getJavaClass(type);
+        }
         if (javaClass == BigDecimal.class) {
             return Expressions.new_(
                 BigDecimal.class,
                 Arrays.<Expression>asList(
                     Expressions.constant(
-                        ((RexLiteral) expr).getValue3().toString())));
+                        o.toString())));
         }
-        return Expressions.constant(
-            ((RexLiteral) expr).getValue3(), javaClass);
+        return Expressions.constant(o, javaClass);
     }
 
     List<Expression> translateList(List<RexNode> operandList) {

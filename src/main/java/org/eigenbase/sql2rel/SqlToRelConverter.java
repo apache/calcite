@@ -1341,7 +1341,8 @@ public class SqlToRelConverter
                 bb,
                 seek,
                 ((SqlNodeList) seek).getList(),
-                false);
+                false,
+                null);
         } else {
             return convertQueryRecursive(seek, false, null);
         }
@@ -1351,7 +1352,8 @@ public class SqlToRelConverter
         Blackboard bb,
         SqlNode rowList,
         Collection<SqlNode> rows,
-        boolean allowLiteralsOnly)
+        boolean allowLiteralsOnly,
+        RelDataType targetRowType)
     {
         // NOTE jvs 30-Apr-2006: We combine all rows consisting entirely of
         // literals into a single ValuesRel; this gives the optimizer a smaller
@@ -1359,13 +1361,18 @@ public class SqlToRelConverter
         // subqueries), we union each row in as a projection on top of a
         // OneRowRel.
 
-        List<List<RexLiteral>> tupleList = new ArrayList<List<RexLiteral>>();
-        RelDataType rowType = validator.getValidatedNodeType(rowList);
-        rowType =
-            SqlTypeUtil.promoteToRowType(
-                typeFactory,
-                rowType,
-                null);
+        final List<List<RexLiteral>> tupleList =
+            new ArrayList<List<RexLiteral>>();
+        final RelDataType rowType;
+        if (targetRowType != null) {
+            rowType = targetRowType;
+        } else {
+            rowType =
+                SqlTypeUtil.promoteToRowType(
+                    typeFactory,
+                    validator.getValidatedNodeType(rowList),
+                    null);
+        }
 
         List<RelNode> unionInputs = new ArrayList<RelNode>();
         for (SqlNode node : rows) {
@@ -3467,7 +3474,8 @@ public class SqlToRelConverter
                 bb,
                 values,
                 Arrays.asList(values.getOperands()),
-                true);
+                true,
+                targetRowType);
         if (valuesRel != null) {
             bb.setRoot(valuesRel, true);
             return;

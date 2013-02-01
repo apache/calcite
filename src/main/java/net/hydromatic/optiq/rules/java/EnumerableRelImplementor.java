@@ -101,21 +101,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
         List<MemberDeclaration> memberDeclarations)
     {
         final LinkedHashSet<Type> types = new LinkedHashSet<Type>();
-        implement.accept(
-            new Visitor() {
-                public Expression visit(
-                    NewExpression newExpression,
-                    List<Expression> arguments,
-                    List<MemberDeclaration> memberDeclarations)
-                {
-                    types.add(newExpression.type);
-                    return super.visit(
-                        newExpression,
-                        arguments,
-                        memberDeclarations);
-                }
-            });
-        System.out.println(types);
+        implement.accept(new TypeFinder(types));
         for (Type type : types) {
             if (type instanceof JavaTypeFactoryImpl.SyntheticRecordType) {
                 memberDeclarations.add(
@@ -349,6 +335,46 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
         String name = "v" + map.size();
         map.put(name, queryable);
         return Expressions.variable(queryable.getClass(), name);
+    }
+
+    private static class TypeFinder extends Visitor {
+        private final LinkedHashSet<Type> types;
+
+        TypeFinder(LinkedHashSet<Type> types) {
+            this.types = types;
+        }
+
+        @Override
+        public Expression visit(
+            NewExpression newExpression,
+            List<Expression> arguments,
+            List<MemberDeclaration> memberDeclarations)
+        {
+            types.add(newExpression.type);
+            return super.visit(
+                newExpression,
+                arguments,
+                memberDeclarations);
+        }
+
+        @Override
+        public Expression visit(
+            NewArrayExpression newArrayExpression,
+            List<Expression> expressions)
+        {
+            Type type = newArrayExpression.type;
+            for (;;) {
+                final Type componentType = Types.getComponentType(type);
+                if (componentType == null) {
+                    break;
+                }
+                type = componentType;
+            }
+            types.add(type);
+            return super.visit(
+                newArrayExpression,
+                expressions);
+        }
     }
 }
 

@@ -32,6 +32,7 @@ import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
@@ -1807,18 +1808,19 @@ public class JavaRules {
             final Type rowClass = physType.getJavaRowType();
 
             final List<Expression> expressions = new ArrayList<Expression>();
+            final List<RelDataTypeField> fields = rowType.getFieldList();
             for (List<RexLiteral> tuple : tuples) {
                 final List<Expression> literals = new ArrayList<Expression>();
-                for (RexLiteral literal : tuple) {
+                for (Pair<RelDataTypeField, RexLiteral> pair
+                         : Pair.zip(fields, tuple))
+                {
                     literals.add(
                         RexToLixTranslator.translateLiteral(
-                            literal, typeFactory));
+                            pair.right,
+                            pair.left.getType(),
+                            typeFactory));
                 }
-                expressions.add(
-                    literals.size() == 1
-                        ? literals.get(0)
-                        : Expressions.newArrayInit(
-                            Object.class, literals));
+                expressions.add(physType.record(literals));
             }
             statements.add(
                 Expressions.return_(
