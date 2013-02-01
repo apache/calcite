@@ -15,19 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.functions;
+package net.hydromatic.lambda.functions;
 
 /**
- * BinaryOperator.
+ * Sink.
  *
- * <p>Based on {@code java.util.functions.BinaryOperator}.</p>
+ * <p>Based on {@code java.util.functions.Sink}.</p>
  */
-public interface BinaryOperator<T> extends Combiner<T, T, T> {
-  T operate(T left, T right);
-
-  T combine(T t1, T t2);
-  // default:
-  // return operate(t1, t2);
+public interface Sink<T> {
+  void accept(T t);
 }
 
-// End BinaryOperator.java
+// End Sink.java

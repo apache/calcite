@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.streams;
+package net.hydromatic.lambda.streams;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

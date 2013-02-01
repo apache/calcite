@@ -15,19 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.functions;
-
-import java.util.Map;
+package net.hydromatic.lambda.functions;
 
 /**
- * Key/value pair.
+ * Creates objects. Aka Source and Producer.
  *
- * <p>(Based upon java.lang.BiValue coming in JDK 8.)</p>
+ * <p>Based on {@code java.util.functions.Factory}.</p>
  */
-public interface BiValue<K, V> {
-  V getValue();
-
-  K getKey();
+public interface Factory<T> {
+  T make();
 }
 
-// End BiValue.java
+// End Factory.java

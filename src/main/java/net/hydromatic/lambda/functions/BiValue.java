@@ -15,32 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.streams;
-
-import net.hydromatic.lamdba.functions.*;
+package net.hydromatic.lambda.functions;
 
 /**
- * Operations on streams.
+ * Key/value pair.
  *
- * <p>Based on {@code java.util.streams.SequentialStreamOps}.</p>
+ * <p>(Based upon java.lang.BiValue coming in JDK 8.)</p>
  */
-public interface SequentialStreamOps<T> {
-  Stream<T> filter(Predicate<? super T> predicate);
+public interface BiValue<K, V> {
+  V getValue();
 
-  <R> Stream<R> map(Mapper<? super T, ? extends R> mapper);
-
-  <R> Stream<R> flatMap(FlatMapper<? super T, R> mapper);
-
-  public T reduce(T base, BinaryOperator<T> op);
-
-  public <U> U fold(Factory<U> seedFactory, Combiner<U, T, U> reducer,
-      BinaryOperator<U> combiner);
-
-  boolean anyMatch(Predicate<? super T> predicate);
-
-  boolean allMatch(Predicate<? super T> predicate);
-
-  boolean noneMatch(Predicate<? super T> predicate);
+  K getKey();
 }
 
-// End SequentialStreamOps.java
+// End BiValue.java

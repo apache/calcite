@@ -15,15 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.functions;
+package net.hydromatic.lambda.functions;
 
 /**
- * Combiner.
- *
- * <p>Based on {@code java.util.functions.Combiner}.</p>
+ * Performs operations on a pair of values from a BiValue.
  */
-public interface Combiner<T, U, V> {
-  V combine(T t, U v);
+public interface BiBlock<L, R> {
+  void apply(L l, R r);
+
+  BiBlock<L, R> chain(BiBlock<? super L, ? super R> second);
+  // default:
+  // throw new UnsupportedOperationException("Not yet implemented");
 }
 
-// End Combiner.java
+// End BiBlock.java

@@ -15,11 +15,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
+package net.hydromatic.lambda.streams;
+
+import net.hydromatic.lambda.functions.*;
 
 /**
- * Provides a similar API to the <code>java.util.streams</code> package
- * that is part of JDK 8.
+ * Operations on streams.
+ *
+ * <p>Based on {@code java.util.streams.SequentialStreamOps}.</p>
  */
-package net.hydromatic.lamdba.streams;
+public interface SequentialStreamOps<T> {
+  Stream<T> filter(Predicate<? super T> predicate);
 
-// End package-info.java
+  <R> Stream<R> map(Mapper<? super T, ? extends R> mapper);
+
+  <R> Stream<R> flatMap(FlatMapper<? super T, R> mapper);
+
+  public T reduce(T base, BinaryOperator<T> op);
+
+  public <U> U fold(Factory<U> seedFactory, Combiner<U, T, U> reducer,
+      BinaryOperator<U> combiner);
+
+  boolean anyMatch(Predicate<? super T> predicate);
+
+  boolean allMatch(Predicate<? super T> predicate);
+
+  boolean noneMatch(Predicate<? super T> predicate);
+}
+
+// End SequentialStreamOps.java

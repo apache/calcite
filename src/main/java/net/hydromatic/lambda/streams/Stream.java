@@ -15,17 +15,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.functions;
+package net.hydromatic.lambda.streams;
+
+import java.util.Iterator;
 
 /**
- * Performs operations on a pair of values from a BiValue.
+ * Stream.
+ *
+ * <p>Based on {@code java.util.streams.Stream}.</p>
  */
-public interface BiBlock<L, R> {
-  void apply(L l, R r);
-
-  BiBlock<L, R> chain(BiBlock<? super L, ? super R> second);
-  // default:
-  // throw new UnsupportedOperationException("Not yet implemented");
+public interface Stream<T> extends SequentialStreamOps<T>, Iterator<T> {
+  public static final int STATE_UNIQUE = 1;
+  public static final int STATE_SORTED = 2;
+  public static final int STATE_SIZED = 4;
+  public static final int STATE_MASK = 0x7;
+  public static final
+  int
+      STATE_UNKNOWN_MASK_V1 =
+      ~(STATE_UNIQUE | STATE_SORTED | STATE_SIZED);
 }
 
-// End BiBlock.java
+// End Stream.java

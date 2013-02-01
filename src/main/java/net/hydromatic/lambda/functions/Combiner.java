@@ -15,15 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.functions;
+package net.hydromatic.lambda.functions;
 
 /**
- * FlatMapper.
+ * Combiner.
  *
- * <p>Based on {@code java.util.functions.FlatMapper}.</p>
+ * <p>Based on {@code java.util.functions.Combiner}.</p>
  */
-public interface FlatMapper<T, R> {
-  void flatMapInto(T element, Sink<? super R> sink);
+public interface Combiner<T, U, V> {
+  V combine(T t, U v);
 }
 
-// End FlatMapper.java
+// End Combiner.java

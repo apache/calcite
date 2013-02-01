@@ -15,17 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.functions;
+package net.hydromatic.lambda.functions;
 
 /**
- * Mapper.
+ * BinaryOperator.
+ *
+ * <p>Based on {@code java.util.functions.BinaryOperator}.</p>
  */
-public interface Mapper<T, R> {
-  R map(T t);
+public interface BinaryOperator<T> extends Combiner<T, T, T> {
+  T operate(T left, T right);
 
-  <V> Mapper<T, V> compose(Mapper<? super R, ? extends V> after);
+  T combine(T t1, T t2);
   // default:
-  // return Mappers.chain(this, after);
+  // return operate(t1, t2);
 }
 
-// End Mapper.java
+// End BinaryOperator.java

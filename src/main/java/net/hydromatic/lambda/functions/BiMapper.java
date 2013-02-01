@@ -15,24 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.streams;
-
-import java.util.Iterator;
+package net.hydromatic.lambda.functions;
 
 /**
- * Stream.
- *
- * <p>Based on {@code java.util.streams.Stream}.</p>
+ * Equivalent fo {@link Mapper} for bi-values.
  */
-public interface Stream<T> extends SequentialStreamOps<T>, Iterator<T> {
-  public static final int STATE_UNIQUE = 1;
-  public static final int STATE_SORTED = 2;
-  public static final int STATE_SIZED = 4;
-  public static final int STATE_MASK = 0x7;
-  public static final
-  int
-      STATE_UNKNOWN_MASK_V1 =
-      ~(STATE_UNIQUE | STATE_SORTED | STATE_SIZED);
+public interface BiMapper<T, U, V> {
+  V map(T t, U u);
+
+  public <W> BiMapper<T, U, W> compose(Mapper<? super V, ? extends W> after);
+  // default:
+  // throw new UnsupportedOperationException("Not yet implemented.");
 }
 
-// End Stream.java
+// End BiMapper.java

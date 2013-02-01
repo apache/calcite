@@ -30,12 +30,12 @@ package net.hydromatic.linq4j;
  * </tr>
  * <tr>
  * <td>{@link net.hydromatic.linq4j.function.Predicate1 Predicate1}</td>
- * <td>{@link net.hydromatic.lamdba.functions.Predicate Predicate}</td>
+ * <td>{@link net.hydromatic.lambda.functions.Predicate Predicate}</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>{@link net.hydromatic.linq4j.function.Predicate2 Predicate2}</td>
- * <td>{@link net.hydromatic.lamdba.functions.BiPredicate BiPredicate}</td>
+ * <td>{@link net.hydromatic.lambda.functions.BiPredicate BiPredicate}</td>
  * <td></td>
  * </tr>
  * <tr>
@@ -45,12 +45,12 @@ package net.hydromatic.linq4j;
  * </tr>
  * <tr>
  * <td>{@link Enumerable}</td>
- * <td>{@link net.hydromatic.lamdba.streams.Stream Stream},
- * {@link net.hydromatic.lamdba.streams.MapStream MapStream}</td>
+ * <td>{@link net.hydromatic.lambda.streams.Stream Stream},
+ * {@link net.hydromatic.lambda.streams.MapStream MapStream}</td>
  * </tr>
  * <tr>
  * <td>{@link Grouping}&lt;K, V&gt;</td>
- * <td>{@link net.hydromatic.lamdba.functions.BiValue BiValue}&lt;K, Iterable&lt;V&gt;</td>
+ * <td>{@link net.hydromatic.lambda.functions.BiValue BiValue}&lt;K, Iterable&lt;V&gt;</td>
  * </tr>
  * <tr>
  * <td>{@link Queryable}</td>

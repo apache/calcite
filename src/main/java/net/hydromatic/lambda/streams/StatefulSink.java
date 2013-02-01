@@ -15,15 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.functions;
+package net.hydromatic.lambda.streams;
+
+import net.hydromatic.lambda.functions.Sink;
 
 /**
- * Creates objects. Aka Source and Producer.
+ * StatefulSink.
  *
- * <p>Based on {@code java.util.functions.Factory}.</p>
+ * <p>Based on {@code java.util.streams.StatefulSink}.</p>
  */
-public interface Factory<T> {
-  T make();
+public interface StatefulSink<T, V> extends Sink<T> {
+  void begin(int size);
+
+  V end();
 }
 
-// End Factory.java
+// End StatefulSink.java

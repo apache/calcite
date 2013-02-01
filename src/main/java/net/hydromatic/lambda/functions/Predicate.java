@@ -15,19 +15,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.streams;
-
-import net.hydromatic.lamdba.functions.Sink;
+package net.hydromatic.lambda.functions;
 
 /**
- * StatefulSink.
+ * Predicate.
  *
- * <p>Based on {@code java.util.streams.StatefulSink}.</p>
+ * <p>Based on {@code java.util.functions.Predicate}.</p>
  */
-public interface StatefulSink<T, V> extends Sink<T> {
-  void begin(int size);
+public interface Predicate<T> {
+  boolean test(T t);
 
-  V end();
+  Predicate<T> and(Predicate<? super T> p);
+  // default:
+  // return Predicates.and(this, p);
+
+  Predicate<T> negate();
+  // default:
+  // return Predicates.negate(this);
+
+  Predicate<T> or(Predicate<? super T> p);
+  // default:
+  // return Predicates.or(this, p);
+
+  Predicate<T> xor(Predicate<? super T> p);
+  // default:
+  // return Predicates.xor(this, p);
 }
 
-// End StatefulSink.java
+// End Predicate.java

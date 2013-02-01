@@ -15,11 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
+package net.hydromatic.lambda.functions;
 
 /**
- * Provides a similar API to the <code>java.util.functions</code> package
- * that is part of OpenJDK 8.
+ * Equivalent to {@link Predicate} for bi-values.
  */
-package net.hydromatic.lamdba.functions;
+public interface BiPredicate<L, R> {
+  boolean eval(L l, R r);
 
-// End package-info.java
+  BiPredicate<L, R> and(BiPredicate<? super L, ? super R> p);
+
+  BiPredicate<L, R> or(BiPredicate<? super L, ? super R> p);
+
+  BiPredicate<L, R> xor(BiPredicate<? super L, ? super R> p);
+}
+
+// End BiPredicate.java

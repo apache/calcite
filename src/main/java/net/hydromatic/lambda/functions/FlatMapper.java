@@ -15,17 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.functions;
+package net.hydromatic.lambda.functions;
 
 /**
- * Equivalent fo {@link Mapper} for bi-values.
+ * FlatMapper.
+ *
+ * <p>Based on {@code java.util.functions.FlatMapper}.</p>
  */
-public interface BiMapper<T, U, V> {
-  V map(T t, U u);
-
-  public <W> BiMapper<T, U, W> compose(Mapper<? super V, ? extends W> after);
-  // default:
-  // throw new UnsupportedOperationException("Not yet implemented.");
+public interface FlatMapper<T, R> {
+  void flatMapInto(T element, Sink<? super R> sink);
 }
 
-// End BiMapper.java
+// End FlatMapper.java

@@ -15,31 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.functions;
+package net.hydromatic.lambda.functions;
 
 /**
- * Predicate.
- *
- * <p>Based on {@code java.util.functions.Predicate}.</p>
+ * Mapper.
  */
-public interface Predicate<T> {
-  boolean test(T t);
+public interface Mapper<T, R> {
+  R map(T t);
 
-  Predicate<T> and(Predicate<? super T> p);
+  <V> Mapper<T, V> compose(Mapper<? super R, ? extends V> after);
   // default:
-  // return Predicates.and(this, p);
-
-  Predicate<T> negate();
-  // default:
-  // return Predicates.negate(this);
-
-  Predicate<T> or(Predicate<? super T> p);
-  // default:
-  // return Predicates.or(this, p);
-
-  Predicate<T> xor(Predicate<? super T> p);
-  // default:
-  // return Predicates.xor(this, p);
+  // return Mappers.chain(this, after);
 }
 
-// End Predicate.java
+// End Mapper.java

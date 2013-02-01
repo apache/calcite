@@ -15,15 +15,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.functions;
+package net.hydromatic.lambda.functions;
 
 /**
- * Sink.
+ * Block.
  *
- * <p>Based on {@code java.util.functions.Sink}.</p>
+ * <p>Based on {@code java.util.functions.Block}.</p>
  */
-public interface Sink<T> {
-  void accept(T t);
+public interface Block<T> {
+  void apply(T t);
+
+  Block<T> chain(Block<? super T> second);
+  // default: Blocks.chain(this, second);
 }
 
-// End Sink.java
+// End Block.java

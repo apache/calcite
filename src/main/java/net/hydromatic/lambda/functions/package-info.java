@@ -15,18 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.lamdba.functions;
 
 /**
- * Block.
- *
- * <p>Based on {@code java.util.functions.Block}.</p>
+ * Provides a similar API to the <code>java.util.functions</code> package
+ * that is part of OpenJDK 8.
  */
-public interface Block<T> {
-  void apply(T t);
+package net.hydromatic.lambda.functions;
 
-  Block<T> chain(Block<? super T> second);
-  // default: Blocks.chain(this, second);
-}
-
-// End Block.java
+// End package-info.java
