@@ -26,46 +26,46 @@ import junit.framework.TestCase;
  * Unit test for {@link Primitive}.
  */
 public class PrimitiveTest extends TestCase {
-    public void testIsAssignableFrom() {
-        assertTrue(Primitive.INT.assignableFrom(Primitive.BYTE));
-        assertTrue(Primitive.INT.assignableFrom(Primitive.SHORT));
-        assertTrue(Primitive.INT.assignableFrom(Primitive.CHAR));
-        assertTrue(Primitive.INT.assignableFrom(Primitive.INT));
-        assertTrue(Primitive.INT.assignableFrom(Primitive.SHORT));
-        assertFalse(Primitive.INT.assignableFrom(Primitive.LONG));
+  public void testIsAssignableFrom() {
+    assertTrue(Primitive.INT.assignableFrom(Primitive.BYTE));
+    assertTrue(Primitive.INT.assignableFrom(Primitive.SHORT));
+    assertTrue(Primitive.INT.assignableFrom(Primitive.CHAR));
+    assertTrue(Primitive.INT.assignableFrom(Primitive.INT));
+    assertTrue(Primitive.INT.assignableFrom(Primitive.SHORT));
+    assertFalse(Primitive.INT.assignableFrom(Primitive.LONG));
 
-        assertTrue(Primitive.LONG.assignableFrom(Primitive.BYTE));
-        assertTrue(Primitive.LONG.assignableFrom(Primitive.SHORT));
-        assertTrue(Primitive.LONG.assignableFrom(Primitive.CHAR));
-        assertTrue(Primitive.LONG.assignableFrom(Primitive.INT));
-        assertTrue(Primitive.LONG.assignableFrom(Primitive.LONG));
+    assertTrue(Primitive.LONG.assignableFrom(Primitive.BYTE));
+    assertTrue(Primitive.LONG.assignableFrom(Primitive.SHORT));
+    assertTrue(Primitive.LONG.assignableFrom(Primitive.CHAR));
+    assertTrue(Primitive.LONG.assignableFrom(Primitive.INT));
+    assertTrue(Primitive.LONG.assignableFrom(Primitive.LONG));
 
-        // SHORT and CHAR cannot be assigned to each other
+    // SHORT and CHAR cannot be assigned to each other
 
-        assertTrue(Primitive.SHORT.assignableFrom(Primitive.BYTE));
-        assertTrue(Primitive.SHORT.assignableFrom(Primitive.SHORT));
-        assertFalse(Primitive.SHORT.assignableFrom(Primitive.CHAR));
-        assertFalse(Primitive.SHORT.assignableFrom(Primitive.INT));
-        assertFalse(Primitive.SHORT.assignableFrom(Primitive.LONG));
+    assertTrue(Primitive.SHORT.assignableFrom(Primitive.BYTE));
+    assertTrue(Primitive.SHORT.assignableFrom(Primitive.SHORT));
+    assertFalse(Primitive.SHORT.assignableFrom(Primitive.CHAR));
+    assertFalse(Primitive.SHORT.assignableFrom(Primitive.INT));
+    assertFalse(Primitive.SHORT.assignableFrom(Primitive.LONG));
 
-        assertFalse(Primitive.CHAR.assignableFrom(Primitive.BYTE));
-        assertFalse(Primitive.CHAR.assignableFrom(Primitive.SHORT));
-        assertTrue(Primitive.CHAR.assignableFrom(Primitive.CHAR));
-        assertFalse(Primitive.CHAR.assignableFrom(Primitive.INT));
-        assertFalse(Primitive.CHAR.assignableFrom(Primitive.LONG));
+    assertFalse(Primitive.CHAR.assignableFrom(Primitive.BYTE));
+    assertFalse(Primitive.CHAR.assignableFrom(Primitive.SHORT));
+    assertTrue(Primitive.CHAR.assignableFrom(Primitive.CHAR));
+    assertFalse(Primitive.CHAR.assignableFrom(Primitive.INT));
+    assertFalse(Primitive.CHAR.assignableFrom(Primitive.LONG));
 
-        // cross-family assignments
+    // cross-family assignments
 
-        assertFalse(Primitive.BOOLEAN.assignableFrom(Primitive.INT));
-        assertFalse(Primitive.INT.assignableFrom(Primitive.BOOLEAN));
-    }
+    assertFalse(Primitive.BOOLEAN.assignableFrom(Primitive.INT));
+    assertFalse(Primitive.INT.assignableFrom(Primitive.BOOLEAN));
+  }
 
-    public void testBox() {
-        assertEquals(String.class, Primitive.box(String.class));
-        assertEquals(Integer.class, Primitive.box(int.class));
-        assertEquals(Integer.class, Primitive.box(Integer.class));
-        assertEquals(boolean[].class, Primitive.box(boolean[].class));
-    }
+  public void testBox() {
+    assertEquals(String.class, Primitive.box(String.class));
+    assertEquals(Integer.class, Primitive.box(int.class));
+    assertEquals(Integer.class, Primitive.box(Integer.class));
+    assertEquals(boolean[].class, Primitive.box(boolean[].class));
+  }
 }
 
 // End PrimitiveTest.java

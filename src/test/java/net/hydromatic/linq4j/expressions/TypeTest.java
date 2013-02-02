@@ -23,58 +23,44 @@ import junit.framework.TestCase;
  * Test for {@link Types#gcd}.
  */
 public class TypeTest extends TestCase {
-    public void testGcd() {
-        int i = 0;
-        char c = 0;
-        byte b = 0;
-        short s = 0;
-        int l = 0;
+  public void testGcd() {
+    int i = 0;
+    char c = 0;
+    byte b = 0;
+    short s = 0;
+    int l = 0;
 
-        // int to long
-        l = i;
-        assertEquals(
-            long.class,
-            Types.gcd(int.class, long.class));
+    // int to long
+    l = i;
+    assertEquals(long.class, Types.gcd(int.class, long.class));
 
-        // reverse args
-        assertEquals(
-            long.class,
-            Types.gcd(long.class, int.class));
+    // reverse args
+    assertEquals(long.class, Types.gcd(long.class, int.class));
 
-        // char to int
-        i = c;
-        assertEquals(
-            int.class,
-            Types.gcd(char.class, int.class));
+    // char to int
+    i = c;
+    assertEquals(int.class, Types.gcd(char.class, int.class));
 
-        // can assign byte to short
-        assertEquals(
-            short.class,
-            Types.gcd(byte.class, short.class));
-        s = b;
+    // can assign byte to short
+    assertEquals(short.class, Types.gcd(byte.class, short.class));
+    s = b;
 
-        // cannot assign byte to char
-        // cannot assign char to short
-        // can assign byte and char to int
-        // fails: c = b;
-        // fails: s = c;
-        i = b;
-        i = c;
-        assertEquals(
-            int.class,
-            Types.gcd(char.class, byte.class));
+    // cannot assign byte to char
+    // cannot assign char to short
+    // can assign byte and char to int
+    // fails: c = b;
+    // fails: s = c;
+    i = b;
+    i = c;
+    assertEquals(int.class, Types.gcd(char.class, byte.class));
 
-        assertEquals(
-            int.class,
-            Types.gcd(byte.class, char.class));
+    assertEquals(int.class, Types.gcd(byte.class, char.class));
 
-        // mix a primitive with an object
-        // (correct answer is java.io.Serializable)
-        assertEquals(
-            Object.class,
-            Types.gcd(String.class, int.class));
-        java.io.Serializable o = true ? "x" : 1;
-    }
+    // mix a primitive with an object
+    // (correct answer is java.io.Serializable)
+    assertEquals(Object.class, Types.gcd(String.class, int.class));
+    java.io.Serializable o = true ? "x" : 1;
+  }
 }
 
 // End TypeTest.java
