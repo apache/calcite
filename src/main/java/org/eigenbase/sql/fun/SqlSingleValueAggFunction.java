@@ -17,8 +17,6 @@
 */
 package org.eigenbase.sql.fun;
 
-import openjava.mop.*;
-
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
@@ -67,10 +65,6 @@ public class SqlSingleValueAggFunction
         return type;
     }
 
-    public OJClass [] getStartParameterTypes()
-    {
-        return new OJClass[0];
-    }
 }
 
 // End SqlSingleValueAggFunction.java

@@ -17,10 +17,7 @@
 */
 package org.eigenbase.sql;
 
-import openjava.mop.*;
-
 import org.eigenbase.rel.*;
-import org.eigenbase.resource.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
@@ -56,11 +53,6 @@ public abstract class SqlAggFunction
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    public OJClass [] getStartParameterTypes()
-    {
-        return new OJClass[0];
-    }
 
     public boolean isQuantifierAllowed()
     {

@@ -17,9 +17,6 @@
 */
 package org.eigenbase.sql.fun;
 
-import openjava.mop.*;
-
-import org.eigenbase.oj.util.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
@@ -121,18 +118,6 @@ public class SqlMinMaxAggFunction
         }
     }
 
-    public OJClass [] getStartParameterTypes()
-    {
-        switch (kind) {
-        case MINMAX_PRIMITIVE:
-        case MINMAX_COMPARABLE:
-            return new OJClass[0];
-        case MINMAX_COMPARATOR:
-            return new OJClass[] { OJUtil.clazzComparator };
-        default:
-            throw Util.newInternal("bad kind: " + kind);
-        }
-    }
 }
 
 // End SqlMinMaxAggFunction.java

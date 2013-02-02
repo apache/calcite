@@ -41,14 +41,7 @@ import java.util.jar.*;
 import java.util.logging.*;
 import java.util.regex.*;
 
-import openjava.mop.*;
-
-import openjava.ptree.Expression;
-import openjava.ptree.StatementList;
-
 import org.eigenbase.runtime.*;
-import org.eigenbase.sql.*;
-import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 
 
@@ -59,7 +52,6 @@ import org.eigenbase.sql.validate.*;
  * @version $Id$
  */
 public class Util
-    extends Toolbox
 {
     //~ Static fields/initializers ---------------------------------------------
 
@@ -233,11 +225,6 @@ public class Util
             }
         }
         return true;
-    }
-
-    public static StatementList clone(StatementList e)
-    {
-        return (StatementList) e.makeCopy();
     }
 
     /**
@@ -603,20 +590,6 @@ public class Util
     {
         SimpleDateFormat sdf = new SimpleDateFormat(fileTimestampFormat);
         return sdf.format(new java.util.Date());
-    }
-
-    public static Expression clone(Expression exp)
-    {
-        return (Expression) exp.makeRecursiveCopy();
-    }
-
-    public static Expression [] clone(Expression [] a)
-    {
-        Expression [] a2 = new Expression[a.length];
-        for (int i = 0; i < a.length; i++) {
-            a2[i] = clone(a[i]);
-        }
-        return a2;
     }
 
     /**
