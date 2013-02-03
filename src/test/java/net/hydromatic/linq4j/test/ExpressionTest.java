@@ -617,6 +617,56 @@ public class ExpressionTest extends TestCase {
                 Expressions.constant(true),
                 Expressions.return_(null))));
   }
+
+  /** Test for common sub-expression elimination. */
+  public void testSubExpressionElimination() {
+    final BlockBuilder builder = new BlockBuilder(true);
+    ParameterExpression x = Expressions.parameter(Object.class, "p");
+    Expression current4 = builder.append(
+        "current4",
+        Expressions.convert_(x, Object[].class));
+    Expression v = builder.append(
+        "v",
+        Expressions.convert_(
+            Expressions.arrayIndex(
+                current4,
+                Expressions.constant(4)), Short.class));
+    Expression v0 = builder.append(
+        "v0",
+        Expressions.convert_(v, Integer.class));
+    Expression v1 = builder.append(
+        "v1",
+        Expressions.convert_(
+            Expressions.arrayIndex(
+                current4,
+                Expressions.constant(4)), Short.class));
+    Expression v2 = builder.append(
+        "v2",
+        Expressions.convert_(v, Integer.class));
+    Expression v3 = builder.append(
+        "v3",
+        Expressions.convert_(
+            Expressions.arrayIndex(
+                current4,
+                Expressions.constant(4)), Short.class));
+    Expression v4 = builder.append(
+        "v4",
+        Expressions.convert_(v3, Integer.class));
+    Expression v5 = builder.append("v5", Expressions.call(v4, "intValue"));
+    Expression v6 = builder.append(
+        "v6",
+        Expressions.condition(
+            Expressions.equal(v2, Expressions.constant(null)),
+            Expressions.constant(null),
+            Expressions.equal(v5, Expressions.constant(1997))));
+    builder.add(Expressions.return_(null, v6));
+    assertEquals(
+        "{\n"
+        + "  final Integer v0 = (Integer) (Short) ((Object[]) p)[4];\n"
+        + "  return v0 == null ? null : v0.intValue() == 1997;\n"
+        + "}\n",
+        Expressions.toString(builder.toBlock()));
+  }
 }
 
 // End ExpressionTest.java

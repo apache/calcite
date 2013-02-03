@@ -36,6 +36,28 @@ public class BinaryExpression extends Expression {
   }
 
   @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (obj instanceof BinaryExpression) {
+      final BinaryExpression binary = (BinaryExpression) obj;
+      return nodeType == binary.nodeType
+             && type.equals(binary.type)
+             && expression0.equals(binary.expression0)
+             && expression1.equals(binary.expression1);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return nodeType.hashCode()
+           ^ expression0.hashCode()
+           ^ expression1.hashCode();
+  }
+
+  @Override
   public Expression accept(Visitor visitor) {
     Expression expression0 = this.expression0.accept(visitor);
     Expression expression1 = this.expression1.accept(visitor);

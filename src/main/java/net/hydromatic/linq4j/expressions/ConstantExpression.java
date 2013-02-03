@@ -61,8 +61,9 @@ public class ConstantExpression extends Expression {
   public boolean equals(Object obj) {
     // REVIEW: Should constants with the same value and different type
     // (e.g. 3L and 3) be considered equal.
-    return obj == this || obj instanceof ConstantExpression && Linq4j.equals(
-        value, ((ConstantExpression) obj).value);
+    return obj == this
+           || obj instanceof ConstantExpression
+              && Linq4j.equals(value, ((ConstantExpression) obj).value);
   }
 
   public Object evaluate(Evaluator evaluator) {

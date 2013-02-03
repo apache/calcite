@@ -17,6 +17,8 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import net.hydromatic.linq4j.Linq4j;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -50,6 +52,29 @@ public class MethodCallExpression extends Expression {
   }
 
   @Override
+  public int hashCode() {
+    return nodeType.hashCode()
+           ^ method.hashCode()
+           ^ targetExpression.hashCode()
+           ^ expressions.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj instanceof MethodCallExpression) {
+      final MethodCallExpression call = (MethodCallExpression) obj;
+      return nodeType == call.nodeType
+          && method == call.method
+          && Linq4j.equals(targetExpression, targetExpression)
+          && expressions.equals(call.expressions);
+    }
+    return false;
+  }
+
+  @Override
   public Expression accept(Visitor visitor) {
     Expression targetExpression = Expressions.accept(this.targetExpression,
         visitor);
@@ -57,7 +82,6 @@ public class MethodCallExpression extends Expression {
         this.expressions, visitor);
     return visitor.visit(this, targetExpression, expressions);
   }
-
 
   @Override
   public Object evaluate(Evaluator evaluator) {

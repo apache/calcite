@@ -331,9 +331,8 @@ public class Linq4jTest extends TestCase {
         new TreeSet<String>(lookup.keySet()).toString());
 
     StringBuilder buf = new StringBuilder();
-    for (Grouping<String, Employee> grouping : lookup.orderBy(
-        Linq4jTest.<String, Employee>groupingKeyExtractor()))
-    {
+    for (Grouping<String, Employee> grouping
+        : lookup.orderBy(Linq4jTest.<String, Employee>groupingKeyExtractor())) {
       buf.append(grouping).append("\n");
     }
     assertEquals(
@@ -532,9 +531,7 @@ public class Linq4jTest extends TestCase {
                 DEPT_DEPTNO_SELECTOR,
                 EMP_DEPTNO_SELECTOR,
                 new Function2<Department, Enumerable<Employee>, String>() {
-                  public String apply(
-                      Department v1, Enumerable<Employee> v2)
-                  {
+                  public String apply(Department v1, Enumerable<Employee> v2) {
                     final StringBuilder buf = new StringBuilder("[");
                     int n = 0;
                     for (Employee employee : v2) {

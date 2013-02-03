@@ -17,6 +17,8 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import net.hydromatic.linq4j.Linq4j;
+
 import java.util.List;
 
 /**
@@ -152,8 +154,8 @@ public class Visitor {
 
   public Expression visit(NewExpression newExpression,
       List<Expression> arguments, List<MemberDeclaration> memberDeclarations) {
-    return arguments.equals(newExpression.arguments) && equal(
-        memberDeclarations, newExpression.memberDeclarations)
+    return arguments.equals(newExpression.arguments)
+        && Linq4j.equals(memberDeclarations, newExpression.memberDeclarations)
         ? newExpression
         : Expressions.new_(newExpression.type, arguments, memberDeclarations);
   }
@@ -200,10 +202,6 @@ public class Visitor {
 
   public ConstantExpression visit(ConstantExpression constantExpression) {
     return constantExpression;
-  }
-
-  private static <T> boolean equal(T t1, T t2) {
-    return t1 == t2 || t1 != null && t1.equals(t2);
   }
 
   public ClassDeclaration visit(ClassDeclaration classDeclaration,

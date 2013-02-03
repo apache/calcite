@@ -34,6 +34,25 @@ public class IndexExpression extends Expression {
   }
 
   @Override
+  public int hashCode() {
+    return nodeType.hashCode() ^ array.hashCode() ^ indexExpressions.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj instanceof IndexExpression) {
+      final IndexExpression indexExpression = (IndexExpression) obj;
+      return nodeType == indexExpression.nodeType
+          && array.equals(indexExpression.array)
+          && indexExpressions.equals(indexExpression.indexExpressions);
+    }
+    return false;
+  }
+
+  @Override
   public Expression accept(Visitor visitor) {
     Expression array = this.array.accept(visitor);
     List<Expression> indexExpressions = Expressions.acceptExpressions(

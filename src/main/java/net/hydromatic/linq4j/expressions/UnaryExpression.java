@@ -36,6 +36,24 @@ public class UnaryExpression extends Expression {
     return visitor.visit(this, expression);
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (obj instanceof UnaryExpression) {
+      final UnaryExpression unaryExpression = (UnaryExpression) obj;
+      return nodeType == unaryExpression.nodeType
+          && type.equals(unaryExpression.type)
+          && expression.equals(unaryExpression.expression);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return nodeType.hashCode() ^ expression.hashCode();
+  }
 
   void accept(ExpressionWriter writer, int lprec, int rprec) {
     switch (nodeType) {
