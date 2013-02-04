@@ -68,7 +68,7 @@ public class MethodCallExpression extends Expression {
       final MethodCallExpression call = (MethodCallExpression) obj;
       return nodeType == call.nodeType
           && method == call.method
-          && Linq4j.equals(targetExpression, targetExpression)
+          && Linq4j.equals(targetExpression, call.targetExpression)
           && expressions.equals(call.expressions);
     }
     return false;
