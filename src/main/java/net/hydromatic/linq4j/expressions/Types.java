@@ -482,9 +482,7 @@ public class Types {
 
   public static Type stripGenerics(Type type) {
     if (type instanceof GenericArrayType) {
-      final
-      Type
-          componentType =
+      final Type componentType =
           ((GenericArrayType) type).getGenericComponentType();
       return new ArrayType(stripGenerics(componentType));
     } else if (type instanceof ParameterizedType) {

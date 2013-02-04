@@ -41,13 +41,16 @@ public class MemberExpression extends Expression {
 
   @Override
   public Expression accept(Visitor visitor) {
-    Expression expression1 = expression == null ? null : expression.accept(
-        visitor);
+    Expression expression1 = expression == null
+        ? null
+        : expression.accept(visitor);
     return visitor.visit(this, expression1);
   }
 
   public Object evaluate(Evaluator evaluator) {
-    final Object o = expression == null ? null : expression.evaluate(evaluator);
+    final Object o = expression == null
+        ? null
+        : expression.evaluate(evaluator);
     try {
       return field.get(o);
     } catch (IllegalAccessException e) {

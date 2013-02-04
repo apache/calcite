@@ -167,9 +167,7 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
       final Function2<K, Enumerable<V>, TResult> resultSelector) {
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
-        final
-        Enumerator<Grouping<K, V>>
-            groupingEnumerator =
+        final Enumerator<Grouping<K, V>> groupingEnumerator =
             LookupImpl.this.enumerator();
         return new Enumerator<TResult>() {
           public TResult current() {
@@ -196,9 +194,7 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
   public Enumerable<V> valuesEnumerable() {
     return new AbstractEnumerable<V>() {
       public Enumerator<V> enumerator() {
-        final
-        Enumerator<Enumerable<V>>
-            listEnumerator =
+        final Enumerator<Enumerable<V>> listEnumerator =
             Linq4j.iterableEnumerator(values());
         return new Enumerator<V>() {
           Enumerator<V> enumerator = Linq4j.emptyEnumerator();

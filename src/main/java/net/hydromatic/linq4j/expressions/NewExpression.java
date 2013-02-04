@@ -44,9 +44,7 @@ public class NewExpression extends Expression {
   public Expression accept(Visitor visitor) {
     final List<Expression> arguments = Expressions.acceptExpressions(
         this.arguments, visitor);
-    final
-    List<MemberDeclaration>
-        memberDeclarations =
+    final List<MemberDeclaration> memberDeclarations =
         Expressions.acceptMemberDeclarations(this.memberDeclarations, visitor);
     return visitor.visit(this, arguments, memberDeclarations);
   }

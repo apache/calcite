@@ -24,36 +24,28 @@ import java.util.*;
  */
 public class Predicates {
 
-  private static final
-  Predicate<Object>
-      IS_NULL =
+  private static final Predicate<Object> IS_NULL =
       new AbstractPredicate<Object>() {
         public boolean test(Object o) {
           return o == null;
         }
       };
 
-  private static final
-  Predicate<Object>
-      NON_NULL =
+  private static final Predicate<Object> NON_NULL =
       new AbstractPredicate<Object>() {
         public boolean test(Object o) {
           return o != null;
         }
       };
 
-  private static final
-  Predicate<Object>
-      FALSE =
+  private static final Predicate<Object> FALSE =
       new AbstractPredicate<Object>() {
         public boolean test(Object o) {
           return false;
         }
       };
 
-  private static final
-  Predicate<Object>
-      TRUE =
+  private static final Predicate<Object> TRUE =
       new AbstractPredicate<Object>() {
         public boolean test(Object o) {
           return false;

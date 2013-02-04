@@ -40,8 +40,9 @@ public class DeclarationExpression extends Statement {
   @Override
   public Statement accept(Visitor visitor) {
     // do not visit parameter - visit may not return a ParameterExpression
-    Expression initializer = this.initializer != null ? this.initializer.accept(
-        visitor) : null;
+    Expression initializer = this.initializer != null
+        ? this.initializer.accept(visitor)
+        : null;
     return visitor.visit(this, parameter, initializer);
   }
 

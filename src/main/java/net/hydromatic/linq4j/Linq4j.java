@@ -35,9 +35,7 @@ public class Linq4j {
     }
   };
 
-  private static final
-  Enumerator<Object>
-      EMPTY_ENUMERATOR =
+  private static final Enumerator<Object> EMPTY_ENUMERATOR =
       new Enumerator<Object>() {
         public Object current() {
           throw new NoSuchElementException();
@@ -51,9 +49,7 @@ public class Linq4j {
         }
       };
 
-  public static final
-  Enumerable<?>
-      EMPTY_ENUMERABLE =
+  public static final Enumerable<?> EMPTY_ENUMERABLE =
       new AbstractEnumerable<Object>() {
         public Enumerator<Object> enumerator() {
           return EMPTY_ENUMERATOR;

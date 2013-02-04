@@ -1426,8 +1426,11 @@ public class Expressions {
     final Type type;
     switch (ternaryType) {
     case Conditional:
-      type = isConstantNull(e1) ? box(e2.getType()) : isConstantNull(e2) ? box(
-          e1.getType()) : Types.gcd(e1.getType(), e2.getType());
+      type = isConstantNull(e1)
+          ? box(e2.getType())
+          : isConstantNull(e2)
+          ? box(e1.getType())
+          : Types.gcd(e1.getType(), e2.getType());
       break;
     default:
       type = e1.getType();
@@ -2924,9 +2927,7 @@ public class Expressions {
     if (memberDeclarations == null || memberDeclarations.isEmpty()) {
       return memberDeclarations; // short cut
     }
-    final
-    List<MemberDeclaration>
-        memberDeclarations1 =
+    final List<MemberDeclaration> memberDeclarations1 =
         new ArrayList<MemberDeclaration>();
     for (MemberDeclaration memberDeclaration : memberDeclarations) {
       memberDeclarations1.add(memberDeclaration.accept(visitor));

@@ -99,9 +99,10 @@ public class Visitor {
 
   public Expression visit(IndexExpression indexExpression, Expression array,
       List<Expression> indexExpressions) {
-    return indexExpression.array == array && indexExpression.indexExpressions
-        .equals(indexExpressions) ? indexExpression : new IndexExpression(array,
-        indexExpressions);
+    return indexExpression.array == array
+           && indexExpression.indexExpressions.equals(indexExpressions)
+        ? indexExpression
+        : new IndexExpression(array, indexExpressions);
   }
 
   public Expression visit(UnaryExpression unaryExpression,

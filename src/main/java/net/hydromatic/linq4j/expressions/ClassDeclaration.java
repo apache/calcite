@@ -59,9 +59,7 @@ public class ClassDeclaration extends MemberDeclaration {
   }
 
   public ClassDeclaration accept(Visitor visitor) {
-    final
-    List<MemberDeclaration>
-        members1 =
+    final List<MemberDeclaration> members1 =
         Expressions.acceptMemberDeclarations(memberDeclarations, visitor);
     return visitor.visit(this, members1);
   }

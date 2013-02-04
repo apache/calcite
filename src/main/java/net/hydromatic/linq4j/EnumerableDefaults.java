@@ -588,9 +588,7 @@ public abstract class EnumerableDefaults {
     }
     return new AbstractEnumerable2<TResult>() {
       public Iterator<TResult> iterator() {
-        final
-        Iterator<Map.Entry<TKey, TAccumulate>>
-            iterator =
+        final Iterator<Map.Entry<TKey, TAccumulate>> iterator =
             map.entrySet().iterator();
         return new Iterator<TResult>() {
           public boolean hasNext() {
@@ -736,16 +734,15 @@ public abstract class EnumerableDefaults {
       final Function2<TSource, TInner, TResult> resultSelector,
       final EqualityComparer<TKey> comparer) {
     return new AbstractEnumerable<TResult>() {
-      final Lookup<TKey, TSource> outerMap = comparer == null ? outer.toLookup(
-          outerKeySelector) : outer.toLookup(outerKeySelector, comparer);
-      final
-      Lookup<TKey, TInner>
-          innerLookup =
-          comparer == null ? inner.toLookup(innerKeySelector) : inner.toLookup(
-              innerKeySelector, comparer);
-      final
-      Enumerator<Map.Entry<TKey, Enumerable<TSource>>>
-          entries =
+      final Lookup<TKey, TSource> outerMap =
+          comparer == null
+              ? outer.toLookup(outerKeySelector)
+              : outer.toLookup(outerKeySelector, comparer);
+      final Lookup<TKey, TInner> innerLookup =
+          comparer == null
+              ? inner.toLookup(innerKeySelector)
+              : inner.toLookup(innerKeySelector, comparer);
+      final Enumerator<Map.Entry<TKey, Enumerable<TSource>>> entries =
           Linq4j.enumerator(outerMap.entrySet());
 
       public Enumerator<TResult> enumerator() {
@@ -766,9 +763,7 @@ public abstract class EnumerableDefaults {
               if (!entries.moveNext()) {
                 return false;
               }
-              final
-              Map.Entry<TKey, Enumerable<TSource>>
-                  outer =
+              final Map.Entry<TKey, Enumerable<TSource>> outer =
                   entries.current();
               final Enumerable<TSource> outerEnumerable = outer.getValue();
               final Enumerable<TInner> innerEnumerable = innerLookup.get(
@@ -1691,8 +1686,10 @@ public abstract class EnumerableDefaults {
     if (source instanceof List && source instanceof RandomAccess) {
       return (List<TSource>) source;
     } else {
-      return source.into(source instanceof Collection ? new ArrayList<TSource>(
-          ((Collection) source).size()) : new ArrayList<TSource>());
+      return source.into(
+          source instanceof Collection
+              ? new ArrayList<TSource>(((Collection) source).size())
+              : new ArrayList<TSource>());
     }
   }
 
@@ -1898,8 +1895,8 @@ public abstract class EnumerableDefaults {
     //noinspection unchecked
     return source instanceof OrderedQueryable
         ? ((OrderedQueryable<T>) source)
-        : new EnumerableOrderedQueryable<T>(source, (Class) Object.class, null,
-            null);
+        : new EnumerableOrderedQueryable<T>(
+            source, (Class) Object.class, null, null);
   }
 
   public static <T, C extends Collection<? super T>> C into(
@@ -2050,9 +2047,7 @@ public abstract class EnumerableDefaults {
       return new AbstractSet<Entry<K, V>>() {
         @Override
         public Iterator<Entry<K, V>> iterator() {
-          final
-          Iterator<Entry<Wrapped<K>, V>>
-              iterator =
+          final Iterator<Entry<Wrapped<K>, V>> iterator =
               map.entrySet().iterator();
 
           return new Iterator<Entry<K, V>>() {

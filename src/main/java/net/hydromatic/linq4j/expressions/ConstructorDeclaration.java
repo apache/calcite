@@ -56,8 +56,8 @@ public class ConstructorDeclaration extends MemberDeclaration {
       public String get(int index) {
         ParameterExpression parameter = parameters.get(index);
         final String modifiers = Modifier.toString(parameter.modifier);
-        return modifiers + (modifiers.isEmpty() ? "" : " ") + Types.className(
-            parameter.getType()) + " " + parameter.name;
+        return modifiers + (modifiers.isEmpty() ? "" : " ")
+               + Types.className(parameter.getType()) + " " + parameter.name;
       }
 
       public int size() {

@@ -24,9 +24,7 @@ import java.util.List;
  * Holds context for evaluating expressions.
  */
 class Evaluator {
-  final
-  List<ParameterExpression>
-      parameters =
+  final List<ParameterExpression> parameters =
       new ArrayList<ParameterExpression>();
   final List<Object> values = new ArrayList<Object>();
 

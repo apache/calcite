@@ -125,13 +125,9 @@ public interface MapStream<K, V> extends Iterable<BiValue<K, V>> {
         final BiPredicate<? super K, ? super V> predicate) {
       return new AbstractMapStream<K, V>() {
         public Iterable<BiValue<K, V>> asIterable() {
-          final
-          Enumerator<BiValue<K, V>>
-              enumerator =
+          final Enumerator<BiValue<K, V>> enumerator =
               Linq4j.iterableEnumerator(s);
-          final
-          Enumerator<BiValue<K, V>>
-              enumerator2 =
+          final Enumerator<BiValue<K, V>> enumerator2 =
               new Enumerator<BiValue<K, V>>() {
                 public BiValue<K, V> current() {
                   return enumerator.current();
@@ -338,9 +334,7 @@ public interface MapStream<K, V> extends Iterable<BiValue<K, V>> {
       return new Iterable<K>() {
         public Iterator<K> iterator() {
           return new Iterator<K>() {
-            final
-            Iterator<? extends BiValue<K, V>>
-                source =
+            final Iterator<? extends BiValue<K, V>> source =
                 filteredElements.iterator();
 
             public boolean hasNext() {
@@ -364,9 +358,7 @@ public interface MapStream<K, V> extends Iterable<BiValue<K, V>> {
       return new Iterable<V>() {
         public Iterator<V> iterator() {
           return new Iterator<V>() {
-            final
-            Iterator<? extends BiValue<K, V>>
-                source =
+            final Iterator<? extends BiValue<K, V>> source =
                 filteredElements.iterator();
 
             public boolean hasNext() {

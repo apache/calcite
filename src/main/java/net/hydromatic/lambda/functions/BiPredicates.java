@@ -25,36 +25,28 @@ import java.util.Iterator;
  */
 public class BiPredicates {
 
-  private static final
-  BiPredicate<Object, Object>
-      IS_NULL =
+  private static final BiPredicate<Object, Object> IS_NULL =
       new AbstractBiPredicate<Object, Object>() {
         public boolean eval(Object o, Object o2) {
           return o == null;
         }
       };
 
-  private static final
-  BiPredicate<Object, Object>
-      NON_NULL =
+  private static final BiPredicate<Object, Object> NON_NULL =
       new AbstractBiPredicate<Object, Object>() {
         public boolean eval(Object o, Object o2) {
           return o != null;
         }
       };
 
-  private static final
-  BiPredicate<Object, Object>
-      FALSE =
+  private static final BiPredicate<Object, Object> FALSE =
       new AbstractBiPredicate<Object, Object>() {
         public boolean eval(Object o, Object o2) {
           return false;
         }
       };
 
-  private static final
-  BiPredicate<Object, Object>
-      TRUE =
+  private static final BiPredicate<Object, Object> TRUE =
       new AbstractBiPredicate<Object, Object>() {
         public boolean eval(Object o, Object o2) {
           return false;

@@ -53,13 +53,9 @@ public enum Primitive {
   public final Object min;
   public final Object max;
 
-  private static final
-  Map<Class, Primitive>
-      PRIMITIVE_MAP =
+  private static final Map<Class, Primitive> PRIMITIVE_MAP =
       new HashMap<Class, Primitive>();
-  private static final
-  Map<Class, Primitive>
-      BOX_MAP =
+  private static final Map<Class, Primitive> BOX_MAP =
       new HashMap<Class, Primitive>();
 
   static {

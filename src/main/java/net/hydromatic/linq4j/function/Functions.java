@@ -27,8 +27,7 @@ import java.util.*;
  * Utilities relating to functions.
  */
 public class Functions {
-  public static final
-  Map<Class<? extends Function>, Class>
+  public static final Map<Class<? extends Function>, Class>
       FUNCTION_RESULT_TYPES =
       Collections.<Class<? extends Function>, Class>unmodifiableMap(map(
           Function1.class, Object.class, BigDecimalFunction1.class,
@@ -41,20 +40,15 @@ public class Functions {
           NullableIntegerFunction1.class, Integer.class,
           NullableLongFunction1.class, Long.class));
 
-  private static final
-  Map<Class, Class<? extends Function>>
-      FUNCTION1_CLASSES =
-      Collections.unmodifiableMap(new HashMap<Class, Class<? extends Function>>(
-          inverse(FUNCTION_RESULT_TYPES)));
+  private static final Map<Class, Class<? extends Function>> FUNCTION1_CLASSES =
+      Collections.unmodifiableMap(
+          new HashMap<Class, Class<? extends Function>>(
+              inverse(FUNCTION_RESULT_TYPES)));
 
-  private static final
-  EqualityComparer<Object>
-      IDENTITY_COMPARER =
+  private static final EqualityComparer<Object> IDENTITY_COMPARER =
       new IdentityEqualityComparer();
 
-  private static final
-  EqualityComparer<Object[]>
-      ARRAY_COMPARER =
+  private static final EqualityComparer<Object[]> ARRAY_COMPARER =
       new ArrayEqualityComparer();
 
   @SuppressWarnings("unchecked")

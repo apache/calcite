@@ -29,9 +29,7 @@ public class Mappers {
     throw new AssertionError();
   }
 
-  private static final
-  Mapper<Object, Object>
-      IDENTITY =
+  private static final Mapper<Object, Object> IDENTITY =
       new Mapper<Object, Object>() {
         public Object map(Object o) {
           return o;
@@ -43,9 +41,7 @@ public class Mappers {
         }
       };
 
-  private static final
-  Mapper<Object, String>
-      STRING =
+  private static final Mapper<Object, String> STRING =
       new Mapper<Object, String>() {
         public String map(Object o) {
           return String.valueOf(o);

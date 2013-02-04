@@ -233,9 +233,7 @@ public class BlockBuilder {
     for (Statement statement : statements) {
       statement.accept(useCounter);
     }
-    final
-    Map<ParameterExpression, Expression>
-        subMap =
+    final Map<ParameterExpression, Expression> subMap =
         new HashMap<ParameterExpression, Expression>();
     final SubstituteVariableVisitor visitor = new SubstituteVariableVisitor(
         subMap);
@@ -318,9 +316,7 @@ public class BlockBuilder {
 
   private static class SubstituteVariableVisitor extends Visitor {
     private final Map<ParameterExpression, Expression> map;
-    private final
-    Map<ParameterExpression, Boolean>
-        actives =
+    private final Map<ParameterExpression, Boolean> actives =
         new IdentityHashMap<ParameterExpression, Boolean>();
 
     public SubstituteVariableVisitor(Map<ParameterExpression, Expression> map) {
@@ -350,10 +346,7 @@ public class BlockBuilder {
   }
 
   private static class UseCounter extends Visitor {
-    private final
-    Map<ParameterExpression, Slot>
-        map =
-        new HashMap<ParameterExpression, Slot>();
+    private final Map<ParameterExpression, Slot> map = new HashMap<ParameterExpression, Slot>();
 
     public Expression visit(ParameterExpression parameter) {
       final Slot slot = map.get(parameter);

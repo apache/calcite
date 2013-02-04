@@ -29,9 +29,7 @@ public interface Stream<T> extends SequentialStreamOps<T>, Iterator<T> {
   public static final int STATE_SORTED = 2;
   public static final int STATE_SIZED = 4;
   public static final int STATE_MASK = 0x7;
-  public static final
-  int
-      STATE_UNKNOWN_MASK_V1 =
+  public static final int STATE_UNKNOWN_MASK_V1 =
       ~(STATE_UNIQUE | STATE_SORTED | STATE_SIZED);
 }
 
