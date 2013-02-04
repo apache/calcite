@@ -35,7 +35,8 @@ public abstract class EnumerableDefaults {
   public static <TSource> TSource aggregate(Enumerable<TSource> source,
       Function2<TSource, TSource, TSource> func) {
     TSource result = null;
-    for (TSource o : source) {
+    for (Enumerator<TSource> os = source.enumerator(); os.moveNext();) {
+      TSource o = os.current();
       result = func.apply(result, o);
     }
     return result;
@@ -50,7 +51,8 @@ public abstract class EnumerableDefaults {
       Enumerable<TSource> source, TAccumulate seed,
       Function2<TAccumulate, TSource, TAccumulate> func) {
     TAccumulate result = seed;
-    for (TSource o : source) {
+    for (Enumerator<TSource> os = source.enumerator(); os.moveNext();) {
+      TSource o = os.current();
       result = func.apply(result, o);
     }
     return result;
@@ -67,7 +69,8 @@ public abstract class EnumerableDefaults {
       Function2<TAccumulate, TSource, TAccumulate> func,
       Function1<TAccumulate, TResult> selector) {
     TAccumulate accumulate = seed;
-    for (TSource o : source) {
+    for (Enumerator<TSource> os = source.enumerator(); os.moveNext();) {
+      TSource o = os.current();
       accumulate = func.apply(accumulate, o);
     }
     return selector.apply(accumulate);
@@ -274,7 +277,8 @@ public abstract class EnumerableDefaults {
       TSource element) {
     // Implementations of Enumerable backed by a Collection call
     // Collection.contains, which may be more efficient, not this method.
-    for (TSource o : enumerable) {
+    for (Enumerator<TSource> os = enumerable.enumerator(); os.moveNext();) {
+      TSource o = os.current();
       if (o.equals(element)) {
         return true;
       }
@@ -374,7 +378,8 @@ public abstract class EnumerableDefaults {
       Enumerable<TSource> source0, Enumerable<TSource> source1) {
     Set<TSource> set = new HashSet<TSource>();
     source0.into(set);
-    for (TSource o : source1) {
+    for (Enumerator<TSource> os = source1.enumerator(); os.moveNext();) {
+      TSource o = os.current();
       set.remove(o);
     }
     return Linq4j.asEnumerable(set);
@@ -391,7 +396,9 @@ public abstract class EnumerableDefaults {
     Set<Wrapped<TSource>> set = new HashSet<Wrapped<TSource>>();
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
     source0.select(wrapper).into(set);
-    for (Wrapped<TSource> o : source1.select(wrapper)) {
+    for (Enumerator<Wrapped<TSource>> os = source1.select(wrapper).enumerator();
+         os.moveNext();) {
+      Wrapped<TSource> o = os.current();
       set.remove(o);
     }
     Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
@@ -571,16 +578,17 @@ public abstract class EnumerableDefaults {
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
       final Function2<TKey, TAccumulate, TResult> resultSelector) {
-    for (TSource source : enumerable) {
-      TKey key = keySelector.apply(source);
+    for (Enumerator<TSource> os = enumerable.enumerator(); os.moveNext();) {
+      TSource o = os.current();
+      TKey key = keySelector.apply(o);
       TAccumulate accumulator = map.get(key);
       if (accumulator == null) {
         accumulator = accumulatorInitializer.apply();
-        accumulator = accumulatorAdder.apply(accumulator, source);
+        accumulator = accumulatorAdder.apply(accumulator, o);
         map.put(key, accumulator);
       } else {
         TAccumulate accumulator0 = accumulator;
-        accumulator = accumulatorAdder.apply(accumulator, source);
+        accumulator = accumulatorAdder.apply(accumulator, o);
         if (accumulator != accumulator0) {
           map.put(key, accumulator);
         }
@@ -621,8 +629,8 @@ public abstract class EnumerableDefaults {
     return new AbstractEnumerable<TResult>() {
       final Map<TKey, TSource> outerMap = outer.toMap(outerKeySelector);
       final Lookup<TKey, TInner> innerLookup = inner.toLookup(innerKeySelector);
-      final Enumerator<Map.Entry<TKey, TSource>> entries = Linq4j.enumerator(
-          outerMap.entrySet());
+      final Enumerator<Map.Entry<TKey, TSource>> entries =
+          Linq4j.enumerator(outerMap.entrySet());
 
       public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
@@ -669,7 +677,8 @@ public abstract class EnumerableDefaults {
     Set<TSource> set0 = new HashSet<TSource>();
     source0.into(set0);
     Set<TSource> set1 = new HashSet<TSource>();
-    for (TSource o : source1) {
+    for (Enumerator<TSource> os = source1.enumerator(); os.moveNext();) {
+      TSource o = os.current();
       if (set0.contains(o)) {
         set1.add(o);
       }
@@ -689,7 +698,9 @@ public abstract class EnumerableDefaults {
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
     source0.select(wrapper).into(set0);
     Set<Wrapped<TSource>> set1 = new HashSet<Wrapped<TSource>>();
-    for (Wrapped<TSource> o : source1.select(wrapper)) {
+    for (Enumerator<Wrapped<TSource>> os = source1.select(wrapper).enumerator();
+         os.moveNext();) {
+      Wrapped<TSource> o = os.current();
       if (set0.contains(o)) {
         set1.add(o);
       }
@@ -845,7 +856,8 @@ public abstract class EnumerableDefaults {
       return ((Collection) enumerable).size();
     }
     int n = 0;
-    for (TSource o : enumerable) {
+    for (Enumerator<TSource> os = enumerable.enumerator(); os.moveNext();) {
+      TSource o = os.current();
       if (predicate.apply(o)) {
         ++n;
       }
@@ -1660,7 +1672,8 @@ public abstract class EnumerableDefaults {
     // Use LinkedHashMap because groupJoin requires order of keys to be
     // preserved.
     final Map<TKey, TElement> map = new LinkedHashMap<TKey, TElement>();
-    for (TSource o : source) {
+    for (Enumerator<TSource> os = source.enumerator(); os.moveNext();) {
+      TSource o = os.current();
       map.put(keySelector.apply(o), elementSelector.apply(o));
     }
     return map;
@@ -1731,7 +1744,8 @@ public abstract class EnumerableDefaults {
       Map<TKey, List<TElement>> map, Enumerable<TSource> source,
       Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector) {
-    for (TSource o : source) {
+    for (Enumerator<TSource> os = source.enumerator(); os.moveNext();) {
+      TSource o = os.current();
       final TKey key = keySelector.apply(o);
       List<TElement> list = map.get(key);
       if (list == null) {
@@ -1901,7 +1915,8 @@ public abstract class EnumerableDefaults {
 
   public static <T, C extends Collection<? super T>> C into(
       Enumerable<T> source, C sink) {
-    for (T t : source) {
+    for (Enumerator<T> ts = source.enumerator(); ts.moveNext();) {
+      T t = ts.current();
       sink.add(t);
     }
     return sink;
