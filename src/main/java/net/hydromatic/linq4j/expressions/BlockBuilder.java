@@ -346,7 +346,8 @@ public class BlockBuilder {
   }
 
   private static class UseCounter extends Visitor {
-    private final Map<ParameterExpression, Slot> map = new HashMap<ParameterExpression, Slot>();
+    private final Map<ParameterExpression, Slot> map =
+        new HashMap<ParameterExpression, Slot>();
 
     public Expression visit(ParameterExpression parameter) {
       final Slot slot = map.get(parameter);
