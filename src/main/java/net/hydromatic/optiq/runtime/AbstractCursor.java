@@ -46,19 +46,19 @@ abstract class AbstractCursor implements Cursor {
     protected AbstractCursor() {
     }
 
-    public List<Accessor> createAccessors(List<Integer> types) {
+    public List<Accessor> createAccessors(List<ColumnMetaData> types) {
         List<Accessor> accessors = new ArrayList<Accessor>();
-        for (int type : types) {
+        for (ColumnMetaData type : types) {
             accessors.add(createAccessor(type, accessors.size()));
         }
         return accessors;
     }
 
-    protected Accessor createAccessor(int type, int ordinal) {
+    protected Accessor createAccessor(ColumnMetaData type, int ordinal) {
         // Create an accessor appropriate to the underlying type; the accessor
         // can convert to any type in the same family.
         Getter getter = createGetter(ordinal);
-        switch (type) {
+        switch (type.type) {
         case Types.TINYINT:
             return new ByteAccessor(getter);
         case Types.SMALLINT:
@@ -76,6 +76,7 @@ abstract class AbstractCursor implements Cursor {
         case Types.DECIMAL:
             return new BigDecimalAccessor(getter);
         case Types.CHAR:
+            return new FixedStringAccessor(getter, type.displaySize);
         case Types.VARCHAR:
             return new StringAccessor(getter);
         case Types.BINARY:
@@ -570,6 +571,27 @@ abstract class AbstractCursor implements Cursor {
     }
 
     /**
+     * Accessor that assumes that the underlying value is a {@link String};
+     * corresponds to {@link java.sql.Types#CHAR}.
+     */
+    private static class FixedStringAccessor extends StringAccessor {
+        private final Spacer spacer;
+
+        public FixedStringAccessor(Getter getter, int length) {
+            super(getter);
+            this.spacer = new Spacer(length);
+        }
+
+        public String getString() {
+            String s = super.getString();
+            if (s == null) {
+                return null;
+            }
+            return spacer.padRight(s);
+        }
+    }
+
+    /**
      * Accessor that assumes that the underlying value is an array of
      * {@code byte} values;
      * corresponds to {@link java.sql.Types#BINARY} and {@link java.sql.Types#VARBINARY}.
@@ -600,6 +622,12 @@ abstract class AbstractCursor implements Cursor {
     private static class DateTimeAccessor extends AccessorImpl {
         public DateTimeAccessor(Getter getter) {
             super(getter);
+        }
+
+        @Override
+        public String getString() {
+            final Object o = getObject();
+            return o == null ? null : o.toString();
         }
     }
 

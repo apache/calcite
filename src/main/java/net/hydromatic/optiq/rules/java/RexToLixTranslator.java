@@ -26,7 +26,8 @@ import org.eigenbase.rel.Aggregation;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlOperator;
-import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.type.BasicSqlType;
 import org.eigenbase.util.*;
 
 import java.lang.reflect.Method;
@@ -55,7 +56,7 @@ public class RexToLixTranslator {
             findMethod(SqlFunctions.class, "charLength", String.class),
             charLengthFunc);
 
-    private static final int MILLIS_IN_DAY = 24 * 60 * 60 * 1000;
+    private static final long MILLIS_IN_DAY = 24 * 60 * 60 * 1000;
 
     final JavaTypeFactory typeFactory;
     final RexBuilder builder;
@@ -107,27 +108,79 @@ public class RexToLixTranslator {
             .translate(program.getProjectList());
     }
 
+    /** Translates a boolean expression such that null values become false. */
+    Expression translateCondition(RexNode expr) {
+        return translate(
+            builder.makeCall(
+                SqlStdOperatorTable.isTrueOperator, expr));
+    }
+
     Expression translate(RexNode expr) {
-        Expression expression = translate0(expr);
+        return translate(expr, expr.getType().isNullable());
+    }
+
+    Expression translate(RexNode expr, boolean mayBeNull) {
+        Expression expression = translate0(expr, mayBeNull);
         assert expression != null;
         return list.append("v", expression);
     }
 
     Expression translateCast(RexNode expr, RelDataType type) {
-        Expression operand = translate(expr);
-        return convert(
-            operand,
-            typeFactory.getJavaClass(type));
+        // It's only possible for the result to be null if both expression and
+        // target type are nullable. We assume that the caller did not make a
+        // mistake. If expression looks nullable, caller WILL have checked that
+        // expression is not null before calling us.
+        final boolean mayBeNull =
+            expr.getType().isNullable() && type.isNullable();
+        Expression operand = translate(expr, mayBeNull);
+        final Expression convert;
+        switch (expr.getType().getSqlTypeName()) {
+        case DATE:
+            convert = RexImpTable.optimize2(
+                operand,
+                Expressions.call(
+                    SqlFunctions.class,
+                    "dateToString",
+                    operand));
+            break;
+        default:
+            convert = convert(operand, typeFactory.getJavaClass(type));
+        }
+        switch (type.getSqlTypeName()) {
+        case CHAR:
+        case VARCHAR:
+            if (type instanceof BasicSqlType
+                && type.getPrecision() >= 0)
+            {
+                return RexImpTable.optimize2(
+                    convert,
+                    Expressions.call(
+                        SqlFunctions.class,
+                        "truncate",
+                        convert,
+                        Expressions.constant(type.getPrecision())));
+            }
+        }
+        return convert;
     }
 
-    private Expression translate0(RexNode expr) {
+    /** Translates an expression that is not in the cache.
+     *
+     * @param expr Expression
+     * @param mayBeNull If false, if expression is definitely not null at
+     *   runtime. Therefore we can optimize. For example, we can cast to int
+     *   using x.intValue().
+     * @return Translated expression
+     */
+    private Expression translate0(RexNode expr, boolean mayBeNull) {
         if (expr instanceof RexInputRef) {
             final int index = ((RexInputRef) expr).getIndex();
             return inputGetter.field(list, index);
         }
         if (expr instanceof RexLocalRef) {
             return translate(
-                program.getExprList().get(((RexLocalRef) expr).getIndex()));
+                program.getExprList().get(((RexLocalRef) expr).getIndex()),
+                mayBeNull);
         }
         if (expr instanceof RexLiteral) {
             return translateLiteral(expr, null, typeFactory);
@@ -138,7 +191,7 @@ public class RexToLixTranslator {
             RexImpTable.CallImplementor implementor =
                 RexImpTable.INSTANCE.get(operator);
             if (implementor != null) {
-                return implementor.implement(this, call);
+                return implementor.implement(this, call, mayBeNull);
             }
         }
         switch (expr.getKind()) {
@@ -154,16 +207,7 @@ public class RexToLixTranslator {
         RelDataType type,
         JavaTypeFactory typeFactory)
     {
-        Object o = ((RexLiteral) expr).getValue3();
-        Type javaClass;
-        if (type == null) {
-            javaClass = typeFactory.getJavaClass(expr.getType());
-        } else {
-            if (type.getSqlTypeName() == SqlTypeName.VARCHAR) {
-                o = SqlFunctions.rtrim(o.toString());
-            }
-            javaClass = typeFactory.getJavaClass(type);
-        }
+        Type javaClass = typeFactory.getJavaClass(expr.getType());
         final RexLiteral literal = (RexLiteral) expr;
         switch (literal.getType().getSqlTypeName()) {
         case DECIMAL:
@@ -190,7 +234,7 @@ public class RexToLixTranslator {
             return Expressions.constant(
                 ((NlsString) literal.getValue()).getValue(), javaClass);
         default:
-          return Expressions.constant(literal.getValue(), javaClass);
+            return Expressions.constant(literal.getValue(), javaClass);
         }
     }
 
@@ -221,12 +265,10 @@ public class RexToLixTranslator {
         if (program.getCondition() == null) {
             return Expressions.constant(true);
         }
-        List<Expression> x =
-            new RexToLixTranslator(program, typeFactory, inputGetter, list)
-                .translate(
-                    Collections.singletonList(program.getCondition()));
-        assert x.size() == 1;
-        return x.get(0);
+        final RexToLixTranslator translator =
+            new RexToLixTranslator(
+                program, typeFactory, inputGetter, list);
+        return translator.translateCondition(program.getCondition());
     }
 
     public static Expression translateAggregate(
@@ -254,6 +296,7 @@ public class RexToLixTranslator {
         // E.g. from "Short" to "int".
         // Generate "x.intValue()".
         final Primitive toPrimitive = Primitive.of(toType);
+        final Primitive toBox = Primitive.ofBox(toType);
         final Primitive fromBox = Primitive.ofBox(fromType);
         final Primitive fromPrimitive = Primitive.of(fromType);
         if (toPrimitive != null) {
@@ -272,6 +315,66 @@ public class RexToLixTranslator {
             }
             return Expressions.call(
                 operand, toPrimitive.primitiveName + "Value");
+        } else if (fromBox != null && toBox != null) {
+            // E.g. from "Short" to "Integer"
+            // Generate "x == null ? null : Integer.valueOf(x.intValue())"
+          return Expressions.condition(
+              Expressions.equal(operand, Expressions.constant(null)),
+              Expressions.constant(null),
+              Expressions.call(
+                  toBox.boxClass,
+                  "valueOf",
+                  Expressions.call(operand, toBox.primitiveName + "Value")));
+        } else if (fromBox != null && toType == BigDecimal.class) {
+          // E.g. from "Integer" to "BigDecimal".
+          // Generate "x == null ? null : new BigDecimal(x.intValue())"
+          return Expressions.condition(
+              Expressions.equal(operand, Expressions.constant(null)),
+              Expressions.constant(null),
+              Expressions.new_(
+                  BigDecimal.class,
+                  Arrays.<Expression>asList(
+                      Expressions.call(
+                          operand, fromBox.primitiveClass + "Value"))));
+        } else if (toType == String.class) {
+            if (fromPrimitive != null) {
+                switch (fromPrimitive) {
+                case DOUBLE:
+                case FLOAT:
+                    // E.g. from "double" to "String"
+                    // Generate "SqlFunctions.toString(x)"
+                    return Expressions.call(
+                        SqlFunctions.class,
+                        "toString",
+                        operand);
+                default:
+                  // E.g. from "int" to "String"
+                  // Generate "Integer.toString(x)"
+                  return Expressions.call(
+                      fromPrimitive.boxClass,
+                      "toString",
+                      operand);
+                }
+            } else if (fromType == BigDecimal.class) {
+                // E.g. from "BigDecimal" to "String"
+                // Generate "x.toString()"
+              return Expressions.condition(
+                  Expressions.equal(operand, Expressions.constant(null)),
+                  Expressions.constant(null),
+                  Expressions.call(
+                      SqlFunctions.class,
+                      "toString",
+                      operand));
+            } else {
+              // E.g. from "BigDecimal" to "String"
+              // Generate "x == null ? null : x.toString()"
+              return Expressions.condition(
+                  Expressions.equal(operand, Expressions.constant(null)),
+                  Expressions.constant(null),
+                  Expressions.call(
+                      operand,
+                      "toString"));
+            }
         }
         return Expressions.convert_(operand, toType);
     }

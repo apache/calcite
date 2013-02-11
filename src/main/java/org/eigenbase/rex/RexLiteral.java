@@ -158,23 +158,15 @@ public class RexLiteral
 
     /**
      * Creates a <code>RexLiteral</code>.
-     *
-     * @pre type != null
-     * @pre valueMatchesType(value,typeName)
-     * @pre (value == null) == type.isNullable()
      */
     RexLiteral(
         Comparable value,
         RelDataType type,
         SqlTypeName typeName)
     {
-        Util.pre(type != null, "type != null");
-        Util.pre(
-            valueMatchesType(value, typeName),
-            "valueMatchesType(value,typeName)");
-        Util.pre(
-            (value == null) == type.isNullable(),
-            "(value == null) == type.isNullable()");
+        assert type != null;
+        assert valueMatchesType(value, typeName, true);
+        assert (value == null) == type.isNullable();
         this.value = value;
         this.type = type;
         this.typeName = typeName;
@@ -189,17 +181,26 @@ public class RexLiteral
      */
     public static boolean valueMatchesType(
         Comparable value,
-        SqlTypeName typeName)
+        SqlTypeName typeName,
+        boolean strict)
     {
+        if (value == null && !strict) {
+            return true;
+        }
         switch (typeName) {
         case BOOLEAN:
-
             // Unlike SqlLiteral, we do not allow boolean null.
             return value instanceof Boolean;
         case NULL:
             return value == null;
+        case INTEGER: // not allowed -- use Decimal
+            if (strict) {
+                throw Util.unexpected(typeName);
+            }
+            // fall through
         case DECIMAL:
         case DOUBLE:
+        case REAL:
         case BIGINT:
             return value instanceof BigDecimal;
         case DATE:
@@ -211,8 +212,18 @@ public class RexLiteral
 
             // REVIEW: angel 2006-08-27 - why is interval sometimes null?
             return (value instanceof BigDecimal) || (value == null);
+        case VARBINARY: // not allowed -- use Binary
+            if (strict) {
+                throw Util.unexpected(typeName);
+            }
+            // fall through
         case BINARY:
             return value instanceof ByteBuffer;
+        case VARCHAR: // not allowed -- use Char
+            if (strict) {
+                throw Util.unexpected(typeName);
+            }
+            // fall through
         case CHAR:
 
             // A SqlLiteral's charset and collation are optional; not so a
@@ -223,9 +234,6 @@ public class RexLiteral
         case SYMBOL:
             return (value instanceof EnumeratedValues.Value)
                 || (value instanceof Enum);
-        case INTEGER: // not allowed -- use Decimal
-        case VARCHAR: // not allowed -- use Char
-        case VARBINARY: // not allowed -- use Binary
         default:
             throw Util.unexpected(typeName);
         }
@@ -340,9 +348,7 @@ public class RexLiteral
             }
             break;
         default:
-            Util.pre(
-                valueMatchesType(value, typeName),
-                "valueMatchesType(value, typeName)");
+            assert valueMatchesType(value, typeName, true);
             throw Util.needToImplement(typeName);
         }
     }
@@ -485,12 +491,10 @@ public class RexLiteral
 
     /**
      * Returns the value of this literal.
-     *
-     * @post valueMatchesType(return, typeName)
      */
     public Comparable getValue()
     {
-        assert valueMatchesType(value, typeName) : value;
+        assert valueMatchesType(value, typeName, true) : value;
         return value;
     }
 

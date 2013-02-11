@@ -18,14 +18,25 @@
 package net.hydromatic.optiq.runtime;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.text.DecimalFormat;
+import java.text.Format;
 
 /**
  * Helper methods to implement SQL functions in generated code.
+ *
+ * <p>Not present: and, or, not (builtin operators are better, because they
+ * use lazy evaluation. Implementations do not check for null values; the
+ * calling code must do that.</p>
  *
  * @author jhyde
  */
 @SuppressWarnings("UnnecessaryUnboxing")
 public class SqlFunctions {
+
+    private static final DecimalFormat DOUBLE_FORMAT =
+        new DecimalFormat("0.0E0");
+
     /** SQL SUBSTRING(string FROM ... FOR ...) function. */
     public static String substring(String s, int from, int for_) {
         return s.substring(from - 1, Math.min(from - 1 + for_, s.length()));
@@ -105,144 +116,20 @@ public class SqlFunctions {
             + s.substring(start - 1 + length);
     }
 
-    // AND
-
-    /** SQL AND operator. */
-    public static boolean and(boolean b0, boolean b1) {
-        return b0 && b1;
-    }
-
-    /** SQL AND operator; left side may be null. */
-    public static Boolean and(Boolean b0, boolean b1) {
-        return b0 == null ? null : (b0 && b1);
-    }
-
-    /** SQL AND operator; right side may be null. */
-    public static Boolean and(boolean b0, Boolean b1) {
-        return b1 == null ? b0 : (b0 && b1);
-    }
-
-    /** SQL AND operator; either side may be null. */
-    public static Boolean and(Boolean b0, Boolean b1) {
-        return b0 == null ? b1
-            : b1 == null ? b0
-            : b0 && b1;
-    }
-
-    // OR
-
-    /** SQL OR operator. */
-    public static boolean or(boolean b0, boolean b1) {
-        return b0 || b1;
-    }
-
-    /** SQL OR operator; left side may be null. */
-    public static Boolean or(Boolean b0, boolean b1) {
-        return b0 == null ? null : (b0 || b1);
-    }
-
-    /** SQL OR operator; right side may be null. */
-    public static Boolean or(boolean b0, Boolean b1) {
-        return b1 == null ? null : (b0 || b1);
-    }
-
-    /** SQL OR operator; either side may be null. */
-    public static Boolean or(Boolean b0, Boolean b1) {
-        return (b0 == null || b1 == null) ? null : (b0 || b1);
-    }
-
-    // NOT
-
-    /** SQL NOT operator. */
-    public static boolean not(boolean b) {
-        return !b;
-    }
-
-    /** SQL OR operator; operand may be null. */
-    public static Boolean not(Boolean b) {
-        return b == null ? null : !b;
-    }
-
     // =
-
-    /** SQL = operator applied to int values. */
-    public static boolean eq(int b0, int b1) {
-        return b0 == b1;
-    }
-
-    /** SQL == operator applied to int values; left side may be null. */
-    public static Boolean eq(Integer b0, int b1) {
-        return b0 == null ? null : (b0 == b1);
-    }
-
-    /** SQL = operator applied to int values; right side may be null. */
-    public static Boolean eq(int b0, Integer b1) {
-        return b1 == null ? null : (b0 == b1);
-    }
-
-    /** SQL = operator applied to int values; either side may be null. */
-    public static Boolean eq(Integer b0, Integer b1) {
-        return (b0 == null || b1 == null)
-            ? null
-            : (b0.intValue() == b1.intValue());
-    }
-
-    /** SQL = operator applied to short values. */
-    public static boolean eq(short b0, short b1) {
-        return b0 == b1;
-    }
-
-    /** SQL == operator applied to short values; left side may be null. */
-    public static Boolean eq(Short b0, short b1) {
-        return b0 == null ? null : (b0 == b1);
-    }
-
-    /** SQL = operator applied to short values; right side may be null. */
-    public static Boolean eq(short b0, Short b1) {
-        return b1 == null ? null : (b0 == b1);
-    }
-
-    /** SQL = operator applied to short values; either side may be null. */
-    public static Boolean eq(Short b0, Short b1) {
-        return (b0 == null || b1 == null)
-            ? null
-            : (b0.shortValue() == b1.shortValue());
-    }
 
     /** SQL = operator applied to Object values (including String; either
      * side may be null). */
     public static Boolean eq(Object b0, Object b1) {
-        return (b0 == null || b1 == null) ? null : b0.equals(b1);
+        return /* (b0 == null || b1 == null) ? null : */ b0.equals(b1);
     }
 
     // <>
 
-    /** SQL &lt;&gt; operator applied to int values. */
-    public static boolean ne(int b0, int b1) {
-        return b0 != b1;
-    }
-
-    /** SQL &lt;&gt; operator applied to int values; left side may be null. */
-    public static Boolean ne(Integer b0, int b1) {
-        return b0 == null ? null : (b0 != b1);
-    }
-
-    /** SQL &lt;&gt; operator applied to int values (right side may be null). */
-    public static Boolean ne(int b0, Integer b1) {
-        return b1 == null ? null : (b0 != b1);
-    }
-
-    /** SQL &lt;&gt; operator applied to int values; either side may be null. */
-    public static Boolean ne(Integer b0, Integer b1) {
-        return (b0 == null || b1 == null)
-            ? null
-            : (b0.intValue() != b1.intValue());
-    }
-
-    /** SQL &lt;&gt; operator applied to Object values (including String; either
-     * side may be null). */
+    /** SQL &lt;&gt; operator applied to Object values (including String;
+     * neither side may be null). */
     public static Boolean ne(Object b0, Object b1) {
-        return (b0 == null || b1 == null) ? null : !b0.equals(b1);
+        return !b0.equals(b1);
     }
 
     // <
@@ -554,6 +441,67 @@ public class SqlFunctions {
     public static int compare(boolean x, boolean y) {
         return x == y ? 0 : x ? 1 : -1;
     }
+
+    /** CAST(FLOAT AS VARCHAR). */
+    public static String toString(float x) {
+        if (x == 0) {
+            return "0E0";
+        }
+        BigDecimal bigDecimal =
+            new BigDecimal(x, MathContext.DECIMAL32).stripTrailingZeros();
+        final String s = bigDecimal.toString();
+        return s.replaceAll("0*E", "E").replace("E+", "E");
+    }
+
+    /** CAST(DOUBLE AS VARCHAR). */
+    public static String toString(double x) {
+        if (x == 0) {
+            return "0E0";
+        }
+        BigDecimal bigDecimal =
+            new BigDecimal(x, MathContext.DECIMAL64).stripTrailingZeros();
+        final String s = bigDecimal.toString();
+        return s.replaceAll("0*E", "E").replace("E+", "E");
+    }
+
+    /** CAST(DECIMAL AS VARCHAR). */
+    public static String toString(BigDecimal x) {
+        final String s = x.toString();
+        if (s.startsWith("0")) {
+            // we want ".1" not "0.1"
+            return s.substring(1);
+        } else if (s.startsWith("-0")) {
+            // we want "-.1" not "-0.1"
+            return "-" + s.substring(2);
+        } else {
+            return s;
+        }
+    }
+
+    /** Helper for CAST(... AS VARCHAR(maxLength)). */
+    public static String truncate(String s, int maxLength) {
+        return s.length() > maxLength ? s.substring(0, maxLength) : s;
+    }
+
+    /** Helper for CAST({date} AS VARCHAR(n)). */
+    public static String dateToString(int date) {
+        int year = 1970 + date * 4 / 1461;
+        int leapCount = date / 4 - date / 100 + date / 400;
+        int dayOfYear = (date - leapCount) / 365;
+        int month = 0;
+        int day = dayOfYear;
+        for (;; month++) {
+            int next = day - months[month++];
+            if (next < 0) {
+                break;
+            }
+            day = next;
+        }
+        return year + "-" + (month < 10 ? "0" : "") + month
+            + "-" + (day < 10 ? "0" : "") + day;
+    }
+
+  static final int[] months = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 }
 
 // End SqlFunctions.java

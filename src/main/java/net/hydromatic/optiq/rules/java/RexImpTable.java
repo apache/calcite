@@ -156,8 +156,18 @@ public class RexImpTable {
         return agg2Map.get(aggregation);
     }
 
-    private static Expression optimize(Expression expression) {
+    static Expression optimize(Expression expression) {
         return expression.accept(new OptimizeVisitor());
+    }
+
+    static Expression optimize2(Expression operand, Expression expression) {
+        return optimize(
+            Expressions.condition(
+                Expressions.equal(
+                    operand,
+                    NULL_EXPR),
+                NULL_EXPR,
+                expression));
     }
 
     private static boolean nullable(RexCall call, int i) {
@@ -288,7 +298,10 @@ public class RexImpTable {
 
     interface CallImplementor {
         /** Implements a call. */
-        Expression implement(RexToLixTranslator translator, RexCall call);
+        Expression implement(
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull);
     }
 
     interface NullableCallImplementor extends CallImplementor {
@@ -422,16 +435,16 @@ public class RexImpTable {
             //   : lesser(acc, arg)
             assert arguments.size() == 1;
             final Expression arg = arguments.get(0);
-            final ConstantExpression constantNull = Expressions.constant(null);
             return Expressions.condition(
-                Expressions.equal(accumulator, constantNull),
+                Expressions.equal(accumulator, NULL_EXPR),
                 arg,
                 Expressions.convert_(
                     Expressions.call(
                         SqlFunctions.class,
                         aggregation == minOperator ? "lesser" : "greater",
                         unbox(accumulator),
-                        arg), arg.getType()));
+                        arg),
+                    arg.getType()));
         }
 
         public Expression implementResult(
@@ -451,7 +464,9 @@ public class RexImpTable {
         }
 
         public Expression implement(
-            RexToLixTranslator translator, RexCall call)
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
         {
             return implement(
                 translator, call, call.getOperandList(), nullPolicy);
@@ -503,7 +518,9 @@ public class RexImpTable {
         }
 
         public Expression implement(
-            RexToLixTranslator translator, RexCall call)
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
         {
             return implement(
                 translator, call, call.getOperandList(), nullPolicy);
@@ -527,8 +544,6 @@ public class RexImpTable {
             //     return x == null || y == null ? null : x OP y
             //   ignore_null
             //     return x == null ? y : y == null ? x : x OP y
-            final boolean nullable0 = nullable(call, 0);
-            final boolean nullable1 = nullable(call, 1);
             final List<RexNode> operands2 =
                 harmonize(translator.builder, operands);
             final Expression t0 = translator.translate(operands2.get(0));
@@ -546,7 +561,7 @@ public class RexImpTable {
                 // b0 == null ? (b1 == null || b1 ? null : Boolean.FALSE)
                 //   : b0 ? b1
                 //   : Boolean.FALSE;
-                if (!nullable0 && !nullable1) {
+                if (!nullable(call, 0) && !nullable(call, 1)) {
                     return Expressions.andAlso(t0, t1);
                 }
                 return optimize(
@@ -571,7 +586,7 @@ public class RexImpTable {
                 // b0 == null ? (b1 == null || !b1 ? null : Boolean.TRUE)
                 //   : !b0 ? b1
                 //   : Boolean.TRUE;
-                if (!nullable0 && !nullable1) {
+                if (!nullable(call, 0) && !nullable(call, 1)) {
                     return Expressions.orElse(t0, t1);
                 }
                 return optimize(
@@ -616,7 +631,9 @@ public class RexImpTable {
         }
 
         public Expression implement(
-            RexToLixTranslator translator, RexCall call)
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
         {
             return implement(
                 translator, call, call.getOperandList(), NullPolicy.ANY);
@@ -767,7 +784,9 @@ public class RexImpTable {
 
     private static class CaseImplementor implements CallImplementor {
         public Expression implement(
-            RexToLixTranslator translator, RexCall call)
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
         {
             return implementRecurse(translator, call, 0);
         }
@@ -778,11 +797,15 @@ public class RexImpTable {
             RexNode[] operands = call.getOperands();
             if (i == operands.length - 1) {
                 // the "else" clause
-                return translator.translate(operands[i]);
+                return translator.translate(
+                    translator.builder.ensureType(
+                        call.getType(), operands[i], false));
             } else {
                 return Expressions.condition(
-                    translator.translate(operands[i]),
-                    translator.translate(operands[i + 1]),
+                    translator.translateCondition(operands[i]),
+                    translator.translate(
+                        translator.builder.ensureType(
+                            call.getType(), operands[i + 1], false)),
                     implementRecurse(translator, call, i + 2));
             }
         }
@@ -790,17 +813,26 @@ public class RexImpTable {
 
     private static class CastImplementor implements CallImplementor {
         public Expression implement(
-            RexToLixTranslator translator, RexCall call)
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
         {
             assert call.getOperands().length == 1;
             RexNode expr = call.getOperands()[0];
-            return translator.translateCast(expr, call.getType());
+            RelDataType type = call.getType();
+            if (!mayBeNull) {
+                type = translator.typeFactory
+                    .createTypeWithNullability(type, false);
+            }
+            return translator.translateCast(expr, type);
         }
     }
 
     private static class IsNullImplementor implements CallImplementor {
         public Expression implement(
-            RexToLixTranslator translator, RexCall call)
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
         {
             RexNode[] operands = call.getOperands();
             assert operands.length == 1;
@@ -816,7 +848,9 @@ public class RexImpTable {
 
     private static class IsNotNullImplementor implements CallImplementor {
         public Expression implement(
-            RexToLixTranslator translator, RexCall call)
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
         {
             RexNode[] operands = call.getOperands();
             assert operands.length == 1;
@@ -831,7 +865,9 @@ public class RexImpTable {
 
     private static class IsTrueImplementor implements CallImplementor {
         public Expression implement(
-            RexToLixTranslator translator, RexCall call)
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
         {
             RexNode[] operands = call.getOperands();
             assert operands.length == 1;
@@ -847,7 +883,9 @@ public class RexImpTable {
 
     private static class IsNotTrueImplementor implements CallImplementor {
         public Expression implement(
-            RexToLixTranslator translator, RexCall call)
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
         {
             RexNode[] operands = call.getOperands();
             assert operands.length == 1;
@@ -864,7 +902,9 @@ public class RexImpTable {
 
     private static class IsFalseImplementor implements CallImplementor {
         public Expression implement(
-            RexToLixTranslator translator, RexCall call)
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
         {
             RexNode[] operands = call.getOperands();
             assert operands.length == 1;
@@ -881,7 +921,9 @@ public class RexImpTable {
 
     private static class IsNotFalseImplementor implements CallImplementor {
         public Expression implement(
-            RexToLixTranslator translator, RexCall call)
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
         {
             RexNode[] operands = call.getOperands();
             assert operands.length == 1;

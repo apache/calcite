@@ -39,7 +39,7 @@ public interface Cursor {
      * @param types List of column types, per {@link java.sql.Types}.
      * @return List of column accessors
      */
-    List<Accessor> createAccessors(List<Integer> types);
+    List<Accessor> createAccessors(List<ColumnMetaData> types);
 
     /**
      * Moves to the next row.

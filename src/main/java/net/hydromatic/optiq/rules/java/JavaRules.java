@@ -667,7 +667,8 @@ public class JavaRules {
                 statements.append(
                     "inputEnumerable",
                     implementor.visitChild(
-                        this, 0, child));
+                        this, 0, child),
+                    false);
             final Expression body =
                 Expressions.new_(
                     enumeratorType,

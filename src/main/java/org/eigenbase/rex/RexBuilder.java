@@ -429,9 +429,17 @@ public class RexBuilder
         RelDataType type,
         RexNode exp)
     {
+        final SqlTypeName sqlType = type.getSqlTypeName();
         if (exp instanceof RexLiteral) {
             RexLiteral literal = (RexLiteral) exp;
-            return makeLiteral(literal.getValue(), type, literal.getTypeName());
+            final Comparable value = literal.getValue();
+            if (RexLiteral.valueMatchesType(value, sqlType, false)
+                && (!(value instanceof NlsString)
+                    || type.getPrecision()
+                       >= ((NlsString) value).getValue().length()))
+            {
+                return makeLiteral(value, type, literal.getTypeName());
+            }
         } else if (SqlTypeUtil.isInterval(type)
             && SqlTypeUtil.isExactNumeric(exp.getType()))
         {
@@ -440,7 +448,7 @@ public class RexBuilder
             && SqlTypeUtil.isInterval(exp.getType()))
         {
             return makeCastIntervalToExact(type, exp);
-        } else if (type.getSqlTypeName()  == SqlTypeName.BOOLEAN
+        } else if (sqlType == SqlTypeName.BOOLEAN
             && SqlTypeUtil.isExactNumeric(exp.getType()))
         {
             return makeCastExactToBoolean(type, exp);
@@ -922,7 +930,7 @@ public class RexBuilder
         if (matchNullability) {
             targetType = matchNullability(type, node);
         }
-        if (node.getType() != targetType) {
+        if (!node.getType().equals(targetType)) {
             return makeCast(targetType, node);
         }
         return node;

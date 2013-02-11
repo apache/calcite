@@ -109,17 +109,7 @@ public class OptiqResultSet implements ResultSet {
                 : new ArrayEnumeratorCursor(enumerator);
         final List<ColumnMetaData> columnMetaDataList =
             prepareResult.columnList;
-        this.accessorList =
-            cursor.createAccessors(
-                new AbstractList<Integer>() {
-                    public Integer get(int index) {
-                        return columnMetaDataList.get(index).type;
-                    }
-
-                    public int size() {
-                        return columnMetaDataList.size();
-                    }
-                });
+        this.accessorList = cursor.createAccessors(columnMetaDataList);
         accessorMap.clear();
         for (Map.Entry<String, Integer> entry : columnNameMap.entrySet()) {
             accessorMap.put(entry.getKey(), accessorList.get(entry.getValue()));
