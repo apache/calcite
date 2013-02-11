@@ -68,7 +68,7 @@ public class OptiqResultSet implements ResultSet {
             statement.connection.factory.newResultSetMetaData(
                 statement, prepareResult);
 
-        for (OptiqPrepare.ColumnMetaData column : prepareResult.columnList) {
+        for (ColumnMetaData column : prepareResult.columnList) {
             columnNameMap.put(column.label, columnNameMap.size());
         }
     }
@@ -107,7 +107,7 @@ public class OptiqResultSet implements ResultSet {
                 ? new RecordEnumeratorCursor(
                     enumerator, prepareResult.resultClazz)
                 : new ArrayEnumeratorCursor(enumerator);
-        final List<OptiqPrepare.ColumnMetaData> columnMetaDataList =
+        final List<ColumnMetaData> columnMetaDataList =
             prepareResult.columnList;
         this.accessorList =
             cursor.createAccessors(

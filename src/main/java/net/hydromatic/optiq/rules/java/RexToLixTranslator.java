@@ -27,8 +27,7 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlOperator;
 import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.eigenbase.util.*;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -55,6 +54,8 @@ public class RexToLixTranslator {
             characterLengthFunc,
             findMethod(SqlFunctions.class, "charLength", String.class),
             charLengthFunc);
+
+    private static final int MILLIS_IN_DAY = 24 * 60 * 60 * 1000;
 
     final JavaTypeFactory typeFactory;
     final RexBuilder builder;
@@ -163,14 +164,34 @@ public class RexToLixTranslator {
             }
             javaClass = typeFactory.getJavaClass(type);
         }
-        if (javaClass == BigDecimal.class) {
+        final RexLiteral literal = (RexLiteral) expr;
+        switch (literal.getType().getSqlTypeName()) {
+        case DECIMAL:
+            assert javaClass == BigDecimal.class;
             return Expressions.new_(
                 BigDecimal.class,
                 Arrays.<Expression>asList(
-                    Expressions.constant(
-                        o.toString())));
+                    Expressions.constant(literal.getValue().toString())));
+        case DATE:
+            return Expressions.constant(
+                (int) (((Calendar) literal.getValue()).getTimeInMillis()
+                       / MILLIS_IN_DAY),
+                javaClass);
+        case TIME:
+            return Expressions.constant(
+                (int) (((Calendar) literal.getValue()).getTimeInMillis()
+                       % MILLIS_IN_DAY),
+                javaClass);
+        case TIMESTAMP:
+            return Expressions.constant(
+                ((Calendar) literal.getValue()).getTimeInMillis(), javaClass);
+        case CHAR:
+        case VARCHAR:
+            return Expressions.constant(
+                ((NlsString) literal.getValue()).getValue(), javaClass);
+        default:
+          return Expressions.constant(literal.getValue(), javaClass);
         }
-        return Expressions.constant(o, javaClass);
     }
 
     List<Expression> translateList(List<RexNode> operandList) {

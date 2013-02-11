@@ -23,6 +23,7 @@ import net.hydromatic.linq4j.RawEnumerable;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlNode;
@@ -104,88 +105,7 @@ public interface OptiqPrepare {
         }
     }
 
-    public static class ColumnMetaData {
-        public final int ordinal; // 0-based
-        public final boolean autoIncrement;
-        public final boolean caseSensitive;
-        public final boolean searchable;
-        public final boolean currency;
-        public final int nullable;
-        public final boolean signed;
-        public final int displaySize;
-        public final String label;
-        public final String columnName;
-        public final String schemaName;
-        public final int precision;
-        public final int scale;
-        public final String tableName;
-        public final String catalogName;
-        public final int type;
-        public final String typeName;
-        public final boolean readOnly;
-        public final boolean writable;
-        public final boolean definitelyWritable;
-        public final String columnClassName;
-
-        public ColumnMetaData(
-            int ordinal,
-            boolean autoIncrement,
-            boolean caseSensitive,
-            boolean searchable,
-            boolean currency,
-            int nullable,
-            boolean signed,
-            int displaySize,
-            String label,
-            String columnName,
-            String schemaName,
-            int precision,
-            int scale,
-            String tableName,
-            String catalogName,
-            int type,
-            String typeName,
-            boolean readOnly,
-            boolean writable,
-            boolean definitelyWritable,
-            String columnClassName)
-        {
-            this.ordinal = ordinal;
-            this.autoIncrement = autoIncrement;
-            this.caseSensitive = caseSensitive;
-            this.searchable = searchable;
-            this.currency = currency;
-            this.nullable = nullable;
-            this.signed = signed;
-            this.displaySize = displaySize;
-            this.label = label;
-            // Per the JDBC spec this should be just columnName.
-            // For example, the query
-            //     select 1 as x, c as y from t
-            // should give columns
-            //     (label=x, column=null, table=null)
-            //     (label=y, column=c table=t)
-            // But DbUnit requires every column to have a name. Duh.
-            this.columnName = first(columnName, label);
-            this.schemaName = schemaName;
-            this.precision = precision;
-            this.scale = scale;
-            this.tableName = tableName;
-            this.catalogName = catalogName;
-            this.type = type;
-            this.typeName = typeName;
-            this.readOnly = readOnly;
-            this.writable = writable;
-            this.definitelyWritable = definitelyWritable;
-            this.columnClassName = columnClassName;
-        }
-
-        private static <T> T first(T t0, T t1) {
-            return t0 != null ? t0 : t1;
-        }
-    }
-
-    /**
+  /**
      * Metadata for a parameter. Plus a slot to hold its value.
      */
     public static class Parameter {

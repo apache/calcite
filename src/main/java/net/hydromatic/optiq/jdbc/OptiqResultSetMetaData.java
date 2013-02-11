@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.optiq.runtime.ColumnMetaData;
+
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
@@ -28,19 +30,19 @@ import java.util.List;
 class OptiqResultSetMetaData implements ResultSetMetaData {
     final OptiqStatement statement;
     final Object query;
-    final List<OptiqPrepare.ColumnMetaData> columnMetaDataList;
+    final List<ColumnMetaData> columnMetaDataList;
 
     OptiqResultSetMetaData(
         OptiqStatement statement,
         Object query,
-        List<OptiqPrepare.ColumnMetaData> columnMetaDataList)
+        List<ColumnMetaData> columnMetaDataList)
     {
         this.statement = statement;
         this.query = query;
         this.columnMetaDataList = columnMetaDataList;
     }
 
-    private OptiqPrepare.ColumnMetaData getColumnMetaData(int column) {
+    private ColumnMetaData getColumnMetaData(int column) {
         return columnMetaDataList.get(column - 1);
     }
 
