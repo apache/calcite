@@ -165,7 +165,7 @@ public class RexLiteral
         SqlTypeName typeName)
     {
         assert type != null;
-        assert valueMatchesType(value, typeName, true);
+        assert value == null || valueMatchesType(value, typeName, true);
         assert (value == null) == type.isNullable();
         this.value = value;
         this.type = type;
@@ -184,7 +184,7 @@ public class RexLiteral
         SqlTypeName typeName,
         boolean strict)
     {
-        if (value == null && !strict) {
+        if (value == null) {
             return true;
         }
         switch (typeName) {
@@ -243,6 +243,9 @@ public class RexLiteral
         Comparable value,
         SqlTypeName typeName)
     {
+        if (value == null) {
+            return "null";
+        }
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         printAsJava(value, pw, typeName, false);
@@ -504,6 +507,9 @@ public class RexLiteral
      */
     public Object getValue2()
     {
+        if (value == null) {
+            return null;
+        }
         switch (typeName) {
         case BINARY:
             return ((ByteBuffer) value).array();
