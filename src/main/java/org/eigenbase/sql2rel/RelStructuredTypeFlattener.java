@@ -344,9 +344,8 @@ public class RelStructuredTypeFlattener
                 throw Util.needToImplement("sorting on structured types");
             }
             newCollations.add(
-                new RelFieldCollation(
-                    getNewForOldInput(oldInput),
-                    oldCollation.getDirection()));
+                oldCollation.copy(
+                    getNewForOldInput(oldInput)));
         }
         SortRel newRel =
             new SortRel(

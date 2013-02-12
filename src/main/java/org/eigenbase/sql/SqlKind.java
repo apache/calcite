@@ -299,9 +299,19 @@ public enum SqlKind
     // postfix operators
 
     /**
-     * Descending
+     * DESC in ORDER BY. A parse tree, not a true expression.
      */
     DESCENDING,
+
+    /**
+     * NULLS FIRST clause in ORDER BY. A parse tree, not a true expression.
+     */
+    NULLS_FIRST,
+
+    /**
+     * NULLS LAST clause in ORDER BY. A parse tree, not a true expression.
+     */
+    NULLS_LAST,
 
     /**
      * IS TRUE operator.
@@ -451,7 +461,7 @@ public enum SqlKind
             EnumSet.of(
                 AS, DESCENDING, SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM,
                 LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
-                COLLECTION_TABLE, TABLESAMPLE));
+                NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE));
 
     /**
      * Category consisting of all DML operators.

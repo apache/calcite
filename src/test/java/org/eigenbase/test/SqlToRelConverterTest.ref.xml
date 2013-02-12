@@ -893,6 +893,18 @@ SortRel(sort0=[$0], dir0=[Ascending])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testOrderDescNullsLast">
+        <Resource name="sql">
+            <![CDATA[select empno from emp order by empno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+SortRel(sort0=[$0], dir0=[Descending-nulls-last])
+  ProjectRel(EMPNO=[$0])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testOrderByAlias">
         <Resource name="sql">
             <![CDATA[select empno + 1 as x, empno - 2 as y from emp order by y]]>

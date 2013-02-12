@@ -18,24 +18,19 @@
 package org.eigenbase.rel;
 
 /**
- * RelFieldCollation defines the ordering for one field of a RelNode whose
+ * Definition of the ordering of one field of a RelNode whose
  * output is to be sorted.
  *
- * <p>TODO: collation sequence (including ASC/DESC)
+ * @see RelCollation
  */
 public class RelFieldCollation
 {
-    //~ Static fields/initializers ---------------------------------------------
-
-    public static final RelFieldCollation [] emptyCollationArray =
-        new RelFieldCollation[0];
-
     //~ Enums ------------------------------------------------------------------
 
     /**
      * Direction that a field is ordered in.
      */
-    public static enum Direction
+    public enum Direction
     {
         /**
          * Ascending direction: A value is always followed by a greater or equal
@@ -70,6 +65,15 @@ public class RelFieldCollation
         Clustered,
     }
 
+    /**
+     * Ordering of nulls.
+     */
+    public enum NullDirection {
+        FIRST,
+        LAST,
+        UNSPECIFIED
+    }
+
     //~ Instance fields --------------------------------------------------------
 
     /**
@@ -82,6 +86,11 @@ public class RelFieldCollation
      */
     private final Direction direction;
 
+    /**
+     * Direction of sorting of nulls.
+     */
+    public final NullDirection nullDirection;
+
     //~ Constructors -----------------------------------------------------------
 
     /**
@@ -89,19 +98,40 @@ public class RelFieldCollation
      */
     public RelFieldCollation(int fieldIndex)
     {
-        this(fieldIndex, Direction.Ascending);
+        this(fieldIndex, Direction.Ascending, NullDirection.UNSPECIFIED);
+    }
+
+    /**
+     * Creates a field collation with unspecified null direction.
+     */
+    public RelFieldCollation(int fieldIndex, Direction direction) {
+        this(fieldIndex, direction, NullDirection.UNSPECIFIED);
     }
 
     /**
      * Creates a field collation.
      */
-    public RelFieldCollation(int fieldIndex, Direction direction)
+    public RelFieldCollation(
+        int fieldIndex,
+        Direction direction,
+        NullDirection nullDirection)
     {
         this.fieldIndex = fieldIndex;
         this.direction = direction;
+        this.nullDirection = nullDirection;
+        assert direction != null;
+        assert nullDirection != null;
     }
 
     //~ Methods ----------------------------------------------------------------
+
+    /** Creates a copy of this RelFieldCollation against a different field. */
+    public RelFieldCollation copy(int target) {
+        if (target == fieldIndex) {
+            return this;
+        }
+        return new RelFieldCollation(target, direction, nullDirection);
+    }
 
     // implement Object
     public boolean equals(Object obj)
@@ -132,7 +162,11 @@ public class RelFieldCollation
 
     public String toString()
     {
-        return fieldIndex + " " + direction;
+        return fieldIndex
+            + " " + direction
+            + (nullDirection == NullDirection.UNSPECIFIED
+                ? ""
+                : " " + nullDirection);
     }
 }
 

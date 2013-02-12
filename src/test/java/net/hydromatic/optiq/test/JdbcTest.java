@@ -689,6 +689,58 @@ public class JdbcTest extends TestCase {
                 "c0=1997; c1=Drink; c2=USA; c3=WA; c4=Sedro Woolley; m0=58\n");
     }
 
+    /** Tests ORDER BY ... DESC NULLS FIRST. */
+    public void testOrderByDescNullsFirst() {
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.FOODMART_CLONE)
+            .query(
+                "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
+                + "where \"store_id\" < 3 order by 2 desc nulls first")
+            .returns(
+                "store_id=0; grocery_sqft=null\n"
+                + "store_id=2; grocery_sqft=22271\n"
+                + "store_id=1; grocery_sqft=17475\n");
+    }
+
+    /** Tests ORDER BY ... NULLS FIRST. */
+    public void testOrderByNullsFirst() {
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.FOODMART_CLONE)
+            .query(
+                "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
+                + "where \"store_id\" < 3 order by 2 nulls first")
+            .returns(
+                "store_id=0; grocery_sqft=null\n"
+                + "store_id=1; grocery_sqft=17475\n"
+                + "store_id=2; grocery_sqft=22271\n");
+    }
+
+    /** Tests ORDER BY ... DESC NULLS LAST. */
+    public void testOrderByDescNullsLast() {
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.FOODMART_CLONE)
+            .query(
+                "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
+                + "where \"store_id\" < 3 order by 2 desc nulls last")
+            .returns(
+                "store_id=2; grocery_sqft=22271\n"
+                + "store_id=1; grocery_sqft=17475\n"
+                + "store_id=0; grocery_sqft=null\n");
+    }
+
+    /** Tests ORDER BY ... NULLS LAST. */
+    public void testOrderByNullsLast() {
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.FOODMART_CLONE)
+            .query(
+                "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
+                + "where \"store_id\" < 3 order by 2 nulls last")
+            .returns(
+                "store_id=1; grocery_sqft=17475\n"
+                + "store_id=2; grocery_sqft=22271\n"
+                + "store_id=0; grocery_sqft=null\n");
+    }
+
     /** Tests the TABLES table in the information schema. */
     public void testMetaTables() {
         OptiqAssert.assertThat()

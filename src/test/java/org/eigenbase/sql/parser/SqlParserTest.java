@@ -1242,6 +1242,16 @@ public class SqlParserTest
                 }));
     }
 
+    public void testOrderNullsFirst()
+    {
+        check(
+            "select * from emp order by gender desc nulls last, deptno asc nulls first, empno nulls last",
+            TestUtil.fold(
+                "SELECT *\n"
+                + "FROM `EMP`\n"
+                + "ORDER BY `GENDER` DESC NULLS LAST, `DEPTNO` NULLS FIRST, `EMPNO` NULLS LAST"));
+    }
+
     public void testOrderInternal()
     {
         check(
@@ -1405,7 +1415,7 @@ public class SqlParserTest
     // expressions
     public void testParseNumber()
     {
-        //Exacts
+        // Exacts
         checkExp("1", "1");
         checkExp("+1.", "1");
         checkExp("-1", "-1");
@@ -1417,7 +1427,7 @@ public class SqlParserTest
         checkExp("2500000000", "2500000000");
         checkExp("5000000000", "5000000000");
 
-        //Approxs
+        // Approximates
         checkExp("1e1", "1E1");
         checkExp("+1e1", "1E1");
         checkExp("1.1e1", "1.1E1");
@@ -1432,7 +1442,7 @@ public class SqlParserTest
         checkExp("-.5E3", "-5E2");
         checkExp(".5e-32", "5E-33");
 
-        //Mix integer/decimals/approx
+        // Mix integer/decimals/approx
         checkExp("3. + 2", "(3 + 2)");
         checkExp("1++2+3", "((1 + 2) + 3)");
         checkExp("1- -2", "(1 - -2)");
@@ -2046,17 +2056,17 @@ public class SqlParserTest
 
     public void testCaseExpression()
     {
-        //implicit simple else null case
+        // implicit simple "ELSE NULL" case
         checkExp(
             "case \t col1 when 1 then 'one' end",
             "(CASE WHEN (`COL1` = 1) THEN 'one' ELSE NULL END)");
 
-        //implicit searched elee null case
+        // implicit searched "ELSE NULL" case
         checkExp(
             "case when nbr is false then 'one' end",
             "(CASE WHEN (`NBR` IS FALSE) THEN 'one' ELSE NULL END)");
 
-        //multiple whens
+        // multiple WHENs
         checkExp(
             "case col1 when \n1.2 then 'one' when 2 then 'two' else 'three' end",
             "(CASE WHEN (`COL1` = 1.2) THEN 'one' WHEN (`COL1` = 2) THEN 'two' ELSE 'three' END)");
@@ -2653,7 +2663,7 @@ public class SqlParserTest
      */
     public void subTestIntervalYearPositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '1' year",
             "INTERVAL '1' YEAR");
@@ -2661,7 +2671,7 @@ public class SqlParserTest
             "interval '99' year",
             "INTERVAL '99' YEAR");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '1' year(2)",
             "INTERVAL '1' YEAR(2)");
@@ -2669,22 +2679,22 @@ public class SqlParserTest
             "interval '99' year(2)",
             "INTERVAL '99' YEAR(2)");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647' year(10)",
             "INTERVAL '2147483647' YEAR(10)");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0' year(1)",
             "INTERVAL '0' YEAR(1)");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '1234' year(4)",
             "INTERVAL '1234' YEAR(4)");
 
-        //sign
+        // sign
         checkExp(
             "interval '+1' year",
             "INTERVAL '+1' YEAR");
@@ -2720,7 +2730,7 @@ public class SqlParserTest
      */
     public void subTestIntervalYearToMonthPositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '1-2' year to month",
             "INTERVAL '1-2' YEAR TO MONTH");
@@ -2731,7 +2741,7 @@ public class SqlParserTest
             "interval '99-0' year to month",
             "INTERVAL '99-0' YEAR TO MONTH");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '1-2' year(2) to month",
             "INTERVAL '1-2' YEAR(2) TO MONTH");
@@ -2742,22 +2752,22 @@ public class SqlParserTest
             "interval '99-0' year(2) to month",
             "INTERVAL '99-0' YEAR(2) TO MONTH");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647-11' year(10) to month",
             "INTERVAL '2147483647-11' YEAR(10) TO MONTH");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0-0' year(1) to month",
             "INTERVAL '0-0' YEAR(1) TO MONTH");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '2006-2' year(4) to month",
             "INTERVAL '2006-2' YEAR(4) TO MONTH");
 
-        //sign
+        // sign
         checkExp(
             "interval '-1-2' year to month",
             "INTERVAL '-1-2' YEAR TO MONTH");
@@ -2793,7 +2803,7 @@ public class SqlParserTest
      */
     public void subTestIntervalMonthPositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '1' month",
             "INTERVAL '1' MONTH");
@@ -2801,7 +2811,7 @@ public class SqlParserTest
             "interval '99' month",
             "INTERVAL '99' MONTH");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '1' month(2)",
             "INTERVAL '1' MONTH(2)");
@@ -2809,22 +2819,22 @@ public class SqlParserTest
             "interval '99' month(2)",
             "INTERVAL '99' MONTH(2)");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647' month(10)",
             "INTERVAL '2147483647' MONTH(10)");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0' month(1)",
             "INTERVAL '0' MONTH(1)");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '1234' month(4)",
             "INTERVAL '1234' MONTH(4)");
 
-        //sign
+        // sign
         checkExp(
             "interval '+1' month",
             "INTERVAL '+1' MONTH");
@@ -2860,7 +2870,7 @@ public class SqlParserTest
      */
     public void subTestIntervalDayPositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '1' day",
             "INTERVAL '1' DAY");
@@ -2868,7 +2878,7 @@ public class SqlParserTest
             "interval '99' day",
             "INTERVAL '99' DAY");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '1' day(2)",
             "INTERVAL '1' DAY(2)");
@@ -2876,22 +2886,22 @@ public class SqlParserTest
             "interval '99' day(2)",
             "INTERVAL '99' DAY(2)");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647' day(10)",
             "INTERVAL '2147483647' DAY(10)");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0' day(1)",
             "INTERVAL '0' DAY(1)");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '1234' day(4)",
             "INTERVAL '1234' DAY(4)");
 
-        //sign
+        // sign
         checkExp(
             "interval '+1' day",
             "INTERVAL '+1' DAY");
@@ -2927,7 +2937,7 @@ public class SqlParserTest
      */
     public void subTestIntervalDayToHourPositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '1 2' day to hour",
             "INTERVAL '1 2' DAY TO HOUR");
@@ -2938,7 +2948,7 @@ public class SqlParserTest
             "interval '99 0' day to hour",
             "INTERVAL '99 0' DAY TO HOUR");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '1 2' day(2) to hour",
             "INTERVAL '1 2' DAY(2) TO HOUR");
@@ -2949,22 +2959,22 @@ public class SqlParserTest
             "interval '99 0' day(2) to hour",
             "INTERVAL '99 0' DAY(2) TO HOUR");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647 23' day(10) to hour",
             "INTERVAL '2147483647 23' DAY(10) TO HOUR");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0 0' day(1) to hour",
             "INTERVAL '0 0' DAY(1) TO HOUR");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '2345 2' day(4) to hour",
             "INTERVAL '2345 2' DAY(4) TO HOUR");
 
-        //sign
+        // sign
         checkExp(
             "interval '-1 2' day to hour",
             "INTERVAL '-1 2' DAY TO HOUR");
@@ -3000,7 +3010,7 @@ public class SqlParserTest
      */
     public void subTestIntervalDayToMinutePositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '1 2:3' day to minute",
             "INTERVAL '1 2:3' DAY TO MINUTE");
@@ -3011,7 +3021,7 @@ public class SqlParserTest
             "interval '99 0:0' day to minute",
             "INTERVAL '99 0:0' DAY TO MINUTE");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '1 2:3' day(2) to minute",
             "INTERVAL '1 2:3' DAY(2) TO MINUTE");
@@ -3022,22 +3032,22 @@ public class SqlParserTest
             "interval '99 0:0' day(2) to minute",
             "INTERVAL '99 0:0' DAY(2) TO MINUTE");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647 23:59' day(10) to minute",
             "INTERVAL '2147483647 23:59' DAY(10) TO MINUTE");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0 0:0' day(1) to minute",
             "INTERVAL '0 0:0' DAY(1) TO MINUTE");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '2345 6:7' day(4) to minute",
             "INTERVAL '2345 6:7' DAY(4) TO MINUTE");
 
-        //sign
+        // sign
         checkExp(
             "interval '-1 2:3' day to minute",
             "INTERVAL '-1 2:3' DAY TO MINUTE");
@@ -3073,7 +3083,7 @@ public class SqlParserTest
      */
     public void subTestIntervalDayToSecondPositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '1 2:3:4' day to second",
             "INTERVAL '1 2:3:4' DAY TO SECOND");
@@ -3090,7 +3100,7 @@ public class SqlParserTest
             "interval '99 0:0:0.0' day to second",
             "INTERVAL '99 0:0:0.0' DAY TO SECOND");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '1 2:3:4' day(2) to second",
             "INTERVAL '1 2:3:4' DAY(2) TO SECOND");
@@ -3107,7 +3117,7 @@ public class SqlParserTest
             "interval '99 0:0:0.0' day to second(6)",
             "INTERVAL '99 0:0:0.0' DAY TO SECOND(6)");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647 23:59:59' day(10) to second",
             "INTERVAL '2147483647 23:59:59' DAY(10) TO SECOND");
@@ -3115,7 +3125,7 @@ public class SqlParserTest
             "interval '2147483647 23:59:59.999999999' day(10) to second(9)",
             "INTERVAL '2147483647 23:59:59.999999999' DAY(10) TO SECOND(9)");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0 0:0:0' day(1) to second",
             "INTERVAL '0 0:0:0' DAY(1) TO SECOND");
@@ -3123,7 +3133,7 @@ public class SqlParserTest
             "interval '0 0:0:0.0' day(1) to second(1)",
             "INTERVAL '0 0:0:0.0' DAY(1) TO SECOND(1)");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '2345 6:7:8' day(4) to second",
             "INTERVAL '2345 6:7:8' DAY(4) TO SECOND");
@@ -3131,7 +3141,7 @@ public class SqlParserTest
             "interval '2345 6:7:8.9012' day(4) to second(4)",
             "INTERVAL '2345 6:7:8.9012' DAY(4) TO SECOND(4)");
 
-        //sign
+        // sign
         checkExp(
             "interval '-1 2:3:4' day to second",
             "INTERVAL '-1 2:3:4' DAY TO SECOND");
@@ -3167,7 +3177,7 @@ public class SqlParserTest
      */
     public void subTestIntervalHourPositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '1' hour",
             "INTERVAL '1' HOUR");
@@ -3175,7 +3185,7 @@ public class SqlParserTest
             "interval '99' hour",
             "INTERVAL '99' HOUR");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '1' hour(2)",
             "INTERVAL '1' HOUR(2)");
@@ -3183,22 +3193,22 @@ public class SqlParserTest
             "interval '99' hour(2)",
             "INTERVAL '99' HOUR(2)");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647' hour(10)",
             "INTERVAL '2147483647' HOUR(10)");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0' hour(1)",
             "INTERVAL '0' HOUR(1)");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '1234' hour(4)",
             "INTERVAL '1234' HOUR(4)");
 
-        //sign
+        // sign
         checkExp(
             "interval '+1' hour",
             "INTERVAL '+1' HOUR");
@@ -3234,7 +3244,7 @@ public class SqlParserTest
      */
     public void subTestIntervalHourToMinutePositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '2:3' hour to minute",
             "INTERVAL '2:3' HOUR TO MINUTE");
@@ -3245,7 +3255,7 @@ public class SqlParserTest
             "interval '99:0' hour to minute",
             "INTERVAL '99:0' HOUR TO MINUTE");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '2:3' hour(2) to minute",
             "INTERVAL '2:3' HOUR(2) TO MINUTE");
@@ -3256,22 +3266,22 @@ public class SqlParserTest
             "interval '99:0' hour(2) to minute",
             "INTERVAL '99:0' HOUR(2) TO MINUTE");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647:59' hour(10) to minute",
             "INTERVAL '2147483647:59' HOUR(10) TO MINUTE");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0:0' hour(1) to minute",
             "INTERVAL '0:0' HOUR(1) TO MINUTE");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '2345:7' hour(4) to minute",
             "INTERVAL '2345:7' HOUR(4) TO MINUTE");
 
-        //sign
+        // sign
         checkExp(
             "interval '-1:3' hour to minute",
             "INTERVAL '-1:3' HOUR TO MINUTE");
@@ -3307,7 +3317,7 @@ public class SqlParserTest
      */
     public void subTestIntervalHourToSecondPositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '2:3:4' hour to second",
             "INTERVAL '2:3:4' HOUR TO SECOND");
@@ -3324,7 +3334,7 @@ public class SqlParserTest
             "interval '99:0:0.0' hour to second",
             "INTERVAL '99:0:0.0' HOUR TO SECOND");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '2:3:4' hour(2) to second",
             "INTERVAL '2:3:4' HOUR(2) TO SECOND");
@@ -3341,7 +3351,7 @@ public class SqlParserTest
             "interval '99:0:0.0' hour to second(6)",
             "INTERVAL '99:0:0.0' HOUR TO SECOND(6)");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647:59:59' hour(10) to second",
             "INTERVAL '2147483647:59:59' HOUR(10) TO SECOND");
@@ -3349,7 +3359,7 @@ public class SqlParserTest
             "interval '2147483647:59:59.999999999' hour(10) to second(9)",
             "INTERVAL '2147483647:59:59.999999999' HOUR(10) TO SECOND(9)");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0:0:0' hour(1) to second",
             "INTERVAL '0:0:0' HOUR(1) TO SECOND");
@@ -3357,7 +3367,7 @@ public class SqlParserTest
             "interval '0:0:0.0' hour(1) to second(1)",
             "INTERVAL '0:0:0.0' HOUR(1) TO SECOND(1)");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '2345:7:8' hour(4) to second",
             "INTERVAL '2345:7:8' HOUR(4) TO SECOND");
@@ -3365,7 +3375,7 @@ public class SqlParserTest
             "interval '2345:7:8.9012' hour(4) to second(4)",
             "INTERVAL '2345:7:8.9012' HOUR(4) TO SECOND(4)");
 
-        //sign
+        // sign
         checkExp(
             "interval '-2:3:4' hour to second",
             "INTERVAL '-2:3:4' HOUR TO SECOND");
@@ -3401,7 +3411,7 @@ public class SqlParserTest
      */
     public void subTestIntervalMinutePositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '1' minute",
             "INTERVAL '1' MINUTE");
@@ -3409,7 +3419,7 @@ public class SqlParserTest
             "interval '99' minute",
             "INTERVAL '99' MINUTE");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '1' minute(2)",
             "INTERVAL '1' MINUTE(2)");
@@ -3417,22 +3427,22 @@ public class SqlParserTest
             "interval '99' minute(2)",
             "INTERVAL '99' MINUTE(2)");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647' minute(10)",
             "INTERVAL '2147483647' MINUTE(10)");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0' minute(1)",
             "INTERVAL '0' MINUTE(1)");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '1234' minute(4)",
             "INTERVAL '1234' MINUTE(4)");
 
-        //sign
+        // sign
         checkExp(
             "interval '+1' minute",
             "INTERVAL '+1' MINUTE");
@@ -3468,7 +3478,7 @@ public class SqlParserTest
      */
     public void subTestIntervalMinuteToSecondPositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '2:4' minute to second",
             "INTERVAL '2:4' MINUTE TO SECOND");
@@ -3485,7 +3495,7 @@ public class SqlParserTest
             "interval '99:0.0' minute to second",
             "INTERVAL '99:0.0' MINUTE TO SECOND");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '2:4' minute(2) to second",
             "INTERVAL '2:4' MINUTE(2) TO SECOND");
@@ -3502,7 +3512,7 @@ public class SqlParserTest
             "interval '99:0.0' minute to second(6)",
             "INTERVAL '99:0.0' MINUTE TO SECOND(6)");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647:59' minute(10) to second",
             "INTERVAL '2147483647:59' MINUTE(10) TO SECOND");
@@ -3510,7 +3520,7 @@ public class SqlParserTest
             "interval '2147483647:59.999999999' minute(10) to second(9)",
             "INTERVAL '2147483647:59.999999999' MINUTE(10) TO SECOND(9)");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0:0' minute(1) to second",
             "INTERVAL '0:0' MINUTE(1) TO SECOND");
@@ -3518,7 +3528,7 @@ public class SqlParserTest
             "interval '0:0.0' minute(1) to second(1)",
             "INTERVAL '0:0.0' MINUTE(1) TO SECOND(1)");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '2345:8' minute(4) to second",
             "INTERVAL '2345:8' MINUTE(4) TO SECOND");
@@ -3526,7 +3536,7 @@ public class SqlParserTest
             "interval '2345:7.8901' minute(4) to second(4)",
             "INTERVAL '2345:7.8901' MINUTE(4) TO SECOND(4)");
 
-        //sign
+        // sign
         checkExp(
             "interval '-3:4' minute to second",
             "INTERVAL '-3:4' MINUTE TO SECOND");
@@ -3562,7 +3572,7 @@ public class SqlParserTest
      */
     public void subTestIntervalSecondPositive()
     {
-        //default precision
+        // default precision
         checkExp(
             "interval '1' second",
             "INTERVAL '1' SECOND");
@@ -3570,7 +3580,7 @@ public class SqlParserTest
             "interval '99' second",
             "INTERVAL '99' SECOND");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExp(
             "interval '1' second(2)",
             "INTERVAL '1' SECOND(2)");
@@ -3584,7 +3594,7 @@ public class SqlParserTest
             "interval '99' second(2,6)",
             "INTERVAL '99' SECOND(2, 6)");
 
-        //max precision
+        // max precision
         checkExp(
             "interval '2147483647' second(10)",
             "INTERVAL '2147483647' SECOND(10)");
@@ -3592,7 +3602,7 @@ public class SqlParserTest
             "interval '2147483647.999999999' second(9,9)",
             "INTERVAL '2147483647.999999999' SECOND(9, 9)");
 
-        //min precision
+        // min precision
         checkExp(
             "interval '0' second(1)",
             "INTERVAL '0' SECOND(1)");
@@ -3600,7 +3610,7 @@ public class SqlParserTest
             "interval '0.0' second(1,1)",
             "INTERVAL '0.0' SECOND(1, 1)");
 
-        //alternate precision
+        // alternate precision
         checkExp(
             "interval '1234' second(4)",
             "INTERVAL '1234' SECOND(4)");
@@ -3608,7 +3618,7 @@ public class SqlParserTest
             "interval '1234.56789' second(4,5)",
             "INTERVAL '1234.56789' SECOND(4, 5)");
 
-        //sign
+        // sign
         checkExp(
             "interval '+1' second",
             "INTERVAL '+1' SECOND");

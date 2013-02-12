@@ -647,9 +647,7 @@ loop:
                     continue loop;
                 }
                 fieldCollations.add(
-                    new RelFieldCollation(
-                        target,
-                        fieldCollation.getDirection()));
+                    fieldCollation.copy(target));
             }
 
             // Success -- all of the source fields of this key are mapped

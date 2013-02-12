@@ -299,7 +299,9 @@ public class MockCatalogReader
                     new RelCollationImpl(
                         Collections.singletonList(
                             new RelFieldCollation(
-                                i, direction))));
+                                i,
+                                direction,
+                                RelFieldCollation.NullDirection.UNSPECIFIED))));
             }
         }
         return collationList;

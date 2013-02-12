@@ -86,7 +86,8 @@ public class RelCollationImpl
                 Collections.singletonList(
                     new RelFieldCollation(
                         fieldIndex,
-                        RelFieldCollation.Direction.Ascending))));
+                        RelFieldCollation.Direction.Ascending,
+                        RelFieldCollation.NullDirection.UNSPECIFIED))));
     }
 
     /**

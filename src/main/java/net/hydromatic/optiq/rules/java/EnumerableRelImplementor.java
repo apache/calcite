@@ -271,7 +271,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
                         cParameter,
                         Expressions.call(
                             Utilities.class,
-                            field.nullable() ? "compareNullable" : "compare",
+                            field.nullable() ? "compareNullsLast" : "compare",
                             Expressions.field(thisParameter, field),
                             Expressions.field(thatParameter, field)))));
             blockBuilder4.add(conditionalStatement);

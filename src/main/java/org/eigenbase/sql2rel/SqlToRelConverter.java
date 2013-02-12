@@ -2559,26 +2559,40 @@ public class SqlToRelConverter
                     select,
                     orderItem,
                     extraOrderExprs,
-                    RelFieldCollation.Direction.Ascending));
+                    RelFieldCollation.Direction.Ascending,
+                    RelFieldCollation.NullDirection.UNSPECIFIED));
         }
     }
 
     protected RelFieldCollation convertOrderItem(
         SqlSelect select,
-        SqlNode orderItem,
-        List<SqlNode> extraExprs,
-        RelFieldCollation.Direction direction)
+        SqlNode orderItem, List<SqlNode> extraExprs,
+        RelFieldCollation.Direction direction,
+        RelFieldCollation.NullDirection nullDirection)
     {
-        // DESC keyword, e.g. 'select a, b from t order by a desc'.
-        if (orderItem instanceof SqlCall) {
-            SqlCall call = (SqlCall) orderItem;
-            if (call.getOperator() == SqlStdOperatorTable.descendingOperator) {
-                return convertOrderItem(
-                    select,
-                    call.operands[0],
-                    extraExprs,
-                    RelFieldCollation.Direction.Descending);
-            }
+        // Handle DESC keyword, e.g. 'select a, b from t order by a desc'.
+        switch (orderItem.getKind()) {
+        case DESCENDING:
+            return convertOrderItem(
+                select,
+                ((SqlCall) orderItem).operands[0],
+                extraExprs,
+                RelFieldCollation.Direction.Descending,
+                nullDirection);
+        case NULLS_FIRST:
+            return convertOrderItem(
+                select,
+                ((SqlCall) orderItem).operands[0],
+                extraExprs,
+                direction,
+                RelFieldCollation.NullDirection.FIRST);
+        case NULLS_LAST:
+            return convertOrderItem(
+                select,
+                ((SqlCall) orderItem).operands[0],
+                extraExprs,
+                direction,
+                RelFieldCollation.NullDirection.LAST);
         }
 
         SqlNode converted = validator.expandOrderExpr(select, orderItem);
@@ -2593,14 +2607,16 @@ public class SqlToRelConverter
                     selectItem = ((SqlCall) selectItem).operands[0];
                 }
                 if (converted.equalsDeep(selectItem, false)) {
-                    return new RelFieldCollation(ordinal, direction);
+                    return new RelFieldCollation(
+                        ordinal, direction, nullDirection);
                 }
             }
 
             for (SqlNode extraExpr : extraExprs) {
                 ++ordinal;
                 if (converted.equalsDeep(extraExpr, false)) {
-                    return new RelFieldCollation(ordinal, direction);
+                    return new RelFieldCollation(
+                        ordinal, direction, nullDirection);
                 }
             }
         }
@@ -2610,7 +2626,7 @@ public class SqlToRelConverter
 
         int ordinal = select.getSelectList().size() + extraExprs.size();
         extraExprs.add(converted);
-        return new RelFieldCollation(ordinal, direction);
+        return new RelFieldCollation(ordinal, direction, nullDirection);
     }
 
     protected boolean enableDecorrelation()

@@ -229,6 +229,13 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
+    public void testOrderDescNullsLast()
+    {
+        check(
+            "select empno from emp order by empno desc nulls last",
+            "${plan}");
+    }
+
     public void testOrderByOrdinalDesc()
     {
         // FRG-98

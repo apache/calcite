@@ -2065,19 +2065,28 @@ SqlNode OrderItem() :
     e = Expression(ExprContext.ACCEPT_SUBQUERY)
     (
         <ASC>
-        {
-            return e;
-        }
         | <DESC>
         {
             pos = getPos();
-            return SqlStdOperatorTable.descendingOperator.createCall(pos, e);
+            e = SqlStdOperatorTable.descendingOperator.createCall(pos, e);
         }
-        |
+    )?
+    (
+        <NULLS> <FIRST>
         {
-            return e;
+            pos = getPos();
+            e = SqlStdOperatorTable.nullsFirstOperator.createCall(pos, e);
         }
-    )
+    |
+        <NULLS> <LAST>
+        {
+            pos = getPos();
+            e = SqlStdOperatorTable.nullsLastOperator.createCall(pos, e);
+        }
+    )?
+    {
+        return e;
+    }
 }
 
 // ----------------------------------------------------------------------------

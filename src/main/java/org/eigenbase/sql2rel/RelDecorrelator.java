@@ -283,9 +283,9 @@ public class RelDecorrelator
 
         for (RelFieldCollation oldCollation : oldCollations) {
             newCollations.add(
-                new RelFieldCollation(
-                    childMapOldToNewOutputPos.get(oldCollation.getFieldIndex()),
-                    oldCollation.getDirection()));
+                oldCollation.copy(
+                    childMapOldToNewOutputPos.get(
+                        oldCollation.getFieldIndex())));
         }
 
         SortRel newRel =

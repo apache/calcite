@@ -78,6 +78,8 @@ public enum BuiltinMethod {
         ExtendedEnumerable.class, "except", Enumerable.class),
     SINGLETON_ENUMERABLE(
         Linq4j.class, "singletonEnumerable", Object.class),
+    NULLS_COMPARATOR(
+        Functions.class, "nullsComparator", boolean.class, boolean.class),
     ARRAY_COMPARER(
         Functions.class, "arrayComparer"),
     IDENTITY_SELECTOR(

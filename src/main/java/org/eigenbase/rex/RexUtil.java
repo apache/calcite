@@ -529,7 +529,7 @@ public class RexUtil
      * field i or greater.
      *
      * @param exprs Array of expressions
-     * @param inputRowType
+     * @param inputRowType Input row type
      * @param fail Whether to assert if there is a forward reference
      *
      * @return Whether there is a forward reference
@@ -909,9 +909,7 @@ public class RexUtil
         if (target < 0) {
             return null;
         }
-        return new RelFieldCollation(
-            target,
-            fieldCollation.getDirection());
+        return fieldCollation.copy(target);
     }
 
     /**

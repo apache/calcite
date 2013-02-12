@@ -173,16 +173,16 @@ public class PhysTypeImpl implements PhysType {
                     Function1.class,
                     fieldReference(parameter, collation.getFieldIndex()),
                     parameter);
-            switch (collation.getDirection()) {
-            case Descending:
-                return Pair.<Expression, Expression>of(
-                    selector,
-                    Expressions.call(
-                        BuiltinMethod.COLLECTIONS_REVERSE_ORDER.method));
-
-            default:
-                return Pair.of(selector, null);
-            }
+            return Pair.<Expression, Expression>of(
+                selector,
+                Expressions.call(
+                    BuiltinMethod.NULLS_COMPARATOR.method,
+                    Expressions.constant(
+                        collation.nullDirection
+                        == RelFieldCollation.NullDirection.FIRST),
+                    Expressions.constant(
+                        collation.getDirection()
+                        == RelFieldCollation.Direction.Descending)));
         }
         selector =
             Expressions.call(BuiltinMethod.IDENTITY_SELECTOR.method);
@@ -212,6 +212,12 @@ public class PhysTypeImpl implements PhysType {
                 arg0 = Types.castIfNecessary(Comparable.class, arg0);
                 arg1 = Types.castIfNecessary(Comparable.class, arg1);
             }
+            final boolean nullsFirst =
+                collation.nullDirection
+                == RelFieldCollation.NullDirection.FIRST;
+            final boolean descending =
+                collation.getDirection()
+                == RelFieldCollation.Direction.Descending;
             body.add(
                 Expressions.statement(
                     Expressions.assign(
@@ -219,7 +225,9 @@ public class PhysTypeImpl implements PhysType {
                         Expressions.call(
                             Utilities.class,
                             fieldNullable(index)
-                                ? "compareNullable"
+                                ? (nullsFirst != descending
+                                   ? "compareNullsFirst"
+                                   : "compareNullsLast")
                                 : "compare",
                             arg0,
                             arg1))));
@@ -229,8 +237,7 @@ public class PhysTypeImpl implements PhysType {
                         parameterC, Expressions.constant(0)),
                     Expressions.return_(
                         null,
-                        collation.getDirection()
-                        == RelFieldCollation.Direction.Descending
+                        descending
                             ? Expressions.negate(parameterC)
                             : parameterC)));
         }

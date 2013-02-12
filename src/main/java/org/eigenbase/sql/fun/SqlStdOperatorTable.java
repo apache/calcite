@@ -395,7 +395,7 @@ public class SqlStdOperatorTable
      */
     public static final SqlBinaryOperator submultisetOfOperator =
 
-        //TODO check if precedence is correct
+        // TODO: check if precedence is correct
         new SqlBinaryOperator(
             "SUBMULTISET OF",
             SqlKind.OTHER,
@@ -413,7 +413,25 @@ public class SqlStdOperatorTable
             "DESC",
             SqlKind.DESCENDING,
             20,
-            null,
+            SqlTypeStrategies.rtiFirstArgType,
+            SqlTypeStrategies.otiReturnType,
+            SqlTypeStrategies.otcAny);
+
+    public static final SqlPostfixOperator nullsFirstOperator =
+        new SqlPostfixOperator(
+            "NULLS FIRST",
+            SqlKind.NULLS_FIRST,
+            18,
+            SqlTypeStrategies.rtiFirstArgType,
+            SqlTypeStrategies.otiReturnType,
+            SqlTypeStrategies.otcAny);
+
+    public static final SqlPostfixOperator nullsLastOperator =
+        new SqlPostfixOperator(
+            "NULLS LAST",
+            SqlKind.NULLS_LAST,
+            18,
+            SqlTypeStrategies.rtiFirstArgType,
             SqlTypeStrategies.otiReturnType,
             SqlTypeStrategies.otcAny);
 

@@ -110,7 +110,16 @@ public class SortRel
         }
         for (int j = 0; j < collations.size(); ++j) {
             terms[i++] = "dir" + j;
-            values[j] = collations.get(j).getDirection();
+            final RelFieldCollation collation = collations.get(j);
+            values[j] = collation.getDirection().toString();
+            switch (collation.nullDirection) {
+            case FIRST:
+                values[j] = ((String) values[j]) + "-nulls-first";
+                break;
+            case LAST:
+                values[j] = ((String) values[j]) + "-nulls-last";
+                break;
+            }
         }
         pw.explain(this, terms, values);
     }
