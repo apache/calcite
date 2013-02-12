@@ -45,6 +45,18 @@ public class Functions {
           new HashMap<Class, Class<? extends Function>>(
               inverse(FUNCTION_RESULT_TYPES)));
 
+  private static final Comparator NULLS_FIRST_COMPARATOR =
+      new NullsFirstComparator();
+
+  private static final Comparator NULLS_LAST_COMPARATOR =
+      new NullsLastComparator();
+
+  private static final Comparator NULLS_LAST_REVERSE_COMPARATOR =
+      new NullsLastReverseComparator();
+
+  private static final Comparator NULLS_FIRST_REVERSE_COMPARATOR =
+      new NullsFirstReverseComparator();
+
   private static final EqualityComparer<Object> IDENTITY_COMPARER =
       new IdentityEqualityComparer();
 
@@ -273,6 +285,27 @@ public class Functions {
   }
 
   /**
+   * Returns a {@link Comparator} that handles null values.
+   *
+   * @param nullsFirst Whether nulls come before all other values
+   * @param reverse Whether to reverse the usual order of {@link Comparable}s
+   */
+  @SuppressWarnings("unchecked")
+  public static <T extends Comparable<T>> Comparator<T> nullsComparator(
+      boolean nullsFirst,
+      boolean reverse)
+  {
+    return (Comparator<T>)
+        (reverse
+        ? (nullsFirst
+          ? NULLS_FIRST_REVERSE_COMPARATOR
+          : NULLS_LAST_REVERSE_COMPARATOR)
+        : (nullsFirst
+          ? NULLS_FIRST_COMPARATOR
+          : NULLS_LAST_COMPARATOR));
+  }
+
+  /**
    * Returns an {@link EqualityComparer} that uses object identity and hash
    * code.
    */
@@ -308,6 +341,72 @@ public class Functions {
 
     public int hashCode(Object t) {
       return t == null ? 0x789d : t.hashCode();
+    }
+  }
+
+  private static class NullsFirstComparator implements Comparator<Comparable> {
+    public int compare(Comparable o1, Comparable o2) {
+      if (o1 == o2) {
+        return 0;
+      }
+      if (o1 == null) {
+        return -1;
+      }
+      if (o2 == null) {
+        return 1;
+      }
+      //noinspection unchecked
+      return o1.compareTo(o2);
+    }
+  }
+
+  private static class NullsLastComparator implements Comparator<Comparable> {
+    public int compare(Comparable o1, Comparable o2) {
+      if (o1 == o2) {
+        return 0;
+      }
+      if (o1 == null) {
+        return 1;
+      }
+      if (o2 == null) {
+        return -1;
+      }
+      //noinspection unchecked
+      return o1.compareTo(o2);
+    }
+  }
+
+  private static class NullsFirstReverseComparator
+      implements Comparator<Comparable> {
+    public int compare(Comparable o1, Comparable o2) {
+      if (o1 == o2) {
+        return 0;
+      }
+      if (o1 == null) {
+        return -1;
+      }
+      if (o2 == null) {
+        return 1;
+      }
+      //noinspection unchecked
+      return -o1.compareTo(o2);
+    }
+  }
+
+  private static class NullsLastReverseComparator
+      implements Comparator<Comparable> {
+    public int compare(Comparable o1, Comparable o2) {
+      if (o1 == o2) {
+        return 0;
+      }
+      if (o1 == null) {
+        return 1;
+      }
+      if (o2 == null) {
+        return -1;
+      }
+      //noinspection unchecked
+      return -o1.compareTo(o2);
     }
   }
 }
