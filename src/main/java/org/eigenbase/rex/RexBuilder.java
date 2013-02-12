@@ -435,8 +435,9 @@ public class RexBuilder
             final Comparable value = literal.getValue();
             if (RexLiteral.valueMatchesType(value, sqlType, false)
                 && (!(value instanceof NlsString)
-                    || type.getPrecision()
-                       >= ((NlsString) value).getValue().length()))
+                    || (type instanceof BasicSqlType
+                        && type.getPrecision()
+                       >= ((NlsString) value).getValue().length())))
             {
                 return makeLiteral(value, type, literal.getTypeName());
             }
