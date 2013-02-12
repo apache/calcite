@@ -48,14 +48,15 @@ import java.util.logging.Level;
  * SQL parser, generated from Parser.jj and CommonParser.jj by JavaCC.
  *
  * <p>The public wrapper for this parser is {@link SqlParser}.
- *
- * @author jhyde
- * @since Mar 18, 2003
- * @version $Id$
  */
 public class SqlParserImpl extends SqlAbstractParserImpl
 {
     private static final Logger tracer = EigenbaseTrace.getParserTracer();
+
+    // Can't use quoted literal because of a bug in how JavaCC translates
+    // backslash-backslash.
+    private static final char BACKSLASH = 0x5c;
+    private static final char DOUBLE_QUOTE = 0x22;
 
     private static Metadata metadata;
 
@@ -2712,7 +2713,7 @@ SqlNode StringLiteral() :
         {
             // TODO jvs 2-Feb-2009:  support the explicit specification of
             // a character set for Unicode string literals, per SQL:2003
-            unicodeEscapeChar = '\\';
+            unicodeEscapeChar = BACKSLASH;
             charSet = "UTF16";
         }
     )
@@ -3007,7 +3008,7 @@ SqlDynamicParam DynamicParam() :
 String Identifier() :
 {
     String id;
-    char unicodeEscapeChar = '\\';
+    char unicodeEscapeChar = BACKSLASH;
 }
 {
     (
@@ -3017,13 +3018,13 @@ String Identifier() :
         }
         | <QUOTED_IDENTIFIER>
         {
-            id = SqlParserUtil.strip(getToken(0).image, "\"");
+            id = SqlParserUtil.strip(getToken(0).image, DOUBLE_QUOTE + "");
         }
         | <UNICODE_QUOTED_IDENTIFIER>
         {
             id = getToken(0).image;
-            id = id.substring(id.indexOf('"'));
-            id = SqlParserUtil.strip(id, "\"");
+            id = id.substring(id.indexOf(DOUBLE_QUOTE));
+            id = SqlParserUtil.strip(id, DOUBLE_QUOTE + "");
         }
         [ <UESCAPE> <QUOTED_STRING>
             {
