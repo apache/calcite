@@ -61,6 +61,16 @@ public class TableConstructorNamespace
 
     protected RelDataType validateImpl()
     {
+        // First, validate the VALUES. If VALUES is inside INSERT, infers
+        // the type of NULL values based on the types of target columns.
+        final RelDataType targetRowType;
+        if (enclosingNode instanceof SqlInsert) {
+            SqlInsert node = (SqlInsert) enclosingNode;
+            targetRowType = validator.getValidatedNodeType(node);
+        } else {
+            targetRowType = validator.getUnknownType();
+        }
+        validator.validateValues(values, targetRowType, scope);
         return validator.getTableConstructorRowType(values, scope);
     }
 

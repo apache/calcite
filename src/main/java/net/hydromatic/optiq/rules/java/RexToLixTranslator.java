@@ -231,8 +231,9 @@ public class RexToLixTranslator {
                 ((Calendar) literal.getValue()).getTimeInMillis(), javaClass);
         case CHAR:
         case VARCHAR:
+            final NlsString nlsString = (NlsString) literal.getValue();
             return Expressions.constant(
-                ((NlsString) literal.getValue()).getValue(), javaClass);
+                nlsString == null ? null : nlsString.getValue(), javaClass);
         default:
             return Expressions.constant(literal.getValue(), javaClass);
         }

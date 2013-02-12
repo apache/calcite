@@ -279,6 +279,10 @@ public class JdbcFrontLinqBackTest extends TestCase {
             .returns("ROWCOUNT=3\n");
         with.query("select count(*) as c from \"foo\".\"bar\"")
             .returns("C=5\n");
+        with.query("insert into \"foo\".\"bar\" values (1, 6, null)")
+            .returns("ROWCOUNT=1\n");
+        with.query("select count(*) as c from \"foo\".\"bar\"")
+            .returns("C=6\n");
     }
 }
 
