@@ -373,7 +373,17 @@ public class RexImpTable {
             Type returnType,
             List<Type> parameterTypes)
         {
-            return Expressions.constant(0, returnType);
+            Primitive primitive = Primitive.of(returnType);
+            if (primitive == null) {
+                primitive = Primitive.ofBox(returnType);
+            }
+            if (primitive == null) {
+                assert returnType == BigDecimal.class
+                    : "expected primitive or boxed primitive, got "
+                    + returnType;
+                primitive = Primitive.INT;
+            }
+            return Expressions.constant(primitive.number(0), returnType);
         }
 
         public Expression implementAdd(
@@ -390,9 +400,11 @@ public class RexImpTable {
                     "add",
                     arguments.get(0));
             }
-            return Expressions.add(
-                accumulator,
-                Types.castIfNecessary(accumulator.type, arguments.get(0)));
+            return Types.castIfNecessary(
+                accumulator.type,
+                Expressions.add(
+                    accumulator,
+                    Types.castIfNecessary(accumulator.type, arguments.get(0))));
         }
 
         public Expression implementResult(
