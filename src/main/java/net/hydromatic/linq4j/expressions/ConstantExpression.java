@@ -98,6 +98,8 @@ public class ConstantExpression extends Expression {
         return writer.append(value).append("D");
       case LONG:
         return writer.append(value).append("L");
+      case SHORT:
+        return writer.append("(short)").append(value);
       default:
         return writer.append(value);
       }

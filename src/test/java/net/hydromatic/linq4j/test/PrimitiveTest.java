@@ -66,6 +66,40 @@ public class PrimitiveTest extends TestCase {
     assertEquals(Integer.class, Primitive.box(Integer.class));
     assertEquals(boolean[].class, Primitive.box(boolean[].class));
   }
+
+  /** Tests the {@link Primitive#number(Number)} method. */
+  public void testNumber() {
+    Number number = Primitive.SHORT.number(Integer.valueOf(2));
+    assertTrue(number instanceof Short);
+    assertEquals(2, number.shortValue());
+
+    number = Primitive.FLOAT.number(Integer.valueOf(2));
+    assertTrue(number instanceof Float);
+    assertEquals(2.0d, number.doubleValue());
+
+    try {
+      number = Primitive.INT.number(null);
+      fail("expected exception, got " + number);
+    } catch (NullPointerException e) {
+      // ok
+    }
+
+    // not a number
+    try {
+      number = Primitive.CHAR.number(3);
+      fail("expected exception, got " + number);
+    } catch (AssertionError e) {
+      // ok
+    }
+
+    // not a number
+    try {
+      number = Primitive.BOOLEAN.number(null);
+      fail("expected exception, got " + number);
+    } catch (AssertionError e) {
+      // ok
+    }
+  }
 }
 
 // End PrimitiveTest.java

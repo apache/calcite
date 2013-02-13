@@ -413,28 +413,38 @@ public class Types {
    */
   public static Expression castIfNecessary(Type returnType,
       Expression expression) {
-    if (Types.isAssignableFrom(returnType, expression.getType())) {
+    final Type type = expression.getType();
+    if (Types.isAssignableFrom(returnType, type)) {
       return expression;
     }
     if (returnType instanceof Class
         && Number.class.isAssignableFrom((Class) returnType)
-        && expression.getType() instanceof Class
-        && Number.class.isAssignableFrom((Class) expression.getType())) {
+        && type instanceof Class
+        && Number.class.isAssignableFrom((Class) type)) {
       // E.g.
       //   Integer foo(BigDecimal o) {
       //     return o.intValue();
       //   }
-      return Expressions.call(expression, Primitive.ofBox(
-          returnType).primitiveName + "Value");
+      return Expressions.call(expression,
+          Primitive.ofBox(returnType).primitiveName + "Value");
     }
-    if (Types.isPrimitive(returnType) && !Types.isPrimitive(
-        expression.getType())) {
+    if (Types.isPrimitive(returnType) && !Types.isPrimitive(type)) {
       // E.g.
       //   int foo(Object o) {
       //     return (int) (Integer) o;
       //   }
-      return Expressions.convert_(Expressions.convert_(expression, Types.box(
-          returnType)), returnType);
+      return Expressions.convert_(
+          Expressions.convert_(expression,
+              Types.box(returnType)),
+          returnType);
+    }
+    if (!Types.isPrimitive(returnType) && Types.isPrimitive(type)) {
+      // E.g.
+      //   Short foo(Object o) {
+      //     return (short) (int) o;
+      //   }
+      return Expressions.convert_(expression,
+          Types.unbox(returnType));
     }
     return Expressions.convert_(expression, returnType);
   }

@@ -1390,7 +1390,10 @@ public class Expressions {
       type = Boolean.TYPE;
       break;
     default:
-      type = left.getType();
+      // curiously, "short + short" has type "int". Who knew?
+      type = left.getType() == short.class || left.getType() == Short.class
+          ? int.class
+          : left.getType();
       break;
     }
     return new BinaryExpression(binaryType, type, left, right);

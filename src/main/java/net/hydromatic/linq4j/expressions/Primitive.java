@@ -631,6 +631,27 @@ public enum Primitive {
         && primitive == CHAR) && !(this == CHAR && primitive == BYTE);
   }
 
+  /** Creates a number value of this primitive's box type. For example,
+   * {@code SHORT.number(Integer(0))} will return {@code Short(0)}. */
+  public Number number(Number value) {
+    switch (this) {
+    case BYTE:
+      return Byte.valueOf(value.byteValue());
+    case DOUBLE:
+      return Double.valueOf(value.doubleValue());
+    case FLOAT:
+      return Float.valueOf(value.floatValue());
+    case INT:
+      return Integer.valueOf(value.intValue());
+    case LONG:
+      return Long.valueOf(value.longValue());
+    case SHORT:
+      return Short.valueOf(value.shortValue());
+    default:
+      throw new AssertionError(this + ": " + value);
+    }
+  }
+
   /**
    * A place to send a value.
    */
