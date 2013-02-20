@@ -18,7 +18,6 @@
 package org.eigenbase.reltype;
 
 import java.nio.charset.*;
-
 import java.util.*;
 
 import org.eigenbase.sql.*;
@@ -39,6 +38,9 @@ import org.eigenbase.sql.type.*;
  */
 public interface RelDataType /*extends Type*/
 {
+    int SCALE_NOT_SPECIFIED = Integer.MIN_VALUE;
+    int PRECISION_NOT_SPECIFIED = -1;
+
     //~ Methods ----------------------------------------------------------------
 
     /**
@@ -152,16 +154,21 @@ public interface RelDataType /*extends Type*/
      * type INTEGER has no user-specified precision, but this method returns 10
      * for an INTEGER type.
      *
+     * <p>Returns {@link #PRECISION_NOT_SPECIFIED} (-1) if precision is not
+     * applicable for this type.</p>
+     *
      * @return number of decimal digits for exact numeric types; number of
      * decimal digits in mantissa for approximate numeric types; number of
      * decimal digits for fractional seconds of datetime types; length in
      * characters for character types; length in bytes for binary types; length
-     * in bits for bit types; 1 for BOOLEAN
+     * in bits for bit types; 1 for BOOLEAN; -1 if precision is not valid for
+     * this type
      */
     public int getPrecision();
 
     /**
-     * Gets the scale of this type.
+     * Gets the scale of this type. Returns {@link #SCALE_NOT_SPECIFIED} (-1) if
+     * scale is not valid for this type.
      *
      * @return number of digits of scale
      */

@@ -35,9 +35,6 @@ public class BasicSqlType
 {
     //~ Static fields/initializers ---------------------------------------------
 
-    public static final int SCALE_NOT_SPECIFIED = Integer.MIN_VALUE;
-    public static final int PRECISION_NOT_SPECIFIED = -1;
-
     //~ Instance fields --------------------------------------------------------
 
     private int precision;
@@ -148,7 +145,7 @@ public class BasicSqlType
         return ret;
     }
 
-    //implement RelDataType
+    // implement RelDataType
     public int getPrecision()
     {
         if (precision == PRECISION_NOT_SPECIFIED) {
@@ -186,8 +183,7 @@ public class BasicSqlType
             case VARBINARY:
                 return 1; // SQL2003 part 2 section 6.1 syntax rule 5
             default:
-                throw Util.newInternal(
-                    "type " + typeName + " does not have a precision");
+                // fall through
             }
         }
         return precision;
@@ -205,8 +201,7 @@ public class BasicSqlType
             case DECIMAL:
                 return 0;
             default:
-                throw Util.newInternal(
-                    "type " + typeName + " does not have a scale");
+                // fall through
             }
         }
         return scale;

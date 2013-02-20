@@ -58,7 +58,7 @@ public class SqlTypeFactoryImpl
     {
         assertBasic(typeName);
         assert (precision >= 0)
-            || (precision == BasicSqlType.PRECISION_NOT_SPECIFIED);
+            || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
         RelDataType newType = new BasicSqlType(typeName, precision);
         newType = SqlTypeUtil.addCharsetAndCollation(newType, this);
         return canonize(newType);
@@ -72,7 +72,7 @@ public class SqlTypeFactoryImpl
     {
         assertBasic(typeName);
         assert (precision >= 0)
-            || (precision == BasicSqlType.PRECISION_NOT_SPECIFIED);
+            || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
         RelDataType newType = new BasicSqlType(typeName, precision, scale);
         newType = SqlTypeUtil.addCharsetAndCollation(newType, this);
         return canonize(newType);

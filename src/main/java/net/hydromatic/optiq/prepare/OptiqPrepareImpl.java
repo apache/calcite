@@ -190,17 +190,16 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     false,
                     type.isNullable() ? 1 : 0,
                     true,
-                    sqlTypeName.allowsPrec()
-                        && !(type instanceof RelDataTypeFactoryImpl.JavaType)
-                        ? type.getPrecision()
-                        : -1,
+                    type.getPrecision(),
                     field.getName(),
                     origins == null ? null : origins.get(2),
                     origins == null ? null : origins.get(0),
-                    sqlTypeName.allowsPrec() && false
-                        ? type.getPrecision()
-                        : -1,
-                    sqlTypeName.allowsScale() ? type.getScale() : -1,
+                    type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+                        ? 0
+                        : type.getPrecision(),
+                    type.getScale() == RelDataType.SCALE_NOT_SPECIFIED
+                        ? 0
+                        : type.getScale(),
                     origins == null ? null : origins.get(1),
                     null,
                     sqlTypeName.getJdbcOrdinal(),

@@ -26,7 +26,6 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
 
 
 /**
@@ -196,13 +195,13 @@ public abstract class RelDataTypeImpl
     // implement RelDataType
     public int getPrecision()
     {
-        throw Util.newInternal("no precision: " + this);
+        return PRECISION_NOT_SPECIFIED;
     }
 
     // implement RelDataType
     public int getScale()
     {
-        throw Util.newInternal("no scale: " + this);
+        return SCALE_NOT_SPECIFIED;
     }
 
     // implement RelDataType
