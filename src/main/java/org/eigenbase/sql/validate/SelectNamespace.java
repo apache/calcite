@@ -74,8 +74,9 @@ public class SelectNamespace
     {
         final RelDataType rowType = this.getRowTypeSansSystemColumns();
         final int field = SqlTypeUtil.findField(rowType, columnName);
-        final SqlNodeList selectList = select.getSelectList();
-        final SqlNode selectItem = selectList.get(field);
+        final SqlNode selectItem =
+            validator.getRawSelectScope(select)
+                .getExpandedSelectList().get(field);
         return validator.getSelectScope(select).getMonotonicity(selectItem);
     }
 }
