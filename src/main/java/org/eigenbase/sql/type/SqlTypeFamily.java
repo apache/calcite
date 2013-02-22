@@ -46,47 +46,50 @@ public enum SqlTypeFamily
 {
     // Primary families.
 
-    CHARACTER(SqlTypeName.charTypes, 0),
+    CHARACTER(SqlTypeName.charTypes),
 
-    BINARY(SqlTypeName.binaryTypes, 1),
+    BINARY(SqlTypeName.binaryTypes),
 
-    NUMERIC(SqlTypeName.numericTypes, 2),
+    NUMERIC(SqlTypeName.numericTypes),
 
-    DATE(new SqlTypeName[] { SqlTypeName.DATE }, 3),
+    DATE(SqlTypeName.DATE),
 
-    TIME(new SqlTypeName[] { SqlTypeName.TIME }, 4),
+    TIME(SqlTypeName.TIME),
 
-    TIMESTAMP(new SqlTypeName[] { SqlTypeName.TIMESTAMP }, 5),
+    TIMESTAMP(SqlTypeName.TIMESTAMP),
 
-    BOOLEAN(SqlTypeName.booleanTypes, 6),
+    BOOLEAN(SqlTypeName.booleanTypes),
 
-    INTERVAL_YEAR_MONTH(
-        new SqlTypeName[] { SqlTypeName.INTERVAL_YEAR_MONTH },
-        7),
+    INTERVAL_YEAR_MONTH(SqlTypeName.INTERVAL_YEAR_MONTH),
 
-    INTERVAL_DAY_TIME(new SqlTypeName[] { SqlTypeName.INTERVAL_DAY_TIME }, 8),
+    INTERVAL_DAY_TIME(SqlTypeName.INTERVAL_DAY_TIME),
 
     // Secondary families.
 
-    STRING(SqlTypeName.stringTypes, 9),
+    STRING(SqlTypeName.stringTypes),
 
-    APPROXIMATE_NUMERIC(SqlTypeName.approxTypes, 10),
+    APPROXIMATE_NUMERIC(SqlTypeName.approxTypes),
 
-    EXACT_NUMERIC(SqlTypeName.exactTypes, 11),
+    EXACT_NUMERIC(SqlTypeName.exactTypes),
 
-    INTEGER(SqlTypeName.intTypes, 12),
+    INTEGER(SqlTypeName.intTypes),
 
-    DATETIME(SqlTypeName.datetimeTypes, 13),
+    DATETIME(SqlTypeName.datetimeTypes),
 
-    DATETIME_INTERVAL(SqlTypeName.timeIntervalTypes, 14),
+    DATETIME_INTERVAL(
+        SqlTypeName.INTERVAL_DAY_TIME, SqlTypeName.INTERVAL_YEAR_MONTH),
 
-    MULTISET(SqlTypeName.multisetTypes, 15),
+    MULTISET(SqlTypeName.MULTISET),
 
-    ANY(SqlTypeName.allTypes, 16),
+    ARRAY(SqlTypeName.ARRAY),
 
-    CURSOR(SqlTypeName.cursorTypes, 17),
+    MAP(SqlTypeName.MAP),
 
-    COLUMN_LIST(SqlTypeName.columnListTypes, 18);
+    ANY(SqlTypeName.allTypes),
+
+    CURSOR(SqlTypeName.CURSOR),
+
+    COLUMN_LIST(SqlTypeName.COLUMN_LIST);
 
     private static SqlTypeFamily [] jdbcTypeToFamily;
 
@@ -125,9 +128,10 @@ public enum SqlTypeFamily
         setFamilyForJdbcType(Types.TIMESTAMP, TIMESTAMP);
         setFamilyForJdbcType(Types.BOOLEAN, BOOLEAN);
 
-        setFamilyForJdbcType(
-            SqlTypeName.CURSOR.getJdbcOrdinal(),
-            CURSOR);
+        setFamilyForJdbcType(SqlTypeName.CURSOR.getJdbcOrdinal(), CURSOR);
+        setFamilyForJdbcType(SqlTypeName.ARRAY.getJdbcOrdinal(), ARRAY);
+        setFamilyForJdbcType(SqlTypeName.MULTISET.getJdbcOrdinal(), MULTISET);
+        setFamilyForJdbcType(SqlTypeName.MAP.getJdbcOrdinal(), MAP);
 
         setFamilyForJdbcType(
             SqlTypeName.COLUMN_LIST.getJdbcOrdinal(),
@@ -157,6 +161,9 @@ public enum SqlTypeFamily
         sqlTypeToFamily[SqlTypeName.INTERVAL_DAY_TIME.ordinal()] =
             INTERVAL_DAY_TIME;
         sqlTypeToFamily[SqlTypeName.CURSOR.ordinal()] = CURSOR;
+        sqlTypeToFamily[SqlTypeName.ARRAY.ordinal()] = ARRAY;
+        sqlTypeToFamily[SqlTypeName.MULTISET.ordinal()] = MULTISET;
+        sqlTypeToFamily[SqlTypeName.MAP.ordinal()] = MAP;
         sqlTypeToFamily[SqlTypeName.COLUMN_LIST.ordinal()] = COLUMN_LIST;
     }
 
@@ -165,14 +172,11 @@ public enum SqlTypeFamily
      */
     private List<SqlTypeName> typeNames;
 
-    private int ordinal;
-
-    private SqlTypeFamily(SqlTypeName [] typeNames, int ordinal)
+    private SqlTypeFamily(SqlTypeName... typeNames)
     {
         this.typeNames =
             Collections.unmodifiableList(
                 Arrays.asList(typeNames));
-        this.ordinal = ordinal;
     }
 
     private static void setFamilyForJdbcType(
@@ -209,9 +213,13 @@ public enum SqlTypeFamily
     /**
      * @return collection of {@link SqlTypeName}s included in this family
      */
-    public Collection<SqlTypeName> getTypeNames()
+    public List<SqlTypeName> getTypeNames()
     {
         return typeNames;
+    }
+
+    public boolean contains(RelDataType type) {
+        return SqlTypeUtil.isOfSameTypeName(getTypeNames(), type);
     }
 }
 

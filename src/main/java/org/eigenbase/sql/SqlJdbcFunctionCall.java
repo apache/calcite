@@ -444,15 +444,12 @@ public class SqlJdbcFunctionCall
     private static String constructFuncList(String [] functionNames)
     {
         StringBuilder sb = new StringBuilder();
-        boolean first = true;
-        for (int i = 0; i < functionNames.length; ++i) {
-            String funcName = functionNames[i];
+        int n = 0;
+        for (String funcName : functionNames) {
             if (JdbcToInternalLookupTable.instance.lookup(funcName) == null) {
                 continue;
             }
-            if (first) {
-                first = false;
-            } else {
+            if (n++ > 0) {
                 sb.append(",");
             }
             sb.append(funcName);
@@ -478,9 +475,9 @@ public class SqlJdbcFunctionCall
         return lookupCall;
     }
 
-    public String getAllowedSignatures()
+    public String getAllowedSignatures(String name)
     {
-        return lookupMakeCallObj.operator.getAllowedSignatures(getName());
+        return lookupMakeCallObj.operator.getAllowedSignatures(name);
     }
 
     public RelDataType deriveType(
@@ -492,14 +489,12 @@ public class SqlJdbcFunctionCall
         // not relevant to a JDBC function call.
         // REVIEW: jhyde, 2006/4/18: Should SqlJdbcFunctionCall even be a
         // subclass of SqlFunction?
-        final SqlNode [] operands = call.operands;
 
-        for (int i = 0; i < operands.length; ++i) {
-            RelDataType nodeType = validator.deriveType(scope, operands[i]);
-            validator.setValidatedNodeType(operands[i], nodeType);
+        for (SqlNode operand : call.operands) {
+            RelDataType nodeType = validator.deriveType(scope, operand);
+            validator.setValidatedNodeType(operand, nodeType);
         }
-        RelDataType type = validateOperands(validator, scope, call);
-        return type;
+        return validateOperands(validator, scope, call);
     }
 
     public RelDataType inferReturnType(
@@ -634,8 +629,8 @@ public class SqlJdbcFunctionCall
          * element at position <code>i</code> indicates to which element in a
          * new SqlNode[] array the operand goes.
          *
-         * @param operator
-         * @param order
+         * @param operator Operator
+         * @param order Order
          *
          * @pre order != null
          * @pre order[i] < order.length
@@ -671,7 +666,7 @@ public class SqlJdbcFunctionCall
         /**
          * Uses the data in {@link #order} to reorder a SqlNode[] array.
          *
-         * @param operands
+         * @param operands Operands
          */
         protected SqlNode [] reorder(SqlNode [] operands)
         {
@@ -691,7 +686,7 @@ public class SqlJdbcFunctionCall
          * was created with a reording specified the call will be created with
          * the operands reordered, otherwise no change of ordering is applied
          *
-         * @param operands
+         * @param operands Operands
          */
         SqlCall createCall(
             SqlNode [] operands,
@@ -779,38 +774,34 @@ public class SqlJdbcFunctionCall
                 new MakeCall(SqlStdOperatorTable.positionFunc, 2));
             map.put(
                 "LTRIM",
-                new MakeCall(SqlStdOperatorTable.trimFunc, 1) {
-                    SqlCall createCall(SqlNode [] operands)
+                new MakeCall(SqlStdOperatorTable.trimLeadingFunc, 1) {
+                    @Override
+                    SqlCall createCall(
+                        SqlNode[] operands, SqlParserPos pos)
                     {
-                        assert (null != operands);
-                        assert (1 == operands.length);
-                        SqlNode [] newOperands = new SqlNode[3];
-                        newOperands[0] =
-                            SqlLiteral.createSymbol(
-                                SqlTrimFunction.Flag.LEADING,
-                                null);
-                        newOperands[1] = SqlLiteral.createCharString(" ", null);
-                        newOperands[2] = operands[0];
-
-                        return super.createCall(newOperands, null);
+                        assert 1 == operands.length;
+                        return super.createCall(
+                            new SqlNode[] {
+                                SqlLiteral.createCharString(" ", null),
+                                operands[0]
+                            },
+                            pos);
                     }
                 });
             map.put(
                 "RTRIM",
-                new MakeCall(SqlStdOperatorTable.trimFunc, 1) {
-                    SqlCall createCall(SqlNode [] operands)
+                new MakeCall(SqlStdOperatorTable.trimTrailingFunc, 1) {
+                    @Override
+                    SqlCall createCall(
+                        SqlNode[] operands, SqlParserPos pos)
                     {
-                        assert (null != operands);
-                        assert (1 == operands.length);
-                        SqlNode [] newOperands = new SqlNode[3];
-                        newOperands[0] =
-                            SqlLiteral.createSymbol(
-                                SqlTrimFunction.Flag.TRAILING,
-                                null);
-                        newOperands[1] = SqlLiteral.createCharString(" ", null);
-                        newOperands[2] = operands[0];
-
-                        return super.createCall(newOperands, null);
+                        assert 1 == operands.length;
+                        return super.createCall(
+                            new SqlNode[] {
+                                SqlLiteral.createCharString(" ", null),
+                                operands[0]
+                            },
+                            pos);
                     }
                 });
             map.put(

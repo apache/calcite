@@ -24,7 +24,7 @@ import org.eigenbase.util.*;
 
 /**
  * Parameter type-checking strategy type must be a literal (whether null is
- * allowede is determined by the constructor). <code>CAST(NULL as ...)</code> is
+ * allowed is determined by the constructor). <code>CAST(NULL as ...)</code> is
  * considered to be a NULL literal but not <code>CAST(CAST(NULL as ...) AS
  * ...)</code>
  *
@@ -91,7 +91,7 @@ public class LiteralOperandTypeChecker
 
     public SqlOperandCountRange getOperandCountRange()
     {
-        return SqlOperandCountRange.One;
+        return SqlOperandCountRanges.of(1);
     }
 
     public String getAllowedSignatures(SqlOperator op, String opName)

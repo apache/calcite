@@ -72,11 +72,11 @@ public abstract class RelDataTypeFactoryImpl
         RelDataType [] types,
         String [] fieldNames)
     {
-        final RelDataTypeField [] fields = new RelDataTypeField[types.length];
-        for (int i = 0; i < fields.length; i++) {
-            fields[i] = new RelDataTypeFieldImpl(fieldNames[i], i, types[i]);
+        final List<RelDataTypeField> list = new ArrayList<RelDataTypeField>();
+        for (int i = 0; i < types.length; i++) {
+            list.add(new RelDataTypeFieldImpl(fieldNames[i], i, types[i]));
         }
-        return canonize(new RelRecordType(fields));
+        return canonize(new RelRecordType(list));
     }
 
     // implement RelDataTypeFactory
@@ -84,32 +84,35 @@ public abstract class RelDataTypeFactoryImpl
         List<RelDataType> typeList,
         List<String> fieldNameList)
     {
-        final RelDataTypeField [] fields =
-            new RelDataTypeField[typeList.size()];
-        for (int i = 0; i < fields.length; i++) {
-            fields[i] =
-                new RelDataTypeFieldImpl(
-                    fieldNameList.get(i),
-                    i,
-                    typeList.get(i));
+        final List<RelDataTypeField> list = new ArrayList<RelDataTypeField>();
+        for (Pair<RelDataType, String> pair : Pair.zip(typeList, fieldNameList))
+        {
+            list.add(
+                new RelDataTypeFieldImpl(pair.right, list.size(), pair.left));
         }
-        return canonize(new RelRecordType(fields));
+        return canonize(new RelRecordType(list));
     }
 
     // implement RelDataTypeFactory
     public RelDataType createStructType(
         RelDataTypeFactory.FieldInfo fieldInfo)
     {
-        final int fieldCount = fieldInfo.getFieldCount();
-        final RelDataTypeField [] fields = new RelDataTypeField[fieldCount];
-        for (int i = 0; i < fields.length; i++) {
-            fields[i] =
-                new RelDataTypeFieldImpl(
-                    fieldInfo.getFieldName(i),
-                    i,
-                    fieldInfo.getFieldType(i));
-        }
-        return canonize(new RelRecordType(fields));
+        return canonize(new RelRecordType(iterable(fieldInfo)));
+    }
+
+    static List<RelDataTypeField> iterable(final FieldInfo fieldInfo) {
+        return new AbstractList<RelDataTypeField>() {
+            public RelDataTypeField get(int index) {
+                return new RelDataTypeFieldImpl(
+                    fieldInfo.getFieldName(index),
+                    index,
+                    fieldInfo.getFieldType(index));
+            }
+
+            public int size() {
+                return fieldInfo.getFieldCount();
+            }
+        };
     }
 
     // implement RelDataTypeFactory
@@ -129,8 +132,7 @@ public abstract class RelDataTypeFactoryImpl
                 public RelDataType getFieldType(int index) {
                     return fieldList.get(index).getValue();
                 }
-            }
-        );
+            });
     }
 
     // implement RelDataTypeFactory
@@ -300,16 +302,13 @@ public abstract class RelDataTypeFactoryImpl
     /**
      * Returns an array of the fields in an array of types.
      */
-    private static RelDataTypeField [] getFieldArray(RelDataType [] types)
-    {
+    private static List<RelDataTypeField> getFieldArray(RelDataType[] types) {
         ArrayList<RelDataTypeField> fieldList =
             new ArrayList<RelDataTypeField>();
-        for (int i = 0; i < types.length; i++) {
-            RelDataType type = types[i];
+        for (RelDataType type : types) {
             addFields(type, fieldList);
         }
-        return (RelDataTypeField []) fieldList.toArray(
-            new RelDataTypeField[fieldList.size()]);
+        return fieldList;
     }
 
     /**
@@ -363,13 +362,11 @@ public abstract class RelDataTypeFactoryImpl
         return t instanceof JavaType;
     }
 
-    private RelDataTypeField [] fieldsOf(Class clazz)
+    private List<RelDataTypeFieldImpl> fieldsOf(Class clazz)
     {
-        final Field [] fields = clazz.getFields();
-        ArrayList<RelDataTypeFieldImpl> list =
+        final List<RelDataTypeFieldImpl> list =
             new ArrayList<RelDataTypeFieldImpl>();
-        for (int i = 0; i < fields.length; i++) {
-            Field field = fields[i];
+        for (Field field : clazz.getFields()) {
             if (Modifier.isStatic(field.getModifiers())) {
                 continue;
             }
@@ -384,21 +381,7 @@ public abstract class RelDataTypeFactoryImpl
             return null;
         }
 
-        return (RelDataTypeField []) list.toArray(
-            new RelDataTypeField[list.size()]);
-    }
-
-    // implement RelDataTypeFactory
-    public RelDataType createArrayType(
-        RelDataType elementType,
-        long maxCardinality)
-    {
-        if (elementType instanceof JavaType) {
-            JavaType javaType = (JavaType) elementType;
-            Class arrayClass = Array.newInstance(javaType.clazz, 0).getClass();
-            return createJavaType(arrayClass);
-        }
-        throw Util.newInternal("array of non-Java type unsupported");
+        return list;
     }
 
     /**

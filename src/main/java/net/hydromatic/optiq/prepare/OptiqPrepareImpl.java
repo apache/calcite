@@ -906,7 +906,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     typeFactory.createType(fun.getElementType())),
                 new ExplicitOperandTypeInference(
                     argTypes.toArray(new RelDataType[argTypes.size()])),
-                new FamilyOperandTypeChecker(
+                SqlTypeStrategies.family(
                     typeFamilies.toArray(
                         new SqlTypeFamily[typeFamilies.size()])),
                 null);

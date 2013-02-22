@@ -33,8 +33,7 @@ public class SqlOverlayFunction
     //~ Static fields/initializers ---------------------------------------------
 
     private static final SqlOperandTypeChecker otcCustom =
-        new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.OR,
+        SqlTypeStrategies.or(
             SqlTypeStrategies.otcStringX2Int,
             SqlTypeStrategies.otcStringX2IntX2);
 

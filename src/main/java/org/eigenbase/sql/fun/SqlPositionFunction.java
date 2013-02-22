@@ -66,34 +66,18 @@ public class SqlPositionFunction
 
     public String getSignatureTemplate(final int operandsCount)
     {
-        switch (operandsCount) {
-        case 2:
-            return "{0}({1} IN {2})";
-        }
-        assert (false);
-        return null;
+        assert operandsCount == 2;
+        return "{0}({1} IN {2})";
     }
 
     public boolean checkOperandTypes(
         SqlCallBinding callBinding,
         boolean throwOnFailure)
     {
-        SqlValidator validator = callBinding.getValidator();
-        SqlCall call = callBinding.getCall();
-
-        //check that the two operands are of same type.
-        RelDataType type0 = validator.getValidatedNodeType(call.operands[0]);
-        RelDataType type1 = validator.getValidatedNodeType(call.operands[1]);
-        if (!SqlTypeUtil.inSameFamily(type0, type1)) {
-            if (throwOnFailure) {
-                throw callBinding.newValidationSignatureError();
-            }
-            return false;
-        }
-
-        return getOperandTypeChecker().checkOperandTypes(
-            callBinding,
-            throwOnFailure);
+        // check that the two operands are of same type.
+        return SqlTypeStrategies.otcSameX2.checkOperandTypes(
+            callBinding, throwOnFailure)
+            && super.checkOperandTypes(callBinding, throwOnFailure);
     }
 }
 

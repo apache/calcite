@@ -44,6 +44,38 @@ import org.eigenbase.util.*;
  */
 public abstract class SqlTypeStrategies
 {
+    /** Creates a checker that passes if each operand is a member of a
+     * corresponding family. */
+    public static FamilyOperandTypeChecker family(
+        SqlTypeFamily... families)
+    {
+        return new FamilyOperandTypeChecker(Arrays.asList(families));
+    }
+
+    /** Creates a checker that passes if each operand is a member of a
+     * corresponding family. */
+    public static FamilyOperandTypeChecker family(
+        List<SqlTypeFamily> families)
+    {
+        return new FamilyOperandTypeChecker(families);
+    }
+
+    /** Creates a checker that passes if any one of the rules passes. */
+    public static SqlSingleOperandTypeChecker or(
+        SqlSingleOperandTypeChecker... rules)
+    {
+        return new CompositeOperandTypeChecker(
+            CompositeOperandTypeChecker.Composition.OR, rules);
+    }
+
+    /** Creates a checker that passes if any one of the rules passes. */
+    public static SqlSingleOperandTypeChecker and(
+        SqlSingleOperandTypeChecker... rules)
+    {
+        return new CompositeOperandTypeChecker(
+            CompositeOperandTypeChecker.Composition.AND, rules);
+    }
+
     // ----------------------------------------------------------------------
     // SqlOperandTypeChecker definitions
     // ----------------------------------------------------------------------
@@ -54,7 +86,7 @@ public abstract class SqlTypeStrategies
      * Operand type-checking strategy for an operator which takes no operands.
      */
     public static final SqlSingleOperandTypeChecker otcNiladic =
-        new FamilyOperandTypeChecker();
+        family();
 
     /**
      * Operand type-checking strategy for an operator with no restrictions on
@@ -71,7 +103,7 @@ public abstract class SqlTypeStrategies
 
             public SqlOperandCountRange getOperandCountRange()
             {
-                return SqlOperandCountRange.Variadic;
+                return SqlOperandCountRanges.any();
             }
 
             public String getAllowedSignatures(SqlOperator op, String opName)
@@ -81,55 +113,61 @@ public abstract class SqlTypeStrategies
         };
 
     public static final SqlSingleOperandTypeChecker otcBool =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.BOOLEAN);
 
     public static final SqlSingleOperandTypeChecker otcBoolX2 =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.BOOLEAN,
             SqlTypeFamily.BOOLEAN);
 
     public static final SqlSingleOperandTypeChecker otcNumeric =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.NUMERIC);
 
     public static final SqlSingleOperandTypeChecker otcNumericX2 =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.NUMERIC,
             SqlTypeFamily.NUMERIC);
 
     public static final SqlSingleOperandTypeChecker otcExactNumeric =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.EXACT_NUMERIC);
 
     public static final SqlSingleOperandTypeChecker otcExactNumericX2 =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.EXACT_NUMERIC,
             SqlTypeFamily.EXACT_NUMERIC);
 
     public static final SqlSingleOperandTypeChecker otcBinary =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.BINARY);
 
     public static final SqlSingleOperandTypeChecker otcString =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.STRING);
 
     public static final SqlSingleOperandTypeChecker otcCharString =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.CHARACTER);
 
     public static final SqlSingleOperandTypeChecker otcDatetime =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.DATETIME);
 
     public static final SqlSingleOperandTypeChecker otcInterval =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.DATETIME_INTERVAL);
 
     public static final SqlSingleOperandTypeChecker otcMultiset =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.MULTISET);
+
+    public static final SqlSingleOperandTypeChecker otcCollection =
+        or(
+            family(SqlTypeFamily.MULTISET),
+            family(SqlTypeFamily.ARRAY),
+            family(SqlTypeFamily.MAP));
 
     /**
      * Operand type-checking strategy where type must be a literal or NULL.
@@ -149,7 +187,7 @@ public abstract class SqlTypeStrategies
      */
     public static final SqlSingleOperandTypeChecker otcPositiveIntLit =
         new FamilyOperandTypeChecker(
-            SqlTypeFamily.INTEGER)
+            Collections.singletonList(SqlTypeFamily.INTEGER))
         {
             public boolean checkSingleOperandType(
                 SqlCallBinding callBinding,
@@ -194,14 +232,14 @@ public abstract class SqlTypeStrategies
      * Operand type-checking strategy where two operands must both be in the
      * same type family.
      */
-    public static final SqlOperandTypeChecker otcSameX2 =
+    public static final SqlSingleOperandTypeChecker otcSameX2 =
         new SameOperandTypeChecker(2);
 
     /**
      * Operand type-checking strategy where three operands must all be in the
      * same type family.
      */
-    public static final SqlOperandTypeChecker otcSameX3 =
+    public static final SqlSingleOperandTypeChecker otcSameX3 =
         new SameOperandTypeChecker(3);
 
     /**
@@ -244,9 +282,8 @@ public abstract class SqlTypeStrategies
      * same string type family.
      */
     public static final SqlSingleOperandTypeChecker otcStringSameX2 =
-        new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.AND,
-            new FamilyOperandTypeChecker(
+        SqlTypeStrategies.and(
+            family(
                 SqlTypeFamily.STRING,
                 SqlTypeFamily.STRING),
             otcSameX2);
@@ -256,33 +293,32 @@ public abstract class SqlTypeStrategies
      * same string type family.
      */
     public static final SqlSingleOperandTypeChecker otcStringSameX3 =
-        new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.AND,
-            new FamilyOperandTypeChecker(
+        SqlTypeStrategies.and(
+            family(
                 SqlTypeFamily.STRING,
                 SqlTypeFamily.STRING,
                 SqlTypeFamily.STRING),
             otcSameX3);
 
     public static final SqlSingleOperandTypeChecker otcStringX2Int =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.STRING,
             SqlTypeFamily.STRING,
             SqlTypeFamily.INTEGER);
 
     public static final SqlSingleOperandTypeChecker otcStringX2IntX2 =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.STRING,
             SqlTypeFamily.STRING,
             SqlTypeFamily.INTEGER,
             SqlTypeFamily.INTEGER);
 
     public static final SqlSingleOperandTypeChecker otcAny =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.ANY);
 
     public static final SqlSingleOperandTypeChecker otcAnyX2 =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.ANY,
             SqlTypeFamily.ANY);
 
@@ -291,38 +327,36 @@ public abstract class SqlTypeStrategies
      * nullable time interval
      */
     public static final SqlSingleOperandTypeChecker otcIntervalSameX2 =
-        new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.AND,
-            new FamilyOperandTypeChecker(
+        SqlTypeStrategies.and(
+            family(
                 SqlTypeFamily.DATETIME_INTERVAL,
                 SqlTypeFamily.DATETIME_INTERVAL),
             otcSameX2);
 
     public static final SqlSingleOperandTypeChecker otcNumericInterval =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.NUMERIC,
             SqlTypeFamily.DATETIME_INTERVAL);
 
     public static final SqlSingleOperandTypeChecker otcIntervalNumeric =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.DATETIME_INTERVAL,
             SqlTypeFamily.NUMERIC);
 
     public static final SqlSingleOperandTypeChecker otcDatetimeInterval =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.DATETIME,
             SqlTypeFamily.DATETIME_INTERVAL);
 
     public static final SqlSingleOperandTypeChecker otcIntervalDatetime =
-        new FamilyOperandTypeChecker(
+        family(
             SqlTypeFamily.DATETIME_INTERVAL,
             SqlTypeFamily.DATETIME);
 
     // TODO: datetime+interval checking missing
     // TODO: interval+datetime checking missing
     public static final SqlSingleOperandTypeChecker otcPlusOperator =
-        new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.OR,
+        SqlTypeStrategies.or(
             otcNumericX2,
             otcIntervalSameX2,
             otcDatetimeInterval,
@@ -332,25 +366,18 @@ public abstract class SqlTypeStrategies
      * Type checking strategy for the "*" operator
      */
     public static final SqlSingleOperandTypeChecker otcMultiplyOperator =
-        new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.OR,
-            otcNumericX2,
-            otcIntervalNumeric,
-            otcNumericInterval);
+        SqlTypeStrategies.or(
+            otcNumericX2, otcIntervalNumeric, otcNumericInterval);
 
     /**
      * Type checking strategy for the "/" operator
      */
     public static final SqlSingleOperandTypeChecker otcDivisionOperator =
-        new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.OR,
-            otcNumericX2,
-            otcIntervalNumeric);
+        SqlTypeStrategies.or(
+            otcNumericX2, otcIntervalNumeric);
 
     public static final SqlSingleOperandTypeChecker otcMinusOperator =
-        new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.OR,
-
+        SqlTypeStrategies.or(
             // TODO:  compatibility check
             otcNumericX2,
             otcIntervalSameX2,
@@ -358,9 +385,10 @@ public abstract class SqlTypeStrategies
 
     public static final SqlSingleOperandTypeChecker otcMinusDateOperator =
         new FamilyOperandTypeChecker(
-            SqlTypeFamily.DATETIME,
-            SqlTypeFamily.DATETIME,
-            SqlTypeFamily.DATETIME_INTERVAL)
+            Arrays.asList(
+                SqlTypeFamily.DATETIME,
+                SqlTypeFamily.DATETIME,
+                SqlTypeFamily.DATETIME_INTERVAL))
         {
             public boolean checkOperandTypes(
                 SqlCallBinding callBinding,
@@ -379,23 +407,13 @@ public abstract class SqlTypeStrategies
             }
         };
 
-        public static final SqlSingleOperandTypeChecker otcNumericOrInterval =
-            new CompositeOperandTypeChecker(
-                CompositeOperandTypeChecker.Composition.OR,
-                otcNumeric,
-                otcInterval);
-
-        public static final SqlSingleOperandTypeChecker otcDatetimeOrInterval =
-            new CompositeOperandTypeChecker(
-                CompositeOperandTypeChecker.Composition.OR,
-                otcDatetime,
-                otcInterval);
+    public static final SqlSingleOperandTypeChecker otcNumericOrInterval =
+        SqlTypeStrategies.or(
+            otcNumeric, otcInterval);
 
     public static final SqlSingleOperandTypeChecker otcNumericOrString =
-        new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.OR,
-            otcNumeric,
-            otcString);
+        SqlTypeStrategies.or(
+            otcNumeric, otcString);
 
     public static final SqlSingleOperandTypeChecker otcRecordMultiset =
         new SqlSingleOperandTypeChecker() {
@@ -442,7 +460,7 @@ public abstract class SqlTypeStrategies
 
             public SqlOperandCountRange getOperandCountRange()
             {
-                return SqlOperandCountRange.One;
+                return SqlOperandCountRanges.of(1);
             }
 
             public String getAllowedSignatures(SqlOperator op, String opName)
@@ -453,8 +471,7 @@ public abstract class SqlTypeStrategies
 
     public static final SqlSingleOperandTypeChecker
         otcMultisetOrRecordTypeMultiset =
-            new CompositeOperandTypeChecker(
-                CompositeOperandTypeChecker.Composition.OR,
+            SqlTypeStrategies.or(
                 otcMultiset,
                 otcRecordMultiset);
 
@@ -507,17 +524,15 @@ public abstract class SqlTypeStrategies
 
             public SqlOperandCountRange getOperandCountRange()
             {
-                return SqlOperandCountRange.One;
+                return SqlOperandCountRanges.of(1);
             }
 
             public String getAllowedSignatures(SqlOperator op, String opName)
             {
-                String [] array = new String[1];
-                Arrays.fill(array, "RECORDTYPE(SINGLE FIELD)");
                 return SqlUtil.getAliasedSignature(
                     op,
                     opName,
-                    Arrays.asList(array));
+                    Arrays.asList("RECORDTYPE(SINGLE FIELD)"));
             }
         };
 
@@ -552,7 +567,8 @@ public abstract class SqlTypeStrategies
             SqlTypeTransforms.toNullable);
 
     public static final SqlReturnTypeInference rtiFirstInterval =
-        new MatchReturnTypeInference(0, SqlTypeName.timeIntervalTypes);
+        new MatchReturnTypeInference(
+            0, SqlTypeFamily.DATETIME_INTERVAL.getTypeNames());
 
     public static final SqlReturnTypeInference rtiNullableFirstInterval =
         new SqlTypeTransformCascade(
@@ -942,7 +958,7 @@ public abstract class SqlTypeStrategies
         };
 
     /**
-     * Same as {@link #rtiNullableDecimalSum} but returns with nullablity if any
+     * Same as {@link #rtiDecimalSum} but returns with nullablity if any
      * of the operands is nullable by using {@link SqlTypeTransforms#toNullable}
      */
     public static final SqlReturnTypeInference rtiNullableDecimalSum =
@@ -1250,11 +1266,9 @@ public abstract class SqlTypeStrategies
                 final RelDataType unknownType =
                     callBinding.getValidator().getUnknownType();
                 RelDataType knownType = unknownType;
-                for (int i = 0; i < operands.length; ++i) {
-                    knownType =
-                        callBinding.getValidator().deriveType(
-                            callBinding.getScope(),
-                            operands[i]);
+                for (SqlNode operand : operands) {
+                    knownType = callBinding.getValidator().deriveType(
+                        callBinding.getScope(), operand);
                     if (!knownType.equals(unknownType)) {
                         break;
                     }

@@ -118,12 +118,10 @@ public class ComparableOperandTypeChecker
     // implement SqlOperandTypeChecker
     public String getAllowedSignatures(SqlOperator op, String opName)
     {
-        String [] array = new String[nOperands];
-        Arrays.fill(array, "COMPARABLE_TYPE");
         return SqlUtil.getAliasedSignature(
             op,
             opName,
-            Arrays.asList(array));
+            Collections.nCopies(nOperands, "COMPARABLE_TYPE"));
     }
 }
 

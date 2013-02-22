@@ -19,6 +19,7 @@ package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.*;
+import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
@@ -26,7 +27,9 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlOperator;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.type.SqlTypeName;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -58,8 +61,8 @@ public class RexImpTable {
         new HashMap<Aggregation, AggImplementor2>();
 
     RexImpTable() {
-        defineMethod(upperFunc, "upper", NullPolicy.ANY);
-        defineMethod(lowerFunc, "lower", NullPolicy.ANY);
+        defineMethod(upperFunc, BuiltinMethod.UPPER.method, NullPolicy.ANY);
+        defineMethod(lowerFunc, BuiltinMethod.LOWER.method, NullPolicy.ANY);
         defineMethod(substringFunc, "substring", NullPolicy.ANY);
         defineMethod(characterLengthFunc, "charLength", NullPolicy.ANY);
         defineMethod(charLengthFunc, "charLength", NullPolicy.ANY);
@@ -102,6 +105,11 @@ public class RexImpTable {
         map.put(caseOperator, new CaseImplementor());
         map.put(SqlStdOperatorTable.castFunc, new CastImplementor());
 
+        final CallImplementor value = new ValueConstructorImplementor();
+        map.put(SqlStdOperatorTable.mapValueConstructor, value);
+        map.put(SqlStdOperatorTable.arrayValueConstructor, value);
+        map.put(SqlStdOperatorTable.itemOp, new ItemImplementor());
+
         aggMap.put(countOperator, new BuiltinAggregateImplementor("longCount"));
         aggMap.put(sumOperator, new BuiltinAggregateImplementor("sum"));
         aggMap.put(minOperator, new BuiltinAggregateImplementor("min"));
@@ -122,7 +130,13 @@ public class RexImpTable {
     private void defineMethod(
         SqlOperator operator, String functionName, NullPolicy policy)
     {
-        map.put(operator, new MethodImplementor(functionName, policy));
+        map.put(operator, new MethodNameImplementor(functionName, policy));
+    }
+
+    private void defineMethod(
+        SqlOperator operator, Method method, NullPolicy policy)
+    {
+        map.put(operator, new MethodImplementor(method, policy));
     }
 
     private void defineUnary(
@@ -242,31 +256,9 @@ public class RexImpTable {
             Expressions.condition(
                 JavaRules.EnumUtil.foldOr(list),
                 NULL_EXPR,
-                box(
+                RexToLixTranslator.box(
                     implementor.implement(
                         translator, call, operands2, NullPolicy.NONE))));
-    }
-
-    /** Converts e.g. "anInteger" to "anInteger.intValue()". */
-    private static Expression unbox(Expression expression) {
-        Primitive primitive = Primitive.ofBox(expression.getType());
-        if (primitive != null) {
-            return RexToLixTranslator.convert(
-                expression,
-                primitive.primitiveClass);
-        }
-        return expression;
-    }
-
-    /** Converts e.g. "anInteger" to "Integer.valueOf(anInteger)". */
-    private static Expression box(Expression expression) {
-        Primitive primitive = Primitive.of(expression.getType());
-        if (primitive != null) {
-            return RexToLixTranslator.convert(
-                expression,
-                primitive.boxClass);
-        }
-        return expression;
     }
 
     /** Implements an aggregate function by generating a call to a method that
@@ -454,7 +446,7 @@ public class RexImpTable {
                     Expressions.call(
                         SqlFunctions.class,
                         aggregation == minOperator ? "lesser" : "greater",
-                        unbox(accumulator),
+                        RexToLixTranslator.unbox(accumulator),
                         arg),
                     arg.getType()));
         }
@@ -467,10 +459,47 @@ public class RexImpTable {
     }
 
     private static class MethodImplementor implements NullableCallImplementor {
+        private final Method method;
+        private final NullPolicy nullPolicy;
+
+        MethodImplementor(Method method, NullPolicy nullPolicy) {
+            this.method = method;
+            this.nullPolicy = nullPolicy;
+        }
+
+        public Expression implement(
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
+        {
+            return implement(
+                translator, call, call.getOperandList(), nullPolicy);
+        }
+
+        public Expression implement(
+            RexToLixTranslator translator,
+            RexCall call,
+            List<RexNode> operands,
+            NullPolicy nullPolicy)
+        {
+            switch (nullPolicy) {
+            case ANY:
+                return implementNullSemantics(translator, call, operands, this);
+            default:
+                return Expressions.call(
+                    method,
+                    translator.translateList(operands));
+            }
+        }
+    }
+
+    private static class MethodNameImplementor
+        implements NullableCallImplementor
+    {
         private final String methodName;
         private final NullPolicy nullPolicy;
 
-        MethodImplementor(String methodName, NullPolicy nullPolicy) {
+        MethodNameImplementor(String methodName, NullPolicy nullPolicy) {
             this.methodName = methodName;
             this.nullPolicy = nullPolicy;
         }
@@ -837,6 +866,47 @@ public class RexImpTable {
                     .createTypeWithNullability(type, false);
             }
             return translator.translateCast(expr, type);
+        }
+    }
+
+    private static class ValueConstructorImplementor
+        implements CallImplementor
+    {
+        public Expression implement(
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
+        {
+            return translator.translateConstructor(
+                call.getOperandList(),
+                call.getOperator().getKind());
+        }
+    }
+
+    private static class ItemImplementor
+        implements CallImplementor
+    {
+        private static final MethodImplementor ARRAY_ELEMENT =
+            new MethodImplementor(
+                BuiltinMethod.ARRAY_ELEMENT.method, NullPolicy.ANY);
+
+        private static final MethodImplementor MAP_ELEMENT =
+            new MethodImplementor(
+                BuiltinMethod.MAP_ELEMENT.method, NullPolicy.ANY);
+
+        public Expression implement(
+            RexToLixTranslator translator,
+            RexCall call,
+            boolean mayBeNull)
+        {
+            return implementNullSemantics(
+                translator,
+                call,
+                call.getOperandList(),
+                call.getOperandList().get(0).getType().getSqlTypeName()
+                == SqlTypeName.ARRAY
+                    ? ARRAY_ELEMENT
+                    : MAP_ELEMENT);
         }
     }
 

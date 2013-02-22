@@ -20,7 +20,6 @@ package org.eigenbase.sql.fun;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
 
 
 /**
@@ -33,6 +32,8 @@ import org.eigenbase.sql.validate.*;
 public class SqlTrimFunction
     extends SqlFunction
 {
+    private final Flag flag;
+
     //~ Enums ------------------------------------------------------------------
 
     /**
@@ -65,28 +66,22 @@ public class SqlTrimFunction
 
     //~ Constructors -----------------------------------------------------------
 
-    public SqlTrimFunction()
+    public SqlTrimFunction(Flag flag)
     {
         super(
             "TRIM",
             SqlKind.TRIM,
             new SqlTypeTransformCascade(
-                SqlTypeStrategies.rtiThirdArgType,
+                SqlTypeStrategies.rtiSecondArgType,
                 SqlTypeTransforms.toNullable,
                 SqlTypeTransforms.toVarying),
             null,
             SqlTypeStrategies.otcStringSameX2,
             SqlFunctionCategory.String);
+        this.flag = flag;
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    public SqlOperandCountRange getOperandCountRange()
-    {
-        // REVIEW jvs 2-June-2005:  shouldn't this be TwoOrThree?
-        // Also, inconsistent with with otc above!
-        return SqlOperandCountRange.Three;
-    }
 
     public void unparse(
         SqlWriter writer,
@@ -96,10 +91,10 @@ public class SqlTrimFunction
     {
         final SqlWriter.Frame frame = writer.startFunCall(getName());
         assert operands[0] instanceof SqlLiteral;
-        operands[0].unparse(writer, 0, 0);
-        operands[1].unparse(writer, leftPrec, rightPrec);
+        writer.sep(flag.name());
+        operands[0].unparse(writer, leftPrec, rightPrec);
         writer.sep("FROM");
-        operands[2].unparse(writer, leftPrec, rightPrec);
+        operands[1].unparse(writer, leftPrec, rightPrec);
         writer.endFunCall(frame);
     }
 
@@ -107,12 +102,10 @@ public class SqlTrimFunction
     {
         switch (operandsCount) {
         case 2:
-            return "{0}({1} FROM {2})";
-        case 3:
-            return "{0}({1} {2} FROM {3})";
+            return "{0}([BOTH|LEADING|TRAILING} {1} FROM {2})";
+        default:
+            throw new AssertionError();
         }
-        assert (false);
-        return null;
     }
 
     public SqlCall createCall(
@@ -121,24 +114,9 @@ public class SqlTrimFunction
         SqlNode ... operands)
     {
         assert functionQualifier == null;
-
-        // Be defensive, in case the parser instantiates a call using say
-        // "TRIM"('a').
-        if (operands.length != 3) {
-            operands =
-                new SqlNode[] {
-                    (operands.length > 0) ? operands[0] : null,
-                    (operands.length > 1) ? operands[1] : null,
-                    (operands.length > 2) ? operands[2]
-                    : SqlLiteral.createNull(SqlParserPos.ZERO)
-                };
-        }
-        if (null == operands[0]) {
-            operands[0] = SqlLiteral.createSymbol(Flag.BOTH, pos);
-        }
-
-        if (null == operands[1]) {
-            operands[1] = SqlLiteral.createCharString(" ", pos);
+        assert operands.length == 2;
+        if (operands[0] == null) {
+            operands[0] = SqlLiteral.createCharString(" ", pos);
         }
         return super.createCall(functionQualifier, pos, operands);
     }
@@ -148,7 +126,7 @@ public class SqlTrimFunction
         boolean throwOnFailure)
     {
         SqlCall call = callBinding.getCall();
-        for (int i = 1; i < 3; i++) {
+        for (int i = 0; i < 2; i++) {
             if (!SqlTypeStrategies.otcString.checkSingleOperandType(
                     callBinding,
                     call.operands[i],
@@ -162,11 +140,9 @@ public class SqlTrimFunction
             }
         }
 
-        SqlNode [] ops = { call.operands[1], call.operands[2] };
-
         return SqlTypeUtil.isCharTypeComparable(
             callBinding,
-            ops,
+            call.operands,
             throwOnFailure);
     }
 }

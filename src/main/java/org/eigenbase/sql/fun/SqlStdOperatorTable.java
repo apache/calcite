@@ -793,6 +793,20 @@ public class SqlStdOperatorTable
         new SqlMultisetQueryConstructor();
 
     /**
+     * The ARRAY Query Constructor. e.g. "<code>SELECT dname, ARRAY(SELECT
+     * FROM emp WHERE deptno = dept.deptno) FROM dept</code>".
+     */
+    public static final SqlMultisetQueryConstructor arrayQueryConstructor =
+        new SqlArrayQueryConstructor();
+
+    /**
+     * The MAP Query Constructor. e.g. "<code>MAP(SELECT empno, deptno
+     * FROM emp)</code>".
+     */
+    public static final SqlMultisetQueryConstructor mapQueryConstructor =
+        new SqlMapQueryConstructor();
+
+    /**
      * The CURSOR constructor. e.g. "<code>SELECT * FROM
      * TABLE(DEDUP(CURSOR(SELECT * FROM EMPS), 'name'))</code>".
      */
@@ -957,7 +971,7 @@ public class SqlStdOperatorTable
         new SqlSpecialOperator("Reinterpret", SqlKind.REINTERPRET) {
             public SqlOperandCountRange getOperandCountRange()
             {
-                return SqlOperandCountRange.OneOrTwo;
+                return SqlOperandCountRanges.between(1, 2);
             }
         };
 
@@ -987,7 +1001,12 @@ public class SqlStdOperatorTable
     /**
      * The "TRIM" function.
      */
-    public static final SqlFunction trimFunc = new SqlTrimFunction();
+    public static final SqlFunction trimBothFunc =
+        new SqlTrimFunction(SqlTrimFunction.Flag.BOTH);
+    public static final SqlFunction trimLeadingFunc =
+        new SqlTrimFunction(SqlTrimFunction.Flag.LEADING);
+    public static final SqlFunction trimTrailingFunc =
+        new SqlTrimFunction(SqlTrimFunction.Flag.TRAILING);
 
     public static final SqlFunction positionFunc = new SqlPositionFunction();
 
@@ -1277,6 +1296,32 @@ public class SqlStdOperatorTable
             SqlFunctionCategory.System);
 
     /**
+     * The item operator {@code [ ... ]}, used to access a given element of an
+     * array or map. For example, {@code myArray[3]} or {@code "myMap['foo']"}.
+     *
+     * <p>The SQL standard calls the ARRAY variant a
+     * &lt;array element reference&gt;. Index is 1-based. The standard says
+     * to raise "data exception — array element error" but we currently return
+     * null.</p>
+     *
+     * <p>MAP is not standard SQL.</p>
+     */
+    public static final SqlOperator itemOp = new SqlItemOperator();
+
+    /**
+     * The ARRAY Value Constructor. e.g. "<code>ARRAY[1, 2, 3]</code>".
+     */
+    public static final SqlArrayValueConstructor arrayValueConstructor =
+        new SqlArrayValueConstructor();
+
+    /**
+     * The MAP Value Constructor,
+     * e.g. "<code>MAP['washington', 1, 'obama', 44]</code>".
+     */
+    public static final SqlMapValueConstructor mapValueConstructor =
+        new SqlMapValueConstructor();
+
+  /**
      * The internal "$SLICE" operator takes a multiset of records and returns a
      * multiset of the first column of those records.
      *
@@ -1377,7 +1422,7 @@ public class SqlStdOperatorTable
 
     /**
      * The CARDINALITY operator, used to retrieve the number of elements in a
-     * MULTISET
+     * MULTISET, ARRAY or MAP.
      */
     public static final SqlFunction cardinalityFunc =
         new SqlFunction(
@@ -1385,7 +1430,7 @@ public class SqlStdOperatorTable
             SqlKind.OTHER_FUNCTION,
             SqlTypeStrategies.rtiNullableInteger,
             null,
-            SqlTypeStrategies.otcMultiset,
+            SqlTypeStrategies.otcCollection,
             SqlFunctionCategory.System);
 
     /**
@@ -1487,6 +1532,7 @@ public class SqlStdOperatorTable
         }
         return instance;
     }
+
 }
 
 // End SqlStdOperatorTable.java

@@ -2330,6 +2330,16 @@ List Expression2(ExprContext exprContext) :
                     list.add(e);
                 }
                 |
+                <LBRACKET>
+                e = Expression(ExprContext.ACCEPT_SUBQUERY)
+                <RBRACKET>
+                {
+                    list.add(
+                        new SqlParserUtil.ToTreeListItem(
+                            SqlStdOperatorTable.arrayElementOp, getPos()));
+                    list.add(e);
+                }
+                |
                 {
                     checkNonQueryExpression(exprContext);
                 }
@@ -2493,11 +2503,10 @@ SqlCollation CollateClause() :
 SqlNode AtomicRowExpression() :
 {
     SqlNode e;
-    SqlParserPos whenPos;
-    SqlParserPos thenPos;
     SqlParserPos pos;
 }
 {
+    LOOKAHEAD(1)
     e = Literal() { return e; }
     |
     e = DynamicParam() { return e; }
@@ -2507,6 +2516,10 @@ SqlNode AtomicRowExpression() :
     e = JdbcFunctionCall() { return e; }
     |
     e = MultisetConstructor() { return e; }
+    |
+    e = ArrayConstructor() { return e; }
+    |
+    e = MapConstructor() { return e; }
     |
     // NOTE jvs 18-Jan-2005:  use syntactic lookahead to discriminate
     // compound identifiers from function calls in which the function
@@ -2520,13 +2533,21 @@ SqlNode AtomicRowExpression() :
     |
     e = NewSpecification() { return e; }
     |
-    {
-        SqlNode caseIdentifier=null;
-        SqlNode elseClause = null;
-        List whenList = new ArrayList();
-        List thenList = new ArrayList();
-        //sorry there is no wishlist
-    }
+    e = CaseExpression() { return e; }
+}
+
+SqlNode CaseExpression() :
+{
+    SqlParserPos whenPos;
+    SqlParserPos thenPos;
+    SqlParserPos pos;
+    SqlNode e;
+    SqlNode caseIdentifier = null;
+    SqlNode elseClause = null;
+    List whenList = new ArrayList();
+    List thenList = new ArrayList();
+}
+{
     <CASE>
     {
         pos = getPos();
@@ -2850,29 +2871,100 @@ SqlNode MultisetConstructor() :
     SqlParserPos pos;
 }
 {
-    LOOKAHEAD(2)
     <MULTISET> { pos = getPos(); }
-    <LPAREN>
-    //by sub query "MULTISET(SELECT * FROM T)"
-    e = LeafQueryOrExpr(ExprContext.ACCEPT_QUERY)
-    <RPAREN>
-    {
-        return SqlStdOperatorTable.multisetQueryConstructor.createCall(
-            pos.plus(getPos()), e);
-    }
-    |
-    <MULTISET> { pos = getPos(); }
-    //by enumeration "MULTISET[e0, e1, ..., eN]"
-    <LBRACKET> //todo do trigraph aswell ??( ??)
-    e = Expression(ExprContext.ACCEPT_NONQUERY) { args = startList(e); }
     (
-        <COMMA> e = Expression(ExprContext.ACCEPT_NONQUERY) { args.add(e); }
-    ) *
-    <RBRACKET>
-    {
-        return SqlStdOperatorTable.multisetValueConstructor.createCall(
-            pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
-    }
+        LOOKAHEAD(1)
+        <LPAREN>
+        // by sub query "MULTISET(SELECT * FROM T)"
+        e = LeafQueryOrExpr(ExprContext.ACCEPT_QUERY)
+        <RPAREN>
+        {
+            return SqlStdOperatorTable.multisetQueryConstructor.createCall(
+                pos.plus(getPos()), e);
+        }
+    |
+        // by enumeration "MULTISET[e0, e1, ..., eN]"
+        <LBRACKET> // TODO: do trigraph as well ??( ??)
+        e = Expression(ExprContext.ACCEPT_NONQUERY) { args = startList(e); }
+        (
+            <COMMA> e = Expression(ExprContext.ACCEPT_NONQUERY) { args.add(e); }
+        ) *
+        <RBRACKET>
+        {
+            return SqlStdOperatorTable.multisetValueConstructor.createCall(
+                pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
+        }
+    )
+}
+
+/** Parses an ARRAY constructor */
+SqlNode ArrayConstructor() :
+{
+    SqlNodeList args;
+    SqlNode e;
+    SqlParserPos pos;
+}
+{
+    <ARRAY> { pos = getPos(); }
+    (
+        LOOKAHEAD(1)
+        <LPAREN>
+        // by sub query "MULTISET(SELECT * FROM T)"
+        e = LeafQueryOrExpr(ExprContext.ACCEPT_QUERY)
+        <RPAREN>
+        {
+            return SqlStdOperatorTable.arrayQueryConstructor.createCall(
+                pos.plus(getPos()), e);
+        }
+    |
+        // by enumeration "ARRAY[e0, e1, ..., eN]"
+        <LBRACKET> // TODO: do trigraph as well ??( ??)
+        (
+            args = ExpressionCommaList(pos, ExprContext.ACCEPT_NONQUERY)
+        |
+            { args = new SqlNodeList(getPos()); }
+        )
+        <RBRACKET>
+        {
+            return SqlStdOperatorTable.arrayValueConstructor.createCall(
+                pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
+        }
+    )
+}
+
+/** Parses an MAP constructor */
+SqlNode MapConstructor() :
+{
+    SqlNodeList args;
+    SqlNode e;
+    SqlParserPos pos;
+}
+{
+    <MAP> { pos = getPos(); }
+    (
+        LOOKAHEAD(1)
+        <LPAREN>
+        // by sub query "MAP (SELECT empno, deptno FROM emp)"
+        e = LeafQueryOrExpr(ExprContext.ACCEPT_QUERY)
+        <RPAREN>
+        {
+            return SqlStdOperatorTable.mapQueryConstructor.createCall(
+                pos.plus(getPos()), e);
+        }
+    |
+        // by enumeration "MAP[k0, v0, ..., kN, vN]"
+        <LBRACKET> // TODO: do trigraph as well ??( ??)
+        (
+            args = ExpressionCommaList(pos, ExprContext.ACCEPT_NONQUERY)
+        |
+            { args = new SqlNodeList(getPos()); }
+        )
+        <RBRACKET>
+        {
+            return SqlStdOperatorTable.mapValueConstructor.createCall(
+                pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
+        }
+    )
 }
 
 /**
@@ -3587,7 +3679,7 @@ SqlNode BuiltinFunctionCall() :
     (
         <TRIM>
         {
-            SqlLiteral flag = null;
+            SqlFunction op = null;
             SqlNode trimChars = null;
             pos = getPos();
         }
@@ -3597,30 +3689,24 @@ SqlNode BuiltinFunctionCall() :
             [
                 <BOTH>
                 {
-                    pos = getPos();
-                    flag = SqlLiteral.createSymbol(
-                        SqlTrimFunction.Flag.BOTH, pos);
+                    op = SqlStdOperatorTable.trimBothFunc;
                 }
                 |
                 <TRAILING>
                 {
-                    pos = getPos();
-                    flag = SqlLiteral.createSymbol(
-                        SqlTrimFunction.Flag.TRAILING, pos);
+                    op = SqlStdOperatorTable.trimTrailingFunc;
                 }
                 |
                 <LEADING>
                 {
-                    pos = getPos();
-                    flag = SqlLiteral.createSymbol(
-                        SqlTrimFunction.Flag.LEADING, pos);
+                    op = SqlStdOperatorTable.trimLeadingFunc;
                 }
             ]
             [ trimChars = Expression(ExprContext.ACCEPT_SUBQUERY) ]
             (
                 <FROM>
                 {
-                    if (null == flag && null == trimChars) {
+                    if (null == op && null == trimChars) {
                         throw SqlUtil.newContextException(
                             getPos(),
                             EigenbaseResource.instance().IllegalFromEmpty.ex());
@@ -3630,23 +3716,27 @@ SqlNode BuiltinFunctionCall() :
                 {
                     // This is to handle the case of TRIM(x)
                     // (FRG-191).
-                    args = startList(flag);
-                    args.add(null); // no trim chars
+                    args = startList(null); // no trim chars
                     args.add(trimChars); // reinterpret trimChars as source
-                    return SqlStdOperatorTable.trimFunc.createCall(
+                    if (op == null) {
+                        op = SqlStdOperatorTable.trimBothFunc;
+                    }
+                    return op.createCall(
                         pos, SqlParserUtil.toNodeArray(args));
                 }
             )
         ]
         e = Expression(ExprContext.ACCEPT_SUBQUERY)
         {
-            args = startList(flag);
-            args.add(trimChars);
+            args = startList(trimChars);
             args.add(e);
         }
         <RPAREN>
         {
-            return SqlStdOperatorTable.trimFunc.createCall(
+            if (op == null) {
+                op = SqlStdOperatorTable.trimBothFunc;
+            }
+            return op.createCall(
                 pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
         }
     )

@@ -755,8 +755,7 @@ public class UtilTest
         map.put("person", "Ringo");
         map.put("age", 64.5);
         assertEquals(
-            "Happy 64.50th birthday, Ringo!",
-            template.format(map));
+            "Happy 64.50th birthday, Ringo!", template.format(map));
 
         // Missing parameters evaluate to null.
         map.remove("person");
@@ -915,6 +914,55 @@ public class UtilTest
             x += pair.right;
         }
         assertEquals(5825, x);
+    }
+
+    /** Unit test for {@link Util#quotientList(java.util.List, int, int)}. */
+    public void testQuotientList() {
+        List<String> beatles = Arrays.asList("john", "paul", "george", "ringo");
+        final List list0 = Util.quotientList(beatles, 3, 0);
+        assertEquals(2, list0.size());
+        assertEquals("john", list0.get(0));
+        assertEquals("ringo", list0.get(1));
+
+        final List list1 = Util.quotientList(beatles, 3, 1);
+        assertEquals(1, list1.size());
+        assertEquals("paul", list1.get(0));
+
+        final List list2 = Util.quotientList(beatles, 3, 2);
+        assertEquals(1, list2.size());
+        assertEquals("george", list2.get(0));
+
+        try {
+            final List listBad = Util.quotientList(beatles, 3, 4);
+            fail("Expected error, got " + listBad);
+        } catch (IllegalArgumentException e) {
+            // ok
+        }
+        try {
+            final List listBad = Util.quotientList(beatles, 3, 3);
+            fail("Expected error, got " + listBad);
+        } catch (IllegalArgumentException e) {
+            // ok
+        }
+        try {
+            final List listBad = Util.quotientList(beatles, 0, 0);
+            fail("Expected error, got " + listBad);
+        } catch (IllegalArgumentException e) {
+            // ok
+        }
+
+        // empty
+        final List<String> empty = Collections.emptyList();
+        final List<String> list3 = Util.quotientList(empty, 7, 2);
+        assertEquals(0, list3.size());
+
+        // shorter than n
+        final List list4 = Util.quotientList(beatles, 10, 0);
+        assertEquals(1, list4.size());
+        assertEquals("john", list4.get(0));
+
+        final List list5 = Util.quotientList(beatles, 10, 5);
+        assertEquals(0, list5.size());
     }
 
     /**

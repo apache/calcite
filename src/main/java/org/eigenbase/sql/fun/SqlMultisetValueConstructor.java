@@ -17,18 +17,20 @@
 */
 package org.eigenbase.sql.fun;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
+import org.eigenbase.sql.validate.SqlValidatorException;
 
 
 /**
  * Definition of the SQL:2003 standard MULTISET constructor, <code>MULTISET
  * [&lt;expr&gt;, ...]</code>.
+ *
+ * <p>Derived classes construct other kinds of collections.</p>
  *
  * @author Wael Chatila
  * @version $Id$
@@ -42,9 +44,14 @@ public class SqlMultisetValueConstructor
 
     public SqlMultisetValueConstructor()
     {
+        this("MULTISET", SqlKind.MULTISET_VALUE_CONSTRUCTOR);
+    }
+
+    protected SqlMultisetValueConstructor(String name, SqlKind kind)
+    {
         super(
-            "MULTISET",
-            SqlKind.MULTISET_VALUE_CONSTRUCTOR,
+            name,
+            kind,
             MaxPrec,
             false,
             SqlTypeStrategies.rtiFirstArgType,
@@ -70,7 +77,7 @@ public class SqlMultisetValueConstructor
             false);
     }
 
-    private RelDataType getComponentType(
+    protected RelDataType getComponentType(
         RelDataTypeFactory typeFactory,
         List<RelDataType> argTypes)
     {
@@ -86,6 +93,11 @@ public class SqlMultisetValueConstructor
                 callBinding.getValidator(),
                 callBinding.getScope(),
                 callBinding.getCall().operands);
+        if (argTypes.size() == 0) {
+            throw callBinding.newValidationError(
+                new SqlValidatorException(
+                    "Require at least 1 argument", null));
+        }
         final RelDataType componentType =
             getComponentType(
                 callBinding.getTypeFactory(),
@@ -106,11 +118,11 @@ public class SqlMultisetValueConstructor
         int leftPrec,
         int rightPrec)
     {
-        writer.keyword("MULTISET");
+        writer.keyword(getName()); // "MULTISET" or "ARRAY"
         final SqlWriter.Frame frame = writer.startList("[", "]");
-        for (int i = 0; i < operands.length; i++) {
+        for (SqlNode operand : operands) {
             writer.sep(",");
-            operands[i].unparse(writer, leftPrec, rightPrec);
+            operand.unparse(writer, leftPrec, rightPrec);
         }
         writer.endList(frame);
     }

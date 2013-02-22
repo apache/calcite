@@ -17,17 +17,15 @@
 */
 package org.eigenbase.sql.type;
 
-import org.eigenbase.reltype.*;
-import org.eigenbase.util.*;
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFamily;
+import org.eigenbase.util.Util;
 
 
 /**
- * MultisetSqlType represents a standard SQL2003 multiset type.
- *
- * @author Wael Chatila
- * @version $Id$
+ * SQL array type.
  */
-public class MultisetSqlType
+public class ArraySqlType
     extends AbstractSqlType
 {
     //~ Instance fields --------------------------------------------------------
@@ -37,15 +35,13 @@ public class MultisetSqlType
     //~ Constructors -----------------------------------------------------------
 
     /**
-     * Constructs a new MultisetSqlType. This constructor should only be called
+     * Creates an ArraySqlType. This constructor should only be called
      * from a factory method.
-     *
-     * @pre null!=elementType
      */
-    public MultisetSqlType(RelDataType elementType, boolean isNullable)
+    public ArraySqlType(RelDataType elementType, boolean isNullable)
     {
-        super(SqlTypeName.MULTISET, isNullable, null);
-        Util.pre(null != elementType, "null!=elementType");
+        super(SqlTypeName.ARRAY, isNullable, null);
+        assert elementType != null;
         this.elementType = elementType;
         computeDigest();
     }
@@ -60,7 +56,7 @@ public class MultisetSqlType
         } else {
             sb.append(elementType.toString());
         }
-        sb.append(" MULTISET");
+        sb.append(" ARRAY");
     }
 
     // implement RelDataType
@@ -72,17 +68,8 @@ public class MultisetSqlType
     // implement RelDataType
     public RelDataTypeFamily getFamily()
     {
-        // TODO jvs 2-Dec-2004:  This gives each multiset type its
-        // own family.  But that's not quite correct; the family should
-        // be based on the element type for proper comparability
-        // semantics (per 4.10.4 of SQL/2003).  So either this should
-        // make up canonical families dynamically, or the
-        // comparison type-checking should not rely on this.  I
-        // think the same goes for ROW types.
         return this;
     }
-
-    // TODO jvs 25-Jan-2005:  same goes for getPrecedenceList()
 }
 
-// End MultisetSqlType.java
+// End ArraySqlType.java

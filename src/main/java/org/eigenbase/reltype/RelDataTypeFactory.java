@@ -131,6 +131,18 @@ public interface RelDataTypeFactory
         long maxCardinality);
 
     /**
+     * Creates a map type. Maps are unordered collections of key/value pairs.
+     *
+     * @param keyType type of the keys of the map
+     * @param valueType type of the values of the map
+     *
+     * @return canonical map type descriptor
+     */
+    public RelDataType createMapType(
+        RelDataType keyType,
+        RelDataType valueType);
+
+    /**
      * Creates a multiset type. Multisets are unordered collections of elements.
      *
      * @param elementType type of the elements of the multiset

@@ -20,7 +20,8 @@ package net.hydromatic.optiq.runtime;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.text.DecimalFormat;
-import java.text.Format;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Helper methods to implement SQL functions in generated code.
@@ -84,16 +85,46 @@ public class SqlFunctions {
 
     /** SQL {@code RTRIM} function. */
     public static String rtrim(String s) {
-        int i = s.length();
-        for (;;) {
-            if (i == 0) {
-                return "";
-            }
-            --i;
-            if (s.charAt(i) != ' ') {
-                return s.substring(0, i + 1);
+        return trim_(s, false, true);
+    }
+
+    /** SQL {@code LTRIM} function. */
+    public static String ltrim(String s) {
+        return trim_(s, true, false);
+    }
+
+    /** SQL {@code TRIM} function. */
+    public static String trim(String s) {
+        return trim_(s, true, true);
+    }
+
+    /** SQL {@code TRIM} function. */
+    private static String trim_(String s, boolean left, boolean right) {
+        int j = s.length();
+        if (right) {
+            for (;;) {
+                if (j == 0) {
+                    return "";
+                }
+                if (s.charAt(j - 1) != ' ') {
+                    break;
+                }
+                --j;
             }
         }
+        int i = 0;
+        if (left) {
+            for (;;) {
+                if (i == j) {
+                    return "";
+                }
+                if (s.charAt(i) != ' ') {
+                    break;
+                }
+                ++i;
+            }
+        }
+        return s.substring(i, j);
     }
 
     /** SQL {@code OVERLAY} function. */
@@ -428,6 +459,11 @@ public class SqlFunctions {
         return b0 == null || b0.compareTo(b1) > 0 ? b1 : b0;
     }
 
+    /** LEAST operator. */
+    public static <T extends Comparable<T>> T least(T b0, T b1) {
+        return b0 == null || b1 != null && b0.compareTo(b1) > 0 ? b1 : b0;
+    }
+
     public static int lesser(int b0, int b1) {
         return b0 > b1 ? b1 : b0;
     }
@@ -435,6 +471,11 @@ public class SqlFunctions {
     /** Helper for implementing MAX. Somewhat similar to GREATEST operator. */
     public static <T extends Comparable<T>> T greater(T b0, T b1) {
         return b0 == null || b0.compareTo(b1) < 0 ? b1 : b0;
+    }
+
+    /** GREATEST operator. */
+    public static <T extends Comparable<T>> T greatest(T b0, T b1) {
+        return b0 == null || b1 != null && b0.compareTo(b1) < 0 ? b1 : b0;
     }
 
     /** Boolean comparison. */
@@ -484,24 +525,65 @@ public class SqlFunctions {
     }
 
     /** Helper for CAST({date} AS VARCHAR(n)). */
-    public static String dateToString(int date) {
-        int year = 1970 + date * 4 / 1461;
-        int leapCount = date / 4 - date / 100 + date / 400;
-        int dayOfYear = (date - leapCount) / 365;
-        int month = 0;
-        int day = dayOfYear;
-        for (;; month++) {
-            int next = day - months[month++];
-            if (next < 0) {
-                break;
-            }
-            day = next;
-        }
-        return year + "-" + (month < 10 ? "0" : "") + month
-            + "-" + (day < 10 ? "0" : "") + day;
+    public static String unixDateToString(int date) {
+        return julianToString(date + 2440588);
     }
 
-  static final int[] months = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    public static String julianToString(int J) {
+        // this shifts the epoch back to astronomical year -4800 instead of the
+        // start of the Christian era in year AD 1 of the proleptic Gregorian
+        // calendar.
+        int j = J + 32044;
+        int g = j / 146097;
+        int dg = j % 146097;
+        int c = (dg / 36524 + 1) * 3 / 4;
+        int dc = dg - c * 36524;
+        int b = dc / 1461;
+        int db = dc % 1461;
+        int a = (db / 365 + 1) * 3 / 4;
+        int da = db - a * 365;
+
+        // integer number of full years elapsed since March 1, 4801 BC
+        int y = g * 400 + c * 100 + b * 4 + a;
+        // integer number of full months elapsed since the last March 1
+        int m = (da * 5 + 308) / 153 - 2;
+        // number of days elapsed since day 1 of the month
+        int d = da - (m + 4) * 153 / 5 + 122;
+        int Y = y - 4800 + (m + 2) / 12;
+        int M = (m + 2) % 12 + 1;
+        int D = d + 1;
+        return Y
+               + "-"
+               + (M < 10 ? "0" : "") + M
+               + "-"
+               + (D < 10 ? "0" : "") + D;
+    }
+
+    public static int ymdToUnixDate(int year, int month, int day) {
+        return ymdToJulian(year, month, day) - 2440588 - 13;
+    }
+
+    public static int ymdToJulian(int year, int month, int day) {
+        int a = (14 - month) / 12;
+        int y = year + 4800 - a;
+        int m = month + 12 * a - 3;
+        return day + (153 * m + 2) / 5 + 365 * y + y / 4 - 32083;
+    }
+
+    /** Helper for "array element reference". Caller has already ensured that
+     * array and index are not null. Index is 1-based, per SQL. */
+    public static Object arrayElement(List list, int item) {
+        if (item < 1 || item > list.size()) {
+            return null;
+        }
+        return list.get(item - 1);
+    }
+
+    /** Helper for "map element reference". Caller has already ensured that
+     * array and index are not null. Index is 1-based, per SQL. */
+    public static Object mapElement(Map map, Object item) {
+        return map.get(item);
+    }
 }
 
 // End SqlFunctions.java

@@ -399,6 +399,26 @@ public enum SqlKind
     COLLECTION_TABLE,
 
     /**
+     * Array Value Constructor, e.g. {@code Array[1, 2, 3]}.
+     */
+    ARRAY_VALUE_CONSTRUCTOR,
+
+    /**
+     * Array Query Constructor, e.g. {@code Array(select deptno from dept)}.
+     */
+    ARRAY_QUERY_CONSTRUCTOR,
+
+    /**
+     * Map Value Constructor, e.g. {@code Map['washington', 1, 'obama', 44]}.
+     */
+    MAP_VALUE_CONSTRUCTOR,
+
+    /**
+     * Map Query Constructor, e.g. {@code MAP (SELECT empno, deptno FROM emp)}.
+     */
+    MAP_QUERY_CONSTRUCTOR,
+
+    /**
      * CURSOR constructor, for example, <code>select * from
      * TABLE(udx(CURSOR(select ...), x, y, z))</code>
      */

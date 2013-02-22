@@ -18,8 +18,12 @@
 package org.eigenbase.reltype;
 
 import java.io.*;
+import java.util.Arrays;
+import java.util.List;
 
 import org.eigenbase.sql.type.*;
+
+import net.hydromatic.linq4j.Ord;
 
 
 /**
@@ -38,7 +42,7 @@ public class RelRecordType
      * Creates a <code>RecordType</code>. This should only be called from a
      * factory method.
      */
-    public RelRecordType(RelDataTypeField [] fields)
+    public RelRecordType(List<RelDataTypeField> fields)
     {
         super(fields);
         computeDigest();
@@ -68,11 +72,11 @@ public class RelRecordType
     protected void generateTypeString(StringBuilder sb, boolean withDetail)
     {
         sb.append("RecordType(");
-        for (int i = 0; i < fields.length; i++) {
-            if (i > 0) {
+        for (Ord<RelDataTypeField> ord : Ord.zip(fieldList)) {
+            if (ord.i > 0) {
                 sb.append(", ");
             }
-            RelDataTypeField field = fields[i];
+            RelDataTypeField field = ord.e;
             if (withDetail) {
                 sb.append(field.getType().getFullTypeString());
             } else {
@@ -120,7 +124,7 @@ public class RelRecordType
          */
         private Object readResolve()
         {
-            return new RelRecordType(fields);
+            return new RelRecordType(Arrays.asList(fields));
         }
     }
 }

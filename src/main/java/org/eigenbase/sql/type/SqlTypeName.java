@@ -77,6 +77,8 @@ public enum SqlTypeName
     ANY(PrecScale.NoNo, true, Types.JAVA_OBJECT),
     SYMBOL(PrecScale.NoNo, true, Types.OTHER),
     MULTISET(PrecScale.NoNo, false, Types.ARRAY),
+    ARRAY(PrecScale.NoNo, false, Types.ARRAY),
+    MAP(PrecScale.NoNo, false, Types.OTHER),
     DISTINCT(PrecScale.NoNo, false, Types.DISTINCT),
     STRUCTURED(PrecScale.NoNo, false, Types.STRUCT),
     ROW(PrecScale.NoNo, false, Types.STRUCT),
@@ -138,8 +140,7 @@ public enum SqlTypeName
         BINARY, VARBINARY
     };
 
-    public static final SqlTypeName [] intTypes =
-    {
+    public static final SqlTypeName [] intTypes = {
         TINYINT, SMALLINT, INTEGER, BIGINT
     };
 
@@ -167,29 +168,11 @@ public enum SqlTypeName
     public static final SqlTypeName [] stringTypes =
         combine(charTypes, binaryTypes);
 
-    public static final SqlTypeName [] datetimeTypes =
-    {
+    public static final SqlTypeName [] datetimeTypes = {
         DATE, TIME, TIMESTAMP
     };
 
-    public static final SqlTypeName [] timeIntervalTypes =
-    {
-        INTERVAL_DAY_TIME, INTERVAL_YEAR_MONTH
-    };
-
-    public static final SqlTypeName [] multisetTypes = {
-        MULTISET
-    };
-
-    public static final SqlTypeName [] cursorTypes = {
-        CURSOR
-    };
-
-    public static final SqlTypeName [] columnListTypes = {
-        COLUMN_LIST
-    };
-
-    static {
+  static {
         // This squanders some memory since MAX_JDBC_TYPE == 2006!
         jdbcTypeToName = new SqlTypeName[(1 + MAX_JDBC_TYPE) - MIN_JDBC_TYPE];
 

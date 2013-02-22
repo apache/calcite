@@ -15,28 +15,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
+package org.eigenbase.sql.fun;
 
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.reltype.RelRecordType;
+import org.eigenbase.sql.SqlKind;
 
-import java.util.List;
 
 /**
-* Record type based on a Java class. The fields of the type are the fields
- * of the class.
+ * Definition of the MAP query constructor, <code>
+ * MAP (&lt;query&gt;)</code>.
  *
- * <p><strong>NOTE: This class is experimental and subject to
- * change/removal without notice</strong>.</p>
-*/
-public class JavaRecordType extends RelRecordType {
-    final Class clazz;
+ * <p>Like the MAP type, not standard SQL.</p>
+ */
+public class SqlMapQueryConstructor
+    extends SqlMultisetQueryConstructor
+{
+    //~ Constructors -----------------------------------------------------------
 
-    public JavaRecordType(List<RelDataTypeField> fields, Class clazz) {
-        super(fields);
-        this.clazz = clazz;
-        assert clazz != null;
+    public SqlMapQueryConstructor()
+    {
+        super("MAP", SqlKind.MAP_QUERY_CONSTRUCTOR);
     }
 }
 
-// End JavaRecordType.java
+// End SqlMapQueryConstructor.java

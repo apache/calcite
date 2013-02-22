@@ -3904,7 +3904,7 @@ public abstract class SqlOperatorBaseTest
 
     public void testTrimFunc()
     {
-        getTester().setFor(SqlStdOperatorTable.trimFunc);
+        getTester().setFor(SqlStdOperatorTable.trimBothFunc);
 
         // SQL:2003 6.29.11 Trimming a CHAR yields a VARCHAR
         getTester().checkString(
@@ -3990,6 +3990,14 @@ public abstract class SqlOperatorBaseTest
                 "cardinality(multiset[cast(null as integer),2]))",
                 "2");
         }
+
+        // applied to array
+        getTester().checkScalarExact(
+            "cardinality(array['foo', 'bar'])", "2");
+
+        // applied to map
+        getTester().checkScalarExact(
+            "cardinality(map['foo', 1, 'bar', 2])", "2");
     }
 
     public void testMemberOfOperator()
@@ -4068,6 +4076,76 @@ public abstract class SqlOperatorBaseTest
             "extract(month from cast(null as interval year))");
     }
 
+    public void testArrayValueConstructor() {
+        getTester().setFor(SqlStdOperatorTable.arrayValueConstructor);
+        getTester().checkScalar(
+            "Array['foo', 'bar']",
+            "[foo, bar]",
+            "CHAR(3) NOT NULL ARRAY NOT NULL");
+
+        // empty array is illegal per SQL spec. presumably because one can't
+        // infer type
+        getTester().checkFails(
+            "^Array[]^", "Require at least 1 argument", false);
+    }
+
+    public void testItemOp() {
+        getTester().setFor(SqlStdOperatorTable.itemOp);
+        getTester().checkScalar(
+            "ARRAY ['foo', 'bar'][1]", "foo", "CHAR(3) NOT NULL");
+        getTester().checkScalar(
+            "ARRAY ['foo', 'bar'][0]", null, "CHAR(3) NOT NULL");
+        getTester().checkScalar(
+            "ARRAY ['foo', 'bar'][2]", "bar", "CHAR(3) NOT NULL");
+        getTester().checkScalar(
+            "ARRAY ['foo', 'bar'][3]", null, "CHAR(3) NOT NULL");
+        getTester().checkNull(
+            "ARRAY ['foo', 'bar'][1 + CAST(NULL AS INTEGER)]");
+        getTester().checkFails(
+            "^ARRAY ['foo', 'bar']['baz']^",
+            "Cannot apply 'ITEM' to arguments of type 'ITEM\\(<CHAR\\(3\\) ARRAY>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
+            + "<MAP>\\[<VALUE>\\]",
+            false);
+
+        // Array of INTEGER NOT NULL is interesting because we might be tempted
+        // to represent the result as Java "int".
+        getTester().checkScalar(
+            "ARRAY [2, 4, 6][2]", "4", "INTEGER NOT NULL");
+        getTester().checkScalar(
+            "ARRAY [2, 4, 6][4]", null, "INTEGER NOT NULL");
+
+        // Map item
+        getTester().checkScalarExact(
+            "map['foo', 3, 'bar', 7]['bar']", "INTEGER NOT NULL", "7");
+        getTester().checkScalarExact(
+            "map['foo', CAST(NULL AS INTEGER), 'bar', 7]['bar']", "INTEGER",
+            "7");
+        getTester().checkScalarExact(
+            "map['foo', CAST(NULL AS INTEGER), 'bar', 7]['baz']", "INTEGER",
+            null);
+    }
+
+    public void testMapValueConstructor()
+    {
+        getTester().setFor(SqlStdOperatorTable.mapValueConstructor, VM_JAVA);
+
+        getTester().checkFails(
+            "^Map[]^", "Map requires at least 2 arguments", false);
+
+        getTester().checkFails(
+            "^Map[1, 'x', 2]^",
+            "Map requires an even number of arguments",
+            false);
+
+        getTester().checkFails(
+            "^map[1, 1, 2, 'x']^",
+            "Parameters must be of the same type", false);
+        getTester().checkScalarExact(
+            "map['washington', 1, 'obama', 44]",
+            "(CHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL",
+            "{washington=1, obama=44}");
+    }
+
     public void testCeilFunc()
     {
         getTester().setFor(SqlStdOperatorTable.ceilFunc, VM_FENNEL);
@@ -4079,13 +4157,9 @@ public abstract class SqlOperatorBaseTest
             0);
         getTester().checkScalarExact("ceil(100)", "INTEGER NOT NULL", "100");
         getTester().checkScalarExact(
-            "ceil(1.3)",
-            "DECIMAL(2, 0) NOT NULL",
-            "2");
+            "ceil(1.3)", "DECIMAL(2, 0) NOT NULL", "2");
         getTester().checkScalarExact(
-            "ceil(-1.7)",
-            "DECIMAL(2, 0) NOT NULL",
-            "-1");
+            "ceil(-1.7)", "DECIMAL(2, 0) NOT NULL", "-1");
         getTester().checkNull("ceiling(cast(null as decimal(2,0)))");
         getTester().checkNull("ceiling(cast(null as double))");
     }
@@ -4099,9 +4173,7 @@ public abstract class SqlOperatorBaseTest
             "+4:00:00",
             "INTERVAL HOUR TO SECOND NOT NULL");
         getTester().checkScalar(
-            "ceil(interval '-6.3' second)",
-            "-6",
-            "INTERVAL SECOND NOT NULL");
+            "ceil(interval '-6.3' second)", "-6", "INTERVAL SECOND NOT NULL");
         getTester().checkScalar(
             "ceil(interval '5-1' year to month)",
             "+6-00",
@@ -4125,13 +4197,9 @@ public abstract class SqlOperatorBaseTest
             0);
         getTester().checkScalarExact("floor(100)", "INTEGER NOT NULL", "100");
         getTester().checkScalarExact(
-            "floor(1.7)",
-            "DECIMAL(2, 0) NOT NULL",
-            "1");
+            "floor(1.7)", "DECIMAL(2, 0) NOT NULL", "1");
         getTester().checkScalarExact(
-            "floor(-1.7)",
-            "DECIMAL(2, 0) NOT NULL",
-            "-2");
+            "floor(-1.7)", "DECIMAL(2, 0) NOT NULL", "-2");
         getTester().checkNull("floor(cast(null as decimal(2,0)))");
         getTester().checkNull("floor(cast(null as real))");
     }
@@ -4145,9 +4213,7 @@ public abstract class SqlOperatorBaseTest
             "+3:00:00",
             "INTERVAL HOUR TO SECOND NOT NULL");
         getTester().checkScalar(
-            "floor(interval '-6.3' second)",
-            "-7",
-            "INTERVAL SECOND NOT NULL");
+            "floor(interval '-6.3' second)", "-7", "INTERVAL SECOND NOT NULL");
         getTester().checkScalar(
             "floor(interval '5-1' year to month)",
             "+5-00",
@@ -4163,9 +4229,7 @@ public abstract class SqlOperatorBaseTest
     public void testDenseRankFunc()
     {
         getTester().setFor(
-            SqlStdOperatorTable.denseRankFunc,
-            VM_FENNEL,
-            VM_JAVA);
+            SqlStdOperatorTable.denseRankFunc, VM_FENNEL, VM_JAVA);
     }
 
     public void testPercentRankFunc()
@@ -4261,9 +4325,7 @@ public abstract class SqlOperatorBaseTest
     {
         getTester().setFor(SqlStdOperatorTable.sumOperator, VM_EXPAND);
         getTester().checkFails(
-            "sum(^*^)",
-            "Unknown identifier '\\*'",
-            false);
+            "sum(^*^)", "Unknown identifier '\\*'", false);
         getTester().checkFails(
             "^sum('name')^",
             "(?s)Cannot apply 'SUM' to arguments of type 'SUM\\(<CHAR\\(4\\)>\\)'\\. Supported form\\(s\\): 'SUM\\(<NUMERIC>\\)'.*",
@@ -4323,15 +4385,9 @@ public abstract class SqlOperatorBaseTest
         getTester().checkType("AVG(DISTINCT 1.5)", "DECIMAL(2, 1)");
         final String [] values = { "0", "CAST(null AS FLOAT)", "3", "3" };
         getTester().checkAgg(
-            "AVG(x)",
-            values,
-            2d,
-            0d);
+            "AVG(x)", values, 2d, 0d);
         getTester().checkAgg(
-            "AVG(DISTINCT x)",
-            values,
-            1.5d,
-            0d);
+            "AVG(DISTINCT x)", values, 1.5d, 0d);
         Object result = -1;
         getTester().checkAgg(
             "avg(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
@@ -4484,9 +4540,7 @@ public abstract class SqlOperatorBaseTest
         getTester().checkType("var_samp(DISTINCT 1.5)", "DECIMAL(2, 1)");
         final String [] values = { "0", "CAST(null AS FLOAT)", "3", "3" };
         getTester().checkAgg(
-            "var_samp(x)",
-            values,
-            3d, // verified on Oracle 10g
+            "var_samp(x)", values, 3d, // verified on Oracle 10g
             0d);
         getTester().checkAgg(
             "var_samp(DISTINCT x)", // Oracle does not allow distinct
@@ -4588,10 +4642,7 @@ public abstract class SqlOperatorBaseTest
             "-1",
             0d);
         getTester().checkAgg(
-            "max(DISTINCT x)",
-            values,
-            "2",
-            0d);
+            "max(DISTINCT x)", values, "2", 0d);
     }
 
     public void testLastValueFunc()

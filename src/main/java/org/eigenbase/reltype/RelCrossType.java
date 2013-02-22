@@ -17,6 +17,8 @@
 */
 package org.eigenbase.reltype;
 
+import java.util.List;
+
 import org.eigenbase.oj.util.*;
 
 
@@ -51,14 +53,14 @@ public class RelCrossType
      */
     public RelCrossType(
         RelDataType [] types,
-        RelDataTypeField [] fields)
+        List<RelDataTypeField> fields)
     {
         super(fields);
         this.types = types;
         assert (types != null);
         assert (types.length >= 1);
-        for (int i = 0; i < types.length; i++) {
-            assert (!(types[i] instanceof RelCrossType));
+        for (RelDataType type : types) {
+            assert (!(type instanceof RelCrossType));
         }
         computeDigest();
     }

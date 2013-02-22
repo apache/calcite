@@ -53,11 +53,6 @@ public class SqlRankFunction
 
     //~ Methods ----------------------------------------------------------------
 
-    public SqlOperandCountRange getOperandCountRange()
-    {
-        return SqlOperandCountRange.Zero;
-    }
-
     public RelDataType getReturnType(RelDataTypeFactory typeFactory)
     {
         return type;

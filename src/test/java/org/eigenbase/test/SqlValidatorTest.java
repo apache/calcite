@@ -138,7 +138,7 @@ public class SqlValidatorTest
 
     public void testAndOrIllegalTypesFails()
     {
-        //TODO need col+line number
+        // TODO need col+line number
         checkWholeExpFails(
             "'abc' AND FaLsE",
             "(?s).*'<CHAR.3.> AND <BOOLEAN>'.*");
@@ -475,17 +475,17 @@ public class SqlValidatorTest
 
     public void testCaseExpressionFails()
     {
-        //varchar not comparable with bit string
+        // varchar not comparable with bit string
         checkWholeExpFails(
             "case 'string' when x'01' then 'zero one' else 'something' end",
             "(?s).*Cannot apply '=' to arguments of type '<CHAR.6.> = <BINARY.1.>'.*");
 
-        //all thens and else return null
+        // all thens and else return null
         checkWholeExpFails(
             "case 1 when 1 then null else null end",
             "(?s).*ELSE clause or at least one THEN clause must be non-NULL.*");
 
-        //all thens and else return null
+        // all thens and else return null
         checkWholeExpFails(
             "case 1 when 1 then null end",
             "(?s).*ELSE clause or at least one THEN clause must be non-NULL.*");
@@ -637,7 +637,7 @@ public class SqlValidatorTest
 
     public void _testCharsetAndCollateMismatch()
     {
-        //todo
+        // todo
         checkExpFails("_UTF16's' collate latin1$en$1", "?");
     }
 
@@ -650,12 +650,12 @@ public class SqlValidatorTest
 
     public void _testDyadicCompareCollateFails()
     {
-        //two different explicit collations. difference in strength
+        // two different explicit collations. difference in strength
         checkExpFails(
             "'s' collate latin1$en$1 <= 't' collate latin1$en$2",
             "(?s).*Two explicit different collations.*are illegal.*");
 
-        //two different explicit collations. difference in language
+        // two different explicit collations. difference in language
         checkExpFails(
             "'s' collate latin1$sv$1 >= 't' collate latin1$en$1",
             "(?s).*Two explicit different collations.*are illegal.*");
@@ -704,7 +704,7 @@ public class SqlValidatorTest
         checkExpType("position('mouse' in 'house')", "INTEGER NOT NULL");
         checkWholeExpFails(
             "position(x'1234' in '110')",
-            "(?s).*Cannot apply 'POSITION' to arguments of type 'POSITION.<BINARY.2.> IN <CHAR.3.>.'.*");
+            "Parameters must be of the same type");
     }
 
     public void testTrim()
@@ -714,6 +714,7 @@ public class SqlValidatorTest
         checkExp("trim(leading 'mustache' FROM 'beard')");
         checkExp("trim(trailing 'mustache' FROM 'beard')");
         checkExpType("trim('mustache' FROM 'beard')", "VARCHAR(5) NOT NULL");
+        checkExpType("trim('beard  ')", "VARCHAR(7) NOT NULL");
         checkExpType(
             "trim('mustache' FROM cast(null as varchar(4)))",
             "VARCHAR(4)");
@@ -776,7 +777,7 @@ public class SqlValidatorTest
         checkExp("substring('a' FROM 1)");
         checkExp("substring('a' FROM 1 FOR 3)");
         checkExp("substring('a' FROM 'reg' FOR '\\')");
-        checkExp("substring(x'ff' FROM 1  FOR 2)"); //binary string
+        checkExp("substring(x'ff' FROM 1  FOR 2)"); // binary string
 
         checkExpType("substring('10' FROM 1  FOR 2)", "VARCHAR(2) NOT NULL");
         checkExpType("substring('1000' FROM 2)", "VARCHAR(4) NOT NULL");
@@ -844,7 +845,12 @@ public class SqlValidatorTest
         // FIXME: SQL:2003 does not allow raw NULL in IN clause
         checkExp("1 in (1, null, 2)");
         checkExp("1 in (null, 1, null, 2)");
-        checkExp("1 in (null, null)");
+        checkExp("1 in (cast(null as integer), null)");
+
+        // Expression is illegal, but error message is not perfect.
+        checkWholeExpFails(
+            "1 in (null, null)",
+            "Values passed to IN operator must have compatible types");
     }
 
     public void testNullCast()
@@ -958,9 +964,9 @@ public class SqlValidatorTest
         checkWholeExpFails(
             "LOCALTIME(1+2)",
             "Argument to function 'LOCALTIME' must be a literal");
-        checkExpFails(
-            "LOCALTIME(^NULL^)",
-            "Illegal use of 'NULL'");
+        checkWholeExpFails(
+            "LOCALTIME(NULL)",
+            "Argument to function 'LOCALTIME' must not be NULL");
         checkWholeExpFails(
             "LOCALTIME(CAST(NULL AS INTEGER))",
             "Argument to function 'LOCALTIME' must not be NULL");
@@ -1154,7 +1160,7 @@ public class SqlValidatorTest
             checkExp("\"CAST\"(1 as double)");
             checkExp("\"POSITION\"('b' in 'alphabet')");
 
-            //convert and translate not yet implemented
+            // convert and translate not yet implemented
             //        checkExp("\"CONVERT\"('b' using converstion)");
             //        checkExp("\"TRANSLATE\"('b' using translation)");
             checkExp("\"OVERLAY\"('a' PLAcing 'b' from 1)");
@@ -1165,7 +1171,12 @@ public class SqlValidatorTest
             // the parser creates a call to TRIM with 1 rather than the
             // expected 3 args, and the remaining two args are filled in with
             // NULL literals so that we get as far as validation.
-            checkExpFails("\"TRIM\"('b')", "(?s).*Illegal use of 'NULL'.*");
+            checkExpFails(
+                "^\"TRIM\"('b')^",
+                "No match found for function signature TRIM\\(<CHARACTER>\\)");
+
+            // It's OK if the function name is not quoted
+            checkExpType("TRIM('b')", "VARCHAR(1) NOT NULL");
         }
     }
 
@@ -1312,7 +1323,9 @@ public class SqlValidatorTest
         checkExpType("cardinality(multiset['1'])", "INTEGER NOT NULL");
         checkWholeExpFails(
             "cardinality('a')",
-            "Cannot apply 'CARDINALITY' to arguments of type 'CARDINALITY.<CHAR.1.>.'. Supported form.s.: 'CARDINALITY.<MULTISET>.'");
+            "Cannot apply 'CARDINALITY' to arguments of type 'CARDINALITY\\(<CHAR\\(1\\)>\\)'\\. Supported form\\(s\\): 'CARDINALITY\\(<MULTISET>\\)'\n"
+            + "'CARDINALITY\\(<ARRAY>\\)'\n"
+            + "'CARDINALITY\\(<MAP>\\)'");
     }
 
     public void testIntervalTimeUnitEnumeration()
@@ -1391,7 +1404,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalYearPositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '1' YEAR",
             "INTERVAL YEAR NOT NULL");
@@ -1399,7 +1412,7 @@ public class SqlValidatorTest
             "INTERVAL '99' YEAR",
             "INTERVAL YEAR NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '1' YEAR(2)",
             "INTERVAL YEAR(2) NOT NULL");
@@ -1407,22 +1420,22 @@ public class SqlValidatorTest
             "INTERVAL '99' YEAR(2)",
             "INTERVAL YEAR(2) NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647' YEAR(10)",
             "INTERVAL YEAR(10) NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0' YEAR(1)",
             "INTERVAL YEAR(1) NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '1234' YEAR(4)",
             "INTERVAL YEAR(4) NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '+1' YEAR",
             "INTERVAL YEAR NOT NULL");
@@ -1458,7 +1471,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalYearToMonthPositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '1-2' YEAR TO MONTH",
             "INTERVAL YEAR TO MONTH NOT NULL");
@@ -1469,7 +1482,7 @@ public class SqlValidatorTest
             "INTERVAL '99-0' YEAR TO MONTH",
             "INTERVAL YEAR TO MONTH NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '1-2' YEAR(2) TO MONTH",
             "INTERVAL YEAR(2) TO MONTH NOT NULL");
@@ -1480,22 +1493,22 @@ public class SqlValidatorTest
             "INTERVAL '99-0' YEAR(2) TO MONTH",
             "INTERVAL YEAR(2) TO MONTH NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647-11' YEAR(10) TO MONTH",
             "INTERVAL YEAR(10) TO MONTH NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0-0' YEAR(1) TO MONTH",
             "INTERVAL YEAR(1) TO MONTH NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '2006-2' YEAR(4) TO MONTH",
             "INTERVAL YEAR(4) TO MONTH NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '-1-2' YEAR TO MONTH",
             "INTERVAL YEAR TO MONTH NOT NULL");
@@ -1531,7 +1544,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalMonthPositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '1' MONTH",
             "INTERVAL MONTH NOT NULL");
@@ -1539,7 +1552,7 @@ public class SqlValidatorTest
             "INTERVAL '99' MONTH",
             "INTERVAL MONTH NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '1' MONTH(2)",
             "INTERVAL MONTH(2) NOT NULL");
@@ -1547,22 +1560,22 @@ public class SqlValidatorTest
             "INTERVAL '99' MONTH(2)",
             "INTERVAL MONTH(2) NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647' MONTH(10)",
             "INTERVAL MONTH(10) NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0' MONTH(1)",
             "INTERVAL MONTH(1) NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '1234' MONTH(4)",
             "INTERVAL MONTH(4) NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '+1' MONTH",
             "INTERVAL MONTH NOT NULL");
@@ -1598,7 +1611,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalDayPositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '1' DAY",
             "INTERVAL DAY NOT NULL");
@@ -1606,7 +1619,7 @@ public class SqlValidatorTest
             "INTERVAL '99' DAY",
             "INTERVAL DAY NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '1' DAY(2)",
             "INTERVAL DAY(2) NOT NULL");
@@ -1614,22 +1627,22 @@ public class SqlValidatorTest
             "INTERVAL '99' DAY(2)",
             "INTERVAL DAY(2) NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647' DAY(10)",
             "INTERVAL DAY(10) NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0' DAY(1)",
             "INTERVAL DAY(1) NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '1234' DAY(4)",
             "INTERVAL DAY(4) NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '+1' DAY",
             "INTERVAL DAY NOT NULL");
@@ -1658,7 +1671,7 @@ public class SqlValidatorTest
 
     public void subTestIntervalDayToHourPositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '1 2' DAY TO HOUR",
             "INTERVAL DAY TO HOUR NOT NULL");
@@ -1669,7 +1682,7 @@ public class SqlValidatorTest
             "INTERVAL '99 0' DAY TO HOUR",
             "INTERVAL DAY TO HOUR NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '1 2' DAY(2) TO HOUR",
             "INTERVAL DAY(2) TO HOUR NOT NULL");
@@ -1680,22 +1693,22 @@ public class SqlValidatorTest
             "INTERVAL '99 0' DAY(2) TO HOUR",
             "INTERVAL DAY(2) TO HOUR NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647 23' DAY(10) TO HOUR",
             "INTERVAL DAY(10) TO HOUR NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0 0' DAY(1) TO HOUR",
             "INTERVAL DAY(1) TO HOUR NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '2345 2' DAY(4) TO HOUR",
             "INTERVAL DAY(4) TO HOUR NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '-1 2' DAY TO HOUR",
             "INTERVAL DAY TO HOUR NOT NULL");
@@ -1731,7 +1744,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalDayToMinutePositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '1 2:3' DAY TO MINUTE",
             "INTERVAL DAY TO MINUTE NOT NULL");
@@ -1742,7 +1755,7 @@ public class SqlValidatorTest
             "INTERVAL '99 0:0' DAY TO MINUTE",
             "INTERVAL DAY TO MINUTE NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '1 2:3' DAY(2) TO MINUTE",
             "INTERVAL DAY(2) TO MINUTE NOT NULL");
@@ -1753,22 +1766,22 @@ public class SqlValidatorTest
             "INTERVAL '99 0:0' DAY(2) TO MINUTE",
             "INTERVAL DAY(2) TO MINUTE NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647 23:59' DAY(10) TO MINUTE",
             "INTERVAL DAY(10) TO MINUTE NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0 0:0' DAY(1) TO MINUTE",
             "INTERVAL DAY(1) TO MINUTE NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '2345 6:7' DAY(4) TO MINUTE",
             "INTERVAL DAY(4) TO MINUTE NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '-1 2:3' DAY TO MINUTE",
             "INTERVAL DAY TO MINUTE NOT NULL");
@@ -1804,7 +1817,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalDayToSecondPositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '1 2:3:4' DAY TO SECOND",
             "INTERVAL DAY TO SECOND NOT NULL");
@@ -1821,7 +1834,7 @@ public class SqlValidatorTest
             "INTERVAL '99 0:0:0.0' DAY TO SECOND",
             "INTERVAL DAY TO SECOND NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '1 2:3:4' DAY(2) TO SECOND",
             "INTERVAL DAY(2) TO SECOND NOT NULL");
@@ -1838,7 +1851,7 @@ public class SqlValidatorTest
             "INTERVAL '99 0:0:0.0' DAY TO SECOND(6)",
             "INTERVAL DAY TO SECOND(6) NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647 23:59:59' DAY(10) TO SECOND",
             "INTERVAL DAY(10) TO SECOND NOT NULL");
@@ -1846,7 +1859,7 @@ public class SqlValidatorTest
             "INTERVAL '2147483647 23:59:59.999999999' DAY(10) TO SECOND(9)",
             "INTERVAL DAY(10) TO SECOND(9) NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0 0:0:0' DAY(1) TO SECOND",
             "INTERVAL DAY(1) TO SECOND NOT NULL");
@@ -1854,7 +1867,7 @@ public class SqlValidatorTest
             "INTERVAL '0 0:0:0.0' DAY(1) TO SECOND(1)",
             "INTERVAL DAY(1) TO SECOND(1) NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '2345 6:7:8' DAY(4) TO SECOND",
             "INTERVAL DAY(4) TO SECOND NOT NULL");
@@ -1862,7 +1875,7 @@ public class SqlValidatorTest
             "INTERVAL '2345 6:7:8.9012' DAY(4) TO SECOND(4)",
             "INTERVAL DAY(4) TO SECOND(4) NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '-1 2:3:4' DAY TO SECOND",
             "INTERVAL DAY TO SECOND NOT NULL");
@@ -1898,7 +1911,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalHourPositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '1' HOUR",
             "INTERVAL HOUR NOT NULL");
@@ -1906,7 +1919,7 @@ public class SqlValidatorTest
             "INTERVAL '99' HOUR",
             "INTERVAL HOUR NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '1' HOUR(2)",
             "INTERVAL HOUR(2) NOT NULL");
@@ -1914,22 +1927,22 @@ public class SqlValidatorTest
             "INTERVAL '99' HOUR(2)",
             "INTERVAL HOUR(2) NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647' HOUR(10)",
             "INTERVAL HOUR(10) NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0' HOUR(1)",
             "INTERVAL HOUR(1) NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '1234' HOUR(4)",
             "INTERVAL HOUR(4) NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '+1' HOUR",
             "INTERVAL HOUR NOT NULL");
@@ -1965,7 +1978,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalHourToMinutePositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '2:3' HOUR TO MINUTE",
             "INTERVAL HOUR TO MINUTE NOT NULL");
@@ -1976,7 +1989,7 @@ public class SqlValidatorTest
             "INTERVAL '99:0' HOUR TO MINUTE",
             "INTERVAL HOUR TO MINUTE NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '2:3' HOUR(2) TO MINUTE",
             "INTERVAL HOUR(2) TO MINUTE NOT NULL");
@@ -1987,22 +2000,22 @@ public class SqlValidatorTest
             "INTERVAL '99:0' HOUR(2) TO MINUTE",
             "INTERVAL HOUR(2) TO MINUTE NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647:59' HOUR(10) TO MINUTE",
             "INTERVAL HOUR(10) TO MINUTE NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0:0' HOUR(1) TO MINUTE",
             "INTERVAL HOUR(1) TO MINUTE NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '2345:7' HOUR(4) TO MINUTE",
             "INTERVAL HOUR(4) TO MINUTE NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '-1:3' HOUR TO MINUTE",
             "INTERVAL HOUR TO MINUTE NOT NULL");
@@ -2038,7 +2051,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalHourToSecondPositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '2:3:4' HOUR TO SECOND",
             "INTERVAL HOUR TO SECOND NOT NULL");
@@ -2055,7 +2068,7 @@ public class SqlValidatorTest
             "INTERVAL '99:0:0.0' HOUR TO SECOND",
             "INTERVAL HOUR TO SECOND NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '2:3:4' HOUR(2) TO SECOND",
             "INTERVAL HOUR(2) TO SECOND NOT NULL");
@@ -2072,7 +2085,7 @@ public class SqlValidatorTest
             "INTERVAL '99:0:0.0' HOUR TO SECOND(6)",
             "INTERVAL HOUR TO SECOND(6) NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647:59:59' HOUR(10) TO SECOND",
             "INTERVAL HOUR(10) TO SECOND NOT NULL");
@@ -2080,7 +2093,7 @@ public class SqlValidatorTest
             "INTERVAL '2147483647:59:59.999999999' HOUR(10) TO SECOND(9)",
             "INTERVAL HOUR(10) TO SECOND(9) NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0:0:0' HOUR(1) TO SECOND",
             "INTERVAL HOUR(1) TO SECOND NOT NULL");
@@ -2088,7 +2101,7 @@ public class SqlValidatorTest
             "INTERVAL '0:0:0.0' HOUR(1) TO SECOND(1)",
             "INTERVAL HOUR(1) TO SECOND(1) NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '2345:7:8' HOUR(4) TO SECOND",
             "INTERVAL HOUR(4) TO SECOND NOT NULL");
@@ -2096,7 +2109,7 @@ public class SqlValidatorTest
             "INTERVAL '2345:7:8.9012' HOUR(4) TO SECOND(4)",
             "INTERVAL HOUR(4) TO SECOND(4) NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '-2:3:4' HOUR TO SECOND",
             "INTERVAL HOUR TO SECOND NOT NULL");
@@ -2132,7 +2145,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalMinutePositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '1' MINUTE",
             "INTERVAL MINUTE NOT NULL");
@@ -2140,7 +2153,7 @@ public class SqlValidatorTest
             "INTERVAL '99' MINUTE",
             "INTERVAL MINUTE NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '1' MINUTE(2)",
             "INTERVAL MINUTE(2) NOT NULL");
@@ -2148,22 +2161,22 @@ public class SqlValidatorTest
             "INTERVAL '99' MINUTE(2)",
             "INTERVAL MINUTE(2) NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647' MINUTE(10)",
             "INTERVAL MINUTE(10) NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0' MINUTE(1)",
             "INTERVAL MINUTE(1) NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '1234' MINUTE(4)",
             "INTERVAL MINUTE(4) NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '+1' MINUTE",
             "INTERVAL MINUTE NOT NULL");
@@ -2199,7 +2212,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalMinuteToSecondPositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '2:4' MINUTE TO SECOND",
             "INTERVAL MINUTE TO SECOND NOT NULL");
@@ -2216,7 +2229,7 @@ public class SqlValidatorTest
             "INTERVAL '99:0.0' MINUTE TO SECOND",
             "INTERVAL MINUTE TO SECOND NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '2:4' MINUTE(2) TO SECOND",
             "INTERVAL MINUTE(2) TO SECOND NOT NULL");
@@ -2233,7 +2246,7 @@ public class SqlValidatorTest
             "INTERVAL '99:0.0' MINUTE TO SECOND(6)",
             "INTERVAL MINUTE TO SECOND(6) NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647:59' MINUTE(10) TO SECOND",
             "INTERVAL MINUTE(10) TO SECOND NOT NULL");
@@ -2241,7 +2254,7 @@ public class SqlValidatorTest
             "INTERVAL '2147483647:59.999999999' MINUTE(10) TO SECOND(9)",
             "INTERVAL MINUTE(10) TO SECOND(9) NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0:0' MINUTE(1) TO SECOND",
             "INTERVAL MINUTE(1) TO SECOND NOT NULL");
@@ -2249,7 +2262,7 @@ public class SqlValidatorTest
             "INTERVAL '0:0.0' MINUTE(1) TO SECOND(1)",
             "INTERVAL MINUTE(1) TO SECOND(1) NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '2345:8' MINUTE(4) TO SECOND",
             "INTERVAL MINUTE(4) TO SECOND NOT NULL");
@@ -2257,7 +2270,7 @@ public class SqlValidatorTest
             "INTERVAL '2345:7.8901' MINUTE(4) TO SECOND(4)",
             "INTERVAL MINUTE(4) TO SECOND(4) NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '-3:4' MINUTE TO SECOND",
             "INTERVAL MINUTE TO SECOND NOT NULL");
@@ -2293,7 +2306,7 @@ public class SqlValidatorTest
      */
     public void subTestIntervalSecondPositive()
     {
-        //default precision
+        // default precision
         checkExpType(
             "INTERVAL '1' SECOND",
             "INTERVAL SECOND NOT NULL");
@@ -2301,7 +2314,7 @@ public class SqlValidatorTest
             "INTERVAL '99' SECOND",
             "INTERVAL SECOND NOT NULL");
 
-        //explicit precision equal to default
+        // explicit precision equal to default
         checkExpType(
             "INTERVAL '1' SECOND(2)",
             "INTERVAL SECOND(2) NOT NULL");
@@ -2315,7 +2328,7 @@ public class SqlValidatorTest
             "INTERVAL '99' SECOND(2, 6)",
             "INTERVAL SECOND(2, 6) NOT NULL");
 
-        //max precision
+        // max precision
         checkExpType(
             "INTERVAL '2147483647' SECOND(10)",
             "INTERVAL SECOND(10) NOT NULL");
@@ -2323,7 +2336,7 @@ public class SqlValidatorTest
             "INTERVAL '2147483647.999999999' SECOND(10, 9)",
             "INTERVAL SECOND(10, 9) NOT NULL");
 
-        //min precision
+        // min precision
         checkExpType(
             "INTERVAL '0' SECOND(1)",
             "INTERVAL SECOND(1) NOT NULL");
@@ -2331,7 +2344,7 @@ public class SqlValidatorTest
             "INTERVAL '0.0' SECOND(1, 1)",
             "INTERVAL SECOND(1, 1) NOT NULL");
 
-        //alternate precision
+        // alternate precision
         checkExpType(
             "INTERVAL '1234' SECOND(4)",
             "INTERVAL SECOND(4) NOT NULL");
@@ -2339,7 +2352,7 @@ public class SqlValidatorTest
             "INTERVAL '1234.56789' SECOND(4, 5)",
             "INTERVAL SECOND(4, 5) NOT NULL");
 
-        //sign
+        // sign
         checkExpType(
             "INTERVAL '+1' SECOND",
             "INTERVAL SECOND NOT NULL");
@@ -4008,19 +4021,20 @@ public class SqlValidatorTest
                 "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
             // The following fail but it is reported as window needing OBC due
             // to
-            // test sequence so
-            // not really failing due to 6a
-            //checkWin("select rank() over w from emp window w as ^(partition by
-            //deptno)^",
-            //    "RANK or DENSE_RANK functions require ORDER BY clause in
-            // window
-            // specification");
-            //checkWin("select dense_rank() over w from emp window w as
-            //^(partition
-            //by deptno)^",
-            //    "RANK or DENSE_RANK functions require ORDER BY clause in
-            // window
-            // specification");
+            // test sequence, so
+            // not really failing due to 6a.
+/*
+             checkWin(
+                "select rank() over w from emp "
+                + "window w as ^(partition by deptno)^",
+                "RANK or DENSE_RANK functions require ORDER BY clause in "
+                + "window specification");
+            checkWin(
+                "select dense_rank() over w from emp "
+                + "window w as ^(partition by deptno)^",
+                "RANK or DENSE_RANK functions require ORDER BY clause in "
+                + "window specification");
+*/
 
             // rule 6b
             // Framing not allowed with RANK & DENSE_RANK functions
@@ -4260,7 +4274,7 @@ public class SqlValidatorTest
         // --   negative testings           --
         // -----------------------------------
         // Test fails in parser
-        //checkWinClauseExp("window foo.w as (range 100 preceding) "+
+        // checkWinClauseExp("window foo.w as (range 100 preceding) "+
         //    "Window name must be a simple identifier\");
 
         // rule 11
@@ -5333,10 +5347,10 @@ public class SqlValidatorTest
         // understand what it means; see
         // testAggregateInOrderByFails for the discrimination I added
         // (SELECT should be aggregating for this to make sense).
-        /*
+/*
         // Sort by aggregate. Oracle allows this.
         check("select 1 from emp order by sum(sal)");
-        */
+*/
 
         // ORDER BY and SELECT *
         check("select * from emp order by empno");
@@ -6413,48 +6427,6 @@ public class SqlValidatorTest
                 + NL
                 + "FROM `EMP`");
         }
-    }
-
-    public void testValuesRewrite()
-    {
-        SqlValidator validator = tester.getValidator();
-
-        // if the validator is expanding identifiers (as the DT validator
-        // does) then rewrites introduce table and column aliases
-        boolean expand = validator.shouldExpandIdentifiers();
-
-        // bare VALUES should be rewritten
-        tester.checkRewrite(
-            validator,
-            "values (3)",
-            TestUtil.fold(
-                expand
-                ? ("SELECT `EXPR$0`.`EXPR$0`\n"
-                    + "FROM (VALUES ROW(3)) AS `EXPR$0`")
-                : ("SELECT *\n"
-                    + "FROM (VALUES ROW(3))")));
-
-        // but VALUES under FROM should not...
-        tester.checkRewrite(
-            validator,
-            "select * from (values (3))",
-            TestUtil.fold(
-                expand
-                ? ("SELECT `EXPR$1`.`EXPR$0`\n"
-                    + "FROM (VALUES ROW(3)) AS `EXPR$1`")
-                : ("SELECT *\n"
-                    + "FROM (VALUES ROW(3))")));
-
-        // ...even if an alias is present
-        tester.checkRewrite(
-            validator,
-            "select * from (values (3)) as fluff",
-            TestUtil.fold(
-                expand
-                ? ("SELECT `FLUFF`.`EXPR$0`\n"
-                    + "FROM (VALUES ROW(3)) AS `FLUFF`")
-                : ("SELECT *\n"
-                    + "FROM (VALUES ROW(3)) AS `FLUFF`")));
     }
 
     public void _testValuesWithAggFuncs()

@@ -31,7 +31,7 @@ import org.eigenbase.sql.*;
  * @version $Id$
  */
 public class SameOperandTypeChecker
-    implements SqlOperandTypeChecker
+    implements SqlSingleOperandTypeChecker
 {
     //~ Instance fields --------------------------------------------------------
 
@@ -111,28 +111,30 @@ public class SameOperandTypeChecker
     public SqlOperandCountRange getOperandCountRange()
     {
         if (nOperands == -1) {
-            return SqlOperandCountRange.Variadic;
+            return SqlOperandCountRanges.any();
         } else {
-            return new SqlOperandCountRange(nOperands);
+            return SqlOperandCountRanges.of(nOperands);
         }
     }
 
     // implement SqlOperandTypeChecker
     public String getAllowedSignatures(SqlOperator op, String opName)
     {
-        int nOperandsActual = nOperands;
-        if (nOperandsActual == -1) {
-            nOperandsActual = 3;
-        }
-        String [] array = new String[nOperandsActual];
-        Arrays.fill(array, "EQUIVALENT_TYPE");
-        if (nOperands == -1) {
-            array[2] = "...";
-        }
         return SqlUtil.getAliasedSignature(
             op,
             opName,
-            Arrays.asList(array));
+            nOperands == -1
+                ? Arrays.asList("EQUIVALENT_TYPE", "EQUIVALENT_TYPE", "...")
+                : Collections.nCopies(nOperands, "EQUIVALENT_TYPE"));
+    }
+
+    public boolean checkSingleOperandType(
+        SqlCallBinding callBinding,
+        SqlNode operand,
+        int iFormalOperand,
+        boolean throwOnFailure)
+    {
+        throw new UnsupportedOperationException(); // TODO:
     }
 }
 

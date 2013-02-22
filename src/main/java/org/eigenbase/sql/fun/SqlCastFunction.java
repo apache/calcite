@@ -17,8 +17,6 @@
 */
 package org.eigenbase.sql.fun;
 
-import java.nio.charset.*;
-
 import java.util.*;
 
 import org.eigenbase.reltype.*;
@@ -61,8 +59,8 @@ public class SqlCastFunction
 
     //~ Methods ----------------------------------------------------------------
 
-    /*
-     * List all casts that do not preserve monotonicity
+    /**
+     * List all casts that do not preserve monotonicity.
      */
     private Set<TypeFamilyCast> createNonMonotonicPreservingCasts()
     {
@@ -156,17 +154,13 @@ public class SqlCastFunction
 
     public String getSignatureTemplate(final int operandsCount)
     {
-        switch (operandsCount) {
-        case 2:
-            return "{0}({1} AS {2})";
-        }
-        assert (false);
-        return null;
+        assert operandsCount == 2;
+        return "{0}({1} AS {2})";
     }
 
     public SqlOperandCountRange getOperandCountRange()
     {
-        return SqlOperandCountRange.Two;
+        return SqlOperandCountRanges.of(2);
     }
 
     /**

@@ -445,7 +445,10 @@ public class SqlValidatorImpl
     public SqlNode validate(SqlNode topNode)
     {
         SqlValidatorScope scope = new EmptyScope(this);
-        return validateScopedExpression(topNode, scope);
+        final SqlNode topNode2 = validateScopedExpression(topNode, scope);
+        final RelDataType type = getValidatedNodeType(topNode2);
+        Util.discard(type);
+        return topNode2;
     }
 
     public List<SqlMoniker> lookupHints(SqlNode topNode, SqlParserPos pos)
@@ -1576,9 +1579,8 @@ public class SqlValidatorImpl
             if ((fun.getSqlIdentifier() == null)
                 && (fun.getSyntax() != SqlSyntax.FunctionId))
             {
-                final Integer expectedArgCount =
-                    fun.getOperandCountRange().getAllowedList().get(
-                        0);
+                final int expectedArgCount =
+                    fun.getOperandCountRange().getMin();
                 throw newValidationError(
                     call,
                     EigenbaseResource.instance().InvalidArgCount.ex(

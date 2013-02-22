@@ -109,12 +109,11 @@ public class MockCatalogReader
                 SqlTypeName.STRUCTURED,
                 new SqlIdentifier("ADDRESS", SqlParserPos.ZERO),
                 false,
-                new RelDataTypeField[] {
+                Arrays.asList(
                     new RelDataTypeFieldImpl("STREET", 0, varchar20Type),
                     new RelDataTypeFieldImpl("CITY", 1, varchar20Type),
                     new RelDataTypeFieldImpl("ZIP", 1, intType),
-                    new RelDataTypeFieldImpl("STATE", 1, varchar20Type)
-                },
+                    new RelDataTypeFieldImpl("STATE", 1, varchar20Type)),
                 RelDataTypeComparability.None);
 
         // Register "SALES" schema.

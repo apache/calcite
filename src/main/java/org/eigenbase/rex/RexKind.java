@@ -237,6 +237,16 @@ public enum RexKind
     MultisetQueryConstructor,
 
     /**
+     * The MAP value constructor
+     */
+    MapValueConstructor,
+
+    /**
+     * The ARRAY value constructor
+     */
+    ArrayValueConstructor,
+
+    /**
      * NEW invocation
      */
     NewSpecification,

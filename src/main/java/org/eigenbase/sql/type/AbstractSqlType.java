@@ -18,6 +18,7 @@
 package org.eigenbase.sql.type;
 
 import java.io.*;
+import java.util.List;
 
 import org.eigenbase.reltype.*;
 
@@ -50,7 +51,7 @@ public abstract class AbstractSqlType
     protected AbstractSqlType(
         SqlTypeName typeName,
         boolean isNullable,
-        RelDataTypeField [] fields)
+        List<? extends RelDataTypeField> fields)
     {
         super(fields);
         this.typeName = typeName;

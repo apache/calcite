@@ -15,28 +15,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
-
-import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.reltype.RelRecordType;
+package org.eigenbase.sql.fun;
 
 import java.util.List;
 
-/**
-* Record type based on a Java class. The fields of the type are the fields
- * of the class.
- *
- * <p><strong>NOTE: This class is experimental and subject to
- * change/removal without notice</strong>.</p>
-*/
-public class JavaRecordType extends RelRecordType {
-    final Class clazz;
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.resource.EigenbaseResource;
+import org.eigenbase.sql.*;
+import org.eigenbase.sql.type.SqlTypeStrategies;
+import org.eigenbase.sql.type.SqlTypeUtil;
+import org.eigenbase.sql.validate.*;
 
-    public JavaRecordType(List<RelDataTypeField> fields, Class clazz) {
-        super(fields);
-        this.clazz = clazz;
-        assert clazz != null;
+
+/**
+ * Definition of the SQL:2003 standard ARRAY query constructor, <code>
+ * ARRAY (&lt;query&gt;)</code>.
+ */
+public class SqlArrayQueryConstructor
+    extends SqlMultisetQueryConstructor
+{
+    //~ Constructors -----------------------------------------------------------
+
+    public SqlArrayQueryConstructor()
+    {
+        super("ARRAY", SqlKind.MAP_QUERY_CONSTRUCTOR);
     }
 }
 
-// End JavaRecordType.java
+// End SqlArrayQueryConstructor.java

@@ -2108,6 +2108,35 @@ public class Util
         return SpaceList.INSTANCE.get(i);
     }
 
+    /** Creates a list that returns every {@code n}th element of a list,
+     * starting at element {@code k}.
+     *
+     * <p>It is OK if the list is empty or its size is not a multiple of
+     * {@code n}.</p>
+     *
+     * <p>For instance, {@code quotientList(list, 2, 0)} returns the even
+     * elements of a list, and {@code quotientList(list, 2, 1)} returns the odd
+     * elements. Those lists are the same length only if list has even size.</p>
+     */
+    public static <E> List<E> quotientList(
+        final List<E> list, final int n, final int k)
+    {
+        if (n <= 0 || k < 0 || k >= n) {
+            throw new IllegalArgumentException(
+                "n must be positive; k must be between 0 and n - 1");
+        }
+        final int size = (list.size() + n - k - 1) / n;
+        return new AbstractList<E>() {
+            public E get(int index) {
+                return list.get(index * n + k);
+            }
+
+            public int size() {
+                return size;
+            }
+        };
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     /**

@@ -72,11 +72,6 @@ public class SqlBetweenOperator
     public static final int UPPER_OPERAND = 2;
 
     /**
-     * Ordinal of the 'symmetric' operand.
-     */
-    public static final int SYMFLAG_OPERAND = 3;
-
-    /**
      * Custom operand-type checking strategy.
      */
     private static final SqlOperandTypeChecker otcCustom =
@@ -94,18 +89,12 @@ public class SqlBetweenOperator
     public enum Flag
         implements SqlLiteral.SqlSymbol
     {
-        ASYMMETRIC, SYMMETRIC;
+        ASYMMETRIC, SYMMETRIC
     }
 
     //~ Instance fields --------------------------------------------------------
 
-    /**
-     * todo: Use a wrapper 'class SqlTempCall(SqlOperator,SqlParserPos) extends
-     * SqlNode' to store extra flags (neg and asymmetric) to calls to BETWEEN.
-     * Then we can obsolete flag. SqlTempCall would never have any SqlNodes as
-     * children, but it can have flags.
-     */
-    private final Flag flag;
+    public final Flag flag;
 
     /**
      * If true the call represents 'NOT BETWEEN'.
@@ -171,12 +160,6 @@ public class SqlBetweenOperator
         return "{1} {0} {2} AND {3}";
     }
 
-    public SqlOperandCountRange getOperandCountRange()
-    {
-        // exp1 [ASYMMETRIC|SYMMETRIC] BETWEEN exp4 AND exp4
-        return SqlOperandCountRange.Four;
-    }
-
     public void unparse(
         SqlWriter writer,
         SqlNode [] operands,
@@ -186,11 +169,9 @@ public class SqlBetweenOperator
         final SqlWriter.Frame frame =
             writer.startList(BetweenFrameType, "", "");
         operands[VALUE_OPERAND].unparse(
-            writer,
-            getLeftPrec(),
-            0);
+            writer, getLeftPrec(), 0);
         writer.sep(getName());
-        operands[SYMFLAG_OPERAND].unparse(writer, 0, 0);
+        writer.sep(flag.name());
 
         // If the expression for the lower bound contains a call to an AND
         // operator, we need to wrap the expression in parentheses to prevent
@@ -285,8 +266,7 @@ public class SqlBetweenOperator
                 betweenNode.getPos(),
                 exp0,
                 exp1,
-                exp2,
-                SqlLiteral.createSymbol(flag, SqlParserPos.ZERO));
+                exp2);
 
         // Replace all of the matched nodes with the single reduced node.
         SqlParserUtil.replaceSublist(

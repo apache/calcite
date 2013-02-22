@@ -18,8 +18,11 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.optiq.runtime.SqlFunctions;
+import net.hydromatic.optiq.runtime.Utilities;
 
 import junit.framework.TestCase;
+
+import java.util.*;
 
 import static net.hydromatic.optiq.runtime.SqlFunctions.*;
 
@@ -28,6 +31,54 @@ import static net.hydromatic.optiq.runtime.SqlFunctions.*;
  * functions.
  */
 public class SqlFunctionsTest extends TestCase {
+    public void testCharLength() {
+        assertEquals((Integer) 3, charLength("xyz"));
+        assertNull(charLength(null));
+    }
+
+    public void testConcat() {
+        assertEquals("a bcd", concat("a b", "cd"));
+        assertNull(concat("a", null));
+        assertNull(concat(null, null));
+        assertNull(concat(null, "b"));
+    }
+
+    public void testLower() {
+        assertEquals("a bcd", lower("A bCd"));
+        assertNull(lower(null));
+    }
+
+    public void testUpper() {
+        assertEquals("A BCD", upper("A bCd"));
+        assertNull(lower(null));
+    }
+
+    public void testLesser() {
+        assertEquals("a", lesser("a", "bc"));
+        assertEquals("ac", lesser("bc", "ac"));
+        try {
+            Object o = lesser("a", null);
+            fail("Expected NPE, got " + o);
+        } catch (NullPointerException e) {
+            // ok
+        }
+        assertEquals("a", lesser(null, "a"));
+        assertNull(lesser(null, null));
+    }
+
+    public void testGreater() {
+        assertEquals("bc", greater("a", "bc"));
+        assertEquals("bc", greater("bc", "ac"));
+        try {
+            Object o = greater("a", null);
+            fail("Expected NPE, got " + o);
+        } catch (NullPointerException e) {
+            // ok
+        }
+        assertEquals("a", greater(null, "a"));
+        assertNull(greater(null, null));
+    }
+
     /** Test for {@link SqlFunctions#rtrim}. */
     public void testRtrim() {
         assertEquals("", rtrim(""));
@@ -37,6 +88,73 @@ public class SqlFunctionsTest extends TestCase {
         assertEquals("   x y", rtrim("   x y "));
         assertEquals("   x", rtrim("   x"));
         assertEquals("x", rtrim("x"));
+    }
+
+    /** Test for {@link SqlFunctions#ltrim}. */
+    public void testLtrim() {
+        assertEquals("", ltrim(""));
+        assertEquals("", ltrim("    "));
+        assertEquals("x  ", ltrim("   x  "));
+        assertEquals("x ", ltrim("   x "));
+        assertEquals("x y ", ltrim("x y "));
+        assertEquals("x", ltrim("   x"));
+        assertEquals("x", ltrim("x"));
+    }
+
+    /** Test for {@link SqlFunctions#trim}. */
+    public void testTrim() {
+        assertEquals("", trim(""));
+        assertEquals("", trim("    "));
+        assertEquals("x", trim("   x  "));
+        assertEquals("x", trim("   x "));
+        assertEquals("x y", trim("   x y "));
+        assertEquals("x", trim("   x"));
+        assertEquals("x", trim("x"));
+    }
+
+    public void testUnixDateToString() {
+        // Verify these using the "date" command. E.g.
+        // $ date -u --date="@$(expr 10957 \* 86400)"
+        // Sat Jan  1 00:00:00 UTC 2000
+        assertEquals("2000-01-01", unixDateToString(10957));
+
+        assertEquals("1970-01-01", unixDateToString(0));
+        assertEquals("1970-01-02", unixDateToString(1));
+        assertEquals("1971-01-01", unixDateToString(365));
+        assertEquals("1972-01-01", unixDateToString(730));
+        assertEquals("1972-02-28", unixDateToString(788));
+        assertEquals("1972-02-29", unixDateToString(789));
+        assertEquals("1972-03-01", unixDateToString(790));
+
+        assertEquals("1969-01-01", unixDateToString(-365));
+        assertEquals("2000-01-01", unixDateToString(10957));
+        assertEquals("2000-02-28", unixDateToString(11015));
+        assertEquals("2000-02-29", unixDateToString(11016));
+        assertEquals("2000-03-01", unixDateToString(11017));
+    }
+
+    public void testYmdToUnixDate() {
+        assertEquals(0, ymdToUnixDate(1970, 1, 1));
+        assertEquals(365, ymdToUnixDate(1971, 1, 1));
+        assertEquals(-365, ymdToUnixDate(1969, 1, 1));
+        assertEquals(11017, ymdToUnixDate(2000, 3, 1));
+    }
+
+    /** Unit test for
+     * {@link Utilities#compare(java.util.List, java.util.List)}. */
+    public void testCompare() {
+        final List<String> ac = Arrays.asList("a", "c");
+        final List<String> abc = Arrays.asList("a", "b", "c");
+        final List<String> a = Arrays.asList("a");
+        final List<String> empty = Collections.emptyList();
+        assertEquals(0, Utilities.compare(ac, ac));
+        assertEquals(0, Utilities.compare(ac, new ArrayList<String>(ac)));
+        assertEquals(-1, Utilities.compare(a, ac));
+        assertEquals(-1, Utilities.compare(empty, ac));
+        assertEquals(1, Utilities.compare(ac, a));
+        assertEquals(1, Utilities.compare(ac, abc));
+        assertEquals(1, Utilities.compare(ac, empty));
+        assertEquals(0, Utilities.compare(empty, empty));
     }
 }
 

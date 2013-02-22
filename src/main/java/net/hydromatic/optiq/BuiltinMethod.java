@@ -23,13 +23,10 @@ import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.*;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
-import net.hydromatic.optiq.runtime.Executable;
-import net.hydromatic.optiq.runtime.Typed;
+import net.hydromatic.optiq.runtime.*;
 
 import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * Builtin methods.
@@ -104,6 +101,20 @@ public enum BuiltinMethod {
         Comparator.class, "compare", Object.class, Object.class),
     COLLECTIONS_REVERSE_ORDER(
         Collections.class, "reverseOrder"),
+    MAP_PUT(
+        Map.class, "put", Object.class, Object.class),
+    MAP_GET(
+        Map.class, "get", Object.class),
+    LIST_ADD(
+        List.class, "add", Object.class),
+    ARRAY_ELEMENT(
+        SqlFunctions.class, "arrayElement", List.class, int.class),
+    MAP_ELEMENT(
+        SqlFunctions.class, "mapElement", Map.class, Object.class),
+    UPPER(
+        SqlFunctions.class, "upper", String.class),
+    LOWER(
+        SqlFunctions.class, "lower", String.class),
     MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(
         ModifiableTable.class, "getModifiableCollection");
 

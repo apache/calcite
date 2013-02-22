@@ -17,6 +17,9 @@
 */
 package net.hydromatic.optiq.runtime;
 
+import java.util.Iterator;
+import java.util.List;
+
 /**
  * Utility methods called by generated code.
  */
@@ -97,6 +100,35 @@ public class Utilities {
 
     public static int compare(double v0, double v1) {
         return Double.compare(v0, v1);
+    }
+
+    public static int compare(List v0, List v1) {
+        //noinspection unchecked
+        final Iterator iterator0 = v0.iterator();
+        final Iterator iterator1 = v1.iterator();
+        for (;;) {
+            if (!iterator0.hasNext()) {
+                return !iterator1.hasNext()
+                    ? 0
+                    : -1;
+            }
+            if (!iterator1.hasNext()) {
+                return 1;
+            }
+            final Object o0 = iterator0.next();
+            final Object o1 = iterator1.next();
+            int c = compare_(o0, o1);
+            if (c != 0) {
+                return c;
+            }
+        }
+    }
+
+    private static int compare_(Object o0, Object o1) {
+        if (o0 instanceof Comparable) {
+            return compare((Comparable) o0, (Comparable) o1);
+        }
+        return compare((List) o0, (List) o1);
     }
 
     public static int compare(Comparable v0, Comparable v1) {

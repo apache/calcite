@@ -79,16 +79,13 @@ public class SqlOverlapsOperator
 
     public SqlOperandCountRange getOperandCountRange()
     {
-        return SqlOperandCountRange.Four;
+        return SqlOperandCountRanges.of(4);
     }
 
     public String getSignatureTemplate(int operandsCount)
     {
-        if (4 == operandsCount) {
-            return "({1}, {2}) {0} ({3}, {4})";
-        }
-        assert (false);
-        return null;
+        assert 4 == operandsCount;
+        return "({1}, {2}) {0} ({3}, {4})";
     }
 
     public String getAllowedSignatures(String opName)

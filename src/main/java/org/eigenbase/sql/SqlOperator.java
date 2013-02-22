@@ -415,9 +415,8 @@ public abstract class SqlOperator
         SqlValidatorScope operandScope)
     {
         assert call.getOperator() == this;
-        final SqlNode [] operands = call.getOperands();
-        for (int i = 0; i < operands.length; i++) {
-            operands[i].validateExpr(validator, operandScope);
+        for (SqlNode operand : call.getOperands()) {
+            operand.validateExpr(validator, operandScope);
         }
     }
 
@@ -511,9 +510,8 @@ public abstract class SqlOperator
         SqlValidatorScope scope,
         SqlCall call)
     {
-        final SqlNode [] operands = call.operands;
-        for (int i = 0; i < operands.length; ++i) {
-            RelDataType nodeType = validator.deriveType(scope, operands[i]);
+        for (SqlNode operand : call.operands) {
+            RelDataType nodeType = validator.deriveType(scope, operand);
             assert nodeType != null;
         }
 
@@ -586,21 +584,19 @@ public abstract class SqlOperator
         SqlCall call)
     {
         SqlOperandCountRange od = call.getOperator().getOperandCountRange();
-        if (od.isVariadic()) {
+        if (od.isValidCount(call.operands.length)) {
             return;
         }
-        if (!od.getAllowedList().contains(call.operands.length)) {
-            if (od.getAllowedList().size() == 1) {
-                throw validator.newValidationError(
-                    call,
-                    EigenbaseResource.instance().InvalidArgCount.ex(
-                        call.getOperator().getName(),
-                        od.getAllowedList().get(0)));
-            } else {
-                throw validator.newValidationError(
-                    call,
-                    EigenbaseResource.instance().WrongNumOfArguments.ex());
-            }
+        if (od.getMin() == od.getMax()) {
+            throw validator.newValidationError(
+                call,
+                EigenbaseResource.instance().InvalidArgCount.ex(
+                    call.getOperator().getName(),
+                    od.getMin()));
+        } else {
+            throw validator.newValidationError(
+                call,
+                EigenbaseResource.instance().WrongNumOfArguments.ex());
         }
     }
 
@@ -624,7 +620,7 @@ public abstract class SqlOperator
      * Returns a string describing the expected operand types of a call, e.g.
      * "SUBSTR(VARCHAR, INTEGER, INTEGER)".
      */
-    public String getAllowedSignatures()
+    public final String getAllowedSignatures()
     {
         return getAllowedSignatures(name);
     }
@@ -632,7 +628,7 @@ public abstract class SqlOperator
     /**
      * Returns a string describing the expected operand types of a call, e.g.
      * "SUBSTRING(VARCHAR, INTEGER, INTEGER)" where the name (SUBSTRING in this
-     * example) can be replaced by a specifed name.
+     * example) can be replaced by a specified name.
      */
     public String getAllowedSignatures(String opNameToUse)
     {
@@ -669,9 +665,7 @@ public abstract class SqlOperator
      */
     public <R> R acceptCall(SqlVisitor<R> visitor, SqlCall call)
     {
-        SqlNode [] operands = call.operands;
-        for (int i = 0; i < operands.length; i++) {
-            SqlNode operand = operands[i];
+        for (SqlNode operand : call.operands) {
             if (operand == null) {
                 continue;
             }

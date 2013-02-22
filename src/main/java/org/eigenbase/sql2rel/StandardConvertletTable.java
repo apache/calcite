@@ -62,7 +62,7 @@ public class StandardConvertletTable
             new SqlRexConvertlet() {
                 public RexNode convertCall(SqlRexContext cx, SqlCall call)
                 {
-                    return convertCast(cx, (SqlCall) call);
+                    return convertCast(cx, call);
                 }
             });
         registerOp(
@@ -70,7 +70,7 @@ public class StandardConvertletTable
             new SqlRexConvertlet() {
                 public RexNode convertCall(SqlRexContext cx, SqlCall call)
                 {
-                    return convertIsDistinctFrom(cx, (SqlCall) call, false);
+                    return convertIsDistinctFrom(cx, call, false);
                 }
             });
         registerOp(
@@ -78,7 +78,7 @@ public class StandardConvertletTable
             new SqlRexConvertlet() {
                 public RexNode convertCall(SqlRexContext cx, SqlCall call)
                 {
-                    return convertIsDistinctFrom(cx, (SqlCall) call, true);
+                    return convertIsDistinctFrom(cx, call, true);
                 }
             });
 
@@ -304,6 +304,22 @@ public class StandardConvertletTable
                 cx.getRexBuilder().makeCall(SqlStdOperatorTable.sliceOp, expr);
         }
         return expr;
+    }
+
+    public RexNode convertArray(
+        SqlRexContext cx,
+        SqlArrayValueConstructor op,
+        SqlCall call)
+    {
+        return convertCall(cx, call);
+    }
+
+    public RexNode convertMap(
+        SqlRexContext cx,
+        SqlMapValueConstructor op,
+        SqlCall call)
+    {
+        return convertCall(cx, call);
     }
 
     public RexNode convertMultisetQuery(
@@ -661,80 +677,6 @@ public class StandardConvertletTable
         final SqlOperator op = call.getOperator();
         final SqlNode [] operands = call.getOperands();
         final RexBuilder rexBuilder = cx.getRexBuilder();
-        if (op instanceof SqlOverlapsOperator) {
-            // for intervals [t0, t1] overlaps [t2, t3], we can find if the
-            // intervals overlaps by: ~(t1 < t2 or t3 < t0)
-            assert operands.length == 4;
-            if (operands[1] instanceof SqlIntervalLiteral) {
-                // make t1 = t0 + t1 when t1 is an interval.
-                SqlOperator op1 = SqlStdOperatorTable.plusOperator;
-                SqlNode [] second = new SqlNode[2];
-                second[0] = operands[0];
-                second[1] = operands[1];
-                operands[1] =
-                    op1.createCall(
-                        call.getParserPosition(),
-                        second);
-            }
-            if (operands[3] instanceof SqlIntervalLiteral) {
-                // make t3 = t2 + t3 when t3 is an interval.
-                SqlOperator op1 = SqlStdOperatorTable.plusOperator;
-                SqlNode [] four = new SqlNode[2];
-                four[0] = operands[2];
-                four[1] = operands[3];
-                operands[3] =
-                    op1.createCall(
-                        call.getParserPosition(),
-                        four);
-            }
-
-            // This captures t1 >= t2
-            SqlOperator op1 = SqlStdOperatorTable.greaterThanOrEqualOperator;
-            SqlNode [] left = new SqlNode[2];
-            left[0] = operands[1];
-            left[1] = operands[2];
-            SqlCall call1 =
-                op1.createCall(
-                    call.getParserPosition(),
-                    left);
-
-            // This captures t3 >= t0
-            SqlOperator op2 = SqlStdOperatorTable.greaterThanOrEqualOperator;
-            SqlNode [] right = new SqlNode[2];
-            right[0] = operands[3];
-            right[1] = operands[0];
-            SqlCall call2 =
-                op2.createCall(
-                    call.getParserPosition(),
-                    right);
-
-            // This captures t1 >= t2 and t3 >= t0
-            SqlOperator and = SqlStdOperatorTable.andOperator;
-            SqlNode [] overlaps = new SqlNode[2];
-            overlaps[0] = call1;
-            overlaps[1] = call2;
-            SqlCall call3 =
-                and.createCall(
-                    call.getParserPosition(),
-                    overlaps);
-
-            return cx.convertExpression(call3);
-        } else if (
-            (op instanceof SqlRowOperator)
-            && (cx.getValidator().getValidatedNodeType(call).getSqlTypeName()
-                == SqlTypeName.COLUMN_LIST))
-        {
-            RexNode [] columns = new RexNode[operands.length];
-            for (int i = 0; i < columns.length; i++) {
-                columns[i] =
-                    rexBuilder.makeLiteral(
-                        ((SqlIdentifier) operands[i]).getSimple());
-            }
-            return rexBuilder.makeCall(
-                SqlStdOperatorTable.columnListConstructor,
-                columns);
-        }
-
         final RexNode [] exprs = convertExpressionList(cx, operands);
         if (op.getOperandTypeChecker()
             == SqlTypeStrategies.otcComparableUnorderedX2)
@@ -810,9 +752,7 @@ public class StandardConvertletTable
     {
         final SqlNode value = call.operands[SqlBetweenOperator.VALUE_OPERAND];
         RexNode x = cx.convertExpression(value);
-        final SqlBetweenOperator.Flag symmetric =
-            (SqlBetweenOperator.Flag) SqlLiteral.symbolValue(
-                call.operands[SqlBetweenOperator.SYMFLAG_OPERAND]);
+        final SqlBetweenOperator.Flag symmetric = op.flag;
         final SqlNode lower = call.operands[SqlBetweenOperator.LOWER_OPERAND];
         RexNode y = cx.convertExpression(lower);
         final SqlNode upper = call.operands[SqlBetweenOperator.UPPER_OPERAND];
@@ -889,6 +829,103 @@ public class StandardConvertletTable
 
         SqlLiteral sum = SqlLiteralChainOperator.concatenateOperands(call);
         return cx.convertLiteral(sum);
+    }
+
+    /**
+     * Converts a ROW.
+     *
+     * <p>Called automatically via reflection.
+     */
+    public RexNode convertRow(
+        SqlRexContext cx,
+        SqlRowOperator op,
+        SqlCall call)
+    {
+        if (cx.getValidator().getValidatedNodeType(call).getSqlTypeName()
+            != SqlTypeName.COLUMN_LIST)
+        {
+            return convertCall(cx, call);
+        }
+        final RexBuilder rexBuilder = cx.getRexBuilder();
+        final List<RexNode> columns = new ArrayList<RexNode>();
+        for (SqlNode operand : call.getOperands()) {
+            columns.add(
+                rexBuilder.makeLiteral(
+                    ((SqlIdentifier) operand).getSimple()));
+        }
+        return rexBuilder.makeCall(
+            SqlStdOperatorTable.columnListConstructor,
+            columns);
+    }
+
+    /**
+     * Converts a call to OVERLAPS.
+     *
+     * <p>Called automatically via reflection.
+     */
+    public RexNode convertOverlaps(
+        SqlRexContext cx,
+        SqlOverlapsOperator op,
+        SqlCall call)
+    {
+        // for intervals [t0, t1] overlaps [t2, t3], we can find if the
+        // intervals overlaps by: ~(t1 < t2 or t3 < t0)
+        final SqlNode [] operands = call.getOperands();
+        assert operands.length == 4;
+        if (operands[1] instanceof SqlIntervalLiteral) {
+            // make t1 = t0 + t1 when t1 is an interval.
+            SqlOperator op1 = SqlStdOperatorTable.plusOperator;
+            SqlNode [] second = new SqlNode[2];
+            second[0] = operands[0];
+            second[1] = operands[1];
+            operands[1] =
+                op1.createCall(
+                    call.getParserPosition(),
+                    second);
+        }
+        if (operands[3] instanceof SqlIntervalLiteral) {
+            // make t3 = t2 + t3 when t3 is an interval.
+            SqlOperator op1 = SqlStdOperatorTable.plusOperator;
+            SqlNode [] four = new SqlNode[2];
+            four[0] = operands[2];
+            four[1] = operands[3];
+            operands[3] =
+                op1.createCall(
+                    call.getParserPosition(),
+                    four);
+        }
+
+        // This captures t1 >= t2
+        SqlOperator op1 = SqlStdOperatorTable.greaterThanOrEqualOperator;
+        SqlNode [] left = new SqlNode[2];
+        left[0] = operands[1];
+        left[1] = operands[2];
+        SqlCall call1 =
+            op1.createCall(
+                call.getParserPosition(),
+                left);
+
+        // This captures t3 >= t0
+        SqlOperator op2 = SqlStdOperatorTable.greaterThanOrEqualOperator;
+        SqlNode [] right = new SqlNode[2];
+        right[0] = operands[3];
+        right[1] = operands[0];
+        SqlCall call2 =
+            op2.createCall(
+                call.getParserPosition(),
+                right);
+
+        // This captures t1 >= t2 and t3 >= t0
+        SqlOperator and = SqlStdOperatorTable.andOperator;
+        SqlNode [] overlaps = new SqlNode[2];
+        overlaps[0] = call1;
+        overlaps[1] = call2;
+        SqlCall call3 =
+            and.createCall(
+                call.getParserPosition(),
+                overlaps);
+
+        return cx.convertExpression(call3);
     }
 
     /**
@@ -1039,7 +1076,7 @@ public class StandardConvertletTable
 
         public RexNode convertCall(SqlRexContext cx, SqlCall call)
         {
-            return convertFloorCeil(cx, (SqlCall) call, floor);
+            return convertFloorCeil(cx, call, floor);
         }
     }
 }

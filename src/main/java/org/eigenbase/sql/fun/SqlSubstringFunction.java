@@ -172,7 +172,7 @@ public class SqlSubstringFunction
 
     public SqlOperandCountRange getOperandCountRange()
     {
-        return SqlOperandCountRange.TwoOrThree;
+        return SqlOperandCountRanges.between(2, 3);
     }
 
     public void unparse(

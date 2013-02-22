@@ -125,6 +125,20 @@ public interface RelDataType /*extends Type*/
     public RelDataType getComponentType();
 
     /**
+     * Gets the key type if this type is a map, otherwise null.
+     *
+     * @return canonical type descriptor for key
+     */
+    public RelDataType getKeyType();
+
+    /**
+     * Gets the value type if this type is a map, otherwise null.
+     *
+     * @return canonical type descriptor for value
+     */
+    public RelDataType getValueType();
+
+    /**
      * Gets this type's character set, or null if this type cannot carry a
      * character set or has no character set defined.
      *

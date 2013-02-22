@@ -27,8 +27,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.ByteString;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.sql.type.BasicSqlType;
-import org.eigenbase.sql.type.SqlTypeFactoryImpl;
+import org.eigenbase.sql.type.*;
 import org.eigenbase.util.Pair;
 
 import java.lang.reflect.Field;
@@ -65,10 +64,7 @@ public class JavaTypeFactoryImpl
                         createType(field.getType())));
             }
         }
-        return canonize(
-            new JavaRecordType(
-                list.toArray(new RelDataTypeField[list.size()]),
-                type));
+        return canonize(new JavaRecordType(list, type));
     }
 
     public RelDataType createType(Type type) {
@@ -94,20 +90,32 @@ public class JavaTypeFactoryImpl
         } else if (clazz.isArray()) {
             return createMultisetType(
                 createType(clazz.getComponentType()), -1);
+        } else if (List.class.isAssignableFrom(clazz)) {
+            return createArrayType(
+                createSqlType(SqlTypeName.ANY),
+                -1);
+        } else if (Map.class.isAssignableFrom(clazz)) {
+            return createMapType(
+                createSqlType(SqlTypeName.ANY),
+                createSqlType(SqlTypeName.ANY));
         } else {
             return createStructType(clazz);
         }
     }
 
     public Type getJavaClass(RelDataType type) {
-        if (type instanceof RelRecordType) {
-            JavaRecordType javaRecordType;
+        switch (type.getSqlTypeName()) {
+        case ROW:
+            assert type instanceof RelRecordType;
             if (type instanceof JavaRecordType) {
-                javaRecordType = (JavaRecordType) type;
-                return javaRecordType.clazz;
+                return ((JavaRecordType) type).clazz;
             } else {
                 return createSyntheticType((RelRecordType)type);
             }
+        case MAP:
+            return Map.class;
+        case ARRAY:
+            return List.class;
         }
         if (type instanceof JavaType) {
             JavaType javaType = (JavaType) type;

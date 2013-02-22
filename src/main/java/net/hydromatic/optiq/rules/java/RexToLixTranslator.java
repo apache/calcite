@@ -19,13 +19,14 @@ package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.expressions.*;
 
+import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlOperator;
+import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.BasicSqlType;
 import org.eigenbase.util.*;
@@ -108,6 +109,28 @@ public class RexToLixTranslator {
             .translate(program.getProjectList());
     }
 
+    /** Converts e.g. "anInteger" to "anInteger.intValue()". */
+    static Expression unbox(Expression expression) {
+        Primitive primitive = Primitive.ofBox(expression.getType());
+        if (primitive != null) {
+            return convert(
+                expression,
+                primitive.primitiveClass);
+        }
+        return expression;
+    }
+
+    /** Converts e.g. "anInteger" to "Integer.valueOf(anInteger)". */
+    static Expression box(Expression expression) {
+        Primitive primitive = Primitive.of(expression.getType());
+        if (primitive != null) {
+            return convert(
+                expression,
+                primitive.boxClass);
+        }
+        return expression;
+    }
+
     /** Translates a boolean expression such that null values become false. */
     Expression translateCondition(RexNode expr) {
         return translate(
@@ -140,7 +163,7 @@ public class RexToLixTranslator {
                 operand,
                 Expressions.call(
                     SqlFunctions.class,
-                    "dateToString",
+                    "unixDateToString",
                     operand));
             break;
         default:
@@ -378,6 +401,46 @@ public class RexToLixTranslator {
             }
         }
         return Expressions.convert_(operand, toType);
+    }
+
+    public Expression translateConstructor(
+        List<RexNode> operandList, SqlKind kind)
+    {
+        switch (kind) {
+        case MAP_VALUE_CONSTRUCTOR:
+            Expression map =
+                list.append(
+                    "map",
+                    Expressions.new_(LinkedHashMap.class));
+            for (int i = 0; i < operandList.size(); i++) {
+                RexNode key = operandList.get(i++);
+                RexNode value = operandList.get(i);
+                list.add(
+                    Expressions.statement(
+                        Expressions.call(
+                            map,
+                            BuiltinMethod.MAP_PUT.method,
+                            box(translate(key)),
+                            box(translate(value)))));
+            }
+            return map;
+        case ARRAY_VALUE_CONSTRUCTOR:
+            Expression lyst =
+                list.append(
+                    "list",
+                    Expressions.new_(ArrayList.class));
+            for (RexNode value : operandList) {
+                list.add(
+                    Expressions.statement(
+                        Expressions.call(
+                            lyst,
+                            BuiltinMethod.LIST_ADD.method,
+                            box(translate(value)))));
+            }
+            return lyst;
+        default:
+            throw new AssertionError("unexpected: " + kind);
+        }
     }
 
     /** Translates a field of an input to an expression. */

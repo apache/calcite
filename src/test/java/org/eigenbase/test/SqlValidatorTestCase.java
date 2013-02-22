@@ -683,9 +683,8 @@ public class SqlValidatorTestCase
             try {
                 sqlNode = parseQuery(sql);
             } catch (SqlParseException e) {
-                e.printStackTrace();
-                throw new AssertionFailedError(
-                    "Error while parsing query [" + sql + "]");
+                throw new RuntimeException(
+                    "Error while parsing query [" + sql + "]", e);
             } catch (Throwable e) {
                 e.printStackTrace();
                 throw new AssertionFailedError(
@@ -745,7 +744,7 @@ public class SqlValidatorTestCase
         public void checkIntervalConv(String sql, String expected)
         {
             SqlValidator validator = getValidator();
-            final SqlSelect n = (SqlSelect) parseAndValidate(validator, sql);
+            final SqlCall n = (SqlCall) parseAndValidate(validator, sql);
 
             SqlNode node = null;
             for (int i = 0; i < n.getOperands().length; i++) {
@@ -754,9 +753,7 @@ public class SqlValidatorTestCase
                     if (node.getKind() == SqlKind.AS) {
                         node = ((SqlCall) node).operands[0];
                     }
-                    node =
-                        ((SqlCall) ((SqlCall) node).getOperands()[0])
-                        .getOperands()[0];
+                    node = ((SqlCall) node).getOperands()[0];
                     break;
                 }
             }

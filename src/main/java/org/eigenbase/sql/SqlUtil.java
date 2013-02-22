@@ -223,7 +223,7 @@ public abstract class SqlUtil
      * @param writer Writer
      * @param operands List of 0 or more operands
      * @param emptyParens Whether to print parentheses if there are 0 operands
-     * @param quantifier
+     * @param quantifier Quantifier
      */
     public static void unparseFunctionSyntax(
         SqlOperator operator,
@@ -458,10 +458,7 @@ public abstract class SqlUtil
         while (iter.hasNext()) {
             SqlFunction function = (SqlFunction) iter.next();
             SqlOperandCountRange od = function.getOperandCountRange();
-            if (!od.isVariadic()
-                && !od.getAllowedList().contains(
-                    new Integer(argTypes.length)))
-            {
+            if (!od.isValidCount(argTypes.length)) {
                 iter.remove();
             }
         }

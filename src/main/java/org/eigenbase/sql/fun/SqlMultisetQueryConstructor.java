@@ -40,11 +40,14 @@ public class SqlMultisetQueryConstructor
 {
     //~ Constructors -----------------------------------------------------------
 
-    public SqlMultisetQueryConstructor()
-    {
+    public SqlMultisetQueryConstructor() {
+        this("MULTISET", SqlKind.MULTISET_QUERY_CONSTRUCTOR);
+    }
+
+    protected SqlMultisetQueryConstructor(String name, SqlKind kind) {
         super(
-            "MULTISET",
-            SqlKind.MULTISET_QUERY_CONSTRUCTOR,
+            name,
+            kind,
             MaxPrec,
             false,
             SqlTypeStrategies.rtiFirstArgType,

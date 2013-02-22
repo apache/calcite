@@ -36,8 +36,7 @@ public class SqlAbstractTimeFunction
     //~ Static fields/initializers ---------------------------------------------
 
     private static final SqlOperandTypeChecker otcCustom =
-        new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.OR,
+        SqlTypeStrategies.or(
             SqlTypeStrategies.otcPositiveIntLit,
             SqlTypeStrategies.otcNiladic);
 

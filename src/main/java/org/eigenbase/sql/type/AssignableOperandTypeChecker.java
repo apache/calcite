@@ -54,7 +54,7 @@ public class AssignableOperandTypeChecker
     // implement SqlOperandTypeChecker
     public SqlOperandCountRange getOperandCountRange()
     {
-        return new SqlOperandCountRange(paramTypes.length);
+        return SqlOperandCountRanges.of(paramTypes.length);
     }
 
     // implement SqlOperandTypeChecker

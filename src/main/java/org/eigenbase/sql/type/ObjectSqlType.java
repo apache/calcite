@@ -17,6 +17,8 @@
 */
 package org.eigenbase.sql.type;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
@@ -53,7 +55,7 @@ public class ObjectSqlType
         SqlTypeName typeName,
         SqlIdentifier sqlIdentifier,
         boolean nullable,
-        RelDataTypeField [] fields,
+        List<? extends RelDataTypeField> fields,
         RelDataTypeComparability comparability)
     {
         super(typeName, nullable, fields);

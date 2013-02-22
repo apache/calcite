@@ -53,15 +53,19 @@ public abstract class RelDataTypeImpl
     /**
      * Creates a RelDataTypeImpl.
      *
-     * @param fields Array of fields
+     * @param fieldList List of fields
      */
-    protected RelDataTypeImpl(RelDataTypeField [] fields)
+    protected RelDataTypeImpl(List<? extends RelDataTypeField> fieldList)
     {
-        this.fields = fields;
-        if (fields != null) {
-            fieldList = Collections.unmodifiableList(Arrays.asList(fields));
+        if (fieldList != null) {
+            // Create a defensive copy of the list.
+            this.fields =
+                fieldList.toArray(new RelDataTypeField[fieldList.size()]);
+            this.fieldList =
+                Collections.unmodifiableList(Arrays.asList(fields));
         } else {
-            fieldList = null;
+            this.fieldList = null;
+            this.fields = null;
         }
     }
 
@@ -83,8 +87,7 @@ public abstract class RelDataTypeImpl
     // implement RelDataType
     public RelDataTypeField getField(String fieldName)
     {
-        for (int i = 0; i < fields.length; i++) {
-            RelDataTypeField field = fields[i];
+        for (RelDataTypeField field : fields) {
             if (field.getName().equals(fieldName)) {
                 return field;
             }
@@ -136,6 +139,16 @@ public abstract class RelDataTypeImpl
     public RelDataType getComponentType()
     {
         // this is not a collection type
+        return null;
+    }
+
+    public RelDataType getKeyType() {
+        // this is not a map type
+        return null;
+    }
+
+    public RelDataType getValueType() {
+        // this is not a map type
         return null;
     }
 

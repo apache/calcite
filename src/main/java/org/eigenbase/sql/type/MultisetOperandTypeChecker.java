@@ -88,7 +88,7 @@ public class MultisetOperandTypeChecker
 
     public SqlOperandCountRange getOperandCountRange()
     {
-        return SqlOperandCountRange.Two;
+        return SqlOperandCountRanges.of(2);
     }
 
     public String getAllowedSignatures(SqlOperator op, String opName)

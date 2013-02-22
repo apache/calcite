@@ -95,7 +95,7 @@ public class SqlLikeOperator
 
     public SqlOperandCountRange getOperandCountRange()
     {
-        return SqlOperandCountRange.TwoOrThree;
+        return SqlOperandCountRanges.between(2, 3);
     }
 
     public boolean checkOperandTypes(
@@ -119,8 +119,8 @@ public class SqlLikeOperator
                 return false;
             }
 
-            //calc implementation should
-            //enforce the escape character length to be 1
+            // calc implementation should
+            // enforce the escape character length to be 1
             break;
         default:
             throw Util.newInternal(

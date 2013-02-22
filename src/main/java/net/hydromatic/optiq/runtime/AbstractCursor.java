@@ -87,6 +87,8 @@ abstract class AbstractCursor implements Cursor {
         case Types.TIMESTAMP:
             return new DateTimeAccessor(getter);
         case Types.JAVA_OBJECT:
+        case Types.ARRAY:
+        case Types.OTHER: // e.g. map
             return new ObjectAccessor(getter);
         default:
             throw new RuntimeException("unknown type " + type);
@@ -105,7 +107,8 @@ abstract class AbstractCursor implements Cursor {
         }
 
         public String getString() {
-            throw cannotConvert("String");
+            final Object o = getObject();
+            return o == null ? null : o.toString();
         }
 
         public boolean getBoolean() {
@@ -290,11 +293,6 @@ abstract class AbstractCursor implements Cursor {
         public boolean getBoolean() {
             return getLong() != 0d;
         }
-
-        public String getString() {
-            final Object o = getObject();
-            return o == null ? null : String.valueOf(o);
-        }
     }
 
     /**
@@ -313,11 +311,6 @@ abstract class AbstractCursor implements Cursor {
 
         public long getLong() {
             return getBoolean() ? 1 : 0;
-        }
-
-        public String getString() {
-            Boolean o = (Boolean) getObject();
-            return o == null ? null : o.toString();
         }
     }
 
@@ -441,11 +434,6 @@ abstract class AbstractCursor implements Cursor {
         public boolean getBoolean() {
             return getDouble() != 0;
         }
-
-        public String getString() {
-            final Object o = getObject();
-            return o == null ? null : String.valueOf(o);
-        }
     }
 
     /**
@@ -525,12 +513,7 @@ abstract class AbstractCursor implements Cursor {
 
         public boolean getBoolean() {
             Number number = getNumber();
-            return number == null ? false : number.doubleValue() != 0;
-        }
-
-        public String getString() {
-            Number number = getNumber();
-            return number == null ? null : number.toString();
+            return number != null && number.doubleValue() != 0;
         }
     }
 
@@ -622,12 +605,6 @@ abstract class AbstractCursor implements Cursor {
     private static class DateTimeAccessor extends AccessorImpl {
         public DateTimeAccessor(Getter getter) {
             super(getter);
-        }
-
-        @Override
-        public String getString() {
-            final Object o = getObject();
-            return o == null ? null : o.toString();
         }
     }
 

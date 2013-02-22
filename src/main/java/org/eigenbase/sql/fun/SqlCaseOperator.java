@@ -294,7 +294,7 @@ public class SqlCaseOperator
 
     public SqlOperandCountRange getOperandCountRange()
     {
-        return SqlOperandCountRange.Variadic;
+        return SqlOperandCountRanges.any();
     }
 
     public SqlSyntax getSyntax()

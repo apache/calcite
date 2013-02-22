@@ -2654,6 +2654,40 @@ public class SqlParserTest
             "(((`A` MULTISET UNION (`B` MULTISET INTERSECT `C`)) MULTISET EXCEPT `D`) MULTISET UNION `E`)");
     }
 
+    public void testMapElement()
+    {
+        checkExp("a['foo']", "`A` ['foo']");
+        checkExp("a['x' || 'y']", "`A` [('x' || 'y')]");
+        checkExp("a['foo'] ['bar']", "`A` ['foo'] ['bar']");
+        checkExp("a['foo']['bar']", "`A` ['foo'] ['bar']");
+    }
+
+    public void testArrayElement()
+    {
+        checkExp("a[1]", "`A` [1]");
+        checkExp("a[b[1]]", "`A` [`B` [1]]");
+        checkExp("a[b[1 + 2] + 3]", "`A` [(`B` [(1 + 2)] + 3)]");
+    }
+
+    public void testArrayValueConstructor()
+    {
+        checkExp("array[1, 2]", "(ARRAY [1, 2])");
+        checkExp("array [1, 2]", "(ARRAY [1, 2])"); // with space
+
+        // parser allows empty array; validator will reject it
+        checkExp("array[]", "(ARRAY [])");
+        checkExp(
+            "array[(1, 'a'), (2, 'b')]",
+            "(ARRAY [(ROW(1, 'a')), (ROW(2, 'b'))])");
+    }
+
+    public void testMapValueConstructor()
+    {
+        checkExp("map[1, 'x', 2, 'y']", "(MAP [1, 'x', 2, 'y'])");
+        checkExp("map [1, 'x', 2, 'y']", "(MAP [1, 'x', 2, 'y'])");
+        checkExp("map[]", "(MAP [])");
+    }
+
     /**
      * Runs tests for INTERVAL... YEAR that should pass both parser and
      * validator. A substantially identical set of tests exists in
@@ -5551,11 +5585,10 @@ public class SqlParserTest
             try {
                 sqlNode = parseExpression(sql);
             } catch (SqlParseException e) {
-                e.printStackTrace();
                 String message =
                     "Received error while parsing SQL '" + sql
                     + "'; error is:" + NL + e.toString();
-                throw new AssertionFailedError(message);
+                throw new RuntimeException(message, e);
             }
             return sqlNode;
         }

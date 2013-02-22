@@ -88,6 +88,23 @@ public class SqlTypeFactoryImpl
         return canonize(newType);
     }
 
+    public RelDataType createArrayType(
+        RelDataType elementType,
+        long maxCardinality)
+    {
+        assert (maxCardinality == -1);
+        ArraySqlType newType = new ArraySqlType(elementType, false);
+        return canonize(newType);
+    }
+
+    public RelDataType createMapType(
+        RelDataType keyType,
+        RelDataType valueType)
+    {
+        MapSqlType newType = new MapSqlType(keyType, valueType, false);
+        return canonize(newType);
+    }
+
     // implement RelDataTypeFactory
     public RelDataType createSqlIntervalType(
         SqlIntervalQualifier intervalQualifier)
@@ -482,7 +499,7 @@ public class SqlTypeFactoryImpl
             type.getSqlTypeName(),
             type.getSqlIdentifier(),
             nullable,
-            type.getFields(),
+            type.getFieldList(),
             type.getComparability());
     }
 

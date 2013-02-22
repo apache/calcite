@@ -36,11 +36,12 @@ public class FamilyOperandTypeChecker
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected SqlTypeFamily [] families;
+    protected final List<SqlTypeFamily> families;
 
     //~ Constructors -----------------------------------------------------------
 
-    public FamilyOperandTypeChecker(SqlTypeFamily ... families)
+    /** Package private. Create using {@link SqlTypeStrategies#family}. */
+    FamilyOperandTypeChecker(List<SqlTypeFamily> families)
     {
         this.families = families;
     }
@@ -54,7 +55,7 @@ public class FamilyOperandTypeChecker
         int iFormalOperand,
         boolean throwOnFailure)
     {
-        SqlTypeFamily family = families[iFormalOperand];
+        SqlTypeFamily family = families.get(iFormalOperand);
         if (family == SqlTypeFamily.ANY) {
             // no need to check
             return true;
@@ -87,7 +88,7 @@ public class FamilyOperandTypeChecker
         SqlCallBinding callBinding,
         boolean throwOnFailure)
     {
-        if (families.length != callBinding.getOperandCount()) {
+        if (families.size() != callBinding.getOperandCount()) {
             // assume this is an inapplicable sub-rule of a composite rule;
             // don't throw
             return false;
@@ -110,22 +111,13 @@ public class FamilyOperandTypeChecker
     // implement SqlOperandTypeChecker
     public SqlOperandCountRange getOperandCountRange()
     {
-        return new SqlOperandCountRange(families.length);
+        return SqlOperandCountRanges.of(families.size());
     }
 
     // implement SqlOperandTypeChecker
     public String getAllowedSignatures(SqlOperator op, String opName)
     {
-        return SqlUtil.getAliasedSignature(
-            op,
-            opName,
-            Arrays.asList(families));
-    }
-
-    // hack for FarragoCalcSystemTest
-    public SqlTypeFamily [] getFamilies()
-    {
-        return families;
+        return SqlUtil.getAliasedSignature(op, opName, families);
     }
 }
 

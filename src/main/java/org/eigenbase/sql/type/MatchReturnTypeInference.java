@@ -17,6 +17,9 @@
 */
 package org.eigenbase.sql.type;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
@@ -35,19 +38,9 @@ public class MatchReturnTypeInference
     //~ Instance fields --------------------------------------------------------
 
     private final int start;
-    private final SqlTypeName [] typeNames;
+    private final List<SqlTypeName> typeNames;
 
     //~ Constructors -----------------------------------------------------------
-
-    /**
-     * Returns the type at element start (zero based).
-     *
-     * @see #MatchReturnTypeInference(int, SqlTypeName[])
-     */
-    public MatchReturnTypeInference(int start)
-    {
-        this(start, SqlTypeName.ANY);
-    }
 
     /**
      * Returns the first type of typeName at or after position start (zero
@@ -55,26 +48,20 @@ public class MatchReturnTypeInference
      *
      * @see #MatchReturnTypeInference(int, SqlTypeName[])
      */
-    public MatchReturnTypeInference(int start, SqlTypeName typeName)
+    public MatchReturnTypeInference(int start, SqlTypeName... typeName)
     {
-        this(
-            start,
-            new SqlTypeName[] { typeName });
+        this(start, Arrays.asList(typeName));
     }
 
     /**
      * Returns the first type matching any type in typeNames at or after
-     * position start (zero based)
-     *
-     * @pre start>=0
-     * @pre null!=typeNames
-     * @pre typeNames.length>0
+     * position start (zero based).
      */
-    public MatchReturnTypeInference(int start, SqlTypeName [] typeNames)
+    public MatchReturnTypeInference(int start, List<SqlTypeName> typeNames)
     {
-        Util.pre(start >= 0, "start>=0");
-        Util.pre(null != typeNames, "null!=typeNames");
-        Util.pre(typeNames.length > 0, "typeNames.length>0");
+        assert start >= 0;
+        assert null != typeNames;
+        assert typeNames.size() > 0;
         this.start = start;
         this.typeNames = typeNames;
     }

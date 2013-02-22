@@ -155,6 +155,10 @@ public class RexCall
             return RexKind.Similar;
         case MULTISET_QUERY_CONSTRUCTOR:
             return RexKind.MultisetQueryConstructor;
+        case ARRAY_VALUE_CONSTRUCTOR:
+            return RexKind.ArrayValueConstructor;
+        case MAP_VALUE_CONSTRUCTOR:
+            return RexKind.MapValueConstructor;
         case NEW_SPECIFICATION:
             return RexKind.NewSpecification;
         case REINTERPRET:

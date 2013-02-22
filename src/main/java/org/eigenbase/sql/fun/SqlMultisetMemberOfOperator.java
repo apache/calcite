@@ -39,7 +39,7 @@ public class SqlMultisetMemberOfOperator
 
     public SqlMultisetMemberOfOperator()
     {
-        //TODO check if precedence is correct
+        // TODO check if precedence is correct
         super(
             "MEMBER OF",
             SqlKind.OTHER,
@@ -90,7 +90,7 @@ public class SqlMultisetMemberOfOperator
 
     public SqlOperandCountRange getOperandCountRange()
     {
-        return SqlOperandCountRange.Two;
+        return SqlOperandCountRanges.of(2);
     }
 }
 

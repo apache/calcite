@@ -278,7 +278,7 @@ public abstract class SqlTypeUtil
      * @see #isOfSameTypeName(SqlTypeName, RelDataType)
      */
     public static boolean isOfSameTypeName(
-        SqlTypeName [] typeNames,
+        List<SqlTypeName> typeNames,
         RelDataType type)
     {
         for (SqlTypeName typeName : typeNames) {
@@ -294,7 +294,7 @@ public abstract class SqlTypeUtil
      */
     public static boolean isDatetime(RelDataType type)
     {
-        return isOfSameTypeName(SqlTypeName.datetimeTypes, type);
+        return SqlTypeFamily.DATETIME.contains(type);
     }
 
     /**
@@ -302,7 +302,7 @@ public abstract class SqlTypeUtil
      */
     public static boolean isInterval(RelDataType type)
     {
-        return isOfSameTypeName(SqlTypeName.timeIntervalTypes, type);
+        return SqlTypeFamily.DATETIME_INTERVAL.contains(type);
     }
 
     /**
@@ -1120,6 +1120,25 @@ public abstract class SqlTypeUtil
         boolean nullable)
     {
         RelDataType ret = typeFactory.createMultisetType(type, -1);
+        return typeFactory.createTypeWithNullability(ret, nullable);
+    }
+
+    public static RelDataType createArrayType(
+        RelDataTypeFactory typeFactory,
+        RelDataType type,
+        boolean nullable)
+    {
+        RelDataType ret = typeFactory.createArrayType(type, -1);
+        return typeFactory.createTypeWithNullability(ret, nullable);
+    }
+
+    public static RelDataType createMapType(
+        RelDataTypeFactory typeFactory,
+        RelDataType keyType,
+        RelDataType valueType,
+        boolean nullable)
+    {
+        RelDataType ret = typeFactory.createMapType(keyType, valueType);
         return typeFactory.createTypeWithNullability(ret, nullable);
     }
 
