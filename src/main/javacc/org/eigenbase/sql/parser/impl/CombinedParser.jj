@@ -2336,7 +2336,7 @@ List Expression2(ExprContext exprContext) :
                 {
                     list.add(
                         new SqlParserUtil.ToTreeListItem(
-                            SqlStdOperatorTable.arrayElementOp, getPos()));
+                            SqlStdOperatorTable.itemOp, getPos()));
                     list.add(e);
                 }
                 |
