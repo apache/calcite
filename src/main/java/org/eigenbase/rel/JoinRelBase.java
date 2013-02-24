@@ -201,18 +201,16 @@ public abstract class JoinRelBase
         visitor.visit(right, 1, this);
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        final List<String> nameList =
-            new ArrayList<String>(Arrays.asList("left", "right", "condition"));
-        final List<Object> valueList = new ArrayList<Object>();
-        nameList.add("joinType");
-        valueList.add(joinType.name().toLowerCase());
-        if (!getSystemFieldList().isEmpty()) {
-            nameList.add("systemFields");
-            valueList.add(getSystemFieldList());
-        }
-        pw.explain(this, nameList, valueList);
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return super.explainTerms(pw)
+            .input("left", left)
+            .input("right", right)
+            .item("condition", condition)
+            .item("joinType", joinType.name().toLowerCase())
+            .itemIf(
+                "systemFields",
+                getSystemFieldList(),
+                !getSystemFieldList().isEmpty());
     }
 
     public void registerStoppedVariable(String name)

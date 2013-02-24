@@ -28,9 +28,9 @@ import org.eigenbase.util.*;
  * @author Stephan Zuercher
  * @version $Id$
  */
-public class RelTraitSet
-{
+public final class RelTraitSet extends AbstractList<RelTrait> {
     public static final RelTrait[] EMPTY_TRAITS = new RelTrait[0];
+
     //~ Instance fields --------------------------------------------------------
 
     private final Cache cache;
@@ -77,6 +77,10 @@ public class RelTraitSet
     public RelTrait getTrait(int index)
     {
         return traits[index];
+    }
+
+    public RelTrait get(int index) {
+        return getTrait(index);
     }
 
     /**

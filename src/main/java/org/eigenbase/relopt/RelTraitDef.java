@@ -75,7 +75,7 @@ public abstract class RelTraitDef<T extends RelTrait>
 
     /**
      * @return a simple name for this RelTraitDef (for use in {@link
-     * org.eigenbase.rel.RelNode#explain(RelOptPlanWriter)}).
+     * org.eigenbase.rel.RelNode#explainTerms(RelOptPlanWriter)}).
      */
     public abstract String getSimpleName();
 

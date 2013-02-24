@@ -23,6 +23,8 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
+import net.hydromatic.linq4j.Ord;
+
 
 /**
  * Relational expression which imposes a particular sort order on its input
@@ -99,29 +101,16 @@ public class SortRel
         return collations;
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        String [] terms = new String[1 + (collations.size() * 2)];
-        Object [] values = new Object[collations.size()];
-        int i = 0;
-        terms[i++] = "child";
-        for (int j = 0; j < collations.size(); ++j) {
-            terms[i++] = "sort" + j;
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        super.explainTerms(pw);
+        assert fieldExps.length == collations.size();
+        for (Ord<RexNode> ord : Ord.zip(fieldExps)) {
+            pw.item("sort" + ord.i, ord.e);
         }
-        for (int j = 0; j < collations.size(); ++j) {
-            terms[i++] = "dir" + j;
-            final RelFieldCollation collation = collations.get(j);
-            values[j] = collation.getDirection().toString();
-            switch (collation.nullDirection) {
-            case FIRST:
-                values[j] = ((String) values[j]) + "-nulls-first";
-                break;
-            case LAST:
-                values[j] = ((String) values[j]) + "-nulls-last";
-                break;
-            }
+        for (Ord<RelFieldCollation> ord : Ord.zip(collations)) {
+            pw.item("dir" + ord.i, ord.e.shortString());
         }
-        pw.explain(this, terms, values);
+        return pw;
     }
 }
 

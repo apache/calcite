@@ -105,9 +105,8 @@ public class IterCalcRel
     // TODO jvs 10-May-2004: need a computeSelfCost which takes condition into
     // account; maybe inherit from CalcRelBase?
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        program.explainCalc(this, pw);
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return program.explainCalc(super.explainTerms(pw));
     }
 
     protected String computeDigest()

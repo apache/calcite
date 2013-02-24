@@ -107,9 +107,8 @@ public final class WindowedAggregateRel
         return program;
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        program.explainCalc(this, pw);
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return program.explainCalc(super.explainTerms(pw));
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs)

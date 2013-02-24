@@ -120,17 +120,9 @@ public final class CorrelatorRel
             joinType);
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        pw.explain(
-            this,
-            new String[] {
-                "left", "right", "condition", "joinType", "correlations"
-            },
-            new Object[] {
-                joinType.name().toLowerCase(),
-                correlations
-            });
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return super.explainTerms(pw)
+            .item("correlations", correlations);
     }
 
     /**

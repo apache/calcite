@@ -27,6 +27,9 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.Pair;
 
+import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Functions;
+
 
 /**
  * <code>ValuesRelBase</code> is an abstract base class for implementations of
@@ -38,6 +41,17 @@ import org.eigenbase.util.Pair;
 public abstract class ValuesRelBase
     extends AbstractRelNode
 {
+    /** Lambda that helps render tuples as strings. */
+    private static final Function1<List<RexLiteral>,Object> F =
+        new Function1<List<RexLiteral>, Object>() {
+            public Object apply(List<RexLiteral> tuple) {
+                String s = tuple.toString();
+                assert s.startsWith("[");
+                assert s.endsWith("]");
+                return "{ " + s.substring(1, s.length() - 1) + " }";
+            }
+        };
+
     //~ Instance fields --------------------------------------------------------
 
     protected final List<List<RexLiteral>> tuples;
@@ -127,7 +141,7 @@ public abstract class ValuesRelBase
     }
 
     // implement RelNode
-    public void explain(RelOptPlanWriter pw)
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw)
     {
         // A little adapter just to get the tuples to come out
         // with curly brackets instead of square brackets.  Plus
@@ -139,20 +153,13 @@ public abstract class ValuesRelBase
             assert (s.endsWith("]"));
             renderList.add("{ " + s.substring(1, s.length() - 1) + " }");
         }
-        if (pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES) {
+        return super.explainTerms(pw)
             // For rel digest, include the row type since a rendered
             // literal may leave the type ambiguous (e.g. "null").
-            pw.explain(
-                this,
-                new String[] { "type", "tuples" },
-                new Object[] { rowType, renderList });
-        } else {
-            // For normal EXPLAIN PLAN, omit the type.
-            pw.explain(
-                this,
-                new String[] { "tuples" },
-                new Object[] { renderList });
-        }
+            .itemIf(
+                "type", rowType,
+                pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES)
+            .item("tuples", Functions.adapt(tuples, F));
     }
 }
 

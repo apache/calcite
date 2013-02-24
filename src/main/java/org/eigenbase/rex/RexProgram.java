@@ -17,6 +17,8 @@
 */
 package org.eigenbase.rex;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.*;
 
 import org.eigenbase.rel.*;
@@ -239,59 +241,29 @@ public class RexProgram
     {
         // Intended to produce similar output to explainCalc,
         // but without requiring a RelNode or RelOptPlanWriter.
-        List<String> termList = new ArrayList<String>();
-        List<Object> valueList = new ArrayList<Object>();
-        collectExplainTerms("", termList, valueList);
-        final StringBuilder buf = new StringBuilder("(");
-        for (int i = 0; i < valueList.size(); i++) {
-            if (i > 0) {
-                buf.append(", ");
-            }
-            buf.append(termList.get(i)).append("=[").append(valueList.get(i))
-            .append("]");
-        }
-        buf.append(")");
-        return buf.toString();
+        final RelOptPlanWriter pw =
+            new RelOptPlanWriter(new PrintWriter(new StringWriter()));
+        collectExplainTerms("", pw);
+        return pw.simple();
     }
 
     /**
      * Writes an explanation of the expressions in this program to a plan
      * writer.
      *
-     * @param rel Relational expression which owns this program
      * @param pw Plan writer
      */
-    public void explainCalc(
-        RelNode rel,
-        RelOptPlanWriter pw)
-    {
-        List<String> termList = new ArrayList<String>();
-        List<Object> valueList = new ArrayList<Object>();
-        termList.add("child");
-        collectExplainTerms("", termList, valueList, pw.getDetailLevel());
-
-        if ((pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES)
-            && false)
-        {
-            termList.add("type");
-            valueList.add(rel.getRowType());
-        }
-
-        // Relational expressions which contain a program should report their
-        // children in a different way than getChildExps().
-        assert rel.getChildExps().length == 0;
-        pw.explain(rel, termList, valueList);
+    public RelOptPlanWriter explainCalc(RelOptPlanWriter pw) {
+        return collectExplainTerms("", pw, pw.getDetailLevel());
     }
 
-    public void collectExplainTerms(
+    public RelOptPlanWriter collectExplainTerms(
         String prefix,
-        List<String> termList,
-        List<Object> valueList)
+        RelOptPlanWriter pw)
     {
-        collectExplainTerms(
+        return collectExplainTerms(
             prefix,
-            termList,
-            valueList,
+            pw,
             SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     }
 
@@ -300,13 +272,11 @@ public class RexProgram
      *
      * @param prefix Prefix for term names, usually the empty string, but useful
      * if a relational expression contains more than one program
-     * @param termList Output list of terms
-     * @param valueList Output list of expressions
+     * @param pw Plan writer
      */
-    public void collectExplainTerms(
+    public RelOptPlanWriter collectExplainTerms(
         String prefix,
-        List<String> termList,
-        List<Object> valueList,
+        RelOptPlanWriter pw,
         SqlExplainLevel level)
     {
         final RelDataTypeField [] inFields = inputRowType.getFields();
@@ -314,13 +284,11 @@ public class RexProgram
         assert outFields.length == projects.length : "outFields.length="
             + outFields.length
             + ", projects.length=" + projects.length;
-        termList.add(
-            prefix + "expr#0"
-            + ((inFields.length > 1) ? (".." + (inFields.length - 1)) : ""));
-        valueList.add("{inputs}");
+        pw.item(
+            prefix + "expr#0" + ((inFields.length > 1) ? (".." + (
+                inFields.length - 1)) : ""), "{inputs}");
         for (int i = inFields.length; i < exprs.length; i++) {
-            termList.add(prefix + "expr#" + i);
-            valueList.add(exprs[i]);
+            pw.item(prefix + "expr#" + i, exprs[i]);
         }
 
         // If a lot of the fields are simply projections of the underlying
@@ -340,21 +308,19 @@ public class RexProgram
             trivialCount = 0;
             break;
         default:
-            termList.add(prefix + "proj#0.." + (trivialCount - 1));
-            valueList.add("{exprs}");
+            pw.item(prefix + "proj#0.." + (trivialCount - 1), "{exprs}");
             break;
         }
 
         // Print the non-trivial fields with their names as they appear in the
         // output row type.
         for (int i = trivialCount; i < projects.length; i++) {
-            termList.add(prefix + outFields[i].getName());
-            valueList.add(projects[i]);
+            pw.item(prefix + outFields[i].getName(), projects[i]);
         }
         if (condition != null) {
-            termList.add(prefix + "$condition");
-            valueList.add(condition);
+            pw.item(prefix + "$condition", condition);
         }
+        return pw;
     }
 
     /**

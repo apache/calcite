@@ -23,6 +23,8 @@ import java.util.List;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 
+import net.hydromatic.linq4j.Ord;
+
 
 /**
  * <code>SetOpRel</code> is an abstract base for relational set operators such
@@ -76,17 +78,12 @@ public abstract class SetOpRel
         return inputs;
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        String [] terms = new String[inputs.size() + 1];
-        for (int i = 0; i < inputs.size(); i++) {
-            terms[i] = "input#" + i;
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        super.explainTerms(pw);
+        for (Ord<RelNode> ord : Ord.zip(inputs)) {
+            pw.input("input#" + ord.i, ord.e);
         }
-        terms[inputs.size()] = "all";
-        pw.explain(
-            this,
-            terms,
-            new Object[] { Boolean.valueOf(all) });
+        return pw.item("all", all);
     }
 
     protected RelDataType deriveRowType()

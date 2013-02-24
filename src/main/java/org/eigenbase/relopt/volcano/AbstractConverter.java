@@ -79,17 +79,13 @@ public class AbstractConverter
         return planner.makeInfiniteCost();
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        String [] terms = new String[traitSet.size() + 1];
-        Object [] values = new Object[traitSet.size()];
-        terms[0] = "child";
-        for (int i = 0; i < traitSet.size(); i++) {
-            terms[i + 1] = traitSet.getTrait(i).getTraitDef().getSimpleName();
-            values[i] = traitSet.getTrait(i);
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        super.explainTerms(pw)
+            .input("child", getChild());
+        for (RelTrait trait : traitSet) {
+            pw.item(trait.getTraitDef().getSimpleName(), trait);
         }
-
-        pw.explain(this, terms, values);
+        return pw;
     }
 
     //~ Inner Classes ----------------------------------------------------------

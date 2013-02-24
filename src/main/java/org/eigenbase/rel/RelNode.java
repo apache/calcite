@@ -213,6 +213,14 @@ public interface RelNode
      */
     public RelOptCost computeSelfCost(RelOptPlanner planner);
 
+    /** Describes the inputs and attributes of this relational expression.
+     * Each node should call {@code super.explain}, then call the
+     * {@link RelOptPlanWriter#input(String, RelNode)}
+     * and {@link RelOptPlanWriter#item(String, Object)} methods for each input
+     * and attribute.
+     *
+     * @param pw Plan writer
+     */
     public void explain(RelOptPlanWriter pw);
 
     /**
@@ -250,7 +258,7 @@ public interface RelNode
 
     /**
      * Returns the name of this relational expression's class, sans package
-     * name, for use in {@link #explain}. For example, for a <code>
+     * name, for use in explain. For example, for a <code>
      * org.eigenbase.rel.ArrayRel.ArrayReader</code>, this method returns
      * "ArrayReader".
      */

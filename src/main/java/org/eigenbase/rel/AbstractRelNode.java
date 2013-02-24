@@ -299,9 +299,20 @@ public abstract class AbstractRelNode
             0);
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        pw.explain(this, Util.emptyStringArray, Util.emptyObjectArray);
+    public final void explain(RelOptPlanWriter pw) {
+        explainTerms(pw).done(this);
+    }
+
+    /** Describes the inputs and attributes of this relational expression.
+     * Each node should call {@code super.explainTerms}, then call the
+     * {@link RelOptPlanWriter#input(String, RelNode)}
+     * and {@link RelOptPlanWriter#item(String, Object)} methods for each input
+     * and attribute.
+     *
+     * @param pw Plan writer
+     */
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return pw;
     }
 
     public RelNode onRegister(RelOptPlanner planner)
@@ -380,8 +391,6 @@ public abstract class AbstractRelNode
 
     /**
      * Computes the digest. Does not modify this object.
-     *
-     * @post return != null
      */
     protected String computeDigest()
     {
@@ -391,54 +400,28 @@ public abstract class AbstractRelNode
                 new PrintWriter(sw),
                 SqlExplainLevel.DIGEST_ATTRIBUTES)
             {
-                public void explain(
-                    RelNode rel,
-                    String [] terms,
-                    Object [] values)
+                protected void explain_(
+                    RelNode rel, List<Pair<String, Object>> values)
                 {
-                    List<RelNode> inputs = rel.getInputs();
-                    RexNode [] childExps = rel.getChildExps();
-                    assert terms.length
-                        == (inputs.size() + childExps.length + values.length)
-                        : "terms.length="
-                        + terms.length
-                        + " inputs.length=" + inputs.size()
-                        + " childExps.length=" + childExps.length
-                        + " values.length=" + values.length;
-                    write(getRelTypeName());
+                    pw.write(getRelTypeName());
 
-                    for (int i = 0; i < traitSet.size(); i++) {
-                        write(".");
-                        write(traitSet.getTrait(i).toString());
+                    for (RelTrait trait : traitSet) {
+                        pw.write(".");
+                        pw.write(trait.toString());
                     }
 
-                    write("(");
+                    pw.write("(");
                     int j = 0;
-                    for (int i = 0; i < inputs.size(); i++) {
-                        if (j > 0) {
-                            write(",");
+                    for (Pair<String, Object> value : values) {
+                        if (j++ > 0) {
+                            pw.write(",");
                         }
-                        write(terms[j++] + "=" + inputs.get(i).getDigest());
+                        pw.write(value.left + "=" + value.right);
                     }
-                    for (int i = 0; i < childExps.length; i++) {
-                        if (j > 0) {
-                            write(",");
-                        }
-                        RexNode childExp = childExps[i];
-                        write(terms[j++] + "=" + childExp.toString());
-                    }
-                    for (int i = 0; i < values.length; i++) {
-                        Object value = values[i];
-                        if (j > 0) {
-                            write(",");
-                        }
-                        write(terms[j++] + "=" + value);
-                    }
-                    write(")");
+                    pw.write(")");
                 }
             };
         explain(pw);
-        pw.flush();
         return sw.toString();
     }
 }

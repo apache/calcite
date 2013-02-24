@@ -479,12 +479,10 @@ public class VolcanoPlannerTest
                 new String[] { "this" });
         }
 
-        public void explain(RelOptPlanWriter pw)
+        public RelOptPlanWriter explainTerms(RelOptPlanWriter pw)
         {
-            pw.explain(
-                this,
-                new String[] { "label" },
-                new Object[] { label });
+            return super.explainTerms(pw)
+                .item("label", label);
         }
     }
 

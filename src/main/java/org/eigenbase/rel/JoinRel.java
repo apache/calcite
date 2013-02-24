@@ -146,22 +146,16 @@ public final class JoinRel
             systemFieldList);
     }
 
-    public void explain(RelOptPlanWriter pw)
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw)
     {
         // NOTE jvs 14-Mar-2006: Do it this way so that semijoin state
         // don't clutter things up in optimizers that don't use semijoins
         if (!semiJoinDone) {
-            super.explain(pw);
-            return;
+            return super.explainTerms(pw);
         }
-        pw.explain(
-            this,
-            new String[] {
-                "left", "right", "condition", "joinType", "semiJoinDone"
-            },
-            new Object[] {
-                joinType.name().toLowerCase(), semiJoinDone
-            });
+        return super.explainTerms(pw)
+            .item("joinType", joinType.name().toLowerCase())
+            .item("semiJoinDone", semiJoinDone);
     }
 
     /**

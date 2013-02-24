@@ -186,20 +186,16 @@ public abstract class TableModificationRelBase
         return inputRowType;
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        pw.explain(
-            this,
-            new String[] {
-                "child", "table", "operation", "updateColumnList",
-                "flattened"
-            },
-            new Object[] {
-                Arrays.asList(table.getQualifiedName()), getOperation(),
-                (updateColumnList == null) ? Collections.EMPTY_LIST
-                : updateColumnList,
-                flattened
-            });
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return super.explainTerms(pw)
+            .item("table", Arrays.asList(table.getQualifiedName()))
+            .item("operation", getOperation())
+            .item(
+                "updateColumnList",
+                (updateColumnList == null)
+                    ? Collections.EMPTY_LIST
+                    : updateColumnList)
+            .item("flattened", flattened);
     }
 
     // implement RelNode

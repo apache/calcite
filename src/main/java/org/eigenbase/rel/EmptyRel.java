@@ -93,19 +93,15 @@ public class EmptyRel
     }
 
     // implement RelNode
-    public void explain(RelOptPlanWriter pw)
-    {
-        if (pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES) {
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return super.explainTerms(pw)
             // For rel digest, include the row type to discriminate
             // this from other empties with different row types.
-            pw.explain(
-                this,
-                new String[] { "type", },
-                new Object[] { rowType });
-        } else {
             // For normal EXPLAIN PLAN, omit the type.
-            super.explain(pw);
-        }
+            .itemIf(
+                "type",
+                rowType,
+                pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES);
     }
 }
 

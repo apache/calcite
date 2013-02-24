@@ -68,16 +68,13 @@ public class SamplingRel
     }
 
     // implement RelNode
-    public void explain(RelOptPlanWriter pw)
-    {
-        pw.explain(
-            this,
-            new String[] { "child", "mode", "rate", "repeatableSeed" },
-            new Object[] {
-                params.isBernoulli() ? "bernoulli" : "system",
-                params.getSamplingPercentage(),
-                params.isRepeatable() ? params.getRepeatableSeed() : "-"
-            });
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return super.explainTerms(pw)
+            .item("mode", params.isBernoulli() ? "bernoulli" : "system")
+            .item("rate", params.getSamplingPercentage())
+            .item(
+                "repeatableSeed",
+                params.isRepeatable() ? params.getRepeatableSeed() : "-");
     }
 }
 

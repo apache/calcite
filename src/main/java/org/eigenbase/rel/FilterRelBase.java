@@ -107,11 +107,9 @@ public abstract class FilterRelBase
             * RelMetadataQuery.getSelectivity(child, condition);
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        pw.explain(
-            this,
-            new String[] { "child", "condition" });
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return super.explainTerms(pw)
+            .item("condition", condition);
     }
 }
 

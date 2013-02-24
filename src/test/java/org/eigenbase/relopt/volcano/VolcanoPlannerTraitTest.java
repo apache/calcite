@@ -368,12 +368,9 @@ public class VolcanoPlannerTraitTest
                 new String[] { "this" });
         }
 
-        public void explain(RelOptPlanWriter pw)
-        {
-            pw.explain(
-                this,
-                new String[] { "label" },
-                new Object[] { label });
+        public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+            return super.explainTerms(pw)
+                .item("label", label);
         }
     }
 

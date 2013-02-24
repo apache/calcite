@@ -18,11 +18,11 @@
 package org.eigenbase.relopt;
 
 import java.io.*;
-import java.util.List;
+import java.util.*;
 
 import org.eigenbase.rel.*;
-import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
+import org.eigenbase.util.Pair;
 import org.eigenbase.xom.*;
 
 
@@ -46,19 +46,21 @@ public class RelOptXmlPlanWriter
     public RelOptXmlPlanWriter(PrintWriter pw, SqlExplainLevel detailLevel)
     {
         super(pw, detailLevel);
-        xmlOutput = new XMLOutput(this);
+        xmlOutput = new XMLOutput(pw);
         xmlOutput.setGlob(true);
         xmlOutput.setCompact(false);
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public void explain(RelNode rel, String [] terms, Object [] values)
+    protected void explain_(
+        RelNode rel,
+        List<Pair<String, Object>> values)
     {
         if (generic) {
-            explainGeneric(rel, terms, values);
+            explainGeneric(rel, values);
         } else {
-            explainSpecific(rel, terms, values);
+            explainSpecific(rel, values);
         }
     }
 
@@ -88,21 +90,12 @@ public class RelOptXmlPlanWriter
      * </blockquote>
      *
      * @param rel Relational expression
-     * @param terms Names of the attributes of the plan
-     * @param values Values of the attributes of the plan
+     * @param values List of term-value pairs
      */
     private void explainGeneric(
         RelNode rel,
-        String [] terms,
-        Object [] values)
+        List<Pair<String, Object>> values)
     {
-        List<RelNode> inputs = rel.getInputs();
-        RexNode [] children = rel.getChildExps();
-        assert terms.length
-            == (inputs.size() + children.length
-                + values.length) : "terms.length=" + terms.length
-            + " inputs.length=" + inputs.size() + " children.length="
-            + children.length + " values.length=" + values.length;
         String relType = rel.getRelTypeName();
         xmlOutput.beginBeginTag("RelNode");
         xmlOutput.attribute("type", relType);
@@ -110,29 +103,27 @@ public class RelOptXmlPlanWriter
         //xmlOutput.attribute("id", rel.getId() + "");
         xmlOutput.endBeginTag("RelNode");
 
-        int j = 0;
-        for (RexNode child : children) {
+        final List<RelNode> inputs = new ArrayList<RelNode>();
+        for (Pair<String, Object> pair : values) {
+            if (pair.right instanceof RelNode) {
+                inputs.add((RelNode) pair.right);
+                continue;
+            }
+            if (pair.right == null) {
+                continue;
+            }
             xmlOutput.beginBeginTag("Property");
-            xmlOutput.attribute("name", terms[inputs.size() + j++]);
+            xmlOutput.attribute("name", pair.left);
             xmlOutput.endBeginTag("Property");
-            xmlOutput.cdata(child.toString());
+            xmlOutput.cdata(pair.right.toString());
             xmlOutput.endTag("Property");
         }
-        for (Object value : values) {
-            if (value != null) {
-                xmlOutput.beginBeginTag("Property");
-                xmlOutput.attribute("name", terms[inputs.size() + j++]);
-                xmlOutput.endBeginTag("Property");
-                xmlOutput.cdata(value.toString());
-                xmlOutput.endTag("Property");
-            }
-        }
         xmlOutput.beginTag("Inputs", null);
-        level++;
+        spacer.add(2);
         for (RelNode input : inputs) {
             input.explain(this);
         }
-        level--;
+        spacer.subtract(2);
         xmlOutput.endTag("Inputs");
         xmlOutput.endTag("RelNode");
     }
@@ -149,44 +140,30 @@ public class RelOptXmlPlanWriter
      * </pre>
      *
      * @param rel Relational expression
-     * @param terms Names of the attributes of the plan
-     * @param values Values of the attributes of the plan
+     * @param values List of term-value pairs
      */
     private void explainSpecific(
         RelNode rel,
-        String [] terms,
-        Object [] values)
+        List<Pair<String, Object>> values)
     {
-        List<RelNode> inputs = rel.getInputs();
-        RexNode [] children = rel.getChildExps();
-        assert terms.length
-            == (inputs.size() + children.length
-                + values.length) : "terms.length=" + terms.length
-            + " inputs.length=" + inputs.size() + " children.length="
-            + children.length + " values.length=" + values.length;
         String tagName = rel.getRelTypeName();
         xmlOutput.beginBeginTag(tagName);
         xmlOutput.attribute("id", rel.getId() + "");
 
-        int j = 0;
-        for (RexNode child : children) {
-            xmlOutput.attribute(
-                terms[inputs.size() + j++],
-                child.toString());
-        }
-        for (Object value : values) {
-            if (value != null) {
-                xmlOutput.attribute(
-                    terms[inputs.size() + j++],
-                    value.toString());
+        for (Pair<String, Object> value : values) {
+            if (value.right instanceof RelNode) {
+                continue;
             }
+            xmlOutput.attribute(
+                value.left,
+                value.right.toString());
         }
         xmlOutput.endBeginTag(tagName);
-        level++;
-        for (RelNode input : inputs) {
+        spacer.add(2);
+        for (RelNode input : rel.getInputs()) {
             input.explain(this);
         }
-        level--;
+        spacer.subtract(2);
     }
 }
 

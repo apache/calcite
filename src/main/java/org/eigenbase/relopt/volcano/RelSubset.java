@@ -18,7 +18,6 @@
 package org.eigenbase.relopt.volcano;
 
 import java.io.*;
-
 import java.util.*;
 import java.util.logging.*;
 
@@ -28,6 +27,8 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
+
+import net.hydromatic.linq4j.Ord;
 
 
 /**
@@ -149,29 +150,31 @@ public class RelSubset
     }
 
     // implement RelNode
-    public void explain(RelOptPlanWriter pw)
-    {
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        // Not a typical implementation of "explain". We don't gather terms &
+        // values to be printed later. We actually do the work.
         StringBuilder s = new StringBuilder();
         s.append(id).append(": RelSubset(");
-        for (int i = 0; i < traitSet.size(); i++) {
-            if (i > 0) {
+        for (Ord<RelTrait> ord : Ord.zip(traitSet)) {
+            if (ord.i > 0) {
                 s.append(", ");
             }
-            s.append(traitSet.getTrait(i));
+            s.append(ord.e);
         }
         s.append(')');
 
         pw.explainSubset(
             s.toString(),
             rels.get(0));
+        return pw;
     }
 
     protected String computeDigest()
     {
         StringBuilder digest = new StringBuilder("Subset#");
         digest.append(set.id);
-        for (int i = 0; i < traitSet.size(); i++) {
-            digest.append('.').append(traitSet.getTrait(i));
+        for (RelTrait trait : traitSet) {
+            digest.append('.').append(trait);
         }
         return digest.toString();
     }

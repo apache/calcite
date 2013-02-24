@@ -24,6 +24,8 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
+import net.hydromatic.linq4j.Ord;
+
 
 /**
  * <code>TableFunctionRelBase</code> is an abstract base class for
@@ -111,15 +113,12 @@ public abstract class TableFunctionRelBase
         return rexCall;
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        String [] terms = new String[inputs.size() + 1];
-        for (int i = 0; i < inputs.size(); i++) {
-            terms[i] = "input#" + i;
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        super.explainTerms(pw);
+        for (Ord<RelNode> ord : Ord.zip(inputs)) {
+            pw.input("input#" + ord.i, ord.e);
         }
-        terms[inputs.size()] = "invocation";
-
-        pw.explain(this, terms);
+        return pw.item("invocation", rexCall);
     }
 
     /**

@@ -27,6 +27,8 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.linq4j.Ord;
+
 
 /**
  * <code>AggregateRelBase</code> is an abstract base class for implementations
@@ -120,39 +122,19 @@ public abstract class AggregateRelBase
         return groupSet;
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        List<String> names = new ArrayList<String>();
-        List<Object> values = new ArrayList<Object>();
-        populateExplainAttributes(names, values);
-        pw.explain(this, names, values);
-    }
-
-    /**
-     * Populates attributes for EXPLAIN.
-     *
-     * @param names Names of attributes
-     * @param values Values of attributes
-     */
-    protected void populateExplainAttributes(
-        List<String> names,
-        List<Object> values)
-    {
-        names.add("child");
-        names.add("group");
-        values.add(groupSet);
-        int i = -1;
-        for (AggregateCall aggCall : aggCalls) {
-            ++i;
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        super.explainTerms(pw)
+            .item("group", groupSet);
+        for (Ord<AggregateCall> ord : Ord.zip(aggCalls)) {
             final String name;
-            if (aggCall.getName() != null) {
-                name = aggCall.getName();
+            if (ord.e.getName() != null) {
+                name = ord.e.getName();
             } else {
-                name = "agg#" + i;
+                name = "agg#" + ord.i;
             }
-            names.add(name);
-            values.add(aggCall);
+            pw.item(name, ord.e);
         }
+        return pw;
     }
 
     // implement RelNode

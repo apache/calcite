@@ -17,6 +17,7 @@
 */
 package org.eigenbase.relopt;
 
+import java.io.PrintWriter;
 import java.util.*;
 
 import org.eigenbase.rel.*;
@@ -25,33 +26,35 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.runtime.Spacer;
+
+import net.hydromatic.linq4j.Ord;
+
 
 /**
  * Callback for an expression to dump itself to.
  */
-public class RelOptPlanWriter
-    extends java.io.PrintWriter
-{
+public class RelOptPlanWriter {
     //~ Instance fields --------------------------------------------------------
 
     private boolean withIdPrefix = true;
-
+    protected final PrintWriter pw;
     private final SqlExplainLevel detailLevel;
-    int level;
+    protected final Spacer spacer = new Spacer();
+    private final List<Pair<String, Object>> values =
+        new ArrayList<Pair<String, Object>>();
 
     //~ Constructors -----------------------------------------------------------
 
-    public RelOptPlanWriter(java.io.PrintWriter pw)
-    {
+    public RelOptPlanWriter(PrintWriter pw) {
         this(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     }
 
     public RelOptPlanWriter(
-        java.io.PrintWriter pw,
+        PrintWriter pw,
         SqlExplainLevel detailLevel)
     {
-        super(pw);
-        this.level = 0;
+        this.pw = pw;
         this.detailLevel = detailLevel;
     }
 
@@ -62,24 +65,9 @@ public class RelOptPlanWriter
         withIdPrefix = b;
     }
 
-    /**
-     * Prints the plan of a given relational expression to this writer.
-     *
-     * <p>The terms and values array must be specified. Individual values may
-     * be null.</p>
-     *
-     * @param rel Relational expression
-     * @param terms Names of the attributes of the plan
-     * @param values Values of the attributes of the plan
-     *
-     * @pre rel != null
-     * @pre terms.length == rel.getChildExps().length + values.length
-     * @pre values != null
-     */
-    public void explain(
+    protected void explain_(
         RelNode rel,
-        String [] terms,
-        Object [] values)
+        List<Pair<String, Object>> values)
     {
         List<RelNode> inputs = rel.getInputs();
 
@@ -92,85 +80,66 @@ public class RelOptPlanWriter
             return;
         }
 
-        RexNode [] children = rel.getChildExps();
-        assert terms.length
-            == (inputs.size() + children.length
-                + values.length) : "terms.length=" + terms.length
-            + " inputs.length=" + inputs.size() + " children.length="
-            + children.length + " values.length=" + values.length;
-        String s;
+        StringBuilder s = new StringBuilder();
         if (withIdPrefix) {
-            s = rel.getId() + ":";
-        } else {
-            s = "";
+            s.append(rel.getId()).append(":");
         }
-        s = s + rel.getRelTypeName();
-
-        for (int i = 0; i < level; i++) {
-            print("  ");
-        }
-        print(s);
+        spacer.spaces(s);
+        s.append(rel.getRelTypeName());
         if (detailLevel != SqlExplainLevel.NO_ATTRIBUTES) {
             int j = 0;
-            for (int i = 0; i < children.length; i++) {
-                RexNode child = children[i];
-                print(
-                    ((j == 0) ? "(" : ", ")
-                    + terms[inputs.size() + j++] + "=["
-                    + child.toString() + "]");
-            }
-            for (int i = 0; i < values.length; i++) {
-                Object value = values[i];
-                print(
-                    ((j == 0) ? "(" : ", ")
-                    + terms[inputs.size() + j++] + "=["
-                    + value + "]");
+            for (Pair<String, Object> value : values) {
+                if (value.right instanceof RelNode) {
+                    continue;
+                }
+                if (j++ == 0) {
+                    s.append("(");
+                } else {
+                    s.append(", ");
+                }
+                s.append(value.left)
+                    .append("=[")
+                    .append(value.right)
+                    .append("]");
             }
             if (j > 0) {
-                print(")");
+                s.append(")");
             }
         }
         if (detailLevel == SqlExplainLevel.ALL_ATTRIBUTES) {
-            print(": rowcount = " + RelMetadataQuery.getRowCount(rel));
-            print(", cumulative cost = ");
-            print(RelMetadataQuery.getCumulativeCost(rel));
+            s.append(": rowcount = ")
+                .append(RelMetadataQuery.getRowCount(rel))
+                .append(", cumulative cost = ")
+                .append(RelMetadataQuery.getCumulativeCost(rel));
         }
-        println("");
-        level++;
+        pw.println(s);
+        spacer.add(2);
         explainInputs(inputs);
-        level--;
+        spacer.subtract(2);
     }
 
-    private void explainInputs(List<RelNode> inputs)
-    {
-        for (int i = 0; i < inputs.size(); i++) {
-            RelNode child = inputs.get(i);
-            child.explain(this);
+    private void explainInputs(List<RelNode> inputs) {
+        for (RelNode input : inputs) {
+            input.explain(this);
         }
-    }
-
-    public void explain(
-        RelNode rel,
-        String [] terms)
-    {
-        explain(rel, terms, Util.emptyStringArray);
     }
 
     /**
-     * Shorthand for {@link #explain(RelNode, String[], Object[])}.
+     * Prints an explanation of a node, with a list of (term, value) pairs.
+     *
+     * <p>The term-value pairs are generally gathered by calling
+     * {@link RelNode#explain(RelOptPlanWriter)}. Each sub-class of
+     * {@link RelNode} calls {@link #input(String, org.eigenbase.rel.RelNode)}
+     * and {@link #item(String, Object)} to declare term-value pairs.</p>
      *
      * @param rel Relational expression
-     * @param termList List of names of the attributes of the plan
-     * @param valueList List of values of the attributes of the plan
+     * @param valueList List of term-value pairs
      */
     public final void explain(
         RelNode rel,
-        List<String> termList,
-        List<Object> valueList)
+        List<Pair<String, Object>> valueList)
     {
-        String [] terms = termList.toArray(new String[termList.size()]);
-        Object [] values = valueList.toArray(new Object[valueList.size()]);
-        explain(rel, terms, values);
+        explain_(rel, valueList);
     }
 
     /**
@@ -181,16 +150,10 @@ public class RelOptPlanWriter
         String s,
         RelNode child)
     {
-        print(s);
-        level++;
+        pw.print(s);
+        spacer.add(2);
         child.explain(this);
-        level--;
-    }
-
-    public void explainTree(RelNode exp)
-    {
-        this.level = 0;
-        exp.explain(this);
+        spacer.subtract(2);
     }
 
     /**
@@ -199,6 +162,67 @@ public class RelOptPlanWriter
     public SqlExplainLevel getDetailLevel()
     {
         return detailLevel;
+    }
+
+    /** Adds an input to the explanation of the current node.
+     *
+     * @param term Term for input, e.g. "left" or "input #1".
+     * @param input Input relational expression
+     */
+    public RelOptPlanWriter input(String term, RelNode input) {
+        values.add(Pair.of(term, (Object) input));
+        return this;
+    }
+
+    /** Adds an attribute to the explanation of the current node.
+     *
+     * @param term Term for attribute, e.g. "joinType"
+     * @param value Attribute value
+     */
+    public RelOptPlanWriter item(String term, Object value) {
+        values.add(Pair.of(term, value));
+        return this;
+    }
+
+    /** Adds an input to the explanation of the current node, if a condition
+     * holds. */
+    public RelOptPlanWriter itemIf(String term, Object value, boolean condition)
+    {
+        if (condition) {
+            item(term, value);
+        }
+        return this;
+    }
+
+    /** Writes the completed explanation. */
+    public RelOptPlanWriter done(RelNode node) {
+        int i = 0;
+        for (RelNode input : node.getInputs()) {
+            assert values.get(i++).right == input;
+        }
+        for (RexNode expr : node.getChildExps()) {
+            assert values.get(i++).right == expr;
+        }
+        final List<Pair<String, Object>> valuesCopy =
+            new ArrayList<Pair<String, Object>>(values);
+        values.clear();
+        explain_(node, valuesCopy);
+        pw.flush();
+        return this;
+    }
+
+    /** Converts the collected terms and values to a string. Does not write to
+     * the parent writer. */
+    public String simple() {
+        final StringBuilder buf = new StringBuilder("(");
+        for (Ord<Pair<String, Object>> ord : Ord.zip(values)) {
+            if (ord.i > 0) {
+                buf.append(", ");
+            }
+            buf.append(ord.e.left).append("=[").append(ord.e.right).append("]");
+        }
+        buf.append(")");
+        return buf.toString();
     }
 }
 

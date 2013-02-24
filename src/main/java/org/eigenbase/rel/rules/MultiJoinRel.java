@@ -24,6 +24,8 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
+import net.hydromatic.linq4j.Ord;
+
 
 /**
  * A MultiJoinRel represents a join of N inputs, whereas other join relnodes
@@ -125,26 +127,11 @@ public final class MultiJoinRel
         return clonedMap;
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        int nInputs = inputs.size();
-        int nExtraTerms = (postJoinFilter != null) ? 6 : 5;
-        String [] terms = new String[nInputs + nExtraTerms];
-        for (int i = 0; i < nInputs; i++) {
-            terms[i] = "input#" + i;
-        }
-        terms[nInputs] = "joinFilter";
-        terms[nInputs + 1] = "isFullOuterJoin";
-        terms[nInputs + 2] = "joinTypes";
-        terms[nInputs + 3] = "outerJoinConditions";
-        terms[nInputs + 4] = "projFields";
-        if (postJoinFilter != null) {
-            terms[nInputs + 5] = "postJoinFilter";
-        }
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
         List<String> joinTypeNames = new ArrayList<String>();
         List<String> outerJoinConds = new ArrayList<String>();
         List<String> projFieldObjects = new ArrayList<String>();
-        for (int i = 0; i < nInputs; i++) {
+        for (int i = 0; i < inputs.size(); i++) {
             joinTypeNames.add(joinTypes[i].name());
             if (outerJoinConditions[i] == null) {
                 outerJoinConds.add("NULL");
@@ -158,19 +145,16 @@ public final class MultiJoinRel
             }
         }
 
-        // Note that we don't need to include the join field reference counts
-        // in the digest because that field does not change for a given set
-        // of inputs
-        Object [] objects = new Object[nExtraTerms - 1];
-        objects[0] = isFullOuterJoin;
-        objects[1] = joinTypeNames;
-        objects[2] = outerJoinConds;
-        objects[3] = projFieldObjects;
-        if (postJoinFilter != null) {
-            objects[4] = postJoinFilter;
+        super.explainTerms(pw);
+        for (Ord<RelNode> ord : Ord.zip(inputs)) {
+            pw.input("input#" + ord.i, ord.e);
         }
-
-        pw.explain(this, terms, objects);
+        return pw.item("joinFilter", joinFilter)
+            .item("isFullOuterJoin", isFullOuterJoin)
+            .item("joinTypes", joinTypeNames)
+            .item("outerJoinConditions", outerJoinConds)
+            .item("projFields", projFieldObjects)
+            .itemIf("postJoinFilter", postJoinFilter, postJoinFilter != null);
     }
 
     public RelDataType deriveRowType()

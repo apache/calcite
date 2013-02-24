@@ -136,12 +136,9 @@ public class JdbcQuery
     }
 
     // override RelNode
-    public void explain(RelOptPlanWriter pw)
-    {
-        pw.explain(
-            this,
-            new String[] { "foreignSql" },
-            new Object[] { getForeignSql() });
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return super.explainTerms(pw)
+            .item("foreignSql", getForeignSql());
     }
 
     /**

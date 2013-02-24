@@ -26,6 +26,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 
+import net.hydromatic.linq4j.Ord;
+
 
 /**
  * <code>ProjectRelBase</code> is an abstract base class for implementations of
@@ -159,17 +161,14 @@ public abstract class ProjectRelBase
         return planner.makeCost(dRows, dCpu, dIo);
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        List<String> terms = new ArrayList<String>();
-        List<Object> values = new ArrayList<Object>();
-        terms.add("child");
-        for (RelDataTypeField field : rowType.getFields()) {
-            String fieldName = field.getName();
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        super.explainTerms(pw);
+        for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFields())) {
+            String fieldName = field.e.getName();
             if (fieldName == null) {
-                fieldName = "field#" + (terms.size() - 1);
+                fieldName = "field#" + field.i;
             }
-            terms.add(fieldName);
+            pw.item(fieldName, exps[field.i]);
         }
 
         // If we're generating a digest, include the rowtype. If two projects
@@ -179,11 +178,10 @@ public abstract class ProjectRelBase
         if ((pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES)
             && false)
         {
-            terms.add("type");
-            values.add(rowType);
+            pw.item("type", rowType);
         }
 
-        pw.explain(this, terms, values);
+        return pw;
     }
 
     /**

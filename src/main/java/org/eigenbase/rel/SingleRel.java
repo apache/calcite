@@ -23,7 +23,6 @@ import java.util.List;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
-import org.eigenbase.util.*;
 
 
 /**
@@ -82,12 +81,9 @@ public abstract class SingleRel
         visitor.visit(child, 0, this);
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        pw.explain(
-            this,
-            new String[] { "child" },
-            Util.emptyObjectArray);
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return super.explainTerms(pw)
+            .input("child", getChild());
     }
 
     // override Rel

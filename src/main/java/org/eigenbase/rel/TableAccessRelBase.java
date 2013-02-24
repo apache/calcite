@@ -87,12 +87,9 @@ public abstract class TableAccessRelBase
         return table.getRowType();
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        pw.explain(
-            this,
-            new String[] { "table" },
-            new Object[] { Arrays.asList(table.getQualifiedName()) });
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return super.explainTerms(pw)
+            .item("table", Arrays.asList(table.getQualifiedName()));
     }
 
     /**

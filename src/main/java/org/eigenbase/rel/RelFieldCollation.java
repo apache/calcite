@@ -168,6 +168,17 @@ public class RelFieldCollation
                 ? ""
                 : " " + nullDirection);
     }
+
+    public String shortString() {
+        switch (nullDirection) {
+        case FIRST:
+            return direction + "-nulls-first";
+        case LAST:
+            return direction + "-nulls-last";
+        default:
+            return direction.toString();
+        }
+    }
 }
 
 // End RelFieldCollation.java

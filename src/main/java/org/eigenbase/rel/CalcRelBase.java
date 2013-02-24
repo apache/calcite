@@ -129,9 +129,8 @@ public abstract class CalcRelBase
         return RexNode.EMPTY_ARRAY;
     }
 
-    public void explain(RelOptPlanWriter pw)
-    {
-        program.explainCalc(this, pw);
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+        return program.explainCalc(super.explainTerms(pw));
     }
 }
 

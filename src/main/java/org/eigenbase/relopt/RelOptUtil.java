@@ -1905,7 +1905,6 @@ public abstract class RelOptUtil
             new RelOptPlanWriter(new PrintWriter(sw));
         planWriter.setIdPrefix(false);
         rel.explain(planWriter);
-        planWriter.flush();
         return sw.toString();
     }
 
