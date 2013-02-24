@@ -63,7 +63,7 @@ public class SqlFunctionsTest extends TestCase {
             // ok
         }
         assertEquals("a", lesser(null, "a"));
-        assertNull(lesser(null, null));
+        assertNull(lesser((Comparable) null, null));
     }
 
     public void testGreater() {
@@ -76,7 +76,7 @@ public class SqlFunctionsTest extends TestCase {
             // ok
         }
         assertEquals("a", greater(null, "a"));
-        assertNull(greater(null, null));
+        assertNull(greater((Comparable) null, null));
     }
 
     /** Test for {@link SqlFunctions#rtrim}. */
