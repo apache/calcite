@@ -204,6 +204,26 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
                 + "state_province=OR; S=67659; DC=1037\n"
                 + "state_province=WA; S=124366; DC=1828\n");
     }
+
+    public void testPlan() {
+        assertThat()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
+            .query(
+                "select c.\"state_province\"\n"
+                + "from \"foodmart\".\"customer\" as c\n"
+                + "where c.\"state_province\" = 'USA'")
+            .planContains(
+                "            public boolean moveNext() {\n"
+                + "              while (inputEnumerator.moveNext()) {\n"
+                + "                final String v = (String) ((Object[]) inputEnumerator.current())[10];\n"
+                + "                final Boolean v2 = v == null ? null : net.hydromatic.optiq.runtime.SqlFunctions.eq(v == null ? null : net.hydromatic.optiq.runtime.SqlFunctions.truncate(v, 30), \"USA\");\n"
+                + "                if (v2 != null && v2) {\n"
+                + "                  return true;\n"
+                + "                }\n"
+                + "              }\n"
+                + "              return false;\n"
+                + "            }\n");
+    }
 }
 
 // End JdbcFrontJdbcBackLinqMiddleTest.java

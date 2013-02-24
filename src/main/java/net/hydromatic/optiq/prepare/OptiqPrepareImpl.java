@@ -456,6 +456,8 @@ class OptiqPrepareImpl implements OptiqPrepare {
                 System.out.println(s);
             }
 
+            Hook.JAVA_PLAN.run(s);
+
             final Executable executable;
             try {
                 executable = (Executable)
