@@ -50,7 +50,7 @@ public class AggregateCall
      * @param distinct Whether distinct
      * @param argList List of ordinals of arguments
      * @param type Result type
-     * @param name Name
+     * @param name Name (may be null)
      */
     public AggregateCall(
         Aggregation aggregation,
@@ -124,6 +124,16 @@ public class AggregateCall
     public String getName()
     {
         return name;
+    }
+
+    /**
+     * Creates an equivalent AggregateCall that has a new name.
+     *
+     * @param name New name (may be null)
+     */
+    public AggregateCall rename(String name) {
+        // no need to copy argList - already immutable
+        return new AggregateCall(aggregation, distinct, argList, type, name);
     }
 
     public String toString()
