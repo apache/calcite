@@ -163,6 +163,17 @@
       <url>http://repo.pentaho.org/artifactory/repo</url>
       <layout>default</layout>
     </repository>
+    <repository>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+        <checksumPolicy>warn</checksumPolicy>
+      </releases>
+      <id>conjars</id>
+      <name>Conjars</name>
+      <url>http://conjars.org/repo</url>
+      <layout>default</layout>
+    </repository>
   </repositories>
 
   <build>
