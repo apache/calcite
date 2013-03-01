@@ -1001,14 +1001,11 @@ loop:
 
         public RexNode visitCall(RexCall call)
         {
-            final RexNode [] operands = call.getOperands();
-            final RexNode [] newOperands = new RexNode[operands.length];
-            for (int i = 0; i < operands.length; i++) {
-                newOperands[i] = operands[i].accept(this);
+            final List<RexNode> newOperands = new ArrayList<RexNode>();
+            for (RexNode operand : call.getOperandList()) {
+                newOperands.add(operand.accept(this));
             }
-            return call.clone(
-                call.getType(),
-                newOperands);
+            return call.clone(call.getType(), newOperands);
         }
 
         public RexNode visitOver(RexOver over)

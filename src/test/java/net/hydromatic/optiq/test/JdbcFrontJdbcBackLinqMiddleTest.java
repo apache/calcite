@@ -216,13 +216,49 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
                 "            public boolean moveNext() {\n"
                 + "              while (inputEnumerator.moveNext()) {\n"
                 + "                final String v = (String) ((Object[]) inputEnumerator.current())[10];\n"
-                + "                final Boolean v2 = v == null ? null : net.hydromatic.optiq.runtime.SqlFunctions.eq(v == null ? null : net.hydromatic.optiq.runtime.SqlFunctions.truncate(v, 30), \"USA\");\n"
-                + "                if (v2 != null && v2) {\n"
+                + "                if (v != null && net.hydromatic.optiq.runtime.SqlFunctions.eq(v, \"USA\")) {\n"
                 + "                  return true;\n"
                 + "                }\n"
                 + "              }\n"
                 + "              return false;\n"
                 + "            }\n");
+    }
+
+    public void testPlan2() {
+        assertThat()
+            .with(OptiqAssert.Config.JDBC_FOODMART)
+            .withSchema("foodmart")
+            .query(
+                "select \"customer\".\"state_province\" as \"c0\",\n"
+                + " \"customer\".\"country\" as \"c1\"\n"
+                + "from \"customer\" as \"customer\"\n"
+                + "where (\"customer\".\"country\" = 'USA')\n"
+                + "and UPPER(\"customer\".\"state_province\") = UPPER('CA')\n"
+                + "group by \"customer\".\"state_province\", \"customer\".\"country\"\n"
+                + "order by \"customer\".\"state_province\" ASC")
+            .planContains(
+                "          public boolean moveNext() {\n"
+                + "            while (inputEnumerator.moveNext()) {\n"
+                + "              final Object[] current12 = (Object[]) inputEnumerator.current();\n"
+                + "              final String v1 = (String) current12[10];\n"
+                + "              if (net.hydromatic.optiq.runtime.SqlFunctions.eq((String) current12[12], \"USA\") && (v1 != null && net.hydromatic.optiq.runtime.SqlFunctions.eq(net.hydromatic.optiq.runtime.SqlFunctions.upper(v1), net.hydromatic.optiq.runtime.SqlFunctions.trim(net.hydromatic.optiq.runtime.SqlFunctions.upper(\"CA\"))))) {\n"
+                + "                return true;\n"
+                + "              }\n"
+                + "            }\n"
+                + "            return false;\n"
+                + "          }\n");
+    }
+
+    public void testPlan3() {
+        // Plan should contain 'join'. If it doesn't, maybe int-vs-Integer
+        // data type incompatibility has caused it to use a cartesian product
+        // instead, and that would be wrong.
+        assertThat()
+            .with(OptiqAssert.Config.FOODMART_CLONE)
+            .query(
+                "select \"store\".\"store_country\" as \"c0\", sum(\"inventory_fact_1997\".\"supply_time\") as \"m0\" from \"store\" as \"store\", \"inventory_fact_1997\" as \"inventory_fact_1997\" where \"inventory_fact_1997\".\"store_id\" = \"store\".\"store_id\" group by \"store\".\"store_country\"")
+            .planContains(
+                "  final net.hydromatic.linq4j.Enumerable _inputEnumerable = root.getSubSchema(\"foodmart2\").getTable(\"store\", java.lang.Object.class).join(root.getSubSchema(\"foodmart2\").getTable(\"inventory_fact_1997\", java.lang.Object.class), new net.hydromatic.linq4j.function.Function1() {\n");
     }
 }
 

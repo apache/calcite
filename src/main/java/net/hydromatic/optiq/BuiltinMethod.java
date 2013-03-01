@@ -115,6 +115,29 @@ public enum BuiltinMethod {
         SqlFunctions.class, "upper", String.class),
     LOWER(
         SqlFunctions.class, "lower", String.class),
+    SUBSTRING(
+        SqlFunctions.class, "substring", String.class, int.class, int.class),
+    CHAR_LENGTH(
+        SqlFunctions.class, "charLength", String.class),
+    STRING_CONCAT(
+        SqlFunctions.class, "concat", String.class, String.class),
+    OVERLAY(
+        SqlFunctions.class, "overlay", String.class, String.class, int.class),
+    OVERLAY3(
+        SqlFunctions.class, "overlay", String.class, String.class, int.class,
+        int.class),
+    TRUNCATE(
+        SqlFunctions.class, "truncate", String.class, int.class),
+    TRIM(
+        SqlFunctions.class, "trim", String.class),
+    LTRIM(
+        SqlFunctions.class, "ltrim", String.class),
+    RTRIM(
+        SqlFunctions.class, "rtrim", String.class),
+    IS_TRUE(
+        SqlFunctions.class, "isTrue", Boolean.class),
+    IS_NOT_FALSE(
+        SqlFunctions.class, "isNotFalse", Boolean.class),
     MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(
         ModifiableTable.class, "getModifiableCollection");
 

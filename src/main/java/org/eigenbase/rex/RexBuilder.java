@@ -432,13 +432,17 @@ public class RexBuilder
         final SqlTypeName sqlType = type.getSqlTypeName();
         if (exp instanceof RexLiteral) {
             RexLiteral literal = (RexLiteral) exp;
-            final Comparable value = literal.getValue();
+            Comparable value = literal.getValue();
             if (RexLiteral.valueMatchesType(value, sqlType, false)
                 && (!(value instanceof NlsString)
-                    || (type instanceof BasicSqlType
-                        && type.getPrecision()
+                    || (type.getPrecision()
                        >= ((NlsString) value).getValue().length())))
             {
+                if (value instanceof NlsString
+                    && literal.getTypeName() == SqlTypeName.CHAR)
+                {
+                    value = ((NlsString) value).rtrim();
+                }
                 return makeLiteral(value, type, literal.getTypeName());
             }
         } else if (SqlTypeUtil.isInterval(type)

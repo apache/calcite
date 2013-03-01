@@ -254,9 +254,11 @@ public class RexCall
      *
      * @return New call
      */
-    public RexCall clone(RelDataType type, RexNode [] operands)
+    public RexCall clone(RelDataType type, List<RexNode> operands)
     {
-        return new RexCall(type, op, operands);
+        final RexNode[] operandList =
+            operands.toArray(new RexNode[operands.size()]);
+        return new RexCall(type, op, operandList);
     }
 }
 

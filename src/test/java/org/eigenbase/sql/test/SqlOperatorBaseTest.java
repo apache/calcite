@@ -1867,8 +1867,13 @@ public abstract class SqlOperatorBaseTest
         getTester().checkNull("cast(null as boolean)=cast(null as boolean)");
         getTester().checkNull("cast(null as integer)=1");
         getTester().checkNull("cast(null as varchar(10))='a'");
+    }
 
+    public void testEqualsOperatorInterval() {
         // Intervals
+        if (!INTERVAL) {
+            return;
+        }
         getTester().checkBoolean(
             "interval '2' day = interval '1' day",
             Boolean.FALSE);

@@ -713,7 +713,7 @@ public class StandardConvertletTable
                     }
                 });
         for (int i = 0; i < exprs.length; i++) {
-            exprs[i] = cx.getRexBuilder().ensureType(type, exprs[i], false);
+            exprs[i] = cx.getRexBuilder().ensureType(type, exprs[i], true);
         }
     }
 

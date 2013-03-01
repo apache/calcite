@@ -1043,14 +1043,12 @@ public class RexUtil
 
         public RexNode visitCall(RexCall call)
         {
-            final RexNode [] operands = call.getOperands();
-            RexNode [] normalizedOperands = new RexNode[operands.length];
+            List<RexNode> normalizedOperands = new ArrayList<RexNode>();
             int diffCount = 0;
-            for (int i = 0; i < operands.length; i++) {
-                RexNode operand = operands[i];
+            for (RexNode operand : call.getOperands()) {
                 operand.accept(this);
-                final RexNode normalizedOperand =
-                    normalizedOperands[i] = lookup(operand);
+                final RexNode normalizedOperand = lookup(operand);
+                normalizedOperands.add(normalizedOperand);
                 if (normalizedOperand != operand) {
                     ++diffCount;
                 }

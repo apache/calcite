@@ -23,6 +23,8 @@ import java.nio.charset.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 
+import net.hydromatic.optiq.runtime.SqlFunctions;
+
 
 /**
  * A string, optionally with {@link Charset character set} and {@link
@@ -146,6 +148,16 @@ public class NlsString
     public String getValue()
     {
         return value;
+    }
+
+    /** Returns a string the same as this but with spaces trimmed from the
+     * right. */
+    public NlsString rtrim() {
+        String trimmed = SqlFunctions.rtrim(value);
+        if (!trimmed.equals(value)) {
+            return new NlsString(trimmed, charsetName, collation);
+        }
+        return this;
     }
 
     /**

@@ -287,6 +287,11 @@ public class JavaRules {
         public static Expression foldAnd(List<Expression> conditions) {
             Expression e = null;
             for (Expression condition : conditions) {
+                if (condition instanceof ConstantExpression
+                    && (Boolean) ((ConstantExpression) condition).value)
+                {
+                    continue;
+                }
                 if (e == null) {
                     e = condition;
                 } else {
@@ -302,6 +307,11 @@ public class JavaRules {
         public static Expression foldOr(List<Expression> conditions) {
             Expression e = null;
             for (Expression condition : conditions) {
+                if (condition instanceof ConstantExpression
+                    && !(Boolean) ((ConstantExpression) condition).value)
+                {
+                    continue;
+                }
                 if (e == null) {
                     e = condition;
                 } else {
@@ -1818,7 +1828,8 @@ public class JavaRules {
                         RexToLixTranslator.translateLiteral(
                             pair.right,
                             pair.left.getType(),
-                            typeFactory));
+                            typeFactory,
+                            RexImpTable.NullAs.NULL));
                 }
                 expressions.add(physType.record(literals));
             }

@@ -34,8 +34,6 @@ import org.eigenbase.util.Util;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Fluid DSL for testing Optiq connections and queries.
@@ -47,7 +45,7 @@ public class OptiqAssert {
         return new AssertThat(Config.REGULAR);
     }
 
-    /** Returns a {@link junit} suite of all Optiq tests. */
+    /** Returns a {@link TestSuite junit suite} of all Optiq tests. */
     public static TestSuite suite() {
         TestSuite testSuite = new TestSuite();
         testSuite.addTestSuite(JdbcTest.class);
@@ -262,6 +260,7 @@ public class OptiqAssert {
     public static class AssertQuery {
         private final String sql;
         private ConnectionFactory connectionFactory;
+        private String plan;
 
         private AssertQuery(ConnectionFactory connectionFactory, String sql) {
             this.sql = sql;
@@ -305,22 +304,28 @@ public class OptiqAssert {
             }
         }
 
-        public void planContains(String usa) {
-            final List<String> plans = new ArrayList<String>();
+        public AssertQuery planContains(String expected) {
+            ensurePlan();
+            Assert.assertTrue(
+                "Plan [" + plan + "] contains [" + expected + "]",
+                plan.contains(expected));
+            return this;
+        }
+
+        private void ensurePlan() {
+            if (plan != null) {
+                return;
+            }
             final Hook.Closeable hook = Hook.JAVA_PLAN.add(
                 new Function1<Object, Object>() {
                     public Object apply(Object a0) {
-                        plans.add((String) a0);
+                        plan = (String) a0;
                         return null;
                     }
                 });
             try {
                 assertQuery(createConnection(), sql, null, null);
-                Assert.assertEquals(1, plans.size());
-                String plan = plans.get(0);
-                Assert.assertTrue(
-                    "Plan [" + plan + "] contains [" + usa + "]",
-                    plan.contains(usa));
+                Assert.assertNotNull(plan);
             } catch (Exception e) {
                 throw new RuntimeException(
                     "exception while executing [" + sql + "]", e);

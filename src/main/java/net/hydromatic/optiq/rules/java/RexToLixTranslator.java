@@ -27,8 +27,6 @@ import org.eigenbase.rel.Aggregation;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
-import org.eigenbase.sql.type.BasicSqlType;
 import org.eigenbase.util.*;
 
 import java.lang.reflect.Method;
@@ -63,8 +61,8 @@ public class RexToLixTranslator {
     final RexBuilder builder;
     private final RexProgram program;
     private final RexToLixTranslator.InputGetter inputGetter;
-
-    private BlockBuilder list;
+    private final BlockBuilder list;
+    private final Map<RexNode, Boolean> exprNullableMap;
 
     private static Method findMethod(
         Class<?> clazz, String name, Class... parameterTypes)
@@ -82,11 +80,26 @@ public class RexToLixTranslator {
         InputGetter inputGetter,
         BlockBuilder list)
     {
+        this(
+            program, typeFactory, inputGetter, list,
+            Collections.<RexNode, Boolean>emptyMap(),
+            new RexBuilder(typeFactory));
+    }
+
+    private RexToLixTranslator(
+        RexProgram program,
+        JavaTypeFactory typeFactory,
+        InputGetter inputGetter,
+        BlockBuilder list,
+        Map<RexNode, Boolean> exprNullableMap,
+        RexBuilder builder)
+    {
         this.program = program;
         this.typeFactory = typeFactory;
         this.inputGetter = inputGetter;
         this.list = list;
-        this.builder = new RexBuilder(typeFactory);
+        this.exprNullableMap = exprNullableMap;
+        this.builder = builder;
     }
 
     /**
@@ -133,31 +146,33 @@ public class RexToLixTranslator {
 
     /** Translates a boolean expression such that null values become false. */
     Expression translateCondition(RexNode expr) {
-        return translate(
-            builder.makeCall(
-                SqlStdOperatorTable.isTrueOperator, expr));
+        return translate(expr, RexImpTable.NullAs.FALSE);
     }
 
     Expression translate(RexNode expr) {
-        return translate(expr, expr.getType().isNullable());
+        final RexImpTable.NullAs nullAs =
+            RexImpTable.NullAs.of(isNullable(expr));
+        return translate(expr, nullAs);
     }
 
-    Expression translate(RexNode expr, boolean mayBeNull) {
-        Expression expression = translate0(expr, mayBeNull);
+    Expression translate(RexNode expr, RexImpTable.NullAs nullAs) {
+        Expression expression = translate0(expr, nullAs);
         assert expression != null;
         return list.append("v", expression);
     }
 
-    Expression translateCast(RexNode expr, RelDataType type) {
+    Expression translateCast(RexNode expr, RelDataType targetType) {
         // It's only possible for the result to be null if both expression and
         // target type are nullable. We assume that the caller did not make a
         // mistake. If expression looks nullable, caller WILL have checked that
         // expression is not null before calling us.
-        final boolean mayBeNull =
-            expr.getType().isNullable() && type.isNullable();
-        Expression operand = translate(expr, mayBeNull);
-        final Expression convert;
-        switch (expr.getType().getSqlTypeName()) {
+        final RelDataType sourceType = expr.getType();
+        final RexImpTable.NullAs nullAs =
+            RexImpTable.NullAs.of(
+                sourceType.isNullable() && targetType.isNullable());
+        Expression operand = translate(expr, nullAs);
+        Expression convert;
+        switch (sourceType.getSqlTypeName()) {
         case DATE:
             convert = RexImpTable.optimize2(
                 operand,
@@ -167,21 +182,39 @@ public class RexToLixTranslator {
                     operand));
             break;
         default:
-            convert = convert(operand, typeFactory.getJavaClass(type));
+            convert = convert(operand, typeFactory.getJavaClass(targetType));
         }
-        switch (type.getSqlTypeName()) {
+        // Going from CHAR(n), trim.
+        switch (sourceType.getSqlTypeName()) {
+        case CHAR:
+            convert = Expressions.call(
+                BuiltinMethod.TRIM.method, convert);
+        }
+        // Going from anything to CHAR(n) or VARCHAR(n), make sure value is no
+        // longer than n.
+        truncate:
+        switch (targetType.getSqlTypeName()) {
         case CHAR:
         case VARCHAR:
-            if (type instanceof BasicSqlType
-                && type.getPrecision() >= 0)
-            {
-                return RexImpTable.optimize2(
-                    convert,
-                    Expressions.call(
-                        SqlFunctions.class,
-                        "truncate",
-                        convert,
-                        Expressions.constant(type.getPrecision())));
+            final int targetPrecision = targetType.getPrecision();
+            if (targetPrecision >= 0) {
+                switch (sourceType.getSqlTypeName()) {
+                case CHAR:
+                case VARCHAR:
+                    // If this is a widening cast, no need to truncate.
+                    final int sourcePrecision = sourceType.getPrecision();
+                    if (sourcePrecision >= 0
+                        && sourcePrecision <= targetPrecision)
+                    {
+                        break truncate;
+                    }
+                default:
+                    convert =
+                        Expressions.call(
+                            BuiltinMethod.TRUNCATE.method,
+                            convert,
+                            Expressions.constant(targetPrecision));
+                }
             }
         }
         return convert;
@@ -190,23 +223,24 @@ public class RexToLixTranslator {
     /** Translates an expression that is not in the cache.
      *
      * @param expr Expression
-     * @param mayBeNull If false, if expression is definitely not null at
+     * @param nullAs If false, if expression is definitely not null at
      *   runtime. Therefore we can optimize. For example, we can cast to int
      *   using x.intValue().
      * @return Translated expression
      */
-    private Expression translate0(RexNode expr, boolean mayBeNull) {
+    private Expression translate0(RexNode expr, RexImpTable.NullAs nullAs) {
         if (expr instanceof RexInputRef) {
             final int index = ((RexInputRef) expr).getIndex();
-            return inputGetter.field(list, index);
+            Expression x = inputGetter.field(list, index);
+            return nullAs.handle(list.append("v", x));
         }
         if (expr instanceof RexLocalRef) {
             return translate(
                 program.getExprList().get(((RexLocalRef) expr).getIndex()),
-                mayBeNull);
+                nullAs);
         }
         if (expr instanceof RexLiteral) {
-            return translateLiteral(expr, null, typeFactory);
+            return translateLiteral(expr, null, typeFactory, nullAs);
         }
         if (expr instanceof RexCall) {
             final RexCall call = (RexCall) expr;
@@ -214,7 +248,7 @@ public class RexToLixTranslator {
             RexImpTable.CallImplementor implementor =
                 RexImpTable.INSTANCE.get(operator);
             if (implementor != null) {
-                return implementor.implement(this, call, mayBeNull);
+                return implementor.implement(this, call, nullAs);
             }
         }
         switch (expr.getKind()) {
@@ -228,10 +262,27 @@ public class RexToLixTranslator {
     public static Expression translateLiteral(
         RexNode expr,
         RelDataType type,
-        JavaTypeFactory typeFactory)
+        JavaTypeFactory typeFactory,
+        RexImpTable.NullAs nullAs)
     {
         Type javaClass = typeFactory.getJavaClass(expr.getType());
         final RexLiteral literal = (RexLiteral) expr;
+        switch (nullAs) {
+        case IS_NOT_NULL:
+            return Expressions.constant(literal.getValue() != null);
+        case IS_NULL:
+            return Expressions.constant(literal.getValue() == null);
+        case TRUE:
+            if (literal.getValue() == null) {
+                return Expressions.constant(true);
+            }
+            break;
+        case FALSE:
+            if (literal.getValue() == null) {
+                return Expressions.constant(false);
+            }
+            break;
+        }
         switch (literal.getType().getSqlTypeName()) {
         case DECIMAL:
             assert javaClass == BigDecimal.class;
@@ -262,6 +313,17 @@ public class RexToLixTranslator {
         }
     }
 
+    public List<Expression> translateList(
+        List<RexNode> operandList,
+        RexImpTable.NullAs nullAs)
+    {
+        final List<Expression> list = new ArrayList<Expression>();
+        for (RexNode rex : operandList) {
+            list.add(translate(rex, nullAs));
+        }
+        return list;
+    }
+
     List<Expression> translateList(List<RexNode> operandList) {
         final List<Expression> list = new ArrayList<Expression>();
         for (RexNode rex : operandList) {
@@ -290,8 +352,7 @@ public class RexToLixTranslator {
             return Expressions.constant(true);
         }
         final RexToLixTranslator translator =
-            new RexToLixTranslator(
-                program, typeFactory, inputGetter, list);
+            new RexToLixTranslator(program, typeFactory, inputGetter, list);
         return translator.translateCondition(program.getCondition());
     }
 
@@ -441,6 +502,37 @@ public class RexToLixTranslator {
         default:
             throw new AssertionError("unexpected: " + kind);
         }
+    }
+
+    /** Returns whether an expression is nullable. Even if its type says it is
+     * nullable, if we have previously generated a check to make sure that it is
+     * not null, we will say so.
+     *
+     * <p>For example, {@code WHERE a == b} translates to
+     * {@code a != null && b != null && a.equals(b)}. When translating the
+     * 3rd part of the disjunction, we already know a and b are not null.</p>
+     *
+     * @param e Expression
+     * @return Whether expression is nullable in the current translation context
+     */
+    public boolean isNullable(RexNode e) {
+        final Boolean b = exprNullableMap.get(e);
+        if (b != null) {
+            return b;
+        }
+        return e.getType().isNullable();
+    }
+
+    /** Creates a read-only copy of this translator that records that a given
+     * expression is nullable. */
+    public RexToLixTranslator setNullable(RexNode e, boolean nullable) {
+        // TODO: use linked-list, to avoid copying whole map & translator
+        // each time
+        final Map<RexNode, Boolean> map =
+            new HashMap<RexNode, Boolean>(exprNullableMap);
+        map.put(e, nullable);
+        return new RexToLixTranslator(
+            program, typeFactory, inputGetter, list, map, builder);
     }
 
     /** Translates a field of an input to an expression. */

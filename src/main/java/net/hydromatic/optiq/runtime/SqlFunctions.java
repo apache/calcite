@@ -149,17 +149,22 @@ public class SqlFunctions {
 
     // =
 
-    /** SQL = operator applied to Object values (including String; either
+    /** SQL = operator applied to Object values (including String; neither
      * side may be null). */
-    public static Boolean eq(Object b0, Object b1) {
-        return /* (b0 == null || b1 == null) ? null : */ b0.equals(b1);
+    public static boolean eq(Object b0, Object b1) {
+        return b0.equals(b1);
+    }
+
+    /** SQL = operator applied to BigDecimal values (neither may be null). */
+    public static boolean eq(BigDecimal b0, BigDecimal b1) {
+        return b0.stripTrailingZeros().equals(b1.stripTrailingZeros());
     }
 
     // <>
 
     /** SQL &lt;&gt; operator applied to Object values (including String;
      * neither side may be null). */
-    public static Boolean ne(Object b0, Object b1) {
+    public static boolean ne(Object b0, Object b1) {
         return !b0.equals(b1);
     }
 
@@ -583,6 +588,16 @@ public class SqlFunctions {
      * array and index are not null. Index is 1-based, per SQL. */
     public static Object mapElement(Map map, Object item) {
         return map.get(item);
+    }
+
+    /** NULL -> FALSE, FALSE -> FALSE, TRUE -> TRUE. */
+    public static boolean isTrue(Boolean b) {
+        return b != null && b;
+    }
+
+    /** NULL -> TRUE, FALSE -> FALSE, TRUE -> TRUE. */
+    public static boolean isNotFalse(Boolean b) {
+        return b == null || b;
     }
 }
 
