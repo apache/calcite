@@ -96,10 +96,13 @@ public class RexImpTable {
         defineBinary(notEqualsOperator, NotEqual, NullPolicy.STRICT, "ne");
 
         // arithmetic
-        defineMethod(plusOperator, "plus", NullPolicy.STRICT);
-        defineMethod(minusOperator, "minus", NullPolicy.STRICT);
-        defineMethod(multiplyOperator, "multiply", NullPolicy.STRICT);
-        defineMethod(divideOperator, "divide", NullPolicy.STRICT);
+        defineBinary(plusOperator, Add, NullPolicy.STRICT, "plus");
+        defineBinary(minusOperator, Subtract, NullPolicy.STRICT, "minus");
+        defineBinary(multiplyOperator, Multiply, NullPolicy.STRICT, "multiply");
+        defineBinary(divideOperator, Divide, NullPolicy.STRICT, "divide");
+        defineUnary(prefixMinusOperator, Negate, NullPolicy.STRICT);
+        defineUnary(prefixPlusOperator, UnaryPlus, NullPolicy.STRICT);
+
         defineMethod(modFunc, "mod", NullPolicy.STRICT);
         defineMethod(expFunc, "exp", NullPolicy.STRICT);
         defineMethod(powerFunc, "power", NullPolicy.STRICT);

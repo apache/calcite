@@ -202,6 +202,7 @@ public class RexLiteral
             // fall through
         case DECIMAL:
         case DOUBLE:
+        case FLOAT:
         case REAL:
         case BIGINT:
             return value instanceof BigDecimal;

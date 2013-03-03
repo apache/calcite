@@ -1825,9 +1825,6 @@ public abstract class SqlOperatorBaseTest
         getTester().checkScalarExact("10 / 5", "2");
         getTester().checkScalarExact("-10 / 5", "-2");
         getTester().checkScalarExact("1 / 3", "0");
-        if (!enable) {
-            return;
-        }
         getTester().checkScalarApprox(
             " cast(10.0 as double) / 5",
             "DOUBLE NOT NULL",
@@ -1846,27 +1843,33 @@ public abstract class SqlOperatorBaseTest
         getTester().checkScalarExact(
             "10.0 / 5.0",
             "DECIMAL(9, 6) NOT NULL",
-            "2.000000");
-        getTester().checkScalarExact(
-            "1.0 / 3.0",
-            "DECIMAL(8, 6) NOT NULL",
-            "0.333333");
-        getTester().checkScalarExact(
-            "100.1 / 0.0001",
-            "DECIMAL(14, 7) NOT NULL",
-            "1001000.0000000");
-        getTester().checkScalarExact(
-            "100.1 / 0.00000001",
-            "DECIMAL(19, 8) NOT NULL",
-            "10010000000.00000000");
+            "2");
+        if (DECIMAL) {
+            getTester().checkScalarExact(
+                "1.0 / 3.0",
+                "DECIMAL(8, 6) NOT NULL",
+                "0.333333");
+            getTester().checkScalarExact(
+                "100.1 / 0.0001",
+                "DECIMAL(14, 7) NOT NULL",
+                "1001000.0000000");
+            getTester().checkScalarExact(
+                "100.1 / 0.00000001",
+                "DECIMAL(19, 8) NOT NULL",
+                "10010000000.00000000");
+        }
         getTester().checkNull("1e1 / cast(null as float)");
 
         getTester().checkFails(
             "100.1 / 0.00000000000000001",
             outOfRangeMessage,
             true);
+    }
 
-        // Intervals
+    public void testDivideOperatorIntervals() {
+        if (!INTERVAL) {
+            return;
+        }
         getTester().checkScalar(
             "interval '-2:2' hour to minute / 3",
             "-0:40",
@@ -2382,9 +2385,6 @@ public abstract class SqlOperatorBaseTest
         getTester().checkScalarExact("-2-1", "-3");
         getTester().checkScalarExact("-2-1-5", "-8");
         getTester().checkScalarExact("2-1", "1");
-        if (!enable) {
-            return;
-        }
         getTester().checkScalarApprox(
             "cast(2.0 as double) -1",
             "DOUBLE NOT NULL",
@@ -2556,9 +2556,6 @@ public abstract class SqlOperatorBaseTest
         getTester().checkScalarExact("2*-3", "-6");
         getTester().checkScalarExact("+2*3", "6");
         getTester().checkScalarExact("2*0", "0");
-        if (!enable) {
-            return;
-        }
         getTester().checkScalarApprox(
             "cast(2.0 as float)*3",
             "FLOAT NOT NULL",
@@ -2727,9 +2724,6 @@ public abstract class SqlOperatorBaseTest
         getTester().checkScalarExact("1+2", "3");
         getTester().checkScalarExact("-1+2", "1");
         getTester().checkScalarExact("1+2+3", "6");
-        if (!enable) {
-            return;
-        }
         getTester().checkScalarApprox(
             "1+cast(2.0 as double)",
             "DOUBLE NOT NULL",
@@ -2756,7 +2750,7 @@ public abstract class SqlOperatorBaseTest
             "19.68 + cast(4.2 as float)",
             "DOUBLE NOT NULL",
             23.88,
-            0);
+            0.02);
         getTester().checkNull("cast(null as tinyint)+1");
         getTester().checkNull("1e-2+cast(null as double)");
 
@@ -2961,9 +2955,6 @@ public abstract class SqlOperatorBaseTest
             "DECIMAL(3, 2) NOT NULL",
             "-1.23");
         getTester().checkScalarApprox("-1.0e0", "DOUBLE NOT NULL", -1, 0);
-        if (!enable) {
-            return;
-        }
         getTester().checkNull("-cast(null as integer)");
         getTester().checkNull("-cast(null as tinyint)");
     }

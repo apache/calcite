@@ -70,6 +70,7 @@ abstract class AbstractCursor implements Cursor {
         case Types.BOOLEAN:
             return new BooleanAccessor(getter);
         case Types.FLOAT:
+        case Types.REAL:
             return new FloatAccessor(getter);
         case Types.DOUBLE:
             return new DoubleAccessor(getter);
@@ -91,7 +92,7 @@ abstract class AbstractCursor implements Cursor {
         case Types.OTHER: // e.g. map
             return new ObjectAccessor(getter);
         default:
-            throw new RuntimeException("unknown type " + type);
+            throw new RuntimeException("unknown type " + type.type);
         }
     }
 
