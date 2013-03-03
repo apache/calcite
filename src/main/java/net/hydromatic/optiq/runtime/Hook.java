@@ -38,11 +38,11 @@ public enum Hook {
 
     /** Adds a handler for this Hook.
      *
-     * <p>Returns an {@link AutoCloseable} so that you can use the following
+     * <p>Returns a {@link Hook.Closeable} so that you can use the following
      * try-finally pattern to prevent leaks:</p>
      *
      * <blockquote><pre>
-     *     final AutoCloseable closeable = Hook.FOO.add(HANDLER);
+     *     final Hook.Closeable closeable = Hook.FOO.add(HANDLER);
      *     try {
      *         ...
      *     } finally {
@@ -71,8 +71,13 @@ public enum Hook {
         }
     }
 
-    /** Removes a Hook after use. */
-    public interface Closeable extends AutoCloseable {
+    /** Removes a Hook after use.
+     *
+     * <p>Note: Although it would be convenient, this interface cannot extend
+     * {@code AutoCloseable} while Optiq maintains compatibility with
+     * JDK 1.6.</p>
+     */
+    public interface Closeable /*extends AutoCloseable*/ {
         void close(); // override, removing "throws"
     }
 }
