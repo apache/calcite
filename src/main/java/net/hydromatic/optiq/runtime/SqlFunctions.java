@@ -43,12 +43,9 @@ public class SqlFunctions {
         return s.substring(from - 1, Math.min(from - 1 + for_, s.length()));
     }
 
-    /** SQL SUBSTRING(string FROM ... FOR ...) function; nullable arguments. */
-    public static String substring(String s, Integer from, Integer for_) {
-        if (s == null || from == null || for_ == null) {
-            return null;
-        }
-        return substring(s, from.intValue(), for_.intValue());
+    /** SQL SUBSTRING(string FROM ...) function. */
+    public static String substring(String s, int from) {
+        return s.substring(from - 1);
     }
 
     /** SQL UPPER(string) function. */
@@ -577,7 +574,7 @@ public class SqlFunctions {
 
     /** Helper for "array element reference". Caller has already ensured that
      * array and index are not null. Index is 1-based, per SQL. */
-    public static Object arrayElement(List list, int item) {
+    public static Object arrayItem(List list, int item) {
         if (item < 1 || item > list.size()) {
             return null;
         }
@@ -586,8 +583,22 @@ public class SqlFunctions {
 
     /** Helper for "map element reference". Caller has already ensured that
      * array and index are not null. Index is 1-based, per SQL. */
-    public static Object mapElement(Map map, Object item) {
+    public static Object mapItem(Map map, Object item) {
         return map.get(item);
+    }
+
+    /** Implements the {@code [ ... ]} operator on an object whose type is not
+     * known until runtime.
+     */
+    public static Object item(Object object, Object index) {
+        if (object instanceof Map) {
+            return ((Map) object).get(index);
+        }
+        if (object instanceof List && index instanceof Number) {
+            List list = (List) object;
+            return list.get(((Number) index).intValue());
+        }
+        return null;
     }
 
     /** NULL -> FALSE, FALSE -> FALSE, TRUE -> TRUE. */

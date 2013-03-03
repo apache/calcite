@@ -107,10 +107,12 @@ public enum BuiltinMethod {
         Map.class, "get", Object.class),
     LIST_ADD(
         List.class, "add", Object.class),
-    ARRAY_ELEMENT(
-        SqlFunctions.class, "arrayElement", List.class, int.class),
-    MAP_ELEMENT(
-        SqlFunctions.class, "mapElement", Map.class, Object.class),
+    ARRAY_ITEM(
+        SqlFunctions.class, "arrayItem", List.class, int.class),
+    MAP_ITEM(
+        SqlFunctions.class, "mapItem", Map.class, Object.class),
+    ANY_ITEM(
+        SqlFunctions.class, "item", Object.class, Object.class),
     UPPER(
         SqlFunctions.class, "upper", String.class),
     LOWER(

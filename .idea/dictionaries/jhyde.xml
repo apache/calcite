@@ -14,6 +14,7 @@
       <w>splunk</w>
       <w>sqlxml</w>
       <w>struct</w>
+      <w>subqueries</w>
       <w>unary</w>
     </words>
   </dictionary>

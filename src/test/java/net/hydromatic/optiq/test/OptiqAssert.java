@@ -28,7 +28,6 @@ import junit.framework.TestSuite;
 
 import org.eigenbase.sql.test.SqlOperatorTest;
 import org.eigenbase.test.SqlToRelConverterTest;
-import org.eigenbase.util.Bug;
 import org.eigenbase.util.Util;
 
 import java.io.PrintWriter;
@@ -56,10 +55,7 @@ public class OptiqAssert {
         testSuite.addTestSuite(SqlToRelConverterTest.class);
         testSuite.addTestSuite(SqlFunctionsTest.class);
         testSuite.addTestSuite(SqlOperatorTest.class);
-        if (Bug.TodoFixed) {
-            // 96 failures currently
-            testSuite.addTestSuite(OptiqSqlOperatorTest.class);
-        }
+        testSuite.addTestSuite(OptiqSqlOperatorTest.class);
         return testSuite;
     }
 

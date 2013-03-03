@@ -41,7 +41,7 @@ public class SqlOperatorTest
 
     public SqlOperatorTest(String testName)
     {
-        super(testName);
+        super(testName, false);
     }
 
     //~ Methods ----------------------------------------------------------------

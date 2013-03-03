@@ -33,7 +33,8 @@ class SqlItemOperator extends SqlSpecialOperator {
     private static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
         SqlTypeStrategies.or(
             SqlTypeStrategies.family(SqlTypeFamily.ARRAY),
-            SqlTypeStrategies.family(SqlTypeFamily.MAP));
+            SqlTypeStrategies.family(SqlTypeFamily.MAP),
+            SqlTypeStrategies.family(SqlTypeFamily.ANY));
 
     public SqlItemOperator() {
         super("ITEM", SqlKind.OTHER_FUNCTION, 4, true, null, null, null);
@@ -90,19 +91,25 @@ class SqlItemOperator extends SqlSpecialOperator {
             return false;
         }
         final RelDataType operandType = callBinding.getOperandType(0);
-        final FamilyOperandTypeChecker checker;
-        switch (operandType.getSqlTypeName()) {
-        case ARRAY:
-            checker = SqlTypeStrategies.family(SqlTypeFamily.INTEGER);
-            break;
-        default:
-        case MAP:
-            checker = SqlTypeStrategies.family(
-                operandType.getKeyType().getSqlTypeName().getFamily());
-            break;
-        }
+        final SqlSingleOperandTypeChecker checker = getChecker(operandType);
         return checker.checkSingleOperandType(
             callBinding, callBinding.getCall().operands[1], 0, throwOnFailure);
+    }
+
+    private SqlSingleOperandTypeChecker getChecker(RelDataType operandType) {
+        switch (operandType.getSqlTypeName()) {
+        case ARRAY:
+            return SqlTypeStrategies.family(SqlTypeFamily.INTEGER);
+        case MAP:
+            return SqlTypeStrategies.family(
+                operandType.getKeyType().getSqlTypeName().getFamily());
+        case ANY:
+            return SqlTypeStrategies.or(
+                SqlTypeStrategies.family(SqlTypeFamily.INTEGER),
+                SqlTypeStrategies.family(SqlTypeFamily.CHARACTER));
+        default:
+            throw new AssertionError(operandType.getSqlTypeName());
+        }
     }
 
     @Override
@@ -119,6 +126,8 @@ class SqlItemOperator extends SqlSpecialOperator {
             return operandType.getComponentType();
         case MAP:
             return operandType.getValueType();
+        case ANY:
+            return opBinding.getTypeFactory().createSqlType(SqlTypeName.ANY);
         default:
             throw new AssertionError();
         }

@@ -34,7 +34,7 @@ public class OptiqSqlOperatorTest extends SqlOperatorBaseTest {
     private static SqlTester STATIC_TESTER;
 
     public OptiqSqlOperatorTest(String testName) {
-        super(testName);
+        super(testName, false);
     }
 
     @Override

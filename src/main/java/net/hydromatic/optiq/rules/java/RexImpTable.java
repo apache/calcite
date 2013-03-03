@@ -113,8 +113,10 @@ public class RexImpTable {
         map.put(isNotFalseOperator, new IsXxxImplementor(false, true));
         map.put(caseOperator, new CaseImplementor());
         defineImplementor(
-            SqlStdOperatorTable.castFunc, NullPolicy.STRICT,
-            new CastImplementor(), false);
+            SqlStdOperatorTable.castFunc,
+            NullPolicy.STRICT,
+            new CastImplementor(),
+            false);
 
         final CallImplementor value = new ValueConstructorImplementor();
         map.put(SqlStdOperatorTable.mapValueConstructor, value);
@@ -145,7 +147,7 @@ public class RexImpTable {
         map.put(operator, callImplementor);
     }
 
-    private RexCall call2(
+    private static RexCall call2(
         boolean harmonize,
         RexToLixTranslator translator,
         RexCall call)
@@ -173,29 +175,9 @@ public class RexImpTable {
                 public Expression implement(
                     RexToLixTranslator translator, RexCall call, NullAs nullAs)
                 {
-                    switch (nullAs) {
-                    case IS_NOT_NULL:
-                        // If "f" is strict, then "f(a0, a1) IS NOT NULL" is
-                        // equivalent to "a0 IS NOT NULL AND a1 IS NOT NULL".
-                        if (nullPolicy == NullPolicy.STRICT) {
-                            return JavaRules.EnumUtil.foldAnd(
-                                translator.translateList(
-                                    call.getOperandList(), nullAs));
-                        }
-                        break;
-                    case IS_NULL:
-                        // If "f" is strict, then "f(a0, a1) IS NULL" is
-                        // equivalent to "a0 IS NULL OR a1 IS NULL".
-                        if (nullPolicy == NullPolicy.STRICT) {
-                            return JavaRules.EnumUtil.foldOr(
-                                translator.translateList(
-                                    call.getOperandList(), nullAs));
-                        }
-                        break;
-                    }
-                    final RexCall call2 = call2(harmonize, translator, call);
-                    return implementNullSemantics(
-                        translator, call2, nullAs, implementor);
+                    return implementNullSemantics0(
+                        translator, call, nullAs, nullPolicy, harmonize,
+                        implementor);
                 }
             };
         case AND:
@@ -263,7 +245,8 @@ public class RexImpTable {
                     RexToLixTranslator translator, RexCall call, NullAs nullAs)
                 {
                     final RexCall call2 = call2(false, translator, call);
-                    return implementor.implement(translator, call2);
+                    return implementCall(
+                        translator, call2, implementor, nullAs);
                 }
             };
         default:
@@ -275,7 +258,9 @@ public class RexImpTable {
         SqlOperator operator, String functionName, NullPolicy nullPolicy)
     {
         defineImplementor(
-            operator, nullPolicy, new MethodNameImplementor(functionName),
+            operator,
+            nullPolicy,
+            new MethodNameImplementor(functionName),
             false);
     }
 
@@ -392,6 +377,46 @@ public class RexImpTable {
         return true;
     }
 
+    private static Expression implementNullSemantics0(
+        RexToLixTranslator translator,
+        RexCall call,
+        NullAs nullAs,
+        NullPolicy nullPolicy,
+        boolean harmonize,
+        NotNullImplementor implementor)
+    {
+        switch (nullAs) {
+        case IS_NOT_NULL:
+            // If "f" is strict, then "f(a0, a1) IS NOT NULL" is
+            // equivalent to "a0 IS NOT NULL AND a1 IS NOT NULL".
+            if (nullPolicy == NullPolicy.STRICT) {
+                return JavaRules.EnumUtil.foldAnd(
+                    translator.translateList(
+                        call.getOperandList(), nullAs));
+            }
+            break;
+        case IS_NULL:
+            // If "f" is strict, then "f(a0, a1) IS NULL" is
+            // equivalent to "a0 IS NULL OR a1 IS NULL".
+            if (nullPolicy == NullPolicy.STRICT) {
+                return JavaRules.EnumUtil.foldOr(
+                    translator.translateList(
+                        call.getOperandList(), nullAs));
+            }
+            break;
+        }
+        final RexCall call2 = call2(harmonize, translator, call);
+        try {
+            return implementNullSemantics(
+                translator, call2, nullAs, implementor);
+        } catch (RexToLixTranslator.AlwaysNull e) {
+            if (nullAs == NullAs.NOT_POSSIBLE) {
+                throw e;
+            }
+            return NULL_EXPR;
+        }
+    }
+
     private static Expression implementNullSemantics(
         RexToLixTranslator translator,
         RexCall call,
@@ -415,8 +440,7 @@ public class RexImpTable {
                     JavaRules.EnumUtil.foldOr(list),
                     NULL_EXPR,
                     RexToLixTranslator.box(
-                        implementor.implement(
-                            translator, call))));
+                        implementCall(translator, call, implementor, nullAs))));
         case FALSE:
             // v0 != null && v1 != null && f(v0, v1)
             for (Ord<RexNode> operand : Ord.zip(call.getOperands())) {
@@ -427,14 +451,41 @@ public class RexImpTable {
                     translator = translator.setNullable(operand.e, false);
                 }
             }
-            list.add(
-                implementor.implement(
-                    translator, call));
+            list.add(implementCall(translator, call, implementor, nullAs));
             return JavaRules.EnumUtil.foldAnd(list);
+        case NOT_POSSIBLE:
+            // Need to transmit to the implementor the fact that call cannot
+            // return null. In particular, it should return a primitive (e.g.
+            // int) rather than a box type (Integer).
+            translator = translator.setNullable(call, false);
+            // fall through
         default:
-            return implementor.implement(
-                translator, call);
+            return implementCall(translator, call, implementor, nullAs);
         }
+    }
+
+    private static Expression implementCall(
+        RexToLixTranslator translator,
+        RexCall call,
+        NotNullImplementor implementor,
+        NullAs nullAs)
+    {
+        final List<Expression> translatedOperands =
+            translator.translateList(call.getOperandList());
+        switch (nullAs) {
+        case NOT_POSSIBLE:
+            for (Expression translatedOperand : translatedOperands) {
+                if (isConstantNull(translatedOperand)) {
+                    return NULL_EXPR;
+                }
+            }
+        }
+        return implementor.implement(translator, call, translatedOperands);
+    }
+
+    static boolean isConstantNull(Expression e) {
+        return e instanceof ConstantExpression
+               && ((ConstantExpression) e).value == null;
     }
 
     /** Implements an aggregate function by generating a call to a method that
@@ -544,7 +595,8 @@ public class RexImpTable {
     interface NotNullImplementor {
         Expression implement(
             RexToLixTranslator translator,
-            RexCall call);
+            RexCall call,
+            List<Expression> translatedOperands);
     }
 
     static class BuiltinAggregateImplementor
@@ -662,8 +714,7 @@ public class RexImpTable {
                 // allow nulls even if input does not
                 returnType = primitive.boxClass;
             }
-            return Types.castIfNecessary(
-                returnType, Expressions.constant(null));
+            return Types.castIfNecessary(returnType, NULL_EXPR);
         }
 
         public Expression implementAdd(
@@ -708,11 +759,12 @@ public class RexImpTable {
 
         public Expression implement(
             RexToLixTranslator translator,
-            RexCall call)
+            RexCall call,
+            List<Expression> translatedOperands)
         {
             return Expressions.call(
                 method,
-                translator.translateList(call.getOperandList()));
+                translatedOperands);
         }
     }
 
@@ -725,12 +777,13 @@ public class RexImpTable {
 
         public Expression implement(
             RexToLixTranslator translator,
-            RexCall call)
+            RexCall call,
+            List<Expression> translatedOperands)
         {
             return Expressions.call(
                 SqlFunctions.class,
                 methodName,
-                translator.translateList(call.getOperandList()));
+                translatedOperands);
         }
     }
 
@@ -760,7 +813,8 @@ public class RexImpTable {
 
         public Expression implement(
             RexToLixTranslator translator,
-            RexCall call)
+            RexCall call,
+            List<Expression> expressions)
         {
             // neither nullable:
             //   return x OP y
@@ -774,8 +828,6 @@ public class RexImpTable {
             //     return x == null || y == null ? null : x OP y
             //   ignore_null
             //     return x == null ? y : y == null ? x : x OP y
-            final List<Expression> expressions =
-                translator.translateList(call.getOperandList());
             if (backupMethodName != null) {
                 final Primitive primitive =
                     Primitive.of(expressions.get(0).getType());
@@ -802,11 +854,12 @@ public class RexImpTable {
 
         public Expression implement(
             RexToLixTranslator translator,
-            RexCall call)
+            RexCall call,
+            List<Expression> translatedOperands)
         {
             return Expressions.makeUnary(
                 expressionType,
-                translator.translate(call.getOperandList().get(0)));
+                translatedOperands.get(0));
         }
     }
 
@@ -971,12 +1024,24 @@ public class RexImpTable {
     private static class CastImplementor implements NotNullImplementor {
         public Expression implement(
             RexToLixTranslator translator,
-            RexCall call)
+            RexCall call,
+            List<Expression> translatedOperands)
         {
             assert call.getOperands().length == 1;
-            RexNode expr = call.getOperands()[0];
-            RelDataType type = call.getType();
-            return translator.translateCast(expr, type);
+            final RelDataType sourceType = call.getOperands()[0].getType();
+            // It's only possible for the result to be null if both expression
+            // and target type are nullable. We assume that the caller did not
+            // make a mistake. If expression looks nullable, caller WILL have
+            // checked that expression is not null before calling us.
+            final boolean nullable =
+                translator.isNullable(call)
+                && sourceType.isNullable()
+                && Primitive.of(translatedOperands.get(0).getType()) == null;
+            final RelDataType targetType =
+                translator.typeFactory.createTypeWithNullability(
+                    call.getType(), nullable);
+            return translator.translateCast(
+                sourceType, targetType, translatedOperands.get(0));
         }
     }
 
@@ -997,27 +1062,28 @@ public class RexImpTable {
     private static class ItemImplementor
         implements CallImplementor
     {
-        private static final MethodImplementor ARRAY_ELEMENT =
-            new MethodImplementor(
-                BuiltinMethod.ARRAY_ELEMENT.method);
-
-        private static final MethodImplementor MAP_ELEMENT =
-            new MethodImplementor(
-                BuiltinMethod.MAP_ELEMENT.method);
-
         public Expression implement(
             RexToLixTranslator translator,
             RexCall call,
             NullAs nullAs)
         {
-            return implementNullSemantics(
-                translator,
-                call,
-                nullAs,
-                call.getOperandList().get(0).getType().getSqlTypeName()
-                == SqlTypeName.ARRAY
-                    ? ARRAY_ELEMENT
-                    : MAP_ELEMENT);
+            final MethodImplementor implementor =
+                getImplementor(
+                    call.getOperandList().get(0).getType().getSqlTypeName());
+            return implementNullSemantics0(
+                translator, call, nullAs, NullPolicy.STRICT, false,
+                implementor);
+        }
+
+        private MethodImplementor getImplementor(SqlTypeName sqlTypeName) {
+            switch (sqlTypeName) {
+            case ARRAY:
+                return new MethodImplementor(BuiltinMethod.ARRAY_ITEM.method);
+            case MAP:
+                return new MethodImplementor(BuiltinMethod.MAP_ITEM.method);
+            default:
+                return new MethodImplementor(BuiltinMethod.ANY_ITEM.method);
+            }
         }
     }
 

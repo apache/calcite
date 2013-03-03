@@ -192,8 +192,10 @@ public class RexLiteral
             // Unlike SqlLiteral, we do not allow boolean null.
             return value instanceof Boolean;
         case NULL:
-            return value == null;
+            return false; // value should have been false
         case INTEGER: // not allowed -- use Decimal
+        case TINYINT:
+        case SMALLINT:
             if (strict) {
                 throw Util.unexpected(typeName);
             }
@@ -209,9 +211,7 @@ public class RexLiteral
             return value instanceof Calendar;
         case INTERVAL_DAY_TIME:
         case INTERVAL_YEAR_MONTH:
-
-            // REVIEW: angel 2006-08-27 - why is interval sometimes null?
-            return (value instanceof BigDecimal) || (value == null);
+            return value instanceof BigDecimal;
         case VARBINARY: // not allowed -- use Binary
             if (strict) {
                 throw Util.unexpected(typeName);
@@ -225,7 +225,6 @@ public class RexLiteral
             }
             // fall through
         case CHAR:
-
             // A SqlLiteral's charset and collation are optional; not so a
             // RexLiteral.
             return (value instanceof NlsString)
