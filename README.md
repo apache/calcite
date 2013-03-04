@@ -6,18 +6,7 @@ Optiq is a dynamic data management framework.
 Prerequisites
 =============
 
-Optiq requires git, maven, and JDK 1.7.
-
-Optiq also depends on
-<a href="https://github.com/julianhyde/linq4j">linq4j</a>.
-Before you build optiq, you must download, build and install linq4j:
-
-```bash
-$ git clone git://github.com/julianhyde/linq4j.git
-$ cd linq4j
-$ mvn install
-$ cd ..
-```
+Optiq requires git, maven, and JDK 1.6 or later (JDK 1.7 preferred).
 
 Download and build
 ==================
@@ -25,7 +14,7 @@ Download and build
 ```bash
 $ git clone git://github.com/julianhyde/optiq.git
 $ cd optiq
-$ mvn compile
+$ mvn install
 ```
 
 Example
@@ -116,7 +105,7 @@ rules and operators, apply cost-based optimization, and generate an
 efficient plan.
 
 Optiq also allows front-ends other than SQL/JDBC. For example, you can
-execute queries in linq4j:
+execute queries in <a href="https://github.com/julianhyde/linq4j">linq4j</a>:
 
 ```java
 final OptiqConnection connection = ...;
@@ -166,10 +155,8 @@ Backlog
 
 * Rules to push down as many operations as possible to JDBC back-end
   (i.e. generate SQL)
-* Cascading adapter
 * Easy API to register optimizer rules
 * Easy API to register calling conventions
-* Make it easier to implement RelNode.explain by building on super.
 * Make 'guaranteed' a constructor parameter to ConverterRule. (It's
   too easy to forget.)
 * RelOptRule.convert should check whether there is a subset of desired
