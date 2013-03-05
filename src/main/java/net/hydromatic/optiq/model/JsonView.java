@@ -17,29 +17,25 @@
 */
 package net.hydromatic.optiq.model;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Table schema element.
+ * View schema element.
  *
  * @see JsonRoot Description of schema elements
  */
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    property = "type",
-    defaultImpl = JsonCustomTable.class)
-@JsonSubTypes({
-    @JsonSubTypes.Type(value = JsonCustomTable.class, name = "custom"),
-    @JsonSubTypes.Type(value = JsonView.class, name = "view")})
-public abstract class JsonTable {
-    public String name;
-    public final List<JsonColumn> columns = new ArrayList<JsonColumn>();
+public class JsonView extends JsonTable {
+    /** SQL query that is the definition of the view. */
+    public String sql;
 
-    public abstract void accept(ModelHandler handler);
+    /** Schema name(s) to use when resolving query. If not specified, defaults
+     * to current schema. */
+    public List<String> path;
+
+    public void accept(ModelHandler handler) {
+        handler.visit(this);
+    }
 }
 
-// End JsonTable.java
+// End JsonView.java

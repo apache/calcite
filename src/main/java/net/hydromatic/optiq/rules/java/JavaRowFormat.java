@@ -20,6 +20,7 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+
 import org.eigenbase.reltype.RelDataType;
 
 import java.lang.reflect.Type;

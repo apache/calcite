@@ -33,6 +33,7 @@ import org.eigenbase.util.Util;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.*;
+import java.util.Properties;
 
 /**
  * Fluid DSL for testing Optiq connections and queries.
@@ -167,6 +168,19 @@ public class OptiqAssert {
 
         public AssertThat with(ConnectionFactory connectionFactory) {
             return new AssertThat(connectionFactory);
+        }
+
+        public AssertThat withModel(final String model) {
+            return new AssertThat(
+                new OptiqAssert.ConnectionFactory() {
+                    public OptiqConnection createConnection() throws Exception {
+                        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+                        final Properties info = new Properties();
+                        info.setProperty("model", "inline:" + model);
+                        return (OptiqConnection) DriverManager.getConnection(
+                            "jdbc:optiq:", info);
+                    }
+                });
         }
 
         public AssertQuery query(String sql) {

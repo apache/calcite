@@ -403,7 +403,11 @@ class OptiqPrepareImpl implements OptiqPrepare {
         }
 
         @Override
-        public RelNode expandView(RelDataType rowType, String queryString) {
+        public RelNode expandView(
+            RelDataType rowType,
+            String queryString,
+            List<String> schemaPath)
+        {
             expansionDepth++;
 
             SqlParser parser = new SqlParser(queryString);
@@ -413,7 +417,13 @@ class OptiqPrepareImpl implements OptiqPrepare {
             } catch (SqlParseException e) {
                 throw new RuntimeException("parse failed", e);
             }
-            SqlValidator validator = getSqlValidator();
+            // View may have different schema path than current connection.
+            final OptiqCatalogReader catalogReader =
+                new OptiqCatalogReader(
+                    ((OptiqCatalogReader) this.catalogReader).rootSchema,
+                    schemaPath,
+                    ((OptiqCatalogReader) this.catalogReader).typeFactory);
+            SqlValidator validator = createSqlValidator(catalogReader);
             SqlNode sqlNode1 = validator.validate(sqlNode);
 
             SqlToRelConverter sqlToRelConverter =
@@ -425,12 +435,16 @@ class OptiqPrepareImpl implements OptiqPrepare {
             return relNode;
         }
 
+        private SqlValidatorImpl createSqlValidator(CatalogReader catalogReader)
+        {
+            return new SqlValidatorImpl(
+                SqlStdOperatorTable.instance(), catalogReader,
+                rexBuilder.getTypeFactory(), SqlConformance.Default) { };
+        }
+
         private SqlValidator getSqlValidator() {
             if (sqlValidator == null) {
-                sqlValidator = new SqlValidatorImpl(
-                    SqlStdOperatorTable.instance(), catalogReader,
-                    rexBuilder.getTypeFactory(),
-                    SqlConformance.Default) { };
+                sqlValidator = createSqlValidator(catalogReader);
             }
             return sqlValidator;
         }

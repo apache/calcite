@@ -21,19 +21,21 @@ import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.TableFactory;
+import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.apache.commons.dbcp.BasicDataSource;
 
+import org.eigenbase.util.Pair;
+
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javax.sql.DataSource;
 
 /**
@@ -41,7 +43,8 @@ import javax.sql.DataSource;
  */
 public class ModelHandler {
     private final OptiqConnection connection;
-    private final List<Schema> schemaStack = new ArrayList<Schema>();
+    private final List<Pair<String, Schema>> schemaStack =
+        new ArrayList<Pair<String, Schema>>();
 
     public ModelHandler(OptiqConnection connection, String uri)
         throws IOException
@@ -62,28 +65,32 @@ public class ModelHandler {
     }
 
     public void visit(JsonRoot root) {
-        push(schemaStack, connection.getRootSchema());
+        final Pair<String, Schema> pair =
+            Pair.<String, Schema>of(null, connection.getRootSchema());
+        push(schemaStack, pair);
         for (JsonSchema schema : root.schemas) {
             schema.accept(this);
         }
-        pop(schemaStack, connection.getRootSchema());
+        pop(schemaStack, pair);
     }
 
     public void visit(JsonMapSchema jsonSchema) {
-        final MutableSchema parentSchema = (MutableSchema) peek(schemaStack);
+        final MutableSchema parentSchema = currentSchema();
         final MapSchema schema =
             MapSchema.create(connection, parentSchema, jsonSchema.name);
-        push(schemaStack, schema);
+        final Pair<String, Schema> pair =
+            Pair.<String, Schema>of(jsonSchema.name, schema);
+        push(schemaStack, pair);
         for (JsonTable jsonTable : jsonSchema.tables) {
             jsonTable.accept(this);
         }
-        pop(schemaStack, schema);
+        pop(schemaStack, pair);
     }
 
     public void visit(JsonJdbcSchema jsonSchema) {
         JdbcSchema.create(
             connection,
-            (MutableSchema) peek(schemaStack),
+            currentSchema(),
             dataSource(jsonSchema),
             jsonSchema.jdbcCatalog,
             jsonSchema.jdbcSchema,
@@ -113,22 +120,42 @@ public class ModelHandler {
 
     public void visit(JsonCustomTable jsonTable) {
         try {
-            final MutableSchema parentSchema =
-                (MutableSchema) peek(schemaStack);
+            final MutableSchema schema = currentSchema();
             final Class clazz = Class.forName(jsonTable.factory);
             final TableFactory tableFactory =
                 (TableFactory) clazz.newInstance();
             final Table table =
                 tableFactory.create(
                     connection.getTypeFactory(),
-                    parentSchema,
+                    schema,
                     jsonTable.name,
                     jsonTable.operand,
                     null);
-            parentSchema.addTable(jsonTable.name, table);
+            schema.addTable(jsonTable.name, table);
         } catch (Exception e) {
             throw new RuntimeException("Error instantiating " + jsonTable, e);
         }
+    }
+
+    public void visit(JsonView jsonView) {
+        try {
+            final MutableSchema schema = currentSchema();
+            final List<String> path =
+                jsonView.path == null
+                    ? Collections.singletonList(peek(schemaStack).left)
+                    : jsonView.path;
+            schema.addTableFunction(
+                jsonView.name,
+                ViewTable.viewFunction(
+                    schema, jsonView.name,
+                    jsonView.sql, path));
+        } catch (Exception e) {
+            throw new RuntimeException("Error instantiating " + jsonView, e);
+        }
+    }
+
+    private MutableSchema currentSchema() {
+        return (MutableSchema) peek(schemaStack).right;
     }
 }
 

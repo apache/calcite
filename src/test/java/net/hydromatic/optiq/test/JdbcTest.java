@@ -24,14 +24,14 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Predicate1;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.AbstractTable;
+import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
-import net.hydromatic.optiq.prepare.Factory;
 
 import junit.framework.TestCase;
 
@@ -42,7 +42,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlDialect;
-import org.eigenbase.util.Util;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -281,16 +280,15 @@ public class JdbcTest extends TestCase {
             DriverManager.getConnection("jdbc:optiq:");
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
-        JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
         MutableSchema rootSchema = optiqConnection.getRootSchema();
         MapSchema schema = MapSchema.create(optiqConnection, rootSchema, "s");
         schema.addTableFunction(
             "emps_view",
-            viewFunction(
+            ViewTable.viewFunction(
                 schema,
-                typeFactory,
                 "emps_view",
-                "select * from \"hr\".\"emps\" where \"deptno\" = 10"));
+                "select * from \"hr\".\"emps\" where \"deptno\" = 10",
+                Collections.<String>emptyList()));
         ReflectiveSchema.create(
             optiqConnection, rootSchema, "hr", new HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
@@ -298,50 +296,6 @@ public class JdbcTest extends TestCase {
             + "from \"s\".\"emps_view\"\n"
             + "where \"empid\" < 120");
         assertEquals("empid=100; deptno=10; name=Bill\n", toString(resultSet));
-    }
-
-    private <T> TableFunction<T> viewFunction(
-        final Schema schema,
-        final JavaTypeFactory typeFactory,
-        final String name,
-        final String viewSql)
-    {
-        final OptiqConnection optiqConnection =
-            (OptiqConnection) schema.getQueryProvider();
-        return new TableFunction<T>() {
-            public List<Parameter> getParameters() {
-                return Collections.emptyList();
-            }
-
-            public Table<T> apply(List<Object> arguments) {
-                OptiqPrepare.ParseResult parsed =
-                    Factory.implement().parse(
-                        new OptiqPrepare.Context() {
-                            public JavaTypeFactory getTypeFactory() {
-                                return typeFactory;
-                            }
-
-                            public Schema getRootSchema() {
-                                return optiqConnection.getRootSchema();
-                            }
-
-                            public List<String> getDefaultSchemaPath() {
-                                return Collections.emptyList();
-                            }
-                        },
-                        viewSql);
-                return new ViewTable<T>(
-                    schema,
-                    typeFactory.getJavaClass(parsed.rowType),
-                    parsed.rowType,
-                    name,
-                    viewSql);
-            }
-
-            public Type getElementType() {
-                return apply(Collections.emptyList()).getElementType();
-            }
-        };
     }
 
     static OptiqConnection getConnection(String... schema)
@@ -813,32 +767,21 @@ public class JdbcTest extends TestCase {
      * a JDBC database). */
     public void testModel() {
         OptiqAssert.assertThat()
-            .with(
-                new OptiqAssert.ConnectionFactory() {
-                    public OptiqConnection createConnection() throws Exception {
-                        Class.forName("net.hydromatic.optiq.jdbc.Driver");
-                        final Properties info = new Properties();
-                        info.setProperty(
-                            "model",
-                            "inline:"
-                            + "{\n"
-                            + "  version: '1.0',\n"
-                            + "   schemas: [\n"
-                            + "     {\n"
-                            + "       type: 'jdbc',\n"
-                            + "       name: 'foodmart',\n"
-                            + "       jdbcUser: 'foodmart',\n"
-                            + "       jdbcPassword: 'foodmart',\n"
-                            + "       jdbcUrl: 'jdbc:mysql://localhost',\n"
-                            + "       jdbcCatalog: 'foodmart',\n"
-                            + "       jdbcSchema: ''\n"
-                            + "     }\n"
-                            + "   ]\n"
-                            + "}");
-                        return (OptiqConnection) DriverManager.getConnection(
-                            "jdbc:optiq:", info);
-                    }
-                })
+            .withModel(
+                "{\n"
+                + "  version: '1.0',\n"
+                + "   schemas: [\n"
+                + "     {\n"
+                + "       type: 'jdbc',\n"
+                + "       name: 'foodmart',\n"
+                + "       jdbcUser: 'foodmart',\n"
+                + "       jdbcPassword: 'foodmart',\n"
+                + "       jdbcUrl: 'jdbc:mysql://localhost',\n"
+                + "       jdbcCatalog: 'foodmart',\n"
+                + "       jdbcSchema: ''\n"
+                + "     }\n"
+                + "   ]\n"
+                + "}")
             .query("select count(*) as c from \"foodmart\".\"time_by_day\"")
             .returns("C=730\n");
     }
@@ -847,39 +790,60 @@ public class JdbcTest extends TestCase {
      * tables. */
     public void testModelCustom() {
         OptiqAssert.assertThat()
-            .with(
-                new OptiqAssert.ConnectionFactory() {
-                    public OptiqConnection createConnection() throws Exception {
-                        Class.forName("net.hydromatic.optiq.jdbc.Driver");
-                        final Properties info = new Properties();
-                        info.setProperty(
-                            "model",
-                            "inline:"
-                            + "{\n"
-                            + "  version: '1.0',\n"
-                            + "   schemas: [\n"
-                            + "     {\n"
-                            + "       name: 'adhoc',\n"
-                            + "       tables: [\n"
-                            + "         {\n"
-                            + "           name: 'EMPLOYEES',\n"
-                            + "           type: 'custom',\n"
-                            + "           factory: '"
-                            + EmpDeptFactory.class.getName() + "',\n"
-                            + "           operand: ['foo', 'bar', 345]\n"
-                            + "         }\n"
-                            + "       ]\n"
-                            + "     }\n"
-                            + "   ]\n"
-                            + "}");
-                        return (OptiqConnection) DriverManager.getConnection(
-                            "jdbc:optiq:", info);
-                    }
-                })
+            .withModel(
+                "{\n"
+                + "  version: '1.0',\n"
+                + "   schemas: [\n"
+                + "     {\n"
+                + "       name: 'adhoc',\n"
+                + "       tables: [\n"
+                + "         {\n"
+                + "           name: 'EMPLOYEES',\n"
+                + "           type: 'custom',\n"
+                + "           factory: '"
+                + EmpDeptFactory.class.getName() + "',\n"
+                + "           operand: ['foo', 'bar', 345]\n"
+                + "         }\n"
+                + "       ]\n"
+                + "     }\n"
+                + "   ]\n"
+                + "}")
             .query("select * from \"adhoc\".EMPLOYEES where \"deptno\" = 10")
             .returns(
                 "empid=100; deptno=10; name=Bill\n"
                 + "empid=150; deptno=10; name=Sebastian\n");
+    }
+
+    /** Tests a JDBC connection that provides a model that contains a view. */
+    public void testModelView() {
+        OptiqAssert.assertThat()
+            .withModel(
+                "{\n"
+                + "  version: '1.0',\n"
+                + "   schemas: [\n"
+                + "     {\n"
+                + "       name: 'adhoc',\n"
+                + "       tables: [\n"
+                + "         {\n"
+                + "           name: 'EMPLOYEES',\n"
+                + "           type: 'custom',\n"
+                + "           factory: '"
+                + EmpDeptFactory.class.getName() + "',\n"
+                + "           operand: ['foo', 'bar', 345]\n"
+                + "         },\n"
+                + "         {\n"
+                + "           name: 'V',\n"
+                + "           type: 'view',\n"
+                + "           sql: 'select * from \"EMPLOYEES\" where \"deptno\" = 10'\n"
+                + "         }\n"
+                + "       ]\n"
+                + "     }\n"
+                + "   ]\n"
+                + "}")
+            .query("select * from \"adhoc\".V order by \"name\" desc")
+            .returns(
+                "empid=150; deptno=10; name=Sebastian\n"
+                + "empid=100; deptno=10; name=Bill\n");
     }
 
     public static class HrSchema {
@@ -1003,63 +967,6 @@ public class JdbcTest extends TestCase {
         }
     }
 
-    public static abstract class AbstractTable<T>
-        extends AbstractQueryable<T>
-        implements Table<T>
-    {
-        protected final Type elementType;
-        private final RelDataType relDataType;
-        protected final Schema schema;
-        protected final String tableName;
-
-        protected AbstractTable(
-            Schema schema,
-            Type elementType,
-            RelDataType relDataType,
-            String tableName)
-        {
-            this.schema = schema;
-            this.elementType = elementType;
-            this.relDataType = relDataType;
-            this.tableName = tableName;
-            assert schema != null;
-            assert relDataType != null;
-            assert elementType != null;
-            assert tableName != null;
-        }
-
-        public QueryProvider getProvider() {
-            return schema.getQueryProvider();
-        }
-
-        public DataContext getDataContext() {
-            return schema;
-        }
-
-        public Type getElementType() {
-            return elementType;
-        }
-
-        public RelDataType getRowType() {
-            return relDataType;
-        }
-
-        public Expression getExpression() {
-            return Expressions.call(
-                schema.getExpression(),
-                "getTable",
-                Expressions.<Expression>list()
-                    .append(Expressions.constant(tableName))
-                    .appendIf(
-                        elementType instanceof Class,
-                        Expressions.constant(elementType)));
-        }
-
-        public Iterator<T> iterator() {
-            return Linq4j.enumeratorIterator(enumerator());
-        }
-    }
-
     public static abstract class AbstractModifiableTable<T>
         extends AbstractTable<T>
         implements ModifiableTable<T>
@@ -1085,60 +992,6 @@ public class JdbcTest extends TestCase {
             return new TableModificationRel(
                 cluster, table, catalogReader, child, operation,
                 updateColumnList, flattened);
-        }
-    }
-
-    static class ViewTable<T>
-        extends AbstractTable<T>
-        implements TranslatableTable<T>
-    {
-        private final String viewSql;
-
-        protected ViewTable(
-            Schema schema,
-            Type elementType,
-            RelDataType relDataType,
-            String tableName,
-            String viewSql)
-        {
-            super(schema, elementType, relDataType, tableName);
-            this.viewSql = viewSql;
-        }
-
-        public Enumerator<T> enumerator() {
-            return schema
-                .getQueryProvider()
-                .<T>createQuery(getExpression(), elementType)
-                .enumerator();
-        }
-
-        public RelNode toRel(
-            RelOptTable.ToRelContext context,
-            RelOptTable relOptTable)
-        {
-            return expandView(
-                context.getPreparingStmt(),
-                ((JavaTypeFactory) context.getCluster().getTypeFactory())
-                    .createType(elementType),
-                viewSql);
-        }
-
-        private RelNode expandView(
-            OJPreparingStmt preparingStmt,
-            RelDataType rowType,
-            String queryString)
-        {
-            try {
-                RelNode rel =
-                    preparingStmt.expandView(rowType, queryString);
-
-                rel = RelOptUtil.createCastRel(rel, rowType, true);
-                rel = preparingStmt.flattenTypes(rel, false);
-                return rel;
-            } catch (Throwable e) {
-                throw Util.newInternal(
-                    e, "Error while parsing view definition:  " + queryString);
-            }
         }
     }
 
@@ -1168,6 +1021,7 @@ public class JdbcTest extends TestCase {
             };
         }
     }
+
 }
 
 // End JdbcTest.java

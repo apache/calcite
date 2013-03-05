@@ -20,7 +20,7 @@ package org.eigenbase.oj.stmt;
 import java.io.*;
 
 import java.lang.reflect.*;
-
+import java.util.List;
 import java.util.logging.*;
 
 import openjava.mop.*;
@@ -77,7 +77,7 @@ public abstract class OJPreparingStmt
      */
     protected boolean containsJava;
 
-    protected java.util.List<java.util.List<String>> fieldOrigins;
+    protected List<List<String>> fieldOrigins;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -797,10 +797,13 @@ public abstract class OJPreparingStmt
      *
      * @param rowType Row type of the view
      * @param queryString Body of the view
-     *
+     * @param schemaPath List of schema names wherein to find referenced tables
      * @return Relational expression
      */
-    public RelNode expandView(RelDataType rowType, String queryString)
+    public RelNode expandView(
+        RelDataType rowType,
+        String queryString,
+        List<String> schemaPath)
     {
         throw new UnsupportedOperationException();
     }
