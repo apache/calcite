@@ -690,6 +690,15 @@ public class JdbcTest extends TestCase {
                 + "EXPR$0=2; EXPR$1=abc\n");
     }
 
+    public void testDistinctCount() {
+        final String s =
+            "select \"time_by_day\".\"the_year\" as \"c0\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 group by \"time_by_day\".\"the_year\"";
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.FOODMART_CLONE)
+            .query(s)
+            .returns("c0=1997; m0=266773.0000\n");
+    }
+
     /** A difficult query: an IN list so large that the planner promotes it
      * to a semi-join against a VALUES relation. */
     public void testIn() {
@@ -798,6 +807,79 @@ public class JdbcTest extends TestCase {
                 "select count(distinct \"tableSchem\") as c\n"
                 + "from \"metadata\".TABLES")
             .returns("C=3\n");
+    }
+
+    /** Tests a JDBC connection that provides a model (a single schema based on
+     * a JDBC database). */
+    public void testModel() {
+        OptiqAssert.assertThat()
+            .with(
+                new OptiqAssert.ConnectionFactory() {
+                    public OptiqConnection createConnection() throws Exception {
+                        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+                        final Properties info = new Properties();
+                        info.setProperty(
+                            "model",
+                            "inline:"
+                            + "{\n"
+                            + "  version: '1.0',\n"
+                            + "   schemas: [\n"
+                            + "     {\n"
+                            + "       type: 'jdbc',\n"
+                            + "       name: 'foodmart',\n"
+                            + "       jdbcUser: 'foodmart',\n"
+                            + "       jdbcPassword: 'foodmart',\n"
+                            + "       jdbcUrl: 'jdbc:mysql://localhost',\n"
+                            + "       jdbcCatalog: 'foodmart',\n"
+                            + "       jdbcSchema: ''\n"
+                            + "     }\n"
+                            + "   ]\n"
+                            + "}");
+                        return (OptiqConnection) DriverManager.getConnection(
+                            "jdbc:optiq:", info);
+                    }
+                })
+            .query("select count(*) as c from \"foodmart\".\"time_by_day\"")
+            .returns("C=730\n");
+    }
+
+    /** Tests a JDBC connection that provides a model that contains custom
+     * tables. */
+    public void testModelCustom() {
+        OptiqAssert.assertThat()
+            .with(
+                new OptiqAssert.ConnectionFactory() {
+                    public OptiqConnection createConnection() throws Exception {
+                        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+                        final Properties info = new Properties();
+                        info.setProperty(
+                            "model",
+                            "inline:"
+                            + "{\n"
+                            + "  version: '1.0',\n"
+                            + "   schemas: [\n"
+                            + "     {\n"
+                            + "       name: 'adhoc',\n"
+                            + "       tables: [\n"
+                            + "         {\n"
+                            + "           name: 'EMPLOYEES',\n"
+                            + "           type: 'custom',\n"
+                            + "           factory: '"
+                            + EmpDeptFactory.class.getName() + "',\n"
+                            + "           operand: ['foo', 'bar', 345]\n"
+                            + "         }\n"
+                            + "       ]\n"
+                            + "     }\n"
+                            + "   ]\n"
+                            + "}");
+                        return (OptiqConnection) DriverManager.getConnection(
+                            "jdbc:optiq:", info);
+                    }
+                })
+            .query("select * from \"adhoc\".EMPLOYEES where \"deptno\" = 10")
+            .returns(
+                "empid=100; deptno=10; name=Bill\n"
+                + "empid=150; deptno=10; name=Sebastian\n");
     }
 
     public static class HrSchema {
@@ -1057,6 +1139,33 @@ public class JdbcTest extends TestCase {
                 throw Util.newInternal(
                     e, "Error while parsing view definition:  " + queryString);
             }
+        }
+    }
+
+    public static class EmpDeptFactory implements TableFactory {
+        public Table create(
+            JavaTypeFactory typeFactory,
+            Schema schema, String name, Object operand, RelDataType rowType)
+        {
+            final Class clazz;
+            final Object[] array;
+            if (name.equals("EMPLOYEES")) {
+                clazz = Employee.class;
+                array = new HrSchema().emps;
+            } else {
+                clazz = Department.class;
+                array = new HrSchema().depts;
+            }
+            return new AbstractTable(
+                schema,
+                clazz,
+                typeFactory.createType(clazz),
+                name)
+            {
+                public Enumerator enumerator() {
+                    return Linq4j.enumerator(Arrays.asList(array));
+                }
+            };
         }
     }
 }

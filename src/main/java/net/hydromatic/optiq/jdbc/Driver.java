@@ -17,6 +17,11 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.optiq.model.ModelHandler;
+
+import java.io.IOException;
+import java.sql.SQLException;
+
 /**
  * Optiq JDBC driver.
  */
@@ -34,6 +39,27 @@ public class Driver extends UnregisteredDriver {
 
     protected DriverVersion createDriverVersion() {
         return new OptiqDriverVersion();
+    }
+
+    @Override
+    protected Handler createHandler() {
+        return new HandlerImpl() {
+            @Override
+            public void onConnectionInit(OptiqConnection connection)
+                throws SQLException
+            {
+                super.onConnectionInit(connection);
+                final String model =
+                    connection.getProperties().getProperty("model");
+                if (model != null) {
+                    try {
+                        new ModelHandler(connection, model);
+                    } catch (IOException e) {
+                        throw new SQLException(e);
+                    }
+                }
+            }
+        };
     }
 }
 

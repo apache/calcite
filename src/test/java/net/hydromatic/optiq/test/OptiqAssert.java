@@ -56,6 +56,7 @@ public class OptiqAssert {
         testSuite.addTestSuite(SqlFunctionsTest.class);
         testSuite.addTestSuite(SqlOperatorTest.class);
         testSuite.addTestSuite(OptiqSqlOperatorTest.class);
+        testSuite.addTestSuite(ModelTest.class);
         return testSuite;
     }
 
