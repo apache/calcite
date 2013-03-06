@@ -486,6 +486,7 @@ public class RexImpTable {
         return implementor.implement(translator, call, translatedOperands);
     }
 
+    // TODO: remove and use linq4j
     static boolean isConstantNull(Expression e) {
         return e instanceof ConstantExpression
                && ((ConstantExpression) e).value == null;
@@ -535,7 +536,7 @@ public class RexImpTable {
         /** Adapts an expression with "normal" result to one that adheres to
          * this particular policy. */
         public Expression handle(Expression x) {
-            if (Primitive.of(x.getType()) != null) {
+            if (Primitive.is(x.getType())) {
                 // Expression cannot be null. We can skip any runtime checks.
                 switch (this) {
                 case NULL:
@@ -661,17 +662,23 @@ public class RexImpTable {
             Type returnType,
             List<Type> parameterTypes)
         {
-            Primitive primitive = Primitive.of(returnType);
-            if (primitive == null) {
-                primitive = Primitive.ofBox(returnType);
-            }
-            if (primitive == null) {
+            final Primitive primitive = choosePrimitive(returnType);
+            assert primitive != null;
+            return Expressions.constant(primitive.number(0), returnType);
+        }
+
+        private Primitive choosePrimitive(Type returnType) {
+            switch (Primitive.flavor(returnType)) {
+            case PRIMITIVE:
+                return Primitive.of(returnType);
+            case BOX:
+                return Primitive.ofBox(returnType);
+            default:
                 assert returnType == BigDecimal.class
                     : "expected primitive or boxed primitive, got "
                     + returnType;
-                primitive = Primitive.INT;
+                return Primitive.INT;
             }
-            return Expressions.constant(primitive.number(0), returnType);
         }
 
         public Expression implementAdd(
@@ -1039,7 +1046,7 @@ public class RexImpTable {
             final boolean nullable =
                 translator.isNullable(call)
                 && sourceType.isNullable()
-                && Primitive.of(translatedOperands.get(0).getType()) == null;
+                && !Primitive.is(translatedOperands.get(0).getType());
             final RelDataType targetType =
                 translator.typeFactory.createTypeWithNullability(
                     call.getType(), nullable);

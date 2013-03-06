@@ -34,8 +34,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.util.*;
 
 /**
@@ -129,8 +127,11 @@ public class JavaTypeFactoryImpl
             case VARCHAR:
             case CHAR:
                 return String.class;
+            case DATE:
+            case TIME:
             case INTEGER:
                 return type.isNullable() ? Integer.class : int.class;
+            case TIMESTAMP:
             case BIGINT:
                 return type.isNullable() ? Long.class : long.class;
             case SMALLINT:
@@ -149,12 +150,6 @@ public class JavaTypeFactoryImpl
             case BINARY:
             case VARBINARY:
                 return ByteString.class;
-            case DATE:
-                return java.sql.Date.class;
-            case TIME:
-                return Time.class;
-            case TIMESTAMP:
-                return Timestamp.class;
             case ANY:
                 return Object.class;
             }
@@ -195,7 +190,7 @@ public class JavaTypeFactoryImpl
                     syntheticType,
                     "f" + ord.i,
                     ord.e,
-                    Primitive.of(ord.e) == null));
+                    !Primitive.is(ord.e)));
         }
         return register(syntheticType);
     }
@@ -206,9 +201,7 @@ public class JavaTypeFactoryImpl
         final List<Pair<Type, Boolean>> key =
             new AbstractList<Pair<Type, Boolean>>() {
                 public Pair<Type, Boolean> get(int index) {
-                    final
-                    Types.RecordField
-                        field =
+                    final Types.RecordField field =
                         syntheticType.getRecordFields().get(index);
                     return Pair.of(field.getType(), field.nullable());
                 }
@@ -241,7 +234,7 @@ public class JavaTypeFactoryImpl
                     recordField.getName(),
                     javaClass,
                     recordField.getType().isNullable()
-                    && Primitive.of(javaClass) == null));
+                    && !Primitive.is(javaClass)));
         }
         return register(syntheticType);
     }
@@ -289,7 +282,7 @@ public class JavaTypeFactoryImpl
             assert syntheticType != null;
             assert name != null;
             assert type != null;
-            assert !(nullable && Primitive.of(type) != null)
+            assert !(nullable && Primitive.is(type))
                 : "type [" + type + "] can never be null";
         }
 

@@ -21,8 +21,7 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.linq4j.function.*;
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.Table;
+import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlWriter;
@@ -80,7 +79,7 @@ class JdbcTable extends AbstractQueryable<Object[]> implements Table<Object[]> {
     public Expression getExpression() {
         return Expressions.call(
             schema.getExpression(),
-            "getTable",
+            BuiltinMethod.DATA_CONTEXT_GET_TABLE.method,
             Expressions.<Expression>list()
                 .append(Expressions.constant(tableName))
                 .append(Expressions.constant(getElementType())));
@@ -100,11 +99,10 @@ class JdbcTable extends AbstractQueryable<Object[]> implements Table<Object[]> {
         writer.identifier(tableName);
         final String sql = writer.toString();
 
-        Function1<ResultSet, Function0<Object[]>> rowBuilderFactory;
-            rowBuilderFactory =
-                JdbcUtils.ObjectArrayRowBuilder.factory(
-                    JdbcUtils.getPrimitives(
-                        schema.typeFactory, rowType));
+        Function1<ResultSet, Function0<Object[]>> rowBuilderFactory =
+            JdbcUtils.ObjectArrayRowBuilder.factory(
+                JdbcUtils.getPrimitives(
+                    schema.typeFactory, rowType));
         return JdbcUtils.sqlEnumerator(sql, schema, rowBuilderFactory);
     }
 

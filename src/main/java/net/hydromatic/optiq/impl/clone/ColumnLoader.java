@@ -19,6 +19,8 @@ package net.hydromatic.optiq.impl.clone;
 
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.Primitive;
+import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Functions;
 
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
@@ -28,6 +30,9 @@ import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.util.Pair;
 
 import java.lang.reflect.Type;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.*;
 
 /**
@@ -41,6 +46,28 @@ class ColumnLoader<T> {
     static final long[] LONG_B = {
         0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000, 0xFFFFFFFF00000000L};
     static final int[] LONG_S = {1, 2, 4, 8, 16, 32};
+
+    private static final Function1<Timestamp, Long> TIMESTAMP_TO_LONG =
+        new Function1<Timestamp, Long>() {
+            public Long apply(Timestamp a0) {
+                return a0 == null ? null : a0.getTime();
+            }
+        };
+
+    private static final Function1<Time, Integer> TIME_TO_INT =
+        new Function1<Time, Integer>() {
+            public Integer apply(Time a0) {
+                return a0 == null ? null : (int) (a0.getTime() % 86400000);
+            }
+        };
+
+    private static final Function1<Date, Integer> DATE_TO_INT =
+        new Function1<Date, Integer>() {
+            public Integer apply(Date a0) {
+                return a0 == null ? null : (int) (a0.getTime() / 86400000);
+            }
+        };
+
     public final List<T> list = new ArrayList<T>();
     public final List<Pair<ArrayTable.Representation, Object>>
         representationValues =
@@ -128,23 +155,50 @@ class ColumnLoader<T> {
                 types.size() == 1
                     ? list
                     : new AbstractList<Object>() {
+                        final int slice = pair.i;
+
                         public Object get(int index) {
-                            return ((Object[]) list.get(index))[pair.i];
+                            return ((Object[]) list.get(index))[slice];
                         }
 
                         public int size() {
                             return list.size();
                         }
                     };
+            final List<?> list2 =
+                wrap(
+                    sliceList,
+                    elementType.getFieldList().get(pair.i).getType());
             final Class clazz = pair.e instanceof Class
                 ? (Class) pair.e
                 : Object.class;
             ValueSet valueSet = new ValueSet(clazz);
-            for (Object o : sliceList) {
+            for (Object o : list2) {
                 valueSet.add((Comparable) o);
             }
             representationValues.add(valueSet.freeze(pair.i));
         }
+    }
+
+    /** Adapt for some types that we represent differently internally than their
+     * JDBC types. {@link java.sql.Timestamp} values that are not null are
+     * converted to {@code long}, but nullable timestamps are acquired using
+     * {@link java.sql.ResultSet#getObject(int)} and therefore the Timestamp
+     * value needs to be converted to a {@link Long}. Similarly
+     * {@link java.sql.Date} and {@link java.sql.Time} values to
+     * {@link Integer}. */
+    private static List wrap(List list, RelDataType type) {
+        if (type.isNullable()) {
+            switch (type.getSqlTypeName()) {
+            case TIMESTAMP:
+                return Functions.adapt(list, TIMESTAMP_TO_LONG);
+            case TIME:
+                return Functions.adapt(list, TIME_TO_INT);
+            case DATE:
+                return Functions.adapt(list, DATE_TO_INT);
+            }
+        }
+        return list;
     }
 
     /**

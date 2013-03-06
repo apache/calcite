@@ -347,7 +347,7 @@ public class RexToLixTranslator {
             final Expression translate = translate(rex);
             list.add(translate);
             if (!isNullable(rex)) {
-                assert Primitive.ofBox(translate.getType()) == null
+                assert !Primitive.isBox(translate.getType())
                     : "Not-null boxed primitive should come back as primitive: "
                       + rex + ", " + translate.getType();
             }

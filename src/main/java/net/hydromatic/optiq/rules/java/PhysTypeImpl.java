@@ -206,9 +206,8 @@ public class PhysTypeImpl implements PhysType {
             final int index = collation.getFieldIndex();
             Expression arg0 = fieldReference(parameterV0, index);
             Expression arg1 = fieldReference(parameterV1, index);
-            if (Primitive.of(fieldClass(index)) == null
-                && Primitive.ofBox(fieldClass(index)) == null)
-            {
+            switch (Primitive.flavor(fieldClass(index))) {
+            case OBJECT:
                 arg0 = Types.castIfNecessary(Comparable.class, arg0);
                 arg1 = Types.castIfNecessary(Comparable.class, arg1);
             }

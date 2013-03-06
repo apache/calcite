@@ -27,7 +27,6 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.sql.SqlDialect;
 
-import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
 import javax.sql.DataSource;
@@ -82,18 +81,6 @@ final class JdbcUtils {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    static List<Primitive> getPrimitives(Class elementType) {
-        final List<Primitive> primitiveList =
-            new ArrayList<Primitive>();
-        for (Field field : elementType.getFields()) {
-            final Primitive primitive =
-                Primitive.of(field.getType());
-            primitiveList.add(
-                primitive != null ? primitive : Primitive.OTHER);
-        }
-        return primitiveList;
     }
 
     static List<Primitive> getPrimitives(

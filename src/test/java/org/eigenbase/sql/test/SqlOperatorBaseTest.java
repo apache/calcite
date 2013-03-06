@@ -489,11 +489,11 @@ public abstract class SqlOperatorBaseTest
         checkCastToString("'abc'", "CHAR(3)", "abc");
         checkCastToString("cast('abc' as varchar(6))", "CHAR(3)", "abc");
 
+        // date & time
+        checkCastToString("date '2008-01-01'", "CHAR(10)", "2008-01-01");
         if (!enable) {
             return;
         }
-        // date & time
-        checkCastToString("date '2008-01-01'", "CHAR(10)", "2008-01-01");
         checkCastToString("time '1:2:3'", "CHAR(8)", "01:02:03");
         checkCastToString(
             "timestamp '2008-1-1 1:2:3'",
@@ -1969,6 +1969,11 @@ public abstract class SqlOperatorBaseTest
         getTester().checkBoolean("false>false", Boolean.FALSE);
         getTester().checkBoolean("false>true", Boolean.FALSE);
         getTester().checkNull("3.0>cast(null as double)");
+
+        getTester().checkBoolean(
+            "DATE '2013-02-23' > DATE '1945-02-24'", Boolean.TRUE);
+        getTester().checkBoolean(
+            "DATE '2013-02-23' > CAST(NULL AS DATE)", null);
     }
 
     public void testGreaterThanOperatorIntervals() {

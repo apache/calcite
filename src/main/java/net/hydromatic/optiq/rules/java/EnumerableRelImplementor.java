@@ -190,7 +190,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
         List<Expression> conditions = new ArrayList<Expression>();
         for (Types.RecordField field : type.getRecordFields()) {
             conditions.add(
-                Primitive.of(field.getType()) != null
+                Primitive.is(field.getType())
                     ? Expressions.equal(
                         Expressions.field(thisParameter, field.getName()),
                         Expressions.field(thatParameter, field.getName()))
