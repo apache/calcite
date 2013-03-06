@@ -761,9 +761,10 @@ public abstract class EnumerableDefaults {
           Enumerator<List<Object>> productEnumerator = Linq4j.emptyEnumerator();
 
           public TResult current() {
+            final List<Object> objects = productEnumerator.current();
             return resultSelector.apply(
-                (TSource) productEnumerator.current().get(0),
-                (TInner) productEnumerator.current().get(1));
+                (TSource) objects.get(0),
+                (TInner) objects.get(1));
           }
 
           public boolean moveNext() {
@@ -784,11 +785,12 @@ public abstract class EnumerableDefaults {
                   || !outerEnumerable.any()) {
                 productEnumerator = Linq4j.emptyEnumerator();
               } else {
-                productEnumerator = Linq4j.product(Arrays.asList(
-                    (Enumerator<Object>) (Enumerator)
-                      outerEnumerable.enumerator(),
-                    (Enumerator<Object>) (Enumerator)
-                      innerEnumerable.enumerator()));
+                productEnumerator = Linq4j.product(
+                    Arrays.asList(
+                        (Enumerator<Object>) (Enumerator)
+                            outerEnumerable.enumerator(),
+                        (Enumerator<Object>) (Enumerator)
+                            innerEnumerable.enumerator()));
               }
             }
           }

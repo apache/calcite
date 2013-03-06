@@ -500,7 +500,8 @@ public class Expressions {
     return type;
   }
 
-  static boolean isConstantNull(Expression e) {
+  /** Returns whether an expression always evaluates to null. */
+  public static boolean isConstantNull(Expression e) {
     return e instanceof ConstantExpression
            && ((ConstantExpression) e).value == null;
   }

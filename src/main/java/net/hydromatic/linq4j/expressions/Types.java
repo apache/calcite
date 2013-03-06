@@ -349,10 +349,6 @@ public class Types {
             .toString(argumentTypes));
   }
 
-  public static boolean isPrimitive(Type type) {
-    return type instanceof Class && ((Class) type).isPrimitive();
-  }
-
   public static void discard(Object o) {
     if (false) {
       discard(o);
@@ -428,7 +424,7 @@ public class Types {
       return Expressions.call(expression,
           Primitive.ofBox(returnType).primitiveName + "Value");
     }
-    if (Types.isPrimitive(returnType) && !Types.isPrimitive(type)) {
+    if (Primitive.is(returnType) && !Primitive.is(type)) {
       // E.g.
       //   int foo(Object o) {
       //     return (int) (Integer) o;
@@ -438,7 +434,7 @@ public class Types {
               Types.box(returnType)),
           returnType);
     }
-    if (!Types.isPrimitive(returnType) && Types.isPrimitive(type)) {
+    if (!Primitive.is(returnType) && Primitive.is(type)) {
       // E.g.
       //   Short foo(Object o) {
       //     return (short) (int) o;

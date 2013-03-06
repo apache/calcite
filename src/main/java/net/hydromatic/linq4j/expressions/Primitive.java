@@ -105,6 +105,34 @@ public enum Primitive {
   }
 
   /**
+   * Returns whether a given type is primitive.
+   */
+  public static boolean is(Type type) {
+    //noinspection SuspiciousMethodCalls
+    return PRIMITIVE_MAP.containsKey(type);
+  }
+
+  /**
+   * Returns whether a given type is a box type (e.g. {@link Integer}).
+   */
+  public static boolean isBox(Type type) {
+    //noinspection SuspiciousMethodCalls
+    return BOX_MAP.containsKey(type);
+  }
+
+  /** Returns whether this type is a primitive, box or other type. Useful for
+   * switch statements. */
+  public static Flavor flavor(Type type) {
+    if (is(type)) {
+      return Flavor.PRIMITIVE;
+    } else if (isBox(type)) {
+      return Flavor.BOX;
+    } else {
+      return Flavor.OBJECT;
+    }
+  }
+
+  /**
    * Converts a primitive type to a boxed type; returns other types
    * unchanged.
    */
@@ -655,7 +683,7 @@ public enum Primitive {
   /**
    * A place to send a value.
    */
-  interface Sink {
+  public interface Sink {
     void set(boolean v);
 
     void set(byte v);
@@ -678,7 +706,7 @@ public enum Primitive {
   /**
    * A place from which to read a value.
    */
-  interface Source {
+  public interface Source {
     boolean getBoolean();
 
     byte getByte();
@@ -696,6 +724,12 @@ public enum Primitive {
     double getDouble();
 
     Object getObject();
+  }
+
+  public enum Flavor {
+    PRIMITIVE,
+    BOX,
+    OBJECT
   }
 }
 
