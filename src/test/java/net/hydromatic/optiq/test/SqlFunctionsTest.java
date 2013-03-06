@@ -131,6 +131,7 @@ public class SqlFunctionsTest extends TestCase {
         assertEquals("2000-02-28", unixDateToString(11015));
         assertEquals("2000-02-29", unixDateToString(11016));
         assertEquals("2000-03-01", unixDateToString(11017));
+        assertEquals("1945-02-24", unixDateToString(-9077));
     }
 
     public void testYmdToUnixDate() {
@@ -138,6 +139,25 @@ public class SqlFunctionsTest extends TestCase {
         assertEquals(365, ymdToUnixDate(1971, 1, 1));
         assertEquals(-365, ymdToUnixDate(1969, 1, 1));
         assertEquals(11017, ymdToUnixDate(2000, 3, 1));
+        assertEquals(-9077, ymdToUnixDate(1945, 2, 24));
+    }
+
+    public void testDateToString() {
+        assertEquals("1970-01-01", unixDateToString(0));
+        assertEquals("1971-02-03", unixDateToString(0 + 365 + 31 + 2));
+    }
+
+    public void testTimeToString() {
+        assertEquals("00:00:00", unixTimeToString(0));
+        assertEquals("23:59:59", unixTimeToString(86400000 - 1));
+    }
+
+    public void testTimestampToString() {
+        // ISO format would be "1970-01-01T00:00:00" but SQL format is different
+        assertEquals("1970-01-01 00:00:00", unixTimestampToString(0));
+        assertEquals(
+            "1970-02-01 23:59:59",
+            unixTimestampToString(86400000L * 32L - 1L));
     }
 
     /** Unit test for
@@ -155,6 +175,35 @@ public class SqlFunctionsTest extends TestCase {
         assertEquals(1, Utilities.compare(ac, abc));
         assertEquals(1, Utilities.compare(ac, empty));
         assertEquals(0, Utilities.compare(empty, empty));
+    }
+
+    public void testTruncateLong() {
+        assertEquals(12000L, SqlFunctions.truncate(12345L, 1000L));
+        assertEquals(12000L, SqlFunctions.truncate(12000L, 1000L));
+        assertEquals(12000L, SqlFunctions.truncate(12001L, 1000L));
+        assertEquals(11000L, SqlFunctions.truncate(11999L, 1000L));
+
+        assertEquals(-13000L, SqlFunctions.truncate(-12345L, 1000L));
+        assertEquals(-12000L, SqlFunctions.truncate(-12000L, 1000L));
+        assertEquals(-13000L, SqlFunctions.truncate(-12001L, 1000L));
+        assertEquals(-12000L, SqlFunctions.truncate(-11999L, 1000L));
+    }
+
+    public void testTruncateInt() {
+        assertEquals(12000, SqlFunctions.truncate(12345, 1000));
+        assertEquals(12000, SqlFunctions.truncate(12000, 1000));
+        assertEquals(12000, SqlFunctions.truncate(12001, 1000));
+        assertEquals(11000, SqlFunctions.truncate(11999, 1000));
+
+        assertEquals(-13000, SqlFunctions.truncate(-12345, 1000));
+        assertEquals(-12000, SqlFunctions.truncate(-12000, 1000));
+        assertEquals(-13000, SqlFunctions.truncate(-12001, 1000));
+        assertEquals(-12000, SqlFunctions.truncate(-11999, 1000));
+
+        assertEquals(12000, SqlFunctions.round(12345, 1000));
+        assertEquals(13000, SqlFunctions.round(12845, 1000));
+        assertEquals(-12000, SqlFunctions.round(-12345, 1000));
+        assertEquals(-13000, SqlFunctions.round(-12845, 1000));
     }
 }
 

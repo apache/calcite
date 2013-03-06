@@ -32,6 +32,8 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.DateTimeUtil;
 
+import net.hydromatic.optiq.runtime.SqlFunctions;
+
 
 /**
  * Factory for row expressions.
@@ -438,10 +440,24 @@ public class RexBuilder
                     || (type.getPrecision()
                        >= ((NlsString) value).getValue().length())))
             {
-                if (value instanceof NlsString
-                    && literal.getTypeName() == SqlTypeName.CHAR)
-                {
-                    value = ((NlsString) value).rtrim();
+                switch (literal.getTypeName()) {
+                case CHAR:
+                    if (value instanceof NlsString) {
+                        value = ((NlsString) value).rtrim();
+                    }
+                    break;
+                case TIMESTAMP:
+                case TIME:
+                    final Calendar calendar = (Calendar) value;
+                    int scale = type.getScale();
+                    if (scale == RelDataType.SCALE_NOT_SPECIFIED) {
+                        scale = 0;
+                    }
+                    calendar.setTimeInMillis(
+                        SqlFunctions.round(
+                            calendar.getTimeInMillis(),
+                            SqlFunctions.power(10, 3 - scale)));
+                    break;
                 }
                 return makeLiteral(value, type, literal.getTypeName());
             }

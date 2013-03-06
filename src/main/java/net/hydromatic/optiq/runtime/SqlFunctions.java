@@ -521,17 +521,109 @@ public class SqlFunctions {
         }
     }
 
+    /** CAST(BOOLEAN AS VARCHAR). */
+    public static String toString(boolean x) {
+        // Boolean.toString returns lower case -- no good.
+        return x ? "TRUE" : "FALSE";
+    }
+
     /** Helper for CAST(... AS VARCHAR(maxLength)). */
     public static String truncate(String s, int maxLength) {
         return s.length() > maxLength ? s.substring(0, maxLength) : s;
     }
 
-    /** Helper for CAST({date} AS VARCHAR(n)). */
-    public static String unixDateToString(int date) {
-        return julianToString(date + 2440588);
+    /** Cheap, unsafe, long power. power(2, 3) returns 8. */
+    public static long power(long a, long b) {
+        long x = 1;
+        while (b > 0) {
+            x *= a;
+            --b;
+        }
+        return x;
     }
 
-    public static String julianToString(int J) {
+    /** Helper for rounding. Truncate(12345, 1000) returns 12000. */
+    public static long round(long v, long x) {
+        return truncate(v + x / 2, x);
+    }
+
+    /** Helper for rounding. Truncate(12345, 1000) returns 12000. */
+    public static long truncate(long v, long x) {
+        long remainder = v % x;
+        if (remainder < 0) {
+            remainder += x;
+        }
+        return v - remainder;
+    }
+
+    /** Helper for rounding. Truncate(12345, 1000) returns 12000. */
+    public static int round(int v, int x) {
+        return truncate(v + x / 2, x);
+    }
+
+    /** Helper for rounding. Truncate(12345, 1000) returns 12000. */
+    public static int truncate(int v, int x) {
+        int remainder = v % x;
+        if (remainder < 0) {
+            remainder += x;
+        }
+        return v - remainder;
+    }
+
+    /** Helper for CAST({timestamp} AS VARCHAR(n)). */
+    public static String unixTimestampToString(long timestamp) {
+        final StringBuilder buf = new StringBuilder(17);
+        unixDateToString(buf, (int) (timestamp / 86400000));
+        buf.append(' ');
+        unixTimeToString(buf, (int) (timestamp % 86400000));
+        return buf.toString();
+    }
+
+    /** Helper for CAST({timestamp} AS VARCHAR(n)). */
+    public static String unixTimeToString(int time) {
+        final StringBuilder buf = new StringBuilder(8);
+        unixTimeToString(buf, time);
+        return buf.toString();
+    }
+
+    private static void unixTimeToString(StringBuilder buf, int time) {
+        int h = time / 3600000;
+        int time2 = time % 3600000;
+        int m = time2 / 60000;
+        int time3 = time2 % 60000;
+        int s = time3 / 1000;
+        int ms = time3 % 1000;
+        int2(buf, h);
+        buf.append(':');
+        int2(buf, m);
+        buf.append(':');
+        int2(buf, s);
+    }
+
+    private static void int2(StringBuilder buf, int i) {
+        buf.append((char) ('0' + (i / 10) % 10));
+        buf.append((char) ('0' + i % 10));
+    }
+
+    private static void int4(StringBuilder buf, int i) {
+        buf.append((char) ('0' + (i / 1000) % 10));
+        buf.append((char) ('0' + (i / 100) % 10));
+        buf.append((char) ('0' + (i / 10) % 10));
+        buf.append((char) ('0' + i % 10));
+    }
+
+    /** Helper for CAST({date} AS VARCHAR(n)). */
+    public static String unixDateToString(int date) {
+        final StringBuilder buf = new StringBuilder(10);
+        unixDateToString(buf, date);
+        return buf.toString();
+    }
+
+    private static void unixDateToString(StringBuilder buf, int date) {
+        julianToString(buf, date + 2440588);
+    }
+
+    private static void julianToString(StringBuilder buf, int J) {
         // this shifts the epoch back to astronomical year -4800 instead of the
         // start of the Christian era in year AD 1 of the proleptic Gregorian
         // calendar.
@@ -554,11 +646,11 @@ public class SqlFunctions {
         int Y = y - 4800 + (m + 2) / 12;
         int M = (m + 2) % 12 + 1;
         int D = d + 1;
-        return Y
-               + "-"
-               + (M < 10 ? "0" : "") + M
-               + "-"
-               + (D < 10 ? "0" : "") + D;
+        int4(buf, Y);
+        buf.append('-');
+        int2(buf, M);
+        buf.append('-');
+        int2(buf, D);
     }
 
     public static int ymdToUnixDate(int year, int month, int day) {

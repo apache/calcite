@@ -141,7 +141,19 @@ public enum BuiltinMethod {
     IS_NOT_FALSE(
         SqlFunctions.class, "isNotFalse", Boolean.class),
     MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(
-        ModifiableTable.class, "getModifiableCollection");
+        ModifiableTable.class, "getModifiableCollection"),
+    UNIX_DATE_TO_STRING(
+        SqlFunctions.class, "unixDateToString", int.class),
+    UNIX_TIME_TO_STRING(
+        SqlFunctions.class, "unixTimeToString", int.class),
+    UNIX_TIMESTAMP_TO_STRING(
+        SqlFunctions.class, "unixTimestampToString", int.class),
+    BOOLEAN_TO_STRING(
+        SqlFunctions.class, "toString", boolean.class),
+    ROUND_LONG(
+        SqlFunctions.class, "round", long.class, long.class),
+    ROUND_INT(
+        SqlFunctions.class, "round", int.class, int.class);
 
     public final Method method;
 

@@ -491,9 +491,6 @@ public abstract class SqlOperatorBaseTest
 
         // date & time
         checkCastToString("date '2008-01-01'", "CHAR(10)", "2008-01-01");
-        if (!enable) {
-            return;
-        }
         checkCastToString("time '1:2:3'", "CHAR(8)", "01:02:03");
         checkCastToString(
             "timestamp '2008-1-1 1:2:3'",
@@ -505,7 +502,7 @@ public abstract class SqlOperatorBaseTest
             "2008-01-01 01:02:03");
 
         // todo: cast of intervals to strings not supported in fennel
-        if (!(getTester().isVm(VmName.FENNEL))) {
+        if (!(getTester().isVm(VmName.FENNEL)) && INTERVAL) {
             checkCastToString(
                 "interval '3-2' year to month",
                 "CHAR(5)",
@@ -1055,12 +1052,9 @@ public abstract class SqlOperatorBaseTest
         // Test cast for date/time/timestamp
         getTester().setFor(SqlStdOperatorTable.castFunc);
 
-        if (!enable) {
-            return;
-        }
         getTester().checkScalar(
             "cast(TIMESTAMP '1945-02-24 12:42:25.34' as TIMESTAMP)",
-            "1945-02-24 12:42:25",
+            "1945-02-24 12:42:25.0",
             "TIMESTAMP(0) NOT NULL");
 
         getTester().checkScalar(
@@ -1093,12 +1087,27 @@ public abstract class SqlOperatorBaseTest
             "12:42:25",
             "TIME(0) NOT NULL");
 
+        // time <-> string
+        checkCastToString("TIME '12:42:25'", null, "12:42:25");
+        if (todo) {
+            checkCastToString("TIME '12:42:25.34'", null, "12:42:25.34");
+        }
+
         // Generate the current date as a string, e.g. "2007-04-18". The value
         // is guaranteed to be good for at least 2 minutes, which should give
         // us time to run the rest of the tests.
         final String today =
             new SimpleDateFormat("yyyy-MM-dd").format(
                 getCalendarNotTooNear(Calendar.DAY_OF_MONTH).getTime());
+
+        getTester().checkScalar(
+            "cast(DATE '1945-02-24' as TIMESTAMP)",
+            "1945-02-24 00:00:00.0",
+            "TIMESTAMP(0) NOT NULL");
+
+        if (!enable) {
+            return;
+        }
 
         // Note: Casting to time(0) should lose date info and fractional
         // seconds, then casting back to timestamp should initialize to
@@ -1124,17 +1133,6 @@ public abstract class SqlOperatorBaseTest
             "cast(cast(TIMESTAMP '1945-02-24 12:42:25.34' as DATE) as TIMESTAMP)",
             "1945-02-24 00:00:00",
             "TIMESTAMP(0) NOT NULL");
-
-        getTester().checkScalar(
-            "cast(DATE '1945-02-24' as TIMESTAMP)",
-            "1945-02-24 00:00:00",
-            "TIMESTAMP(0) NOT NULL");
-
-        // time <-> string
-        checkCastToString("TIME '12:42:25'", null, "12:42:25");
-        if (todo) {
-            checkCastToString("TIME '12:42:25.34'", null, "12:42:25.34");
-        }
 
         getTester().checkScalar(
             "cast('12:42:25' as TIME)",

@@ -166,17 +166,42 @@ public class RexToLixTranslator {
         RelDataType targetType,
         Expression operand)
     {
-        Expression convert;
-        switch (sourceType.getSqlTypeName()) {
-        case DATE:
-            convert = RexImpTable.optimize2(
-                operand,
-                Expressions.call(
-                    SqlFunctions.class,
-                    "unixDateToString",
-                    operand));
-            break;
-        default:
+        Expression convert = null;
+        switch (targetType.getSqlTypeName()) {
+        case CHAR:
+        case VARCHAR:
+            switch (sourceType.getSqlTypeName()) {
+            case DATE:
+                convert = RexImpTable.optimize2(
+                    operand,
+                    Expressions.call(
+                        BuiltinMethod.UNIX_DATE_TO_STRING.method,
+                        operand));
+                break;
+            case TIME:
+                convert = RexImpTable.optimize2(
+                    operand,
+                    Expressions.call(
+                        BuiltinMethod.UNIX_TIME_TO_STRING.method,
+                        operand));
+                break;
+            case TIMESTAMP:
+                convert = RexImpTable.optimize2(
+                    operand,
+                    Expressions.call(
+                        BuiltinMethod.UNIX_TIMESTAMP_TO_STRING.method,
+                        operand));
+                break;
+            case BOOLEAN:
+                convert = RexImpTable.optimize2(
+                    operand,
+                    Expressions.call(
+                        BuiltinMethod.BOOLEAN_TO_STRING.method,
+                        operand));
+                break;
+            }
+        }
+        if (convert == null) {
             convert = convert(operand, typeFactory.getJavaClass(targetType));
         }
         // Going from CHAR(n), trim.
@@ -211,6 +236,21 @@ public class RexToLixTranslator {
                             Expressions.constant(targetPrecision));
                 }
             }
+            break;
+        case TIMESTAMP:
+            int targetScale = targetType.getScale();
+            if (targetScale == RelDataType.SCALE_NOT_SPECIFIED) {
+                targetScale = 0;
+            }
+            if (targetScale < sourceType.getScale()) {
+                convert =
+                    Expressions.call(
+                        BuiltinMethod.ROUND_LONG.method,
+                        convert,
+                        Expressions.constant(
+                            (long) Math.pow(10, 3 - targetScale)));
+            }
+            break;
         }
         return convert;
     }

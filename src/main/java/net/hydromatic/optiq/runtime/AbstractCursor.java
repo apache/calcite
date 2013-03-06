@@ -23,10 +23,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URL;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
+import java.sql.Date;
+import java.util.*;
 
 /**
  * Base class for implementing a cursor.
@@ -37,6 +35,9 @@ import java.util.Map;
  * @author jhyde
  */
 abstract class AbstractCursor implements Cursor {
+    private static final int MILLIS_PER_DAY = 86400000;
+    private static final Calendar LOCAL_CALENDAR = Calendar.getInstance();
+
     /**
      * Slot into which each accessor should write whether the
      * value returned was null.
@@ -84,9 +85,11 @@ abstract class AbstractCursor implements Cursor {
         case Types.VARBINARY:
             return new BinaryAccessor(getter);
         case Types.DATE:
+            return new DateAccessor(getter);
         case Types.TIME:
+            return new TimeAccessor(getter);
         case Types.TIMESTAMP:
-            return new DateTimeAccessor(getter);
+            return new TimestampAccessor(getter);
         case Types.JAVA_OBJECT:
         case Types.ARRAY:
         case Types.OTHER: // e.g. map
@@ -153,15 +156,15 @@ abstract class AbstractCursor implements Cursor {
         }
 
         public Date getDate() {
-            throw cannotConvert("Date");
+            return getDate(null);
         }
 
         public Time getTime() {
-            throw cannotConvert("Time");
+            return getTime(null);
         }
 
         public Timestamp getTimestamp() {
-            throw cannotConvert("Timestamp");
+            return getTimestamp(null);
         }
 
         public InputStream getAsciiStream() {
@@ -209,15 +212,15 @@ abstract class AbstractCursor implements Cursor {
         }
 
         public Date getDate(Calendar cal) {
-            throw cannotConvert("Date (with Calendar)");
+            throw cannotConvert("Date");
         }
 
         public Time getTime(Calendar cal) {
-            throw cannotConvert("Time (with Calendar)");
+            throw cannotConvert("Time");
         }
 
         public Timestamp getTimestamp(Calendar cal) {
-            throw cannotConvert("Timestamp (with Calendar)");
+            throw cannotConvert("Timestamp");
         }
 
         public URL getURL() {
@@ -363,7 +366,7 @@ abstract class AbstractCursor implements Cursor {
         }
 
         public int getInt() {
-            Integer o = (Integer) getObject();
+            Integer o = (Integer) super.getObject();
             return o == null ? 0 : o;
         }
 
@@ -382,7 +385,7 @@ abstract class AbstractCursor implements Cursor {
         }
 
         public long getLong() {
-            Long o = (Long) getObject();
+            Long o = (Long) super.getObject();
             return o == null ? 0 : o;
         }
     }
@@ -597,15 +600,99 @@ abstract class AbstractCursor implements Cursor {
     }
 
     /**
-     * Accessor that assumes that the underlying value is a DATE, TIME or
-     * TIMESTAMP value;
-     * corresponds to {@link java.sql.Types#DATE},
-     * {@link java.sql.Types#TIME} and
-     * {@link java.sql.Types#TIMESTAMP}.
+     * Accessor that assumes that the underlying value is a DATE;
+     * corresponds to {@link java.sql.Types#DATE}.
      */
-    private static class DateTimeAccessor extends AccessorImpl {
-        public DateTimeAccessor(Getter getter) {
+    private static class DateAccessor extends IntAccessor {
+        public DateAccessor(Getter getter) {
             super(getter);
+        }
+
+        @Override
+        public Object getObject() {
+            return getDate();
+        }
+
+        @Override
+        public Date getDate(Calendar calendar) {
+            int vv = getInt();
+            if (vv == 0 && getter.wasNull()) {
+                return null;
+            }
+            long v = (long) vv * MILLIS_PER_DAY;
+            if (calendar != null) {
+                v -= calendar.getTimeZone().getOffset(v);
+            }
+            return new java.sql.Date(v);
+        }
+
+        @Override
+        public String getString() {
+            return getDate(LOCAL_CALENDAR).toString();
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a Time;
+     * corresponds to {@link java.sql.Types#TIME}.
+     */
+    private static class TimeAccessor extends IntAccessor {
+        public TimeAccessor(Getter getter) {
+            super(getter);
+        }
+
+        @Override
+        public Object getObject() {
+            return getTime();
+        }
+
+        @Override
+        public Time getTime(Calendar calendar) {
+            int v = getInt();
+            if (v == 0 && getter.wasNull()) {
+                return null;
+            }
+            if (calendar != null) {
+                v -= calendar.getTimeZone().getOffset(v);
+            }
+            return new Time(v);
+        }
+
+        @Override
+        public String getString() {
+            return getTime(LOCAL_CALENDAR).toString();
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a TIMESTAMP;
+     * corresponds to {@link java.sql.Types#TIMESTAMP}.
+     */
+    private static class TimestampAccessor extends LongAccessor {
+        public TimestampAccessor(Getter getter) {
+            super(getter);
+        }
+
+        @Override
+        public Object getObject() {
+            return getTimestamp();
+        }
+
+        @Override
+        public Timestamp getTimestamp(Calendar calendar) {
+            long v = getLong();
+            if (v == 0L && getter.wasNull()) {
+                return null;
+            }
+            if (calendar != null) {
+                v -= calendar.getTimeZone().getOffset(v);
+            }
+            return new Timestamp(v);
+        }
+
+        @Override
+        public String getString() {
+            return getTimestamp(LOCAL_CALENDAR).toString();
         }
     }
 
