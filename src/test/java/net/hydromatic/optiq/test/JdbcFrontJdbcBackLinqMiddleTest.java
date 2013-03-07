@@ -127,7 +127,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
                 + "  from \"foodmart\".\"sales_fact_1997\" as s\n"
                 + "  join \"foodmart\".\"customer\" as c\n"
                 + "  on s.\"customer_id\" - c.\"customer_id\" = 0)")
-            .throws_("node could not be implemented");
+            .throws_(" could not be implemented");
     }
 
     public void testJoinGroupByEmpty() {

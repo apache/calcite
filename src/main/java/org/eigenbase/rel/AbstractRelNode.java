@@ -299,7 +299,7 @@ public abstract class AbstractRelNode
             0);
     }
 
-    public final void explain(RelOptPlanWriter pw) {
+    public void explain(RelOptPlanWriter pw) {
         explainTerms(pw).done(this);
     }
 
@@ -319,8 +319,7 @@ public abstract class AbstractRelNode
     {
         List<RelNode> oldInputs = getInputs();
         List<RelNode> inputs = new ArrayList<RelNode>(oldInputs.size());
-        for (int i = 0; i < oldInputs.size(); i++) {
-            final RelNode input = oldInputs.get(i);
+        for (final RelNode input : oldInputs) {
             RelNode e = planner.ensureRegistered(input, null);
             if (e != input) {
                 // TODO: change 'equal' to 'eq', which is stronger.

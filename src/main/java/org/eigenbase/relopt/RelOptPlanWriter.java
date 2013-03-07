@@ -43,6 +43,7 @@ public class RelOptPlanWriter {
     protected final Spacer spacer = new Spacer();
     private final List<Pair<String, Object>> values =
         new ArrayList<Pair<String, Object>>();
+    private int subsetPrefixLength;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -81,10 +82,10 @@ public class RelOptPlanWriter {
         }
 
         StringBuilder s = new StringBuilder();
+        spacer.spaces(s);
         if (withIdPrefix) {
             s.append(rel.getId()).append(":");
         }
-        spacer.spaces(s);
         s.append(rel.getRelTypeName());
         if (detailLevel != SqlExplainLevel.NO_ATTRIBUTES) {
             int j = 0;
@@ -143,20 +144,6 @@ public class RelOptPlanWriter {
     }
 
     /**
-     * Special form used by {@link
-     * org.eigenbase.relopt.volcano.RelSubset}.
-     */
-    public void explainSubset(
-        String s,
-        RelNode child)
-    {
-        pw.print(s);
-        spacer.add(2);
-        child.explain(this);
-        spacer.subtract(2);
-    }
-
-    /**
      * @return detail level at which plan should be generated
      */
     public SqlExplainLevel getDetailLevel()
@@ -197,11 +184,16 @@ public class RelOptPlanWriter {
     /** Writes the completed explanation. */
     public RelOptPlanWriter done(RelNode node) {
         int i = 0;
+        if (values.size() > 0 && values.get(0).left.equals("subset")) {
+            ++i;
+        }
         for (RelNode input : node.getInputs()) {
-            assert values.get(i++).right == input;
+            assert values.get(i).right == input;
+            ++i;
         }
         for (RexNode expr : node.getChildExps()) {
-            assert values.get(i++).right == expr;
+            assert values.get(i).right == expr;
+            ++i;
         }
         final List<Pair<String, Object>> valuesCopy =
             new ArrayList<Pair<String, Object>>(values);
@@ -223,6 +215,10 @@ public class RelOptPlanWriter {
         }
         buf.append(")");
         return buf.toString();
+    }
+
+    public void setSubsetPrefixLength(int subsetPrefixLength) {
+        this.subsetPrefixLength = subsetPrefixLength;
     }
 }
 

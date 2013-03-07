@@ -149,12 +149,20 @@ public class RelSubset
         }
     }
 
-    // implement RelNode
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public void explain(RelOptPlanWriter pw) {
         // Not a typical implementation of "explain". We don't gather terms &
         // values to be printed later. We actually do the work.
+        String s = getDescription();
+        pw.item("subset", s);
+        final AbstractRelNode input = (AbstractRelNode) rels.get(0);
+        input.explainTerms(pw);
+        pw.done(input);
+    }
+
+    public String getSubsetDescription() {
         StringBuilder s = new StringBuilder();
-        s.append(id).append(": RelSubset(");
+        s.append(id)
+            .append(": RelSubset(");
         for (Ord<RelTrait> ord : Ord.zip(traitSet)) {
             if (ord.i > 0) {
                 s.append(", ");
@@ -162,11 +170,7 @@ public class RelSubset
             s.append(ord.e);
         }
         s.append(')');
-
-        pw.explainSubset(
-            s.toString(),
-            rels.get(0));
-        return pw;
+        return s.toString();
     }
 
     protected String computeDigest()
@@ -377,22 +381,18 @@ public class RelSubset
                 RelSubset subset = (RelSubset) p;
                 RelNode cheapest = subset.best;
                 if (cheapest == null) {
-                    if (tracer.isLoggable(Level.WARNING)) {
-                        // Dump the planner's expression pool so we can figure
-                        // out why we reached impasse.
-                        StringWriter sw = new StringWriter();
-                        final PrintWriter pw = new PrintWriter(sw);
-                        pw.println(
-                            "Node [" + subset.getDescription()
-                            + "] could not be implemented; planner state:");
-                        planner.dump(pw);
-                        pw.flush();
-                        tracer.warning(sw.toString());
-                    }
+                    // Dump the planner's expression pool so we can figure
+                    // out why we reached impasse.
+                    StringWriter sw = new StringWriter();
+                    final PrintWriter pw = new PrintWriter(sw);
+                    pw.println(
+                        "Node [" + subset.getDescription()
+                        + "] could not be implemented; planner state:\n");
+                    planner.dump(pw);
+                    pw.flush();
+                    final String dump = sw.toString();
                     RuntimeException e =
-                        new RuntimeException(
-                            "node could not be implemented: "
-                            + subset.getDigest());
+                        new RuntimeException(dump);
                     tracer.throwing(
                         getClass().getName(),
                         "visit",
