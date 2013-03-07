@@ -1386,6 +1386,8 @@ public class SqlValidatorImpl
             SqlParserPos.ZERO);
     }
 
+    /** Returns null if there is no common type. E.g. if the rows have a
+     * different number of columns. */
     RelDataType getTableConstructorRowType(
         SqlCall values,
         SqlValidatorScope scope)

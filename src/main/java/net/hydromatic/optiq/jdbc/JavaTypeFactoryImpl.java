@@ -79,9 +79,13 @@ public class JavaTypeFactoryImpl
                 "TODO: implement " + type + ": " + type.getClass());
         }
         final Class clazz = (Class) type;
-        if (clazz.isPrimitive()) {
+        switch (Primitive.flavor(clazz)) {
+        case PRIMITIVE:
             return createJavaType(clazz);
-        } else if (clazz == String.class) {
+        case BOX:
+            return createJavaType(Primitive.ofBox(clazz).boxClass);
+        }
+        if (clazz == String.class) {
             // TODO: similar special treatment for BigDecimal, BigInteger,
             //  Date, Time, Timestamp, Double etc.
             return createJavaType(clazz);
@@ -174,7 +178,9 @@ public class JavaTypeFactoryImpl
                     }));
         }
         if (type instanceof JavaType) {
-            return new BasicSqlType(type.getSqlTypeName());
+            return createTypeWithNullability(
+                new BasicSqlType(type.getSqlTypeName()),
+                type.isNullable());
         }
         return type;
     }

@@ -64,8 +64,8 @@ public class JdbcFrontLinqBackTest extends TestCase {
                 + "join \"hr\".\"emps\" as e\n"
                 + "on e.\"empid\" = s.\"cust_id\"")
             .returns(
-                "cust_id=100; prod_id=10; empid=100; deptno=10; name=Bill\n"
-                + "cust_id=150; prod_id=20; empid=150; deptno=10; name=Sebastian\n");
+                "cust_id=100; prod_id=10; empid=100; deptno=10; name=Bill; commission=1000\n"
+                + "cust_id=150; prod_id=20; empid=150; deptno=10; name=Sebastian; commission=null\n");
     }
 
     /**
@@ -187,7 +187,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
                 "select * from \"hr\".\"emps\"\n"
                 + "where (\"empid\" = 100 or \"empid\" = 200)\n"
                 + "and \"deptno\" = 10")
-            .returns("empid=100; deptno=10; name=Bill\n");
+            .returns("empid=100; deptno=10; name=Bill; commission=1000\n");
     }
 
     public void testWhereLike() {
@@ -210,7 +210,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
         OptiqAssert.AssertThat with = mutable(employees);
         with
             .query("select * from \"foo\".\"bar\"")
-            .returns("empid=0; deptno=0; name=first\n");
+            .returns("empid=0; deptno=0; name=first; commission=null\n");
         with.query("insert into \"foo\".\"bar\" select * from \"hr\".\"emps\"")
             .returns("ROWCOUNT=3\n");
         with.query("select count(*) as c from \"foo\".\"bar\"")
@@ -232,7 +232,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
     private OptiqAssert.AssertThat mutable(
         final List<JdbcTest.Employee> employees)
     {
-        employees.add(new JdbcTest.Employee(0, 0, "first"));
+        employees.add(new JdbcTest.Employee(0, 0, "first", null));
         return assertThat()
             .with(
                 new OptiqAssert.ConnectionFactory() {
@@ -271,18 +271,31 @@ public class JdbcFrontLinqBackTest extends TestCase {
         final List<JdbcTest.Employee> employees =
             new ArrayList<JdbcTest.Employee>();
         OptiqAssert.AssertThat with = mutable(employees);
-        with.query("insert into \"foo\".\"bar\" values (1, 1, 'second')")
+        with.query("insert into \"foo\".\"bar\" values (1, 1, 'second', 2)")
             .returns("ROWCOUNT=1\n");
         with.query(
             "insert into \"foo\".\"bar\"\n"
-            + "values (1, 3, 'third'), (1, 4, 'fourth'), (1, 5, 'fifth ')")
+            + "values (1, 3, 'third', 3), (1, 4, 'fourth', 4), (1, 5, 'fifth ', 3)")
             .returns("ROWCOUNT=3\n");
         with.query("select count(*) as c from \"foo\".\"bar\"")
             .returns("C=5\n");
-        with.query("insert into \"foo\".\"bar\" values (1, 6, null)")
+        with.query("insert into \"foo\".\"bar\" values (1, 6, null, null)")
             .returns("ROWCOUNT=1\n");
         with.query("select count(*) as c from \"foo\".\"bar\"")
             .returns("C=6\n");
+    }
+
+    /** Some of the rows have the wrong number of columns. */
+    public void testInsertMultipleRowMismatch() {
+        final List<JdbcTest.Employee> employees =
+            new ArrayList<JdbcTest.Employee>();
+        OptiqAssert.AssertThat with = mutable(employees);
+        with.query(
+            "insert into \"foo\".\"bar\" values\n"
+            + " (1, 3, 'third'),\n"
+            + " (1, 4, 'fourth'),\n"
+            + " (1, 5, 'fifth ', 3)")
+            .throws_("Incompatible types");
     }
 }
 

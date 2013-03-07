@@ -536,7 +536,8 @@ public class RexImpTable {
         /** Adapts an expression with "normal" result to one that adheres to
          * this particular policy. */
         public Expression handle(Expression x) {
-            if (Primitive.is(x.getType())) {
+            switch (Primitive.flavor(x.getType())) {
+            case PRIMITIVE:
                 // Expression cannot be null. We can skip any runtime checks.
                 switch (this) {
                 case NULL:
@@ -548,7 +549,17 @@ public class RexImpTable {
                     return FALSE_EXPR;
                 case IS_NOT_NULL:
                     return TRUE_EXPR;
+                default:
+                    throw new AssertionError();
                 }
+            case BOX:
+                switch (this) {
+                case NOT_POSSIBLE:
+                    return RexToLixTranslator.convert(
+                        x,
+                        Primitive.ofBox(x.getType()).primitiveClass);
+                }
+                // fall through
             }
             switch (this) {
             case NULL:
@@ -1022,7 +1033,7 @@ public class RexImpTable {
                         call.getType(), operands[i], false));
             } else {
                 return Expressions.condition(
-                    translator.translateCondition(operands[i]),
+                    translator.translate(operands[i], NullAs.FALSE),
                     translator.translate(
                         translator.builder.ensureType(
                             call.getType(), operands[i + 1], false)),

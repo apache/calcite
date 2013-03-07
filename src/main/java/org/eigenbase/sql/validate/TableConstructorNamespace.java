@@ -71,7 +71,14 @@ public class TableConstructorNamespace
             targetRowType = validator.getUnknownType();
         }
         validator.validateValues(values, targetRowType, scope);
-        return validator.getTableConstructorRowType(values, scope);
+        final RelDataType tableConstructorRowType =
+            validator.getTableConstructorRowType(values, scope);
+        if (tableConstructorRowType == null) {
+            throw validator.newValidationError(
+                values,
+                new SqlValidatorException("Incompatible types", null));
+        }
+        return tableConstructorRowType;
     }
 
     public SqlNode getNode()

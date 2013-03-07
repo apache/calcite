@@ -144,11 +144,6 @@ public class RexToLixTranslator {
         return expression;
     }
 
-    /** Translates a boolean expression such that null values become false. */
-    Expression translateCondition(RexNode expr) {
-        return translate(expr, RexImpTable.NullAs.FALSE);
-    }
-
     Expression translate(RexNode expr) {
         final RexImpTable.NullAs nullAs =
             RexImpTable.NullAs.of(isNullable(expr));
@@ -267,7 +262,10 @@ public class RexToLixTranslator {
         if (expr instanceof RexInputRef) {
             final int index = ((RexInputRef) expr).getIndex();
             Expression x = inputGetter.field(list, index);
-            return nullAs.handle(list.append("v", x));
+            return list.append(
+                "v",
+                nullAs.handle(
+                    list.append("v", x)));
         }
         if (expr instanceof RexLocalRef) {
             return translate(
@@ -416,7 +414,9 @@ public class RexToLixTranslator {
         }
         final RexToLixTranslator translator =
             new RexToLixTranslator(program, typeFactory, inputGetter, list);
-        return translator.translateCondition(program.getCondition());
+        return translator.translate(
+            program.getCondition(),
+            RexImpTable.NullAs.FALSE);
     }
 
     public static Expression translateAggregate(

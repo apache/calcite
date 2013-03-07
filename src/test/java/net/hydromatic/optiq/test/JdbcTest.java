@@ -295,7 +295,9 @@ public class JdbcTest extends TestCase {
             "select *\n"
             + "from \"s\".\"emps_view\"\n"
             + "where \"empid\" < 120");
-        assertEquals("empid=100; deptno=10; name=Bill\n", toString(resultSet));
+        assertEquals(
+            "empid=100; deptno=10; name=Bill; commission=1000\n",
+            toString(resultSet));
     }
 
     static OptiqConnection getConnection(String... schema)
@@ -734,6 +736,17 @@ public class JdbcTest extends TestCase {
                 + "store_id=0; grocery_sqft=null\n");
     }
 
+    /** Tests WHERE comparing a nullable integer with an integer literal. */
+    public void testWhereNullable() {
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.REGULAR)
+            .query(
+                "select * from \"hr\".\"emps\"\n"
+                + "where \"commission\" > 800")
+            .returns(
+                "empid=100; deptno=10; name=Bill; commission=1000\n");
+    }
+
     /** Tests array index. */
     public void testArray() {
         OptiqAssert.assertThat()
@@ -810,8 +823,8 @@ public class JdbcTest extends TestCase {
                 + "}")
             .query("select * from \"adhoc\".EMPLOYEES where \"deptno\" = 10")
             .returns(
-                "empid=100; deptno=10; name=Bill\n"
-                + "empid=150; deptno=10; name=Sebastian\n");
+                "empid=100; deptno=10; name=Bill; commission=1000\n"
+                + "empid=150; deptno=10; name=Sebastian; commission=null\n");
     }
 
     /** Tests a JDBC connection that provides a model that contains a view. */
@@ -842,15 +855,15 @@ public class JdbcTest extends TestCase {
                 + "}")
             .query("select * from \"adhoc\".V order by \"name\" desc")
             .returns(
-                "empid=150; deptno=10; name=Sebastian\n"
-                + "empid=100; deptno=10; name=Bill\n");
+                "empid=150; deptno=10; name=Sebastian; commission=null\n"
+                + "empid=100; deptno=10; name=Bill; commission=1000\n");
     }
 
     public static class HrSchema {
         public final Employee[] emps = {
-            new Employee(100, 10, "Bill"),
-            new Employee(200, 20, "Eric"),
-            new Employee(150, 10, "Sebastian"),
+            new Employee(100, 10, "Bill", 1000),
+            new Employee(200, 20, "Eric", 500),
+            new Employee(150, 10, "Sebastian", null),
         };
         public final Department[] depts = {
             new Department(10, "Sales", Arrays.asList(emps[0], emps[2])),
@@ -863,11 +876,14 @@ public class JdbcTest extends TestCase {
         public final int empid;
         public final int deptno;
         public final String name;
+        public final Integer commission;
 
-        public Employee(int empid, int deptno, String name) {
+        public Employee(int empid, int deptno, String name, Integer commission)
+        {
             this.empid = empid;
             this.deptno = deptno;
             this.name = name;
+            this.commission = commission;
         }
 
         public String toString() {
