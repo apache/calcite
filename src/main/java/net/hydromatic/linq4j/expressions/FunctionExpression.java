@@ -107,13 +107,13 @@ public final class FunctionExpression<F extends Function<?>>
     List<String> bridgeArgs = new ArrayList<String>();
     for (ParameterExpression parameterExpression : parameterList) {
       params.add(Types.boxClassName(parameterExpression.getType())
-                 + " "
-                 + parameterExpression.name);
+          + " "
+          + parameterExpression.name);
       bridgeParams.add("Object " + parameterExpression.name);
       bridgeArgs.add("("
-                     + Types.boxClassName(parameterExpression.getType())
-                     + ") "
-                     + parameterExpression.name);
+          + Types.boxClassName(parameterExpression.getType())
+          + ") "
+          + parameterExpression.name);
     }
     Type bridgeResultType = Functions.FUNCTION_RESULT_TYPES.get(this.type);
     if (bridgeResultType == null) {
@@ -125,9 +125,14 @@ public final class FunctionExpression<F extends Function<?>>
         && !(body.getType() instanceof TypeVariable)) {
       resultType2 = body.getType();
     }
-    writer.append("new ").append(type).append("()").begin(" {\n").append(
-        "public ").append(Types.className(resultType2)).list(" apply(", ", ",
-        ") ", params).append(Blocks.toFunctionBlock(body));
+    writer.append("new ")
+        .append(type)
+        .append("()")
+        .begin(" {\n")
+        .append("public ")
+        .append(Types.className(resultType2))
+        .list(" apply(", ", ", ") ", params)
+        .append(Blocks.toFunctionBlock(body));
 
     // Generate a bridge method. Argument types are looser (as if every
     // type parameter is set to 'Object').
@@ -137,7 +142,7 @@ public final class FunctionExpression<F extends Function<?>>
     if (!bridgeParams.isEmpty()) {
       writer
         .append("public ")
-        .append(Types.className(bridgeResultType))
+        .append(Types.boxClassName(bridgeResultType))
         .list(" apply(", ", ", ") ", bridgeParams)
         .begin("{\n")
         .list("return apply(\n", ",\n", ");\n", bridgeArgs)

@@ -70,6 +70,35 @@ public class ExpressionTest extends TestCase {
     assertEquals(3, n);
   }
 
+  public void testLambdaPrimitiveTwoArgs() {
+    // Parameters for the lambda expression.
+    ParameterExpression paramExpr =
+        Expressions.parameter(int.class, "key");
+    ParameterExpression param2Expr =
+        Expressions.parameter(int.class, "key2");
+
+    FunctionExpression lambdaExpr = Expressions.lambda(
+        Expressions.block(
+            (Type) null,
+            Expressions.return_(
+                null, paramExpr)),
+        Arrays.asList(paramExpr, param2Expr));
+
+    // Print out the expression.
+    String s = Expressions.toString(lambdaExpr);
+    assertEquals("new net.hydromatic.linq4j.function.Function2() {\n"
+        + "  public int apply(Integer key, Integer key2) {\n"
+        + "    return key;\n"
+        + "  }\n"
+        + "  public Integer apply(Object key, Object key2) {\n"
+        + "    return apply(\n"
+        + "      (Integer) key,\n"
+        + "      (Integer) key2);\n"
+        + "  }\n"
+        + "}\n",
+        s);
+  }
+
   public void testLambdaCallsTwoArgMethod() throws NoSuchMethodException {
     // A parameter for the lambda expression.
     ParameterExpression paramS =
@@ -468,7 +497,7 @@ public class ExpressionTest extends TestCase {
         Integer.class,
         Expressions.condition(
             Expressions.constant(true),
-            Expressions.constant(Integer.valueOf(0)),
+            Expressions.constant(0),
             Expressions.constant(null)).getType());
   }
 
