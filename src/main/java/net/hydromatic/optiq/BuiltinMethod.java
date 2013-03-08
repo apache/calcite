@@ -79,6 +79,8 @@ public enum BuiltinMethod {
         Functions.class, "nullsComparator", boolean.class, boolean.class),
     ARRAY_COMPARER(
         Functions.class, "arrayComparer"),
+    ARRAYS_AS_LIST(
+        SqlFunctions.class, "asList", Object[].class),
     IDENTITY_SELECTOR(
         Functions.class, "identitySelector"),
     AS_ENUMERABLE(

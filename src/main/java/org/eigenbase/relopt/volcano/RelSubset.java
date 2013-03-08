@@ -28,8 +28,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
-import net.hydromatic.linq4j.Ord;
-
 
 /**
  * A <code>RelSubset</code> is set of expressions in a set which have the same
@@ -157,20 +155,6 @@ public class RelSubset
         final AbstractRelNode input = (AbstractRelNode) rels.get(0);
         input.explainTerms(pw);
         pw.done(input);
-    }
-
-    public String getSubsetDescription() {
-        StringBuilder s = new StringBuilder();
-        s.append(id)
-            .append(": RelSubset(");
-        for (Ord<RelTrait> ord : Ord.zip(traitSet)) {
-            if (ord.i > 0) {
-                s.append(", ");
-            }
-            s.append(ord.e);
-        }
-        s.append(')');
-        return s.toString();
     }
 
     protected String computeDigest()

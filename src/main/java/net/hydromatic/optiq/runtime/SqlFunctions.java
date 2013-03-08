@@ -20,8 +20,7 @@ package net.hydromatic.optiq.runtime;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.text.DecimalFormat;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Helper methods to implement SQL functions in generated code.
@@ -691,6 +690,10 @@ public class SqlFunctions {
             return list.get(((Number) index).intValue());
         }
         return null;
+    }
+
+    public static List asList(Object[] os) {
+        return Arrays.asList(os);
     }
 
     /** NULL -> FALSE, FALSE -> FALSE, TRUE -> TRUE. */

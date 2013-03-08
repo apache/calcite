@@ -357,9 +357,10 @@ public class PhysTypeImpl implements PhysType {
                 fieldReference,
                 v1);
         default:
-            // new Function1<Employee, Object[]> {
-            //    public Object[] apply(Employee v1) {
-            //        return new Object[] {v1.<fieldN>, v1.<fieldM>};
+            // new Function1<Employee, List> {
+            //    public List apply(Employee v1) {
+            //        return Arrays.asList(
+            //            new Object[] {v1.<fieldN>, v1.<fieldM>});
             //    }
             // }
             Expressions.FluentList<Expression> list = Expressions.list();
@@ -368,9 +369,11 @@ public class PhysTypeImpl implements PhysType {
             }
             return Expressions.lambda(
                 Function1.class,
-                Expressions.newArrayInit(
-                    Object.class,
-                    list),
+                Expressions.call(
+                    BuiltinMethod.ARRAYS_AS_LIST.method,
+                    Expressions.newArrayInit(
+                        Object.class,
+                        list)),
                 v1);
         }
     }

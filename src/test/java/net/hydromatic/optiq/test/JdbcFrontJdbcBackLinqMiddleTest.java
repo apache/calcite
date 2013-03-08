@@ -200,9 +200,9 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
                 + "group by c.\"state_province\", c.\"country\"\n"
                 + "order by c.\"state_province\", 2")
             .returns(
-                "state_province=CA; S=74748; DC=2716\n"
-                + "state_province=OR; S=67659; DC=1037\n"
-                + "state_province=WA; S=124366; DC=1828\n");
+                "state_province=CA; S=74748.0000; DC=2716\n"
+                + "state_province=OR; S=67659.0000; DC=1037\n"
+                + "state_province=WA; S=124366.0000; DC=1828\n");
     }
 
     public void testPlan() {
