@@ -98,23 +98,26 @@ class OptiqPrepareImpl implements OptiqPrepare {
         Context context,
         Queryable<T> queryable)
     {
-        return prepare_(context, null, queryable, queryable.getElementType());
+        return prepare_(
+            context, null, queryable, queryable.getElementType(), -1);
     }
 
     public <T> PrepareResult<T> prepareSql(
         Context context,
         String sql,
         Queryable<T> expression,
-        Type elementType)
+        Type elementType,
+        int maxRowCount)
     {
-        return prepare_(context, sql, expression, elementType);
+        return prepare_(context, sql, expression, elementType, maxRowCount);
     }
 
     <T> PrepareResult<T> prepare_(
         Context context,
         String sql,
         Queryable<T> queryable,
-        Type elementType)
+        Type elementType,
+        int maxRowCount)
     {
         final JavaTypeFactory typeFactory = context.getTypeFactory();
         OptiqCatalogReader catalogReader =
@@ -209,8 +212,13 @@ class OptiqPrepareImpl implements OptiqPrepare {
                     false,
                     null));
         }
-        final Enumerable<T> enumerable =
+        Enumerable<T> enumerable =
             (Enumerable<T>) preparedResult.execute();
+        if (maxRowCount >= 0) {
+            // Apply limit. In JDBC 0 means "no limit". But for us, -1 means
+            // "no limit", and 0 is a valid limit.
+            enumerable = enumerable.take(maxRowCount);
+        }
         Class resultClazz = null;
         if (preparedResult instanceof Typed) {
             resultClazz = (Class) ((Typed) preparedResult).getElementType();

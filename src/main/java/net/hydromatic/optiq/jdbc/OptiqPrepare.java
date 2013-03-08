@@ -50,7 +50,8 @@ public interface OptiqPrepare {
         Context context,
         String sql,
         Queryable<T> expression,
-        Type elementType);
+        Type elementType,
+        int maxRowCount);
 
     <T> PrepareResult<T> prepareQueryable(
         Context context,

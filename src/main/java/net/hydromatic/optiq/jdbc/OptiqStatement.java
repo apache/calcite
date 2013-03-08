@@ -54,6 +54,7 @@ abstract class OptiqStatement
     final int resultSetHoldability;
     private int fetchSize;
     private int fetchDirection;
+    private int maxRowCount;
 
     OptiqStatement(
         OptiqConnectionImpl connection,
@@ -113,11 +114,15 @@ abstract class OptiqStatement
     }
 
     public int getMaxRows() throws SQLException {
-        throw new UnsupportedOperationException();
+        return maxRowCount;
     }
 
-    public void setMaxRows(int max) throws SQLException {
-        throw new UnsupportedOperationException();
+    public void setMaxRows(int maxRowCount) throws SQLException {
+        if (maxRowCount < 0) {
+            throw connection.helper.createException(
+                "illegal maxRows value: " + maxRowCount);
+        }
+        this.maxRowCount = maxRowCount;
     }
 
     public void setEscapeProcessing(boolean enable) throws SQLException {
@@ -370,7 +375,8 @@ abstract class OptiqStatement
 
     protected <T> OptiqPrepare.PrepareResult<T> parseQuery(String sql) {
         return net.hydromatic.optiq.prepare.Factory.implement().prepareSql(
-            new ContextImpl(connection), sql, null, Object[].class);
+            new ContextImpl(connection), sql, null, Object[].class,
+            maxRowCount <= 0 ? -1 : maxRowCount);
     }
 
     protected <T> OptiqPrepare.PrepareResult prepare(Queryable<T> queryable) {

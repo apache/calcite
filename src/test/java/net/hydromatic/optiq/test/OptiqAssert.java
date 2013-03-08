@@ -282,33 +282,36 @@ public class OptiqAssert {
             return connectionFactory.createConnection();
         }
 
-        public void returns(String expected) {
-            returns(checkResult(expected));
+        public AssertQuery returns(String expected) {
+            return returns(checkResult(expected));
         }
 
-        public void returns(Function1<String, Void> checker) {
+        public AssertQuery returns(Function1<String, Void> checker) {
             try {
                 assertQuery(
                     createConnection(), sql, checker, null);
+                return this;
             } catch (Exception e) {
                 throw new RuntimeException(
                     "exception while executing [" + sql + "]", e);
             }
         }
 
-        public void throws_(String message) {
+        public AssertQuery throws_(String message) {
             try {
                 assertQuery(
                     createConnection(), sql, null, checkException(message));
+                return this;
             } catch (Exception e) {
                 throw new RuntimeException(
                     "exception while executing [" + sql + "]", e);
             }
         }
 
-        public void runs() {
+        public AssertQuery runs() {
             try {
                 assertQuery(createConnection(), sql, null, null);
+                return this;
             } catch (Exception e) {
                 throw new RuntimeException(
                     "exception while executing [" + sql + "]", e);
