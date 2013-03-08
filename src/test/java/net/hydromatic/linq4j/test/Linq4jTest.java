@@ -698,6 +698,20 @@ public class Linq4jTest extends TestCase {
     assertEquals(2, nh3.count());
   }
 
+  public void testTake() {
+    final Enumerable<Department> enumerableDepts =
+        Linq4j.asEnumerable(depts);
+    final List<Department> enumerableDeptsResult =
+        enumerableDepts.take(2).toList();
+    assertEquals(2, enumerableDeptsResult.size());
+    assertEquals(depts[0], enumerableDeptsResult.get(0));
+    assertEquals(depts[1], enumerableDeptsResult.get(1));
+
+    final List<Department> enumerableDeptsResult5 =
+        enumerableDepts.take(5).toList();
+    assertEquals(3, enumerableDeptsResult5.size());
+  }
+
   public void testTake_enumerable() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
@@ -706,6 +720,10 @@ public class Linq4jTest extends TestCase {
     assertEquals(2, enumerableDeptsResult.size());
     assertEquals(depts[0], enumerableDeptsResult.get(0));
     assertEquals(depts[1], enumerableDeptsResult.get(1));
+
+    final List<Department> enumerableDeptsResult5 =
+        EnumerableDefaults.take(enumerableDepts, 5).toList();
+    assertEquals(3, enumerableDeptsResult5.size());
   }
 
   public void testTake_queryable() {
@@ -897,7 +915,22 @@ public class Linq4jTest extends TestCase {
             }).count());
 
     assertEquals(
+        2, Linq4j.asEnumerable(depts).skip(1).count());
+    assertEquals(
+        0, Linq4j.asEnumerable(depts).skip(5).count());
+    assertEquals(
+        1,
+        Linq4j.asEnumerable(depts).skipWhile(
+            new Predicate2<Department, Integer>() {
+              public boolean apply(Department v1, Integer v2) {
+                return v1.name.equals("Sales")
+                    || v2 == 1;
+              }}).count());
+
+    assertEquals(
         2, Linq4j.asEnumerable(depts).asQueryable().skip(1).count());
+    assertEquals(
+        0, Linq4j.asEnumerable(depts).asQueryable().skip(5).count());
     assertEquals(
         1,
         Linq4j.asEnumerable(depts).asQueryable().skipWhileN(

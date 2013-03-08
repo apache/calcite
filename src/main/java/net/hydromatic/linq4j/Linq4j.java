@@ -469,12 +469,18 @@ public class Linq4j {
     @Override
     public Enumerable<T> skip(int count) {
       final List<T> list = toList();
+      if (count >= list.size()) {
+        return Linq4j.emptyEnumerable();
+      }
       return new ListEnumerable<T>(list.subList(count, list.size()));
     }
 
     @Override
     public Enumerable<T> take(int count) {
       final List<T> list = toList();
+      if (count >= list.size()) {
+        return this;
+      }
       return new ListEnumerable<T>(list.subList(0, count));
     }
 
