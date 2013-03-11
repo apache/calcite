@@ -1320,9 +1320,6 @@ public abstract class SqlOperatorBaseTest
     public void testCastToBoolean()
     {
         getTester().setFor(SqlStdOperatorTable.castFunc);
-        if (!enable) {
-            return;
-        }
 
         // string to boolean
         getTester().checkBoolean("cast('true' as boolean)", Boolean.TRUE);

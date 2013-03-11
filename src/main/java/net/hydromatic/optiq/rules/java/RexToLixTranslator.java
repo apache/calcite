@@ -163,6 +163,15 @@ public class RexToLixTranslator {
     {
         Expression convert = null;
         switch (targetType.getSqlTypeName()) {
+        case BOOLEAN:
+            switch (sourceType.getSqlTypeName()) {
+            case CHAR:
+            case VARCHAR:
+                convert = Expressions.call(
+                    BuiltinMethod.STRING_TO_BOOLEAN.method,
+                    operand);
+            }
+            break;
         case CHAR:
         case VARCHAR:
             switch (sourceType.getSqlTypeName()) {
@@ -202,8 +211,11 @@ public class RexToLixTranslator {
         // Going from CHAR(n), trim.
         switch (sourceType.getSqlTypeName()) {
         case CHAR:
-            convert = Expressions.call(
-                BuiltinMethod.TRIM.method, convert);
+            switch (targetType.getSqlTypeName()) {
+            case VARCHAR:
+                convert = Expressions.call(
+                    BuiltinMethod.TRIM.method, convert);
+            }
         }
         // Going from anything to CHAR(n) or VARCHAR(n), make sure value is no
         // longer than n.

@@ -526,6 +526,18 @@ public class SqlFunctions {
         return x ? "TRUE" : "FALSE";
     }
 
+    /** CAST(VARCHAR AS BOOLEAN). */
+    public static boolean toBoolean(String s) {
+        s = trim(s);
+        if (s.equalsIgnoreCase("TRUE")) {
+            return true;
+        } else if (s.equalsIgnoreCase("FALSE")) {
+            return false;
+        } else {
+            throw new RuntimeException("Invalid character for cast");
+        }
+    }
+
     /** Helper for CAST(... AS VARCHAR(maxLength)). */
     public static String truncate(String s, int maxLength) {
         return s.length() > maxLength ? s.substring(0, maxLength) : s;

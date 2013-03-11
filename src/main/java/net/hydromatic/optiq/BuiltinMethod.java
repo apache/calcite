@@ -144,6 +144,8 @@ public enum BuiltinMethod {
         SqlFunctions.class, "isNotFalse", Boolean.class),
     MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(
         ModifiableTable.class, "getModifiableCollection"),
+    STRING_TO_BOOLEAN(
+        SqlFunctions.class, "toBoolean", String.class),
     UNIX_DATE_TO_STRING(
         SqlFunctions.class, "unixDateToString", int.class),
     UNIX_TIME_TO_STRING(
