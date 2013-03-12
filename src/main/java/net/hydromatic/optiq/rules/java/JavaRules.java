@@ -1654,13 +1654,12 @@ public class JavaRules {
 
         @Override
         public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-            assert inputs.size() == 1;
             return new EnumerableTableModificationRel(
                 getCluster(),
                 traitSet,
                 getTable(),
                 getCatalogReader(),
-                inputs.get(0),
+                sole(inputs),
                 getOperation(),
                 getUpdateColumnList(),
                 isFlattened());

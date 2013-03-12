@@ -52,7 +52,7 @@ class RelSet
      * List of {@link AbstractConverter} objects which have not yet been
      * satisfied.
      */
-    List<AbstractConverter> abstractConverters =
+    final List<AbstractConverter> abstractConverters =
         new ArrayList<AbstractConverter>();
 
     /**
@@ -66,13 +66,13 @@ class RelSet
      * Names of variables which are set by relational expressions in this set
      * and available for use by parent and child expressions.
      */
-    Set<String> variablesPropagated;
+    final Set<String> variablesPropagated;
 
     /**
      * Names of variables which are used by relational expressions in this set.
      */
-    Set<String> variablesUsed;
-    int id;
+    final Set<String> variablesUsed;
+    final int id;
 
     /**
      * Reentrancy flag.
@@ -81,8 +81,14 @@ class RelSet
 
     //~ Constructors -----------------------------------------------------------
 
-    RelSet()
+    RelSet(
+        int id,
+        Set<String> variablesPropagated,
+        Set<String> variablesUsed)
     {
+        this.id = id;
+        this.variablesPropagated = variablesPropagated;
+        this.variablesUsed = variablesUsed;
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -152,9 +158,36 @@ class RelSet
         RelSubset subset = getSubset(traits);
         if (subset == null) {
             subset = new RelSubset(cluster, this, traits);
+
+            final VolcanoPlanner planner =
+                (VolcanoPlanner) cluster.getPlanner();
+
+            // Add converters to convert the new subset to each existing subset.
+            for (RelSubset subset1 : subsets) {
+                if (subset1.getConvention() == Convention.NONE) {
+                    continue;
+                }
+                final AbstractConverter converter =
+                    new AbstractConverter(
+                        cluster, subset, ConventionTraitDef.instance,
+                        subset1.getTraitSet());
+                planner.register(converter, subset1);
+            }
+
             subsets.add(subset);
 
-            VolcanoPlanner planner = (VolcanoPlanner) cluster.getPlanner();
+            // Add converters to convert each existing subset to this subset.
+            for (RelSubset subset1 : subsets) {
+                if (subset1 == subset) {
+                    continue;
+                }
+                final AbstractConverter converter =
+                    new AbstractConverter(
+                        cluster, subset1, ConventionTraitDef.instance,
+                        traits);
+                planner.register(converter, subset);
+            }
+
             if (planner.listener != null) {
                 postEquivalenceEvent(planner, subset);
             }

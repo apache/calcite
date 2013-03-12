@@ -44,19 +44,7 @@ public class AbstractConverter
 
     public AbstractConverter(
         RelOptCluster cluster,
-        RelNode rel,
-        Convention outConvention)
-    {
-        this(
-            cluster,
-            rel,
-            outConvention.getTraitDef(),
-            cluster.traitSetOf(outConvention));
-    }
-
-    public AbstractConverter(
-        RelOptCluster cluster,
-        RelNode rel,
+        RelSubset rel,
         RelTraitDef traitDef,
         RelTraitSet traits)
     {
@@ -69,7 +57,7 @@ public class AbstractConverter
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         return new AbstractConverter(
             getCluster(),
-            sole(inputs),
+            (RelSubset) sole(inputs),
             traitDef,
             traitSet);
     }
@@ -80,8 +68,7 @@ public class AbstractConverter
     }
 
     public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
-        super.explainTerms(pw)
-            .input("child", getChild());
+        super.explainTerms(pw);
         for (RelTrait trait : traitSet) {
             pw.item(trait.getTraitDef().getSimpleName(), trait);
         }
@@ -128,7 +115,6 @@ public class AbstractConverter
         {
             final VolcanoPlanner planner = (VolcanoPlanner) call.getPlanner();
             AbstractConverter converter = (AbstractConverter) call.rels[0];
-            final RelSubset converterSubset = planner.getSubset(converter);
             final RelNode child = converter.getChild();
             RelNode converted =
                 planner.changeTraitsUsingConverters(
@@ -136,29 +122,6 @@ public class AbstractConverter
                     converter.traitSet);
             if (converted != null) {
                 call.transformTo(converted);
-                return;
-            }
-            if (false) {
-                return;
-            }
-
-            // Since we couldn't convert directly, create abstract converters to
-            // all sibling subsets. This will cause them to be important, and
-            // hence rules will fire which may generate the conversion we need.
-            final RelSet set = planner.getSet(child);
-            for (RelSubset subset : set.subsets) {
-                if (subset.getTraitSet().equals(child.getTraitSet())
-                    || subset.getTraitSet().equals(converter.traitSet))
-                {
-                    continue;
-                }
-                final AbstractConverter newConverter =
-                    new AbstractConverter(
-                        child.getCluster(),
-                        subset,
-                        converter.traitDef,
-                        converter.traitSet);
-                call.transformTo(newConverter);
             }
         }
     }

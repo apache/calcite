@@ -336,52 +336,12 @@ public class VolcanoPlanner
         assert !rel.getTraitSet().equals(toTraits)
             : "pre: !rel.getTraits().equals(toTraits)";
 
-        RelNode rel2 = ensureRegistered(rel, null);
+        RelSubset rel2 = ensureRegistered(rel, null);
         if (rel2.getTraitSet().equals(toTraits)) {
             return rel2;
         }
 
-        RelNode rel3 = changeTraitsUsingConverters(rel2, toTraits, true);
-        if (rel3 != null) {
-            return rel3;
-        }
-
-        // REVIEW: SWZ: 3/5/2005: This is probably redundant.  The call
-        // to changeTraitsUsingConverters should create a string of
-        // AbstractConverter if none of the conversions is currently possible.
-        RelNode converter = rel;
-        for (int i = 0; i < toTraits.size(); i++) {
-            RelTraitSet fromTraits = converter.getTraitSet();
-
-            RelTrait fromTrait = fromTraits.getTrait(i);
-            RelTrait toTrait = toTraits.getTrait(i);
-
-            if (toTrait == null) {
-                continue;
-            }
-
-            assert (fromTrait.getTraitDef() == toTrait.getTraitDef());
-
-            if (fromTrait == toTrait) {
-                // No need to convert, it's already correct.
-                continue;
-            }
-
-            RelTraitSet stepTraits = fromTraits.replace(
-                toTrait.getTraitDef(), toTrait);
-
-            converter =
-                new AbstractConverter(
-                    converter.getCluster(),
-                    converter,
-                    toTrait.getTraitDef(),
-                    stepTraits);
-        }
-
-        // REVIEW: SWZ: 3/5/2005: Why is (was) this only done for abstract
-        // converters?  Seems to me, the caller has to register the
-        // conversion in the end anyway.
-        return register(converter, rel);
+        return rel2.set.getOrCreateSubset(rel.getCluster(), toTraits);
     }
 
     public RelOptPlanner chooseDelegate()
@@ -611,7 +571,7 @@ SUBSET_LOOP:
         return VolcanoCost.ZERO;
     }
 
-    public RelNode register(
+    public RelSubset register(
         RelNode rel,
         RelNode equivRel)
     {
@@ -637,7 +597,7 @@ SUBSET_LOOP:
         return subset;
     }
 
-    public RelNode ensureRegistered(RelNode rel, RelNode equivRel)
+    public RelSubset ensureRegistered(RelNode rel, RelNode equivRel)
     {
         final RelSubset subset = mapRel2Subset.get(rel);
         if (subset != null) {
@@ -838,17 +798,15 @@ SUBSET_LOOP:
                     converted,
                     toTrait,
                     allowInfiniteCostConverters);
+            if (rel != null) {
+                register(rel, converted);
+            }
 
             if ((rel == null) && allowAbstractConverters) {
                 RelTraitSet stepTraits =
                     converted.getTraitSet().replace(toTrait);
 
-                rel =
-                    new AbstractConverter(
-                        converted.getCluster(),
-                        converted,
-                        toTrait.getTraitDef(),
-                        stepTraits);
+                rel = getSubset(converted, stepTraits);
             }
 
             converted = rel;
@@ -1300,13 +1258,12 @@ SUBSET_LOOP:
 
         // Place the expression in the appropriate equivalence set.
         if (set == null) {
-            set = new RelSet();
-            set.id = nextSetId++;
-            set.variablesPropagated =
+            set = new RelSet(
+                nextSetId++,
                 Util.minus(
                     RelOptUtil.getVariablesSet(rel),
-                    rel.getVariablesStopped());
-            set.variablesUsed = RelOptUtil.getVariablesUsed(rel);
+                    rel.getVariablesStopped()),
+                RelOptUtil.getVariablesUsed(rel));
             this.allSets.add(set);
         }
 
@@ -1319,7 +1276,7 @@ SUBSET_LOOP:
         RelSubset subset = asd(rel, set);
 
         final RelNode xx = mapDigestToRel.put(digest, rel);
-        assert ((xx == null) || (xx == rel));
+        assert ((xx == null) || (xx == rel)) : digest;
 
         if (tracer.isLoggable(Level.FINER)) {
             tracer.finer(
