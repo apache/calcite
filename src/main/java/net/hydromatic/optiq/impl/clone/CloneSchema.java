@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
@@ -62,7 +63,8 @@ public class CloneSchema extends MapSchema {
         if (sourceTable != null) {
             //noinspection unchecked
             table = createCloneTable(sourceTable, name);
-            addTable(name, table);
+            addTable(
+                new TableInSchemaImpl(this, name, TableType.TABLE, table));
             return table;
         }
         return null;

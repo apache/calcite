@@ -29,7 +29,7 @@ public interface MutableSchema extends Schema {
     void addTableFunction(String name, TableFunction tableFunction);
 
     /** Defines a table within this schema. */
-    void addTable(String name, Table table);
+    void addTable(TableInSchema table);
 
     /** Adds a child schema of this schema. */
     void addSchema(String name, Schema schema);

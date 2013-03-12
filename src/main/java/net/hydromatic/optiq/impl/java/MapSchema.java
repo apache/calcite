@@ -36,8 +36,8 @@ import java.util.*;
  */
 public class MapSchema implements MutableSchema {
 
-    protected final Map<String, Table<Object>> tableMap =
-        new HashMap<String, Table<Object>>();
+    protected final Map<String, TableInSchema> tableMap =
+        new HashMap<String, TableInSchema>();
 
     protected final Map<String, List<TableFunction>> membersMap =
         new HashMap<String, List<TableFunction>>();
@@ -100,8 +100,8 @@ public class MapSchema implements MutableSchema {
         return queryProvider;
     }
 
-    public Collection<String> getTableNames() {
-        return tableMap.keySet();
+    public Collection<TableInSchema> getTables() {
+        return tableMap.values();
     }
 
     public <E> Table<E> getTable(String name, Class<E> elementType) {
@@ -109,9 +109,9 @@ public class MapSchema implements MutableSchema {
         assert elementType != null;
 
         // First look for a table.
-        Table table = tableMap.get(name);
+        TableInSchema table = tableMap.get(name);
         if (table != null) {
-            return table;
+            return table.getTable(elementType);
         }
         // Then look for a table-function with no arguments.
         List<TableFunction> tableFunctions = membersMap.get(name);
@@ -149,8 +149,8 @@ public class MapSchema implements MutableSchema {
         putMulti(membersMap, name, tableFunction);
     }
 
-    public void addTable(String name, Table table) {
-        tableMap.put(name, table);
+    public void addTable(TableInSchema table) {
+        tableMap.put(table.name, table);
     }
 
     public void addSchema(String name, Schema schema) {

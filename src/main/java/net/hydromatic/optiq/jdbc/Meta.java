@@ -21,11 +21,13 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Functions;
 import net.hydromatic.linq4j.function.Predicate1;
 
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.Table;
+import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.MapSchema;
 
 import org.eigenbase.reltype.*;
@@ -64,55 +66,64 @@ public class Meta {
             MapSchema.create(
                 connection, connection.getRootSchema(), "metadata");
         mapSchema.addTable(
-            "TABLES",
-            new MetadataTable<MetaTable>(
-                connection,
+            new TableInSchemaImpl(
                 mapSchema,
                 "TABLES",
-                MetaTable.class)
-            {
-                public Enumerator<MetaTable> enumerator() {
-                    return schemas(connection.getCatalog())
-                        .selectMany(
-                            new Function1<MetaSchema, Enumerable<MetaTable>>() {
-                                public Enumerable<MetaTable> apply(
-                                    MetaSchema a0)
-                                {
-                                    return tables(a0);
-                                }
-                            })
-                        .enumerator();
-                }
-            });
+                Schema.TableType.SYSTEM_TABLE,
+                new MetadataTable<MetaTable>(
+                    connection,
+                    mapSchema,
+                    "TABLES",
+                    MetaTable.class)
+                {
+                    public Enumerator<MetaTable> enumerator() {
+                        return schemas(connection.getCatalog())
+                            .selectMany(
+                                new Function1<
+                                        MetaSchema, Enumerable<MetaTable>>() {
+                                    public Enumerable<MetaTable> apply(
+                                        MetaSchema a0)
+                                    {
+                                        return tables(a0);
+                                    }
+                                })
+                            .enumerator();
+                    }
+                }));
         mapSchema.addTable(
-            "COLUMNS",
-            new MetadataTable<MetaColumn>(
-                connection,
+            new TableInSchemaImpl(
                 mapSchema,
                 "COLUMNS",
-                MetaColumn.class)
-            {
-                public Enumerator<MetaColumn> enumerator() {
-                    return schemas(connection.getCatalog())
-                        .selectMany(
-                            new Function1<MetaSchema, Enumerable<MetaTable>>() {
-                                public Enumerable<MetaTable> apply(
-                                    MetaSchema a0)
-                                {
-                                    return tables(a0);
-                                }
-                            })
-                        .selectMany(
-                            new Function1<MetaTable, Enumerable<MetaColumn>>() {
-                                public Enumerable<MetaColumn> apply(
-                                    MetaTable a0)
-                                {
-                                    return columns(a0);
-                                }
-                            })
-                        .enumerator();
-                }
-            });
+                Schema.TableType.SYSTEM_TABLE,
+                new MetadataTable<MetaColumn>(
+                    connection,
+                    mapSchema,
+                    "COLUMNS",
+                    MetaColumn.class)
+                {
+                    public Enumerator<MetaColumn> enumerator() {
+                        return schemas(connection.getCatalog())
+                            .selectMany(
+                                new Function1<
+                                        MetaSchema, Enumerable<MetaTable>>() {
+                                    public Enumerable<MetaTable> apply(
+                                        MetaSchema a0)
+                                    {
+                                        return tables(a0);
+                                    }
+                                })
+                            .selectMany(
+                                new Function1<
+                                        MetaTable, Enumerable<MetaColumn>>() {
+                                    public Enumerable<MetaColumn> apply(
+                                        MetaTable a0)
+                                    {
+                                        return columns(a0);
+                                    }
+                                })
+                            .enumerator();
+                    }
+                }));
         return mapSchema;
     }
 
@@ -122,18 +133,28 @@ public class Meta {
         String tableNamePattern,
         String[] types) throws SQLException
     {
+        final Predicate1<MetaTable> typeFilter;
+        if (types == null) {
+            typeFilter = Functions.truePredicate1();
+        } else {
+            final List<String> typeList = Arrays.asList(types);
+            typeFilter = new Predicate1<MetaTable>() {
+                public boolean apply(MetaTable v1) {
+                    return typeList.contains(v1.tableType);
+                }
+            };
+        }
         return IteratorResultSet.create(
             schemas(catalog)
-                .where(
-                    Meta.<MetaSchema>matcher(schemaPattern))
+                .where(Meta.<MetaSchema>matcher(schemaPattern))
                 .selectMany(
                     new Function1<MetaSchema, Enumerable<MetaTable>>() {
                         public Enumerable<MetaTable> apply(MetaSchema a0) {
                             return tables(a0);
                         }
                     })
-                .where(
-                    Meta.<MetaTable>matcher(tableNamePattern))
+                .where(typeFilter)
+                .where(Meta.<MetaTable>matcher(tableNamePattern))
                 .iterator(),
             new NamedFieldGetter(
                 MetaTable.class,
@@ -219,14 +240,14 @@ public class Meta {
     }
 
     Enumerable<MetaTable> tables(final MetaSchema schema) {
-        Collection<String> tableNames = schema.optiqSchema.getTableNames();
-        return Linq4j.asEnumerable(tableNames)
+        return Linq4j.asEnumerable(schema.optiqSchema.getTables())
             .select(
-                new Function1<String, MetaTable>() {
-                    public MetaTable apply(String name) {
+                new Function1<Schema.TableInSchema, MetaTable>() {
+                    public MetaTable apply(Schema.TableInSchema tableInSchema) {
                         return new MetaTable(
-                            schema.optiqSchema.getTable(name, Object.class),
-                            schema.catalogName, schema.schemaName, name);
+                            tableInSchema.getTable(Object.class),
+                            schema.catalogName, schema.schemaName,
+                            tableInSchema.name, tableInSchema.tableType.name());
                     }
                 });
     }
@@ -340,7 +361,7 @@ public class Meta {
         public final String tableCat;
         public final String tableSchem;
         public final String tableName;
-        public final String tableType = null;
+        public final String tableType;
         public final String remarks = null;
         public final String typeCat = null;
         public final String typeSchem = null;
@@ -352,12 +373,14 @@ public class Meta {
             Table optiqTable,
             String tableCat,
             String tableSchem,
-            String tableName)
+            String tableName,
+            String tableType)
         {
             this.optiqTable = optiqTable;
             this.tableCat = tableCat;
             this.tableSchem = tableSchem;
             this.tableName = tableName;
+            this.tableType = tableType;
         }
 
         public String getName() {

@@ -83,7 +83,27 @@ public interface Schema extends DataContext {
 
     Collection<String> getSubSchemaNames();
 
-    Collection<String> getTableNames();
+    Collection<TableInSchema> getTables();
+
+    abstract class TableInSchema {
+        public final Schema schema;
+        public final String name;
+        public final TableType tableType;
+
+        public TableInSchema(
+            Schema schema, String name, TableType tableType)
+        {
+            this.schema = schema;
+            this.name = name;
+            this.tableType = tableType;
+        }
+
+        public abstract <E> Table<E> getTable(Class<E> elementType);
+    }
+
+    enum TableType {
+        TABLE, VIEW, SYSTEM_TABLE, LOCAL_TEMPORARY,
+    }
 }
 
 // End Schema.java

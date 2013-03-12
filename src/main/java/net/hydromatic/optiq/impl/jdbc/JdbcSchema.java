@@ -28,6 +28,7 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.util.Util;
 
 import java.sql.*;
 import java.util.*;
@@ -135,7 +136,7 @@ public class JdbcSchema implements Schema {
         return Collections.emptyList();
     }
 
-    public Collection<String> getTableNames() {
+    public Collection<TableInSchema> getTables() {
         Connection connection = null;
         ResultSet resultSet = null;
         try {
@@ -146,9 +147,13 @@ public class JdbcSchema implements Schema {
                 schema,
                 null,
                 null);
-            final List<String> names = new ArrayList<String>();
+            final List<TableInSchema> names = new ArrayList<TableInSchema>();
             while (resultSet.next()) {
-                names.add(resultSet.getString(3));
+                final String name = resultSet.getString(3);
+                final String tableTypeName = resultSet.getString(4);
+                final TableType tableType =
+                    Util.enumVal(TableType.class, tableTypeName);
+                names.add(new TableInSchemaImpl(name, tableType));
             }
             return names;
         } catch (SQLException e) {
@@ -179,28 +184,8 @@ public class JdbcSchema implements Schema {
             final String schemaName = resultSet.getString(2);
             final String tableName = resultSet.getString(3);
             resultSet.close();
-            resultSet = metaData.getColumns(
-                catalogName,
-                schemaName,
-                tableName,
-                null);
-            final RelDataTypeFactory.FieldInfoBuilder fieldInfo =
-                new RelDataTypeFactory.FieldInfoBuilder();
-            while (resultSet.next()) {
-                final String columnName = resultSet.getString(4);
-                final int dataType = resultSet.getInt(5);
-                final int size = resultSet.getInt(7);
-                final int scale = resultSet.getInt(9);
-                RelDataType sqlType = zzz(dataType, size, scale);
-                boolean nullable = resultSet.getBoolean(11);
-                if (nullable) {
-                    sqlType =
-                        typeFactory.createTypeWithNullability(sqlType,  true);
-                }
-                fieldInfo.add(columnName, sqlType);
-            }
             final RelDataType type =
-                typeFactory.createStructType(fieldInfo);
+                getRelDataType(connection, catalogName, schemaName, tableName);
             return (Table) new JdbcTable(type, this, name);
         } catch (SQLException e) {
             throw new RuntimeException(
@@ -209,6 +194,34 @@ public class JdbcSchema implements Schema {
         } finally {
             close(connection, null, resultSet);
         }
+    }
+
+    private RelDataType getRelDataType(
+        Connection connection,
+        String catalogName,
+        String schemaName,
+        String tableName) throws SQLException
+    {
+        DatabaseMetaData metaData = connection.getMetaData();
+        final ResultSet resultSet =
+            metaData.getColumns(catalogName, schemaName, tableName, null);
+        final RelDataTypeFactory.FieldInfoBuilder fieldInfo =
+            new RelDataTypeFactory.FieldInfoBuilder();
+        while (resultSet.next()) {
+            final String columnName = resultSet.getString(4);
+            final int dataType = resultSet.getInt(5);
+            final int size = resultSet.getInt(7);
+            final int scale = resultSet.getInt(9);
+            RelDataType sqlType = zzz(dataType, size, scale);
+            boolean nullable = resultSet.getBoolean(11);
+            if (nullable) {
+                sqlType =
+                    typeFactory.createTypeWithNullability(sqlType,  true);
+            }
+            fieldInfo.add(columnName, sqlType);
+        }
+            resultSet.close();
+        return typeFactory.createStructType(fieldInfo);
     }
 
     private RelDataType zzz(int dataType, int precision, int scale) {
@@ -263,6 +276,22 @@ public class JdbcSchema implements Schema {
             } catch (SQLException e) {
                 // ignore
             }
+        }
+    }
+
+    private class TableInSchemaImpl extends TableInSchema {
+        // Populated on first use, since gathering columns is quite expensive.
+        Table table;
+
+        public TableInSchemaImpl(String name, TableType tableType) {
+            super(JdbcSchema.this, name, tableType);
+        }
+
+        public <E> Table<E> getTable(Class<E> elementType) {
+            if (table == null) {
+                table = JdbcSchema.this.getTable(name, elementType);
+            }
+            return table;
         }
     }
 }

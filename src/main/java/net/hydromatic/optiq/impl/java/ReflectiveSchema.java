@@ -23,6 +23,7 @@ import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.Types;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.eigenbase.reltype.RelDataType;
@@ -60,9 +61,11 @@ public class ReflectiveSchema
         this.clazz = target.getClass();
         this.target = target;
         for (Field field : clazz.getFields()) {
+            final String name = field.getName();
             tableMap.put(
-                field.getName(),
-                fieldRelation(field));
+                name,
+                new TableInSchemaImpl(
+                    this, name, TableType.TABLE, fieldRelation(field)));
         }
         for (Method method : clazz.getMethods()) {
             if (method.getDeclaringClass() == Object.class) {

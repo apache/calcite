@@ -21,6 +21,8 @@ import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Linq4j;
 
 import net.hydromatic.optiq.MutableSchema;
+import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
@@ -245,14 +247,14 @@ public class JdbcFrontLinqBackTest extends TestCase {
                             optiqConnection.getRootSchema();
                         MapSchema mapSchema = MapSchema.create(
                             optiqConnection, rootSchema, "foo");
-                        mapSchema.addTable(
-                            "bar",
+                        final String tableName = "bar";
+                        final JdbcTest.AbstractModifiableTable table =
                             new JdbcTest.AbstractModifiableTable(
                                 mapSchema,
                                 JdbcTest.Employee.class,
                                 optiqConnection.getTypeFactory().createType(
                                     JdbcTest.Employee.class),
-                                "bar")
+                                tableName)
                             {
                                 public Enumerator enumerator() {
                                     return Linq4j.enumerator(employees);
@@ -261,7 +263,11 @@ public class JdbcFrontLinqBackTest extends TestCase {
                                 public Collection getModifiableCollection() {
                                     return employees;
                                 }
-                            });
+                            };
+                        mapSchema.addTable(
+                            new TableInSchemaImpl(
+                                mapSchema, tableName, Schema.TableType.TABLE,
+                                table));
                         return optiqConnection;
                     }
                 });

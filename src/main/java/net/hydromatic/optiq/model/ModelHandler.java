@@ -21,6 +21,7 @@ import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.TableFactory;
+import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
@@ -131,7 +132,9 @@ public class ModelHandler {
                     jsonTable.name,
                     jsonTable.operand,
                     null);
-            schema.addTable(jsonTable.name, table);
+            schema.addTable(
+                new TableInSchemaImpl(
+                    schema, jsonTable.name, Schema.TableType.TABLE, table));
         } catch (Exception e) {
             throw new RuntimeException("Error instantiating " + jsonTable, e);
         }
