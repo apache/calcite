@@ -80,7 +80,11 @@ public enum BuiltinMethod {
     ARRAY_COMPARER(
         Functions.class, "arrayComparer"),
     ARRAYS_AS_LIST(
-        SqlFunctions.class, "asList", Object[].class),
+        FlatLists.class, "of", Object[].class),
+    LIST2(
+        FlatLists.class, "of", Object.class, Object.class),
+    LIST3(
+        FlatLists.class, "of", Object.class, Object.class, Object.class),
     IDENTITY_SELECTOR(
         Functions.class, "identitySelector"),
     AS_ENUMERABLE(

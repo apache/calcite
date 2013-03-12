@@ -367,14 +367,31 @@ public class PhysTypeImpl implements PhysType {
             for (int field : fields) {
                 list.add(fieldReference(v1, field));
             }
-            return Expressions.lambda(
-                Function1.class,
-                Expressions.call(
-                    BuiltinMethod.ARRAYS_AS_LIST.method,
-                    Expressions.newArrayInit(
-                        Object.class,
-                        list)),
+            switch (list.size()) {
+            case 2:
+                return Expressions.lambda(
+                    Function1.class,
+                    Expressions.call(
+                        BuiltinMethod.LIST2.method,
+                        list),
+                    v1);
+            case 3:
+                return Expressions.lambda(
+                    Function1.class,
+                    Expressions.call(
+                        BuiltinMethod.LIST3.method,
+                        list),
+                    v1);
+            default:
+                return Expressions.lambda(
+                    Function1.class,
+                    Expressions.call(
+                        BuiltinMethod.ARRAYS_AS_LIST.method,
+                        Expressions.newArrayInit(
+                            Object.class,
+                            list)),
                 v1);
+            }
         }
     }
 

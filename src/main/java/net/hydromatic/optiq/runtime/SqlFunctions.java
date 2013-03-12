@@ -704,10 +704,6 @@ public class SqlFunctions {
         return null;
     }
 
-    public static List asList(Object[] os) {
-        return Arrays.asList(os);
-    }
-
     /** NULL -> FALSE, FALSE -> FALSE, TRUE -> TRUE. */
     public static boolean isTrue(Boolean b) {
         return b != null && b;
