@@ -45,21 +45,20 @@ public class SqlFunctionsTest extends TestCase {
 
     public void testLower() {
         assertEquals("a bcd", lower("A bCd"));
-        assertNull(lower(null));
     }
 
     public void testUpper() {
         assertEquals("A BCD", upper("A bCd"));
-        assertNull(lower(null));
     }
 
-    public void testInitCap() {
-        assertEquals("Aa", initCap("aA"));
-        assertEquals("Zz", initCap("zz"));
-        assertEquals("Az", initCap("AZ"));
-        assertEquals("Try A Little  ", initCap("tRy a littlE  "));
-        assertEquals("1a", initCap("1A"));
-        assertEquals(" B0123b", initCap(" b0123B"));
+    public void testInitcap() {
+        assertEquals("Aa", initcap("aA"));
+        assertEquals("Zz", initcap("zz"));
+        assertEquals("Az", initcap("AZ"));
+        assertEquals("Try A Little  ", initcap("tRy a littlE  "));
+        assertEquals("Won'T It?No", initcap("won't it?no"));
+        assertEquals("1a", initcap("1A"));
+        assertEquals(" B0123b", initcap(" b0123B"));
     }
 
     public void testLesser() {
@@ -72,7 +71,7 @@ public class SqlFunctionsTest extends TestCase {
             // ok
         }
         assertEquals("a", lesser(null, "a"));
-        assertNull(lesser((Comparable) null, null));
+        assertNull(lesser(null, null));
     }
 
     public void testGreater() {
@@ -85,7 +84,7 @@ public class SqlFunctionsTest extends TestCase {
             // ok
         }
         assertEquals("a", greater(null, "a"));
-        assertNull(greater((Comparable) null, null));
+        assertNull(greater(null, null));
     }
 
     /** Test for {@link SqlFunctions#rtrim}. */

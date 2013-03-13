@@ -29,6 +29,10 @@ import java.util.*;
  * use lazy evaluation. Implementations do not check for null values; the
  * calling code must do that.</p>
  *
+ * <p>Many of the functions do not check for null values. This is intentional.
+ * If null arguments are possible, the code-generation framework checks for
+ * nulls before calling the functions.</p>
+ *
  * @author jhyde
  */
 @SuppressWarnings("UnnecessaryUnboxing")
@@ -49,61 +53,44 @@ public class SqlFunctions {
 
     /** SQL UPPER(string) function. */
     public static String upper(String s) {
-        if (s == null) {
-            return null;
-        }
         return s.toUpperCase();
     }
 
     /** SQL LOWER(string) function. */
     public static String lower(String s) {
-        if (s == null) {
-            return null;
-        }
         return s.toLowerCase();
     }
 
     /** SQL INITCAP(string) function. */
-    public static String initCap(String s) {
-
+    public static String initcap(String s) {
         // Assumes Alpha as [A-Za-z0-9]
         // white space is treated as everything else.
-        //
-        int len = s.length();
+        final int len = s.length();
         boolean start = true;
-        char curCh;
-        StringBuilder newS = new StringBuilder();
+        final StringBuilder newS = new StringBuilder();
 
-        for (int i = 0; i<len; i++) {
-            curCh = s.charAt(i);
+        for (int i = 0; i < len; i++) {
+            char curCh = s.charAt(i);
+            final int c = (int) curCh;
             if (start) {  // curCh is whitespace or first character of word.
-                if ( ((int)curCh > 47) && ((int)curCh < 58)) { // 0-9
+                if (c > 47 && c < 58) { // 0-9
                     start = false;
-                }
-                else if (((int)curCh > 64) && ((int)curCh < 91)) {  // A-Z
+                } else if (c > 64 && c < 91) {  // A-Z
                     start = false;
-                }
-                else if (((int)curCh > 96) && ((int)curCh < 123)) {  // a-z
+                } else if (c > 96 && c < 123) {  // a-z
                     start = false;
-                    curCh = (char)((int)curCh-32); // Uppercase this character
-
+                    curCh = (char)(c - 32); // Uppercase this character
                 }
                 // else {} whitespace
-            }
-            else {  // Inside of a word or white space after end of word.
-                if ( ((int)curCh > 47) && ((int)curCh < 58)) { // 0-9
+            } else {  // Inside of a word or white space after end of word.
+                if (c > 47 && c < 58) { // 0-9
                     // noop
-                }
-                else if (((int)curCh > 64) && ((int)curCh < 91)) {  // A-Z
-                    curCh = (char)((int)curCh+32);  // Lower Case this character
-                }
-                else if (((int)curCh > 96) && ((int)curCh < 123)) {  // a-z
-                    //noop
-
-                }
-                else { //whitespace
+                } else if (c > 64 && c < 91) {  // A-Z
+                    curCh = (char)(c + 32); // Lowercase this character
+                } else if (c > 96 && c < 123) {  // a-z
+                    // noop
+                } else { // whitespace
                     start = true;
-
                 }
             }
             newS.append(curCh);
@@ -113,17 +100,11 @@ public class SqlFunctions {
 
     /** SQL CHARACTER_LENGTH(string) function. */
     public static Integer charLength(String s) {
-        if (s == null) {
-            return null;
-        }
         return s.length();
     }
 
     /** SQL {@code string || string} operator. */
     public static String concat(String s0, String s1) {
-        if (s0 == null || s1 == null) {
-            return null;
-        }
         return s0 + s1;
     }
 

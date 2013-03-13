@@ -124,7 +124,7 @@ public enum BuiltinMethod {
     LOWER(
         SqlFunctions.class, "lower", String.class),
     INITCAP(
-        SqlFunctions.class, "initCap", String.class),
+        SqlFunctions.class, "initcap", String.class),
     SUBSTRING(
         SqlFunctions.class, "substring", String.class, int.class, int.class),
     CHAR_LENGTH(

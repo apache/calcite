@@ -1803,6 +1803,10 @@ public abstract class SqlOperatorBaseTest
     {
         getTester().setFor(SqlStdOperatorTable.concatOperator);
         getTester().checkString(" 'a'||'b' ", "ab", "CHAR(2) NOT NULL");
+        getTester().checkNull(" 'a' || cast(null as char(2)) ");
+        getTester().checkNull(" cast(null as char(2)) || 'b' ");
+        getTester().checkNull(
+            " cast(null as char(1)) || cast(null as char(2)) ");
 
         if (todo) {
             // not yet implemented
