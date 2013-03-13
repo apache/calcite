@@ -53,6 +53,15 @@ public class SqlFunctionsTest extends TestCase {
         assertNull(lower(null));
     }
 
+    public void testInitCap() {
+        assertEquals("Aa", initCap("aA"));
+        assertEquals("Zz", initCap("zz"));
+        assertEquals("Az", initCap("AZ"));
+        assertEquals("Try A Little  ", initCap("tRy a littlE  "));
+        assertEquals("1a", initCap("1A"));
+        assertEquals(" B0123b", initCap(" b0123B"));
+    }
+
     public void testLesser() {
         assertEquals("a", lesser("a", "bc"));
         assertEquals("ac", lesser("bc", "ac"));
