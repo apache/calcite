@@ -788,7 +788,7 @@ public class JdbcTest extends TestCase {
             .query("select * from \"metadata\".TABLES")
             .returns(
                 OptiqAssert.checkResultContains(
-                    "tableSchem=metadata; tableName=COLUMNS; tableType=null; "));
+                    "tableSchem=metadata; tableName=COLUMNS; tableType=SYSTEM_TABLE; "));
 
         OptiqAssert.assertThat()
             .with(OptiqAssert.Config.REGULAR_PLUS_METADATA)

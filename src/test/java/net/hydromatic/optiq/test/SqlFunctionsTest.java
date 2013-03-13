@@ -33,14 +33,16 @@ import static net.hydromatic.optiq.runtime.SqlFunctions.*;
 public class SqlFunctionsTest extends TestCase {
     public void testCharLength() {
         assertEquals((Integer) 3, charLength("xyz"));
-        assertNull(charLength(null));
     }
 
     public void testConcat() {
         assertEquals("a bcd", concat("a b", "cd"));
-        assertNull(concat("a", null));
-        assertNull(concat(null, null));
-        assertNull(concat(null, "b"));
+        // The code generator will ensure that nulls are never passed in. If we
+        // pass in null, it is treated like the string "null", as the following
+        // tests show. Not the desired behavior for SQL.
+        assertEquals("anull", concat("a", null));
+        assertEquals("nullnull", concat(null, null));
+        assertEquals("nullb", concat(null, "b"));
     }
 
     public void testLower() {
