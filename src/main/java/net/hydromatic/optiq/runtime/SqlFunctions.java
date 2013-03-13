@@ -63,6 +63,54 @@ public class SqlFunctions {
         return s.toLowerCase();
     }
 
+    /** SQL INITCAP(string) function. */
+    public static String initCap(String s) {
+
+        // Assumes Alpha as [A-Za-z0-9]
+        // white space is treated as everything else.
+        //
+        int len = s.length();
+        boolean start = true;
+        char curCh;
+        StringBuilder newS = new StringBuilder();
+
+        for (int i = 0; i<len; i++) {
+            curCh = s.charAt(i);
+            if (start) {  // curCh is whitespace or first character of word.
+                if ( ((int)curCh > 47) && ((int)curCh < 58)) { // 0-9
+                    start = false;
+                }
+                else if (((int)curCh > 64) && ((int)curCh < 91)) {  // A-Z
+                    start = false;
+                }
+                else if (((int)curCh > 96) && ((int)curCh < 123)) {  // a-z
+                    start = false;
+                    curCh = (char)((int)curCh-32); // Uppercase this character
+
+                }
+                // else {} whitespace
+            }
+            else {  // Inside of a word or white space after end of word.
+                if ( ((int)curCh > 47) && ((int)curCh < 58)) { // 0-9
+                    // noop
+                }
+                else if (((int)curCh > 64) && ((int)curCh < 91)) {  // A-Z
+                    curCh = (char)((int)curCh+32);  // Lower Case this character
+                }
+                else if (((int)curCh > 96) && ((int)curCh < 123)) {  // a-z
+                    //noop
+
+                }
+                else { //whitespace
+                    start = true;
+
+                }
+            }
+            newS.append(curCh);
+        } // for each character in s
+        return newS.toString();
+    }
+
     /** SQL CHARACTER_LENGTH(string) function. */
     public static Integer charLength(String s) {
         if (s == null) {

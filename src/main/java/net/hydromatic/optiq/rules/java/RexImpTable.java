@@ -64,6 +64,7 @@ public class RexImpTable {
     RexImpTable() {
         defineMethod(upperFunc, BuiltinMethod.UPPER.method, NullPolicy.STRICT);
         defineMethod(lowerFunc, BuiltinMethod.LOWER.method, NullPolicy.STRICT);
+        defineMethod(initcapFunc,  BuiltinMethod.INITCAP.method, NullPolicy.STRICT);
         defineMethod(
             substringFunc, BuiltinMethod.SUBSTRING.method, NullPolicy.STRICT);
         defineMethod(

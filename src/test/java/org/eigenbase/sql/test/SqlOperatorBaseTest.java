@@ -3473,9 +3473,10 @@ public abstract class SqlOperatorBaseTest
         // defined in the SQL:2003 standard
         // todo: implement in fennel
         getTester().setFor(SqlStdOperatorTable.initcapFunc, VM_FENNEL);
-        if (!enable) {
-            return;
-        }
+        // Comment this out, it is keeping the function from testing initcap
+        // if (!enable) {
+        //    return;
+        //}
         getTester().checkString("initcap('aA')", "Aa", "CHAR(2) NOT NULL");
         getTester().checkString("initcap('Aa')", "Aa", "CHAR(2) NOT NULL");
         getTester().checkString("initcap('1a')", "1a", "CHAR(2) NOT NULL");
