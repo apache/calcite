@@ -31,7 +31,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
+import net.hydromatic.optiq.jdbc.*;
 
 import junit.framework.TestCase;
 
@@ -703,7 +703,7 @@ public class JdbcTest extends TestCase {
                 + "and \"customer\".\"state_province\" = 'WA'\n"
                 + "and \"customer\".\"city\" in ('Anacortes', 'Ballard', 'Bellingham', 'Bremerton', 'Burien', 'Edmonds', 'Everett', 'Issaquah', 'Kirkland', 'Lynnwood', 'Marysville', 'Olympia', 'Port Orchard', 'Puyallup', 'Redmond', 'Renton', 'Seattle', 'Sedro Woolley', 'Spokane', 'Tacoma', 'Walla Walla', 'Yakima') group by \"time_by_day\".\"the_year\", \"product_class\".\"product_family\", \"customer\".\"country\", \"customer\".\"state_province\", \"customer\".\"city\"")
             .returns(
-                "c0=1997; c1=Drink; c2=USA; c3=WA; c4=Sedro Woolley; m0=58\n");
+                "c0=1997; c1=Drink; c2=USA; c3=WA; c4=Sedro Woolley; m0=58.0000\n");
     }
 
     /** Tests ORDER BY ... DESC NULLS FIRST. */
@@ -916,6 +916,40 @@ public class JdbcTest extends TestCase {
                 + "empid=100; deptno=10; name=Bill; commission=1000\n");
     }
 
+    /** Tests saving query results into temporary tables, per
+     * {@link net.hydromatic.optiq.jdbc.Handler.ResultSink}. */
+    public void testAutomaticTemporaryTable() throws Exception {
+        final List<Object> objects = new ArrayList<Object>();
+        OptiqAssert.assertThat()
+            .with(
+                new OptiqAssert.ConnectionFactory() {
+                    public OptiqConnection createConnection() throws Exception {
+                        OptiqConnection connection = new AutoTempDriver(objects)
+                            .connect("jdbc:optiq:", new Properties());
+                        MutableSchema rootSchema = connection.getRootSchema();
+                        ReflectiveSchema.create(
+                            connection, rootSchema, "hr", new HrSchema());
+                        connection.setSchema("hr");
+                        return connection;
+                    }
+                })
+            .doWithConnection(
+                new Function1<OptiqConnection, Object>() {
+                    public Object apply(OptiqConnection a0) {
+                        try {
+                            a0.createStatement()
+                                .executeQuery(
+                                    "select * from \"hr\".\"emps\" "
+                                    + "where \"deptno\" = 10");
+                            assertEquals(1, objects.size());
+                            return null;
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
+    }
+
     public static class HrSchema {
         public final Employee[] emps = {
             new Employee(100, 10, "Bill", 1000),
@@ -1095,6 +1129,32 @@ public class JdbcTest extends TestCase {
         }
     }
 
+    /** Mock driver that has a handler that stores the results of each query in
+     * a temporary table. */
+    public static class AutoTempDriver
+        extends net.hydromatic.optiq.jdbc.Driver
+    {
+        private final List<Object> results;
+
+        AutoTempDriver(List<Object> results) {
+            super();
+            this.results = results;
+        }
+
+        @Override
+        protected Handler createHandler() {
+            return new HandlerImpl() {
+                @Override
+                public void onStatementExecute(
+                    OptiqStatement statement,
+                    ResultSink resultSink)
+                {
+                    super.onStatementExecute(statement, resultSink);
+                    results.add(resultSink);
+                }
+            };
+        }
+    }
 }
 
 // End JdbcTest.java

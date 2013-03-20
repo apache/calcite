@@ -98,6 +98,20 @@ public class OptiqResultSet implements ResultSet {
      * execute/cancel don't happen at the same time.</p>
      */
     void execute() {
+        // Call driver's callback. It is permitted to throw a RuntimeException.
+        final boolean autoTemp =
+            ConnectionProperty.AUTO_TEMP.getBoolean(
+                statement.connection.getProperties());
+        Handler.ResultSink resultSink = null;
+        if (autoTemp) {
+            resultSink = new Handler.ResultSink() {
+                public void toBeCompleted() {
+                }
+            };
+        }
+        statement.connection.driver.handler.onStatementExecute(
+            statement, resultSink);
+
         Enumerator enumerator = prepareResult.execute();
         this.cursor =
             prepareResult.columnList.size() == 1

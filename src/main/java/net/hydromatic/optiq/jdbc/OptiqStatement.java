@@ -30,7 +30,7 @@ import java.util.List;
  * Implementation of {@link java.sql.Statement}
  * for the Optiq engine.
  */
-abstract class OptiqStatement
+public abstract class OptiqStatement
     implements Statement, OptiqServerStatement
 {
     final OptiqConnectionImpl connection;

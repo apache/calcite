@@ -30,6 +30,12 @@ public class HandlerImpl implements Handler {
     {
         // nothing
     }
+
+    public void onStatementExecute(
+        OptiqStatement statement, ResultSink resultSink) throws RuntimeException
+    {
+        // nothing
+    }
 }
 
 // End HandlerImpl.java
