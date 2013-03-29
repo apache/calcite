@@ -27,7 +27,10 @@ enum ConnectionProperty {
     AUTO_TEMP("autoTemp", Type.BOOLEAN, "false"),
 
     /** URI of the model. */
-    MODEL("model", Type.STRING, null);
+    MODEL("model", Type.STRING, null),
+
+    /** Name of initial schema. */
+    SCHEMA("schema", Type.STRING, null);
 
     private final String camelName;
     private final Type type;

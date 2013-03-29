@@ -20,9 +20,11 @@ package net.hydromatic.optiq.jdbc;
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.RawEnumerable;
+import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
@@ -43,6 +45,13 @@ import java.util.List;
  * @author jhyde
  */
 public interface OptiqPrepare {
+    Function0<OptiqPrepare> DEFAULT_FACTORY =
+        new Function0<OptiqPrepare>() {
+            public OptiqPrepare apply() {
+                return new OptiqPrepareImpl();
+            }
+        };
+
     ParseResult parse(
         Context context, String sql);
 
@@ -106,7 +115,7 @@ public interface OptiqPrepare {
         }
     }
 
-  /**
+    /**
      * Metadata for a parameter. Plus a slot to hold its value.
      */
     public static class Parameter {

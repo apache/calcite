@@ -23,7 +23,6 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
-import net.hydromatic.optiq.prepare.Factory;
 
 import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.RelNode;
@@ -135,7 +134,7 @@ public class ViewTable<T>
 
         public Table<T> apply(List<Object> arguments) {
             OptiqPrepare.ParseResult parsed =
-                Factory.implement().parse(
+                OptiqPrepare.DEFAULT_FACTORY.apply().parse(
                     new OptiqPrepare.Context() {
                         public JavaTypeFactory getTypeFactory() {
                             return typeFactory;

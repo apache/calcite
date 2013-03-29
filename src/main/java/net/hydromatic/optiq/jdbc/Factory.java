@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.function.Function0;
+
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -34,6 +36,7 @@ interface Factory {
     OptiqConnectionImpl newConnection(
         UnregisteredDriver driver,
         Factory factory,
+        Function0<OptiqPrepare> prepareFactory,
         String url,
         Properties info);
 

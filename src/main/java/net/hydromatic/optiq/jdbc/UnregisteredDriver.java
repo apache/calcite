@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.function.Function0;
+
 import org.eigenbase.util14.ConnectStringParser;
 
 import java.sql.*;
@@ -40,12 +42,18 @@ import java.util.logging.Logger;
 public abstract class UnregisteredDriver implements java.sql.Driver {
     final DriverVersion version;
     final Factory factory;
+    final Function0<OptiqPrepare> prepareFactory;
     final Handler handler;
 
     protected UnregisteredDriver() {
         this.factory = createFactory();
+        this.prepareFactory = createPrepareFactory();
         this.version = createDriverVersion();
         this.handler = createHandler();
+    }
+
+    protected Function0<OptiqPrepare> createPrepareFactory() {
+        return OptiqPrepare.DEFAULT_FACTORY;
     }
 
     /**
@@ -117,7 +125,7 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
         final String urlSuffix = url.substring(prefix.length());
         final Properties info2 = ConnectStringParser.parse(urlSuffix, info);
         final OptiqConnectionImpl connection =
-            factory.newConnection(this, factory, url, info2);
+            factory.newConnection(this, factory, prepareFactory, url, info2);
         handler.onConnectionInit(connection);
         return connection;
     }

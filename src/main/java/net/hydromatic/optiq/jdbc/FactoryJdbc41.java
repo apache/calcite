@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.function.Function0;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.sql.*;
@@ -50,9 +52,14 @@ class FactoryJdbc41 implements Factory {
     }
 
     public OptiqConnectionImpl newConnection(
-        UnregisteredDriver driver, Factory factory, String url, Properties info)
+        UnregisteredDriver driver,
+        Factory factory,
+        Function0<OptiqPrepare> prepareFactory,
+        String url,
+        Properties info)
     {
-        return new OptiqConnectionJdbc41(driver, factory, url, info);
+        return new OptiqConnectionJdbc41(
+            driver, factory, prepareFactory, url, info);
     }
 
     public OptiqDatabaseMetaData newDatabaseMetaData(
@@ -103,10 +110,11 @@ class FactoryJdbc41 implements Factory {
         OptiqConnectionJdbc41(
             UnregisteredDriver driver,
             Factory factory,
+            Function0<OptiqPrepare> prepareFactory,
             String url,
             Properties info)
         {
-            super(driver, factory, url, info);
+            super(driver, factory, prepareFactory, url, info);
         }
     }
 

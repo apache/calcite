@@ -19,8 +19,10 @@ package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
+import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.Parameter;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.Helper;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
@@ -56,9 +58,13 @@ import java.util.*;
 /**
  * Shit just got real.
  *
+ * <p>This class is public so that projects that create their own JDBC driver
+ * and server can fine-tune preferences. However, this class and its methods are
+ * subject to change without notice.</p>
+ *
  * @author jhyde
  */
-class OptiqPrepareImpl implements OptiqPrepare {
+public class OptiqPrepareImpl implements OptiqPrepare {
 
     public static final boolean DEBUG =
         "true".equals(System.getProperties().getProperty("optiq.debug"));
@@ -76,7 +82,8 @@ class OptiqPrepareImpl implements OptiqPrepare {
             new OptiqPreparingStmt(
                 catalogReader,
                 typeFactory,
-                context.getRootSchema());
+                context.getRootSchema(),
+                createPlanner());
         preparingStmt.setResultConvention(EnumerableConvention.ARRAY);
 
         SqlParser parser = new SqlParser(sql);
@@ -92,6 +99,32 @@ class OptiqPrepareImpl implements OptiqPrepare {
         SqlNode sqlNode1 = validator.validate(sqlNode);
         return new ParseResult(
             sql, sqlNode1, validator.getValidatedNodeType(sqlNode1));
+    }
+
+    /** Creates a query planner and initializes it with a default set of
+     * rules. */
+    protected VolcanoPlanner createPlanner() {
+        final VolcanoPlanner planner = new VolcanoPlanner();
+        planner.addRelTraitDef(ConventionTraitDef.instance);
+        RelOptUtil.registerAbstractRels(planner);
+        planner.addRule(JavaRules.ENUMERABLE_JOIN_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_CALC_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_AGGREGATE_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_SORT_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_UNION_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_INTERSECT_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_MINUS_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_ONE_ROW_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_CUSTOM_TO_ARRAY_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_ARRAY_TO_CUSTOM_RULE);
+        planner.addRule(JavaRules.EnumerableCustomCalcRule.INSTANCE);
+        planner.addRule(TableAccessRule.instance);
+        planner.addRule(PushFilterPastProjectRule.instance);
+        planner.addRule(PushFilterPastJoinRule.instance);
+        planner.addRule(RemoveDistinctAggregateRule.instance);
+        return planner;
     }
 
     public <T> PrepareResult<T> prepareQueryable(
@@ -129,7 +162,8 @@ class OptiqPrepareImpl implements OptiqPrepare {
             new OptiqPreparingStmt(
                 catalogReader,
                 typeFactory,
-                context.getRootSchema());
+                context.getRootSchema(),
+                createPlanner());
         final EnumerableConvention convention;
         if (elementType == Object[].class) {
             convention = EnumerableConvention.ARRAY;
@@ -252,32 +286,13 @@ class OptiqPrepareImpl implements OptiqPrepare {
         public OptiqPreparingStmt(
             CatalogReader catalogReader,
             RelDataTypeFactory typeFactory,
-            Schema schema)
+            Schema schema,
+            VolcanoPlanner planner)
         {
             super(catalogReader);
             this.schema = schema;
-            planner = new VolcanoPlanner();
-            planner.addRelTraitDef(ConventionTraitDef.instance);
-            RelOptUtil.registerAbstractRels(planner);
-            planner.addRule(JavaRules.ENUMERABLE_JOIN_RULE);
-            planner.addRule(JavaRules.ENUMERABLE_CALC_RULE);
-            planner.addRule(JavaRules.ENUMERABLE_AGGREGATE_RULE);
-            planner.addRule(JavaRules.ENUMERABLE_SORT_RULE);
-            planner.addRule(JavaRules.ENUMERABLE_UNION_RULE);
-            planner.addRule(JavaRules.ENUMERABLE_INTERSECT_RULE);
-            planner.addRule(JavaRules.ENUMERABLE_MINUS_RULE);
-            planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
-            planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
-            planner.addRule(JavaRules.ENUMERABLE_ONE_ROW_RULE);
-            planner.addRule(JavaRules.ENUMERABLE_CUSTOM_TO_ARRAY_RULE);
-            planner.addRule(JavaRules.ENUMERABLE_ARRAY_TO_CUSTOM_RULE);
-            planner.addRule(JavaRules.EnumerableCustomCalcRule.INSTANCE);
-            planner.addRule(TableAccessRule.instance);
-            planner.addRule(PushFilterPastProjectRule.instance);
-            planner.addRule(PushFilterPastJoinRule.instance);
-            planner.addRule(RemoveDistinctAggregateRule.instance);
-
-            rexBuilder = new RexBuilder(typeFactory);
+            this.planner = planner;
+            this.rexBuilder = new RexBuilder(typeFactory);
         }
 
         public PreparedResult prepareQueryable(
@@ -918,7 +933,7 @@ class OptiqPrepareImpl implements OptiqPrepare {
             List<RelDataType> argTypes = new ArrayList<RelDataType>();
             List<SqlTypeFamily> typeFamilies = new ArrayList<SqlTypeFamily>();
             for (net.hydromatic.optiq.Parameter o
-                : (List< net.hydromatic.optiq.Parameter>) fun.getParameters())
+                : (List<net.hydromatic.optiq.Parameter>) fun.getParameters())
             {
                 argTypes.add(o.getType());
                 typeFamilies.add(SqlTypeFamily.ANY);

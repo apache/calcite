@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.Queryable;
+
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.server.OptiqServerStatement;
@@ -374,15 +375,16 @@ public abstract class OptiqStatement
     }
 
     protected <T> OptiqPrepare.PrepareResult<T> parseQuery(String sql) {
-        return net.hydromatic.optiq.prepare.Factory.implement().prepareSql(
+        final OptiqPrepare prepare = connection.prepareFactory.apply();
+        return prepare.prepareSql(
             new ContextImpl(connection), sql, null, Object[].class,
             maxRowCount <= 0 ? -1 : maxRowCount);
     }
 
     protected <T> OptiqPrepare.PrepareResult prepare(Queryable<T> queryable) {
-        return net.hydromatic.optiq.prepare.Factory.implement()
-            .prepareQueryable(
-                new ContextImpl(connection), queryable);
+        final OptiqPrepare prepare = connection.prepareFactory.apply();
+        return prepare.prepareQueryable(
+            new ContextImpl(connection), queryable);
     }
 
     private class ContextImpl implements OptiqPrepare.Context {

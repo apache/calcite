@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
+import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
@@ -60,6 +61,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
         new MapSchema(this, typeFactory, rootExpression);
     final UnregisteredDriver driver;
     final net.hydromatic.optiq.jdbc.Factory factory;
+    final Function0<OptiqPrepare> prepareFactory;
     private final String url;
     private final Properties info;
     private String schema;
@@ -87,17 +89,20 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
      *
      * @param driver Driver
      * @param factory Factory for JDBC objects
+     * @param prepareFactory Factory for {@link OptiqPrepare}
      * @param url Server URL
      * @param info Other connection properties
      */
     OptiqConnectionImpl(
         UnregisteredDriver driver,
-        net.hydromatic.optiq.jdbc.Factory factory,
+        Factory factory,
+        Function0<OptiqPrepare> prepareFactory,
         String url,
         Properties info)
     {
         this.driver = driver;
         this.factory = factory;
+        this.prepareFactory = prepareFactory;
         this.url = url;
         this.info = info;
         this.metaData = factory.newDatabaseMetaData(this);
