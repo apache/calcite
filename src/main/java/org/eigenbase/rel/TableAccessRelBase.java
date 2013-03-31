@@ -74,6 +74,11 @@ public abstract class TableAccessRelBase
         return table.getCollationList();
     }
 
+    @Override
+    public boolean isKey(BitSet columns) {
+        return table.isKey(columns);
+    }
+
     public RelOptCost computeSelfCost(RelOptPlanner planner)
     {
         double dRows = table.getRowCount();

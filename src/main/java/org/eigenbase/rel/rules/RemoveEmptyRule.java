@@ -91,7 +91,7 @@ public abstract class RemoveEmptyRule
                         new UnionRel(
                             union.getCluster(),
                             newChildRels,
-                            !union.isDistinct());
+                            union.all);
                     break;
                 }
                 call.transformTo(newRel);

@@ -136,7 +136,7 @@ public class FlatLists {
             return false;
         }
 
-        public boolean add(Object t) {
+        public boolean add(T t) {
             throw new UnsupportedOperationException();
         }
 
@@ -160,11 +160,11 @@ public class FlatLists {
             throw new UnsupportedOperationException();
         }
 
-        public T set(int index, Object element) {
+        public T set(int index, T element) {
             throw new UnsupportedOperationException();
         }
 
-        public void add(int index, Object element) {
+        public void add(int index, T element) {
             throw new UnsupportedOperationException();
         }
 
@@ -185,9 +185,8 @@ public class FlatLists {
         }
 
         public boolean containsAll(Collection<?> c) {
-            Iterator<?> e = c.iterator();
-            while (e.hasNext()) {
-                if (!contains(e.next())) {
+            for (Object o : c) {
+                if (!contains(o)) {
                     return false;
                 }
             }

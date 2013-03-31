@@ -17,23 +17,23 @@
 */
 package net.hydromatic.optiq;
 
-import net.hydromatic.linq4j.Queryable;
-
-import org.eigenbase.reltype.RelDataType;
-
+import java.util.BitSet;
 
 /**
- * Table.
+ * Statistics about a {@link Table}.
  *
- * @see TableFunction
+ * <p>Each of the methods may return {@code null} meaning "not known".</p>
+ *
+ * @see Statistics
  */
-public interface Table<T> extends Queryable<T> {
-    DataContext getDataContext();
+public interface Statistic {
+    /** Returns the approximate number of rows in the table. */
+    Double getRowCount();
 
-    RelDataType getRowType();
-
-    /** Returns a provider of statistics about this table. */
-    Statistic getStatistic();
+    /** Returns whether the given set of columns is a unique key, or a superset
+     * of a unique key, of the table.
+     */
+    boolean isKey(BitSet columns);
 }
 
-// End Table.java
+// End Statistic.java

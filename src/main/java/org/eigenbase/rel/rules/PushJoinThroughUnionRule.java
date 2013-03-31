@@ -70,7 +70,7 @@ public class PushJoinThroughUnionRule extends RelOptRule
             unionRel = (UnionRel) call.rels[2];
             unionOnLeft = false;
         }
-        if (unionRel.isDistinct()) {
+        if (!unionRel.all) {
             return;
         }
         if (!joinRel.getVariablesStopped().isEmpty()) {

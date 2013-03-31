@@ -17,6 +17,7 @@
 */
 package org.eigenbase.rel;
 
+import java.util.BitSet;
 import java.util.List;
 
 import org.eigenbase.rel.metadata.RelMetadataQuery;
@@ -51,6 +52,12 @@ public abstract class MinusRelBase extends SetOpRel {
             dRows = 0;
         }
         return dRows;
+    }
+
+    @Override
+    public boolean isKey(BitSet columns) {
+        return inputs.get(0).isKey(columns)
+            || super.isKey(columns);
     }
 }
 

@@ -175,6 +175,10 @@ public abstract class AbstractRelNode
 
     public boolean isDistinct()
     {
+        return isKey(Util.bitSetBetween(0, getRowType().getFieldCount()));
+    }
+
+    public boolean isKey(BitSet columns) {
         return false;
     }
 

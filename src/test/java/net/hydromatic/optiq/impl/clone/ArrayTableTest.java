@@ -19,8 +19,6 @@ package net.hydromatic.optiq.impl.clone;
 
 import junit.framework.TestCase;
 
-import org.eigenbase.util.Pair;
-
 import java.util.Arrays;
 
 /**
@@ -80,7 +78,7 @@ public class ArrayTableTest extends TestCase {
 
     public void testValueSetInt() {
         ArrayTable.BitSlicedPrimitiveArray representation;
-        Pair<ArrayTable.Representation, Object> pair;
+        ArrayTable.Column pair;
 
         final ColumnLoader.ValueSet valueSet =
             new ColumnLoader.ValueSet(int.class);
@@ -88,48 +86,54 @@ public class ArrayTableTest extends TestCase {
         valueSet.add(1);
         valueSet.add(10);
         pair = valueSet.freeze(0);
-        assertTrue(pair.left instanceof ArrayTable.BitSlicedPrimitiveArray);
-        representation = (ArrayTable.BitSlicedPrimitiveArray) pair.left;
+        assertTrue(
+            pair.representation instanceof ArrayTable.BitSlicedPrimitiveArray);
+        representation =
+            (ArrayTable.BitSlicedPrimitiveArray) pair.representation;
 
         // unsigned 4 bit integer (values 0..15)
         assertEquals(4, representation.bitCount);
         assertFalse(representation.signed);
-        assertEquals(0, representation.getInt(pair.right, 0));
-        assertEquals(1, representation.getInt(pair.right, 1));
-        assertEquals(10, representation.getInt(pair.right, 2));
-        assertEquals(10, representation.getObject(pair.right, 2));
+        assertEquals(0, representation.getInt(pair.dataSet, 0));
+        assertEquals(1, representation.getInt(pair.dataSet, 1));
+        assertEquals(10, representation.getInt(pair.dataSet, 2));
+        assertEquals(10, representation.getObject(pair.dataSet, 2));
 
         // -32 takes us to 6 bit signed
         valueSet.add(-32);
         pair = valueSet.freeze(0);
-        assertTrue(pair.left instanceof ArrayTable.BitSlicedPrimitiveArray);
-        representation = (ArrayTable.BitSlicedPrimitiveArray) pair.left;
+        assertTrue(
+            pair.representation instanceof ArrayTable.BitSlicedPrimitiveArray);
+        representation =
+            (ArrayTable.BitSlicedPrimitiveArray) pair.representation;
         assertEquals(6, representation.bitCount);
         assertTrue(representation.signed);
-        assertEquals(10, representation.getInt(pair.right, 2));
-        assertEquals(10, representation.getObject(pair.right, 2));
-        assertEquals(-32, representation.getInt(pair.right, 3));
-        assertEquals(-32, representation.getObject(pair.right, 3));
+        assertEquals(10, representation.getInt(pair.dataSet, 2));
+        assertEquals(10, representation.getObject(pair.dataSet, 2));
+        assertEquals(-32, representation.getInt(pair.dataSet, 3));
+        assertEquals(-32, representation.getObject(pair.dataSet, 3));
 
         // 63 takes us to 7 bit signed
         valueSet.add(63);
         pair = valueSet.freeze(0);
-        assertTrue(pair.left instanceof ArrayTable.BitSlicedPrimitiveArray);
-        representation = (ArrayTable.BitSlicedPrimitiveArray) pair.left;
+        assertTrue(
+            pair.representation instanceof ArrayTable.BitSlicedPrimitiveArray);
+        representation =
+            (ArrayTable.BitSlicedPrimitiveArray) pair.representation;
         assertEquals(7, representation.bitCount);
         assertTrue(representation.signed);
 
         // 128 pushes us to 8 bit signed, i.e. byte
         valueSet.add(64);
         pair = valueSet.freeze(0);
-        assertTrue(pair.left instanceof ArrayTable.PrimitiveArray);
+        assertTrue(pair.representation instanceof ArrayTable.PrimitiveArray);
         ArrayTable.PrimitiveArray representation2 =
-            (ArrayTable.PrimitiveArray) pair.left;
-        assertEquals(0, representation2.getInt(pair.right, 0));
-        assertEquals(-32, representation2.getInt(pair.right, 3));
-        assertEquals(-32, representation2.getObject(pair.right, 3));
-        assertEquals(64, representation2.getInt(pair.right, 5));
-        assertEquals(64, representation2.getObject(pair.right, 5));
+            (ArrayTable.PrimitiveArray) pair.representation;
+        assertEquals(0, representation2.getInt(pair.dataSet, 0));
+        assertEquals(-32, representation2.getInt(pair.dataSet, 3));
+        assertEquals(-32, representation2.getObject(pair.dataSet, 3));
+        assertEquals(64, representation2.getInt(pair.dataSet, 5));
+        assertEquals(64, representation2.getObject(pair.dataSet, 5));
     }
 
     public void testValueSetBoolean() {
@@ -139,43 +143,46 @@ public class ArrayTableTest extends TestCase {
         valueSet.add(1);
         valueSet.add(1);
         valueSet.add(0);
-        final Pair<ArrayTable.Representation, Object> pair = valueSet.freeze(0);
-        assertTrue(pair.left instanceof ArrayTable.BitSlicedPrimitiveArray);
+        final ArrayTable.Column pair = valueSet.freeze(0);
+        assertTrue(
+            pair.representation instanceof ArrayTable.BitSlicedPrimitiveArray);
         final ArrayTable.BitSlicedPrimitiveArray representation =
-            (ArrayTable.BitSlicedPrimitiveArray) pair.left;
+            (ArrayTable.BitSlicedPrimitiveArray) pair.representation;
 
         assertEquals(1, representation.bitCount);
-        assertEquals(0, representation.getInt(pair.right, 0));
-        assertEquals(1, representation.getInt(pair.right, 1));
-        assertEquals(1, representation.getInt(pair.right, 2));
-        assertEquals(0, representation.getInt(pair.right, 3));
+        assertEquals(0, representation.getInt(pair.dataSet, 0));
+        assertEquals(1, representation.getInt(pair.dataSet, 1));
+        assertEquals(1, representation.getInt(pair.dataSet, 2));
+        assertEquals(0, representation.getInt(pair.dataSet, 3));
     }
 
     public void testValueSetZero() {
         final ColumnLoader.ValueSet valueSet =
             new ColumnLoader.ValueSet(boolean.class);
         valueSet.add(0);
-        final Pair<ArrayTable.Representation, Object> pair = valueSet.freeze(0);
-        assertTrue(pair.left instanceof ArrayTable.Constant);
+        final ArrayTable.Column pair = valueSet.freeze(0);
+        assertTrue(pair.representation instanceof ArrayTable.Constant);
         final ArrayTable.Constant representation =
-            (ArrayTable.Constant) pair.left;
+            (ArrayTable.Constant) pair.representation;
 
-        assertEquals(0, representation.getInt(pair.right, 0));
+        assertEquals(0, representation.getInt(pair.dataSet, 0));
+        assertEquals(1, pair.cardinality);
     }
 
     public void testStrings() {
-        Pair<ArrayTable.Representation, Object> pair;
+        ArrayTable.Column pair;
 
         final ColumnLoader.ValueSet valueSet =
             new ColumnLoader.ValueSet(String.class);
         valueSet.add("foo");
         valueSet.add("foo");
         pair = valueSet.freeze(0);
-        assertTrue(pair.left instanceof ArrayTable.ObjectArray);
+        assertTrue(pair.representation instanceof ArrayTable.ObjectArray);
         final ArrayTable.ObjectArray representation =
-            (ArrayTable.ObjectArray) pair.left;
-        assertEquals("foo", representation.getObject(pair.right, 0));
-        assertEquals("foo", representation.getObject(pair.right, 1));
+            (ArrayTable.ObjectArray) pair.representation;
+        assertEquals("foo", representation.getObject(pair.dataSet, 0));
+        assertEquals("foo", representation.getObject(pair.dataSet, 1));
+        assertEquals(1, pair.cardinality);
 
         // Large number of the same string. ObjectDictionary backed by Constant.
         for (int i = 0; i < 2000; i++) {
@@ -183,18 +190,19 @@ public class ArrayTableTest extends TestCase {
         }
         pair = valueSet.freeze(0);
         final ArrayTable.ObjectDictionary representation2 =
-            (ArrayTable.ObjectDictionary) pair.left;
+            (ArrayTable.ObjectDictionary) pair.representation;
         assertTrue(
             representation2.representation instanceof ArrayTable.Constant);
-        assertEquals("foo", representation2.getObject(pair.right, 0));
-        assertEquals("foo", representation2.getObject(pair.right, 1000));
+        assertEquals("foo", representation2.getObject(pair.dataSet, 0));
+        assertEquals("foo", representation2.getObject(pair.dataSet, 1000));
+        assertEquals(1, pair.cardinality);
 
         // One different string. ObjectDictionary backed by 1-bit
         // BitSlicedPrimitiveArray
         valueSet.add("bar");
         pair = valueSet.freeze(0);
         final ArrayTable.ObjectDictionary representation3 =
-            (ArrayTable.ObjectDictionary) pair.left;
+            (ArrayTable.ObjectDictionary) pair.representation;
         assertTrue(
             representation3.representation
                 instanceof ArrayTable.BitSlicedPrimitiveArray);
@@ -202,36 +210,39 @@ public class ArrayTableTest extends TestCase {
             (ArrayTable.BitSlicedPrimitiveArray) representation3.representation;
         assertEquals(1, representation4.bitCount);
         assertFalse(representation4.signed);
-        assertEquals("foo", representation3.getObject(pair.right, 0));
-        assertEquals("foo", representation3.getObject(pair.right, 1000));
-        assertEquals("bar", representation3.getObject(pair.right, 2003));
+        assertEquals("foo", representation3.getObject(pair.dataSet, 0));
+        assertEquals("foo", representation3.getObject(pair.dataSet, 1000));
+        assertEquals("bar", representation3.getObject(pair.dataSet, 2003));
+        assertEquals(2, pair.cardinality);
     }
 
     public void testAllNull() {
-        Pair<ArrayTable.Representation, Object> pair;
+        ArrayTable.Column pair;
 
         final ColumnLoader.ValueSet valueSet =
             new ColumnLoader.ValueSet(String.class);
 
         valueSet.add(null);
         pair = valueSet.freeze(0);
-        assertTrue(pair.left instanceof ArrayTable.ObjectArray);
+        assertTrue(pair.representation instanceof ArrayTable.ObjectArray);
         final ArrayTable.ObjectArray representation =
-            (ArrayTable.ObjectArray) pair.left;
-        assertNull(representation.getObject(pair.right, 0));
+            (ArrayTable.ObjectArray) pair.representation;
+        assertNull(representation.getObject(pair.dataSet, 0));
+        assertEquals(1, pair.cardinality);
 
         for (int i = 0; i < 3000; i++) {
             valueSet.add(null);
         }
         pair = valueSet.freeze(0);
         final ArrayTable.ObjectDictionary representation2 =
-            (ArrayTable.ObjectDictionary) pair.left;
+            (ArrayTable.ObjectDictionary) pair.representation;
         assertTrue(
             representation2.representation instanceof ArrayTable.Constant);
+        assertEquals(1, pair.cardinality);
     }
 
     public void testOneValueOneNull() {
-        Pair<ArrayTable.Representation, Object> pair;
+        ArrayTable.Column pair;
 
         final ColumnLoader.ValueSet valueSet =
             new ColumnLoader.ValueSet(String.class);
@@ -239,23 +250,25 @@ public class ArrayTableTest extends TestCase {
         valueSet.add("foo");
 
         pair = valueSet.freeze(0);
-        assertTrue(pair.left instanceof ArrayTable.ObjectArray);
+        assertTrue(pair.representation instanceof ArrayTable.ObjectArray);
         final ArrayTable.ObjectArray representation =
-            (ArrayTable.ObjectArray) pair.left;
-        assertNull(representation.getObject(pair.right, 0));
+            (ArrayTable.ObjectArray) pair.representation;
+        assertNull(representation.getObject(pair.dataSet, 0));
+        assertEquals(2, pair.cardinality);
 
         for (int i = 0; i < 3000; i++) {
             valueSet.add(null);
         }
         pair = valueSet.freeze(0);
         final ArrayTable.ObjectDictionary representation2 =
-            (ArrayTable.ObjectDictionary) pair.left;
+            (ArrayTable.ObjectDictionary) pair.representation;
         assertEquals(
             1,
             ((ArrayTable.BitSlicedPrimitiveArray)
                 representation2.representation).bitCount);
-        assertEquals("foo", representation2.getObject(pair.right, 1));
-        assertNull(representation2.getObject(pair.right, 10));
+        assertEquals("foo", representation2.getObject(pair.dataSet, 1));
+        assertNull(representation2.getObject(pair.dataSet, 10));
+        assertEquals(2, pair.cardinality);
     }
 }
 

@@ -47,7 +47,7 @@ public class UnionToDistinctRule
     public void onMatch(RelOptRuleCall call)
     {
         UnionRel union = (UnionRel) call.rels[0];
-        if (!union.isDistinct()) {
+        if (union.all) {
             return; // nothing to do
         }
         UnionRel unionAll =

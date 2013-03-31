@@ -75,14 +75,9 @@ public abstract class AggregateRelBase
     //~ Methods ----------------------------------------------------------------
 
     // implement RelNode
-    public boolean isDistinct()
-    {
-        // REVIEW jvs 5-Apr-2008:  Shouldn't this just return true always?
-        // How can the result of aggregation have any duplicates?
-
-        return (aggCalls.size() == 0)
-            && (getGroupCount()
-                == getChild().getRowType().getFieldCount());
+    public boolean isDistinct() {
+        // we never return duplicate rows
+        return true;
     }
 
     /**

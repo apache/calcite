@@ -80,7 +80,7 @@ public class PushProjectPastSetOpRule
         SetOpRel setOpRel = (SetOpRel) call.rels[1];
 
         // cannot push project past a distinct
-        if (setOpRel.isDistinct()) {
+        if (!setOpRel.all) {
             return;
         }
 

@@ -66,7 +66,7 @@ public class PullUpAggregateAboveUnionRule
         UnionRel unionRel = (UnionRel) call.rels[1];
 
         // If distincts haven't been removed yet, defer invoking this rule
-        if (unionRel.isDistinct()) {
+        if (!unionRel.all) {
             return;
         }
 

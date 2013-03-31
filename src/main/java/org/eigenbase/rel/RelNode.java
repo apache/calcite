@@ -334,6 +334,19 @@ public interface RelNode
      * {@code super.register}.</p>
      */
     void register(RelOptPlanner planner);
+
+    /**
+     * Returns whether the result of this relational expression is uniquely
+     * identified by this columns with the given ordinals.
+     *
+     * <p>For example, if this relational expression is a TableAccessRel to
+     * T(A, B, C, D) whose key is (A, B), then isKey([0, 1]) yields true,
+     * and isKey([0]) and isKey([0, 2]) yields false.</p>
+     *
+     * @param columns Ordinals of key columns
+     * @return Whether the given columns are a key or a superset of a key
+     */
+    boolean isKey(BitSet columns);
 }
 
 // End RelNode.java

@@ -27,7 +27,6 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.util.Pair;
 
 import java.lang.reflect.Type;
 import java.sql.Date;
@@ -69,9 +68,8 @@ class ColumnLoader<T> {
         };
 
     public final List<T> list = new ArrayList<T>();
-    public final List<Pair<ArrayTable.Representation, Object>>
-        representationValues =
-        new ArrayList<Pair<ArrayTable.Representation, Object>>();
+    public final List<ArrayTable.Column> representationValues =
+        new ArrayList<ArrayTable.Column>();
     private final JavaTypeFactory typeFactory;
 
     /** Creates a column loader, and performs the load. */
@@ -240,9 +238,11 @@ class ColumnLoader<T> {
             values.add(e);
         }
 
-        Pair<ArrayTable.Representation, Object> freeze(int ordinal) {
+        ArrayTable.Column freeze(int ordinal) {
             ArrayTable.Representation representation = chooseRep(ordinal);
-            return Pair.of(representation, representation.freeze(this));
+            final int cardinality = map.size() + (containsNull ? 1 : 0);
+            final Object data = representation.freeze(this);
+            return new ArrayTable.Column(representation, data, cardinality);
         }
 
         ArrayTable.Representation chooseRep(int ordinal) {

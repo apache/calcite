@@ -17,8 +17,7 @@
 */
 package org.eigenbase.rel;
 
-import java.util.AbstractList;
-import java.util.List;
+import java.util.*;
 
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
@@ -39,7 +38,7 @@ public abstract class SetOpRel
     //~ Instance fields --------------------------------------------------------
 
     protected List<RelNode> inputs;
-    protected boolean all;
+    public final boolean all;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -71,6 +70,13 @@ public abstract class SetOpRel
     public boolean isDistinct()
     {
         return !all;
+    }
+
+    @Override
+    public boolean isKey(BitSet columns) {
+        // If not ALL then the rows are distinct.
+        // Therefore the set of all columns is a key.
+        return !all && columns.nextClearBit(0) >= getRowType().getFieldCount();
     }
 
     public List<RelNode> getInputs()

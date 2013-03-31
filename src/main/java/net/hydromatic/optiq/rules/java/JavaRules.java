@@ -110,6 +110,8 @@ public class JavaRules {
         implements EnumerableRel
     {
         private final PhysType physType;
+        final ImmutableIntList leftKeys;
+        final ImmutableIntList rightKeys;
 
         protected EnumerableJoinRel(
             RelOptCluster cluster,
@@ -129,10 +131,21 @@ public class JavaRules {
                 condition,
                 joinType,
                 variablesStopped);
-            if (!RelOptUtil.isEqui(left, right, condition)) {
+            final List<Integer> leftKeys = new ArrayList<Integer>();
+            final List<Integer> rightKeys = new ArrayList<Integer>();
+            RexNode remaining =
+                RelOptUtil.splitJoinCondition(
+                    left,
+                    right,
+                    condition,
+                    leftKeys,
+                    rightKeys);
+            if (!remaining.isAlwaysTrue()) {
                 throw new InvalidRelException(
                     "EnumerableJoinRel only supports equi-join");
             }
+            this.leftKeys = ImmutableIntList.of(leftKeys);
+            this.rightKeys = ImmutableIntList.of(rightKeys);
             this.physType =
                 PhysTypeImpl.of(
                     (JavaTypeFactory) cluster.getTypeFactory(),
@@ -169,26 +182,46 @@ public class JavaRules {
 
         @Override
         public RelOptCost computeSelfCost(RelOptPlanner planner) {
-            // Inflate Java cost to make Cascading implementation more
-            // attractive.
-            return super.computeSelfCost(planner).multiplyBy(2d);
+            // We always "build" the
+            double rowCount = RelMetadataQuery.getRowCount(this);
+
+            return planner.makeCost(rowCount, 0, 0);
+        }
+
+        @Override
+        public double getRows() {
+            final boolean leftKey = left.isKey(Util.bitSetOf(leftKeys));
+            final boolean rightKey = right.isKey(Util.bitSetOf(rightKeys));
+            final double leftRowCount = left.getRows();
+            final double rightRowCount = right.getRows();
+            if (leftKey && rightKey) {
+                return Math.min(leftRowCount, rightRowCount);
+            }
+            if (leftKey) {
+                return rightRowCount;
+            }
+            if (rightKey) {
+                return leftRowCount;
+            }
+            return leftRowCount * rightRowCount;
+        }
+
+        private List<Integer> shift(final List<Integer> list, final int offset)
+        {
+            return new AbstractList<Integer>() {
+                @Override
+                public Integer get(int index) {
+                    return list.get(index) - offset;
+                }
+
+                @Override
+                public int size() {
+                    return list.size();
+                }
+            };
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
-            final List<Integer> leftKeys = new ArrayList<Integer>();
-            final List<Integer> rightKeys = new ArrayList<Integer>();
-            RexNode remaining =
-                RelOptUtil.splitJoinCondition(
-                    left,
-                    right,
-                    condition,
-                    leftKeys,
-                    rightKeys);
-            if (!remaining.isAlwaysTrue()) {
-                // We checked "isEqui" in constructor. Something went wrong.
-                throw new AssertionError(
-                    "not equi-join condition: " + remaining);
-            }
             BlockBuilder list = new BlockBuilder();
             Expression leftExpression =
                 list.append(
@@ -1247,7 +1280,7 @@ public class JavaRules {
                 rel.getCluster(),
                 traitSet,
                 convertList(union.getInputs(), traitSet),
-                !union.isDistinct());
+                union.all);
         }
     }
 
@@ -1335,7 +1368,7 @@ public class JavaRules {
         public RelNode convert(RelNode rel)
         {
             final IntersectRel intersect = (IntersectRel) rel;
-            if (!intersect.isDistinct()) {
+            if (intersect.all) {
                 return null; // INTERSECT ALL not implemented
             }
             final RelTraitSet traitSet =
@@ -1345,7 +1378,7 @@ public class JavaRules {
                 rel.getCluster(),
                 traitSet,
                 convertList(intersect.getInputs(), traitSet),
-                !intersect.isDistinct());
+                intersect.all);
         }
     }
 
@@ -1435,7 +1468,7 @@ public class JavaRules {
         public RelNode convert(RelNode rel)
         {
             final MinusRel minus = (MinusRel) rel;
-            if (!minus.isDistinct()) {
+            if (minus.all) {
                 return null; // EXCEPT ALL not implemented
             }
             final RelTraitSet traitSet =
@@ -1445,7 +1478,7 @@ public class JavaRules {
                 rel.getCluster(),
                 traitSet,
                 convertList(minus.getInputs(), traitSet),
-                !minus.isDistinct());
+                minus.all);
         }
     }
 

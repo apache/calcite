@@ -85,6 +85,10 @@ class JdbcTable extends AbstractQueryable<Object[]> implements Table<Object[]> {
                 .append(Expressions.constant(getElementType())));
     }
 
+    public Statistic getStatistic() {
+        return Statistics.UNKNOWN;
+    }
+
     public Iterator<Object[]> iterator() {
         return Linq4j.enumeratorIterator(enumerator());
     }

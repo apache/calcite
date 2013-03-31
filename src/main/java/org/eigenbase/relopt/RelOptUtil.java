@@ -2392,7 +2392,7 @@ public abstract class RelOptUtil
                 new UnionRel(
                     cluster,
                     newSetOpInputs,
-                    !setOpRel.isDistinct());
+                    setOpRel.all);
         } else if (setOpRel instanceof IterConcatenateRel) {
             newSetOpRel =
                 new IterConcatenateRel(
@@ -2403,13 +2403,13 @@ public abstract class RelOptUtil
                 new IntersectRel(
                     cluster,
                     newSetOpInputs,
-                    !setOpRel.isDistinct());
+                    setOpRel.all);
         } else if (setOpRel instanceof MinusRel) {
             newSetOpRel =
                 new MinusRel(
                     cluster,
                     newSetOpInputs,
-                    !setOpRel.isDistinct());
+                    setOpRel.all);
         }
         return newSetOpRel;
     }

@@ -55,17 +55,20 @@ public class RemoveDistinctRule
     public void onMatch(RelOptRuleCall call)
     {
         AggregateRel distinct = (AggregateRel) call.rels[0];
-        if (!distinct.isDistinct()) {
+        RelNode child = call.rels[1];
+        if (!distinct.getAggCallList().isEmpty()
+            || !child.isKey(distinct.getGroupSet()))
+        {
             return;
         }
-        RelNode child = distinct.getChild();
-        if (child.isDistinct()) {
-            child = call.getPlanner().register(child, distinct);
-            call.transformTo(
-                convert(
-                    child,
-                    distinct.getTraitSet()));
-        }
+        // Distinct is "GROUP BY c1, c2" (where c1, c2 are a set of columns on
+        // which the input is unique, i.e. contain a key) and has no aggregate
+        // functions. It can be removed.
+        child = call.getPlanner().register(child, distinct);
+        call.transformTo(
+            convert(
+                child,
+                distinct.getTraitSet()));
     }
 }
 

@@ -73,7 +73,7 @@ public class CombineUnionsRule
         }
 
         // If distincts haven't been removed yet, defer invoking this rule
-        if (topUnionRel.isDistinct() || bottomUnionRel.isDistinct()) {
+        if (!topUnionRel.all || !bottomUnionRel.all) {
             return;
         }
 

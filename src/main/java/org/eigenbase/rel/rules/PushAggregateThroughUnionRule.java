@@ -53,7 +53,7 @@ public class PushAggregateThroughUnionRule extends RelOptRule
         AggregateRel aggRel = (AggregateRel) call.rels[0];
         UnionRel unionRel = (UnionRel) call.rels[1];
 
-        if (unionRel.isDistinct()) {
+        if (!unionRel.all) {
             // This transformation is only valid for UNION ALL.
             // Consider t1(i) with rows (5), (5) and t2(i) with
             // rows (5), (10), and the query

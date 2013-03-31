@@ -17,6 +17,7 @@
 */
 package org.eigenbase.relopt.hep;
 
+import java.util.BitSet;
 import java.util.List;
 
 import org.eigenbase.rel.*;
@@ -55,6 +56,7 @@ public class HepRelVertex
 
     //~ Methods ----------------------------------------------------------------
 
+    @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs)
     {
         assert traitSet.equals(this.traitSet);
@@ -62,7 +64,7 @@ public class HepRelVertex
         return this;
     }
 
-    // implement RelNode
+    @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner)
     {
         // HepRelMetadataProvider is supposed to intercept this
@@ -70,25 +72,30 @@ public class HepRelVertex
         throw Util.newInternal("should never get here");
     }
 
-    // implement RelNode
+    @Override
     public double getRows()
     {
         return RelMetadataQuery.getRowCount(currentRel);
     }
 
-    // implement RelNode
+    @Override
     protected RelDataType deriveRowType()
     {
         return currentRel.getRowType();
     }
 
-    // implement RelNode
+    @Override
     public boolean isDistinct()
     {
         return currentRel.isDistinct();
     }
 
-    // implement RelNode
+    @Override
+    public boolean isKey(BitSet columns) {
+        return currentRel.isKey(columns);
+    }
+
+    @Override
     protected String computeDigest()
     {
         return "HepRelVertex(" + currentRel + ")";

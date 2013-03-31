@@ -176,7 +176,22 @@ public class RelSubset
     // implement RelNode
     public boolean isDistinct()
     {
-        return set.rel.isDistinct();
+        for (RelNode rel : set.rels) {
+            if (rel.isDistinct()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isKey(BitSet columns) {
+        for (RelNode rel : set.rels) {
+            if (rel.isKey(columns)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     Collection<RelSubset> getParentSubsets()

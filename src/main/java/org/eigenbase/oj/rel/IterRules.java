@@ -67,7 +67,7 @@ public abstract class IterRules
         public RelNode convert(RelNode rel)
         {
             final UnionRel union = (UnionRel) rel;
-            if (union.isDistinct()) {
+            if (!union.all) {
                 return null; // can only convert non-distinct Union
             }
             final RelTraitSet traitSet =

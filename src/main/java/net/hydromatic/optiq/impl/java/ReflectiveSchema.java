@@ -272,6 +272,10 @@ public class ReflectiveSchema
         public RelDataType getRowType() {
             return relDataType;
         }
+
+        public Statistic getStatistic() {
+            return Statistics.UNKNOWN;
+        }
     }
 }
 

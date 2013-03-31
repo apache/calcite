@@ -2137,6 +2137,22 @@ public class Util
         };
     }
 
+    /** Returns whether a bit set contains every bit of another bit set. */
+    public static boolean isSupersetOf(BitSet set0, BitSet set1) {
+        if (set1.isEmpty()) {
+            return true;
+        }
+        if (!set0.intersects(set1)) {
+            return false;
+        }
+        for (Integer integer : toIter(set1)) {
+            if (!set0.get(integer)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     /**

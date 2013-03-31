@@ -57,7 +57,7 @@ public class UnionEliminatorRule
         if (union.getInputs().size() != 1) {
             return;
         }
-        if (union.isDistinct()) {
+        if (!union.all) {
             return;
         }
 

@@ -124,6 +124,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         planner.addRule(PushFilterPastProjectRule.instance);
         planner.addRule(PushFilterPastJoinRule.instance);
         planner.addRule(RemoveDistinctAggregateRule.instance);
+        planner.addRule(SwapJoinRule.instance);
         return planner;
     }
 
@@ -609,7 +610,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             this.names = names;
             this.table = table;
             this.expression = expression;
-            assert expression != null;
+            assert expression != null : "table may be null; expr may not";
         }
 
         public <T> T unwrap(
@@ -625,7 +626,13 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         }
 
         public double getRowCount() {
-            return 100;
+            if (table != null) {
+                final Double rowCount = table.getStatistic().getRowCount();
+                if (rowCount != null) {
+                    return rowCount;
+                }
+            }
+            return 100d;
         }
 
         public RelOptSchema getRelOptSchema() {
@@ -655,6 +662,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
         public List<RelCollation> getCollationList() {
             return Collections.emptyList();
+        }
+
+        public boolean isKey(BitSet columns) {
+            return table.getStatistic().isKey(columns);
         }
 
         public RelDataType getRowType() {

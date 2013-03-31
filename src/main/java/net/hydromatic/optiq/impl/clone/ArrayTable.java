@@ -24,6 +24,7 @@ import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
@@ -41,7 +42,7 @@ class ArrayTable<T>
 {
     private final Schema schema;
     private final RelDataType relDataType;
-    private final List<Pair<Representation, Object>> pairs;
+    private final List<Column> columns;
     private final int size;
 
     /** Creates an ArrayTable. */
@@ -50,16 +51,16 @@ class ArrayTable<T>
         Type elementType,
         RelDataType relDataType,
         Expression expression,
-        List<Pair<Representation, Object>> pairs,
+        List<Column> columns,
         int size)
     {
         super(schema.getQueryProvider(), elementType, expression);
         this.schema = schema;
         this.relDataType = relDataType;
-        this.pairs = pairs;
+        this.columns = columns;
         this.size = size;
 
-        assert relDataType.getFieldCount() == pairs.size();
+        assert relDataType.getFieldCount() == columns.size();
     }
 
     public DataContext getDataContext() {
@@ -70,19 +71,29 @@ class ArrayTable<T>
         return relDataType;
     }
 
+    public Statistic getStatistic() {
+        final ArrayList<BitSet> keys = new ArrayList<BitSet>();
+        for (Ord<Column> ord : Ord.zip(columns)) {
+            if (ord.e.cardinality == size) {
+                keys.add(Util.bitSetOf(ord.i));
+            }
+        }
+        return Statistics.of(size, keys);
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public Enumerator<T> enumerator() {
         return new Enumerator() {
             final int rowCount = size;
-            final int columnCount = pairs.size();
+            final int columnCount = columns.size();
             int i = -1;
 
             public Object[] current() {
                 Object[] objects = new Object[columnCount];
                 for (int j = 0; j < objects.length; j++) {
-                    final Pair<Representation, Object> pair = pairs.get(j);
-                    objects[j] = pair.left.getObject(pair.right, i);
+                    final Column pair = columns.get(j);
+                    objects[j] = pair.representation.getObject(pair.dataSet, i);
                 }
                 return objects;
             }
@@ -181,6 +192,18 @@ class ArrayTable<T>
          * @see ByteStringDictionary
          */
         BYTE_STRING_DICTIONARY,
+    }
+
+    public static class Column {
+        final Representation representation;
+        final Object dataSet;
+        final int cardinality;
+
+        Column(Representation representation, Object data, int cardinality) {
+            this.representation = representation;
+            this.dataSet = data;
+            this.cardinality = cardinality;
+        }
     }
 
     public interface Representation {
@@ -366,8 +389,8 @@ class ArrayTable<T>
         }
 
         public Object getObject(Object dataSet, int ordinal) {
-            Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
-            return pair.left;
+            Column pair = (Column) dataSet;
+            return pair.dataSet;
         }
 
         public int getInt(Object dataSet, int ordinal) {

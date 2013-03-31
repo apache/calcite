@@ -50,7 +50,7 @@ public abstract class UnionRelBase
     public double getRows()
     {
         double dRows = estimateRowCount(this);
-        if (isDistinct()) {
+        if (!all) {
             dRows *= 0.5;
         }
         return dRows;

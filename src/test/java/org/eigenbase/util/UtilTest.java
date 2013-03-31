@@ -965,6 +965,54 @@ public class UtilTest
         assertEquals(0, list5.size());
     }
 
+    public void testImmutableIntList() {
+        ImmutableIntList list = ImmutableIntList.of();
+        assertEquals(0, list.size());
+        assertEquals(list, Collections.<Integer>emptyList());
+
+        list = ImmutableIntList.of(1, 3, 5);
+        assertEquals(3, list.size());
+        assertEquals("[1, 3, 5]", list.toString());
+        assertEquals(list.hashCode(), Arrays.asList(1, 3, 5).hashCode());
+
+        Integer[] integers = list.toArray(new Integer[3]);
+        assertEquals(1, (int) integers[0]);
+        assertEquals(3, (int) integers[1]);
+        assertEquals(5, (int) integers[2]);
+    }
+
+    /** Unit test for
+     * {@link Util#isSupersetOf(java.util.BitSet, java.util.BitSet)}. */
+    public void testIsSupersetOf() {
+        assertTrue(
+            Util.isSupersetOf(
+                Util.bitSetBetween(0, 5),
+                Util.bitSetBetween(2, 4)));
+        assertTrue(
+            Util.isSupersetOf(
+                Util.bitSetBetween(0, 5),
+                Util.bitSetOf(4)));
+        assertFalse(
+            Util.isSupersetOf(
+                Util.bitSetBetween(0, 5), Util.bitSetOf(14)));
+        assertFalse(
+            Util.isSupersetOf(
+                Util.bitSetBetween(20, 25), Util.bitSetOf(14)));
+        final BitSet empty = Util.bitSetOf();
+        assertTrue(
+            Util.isSupersetOf(
+                Util.bitSetBetween(20, 25),
+                empty));
+        assertTrue(
+            Util.isSupersetOf(
+                empty,
+                empty));
+        assertTrue(
+            Util.isSupersetOf(
+                Util.bitSetOf(1, 4, 7),
+                Util.bitSetOf(1, 4, 7)));
+    }
+
     /**
      * Runs the test suite.
      */

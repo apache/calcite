@@ -24,9 +24,7 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
 import net.hydromatic.linq4j.function.Predicate1;
 
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.Table;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.MapSchema;
 
@@ -513,6 +511,10 @@ public class Meta {
 
         public QueryProvider getProvider() {
             return connection;
+        }
+
+        public Statistic getStatistic() {
+            return Statistics.UNKNOWN;
         }
 
         public Iterator<E> iterator() {

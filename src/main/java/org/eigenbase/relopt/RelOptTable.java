@@ -23,8 +23,6 @@ import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
 
-import net.hydromatic.optiq.ModifiableTable;
-
 
 /**
  * Represents a relational dataset in a {@link RelOptSchema}. It has methods to
@@ -80,7 +78,16 @@ public interface RelOptTable
      * @see RelNode#getCollationList()
      * @post return != null
      */
-    public List<RelCollation> getCollationList();
+    List<RelCollation> getCollationList();
+
+    /**
+     * Returns whether the given columns are a key or a superset of a unique key
+     * of this table.
+     *
+     * @param columns Ordinals of key columns
+     * @return Whether the given columns are a key or a superset of a key
+     */
+    boolean isKey(BitSet columns);
 
     /** Finds an interface implemented by this table. */
     <T> T unwrap(Class<T> clazz);

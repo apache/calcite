@@ -23,12 +23,12 @@ import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.relopt.RelOptSchema;
-import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.Pair;
 
 
 /**
@@ -337,9 +337,8 @@ public class MockCatalogReader
         implements OJPreparingStmt.PreparingTable
     {
         private final MockCatalogReader catalogReader;
-        private final List<String> columnNameList = new ArrayList<String>();
-        private final List<RelDataType> columnTypeList =
-            new ArrayList<RelDataType>();
+        private final List<Pair<String, RelDataType>> columnList =
+            new ArrayList<Pair<String, RelDataType>>();
         private RelDataType rowType;
         private List<RelCollation> collationList;
         private final String [] names;
@@ -380,6 +379,10 @@ public class MockCatalogReader
             return collationList;
         }
 
+        public boolean isKey(BitSet columns) {
+            return false;
+        }
+
         public RelDataType getRowType()
         {
             return rowType;
@@ -387,11 +390,7 @@ public class MockCatalogReader
 
         public void onRegister(RelDataTypeFactory typeFactory)
         {
-            rowType =
-                typeFactory.createStructType(
-                    columnTypeList,
-                    columnNameList);
-
+            rowType = typeFactory.createStructType(columnList);
             collationList = deduceMonotonicity(this);
         }
 
@@ -412,14 +411,12 @@ public class MockCatalogReader
 
         public void addColumn(int index, String name, RelDataType type)
         {
-            columnNameList.add(index, name);
-            columnTypeList.add(index, type);
+            columnList.add(index, Pair.of(name, type));
         }
 
         public void addColumn(String name, RelDataType type)
         {
-            columnNameList.add(name);
-            columnTypeList.add(type);
+            columnList.add(Pair.of(name, type));
         }
     }
 }

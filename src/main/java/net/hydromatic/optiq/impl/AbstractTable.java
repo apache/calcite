@@ -64,6 +64,11 @@ public abstract class AbstractTable<T>
         return schema;
     }
 
+    // Default implementation. Override if you have statistics.
+    public Statistic getStatistic() {
+        return Statistics.UNKNOWN;
+    }
+
     public Type getElementType() {
         return elementType;
     }

@@ -17,6 +17,7 @@
 */
 package org.eigenbase.rel;
 
+import java.util.BitSet;
 import java.util.List;
 
 import org.eigenbase.rel.metadata.RelMetadataQuery;
@@ -44,14 +45,22 @@ public abstract class IntersectRelBase extends SetOpRel {
     {
         // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
         double dRows = Double.MAX_VALUE;
-        for (int i = 0; i < inputs.size(); i++) {
-            dRows =
-                Math.min(
-                    dRows,
-                    RelMetadataQuery.getRowCount(inputs.get(i)));
+        for (RelNode input : inputs) {
+            dRows = Math.min(
+                dRows, RelMetadataQuery.getRowCount(input));
         }
         dRows *= 0.25;
         return dRows;
+    }
+
+    @Override
+    public boolean isKey(BitSet columns) {
+        for (RelNode input : inputs) {
+            if (input.isKey(columns)) {
+                return true;
+            }
+        }
+        return super.isKey(columns);
     }
 }
 

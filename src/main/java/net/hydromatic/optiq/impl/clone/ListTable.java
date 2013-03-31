@@ -24,7 +24,7 @@ import net.hydromatic.optiq.*;
 import org.eigenbase.reltype.RelDataType;
 
 import java.lang.reflect.Type;
-import java.util.List;
+import java.util.*;
 
 /**
  * Implementation of table that reads rows from a read-only list and returns
@@ -44,7 +44,8 @@ class ListTable<T>
         Schema schema,
         Type elementType,
         RelDataType relDataType,
-        Expression expression, List<T> list)
+        Expression expression,
+        List<T> list)
     {
         super(schema.getQueryProvider(), elementType, expression);
         this.schema = schema;
@@ -63,6 +64,10 @@ class ListTable<T>
     @Override
     public Enumerator<T> enumerator() {
         return Linq4j.enumerator(list);
+    }
+
+    public Statistic getStatistic() {
+        return Statistics.of(list.size(), Collections.<BitSet>emptyList());
     }
 }
 

@@ -354,6 +354,10 @@ public abstract class SqlToRelTestBase
             {
                 return collationList;
             }
+
+            public boolean isKey(BitSet columns) {
+                return false;
+            }
         }
     }
 
@@ -401,6 +405,10 @@ public abstract class SqlToRelTestBase
         public List<RelCollation> getCollationList()
         {
             return parent.getCollationList();
+        }
+
+        public boolean isKey(BitSet columns) {
+            return parent.isKey(columns);
         }
     }
 
