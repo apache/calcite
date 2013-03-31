@@ -425,12 +425,10 @@ public abstract class OJPreparingStmt
             // change the field name in those cases.
             if (!isDml) {
                 assert (rowType.getFieldCount() == resultType.getFieldCount());
-                String [] fieldNames = RelOptUtil.getFieldNames(rowType);
-                RelDataType [] types = RelOptUtil.getFieldTypes(resultType);
                 resultType =
                     rootRel.getCluster().getTypeFactory().createStructType(
-                        types,
-                        fieldNames);
+                        RelOptUtil.getFieldTypeList(resultType),
+                        RelOptUtil.getFieldNameList(rowType));
             }
 
             // strip off the topmost, special converter RelNode, now that we no

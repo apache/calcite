@@ -21,12 +21,6 @@ import java.io.*;
 
 import java.util.*;
 
-import openjava.ptree.Expression;
-import openjava.ptree.FieldAccess;
-import openjava.ptree.Variable;
-
-import org.eigenbase.oj.rel.*;
-import org.eigenbase.oj.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.reltype.*;
@@ -48,31 +42,10 @@ public abstract class RelOptUtil
 {
     //~ Static fields/initializers ---------------------------------------------
 
-    private static final Variable var0 = new Variable(makeName(0));
-    private static final Variable var1 = new Variable(makeName(1));
     public static final String NL = System.getProperty("line.separator");
     public static final double EPSILON = 1.0e-5;
 
     //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Returns the ordinal of the input represented by the variable <code>
-     * name</code>, or -1 if it does not represent an input.
-     */
-    public static int getInputOrdinal(String name)
-    {
-        if (name.startsWith("$input")) {
-            if (name.equals("$input0")) {
-                return 0;
-            } else if (name.equals("$input1")) {
-                return 1;
-            } else {
-                throw Util.newInternal("unknown input variable: " + name);
-            }
-        } else {
-            return -1;
-        }
-    }
 
     /**
      * Returns a list of variables set by a relational expression or its
@@ -156,62 +129,6 @@ public abstract class RelOptUtil
         }
     }
 
-    /**
-     * Constructs a reference to the <code>field</code><sup>th</sup> field of
-     * the <code>ordinal</code><sup>th</sup> input.
-     */
-    public static FieldAccess makeFieldAccess(
-        int ordinal,
-        int field)
-    {
-        return new FieldAccess(
-            new Variable(makeName(ordinal)),
-            OJSyntheticClass.makeField(field));
-    }
-
-    /**
-     * Constructs a reference to the <code>field</code><sup>th</sup> field of an
-     * expression.
-     */
-    public static FieldAccess makeFieldAccess(
-        Expression expr,
-        int field)
-    {
-        return new FieldAccess(
-            expr,
-            OJSyntheticClass.makeField(field));
-    }
-
-    /**
-     * Constructs the name for the <code>ordinal</code>th input. For example,
-     * <code>makeName(0)</code> returns "$input0".
-     */
-    public static String makeName(int ordinal)
-    {
-        // avoid a memory allocation for the common cases
-        switch (ordinal) {
-        case 0:
-            return "$input0";
-        case 1:
-            return "$input1";
-        default:
-            return "$input" + ordinal;
-        }
-    }
-
-    public static Variable makeReference(int ordinal)
-    {
-        // save ourselves a memory allocation for the common cases
-        switch (ordinal) {
-        case 0:
-            return var0;
-        case 1:
-            return var1;
-        default:
-            return new Variable(makeName(ordinal));
-        }
-    }
-
     public static String toString(RelNode [] a)
     {
         StringBuilder sb = new StringBuilder();
@@ -280,7 +197,6 @@ public abstract class RelOptUtil
      * @return List of field types
      *
      * @see #getFieldNameList(RelDataType)
-     * @see #getFieldTypes(RelDataType)
      */
     public static List<RelDataType> getFieldTypeList(final RelDataType type)
     {
@@ -295,41 +211,6 @@ public abstract class RelOptUtil
                 return type.getFieldCount();
             }
         };
-    }
-
-    /**
-     * Returns an array of the types of the fields in a given struct type.
-     *
-     * @param type Struct type
-     *
-     * @return Array of field types
-     *
-     * @see #getFieldTypeList(RelDataType)
-     */
-    public static RelDataType [] getFieldTypes(RelDataType type)
-    {
-        RelDataTypeField [] fields = type.getFields();
-        RelDataType [] types = new RelDataType[fields.length];
-        for (int i = 0; i < fields.length; i++) {
-            types[i] = fields[i].getType();
-        }
-        return types;
-    }
-
-    /**
-     * Collects the names and types of the fields in a given struct type.
-     */
-    public static void collectFields(
-        RelDataType type,
-        List<String> fieldNameList,
-        List<RelDataType> typeList)
-    {
-        final RelDataTypeField [] fields = type.getFields();
-        for (int i = 0; i < fields.length; i++) {
-            final RelDataTypeField field = fields[i];
-            typeList.add(field.getType());
-            fieldNameList.add(field.getName());
-        }
     }
 
     public static RelDataType createTypeFromProjection(
@@ -2370,48 +2251,6 @@ public abstract class RelOptUtil
             exps[i] = rexBuilder.makeInputRef(field.getType(), source);
         }
         return exps;
-    }
-
-    /**
-     * Creates a new SetOpRel corresponding to an original SetOpRel with a new
-     * set of input children
-     *
-     * @param setOpRel the original SetOpRel
-     * @param newSetOpInputs the input children
-     *
-     * @return new SetOpRel
-     */
-    public static SetOpRel createNewSetOpRel(
-        SetOpRel setOpRel,
-        List<RelNode> newSetOpInputs)
-    {
-        SetOpRel newSetOpRel = null;
-        RelOptCluster cluster = setOpRel.getCluster();
-        if (setOpRel instanceof UnionRel) {
-            newSetOpRel =
-                new UnionRel(
-                    cluster,
-                    newSetOpInputs,
-                    setOpRel.all);
-        } else if (setOpRel instanceof IterConcatenateRel) {
-            newSetOpRel =
-                new IterConcatenateRel(
-                    cluster,
-                    newSetOpInputs);
-        } else if (setOpRel instanceof IntersectRel) {
-            newSetOpRel =
-                new IntersectRel(
-                    cluster,
-                    newSetOpInputs,
-                    setOpRel.all);
-        } else if (setOpRel instanceof MinusRel) {
-            newSetOpRel =
-                new MinusRel(
-                    cluster,
-                    newSetOpInputs,
-                    setOpRel.all);
-        }
-        return newSetOpRel;
     }
 
     /**

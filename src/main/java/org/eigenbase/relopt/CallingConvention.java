@@ -54,7 +54,7 @@ public class CallingConvention
 
     /**
      * The <code>ITERATOR</code> calling convention means that the expression is
-     * converted to an openjava expression ({@link openjava.ptree.Expression})
+     * converted to an OpenJava expression
      * which evaluates to an {@link org.eigenbase.runtime.TupleIter}. See {@link
      * org.eigenbase.rel.convert.ConverterRel}.
      */
@@ -98,7 +98,7 @@ public class CallingConvention
 
     /**
      * The <code>ITERABLE</code> calling convention means that the expression is
-     * converted to an openjava expression ({@link openjava.ptree.Expression})
+     * converted to an OpenJava expression
      * which evaluates to an object which implements {@link Iterable}.
      */
     private static final int ITERABLE_ORDINAL = 8;

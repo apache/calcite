@@ -26,12 +26,14 @@ import org.eigenbase.rex.*;
 
 
 /**
- * A <code>RelNode</code> is a relational expression. It is NOT an {@link
- * openjava.ptree.Expression}.
+ * A <code>RelNode</code> is a relational expression.
  *
- * <p>If this type of relational expression has some particular rules, it should
- * implement the <em>public static</em> method {@link
- * AbstractRelNode#register}.</p>
+ * <p>A relational expression is not a scalar expression; see
+ * {@link org.eigenbase.sql.SqlNode} and {@link RexNode}.</p>
+ *
+ * <p>If this type of relational expression has some particular planner rules,
+ * it should implement the <em>public static</em> method
+ * {@link AbstractRelNode#register}.</p>
  *
  * <p>When a relational expression comes to be implemented, the system allocates
  * a {@link org.eigenbase.relopt.RelImplementor} to manage the process. Every
@@ -44,7 +46,7 @@ import org.eigenbase.rex.*;
  * those traits configured by the RelNode itself).</p>
  *
  * <p>For each calling-convention, there is a corresponding sub-interface of
- * RelNode. For example, {@link org.eigenbase.oj.rel.JavaRel} has operations to
+ * RelNode. For example, {@code org.eigenbase.oj.rel.JavaRel} has operations to
  * manage the conversion to a graph of {@link CallingConvention#JAVA Java
  * calling-convention}, and it interacts with a {@link
  * org.eigenbase.oj.rel.JavaRelImplementor}.</p>

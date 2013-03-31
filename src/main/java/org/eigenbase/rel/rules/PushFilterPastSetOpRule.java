@@ -83,7 +83,7 @@ public class PushFilterPastSetOpRule
 
         // create a new setop whose children are the filters created above
         SetOpRel newSetOpRel =
-            RelOptUtil.createNewSetOpRel(setOpRel, newSetOpInputs);
+            setOpRel.copy(setOpRel.getTraitSet(), newSetOpInputs);
 
         call.transformTo(newSetOpRel);
     }
