@@ -22,8 +22,6 @@ import java.math.*;
 import java.util.*;
 import java.util.logging.*;
 
-import openjava.mop.*;
-
 import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
@@ -135,7 +133,6 @@ public class SqlToRelConverter
      * @param preparingStmt Preparing statement
      * @param validator Validator
      * @param catalogReader Schema
-     * @param env Environment
      * @param planner Planner
      * @param rexBuilder Rex builder
      */
@@ -143,7 +140,6 @@ public class SqlToRelConverter
         OJPreparingStmt preparingStmt,
         SqlValidator validator,
         OJPreparingStmt.CatalogReader catalogReader,
-        Environment env,
         RelOptPlanner planner,
         RexBuilder rexBuilder)
     {
@@ -159,7 +155,7 @@ public class SqlToRelConverter
         this.rexBuilder = rexBuilder;
         this.typeFactory = rexBuilder.getTypeFactory();
         RelOptQuery query = new RelOptQuery(planner);
-        this.cluster = query.createCluster(env, typeFactory, rexBuilder);
+        this.cluster = query.createCluster(typeFactory, rexBuilder);
         this.shouldConvertTableAccess = true;
         this.exprConverter =
             new SqlNodeToRexConverterImpl(new StandardConvertletTable());

@@ -21,8 +21,6 @@ import java.util.*;
 
 import junit.framework.*;
 
-import openjava.mop.*;
-
 import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.oj.util.*;
 import org.eigenbase.rel.*;
@@ -467,15 +465,13 @@ public abstract class SqlToRelTestBase
             final OJPreparingStmt.CatalogReader catalogReader,
             final RelDataTypeFactory typeFactory)
         {
-            final SqlToRelConverter converter =
+            return
                 new SqlToRelConverter(
                     null,
                     validator,
                     catalogReader,
-                    OJSystem.env,
                     getPlanner(),
                     new JavaRexBuilder(typeFactory));
-            return converter;
         }
 
         protected final RelDataTypeFactory getTypeFactory()

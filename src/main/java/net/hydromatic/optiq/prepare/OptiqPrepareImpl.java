@@ -313,8 +313,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
             final RelOptQuery query = new RelOptQuery(planner);
             final RelOptCluster cluster =
-                query.createCluster(
-                    env, rexBuilder.getTypeFactory(), rexBuilder);
+                query.createCluster(rexBuilder.getTypeFactory(), rexBuilder);
 
             RelNode rootRel =
                 new LixToRelTranslator(cluster)
@@ -355,7 +354,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         {
             SqlToRelConverter sqlToRelConverter =
                 new SqlToRelConverter(
-                    this, validator, catalogReader, env, planner, rexBuilder);
+                    this, validator, catalogReader, planner, rexBuilder);
             sqlToRelConverter.setTrimUnusedFields(false);
             return sqlToRelConverter;
         }

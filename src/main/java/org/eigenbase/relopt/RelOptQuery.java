@@ -19,8 +19,6 @@ package org.eigenbase.relopt;
 
 import java.util.*;
 
-import openjava.mop.*;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
@@ -102,18 +100,16 @@ public class RelOptQuery
     /**
      * Creates a cluster.
      *
-     * @param env OpenJava environment
      * @param typeFactory Type factory
      * @param rexBuilder Expression builder
      *
      * @return New cluster
      */
     public RelOptCluster createCluster(
-        Environment env,
         RelDataTypeFactory typeFactory,
         RexBuilder rexBuilder)
     {
-        return new RelOptCluster(this, env, planner, typeFactory, rexBuilder);
+        return new RelOptCluster(this, planner, typeFactory, rexBuilder);
     }
 
     /**

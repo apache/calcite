@@ -17,8 +17,6 @@
 */
 package org.eigenbase.relopt;
 
-import openjava.mop.*;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.reltype.*;
@@ -40,7 +38,6 @@ public class RelOptCluster
 {
     //~ Instance fields --------------------------------------------------------
 
-    private final Environment env;
     private final RelDataTypeFactory typeFactory;
     private final RelOptQuery query;
     private final RelOptPlanner planner;
@@ -53,21 +50,16 @@ public class RelOptCluster
 
     /**
      * Creates a cluster.
-     *
-     * @pre planner != null
-     * @pre typeFactory != null
      */
     RelOptCluster(
         RelOptQuery query,
-        Environment env,
         RelOptPlanner planner,
         RelDataTypeFactory typeFactory,
         RexBuilder rexBuilder)
     {
-        assert (planner != null);
-        assert (typeFactory != null);
+        assert planner != null;
+        assert typeFactory != null;
         this.query = query;
-        this.env = env;
         this.planner = planner;
         this.typeFactory = typeFactory;
         this.rexBuilder = rexBuilder;
@@ -80,11 +72,6 @@ public class RelOptCluster
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    public Environment getEnv()
-    {
-        return env;
-    }
 
     public RelOptQuery getQuery()
     {

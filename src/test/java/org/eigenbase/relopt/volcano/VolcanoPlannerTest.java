@@ -21,8 +21,6 @@ import java.util.*;
 
 import junit.framework.*;
 
-import openjava.mop.*;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
 import org.eigenbase.rel.rules.*;
@@ -67,7 +65,6 @@ public class VolcanoPlannerTest
         RelOptQuery query = new RelOptQuery(planner);
         RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
         return query.createCluster(
-            new TestEnvironment(),
             typeFactory,
             new RexBuilder(typeFactory));
     }
@@ -427,22 +424,6 @@ public class VolcanoPlannerTest
     }
 
     //~ Inner Classes ----------------------------------------------------------
-
-    private static class TestEnvironment
-        extends GlobalEnvironment
-    {
-        public String toString()
-        {
-            return null;
-        }
-
-        public void record(
-            String name,
-            OJClass clazz)
-        {
-            throw new AssertionError();
-        }
-    }
 
     private static abstract class TestLeafRel
         extends AbstractRelNode
