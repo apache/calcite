@@ -17,7 +17,6 @@
 */
 package org.eigenbase.oj.rel;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.eigenbase.rel.*;
@@ -73,18 +72,9 @@ public abstract class IterRules
             }
             final RelTraitSet traitSet =
                 union.getTraitSet().replace(CallingConvention.ITERATOR);
-            List<RelNode> newInputs = new ArrayList<RelNode>();
-            for (RelNode input : union.getInputs()) {
-                // Stubborn, because inputs don't appear as operands.
-                RelNode newInput = convert(input, traitSet);
-                if (newInput == null) {
-                    return null; // cannot convert this input
-                }
-                newInputs.add(newInput);
-            }
             return newIterConcatenateRel(
                 union.getCluster(),
-                newInputs);
+                convertList(union.getInputs(), traitSet));
         }
     }
 
@@ -168,14 +158,6 @@ public abstract class IterRules
         public RelNode convert(RelNode rel)
         {
             final CalcRel calc = (CalcRel) rel;
-            final RelNode convertedChild =
-                convert(
-                    calc.getChild(),
-                    calc.getTraitSet().replace(CallingConvention.ITERATOR));
-            if (convertedChild == null) {
-                // We can't convert the child, so we can't convert rel.
-                return null;
-            }
 
             // If there's a multiset, let FarragoMultisetSplitter work on it
             // first.
@@ -187,6 +169,10 @@ public abstract class IterRules
             // and implement it for Java & C++ calcs.
             final JavaRelImplementor relImplementor =
                 rel.getCluster().getPlanner().getJavaRelImplementor(rel);
+            final RelNode convertedChild =
+                convert(
+                    calc.getChild(),
+                    calc.getTraitSet().replace(CallingConvention.ITERATOR));
             if (!relImplementor.canTranslate(
                     convertedChild,
                     calc.getProgram()))

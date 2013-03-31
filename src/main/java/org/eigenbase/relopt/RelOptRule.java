@@ -306,7 +306,7 @@ public abstract class RelOptRule
      * already have those traits. If the conversion is not possible, returns
      * null.
      *
-     * @param rel Relexp to convert
+     * @param rel Relational expression to convert
      * @param toTraits desired traits
      *
      * @return a relational expression with the desired traits; never null
@@ -337,25 +337,18 @@ public abstract class RelOptRule
     /**
      * Converts a list of relational expressions.
      *
-     * @param trait Trait to apply to each relational expression
      * @param rels Relational expressions
+     * @param traitSet Trait set to apply to each relational expression
      * @return List of converted relational expressions, or null if any could
      *   not be converted
      */
-    public static List<RelNode> convert(
-        RelTrait trait,
-        List<RelNode> rels)
+    public static List<RelNode> convertList(
+        List<RelNode> rels,
+        RelTraitSet traitSet)
     {
-        ArrayList<RelNode> list = new ArrayList<RelNode>();
+        final List<RelNode> list = new ArrayList<RelNode>();
         for (RelNode rel : rels) {
-            RelNode convertedRel =
-                convert(
-                    rel,
-                    rel.getTraitSet().replace(trait));
-            if (convertedRel == null) {
-                return null;
-            }
-            list.add(convertedRel);
+            list.add(convert(rel, traitSet));
         }
         return list;
     }

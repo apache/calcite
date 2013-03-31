@@ -62,13 +62,10 @@ public class RemoveTrivialCalcRule
         }
         RelNode child = calc.getInput(0);
         child = call.getPlanner().register(child, calc);
-        child =
+        call.transformTo(
             convert(
                 child,
-                calc.getTraitSet());
-        if (child != null) {
-            call.transformTo(child);
-        }
+                calc.getTraitSet()));
     }
 }
 

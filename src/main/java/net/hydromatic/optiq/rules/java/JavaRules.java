@@ -410,14 +410,6 @@ public class JavaRules {
         public RelNode convert(RelNode rel)
         {
             final CalcRel calc = (CalcRel) rel;
-            final RelNode convertedChild =
-                convert(
-                    calc.getChild(),
-                    calc.getTraitSet().replace(EnumerableConvention.ARRAY));
-            if (convertedChild == null) {
-                // We can't convert the child, so we can't convert rel.
-                return null;
-            }
 
             // If there's a multiset, let FarragoMultisetSplitter work on it
             // first.
@@ -429,7 +421,9 @@ public class JavaRules {
                 rel.getCluster(),
                 rel.getTraitSet().replace(
                     EnumerableConvention.ARRAY),
-                convertedChild,
+                convert(
+                    calc.getChild(),
+                    calc.getTraitSet().replace(EnumerableConvention.ARRAY)),
                 calc.getProgram(),
                 ProjectRelBase.Flags.Boxed);
         }
@@ -459,20 +453,13 @@ public class JavaRules {
         public void onMatch(RelOptRuleCall call) {
             final EnumerableCalcRel calc =
                 (EnumerableCalcRel) call.getRels()[0];
-            final RelNode convertedChild =
-                convert(
-                    call.getRels()[1],
-                    calc.getTraitSet().replace(EnumerableConvention.CUSTOM));
-            if (convertedChild == null) {
-                // We can't convert the child, so we can't convert rel.
-                return;
-            }
-
+            final RelTraitSet traitSet =
+                calc.getTraitSet().replace(EnumerableConvention.CUSTOM);
             call.transformTo(
                 new EnumerableCalcRel(
                     calc.getCluster(),
                     calc.getTraitSet(),
-                    convertedChild,
+                    convert(call.getRels()[1], traitSet),
                     calc.getProgram(),
                     calc.flags));
         }
@@ -755,19 +742,13 @@ public class JavaRules {
         public RelNode convert(RelNode rel)
         {
             final AggregateRel agg = (AggregateRel) rel;
-            final RelNode convertedChild =
-                convert(
-                    agg.getChild(),
-                    agg.getTraitSet().replace(EnumerableConvention.ARRAY));
-            if (convertedChild == null) {
-                // We can't convert the child, so we can't convert rel.
-                return null;
-            }
+            final RelTraitSet traitSet =
+                agg.getTraitSet().replace(EnumerableConvention.ARRAY);
             try {
                 return new EnumerableAggregateRel(
                     rel.getCluster(),
-                    rel.getTraitSet().plus(EnumerableConvention.ARRAY),
-                    convertedChild,
+                    traitSet,
+                    convert(agg.getChild(), traitSet),
                     agg.getGroupSet(),
                     agg.getAggCallList());
             } catch (InvalidRelException e) {
@@ -1148,19 +1129,12 @@ public class JavaRules {
         public RelNode convert(RelNode rel)
         {
             final SortRel sort = (SortRel) rel;
-            final RelNode convertedChild =
-                convert(
-                    sort.getChild(),
-                    sort.getTraitSet().replace(EnumerableConvention.ARRAY));
-            if (convertedChild == null) {
-                // We can't convert the child, so we can't convert rel.
-                return null;
-            }
-
+            final RelTraitSet traitSet =
+                sort.getTraitSet().replace(EnumerableConvention.ARRAY);
             return new EnumerableSortRel(
                 rel.getCluster(),
-                rel.getTraitSet().replace(EnumerableConvention.ARRAY),
-                convertedChild,
+                traitSet,
+                convert(sort.getChild(), traitSet),
                 sort.getCollations());
         }
     }
@@ -1269,19 +1243,10 @@ public class JavaRules {
             final RelTraitSet traitSet =
                 union.getTraitSet().replace(
                     EnumerableConvention.ARRAY);
-            List<RelNode> convertedChildren = new ArrayList<RelNode>();
-            for (RelNode child : union.getInputs()) {
-                final RelNode convertedChild = convert(child, traitSet);
-                if (convertedChild == null) {
-                    // We can't convert the child, so we can't convert rel.
-                    return null;
-                }
-                convertedChildren.add(convertedChild);
-            }
             return new EnumerableUnionRel(
                 rel.getCluster(),
                 traitSet,
-                convertedChildren,
+                convertList(union.getInputs(), traitSet),
                 !union.isDistinct());
         }
     }
@@ -1376,19 +1341,10 @@ public class JavaRules {
             final RelTraitSet traitSet =
                 intersect.getTraitSet().replace(
                     EnumerableConvention.ARRAY);
-            List<RelNode> convertedChildren = new ArrayList<RelNode>();
-            for (RelNode child : intersect.getInputs()) {
-                final RelNode convertedChild = convert(child, traitSet);
-                if (convertedChild == null) {
-                    // We can't convert the child, so we can't convert rel.
-                    return null;
-                }
-                convertedChildren.add(convertedChild);
-            }
             return new EnumerableIntersectRel(
                 rel.getCluster(),
                 traitSet,
-                convertedChildren,
+                convertList(intersect.getInputs(), traitSet),
                 !intersect.isDistinct());
         }
     }
@@ -1485,19 +1441,10 @@ public class JavaRules {
             final RelTraitSet traitSet =
                 rel.getTraitSet().replace(
                     EnumerableConvention.ARRAY);
-            List<RelNode> convertedChildren = new ArrayList<RelNode>();
-            for (RelNode child : minus.getInputs()) {
-                final RelNode convertedChild = convert(child, traitSet);
-                if (convertedChild == null) {
-                    // We can't convert the child, so we can't convert rel.
-                    return null;
-                }
-                convertedChildren.add(convertedChild);
-            }
             return new EnumerableMinusRel(
                 rel.getCluster(),
                 traitSet,
-                convertedChildren,
+                convertList(minus.getInputs(), traitSet),
                 !minus.isDistinct());
         }
     }
@@ -1588,20 +1535,13 @@ public class JavaRules {
             {
                 return null;
             }
-            final RelNode convertedChild =
-                convert(
-                    modify.getChild(),
-                    modify.getTraitSet().replace(EnumerableConvention.CUSTOM));
-            if (convertedChild == null) {
-                // We can't convert the child, so we can't convert rel.
-                return null;
-            }
+            final RelTraitSet traitSet =
+                modify.getTraitSet().replace(EnumerableConvention.CUSTOM);
             return new EnumerableTableModificationRel(
-                modify.getCluster(),
-                modify.getTraitSet().replace(EnumerableConvention.CUSTOM),
+                modify.getCluster(), traitSet,
                 modify.getTable(),
                 modify.getCatalogReader(),
-                convertedChild,
+                convert(modify.getChild(), traitSet),
                 modify.getOperation(),
                 modify.getUpdateColumnList(),
                 modify.isFlattened());

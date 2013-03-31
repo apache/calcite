@@ -51,7 +51,7 @@ public abstract class ConverterRule
      * @pre out != null
      */
     public ConverterRule(
-        Class clazz,
+        Class<? extends RelNode> clazz,
         RelTrait in,
         RelTrait out,
         String description)
@@ -123,7 +123,8 @@ public abstract class ConverterRule
     private static class ConverterRelOptRuleOperand
         extends RelOptRuleOperand
     {
-        public ConverterRelOptRuleOperand(Class clazz, RelTrait in)
+        public ConverterRelOptRuleOperand(
+            Class<? extends RelNode> clazz, RelTrait in)
         {
             super(clazz, in, RelOptRule.ANY);
         }

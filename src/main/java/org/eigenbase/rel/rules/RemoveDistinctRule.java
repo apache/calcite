@@ -61,13 +61,10 @@ public class RemoveDistinctRule
         RelNode child = distinct.getChild();
         if (child.isDistinct()) {
             child = call.getPlanner().register(child, distinct);
-            child =
+            call.transformTo(
                 convert(
                     child,
-                    distinct.getTraitSet());
-            if (child != null) {
-                call.transformTo(child);
-            }
+                    distinct.getTraitSet()));
         }
     }
 }

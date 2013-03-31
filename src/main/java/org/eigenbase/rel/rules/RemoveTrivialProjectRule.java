@@ -68,13 +68,10 @@ public class RemoveTrivialProjectRule
             return;
         }
         child = call.getPlanner().register(child, project);
-        child =
+        call.transformTo(
             convert(
                 child,
-                project.getTraitSet());
-        if (child != null) {
-            call.transformTo(child);
-        }
+                project.getTraitSet()));
     }
 
     public static boolean isIdentity(

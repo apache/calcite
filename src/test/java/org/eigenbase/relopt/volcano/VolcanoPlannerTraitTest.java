@@ -230,10 +230,12 @@ public class VolcanoPlannerTraitTest
 
         public boolean equals(Object other)
         {
-            if (other == null) {
+            if (other == this) {
+                return true;
+            }
+            if (!(other instanceof AltTrait)) {
                 return false;
             }
-
             AltTrait that = (AltTrait) other;
             return this.ordinal == that.ordinal;
         }
