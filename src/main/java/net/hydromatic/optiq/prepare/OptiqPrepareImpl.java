@@ -19,10 +19,8 @@ package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.Parameter;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.Helper;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
