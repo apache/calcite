@@ -29,7 +29,6 @@ import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.rules.java.*;
 import net.hydromatic.optiq.runtime.*;
 
-import org.eigenbase.oj.stmt.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
@@ -174,7 +173,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         preparingStmt.setResultConvention(convention);
 
         final RelDataType x;
-        final PreparedResult preparedResult;
+        final Prepare.PreparedResult preparedResult;
         if (sql != null) {
             assert queryable == null;
             SqlParser parser = new SqlParser(sql);
@@ -280,7 +279,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             RelDataTypeFactory.FieldInfoBuilder.of("$0", type));
     }
 
-    private static class OptiqPreparingStmt extends OJPreparingStmt {
+    private static class OptiqPreparingStmt extends Prepare {
         private final RelOptPlanner planner;
         private final RexBuilder rexBuilder;
         private final Schema schema;
@@ -299,17 +298,17 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             this.rexBuilder = new RexBuilder(typeFactory);
         }
 
+        @Override
+        protected void init(Class runtimeContextClass) {
+        }
+
         public PreparedResult prepareQueryable(
             Queryable queryable,
             RelDataType resultType)
         {
             queryString = null;
             Class runtimeContextClass = Object.class;
-            init(
-                new Argument(
-                    connectionVariable,
-                    runtimeContextClass,
-                    null));
+            init(runtimeContextClass);
 
             final RelOptQuery query = new RelOptQuery(planner);
             final RelOptCluster cluster =
@@ -335,7 +334,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             rootRel = trimUnusedFields(rootRel);
 
             rootRel = optimize(resultType, rootRel);
-            containsJava = treeContainsJava(rootRel);
 
             if (timingTracer != null) {
                 timingTracer.traceTime("end optimization");
@@ -367,47 +365,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         }
 
         @Override
-        protected String getClassRoot() {
-            return null;
-        }
-
-        @Override
-        protected String getCompilerClassName() {
-            return "org.eigenbase.javac.JaninoCompiler";
-        }
-
-        @Override
-        protected String getJavaRoot() {
-            return null;
-        }
-
-        @Override
-        protected String getTempPackageName() {
-            return "foo";
-        }
-
-        @Override
-        protected String getTempMethodName() {
-            return null;
-        }
-
-        @Override
-        protected String getTempClassName() {
-            return "Foo";
-        }
-
-        @Override
         protected boolean shouldAlwaysWriteJavaFile() {
             return false;
-        }
-
-        @Override
-        protected boolean shouldSetConnectionInfo() {
-            return false;
-        }
-
-        private SqlToRelConverter getSqlToRelConverter() {
-            return getSqlToRelConverter(getSqlValidator(), catalogReader);
         }
 
         @Override
@@ -421,11 +380,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         @Override
         protected RelNode decorrelate(SqlNode query, RelNode rootRel) {
             return rootRel;
-        }
-
-        @Override
-        protected RelNode trimUnusedFields(RelNode rootRel) {
-            return getSqlToRelConverter().trimUnusedFields(rootRel);
         }
 
         @Override
@@ -468,7 +422,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                 rexBuilder.getTypeFactory(), SqlConformance.Default) { };
         }
 
-        private SqlValidator getSqlValidator() {
+        @Override
+        protected SqlValidator getSqlValidator() {
             if (sqlValidator == null) {
                 sqlValidator = createSqlValidator(catalogReader);
             }
@@ -482,19 +437,18 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             boolean explainAsXml,
             SqlExplainLevel detailLevel)
         {
-            return new OptiqPreparedExplanation(
+            return new OptiqPreparedExplain(
                 resultType, rootRel, explainAsXml, detailLevel);
         }
 
         @Override
-        protected PreparedExecution implement(
+        protected PreparedResult implement(
             RelDataType rowType,
             RelNode rootRel,
             SqlKind sqlKind)
         {
             RelDataType resultType = rootRel.getRowType();
             boolean isDml = sqlKind.belongsTo(SqlKind.DML);
-            javaCompiler = createCompiler();
             EnumerableRelImplementor relImplementor =
                 getRelImplementor(rootRel.getCluster().getRexBuilder());
             ClassDeclaration expr =
@@ -531,15 +485,17 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                 timingTracer.traceTime("end compilation");
             }
 
-            return new PreparedExecution(
-                null,
-                rootRel,
+            return new PreparedResultImpl(
                 resultType,
-                isDml,
+                fieldOrigins,
+                rootRel,
                 mapTableModOp(isDml, sqlKind),
-                null,
-                fieldOrigins)
+                isDml)
             {
+                public String getCode() {
+                    throw new UnsupportedOperationException();
+                }
+
                 @Override
                 public Object execute() {
                     return executable.execute(schema);
@@ -553,8 +509,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         }
     }
 
-    private static class OptiqPreparedExplanation extends PreparedExplanation {
-        public OptiqPreparedExplanation(
+    private static class OptiqPreparedExplain extends Prepare.PreparedExplain {
+        public OptiqPreparedExplain(
             RelDataType resultType,
             RelNode rootRel,
             boolean explainAsXml,
@@ -570,9 +526,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         }
     }
 
-    static class RelOptTableImpl
-        implements OJPreparingStmt.PreparingTable
-    {
+    static class RelOptTableImpl implements Prepare.PreparingTable {
         private final RelOptSchema schema;
         private final RelDataType rowType;
         private final String[] names;
@@ -685,7 +639,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
 
     private static class OptiqCatalogReader
-        implements OJPreparingStmt.CatalogReader
+        implements Prepare.CatalogReader
     {
         private final Schema rootSchema;
         private final JavaTypeFactory typeFactory;

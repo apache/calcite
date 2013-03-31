@@ -20,13 +20,13 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.prepare.Prepare;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.function.*;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
@@ -204,21 +204,6 @@ public class JavaRules {
                 return leftRowCount;
             }
             return leftRowCount * rightRowCount;
-        }
-
-        private List<Integer> shift(final List<Integer> list, final int offset)
-        {
-            return new AbstractList<Integer>() {
-                @Override
-                public Integer get(int index) {
-                    return list.get(index) - offset;
-                }
-
-                @Override
-                public int size() {
-                    return list.size();
-                }
-            };
         }
 
         public BlockExpression implement(EnumerableRelImplementor implementor) {
@@ -1592,7 +1577,7 @@ public class JavaRules {
             RelOptCluster cluster,
             RelTraitSet traits,
             RelOptTable table,
-            OJPreparingStmt.CatalogReader catalogReader,
+            Prepare.CatalogReader catalogReader,
             RelNode child,
             Operation operation,
             List<String> updateColumnList,

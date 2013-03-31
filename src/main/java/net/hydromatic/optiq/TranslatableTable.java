@@ -17,13 +17,9 @@
 */
 package net.hydromatic.optiq;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.TableModificationRelBase;
-import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelOptTable;
 
-import java.util.List;
 
 /**
  * Extension to {@link Table} that specifies how it is to be translated to

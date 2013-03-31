@@ -23,8 +23,8 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
+import net.hydromatic.optiq.prepare.Prepare;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.relopt.RelOptUtil;
@@ -89,7 +89,7 @@ public class ViewTable<T>
     }
 
     private RelNode expandView(
-        OJPreparingStmt preparingStmt,
+        Prepare preparingStmt,
         RelDataType rowType,
         String queryString)
     {

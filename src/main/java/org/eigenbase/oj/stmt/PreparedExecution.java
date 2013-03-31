@@ -26,7 +26,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.*;
 
-import net.hydromatic.optiq.runtime.Typed;
+import net.hydromatic.optiq.prepare.Prepare;
 
 
 /**
@@ -36,18 +36,11 @@ import net.hydromatic.optiq.runtime.Typed;
  * @author John V. Sichi
  * @version $Id$
  */
-public class PreparedExecution
-    implements PreparedResult, Typed
-{
+public class PreparedExecution extends Prepare.PreparedResultImpl {
     //~ Instance fields --------------------------------------------------------
 
     private final ParseTree parseTree;
-    private final RelNode rootRel;
-    private final RelDataType rowType;
-    private final boolean isDml;
-    private final TableModificationRel.Operation tableModOp;
     private final BoundMethod boundMethod;
-    private final List<List<String>> fieldOrigins;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -60,13 +53,9 @@ public class PreparedExecution
         BoundMethod boundMethod,
         List<List<String>> fieldOrigins)
     {
+        super(rowType, fieldOrigins, rootRel, tableModOp, isDml);
         this.parseTree = parseTree;
-        this.rootRel = rootRel;
-        this.rowType = rowType;
-        this.isDml = isDml;
-        this.tableModOp = tableModOp;
         this.boundMethod = boundMethod;
-        this.fieldOrigins = fieldOrigins;
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -76,44 +65,17 @@ public class PreparedExecution
         return parseTree.toString();
     }
 
-    public boolean isDml()
-    {
-        return isDml;
-    }
-
-    public TableModificationRel.Operation getTableModOp()
-    {
-        return tableModOp;
-    }
-
-    public List<List<String>> getFieldOrigins() {
-        return fieldOrigins;
-    }
-
-    /**
-     * Returns the physical row type of this prepared statement. May not be
-     * identical to the row type returned by the validator; for example, the
-     * field names may have been made unique.
-     */
-    public RelDataType getPhysicalRowType()
-    {
-        return rowType;
-    }
-
-    public Type getElementType() {
-        return Object.class;
-    }
-
     public Method getMethod()
     {
         return boundMethod.method;
     }
 
-    public RelNode getRootRel()
+    public Type getElementType()
     {
-        return rootRel;
+        return Object.class;
     }
 
+    @Override
     public Object execute()
     {
         try {

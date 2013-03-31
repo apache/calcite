@@ -19,7 +19,6 @@ package org.eigenbase.test;
 
 import java.util.*;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.relopt.RelOptSchema;
@@ -30,6 +29,8 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Pair;
 
+import net.hydromatic.optiq.prepare.Prepare;
+
 
 /**
  * Mock implementation of {@link SqlValidatorCatalogReader} which returns tables
@@ -38,7 +39,7 @@ import org.eigenbase.util.Pair;
  * @author jhyde
  */
 public class MockCatalogReader
-    implements OJPreparingStmt.CatalogReader
+    implements Prepare.CatalogReader
 {
     //~ Static fields/initializers ---------------------------------------------
 
@@ -186,7 +187,7 @@ public class MockCatalogReader
     //~ Methods ----------------------------------------------------------------
 
 
-    public OJPreparingStmt.PreparingTable getTableForMember(String[] names) {
+    public Prepare.PreparingTable getTableForMember(String[] names) {
         return getTable(names);
     }
 
@@ -210,7 +211,7 @@ public class MockCatalogReader
         schemas.put(schema.name, schema);
     }
 
-    public OJPreparingStmt.PreparingTable getTable(final String[] names)
+    public Prepare.PreparingTable getTable(final String[] names)
     {
         switch (names.length) {
         case 1:
@@ -278,7 +279,7 @@ public class MockCatalogReader
     }
 
     private static List<RelCollation> deduceMonotonicity(
-        OJPreparingStmt.PreparingTable table)
+        Prepare.PreparingTable table)
     {
         final List<RelCollation> collationList =
             new ArrayList<RelCollation>();
@@ -331,10 +332,10 @@ public class MockCatalogReader
 
     /**
      * Mock implementation of
-     * {@link org.eigenbase.oj.stmt.OJPreparingStmt.PreparingTable}.
+     * {@link net.hydromatic.optiq.prepare.Prepare.PreparingTable}.
      */
     public static class MockTable
-        implements OJPreparingStmt.PreparingTable
+        implements Prepare.PreparingTable
     {
         private final MockCatalogReader catalogReader;
         private final List<Pair<String, RelDataType>> columnList =

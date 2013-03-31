@@ -21,12 +21,13 @@ import java.io.File;
 import java.util.logging.*;
 
 import org.eigenbase.oj.rel.*;
-import org.eigenbase.oj.stmt.*;
 import org.eigenbase.oj.util.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.runtime.*;
 import org.eigenbase.util.Util;
 import org.eigenbase.util.property.*;
+
+import net.hydromatic.optiq.prepare.Prepare;
 
 
 /**
@@ -96,12 +97,12 @@ public abstract class EigenbaseTrace
     }
 
     /**
-     * The "org.eigenbase.oj.stmt.OJPreparingStmt" tracer prints the generated
+     * The "net.hydromatic.optiq.prepare.Prepare" tracer prints the generated
      * program at level {@link java.util.logging.Level#FINE} or higher.
      */
     public static Logger getStatementTracer()
     {
-        return Logger.getLogger(OJPreparingStmt.class.getName());
+        return Logger.getLogger(Prepare.class.getName());
     }
 
     /**

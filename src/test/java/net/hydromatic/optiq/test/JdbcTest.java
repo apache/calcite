@@ -32,12 +32,12 @@ import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.*;
+import net.hydromatic.optiq.prepare.Prepare;
 
 import junit.framework.TestCase;
 
 import org.apache.commons.dbcp.BasicDataSource;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
@@ -1105,7 +1105,7 @@ public class JdbcTest extends TestCase {
         public TableModificationRelBase toModificationRel(
             RelOptCluster cluster,
             RelOptTable table,
-            OJPreparingStmt.CatalogReader catalogReader,
+            Prepare.CatalogReader catalogReader,
             RelNode child,
             TableModificationRelBase.Operation operation,
             List<String> updateColumnList,

@@ -17,9 +17,10 @@
 */
 package org.eigenbase.rel.rules;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
+
+import net.hydromatic.optiq.prepare.Prepare;
 
 
 /**
@@ -58,7 +59,7 @@ public class TableAccessRule
                         return oldRel.getCluster();
                     }
 
-                    public OJPreparingStmt getPreparingStmt() {
+                    public Prepare getPreparingStmt() {
                         throw new UnsupportedOperationException();
                     }
                 });

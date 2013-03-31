@@ -19,8 +19,9 @@ package org.eigenbase.rel;
 
 import java.util.*;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.relopt.*;
+
+import net.hydromatic.optiq.prepare.Prepare;
 
 
 /**
@@ -39,7 +40,7 @@ public final class TableModificationRel
     public TableModificationRel(
         RelOptCluster cluster,
         RelOptTable table,
-        OJPreparingStmt.CatalogReader schema,
+        Prepare.CatalogReader schema,
         RelNode child,
         Operation operation,
         List<String> updateColumnList,

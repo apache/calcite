@@ -21,7 +21,6 @@ import java.util.*;
 
 import junit.framework.*;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.oj.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
@@ -33,6 +32,8 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.*;
 import org.eigenbase.util.*;
+
+import net.hydromatic.optiq.prepare.Prepare;
 
 
 /**
@@ -124,9 +125,9 @@ public abstract class SqlToRelTestBase
 
         /**
          * Factory method for a
-         * {@link org.eigenbase.oj.stmt.OJPreparingStmt.CatalogReader}.
+         * {@link net.hydromatic.optiq.prepare.Prepare.CatalogReader}.
          */
-        OJPreparingStmt.CatalogReader createCatalogReader(
+        Prepare.CatalogReader createCatalogReader(
             RelDataTypeFactory typeFactory);
 
         RelOptPlanner createPlanner();
@@ -442,7 +443,7 @@ public abstract class SqlToRelTestBase
                 throw Util.newInternal(e); // todo: better handling
             }
             final RelDataTypeFactory typeFactory = getTypeFactory();
-            final OJPreparingStmt.CatalogReader catalogReader =
+            final Prepare.CatalogReader catalogReader =
                 createCatalogReader(typeFactory);
             final SqlValidator validator =
                 createValidator(
@@ -462,7 +463,7 @@ public abstract class SqlToRelTestBase
 
         protected SqlToRelConverter createSqlToRelConverter(
             final SqlValidator validator,
-            final OJPreparingStmt.CatalogReader catalogReader,
+            final Prepare.CatalogReader catalogReader,
             final RelDataTypeFactory typeFactory)
         {
             return
@@ -540,7 +541,7 @@ public abstract class SqlToRelTestBase
             return opTab;
         }
 
-        public OJPreparingStmt.CatalogReader createCatalogReader(
+        public Prepare.CatalogReader createCatalogReader(
             RelDataTypeFactory typeFactory)
         {
             return new MockCatalogReader(typeFactory);

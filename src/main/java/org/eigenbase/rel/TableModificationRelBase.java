@@ -19,12 +19,13 @@ package org.eigenbase.rel;
 
 import java.util.*;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.type.*;
+
+import net.hydromatic.optiq.prepare.Prepare;
 
 
 /**
@@ -52,7 +53,7 @@ public abstract class TableModificationRelBase
     /**
      * The connection to the optimizing session.
      */
-    protected OJPreparingStmt.CatalogReader catalogReader;
+    protected Prepare.CatalogReader catalogReader;
 
     /**
      * The table definition.
@@ -69,7 +70,7 @@ public abstract class TableModificationRelBase
         RelOptCluster cluster,
         RelTraitSet traits,
         RelOptTable table,
-        OJPreparingStmt.CatalogReader catalogReader,
+        Prepare.CatalogReader catalogReader,
         RelNode child,
         Operation operation,
         List<String> updateColumnList,
@@ -88,7 +89,7 @@ public abstract class TableModificationRelBase
 
     //~ Methods ----------------------------------------------------------------
 
-    public OJPreparingStmt.CatalogReader getCatalogReader()
+    public Prepare.CatalogReader getCatalogReader()
     {
         return catalogReader;
     }

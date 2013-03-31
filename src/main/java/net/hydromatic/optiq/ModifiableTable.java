@@ -17,7 +17,8 @@
 */
 package net.hydromatic.optiq;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
+import net.hydromatic.optiq.prepare.Prepare;
+
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.TableModificationRelBase;
 import org.eigenbase.relopt.*;
@@ -40,7 +41,7 @@ public interface ModifiableTable<E> extends Table<E> {
     TableModificationRelBase toModificationRel(
         RelOptCluster cluster,
         RelOptTable table,
-        OJPreparingStmt.CatalogReader catalogReader,
+        Prepare.CatalogReader catalogReader,
         RelNode child,
         TableModificationRelBase.Operation operation,
         List<String> updateColumnList,

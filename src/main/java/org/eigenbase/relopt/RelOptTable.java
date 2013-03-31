@@ -19,9 +19,10 @@ package org.eigenbase.relopt;
 
 import java.util.*;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
+
+import net.hydromatic.optiq.prepare.Prepare;
 
 
 /**
@@ -94,7 +95,7 @@ public interface RelOptTable
 
     interface ToRelContext {
         RelOptCluster getCluster();
-        OJPreparingStmt getPreparingStmt();
+        Prepare getPreparingStmt();
     }
 }
 

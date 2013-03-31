@@ -20,11 +20,9 @@ package org.eigenbase.oj.stmt;
 import java.io.*;
 
 import java.lang.reflect.*;
-import java.util.List;
 import java.util.logging.*;
 
 import openjava.mop.*;
-
 import openjava.ptree.*;
 
 import org.eigenbase.javac.*;
@@ -33,14 +31,13 @@ import org.eigenbase.oj.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
-import org.eigenbase.rex.*;
 import org.eigenbase.runtime.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.sql2rel.*;
+import org.eigenbase.sql.type.SqlTypeUtil;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
+
+import net.hydromatic.optiq.prepare.Prepare;
 
 
 /**
@@ -48,36 +45,20 @@ import org.eigenbase.util.*;
  * the process of preparing and executing SQL expressions by generating OpenJava
  * code.
  */
-public abstract class OJPreparingStmt
-{
+public abstract class OJPreparingStmt extends Prepare {
     //~ Static fields/initializers ---------------------------------------------
-
-    public static final String connectionVariable = "connection";
-    private static final Logger tracer = EigenbaseTrace.getStatementTracer();
 
     //~ Instance fields --------------------------------------------------------
 
-    protected String queryString = null;
     protected Environment env;
     private Argument[] args;
     private ClassDeclaration decl;
-
-    /**
-     * CallingConvention via which results should be returned by execution.
-     */
-    private Convention resultConvention;
-
     protected JavaCompiler javaCompiler;
-    protected final CatalogReader catalogReader;
-
-    protected EigenbaseTimingTracer timingTracer;
 
     /**
      * True if the statement contains java RelNodes
      */
     protected boolean containsJava;
-
-    protected List<List<String>> fieldOrigins;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -88,18 +69,11 @@ public abstract class OJPreparingStmt
      */
     public OJPreparingStmt(CatalogReader catalogReader)
     {
-        this.catalogReader = catalogReader;
-        this.resultConvention = CallingConvention.RESULT_SET;
+        super(catalogReader);
         this.containsJava = true;
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    public void setResultConvention(
-        Convention resultConvention)
-    {
-        this.resultConvention = resultConvention;
-    }
 
     protected BoundMethod compileAndBind(
         ClassDeclaration decl,
@@ -127,12 +101,21 @@ public abstract class OJPreparingStmt
             "variable '" + parameterName + "' not found");
     }
 
+    @Override
+    protected void init(Class runtimeContextClass) {
+        init(
+            new Argument(
+                connectionVariable,
+                runtimeContextClass,
+                null));
+    }
+
     protected void initSub()
     {
     }
 
     /** Initializes, setting the {@link #decl} and {@link #args} fields. */
-    public void init(Argument... arguments)
+    protected void init(Argument... arguments)
     {
         env = OJSystem.env;
 
@@ -168,185 +151,18 @@ public abstract class OJPreparingStmt
     protected void bindArgument(Argument arg)
     {
         env.bindVariable(
-            arg.getName(),
-            arg.getType());
+            arg.getName(), arg.getType());
     }
 
-    public PreparedResult prepareSql(
-        SqlNode sqlQuery,
-        Class runtimeContextClass,
-        SqlValidator validator,
-        boolean needsValidation)
-    {
-        return prepareSql(
-            sqlQuery,
-            sqlQuery,
-            runtimeContextClass,
-            validator,
-            needsValidation);
-    }
-
-    /**
-     * Prepares a statement for execution, starting from a parse tree and using
-     * a user-supplied validator.
-     */
-    public PreparedResult prepareSql(
-        SqlNode sqlQuery,
-        SqlNode sqlNodeOriginal,
-        Class runtimeContextClass,
-        SqlValidator validator,
-        boolean needsValidation)
-    {
-        queryString = sqlQuery.toString();
-
-        init(
-            new Argument(
-                connectionVariable,
-                runtimeContextClass,
-                null));
-
-        SqlToRelConverter sqlToRelConverter =
-            getSqlToRelConverter(validator, catalogReader);
-
-        SqlExplain sqlExplain = null;
-        if (sqlQuery.getKind() == SqlKind.EXPLAIN) {
-            // dig out the underlying SQL statement
-            sqlExplain = (SqlExplain) sqlQuery;
-            sqlQuery = sqlExplain.getExplicandum();
-            sqlToRelConverter.setIsExplain(sqlExplain.getDynamicParamCount());
-        }
-
-        RelNode rootRel =
-            sqlToRelConverter.convertQuery(sqlQuery, needsValidation, true);
-
-        if (timingTracer != null) {
-            timingTracer.traceTime("end sql2rel");
-        }
-
-        final RelDataType resultType = validator.getValidatedNodeType(sqlQuery);
-        fieldOrigins = validator.getFieldOrigins(sqlQuery);
-        assert fieldOrigins.size() == resultType.getFieldCount();
-
-        // Display logical plans before view expansion, plugging in physical
-        // storage and decorrelation
-        if (sqlExplain != null) {
-            SqlExplain.Depth explainDepth = sqlExplain.getDepth();
-            boolean explainAsXml = sqlExplain.isXml();
-            SqlExplainLevel detailLevel = sqlExplain.getDetailLevel();
-            switch (explainDepth) {
-            case Type:
-                return createPreparedExplanation(
-                    resultType, null, explainAsXml, detailLevel);
-            case Logical:
-                return createPreparedExplanation(
-                    null, rootRel, explainAsXml, detailLevel);
-            default:
-            }
-        }
-
-        // Structured type flattening, view expansion, and plugging in physical
-        // storage.
-        rootRel = flattenTypes(rootRel, true);
-
-        // Subquery decorrelation.
-        rootRel = decorrelate(sqlQuery, rootRel);
-
-        // Trim unused fields.
-        rootRel = trimUnusedFields(rootRel);
-
-        // Display physical plan after decorrelation.
-        if (sqlExplain != null) {
-            SqlExplain.Depth explainDepth = sqlExplain.getDepth();
-            boolean explainAsXml = sqlExplain.isXml();
-            SqlExplainLevel detailLevel = sqlExplain.getDetailLevel();
-            switch (explainDepth) {
-            case Physical:
-            default:
-                rootRel =
-                    optimize(
-                        rootRel.getRowType(),
-                        rootRel);
-                return createPreparedExplanation(
-                    null, rootRel, explainAsXml, detailLevel);
-            }
-        }
-
-        rootRel = optimize(resultType, rootRel);
-        containsJava = treeContainsJava(rootRel);
-
-        if (timingTracer != null) {
-            timingTracer.traceTime("end optimization");
-        }
-
-        // For transformation from DML -> DML, use result of rewrite
-        // (e.g. UPDATE -> MERGE).  For anything else (e.g. CALL -> SELECT),
-        // use original kind.
-        SqlKind kind = sqlQuery.getKind();
-        if (!kind.belongsTo(SqlKind.DML)) {
-            kind = sqlNodeOriginal.getKind();
-        }
-        return implement(
-            resultType,
-            rootRel,
-            kind);
-    }
-
-    protected PreparedResult createPreparedExplanation(
-        RelDataType resultType,
-        RelNode rootRel,
-        boolean explainAsXml,
-        SqlExplainLevel detailLevel)
-    {
-        return new PreparedExplanation(
-            resultType, rootRel,
-            explainAsXml,
-            detailLevel);
-    }
-
-    /**
-     * Optimizes a query plan.
-     *
-     * @param logicalRowType logical row type of relational expression (before
-     * struct fields are flattened, or field names are renamed for uniqueness)
-     * @param rootRel root of a relational expression
-     *
-     * @return an equivalent optimized relational expression
-     */
+    @Override
     protected RelNode optimize(
         RelDataType logicalRowType,
         RelNode rootRel)
     {
-        final RelOptPlanner planner = rootRel.getCluster().getPlanner();
-
-        // Allow each rel to register its own rules.
-        RelVisitor visitor = new RelVisitor() {
-            @Override
-            public void visit(RelNode node, int ordinal, RelNode parent) {
-                planner.registerClass(node);
-                super.visit(node, ordinal, parent);
-            }
-        };
-        visitor.go(rootRel);
-
-        planner.setRoot(rootRel);
-
-        RelTraitSet desiredTraits = getDesiredRootTraitSet(rootRel);
-
-        final RelNode rootRel2 = planner.changeTraits(rootRel, desiredTraits);
-        assert rootRel2 != null;
-
-        planner.setRoot(rootRel2);
-        final RelOptPlanner planner2 = planner.chooseDelegate();
-        final RelNode rootRel3 = planner2.findBestExp();
-        assert rootRel3 != null : "could not implement exp";
-        return rootRel3;
-    }
-
-    protected RelTraitSet getDesiredRootTraitSet(RelNode rootRel)
-    {
-        // Make sure non-CallingConvention traits, if any, are preserved
-        return rootRel.getTraitSet()
-            .replace(resultConvention);
+        final RelNode optimize = super.optimize(
+            logicalRowType, rootRel);
+        containsJava = treeContainsJava(rootRel);
+        return optimize;
     }
 
     /**
@@ -375,14 +191,7 @@ public abstract class OJPreparingStmt
         return false;
     }
 
-    /**
-     * Implements a physical query plan.
-     *
-     * @param rowType original rowtype returned by query validator
-     * @param rootRel root of the relational expression.
-     * @param sqlKind SqlKind of the original statement.
-     * @return an executable plan, a {@link PreparedExecution}.
-     */
+    @Override
     protected PreparedExecution implement(
         RelDataType rowType,
         RelNode rootRel,
@@ -447,40 +256,6 @@ public abstract class OJPreparingStmt
                 fieldOrigins);
     }
 
-    protected TableModificationRel.Operation mapTableModOp(
-        boolean isDml, SqlKind sqlKind)
-    {
-        if (!isDml) {
-            return null;
-        }
-        switch (sqlKind) {
-        case INSERT:
-            return TableModificationRel.Operation.INSERT;
-        case DELETE:
-            return TableModificationRel.Operation.DELETE;
-        case MERGE:
-            return TableModificationRel.Operation.MERGE;
-        case UPDATE:
-            return TableModificationRel.Operation.UPDATE;
-        default:
-            return null;
-        }
-    }
-
-    /**
-     * Protected method to allow subclasses to override construction of
-     * SqlToRelConverter.
-     */
-    protected abstract SqlToRelConverter getSqlToRelConverter(
-        SqlValidator validator,
-        CatalogReader catalogReader);
-
-    /**
-     * Protected method to allow subclasses to override construction of
-     * RelImplementor.
-     */
-    protected abstract RelImplementor getRelImplementor(RexBuilder rexBuilder);
-
     protected abstract String getClassRoot();
 
     protected abstract String getCompilerClassName();
@@ -493,27 +268,7 @@ public abstract class OJPreparingStmt
 
     protected abstract String getTempClassName();
 
-    protected abstract boolean shouldAlwaysWriteJavaFile();
-
     protected abstract boolean shouldSetConnectionInfo();
-
-    public abstract RelNode flattenTypes(
-        RelNode rootRel,
-        boolean restructure);
-
-    protected abstract RelNode decorrelate(
-        SqlNode query,
-        RelNode rootRel);
-
-    /**
-     * Walks over a tree of relational expressions, replacing each
-     * {@link RelNode} with a 'slimmed down' relational expression that projects
-     * only the columns required by its consumer.
-     *
-     * @param rootRel Relational expression that is at the root of the tree
-     * @return Trimmed relational expression
-     */
-    protected abstract RelNode trimUnusedFields(RelNode rootRel);
 
     protected JavaCompiler createCompiler()
     {
@@ -792,23 +547,6 @@ public abstract class OJPreparingStmt
         }
     }
 
-    /**
-     * Returns a relational expression which is to be substituted for an access
-     * to a SQL view.
-     *
-     * @param rowType Row type of the view
-     * @param queryString Body of the view
-     * @param schemaPath List of schema names wherein to find referenced tables
-     * @return Relational expression
-     */
-    public RelNode expandView(
-        RelDataType rowType,
-        String queryString,
-        List<String> schemaPath)
-    {
-        throw new UnsupportedOperationException();
-    }
-
 
     //~ Inner Classes ----------------------------------------------------------
 
@@ -910,19 +648,6 @@ public abstract class OJPreparingStmt
         {
             return javaRelFound;
         }
-    }
-
-    public interface CatalogReader
-        extends RelOptSchema, SqlValidatorCatalogReader
-    {
-        PreparingTable getTableForMember(String[] names);
-
-        PreparingTable getTable(String[] names);
-    }
-
-    public interface PreparingTable
-        extends RelOptTable, SqlValidatorTable
-    {
     }
 }
 

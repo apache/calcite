@@ -18,10 +18,8 @@
 package org.eigenbase.sql.validate;
 
 import java.nio.charset.*;
-
 import java.util.*;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
@@ -29,6 +27,8 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
+
+import net.hydromatic.optiq.prepare.Prepare;
 
 
 /**
@@ -56,7 +56,7 @@ public class SqlValidatorUtil
      */
     public static RelOptTable getRelOptTable(
         SqlValidatorNamespace namespace,
-        OJPreparingStmt.CatalogReader catalogReader,
+        Prepare.CatalogReader catalogReader,
         String datasetName,
         boolean [] usedDataset)
     {

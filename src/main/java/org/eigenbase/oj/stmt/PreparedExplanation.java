@@ -18,35 +18,24 @@
 package org.eigenbase.oj.stmt;
 
 import java.io.*;
-
 import java.sql.*;
-
 import java.util.*;
 
 import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.runtime.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.prepare.Prepare;
 
 /**
- * PreparedExplanation is a PreparedResult for an EXPLAIN PLAN statement. It's
- * always good to have an explanation prepared.
- *
- * @author John V. Sichi
- * @version $Id$
+ * Refinement of {@link net.hydromatic.optiq.prepare.Prepare.PreparedExplain} for OJ.
  */
 public class PreparedExplanation
-    implements PreparedResult
+    extends Prepare.PreparedExplain
 {
     //~ Instance fields --------------------------------------------------------
-
-    private final RelDataType rowType;
-    private final RelNode rel;
-    private final boolean asXml;
-    private final SqlExplainLevel detailLevel;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -56,41 +45,10 @@ public class PreparedExplanation
         boolean asXml,
         SqlExplainLevel detailLevel)
     {
-        this.rowType = rowType;
-        this.rel = rel;
-        this.asXml = asXml;
-        this.detailLevel = detailLevel;
+        super(rowType, rel, asXml, detailLevel);
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    public String getCode()
-    {
-        if (rel == null) {
-            return RelOptUtil.dumpType(rowType);
-        } else {
-            return RelOptUtil.dumpPlan("", rel, asXml, detailLevel);
-        }
-    }
-
-    public boolean isDml()
-    {
-        return false;
-    }
-
-    public TableModificationRel.Operation getTableModOp()
-    {
-        return null;
-    }
-
-    public List<List<String>> getFieldOrigins() {
-        return Collections.singletonList(Collections.<String>nCopies(4, null));
-    }
-
-    public RelNode getRel()
-    {
-        return rel;
-    }
 
     public Object execute()
     {

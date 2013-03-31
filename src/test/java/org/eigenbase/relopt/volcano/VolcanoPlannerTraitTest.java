@@ -388,6 +388,11 @@ public class VolcanoPlannerTraitTest
                 cluster.traitSetOf(Convention.NONE),
                 label);
         }
+
+        @Override
+        public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+            return new NoneLeafRel(getCluster(),  getLabel());
+        }
     }
 
     private static class PhysLeafRel
@@ -445,16 +450,24 @@ public class VolcanoPlannerTraitTest
             RelOptCluster cluster,
             RelNode child)
         {
-            super(
+            this(
                 cluster,
                 cluster.traitSetOf(Convention.NONE),
                 child);
         }
 
+        protected NoneSingleRel(
+            RelOptCluster cluster,
+            RelTraitSet traitSet,
+            RelNode child)
+        {
+            super(cluster, traitSet, child);
+        }
+
         public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-            assert traitSet.comprises(Convention.NONE);
             return new NoneSingleRel(
                 getCluster(),
+                traitSet,
                 sole(inputs));
         }
     }

@@ -18,11 +18,9 @@
 package org.eigenbase.sql2rel;
 
 import java.math.*;
-
 import java.util.*;
 import java.util.logging.*;
 
-import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
@@ -40,6 +38,7 @@ import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
 import net.hydromatic.optiq.ModifiableTable;
+import net.hydromatic.optiq.prepare.Prepare;
 
 
 /**
@@ -65,7 +64,7 @@ public class SqlToRelConverter
 
     protected final SqlValidator validator;
     protected final RexBuilder rexBuilder;
-    protected final OJPreparingStmt.CatalogReader catalogReader;
+    protected final Prepare.CatalogReader catalogReader;
     protected final RelOptCluster cluster;
     private final Map<SqlValidatorScope, LookupContext> mapScopeToLux =
         new HashMap<SqlValidatorScope, LookupContext>();
@@ -123,7 +122,7 @@ public class SqlToRelConverter
      */
     private final Map<SqlNode, RexNode> mapConvertedNonCorrSubqs =
         new HashMap<SqlNode, RexNode>();
-    private final OJPreparingStmt preparingStmt;
+    private final Prepare preparingStmt;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -137,9 +136,9 @@ public class SqlToRelConverter
      * @param rexBuilder Rex builder
      */
     public SqlToRelConverter(
-        OJPreparingStmt preparingStmt,
+        Prepare preparingStmt,
         SqlValidator validator,
-        OJPreparingStmt.CatalogReader catalogReader,
+        Prepare.CatalogReader catalogReader,
         RelOptPlanner planner,
         RexBuilder rexBuilder)
     {
@@ -2820,7 +2819,7 @@ public class SqlToRelConverter
                 return cluster;
             }
 
-            public OJPreparingStmt getPreparingStmt() {
+            public Prepare getPreparingStmt() {
                 return preparingStmt;
             }
         };
