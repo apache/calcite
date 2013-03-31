@@ -1707,19 +1707,36 @@ public abstract class RelOptUtil
 
     /**
      * Creates the row type descriptor for the result of a DML operation, which
-     * is a single column named ROWCOUNT of type BIGINT.
+     * is a single column named ROWCOUNT of type BIGINT for INSERT;
+     * a single column named PLAN for EXPLAIN.
      *
+     * @param kind Kind of node
      * @param typeFactory factory to use for creating type descriptor
      *
      * @return created type
      */
-    public static RelDataType createDmlRowType(RelDataTypeFactory typeFactory)
+    public static RelDataType createDmlRowType(
+        SqlKind kind,
+        RelDataTypeFactory typeFactory)
     {
-        return typeFactory.createStructType(
-            new RelDataType[] {
-                typeFactory.createSqlType(SqlTypeName.BIGINT)
-            },
-            new String[] { "ROWCOUNT" });
+        switch (kind) {
+        case INSERT:
+            return typeFactory.createStructType(
+                Collections.singletonList(
+                    Pair.of(
+                        "ROWCOUNT",
+                        typeFactory.createSqlType(SqlTypeName.BIGINT))));
+        case EXPLAIN:
+            return typeFactory.createStructType(
+                Collections.singletonList(
+                    Pair.of(
+                        "PLAN",
+                        typeFactory.createSqlType(
+                            SqlTypeName.VARCHAR,
+                            RelDataType.PRECISION_NOT_SPECIFIED))));
+        default:
+            throw Util.unexpected(kind);
+        }
     }
 
     /**

@@ -193,10 +193,13 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                 new OptiqSqlValidator(opTab, catalogReader, typeFactory);
             preparedResult = preparingStmt.prepareSql(
                 sqlNode, Object.class, validator, true);
-            if (sqlNode instanceof SqlInsert) {
+            switch (sqlNode.getKind()) {
+            case INSERT:
+            case EXPLAIN:
                 // FIXME: getValidatedNodeType is wrong for DML
-                x = RelOptUtil.createDmlRowType(typeFactory);
-            } else {
+                x = RelOptUtil.createDmlRowType(sqlNode.getKind(), typeFactory);
+                break;
+            default:
                 x = validator.getValidatedNodeType(sqlNode);
             }
         } else {
@@ -473,6 +476,17 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         }
 
         @Override
+        protected PreparedResult createPreparedExplanation(
+            RelDataType resultType,
+            RelNode rootRel,
+            boolean explainAsXml,
+            SqlExplainLevel detailLevel)
+        {
+            return new OptiqPreparedExplanation(
+                resultType, rootRel, explainAsXml, detailLevel);
+        }
+
+        @Override
         protected PreparedExecution implement(
             RelDataType rowType,
             RelNode rootRel,
@@ -536,6 +550,23 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                     return ((Typed) executable).getElementType();
                 }
             };
+        }
+    }
+
+    private static class OptiqPreparedExplanation extends PreparedExplanation {
+        public OptiqPreparedExplanation(
+            RelDataType resultType,
+            RelNode rootRel,
+            boolean explainAsXml,
+            SqlExplainLevel detailLevel)
+        {
+            super(resultType, rootRel, explainAsXml, detailLevel);
+        }
+
+        @Override
+        public Object execute() {
+            final String explanation = getCode();
+            return Linq4j.singletonEnumerable(explanation);
         }
     }
 

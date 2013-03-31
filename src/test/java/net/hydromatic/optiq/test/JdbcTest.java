@@ -950,6 +950,21 @@ public class JdbcTest extends TestCase {
                 });
     }
 
+    public void testExplain() {
+        final OptiqAssert.AssertThat with =
+            OptiqAssert.assertThat().with(OptiqAssert.Config.FOODMART_CLONE);
+        with.query("explain plan for values (1, 'ab')")
+            .returns("PLAN=EnumerableValuesRel(tuples=[[{ 1, 'ab' }]])\n\n");
+        with.query("explain plan with implementation for values (1, 'ab')")
+            .returns("PLAN=EnumerableValuesRel(tuples=[[{ 1, 'ab' }]])\n\n");
+        with.query("explain plan without implementation for values (1, 'ab')")
+            .returns("PLAN=ValuesRel(tuples=[[{ 1, 'ab' }]])\n\n");
+        with.query("explain plan with type for values (1, 'ab')")
+            .returns(
+                "PLAN=EXPR$0 INTEGER NOT NULL,\n"
+                + "EXPR$1 CHAR(2) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL\n");
+    }
+
     public static class HrSchema {
         public final Employee[] emps = {
             new Employee(100, 10, "Bill", 1000),

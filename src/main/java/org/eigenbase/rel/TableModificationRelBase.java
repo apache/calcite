@@ -23,6 +23,7 @@ import org.eigenbase.oj.stmt.OJPreparingStmt;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
+import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.type.*;
 
 
@@ -135,7 +136,8 @@ public abstract class TableModificationRelBase
     // implement RelNode
     public RelDataType deriveRowType()
     {
-        return RelOptUtil.createDmlRowType(getCluster().getTypeFactory());
+        return RelOptUtil.createDmlRowType(
+            SqlKind.INSERT, getCluster().getTypeFactory());
     }
 
     // override RelNode

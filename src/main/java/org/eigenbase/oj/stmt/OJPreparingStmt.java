@@ -235,17 +235,11 @@ public abstract class OJPreparingStmt
             SqlExplainLevel detailLevel = sqlExplain.getDetailLevel();
             switch (explainDepth) {
             case Type:
-                return new PreparedExplanation(
-                    resultType,
-                    null,
-                    explainAsXml,
-                    detailLevel);
+                return createPreparedExplanation(
+                    resultType, null, explainAsXml, detailLevel);
             case Logical:
-                return new PreparedExplanation(
-                    null,
-                    rootRel,
-                    explainAsXml,
-                    detailLevel);
+                return createPreparedExplanation(
+                    null, rootRel, explainAsXml, detailLevel);
             default:
             }
         }
@@ -272,11 +266,8 @@ public abstract class OJPreparingStmt
                     optimize(
                         rootRel.getRowType(),
                         rootRel);
-                return new PreparedExplanation(
-                    null,
-                    rootRel,
-                    explainAsXml,
-                    detailLevel);
+                return createPreparedExplanation(
+                    null, rootRel, explainAsXml, detailLevel);
             }
         }
 
@@ -298,6 +289,18 @@ public abstract class OJPreparingStmt
             resultType,
             rootRel,
             kind);
+    }
+
+    protected PreparedResult createPreparedExplanation(
+        RelDataType resultType,
+        RelNode rootRel,
+        boolean explainAsXml,
+        SqlExplainLevel detailLevel)
+    {
+        return new PreparedExplanation(
+            resultType, rootRel,
+            explainAsXml,
+            detailLevel);
     }
 
     /**
