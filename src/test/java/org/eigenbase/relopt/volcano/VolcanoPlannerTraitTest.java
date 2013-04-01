@@ -21,9 +21,7 @@ import java.util.List;
 
 import junit.framework.*;
 
-import openjava.ptree.*;
-
-import org.eigenbase.oj.rel.*;
+import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
 import org.eigenbase.relopt.*;
@@ -112,14 +110,14 @@ public class VolcanoPlannerTraitTest
         RelNode convertedRel =
             planner.changeTraits(
                 noneRel,
-                cluster.traitSetOf(CallingConvention.ITERATOR, ALT_TRAIT2));
+                cluster.traitSetOf(EnumerableConvention.ARRAY, ALT_TRAIT2));
 
         planner.setRoot(convertedRel);
         RelNode result = planner.chooseDelegate().findBestExp();
 
         assertTrue(result instanceof IterSingleRel);
         assertEquals(
-            CallingConvention.ITERATOR,
+            EnumerableConvention.ARRAY,
             result.getTraitSet().getTrait(ConventionTraitDef.instance));
         assertEquals(
             ALT_TRAIT2,
@@ -171,14 +169,14 @@ public class VolcanoPlannerTraitTest
             planner.changeTraits(
                 noneRel,
                 cluster.traitSetOf(
-                    CallingConvention.ITERATOR, ALT_TRAIT2));
+                    EnumerableConvention.ARRAY, ALT_TRAIT2));
 
         planner.setRoot(convertedRel);
         RelNode result = planner.chooseDelegate().findBestExp();
 
         assertTrue(result instanceof IterSingleRel);
         assertEquals(
-            CallingConvention.ITERATOR,
+            EnumerableConvention.ARRAY,
             result.getTraitSet().getTrait(ConventionTraitDef.instance));
         assertEquals(
             ALT_TRAIT2,
@@ -187,7 +185,7 @@ public class VolcanoPlannerTraitTest
         RelNode child = result.getInputs().get(0);
         assertTrue(child instanceof IterSingleRel);
         assertEquals(
-            CallingConvention.ITERATOR,
+            EnumerableConvention.ARRAY,
             child.getTraitSet().getTrait(ConventionTraitDef.instance));
         assertEquals(
             ALT_TRAIT2,
@@ -472,15 +470,22 @@ public class VolcanoPlannerTraitTest
         }
     }
 
+
+    interface FooRel {
+        String implement(FooRelImplementor implementor);
+    }
+
+    interface FooRelImplementor {}
+
     private static class IterSingleRel
         extends TestSingleRel
-        implements JavaRel
+        implements FooRel
     {
         public IterSingleRel(RelOptCluster cluster, RelNode child)
         {
             super(
                 cluster,
-                cluster.traitSetOf(CallingConvention.ITERATOR),
+                cluster.traitSetOf(EnumerableConvention.ARRAY),
                 child);
         }
 
@@ -491,14 +496,13 @@ public class VolcanoPlannerTraitTest
         }
 
         public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-            assert traitSet.comprises(CallingConvention.ITERATOR);
+            assert traitSet.comprises(EnumerableConvention.ARRAY);
             return new IterSingleRel(
                 getCluster(),
                 sole(inputs));
         }
 
-        public ParseTree implement(JavaRelImplementor implementor)
-        {
+        public String implement(FooRelImplementor implementor) {
             return null;
         }
     }
@@ -539,7 +543,7 @@ public class VolcanoPlannerTraitTest
         // implement RelOptRule
         public Convention getOutConvention()
         {
-            return CallingConvention.ITERATOR;
+            return EnumerableConvention.ARRAY;
         }
 
         public RelTrait getOutTrait()
@@ -575,7 +579,7 @@ public class VolcanoPlannerTraitTest
         // implement RelOptRule
         public Convention getOutConvention()
         {
-            return CallingConvention.ITERATOR;
+            return EnumerableConvention.ARRAY;
         }
 
         public RelTrait getOutTrait()
@@ -673,7 +677,7 @@ public class VolcanoPlannerTraitTest
             super(
                 RelNode.class,
                 PHYS_CALLING_CONVENTION,
-                CallingConvention.ITERATOR,
+                EnumerableConvention.ARRAY,
                 "PhysToIteratorRule");
         }
 
@@ -695,7 +699,7 @@ public class VolcanoPlannerTraitTest
             super(
                 cluster,
                 ConventionTraitDef.instance,
-                child.getTraitSet().replace(CallingConvention.ITERATOR),
+                child.getTraitSet().replace(EnumerableConvention.ARRAY),
                 child);
         }
 

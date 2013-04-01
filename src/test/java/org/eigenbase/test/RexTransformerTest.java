@@ -19,8 +19,7 @@ package org.eigenbase.test;
 
 import junit.framework.*;
 
-import org.eigenbase.oj.*;
-import org.eigenbase.oj.util.*;
+import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
@@ -52,8 +51,8 @@ public class RexTransformerTest
     protected void setUp()
         throws Exception
     {
-        typeFactory = new OJTypeFactoryImpl();
-        rexBuilder = new JavaRexBuilder(typeFactory);
+        typeFactory = new JavaTypeFactoryImpl();
+        rexBuilder = new RexBuilder(typeFactory);
         boolRelDataType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 
         x = new RexInputRef(

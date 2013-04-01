@@ -20,7 +20,6 @@ package org.eigenbase.relopt;
 import java.util.logging.*;
 import java.util.regex.*;
 
-import org.eigenbase.oj.rel.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.trace.*;
@@ -214,15 +213,6 @@ public interface RelOptPlanner
      * tell the planner about all of the special transformation rules.
      */
     public void registerSchema(RelOptSchema schema);
-
-    // REVIEW jvs 3-Apr-2006:  Implementation is completely separate
-    // from planning, so this should probably be moved to somewhere
-    // in Farrago pluggability instead.
-    /**
-     * Retrieves an implementor appropriate for the context in which this
-     * planner was created.
-     */
-    public JavaRelImplementor getJavaRelImplementor(RelNode rel);
 
     /**
      * Adds a listener to this planner.

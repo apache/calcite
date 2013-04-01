@@ -20,8 +20,8 @@ package org.eigenbase.trace;
 import java.io.File;
 import java.util.logging.*;
 
-import org.eigenbase.oj.rel.*;
 import org.eigenbase.oj.util.*;
+import org.eigenbase.rel.RelImplementorImpl;
 import org.eigenbase.relopt.*;
 import org.eigenbase.runtime.*;
 import org.eigenbase.util.Util;
@@ -106,12 +106,12 @@ public abstract class EigenbaseTrace
     }
 
     /**
-     * The "org.eigenbase.oj.rel.JavaRelImplementor" tracer reports when
+     * The "org.eigenbase.rel.RelImplementorImpl" tracer reports when
      * expressions are bound to variables ({@link Level#FINE})
      */
     public static Logger getRelImplementorTracer()
     {
-        return Logger.getLogger(JavaRelImplementor.class.getName());
+        return Logger.getLogger(RelImplementorImpl.class.getName());
     }
 
     /**
@@ -147,15 +147,6 @@ public abstract class EigenbaseTrace
     public static Logger getJmiChangeSetTracer()
     {
         return Logger.getLogger("org.eigenbase.jmi.JmiChangeSet");
-    }
-
-    /**
-     * The "org.eigenbase.oj.util.OJClassMap" tracer reports when synthetic
-     * classes are created ({@link Level#FINE})
-     */
-    public static Logger getClassMapTracer()
-    {
-        return Logger.getLogger(OJClassMap.class.getName());
     }
 
     /**

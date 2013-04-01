@@ -72,7 +72,7 @@ public class IterOneRowRel
         Expression iterExp =
             new AllocationExpression(
                 OJUtil.typeNameForClass(
-                    RestartableCollectionTupleIter.class),
+                    Object.class /*RestartableCollectionTupleIter.class*/),
                 new ExpressionList(
                     new MethodCall(
                         OJUtil.typeNameForClass(Collections.class),

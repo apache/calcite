@@ -184,24 +184,6 @@ public abstract class ProjectRelBase
         return pw;
     }
 
-    /**
-     * Burrows into a synthetic record and returns the underlying relation which
-     * provides the field called <code>fieldName</code>.
-     */
-    public JavaRel implementFieldAccess(
-        JavaRelImplementor implementor,
-        String fieldName)
-    {
-        if (!isBoxed()) {
-            return implementor.implementFieldAccess(
-                (JavaRel) getChild(),
-                fieldName);
-        }
-        RelDataType type = getRowType();
-        int field = type.getFieldOrdinal(fieldName);
-        return implementor.findRel((JavaRel) this, exps[field]);
-    }
-
     //~ Inner Interfaces -------------------------------------------------------
 
     public interface Flags

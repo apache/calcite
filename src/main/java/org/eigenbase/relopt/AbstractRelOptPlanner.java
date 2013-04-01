@@ -21,7 +21,6 @@ import java.util.*;
 import java.util.logging.*;
 import java.util.regex.*;
 
-import org.eigenbase.oj.rel.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.resource.*;
@@ -248,12 +247,6 @@ public abstract class AbstractRelOptPlanner
             listener = new MulticastRelOptListener();
         }
         listener.addListener(newListener);
-    }
-
-    // implement RelOptPlanner
-    public JavaRelImplementor getJavaRelImplementor(RelNode rel)
-    {
-        return null;
     }
 
     // implement RelOptPlanner

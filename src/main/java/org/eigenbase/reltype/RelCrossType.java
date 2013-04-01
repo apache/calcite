@@ -19,11 +19,6 @@ package org.eigenbase.reltype;
 
 import java.util.List;
 
-import org.eigenbase.oj.util.*;
-
-
-// REVIEW jvs 17-Dec-2004:  does this still need to exist?  Is it supposed
-// to have fields?
 
 /**
  * Type of the cartesian product of two or more sets of records.
@@ -80,10 +75,6 @@ public class RelCrossType
 
     public int getFieldOrdinal(String fieldName)
     {
-        final int ordinal = OJSyntheticClass.getOrdinal(fieldName, false);
-        if (ordinal >= 0) {
-            return ordinal;
-        }
         throw new UnsupportedOperationException(
             "not applicable to a join type");
     }

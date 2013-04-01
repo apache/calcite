@@ -21,10 +21,10 @@ import java.util.*;
 
 import junit.framework.*;
 
-import org.eigenbase.oj.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
+import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
@@ -472,7 +472,7 @@ public abstract class SqlToRelTestBase
                     validator,
                     catalogReader,
                     getPlanner(),
-                    new JavaRexBuilder(typeFactory));
+                    new RexBuilder(typeFactory));
         }
 
         protected final RelDataTypeFactory getTypeFactory()

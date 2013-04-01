@@ -38,18 +38,19 @@ import org.eigenbase.rex.*;
  * <p>When a relational expression comes to be implemented, the system allocates
  * a {@link org.eigenbase.relopt.RelImplementor} to manage the process. Every
  * implementable relational expression has a {@link RelTraitSet} describing its
- * physical attributes. The RelTraitSet always contains a {@link
- * CallingConvention} describing how the expression passes data to its consuming
+ * physical attributes. The RelTraitSet always contains a {@link Convention}
+ * describing how the expression passes data to its consuming
  * relational expression, but may contain other traits, including some applied
  * externally. Because traits can be applied externally, implementaitons of
  * RelNode should never assume the size or contents of their trait set (beyond
  * those traits configured by the RelNode itself).</p>
  *
  * <p>For each calling-convention, there is a corresponding sub-interface of
- * RelNode. For example, {@code org.eigenbase.oj.rel.JavaRel} has operations to
- * manage the conversion to a graph of {@link CallingConvention#JAVA Java
- * calling-convention}, and it interacts with a {@link
- * org.eigenbase.oj.rel.JavaRelImplementor}.</p>
+ * RelNode. For example, {@code net.hydromatic.optiq.rules.java.EnumerableRel} has operations to
+ * manage the conversion to a graph of
+ * {@code net.hydromatic.optiq.rules.java.EnumerableConvention}
+ * calling-convention, and it interacts with a
+ * {@code EnumerableRelImplementor}.</p>
  *
  * <p>A relational expression is only required to implement its
  * calling-convention's interface when it is actually implemented, that is,

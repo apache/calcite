@@ -44,20 +44,14 @@ public abstract class Prepare {
     protected final CatalogReader catalogReader;
     protected String queryString = null;
     /**
-     * CallingConvention via which results should be returned by execution.
+     * Convention via which results should be returned by execution.
      */
-    protected Convention resultConvention;
+    protected final Convention resultConvention;
     protected EigenbaseTimingTracer timingTracer;
     protected List<List<String>> fieldOrigins;
 
-    public Prepare(CatalogReader catalogReader) {
+    public Prepare(CatalogReader catalogReader, Convention resultConvention) {
         this.catalogReader = catalogReader;
-        this.resultConvention = CallingConvention.RESULT_SET;
-    }
-
-    public void setResultConvention(
-        Convention resultConvention)
-    {
         this.resultConvention = resultConvention;
     }
 

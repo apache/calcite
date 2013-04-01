@@ -26,8 +26,9 @@ import net.hydromatic.optiq.runtime.Hook;
 import junit.framework.Assert;
 import junit.framework.TestSuite;
 
+import org.eigenbase.relopt.volcano.VolcanoPlannerTraitTest;
 import org.eigenbase.sql.test.SqlOperatorTest;
-import org.eigenbase.test.SqlToRelConverterTest;
+import org.eigenbase.test.*;
 import org.eigenbase.util.Util;
 
 import java.io.PrintWriter;
@@ -58,6 +59,9 @@ public class OptiqAssert {
         testSuite.addTestSuite(SqlOperatorTest.class);
         testSuite.addTestSuite(OptiqSqlOperatorTest.class);
         testSuite.addTestSuite(ModelTest.class);
+        testSuite.addTestSuite(RexProgramTest.class);
+        testSuite.addTestSuite(RexTransformerTest.class);
+        //testSuite.addTestSuite(VolcanoPlannerTraitTest.class);
         return testSuite;
     }
 

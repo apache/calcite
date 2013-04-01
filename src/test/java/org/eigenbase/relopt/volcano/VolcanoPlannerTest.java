@@ -21,6 +21,7 @@ import java.util.*;
 
 import junit.framework.*;
 
+import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
 import org.eigenbase.rel.rules.*;
@@ -172,7 +173,7 @@ public class VolcanoPlannerTest
             new ConverterRule(
                 RelNode.class,
                 PHYS_CALLING_CONVENTION,
-                CallingConvention.ITERATOR,
+                EnumerableConvention.ARRAY,
                 "PhysToIteratorRule")
             {
                 public RelNode convert(RelNode rel)
@@ -204,7 +205,7 @@ public class VolcanoPlannerTest
         RelNode convertedRel =
             planner.changeTraits(
                 singleRel,
-                cluster.traitSetOf(CallingConvention.ITERATOR));
+                cluster.traitSetOf(EnumerableConvention.ARRAY));
         planner.setRoot(convertedRel);
         RelNode result = planner.chooseDelegate().findBestExp();
         assertTrue(result instanceof PhysToIteratorConverter);
@@ -595,12 +596,12 @@ public class VolcanoPlannerTest
             super(
                 cluster,
                 ConventionTraitDef.instance,
-                cluster.traitSetOf(CallingConvention.ITERATOR),
+                cluster.traitSetOf(EnumerableConvention.ARRAY),
                 child);
         }
 
         public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-            assert traitSet.comprises(CallingConvention.ITERATOR);
+            assert traitSet.comprises(EnumerableConvention.ARRAY);
             return new PhysToIteratorConverter(
                 getCluster(),
                 sole(inputs));

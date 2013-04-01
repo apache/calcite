@@ -688,13 +688,6 @@ SUBSET_LOOP:
         }
     }
 
-    public JavaRelImplementor getJavaRelImplementor(RelNode rel)
-    {
-        return new JavaRelImplementor(
-            rel.getCluster().getRexBuilder(),
-            OJRexImplementorTableImpl.instance());
-    }
-
     public RelOptCost getCost(RelNode rel)
     {
         assert rel != null : "pre-condition: rel != null";

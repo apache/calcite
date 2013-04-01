@@ -80,9 +80,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                 catalogReader,
                 typeFactory,
                 context.getRootSchema(),
+                EnumerableConvention.ARRAY,
                 createPlanner());
-        preparingStmt.setResultConvention(EnumerableConvention.ARRAY);
-
         SqlParser parser = new SqlParser(sql);
         SqlNode sqlNode;
         try {
@@ -156,19 +155,19 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                 context.getRootSchema(),
                 context.getDefaultSchemaPath(),
                 typeFactory);
-        final OptiqPreparingStmt preparingStmt =
-            new OptiqPreparingStmt(
-                catalogReader,
-                typeFactory,
-                context.getRootSchema(),
-                createPlanner());
         final EnumerableConvention convention;
         if (elementType == Object[].class) {
             convention = EnumerableConvention.ARRAY;
         } else {
             convention = EnumerableConvention.CUSTOM;
         }
-        preparingStmt.setResultConvention(convention);
+        final OptiqPreparingStmt preparingStmt =
+            new OptiqPreparingStmt(
+                catalogReader,
+                typeFactory,
+                context.getRootSchema(),
+                convention,
+                createPlanner());
 
         final RelDataType x;
         final Prepare.PreparedResult preparedResult;
@@ -288,9 +287,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             CatalogReader catalogReader,
             RelDataTypeFactory typeFactory,
             Schema schema,
+            Convention resultConvention,
             VolcanoPlanner planner)
         {
-            super(catalogReader);
+            super(catalogReader, resultConvention);
             this.schema = schema;
             this.planner = planner;
             this.rexBuilder = new RexBuilder(typeFactory);

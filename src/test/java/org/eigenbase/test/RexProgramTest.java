@@ -22,8 +22,8 @@ import java.util.*;
 
 import junit.framework.TestCase;
 
-import org.eigenbase.oj.OJTypeFactoryImpl;
-import org.eigenbase.oj.util.JavaRexBuilder;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
@@ -41,7 +41,7 @@ public class RexProgramTest
     extends TestCase
 {
     //~ Instance fields --------------------------------------------------------
-    private OJTypeFactoryImpl typeFactory;
+    private JavaTypeFactory typeFactory;
     private RexBuilder rexBuilder;
 
     //~ Methods ----------------------------------------------------------------
@@ -65,8 +65,8 @@ public class RexProgramTest
     protected void setUp()
         throws Exception
     {
-        typeFactory = new OJTypeFactoryImpl();
-        rexBuilder = new JavaRexBuilder(typeFactory);
+        typeFactory = new JavaTypeFactoryImpl();
+        rexBuilder = new RexBuilder(typeFactory);
     }
 
     /**

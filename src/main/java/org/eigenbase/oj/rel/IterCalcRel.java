@@ -228,7 +228,7 @@ public class IterCalcRel
     /**
      * Generates code for a Java expression satisfying the {@link
      * org.eigenbase.runtime.TupleIter} interface. The generated code allocates
-     * a {@link org.eigenbase.runtime.CalcTupleIter} with a dynamic {@link
+     * a {@code org.eigenbase.runtime.CalcTupleIter} with a dynamic {@link
      * org.eigenbase.runtime.TupleIter#fetchNext()} method. If the "abort on
      * error" flag is false, or an error handling tag is specified, then
      * fetchNext is written to handle row errors.
@@ -594,7 +594,7 @@ public class IterCalcRel
         memberList.add(fetchNextMethodDecl);
         Expression newTupleIterExp =
             new AllocationExpression(
-                OJUtil.typeNameForClass(CalcTupleIter.class),
+                OJUtil.typeNameForClass(Object.class/*CalcTupleIter.class*/),
                 new ExpressionList(childExp),
                 memberList);
 

@@ -26,7 +26,6 @@ import openjava.mop.*;
 import openjava.ptree.*;
 
 import org.eigenbase.runtime.*;
-import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
 
@@ -41,7 +40,8 @@ public class OJClassMap
 {
     //~ Static fields/initializers ---------------------------------------------
 
-    private static final Logger tracer = EigenbaseTrace.getClassMapTracer();
+    private static final Logger tracer =
+        Logger.getLogger(OJClassMap.class.getName());
 
     //~ Instance fields --------------------------------------------------------
 

@@ -199,9 +199,7 @@ public class JavaRelImplementor extends RelImplementorImpl {
         JavaRel rel,
         String fieldName)
     {
-        if (rel instanceof ProjectRelBase) {
-            return ((ProjectRelBase) rel).implementFieldAccess(this, fieldName);
-        } else if (rel instanceof IterCalcRel) {
+        if (rel instanceof IterCalcRel) {
             return ((IterCalcRel) rel).implementFieldAccess(this, fieldName);
         } else {
             return null;

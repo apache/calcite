@@ -69,7 +69,7 @@ public abstract class OJPreparingStmt extends Prepare {
      */
     public OJPreparingStmt(CatalogReader catalogReader)
     {
-        super(catalogReader);
+        super(catalogReader, CallingConvention.RESULT_SET);
         this.containsJava = true;
     }
 

@@ -167,8 +167,9 @@ public abstract class IterRules
 
             // REVIEW: want to move canTranslate into RelImplementor
             // and implement it for Java & C++ calcs.
-            final JavaRelImplementor relImplementor =
+            final JavaRelImplementor relImplementor = null; /*
                 rel.getCluster().getPlanner().getJavaRelImplementor(rel);
+                */
             final RelNode convertedChild =
                 convert(
                     calc.getChild(),
