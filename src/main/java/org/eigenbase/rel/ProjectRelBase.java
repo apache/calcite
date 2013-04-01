@@ -19,7 +19,6 @@ package org.eigenbase.rel;
 
 import java.util.*;
 
-import org.eigenbase.oj.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;

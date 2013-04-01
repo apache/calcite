@@ -23,12 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import openjava.ptree.ParseTree;
-import openjava.ptree.Variable;
-
-import org.eigenbase.oj.rel.JavaRel;
-import org.eigenbase.oj.rel.JavaRelImplementor;
-import org.eigenbase.relopt.CallingConvention;
 import org.eigenbase.relopt.RelImplementor;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.rex.RexBuilder;

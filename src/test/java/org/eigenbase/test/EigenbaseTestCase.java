@@ -22,8 +22,6 @@ import java.util.regex.*;
 
 import junit.framework.*;
 
-import org.eigenbase.runtime.*;
-
 
 public abstract class EigenbaseTestCase
     extends TestCase
@@ -31,7 +29,6 @@ public abstract class EigenbaseTestCase
     //~ Static fields/initializers ---------------------------------------------
 
     protected static final String nl = System.getProperty("line.separator");
-    protected static final String [] emptyStringArray = new String[0];
 
     //~ Constructors -----------------------------------------------------------
 
@@ -121,80 +118,6 @@ public abstract class EigenbaseTestCase
     }
 
     /**
-     * Returns a TupleIter over the elements of an array.
-     */
-    public static TupleIter makeTupleIter(final Object [] a)
-    {
-        return new AbstractTupleIter() {
-            private List data = Arrays.asList(a);
-            private Iterator iter = data.iterator();
-
-            public Object fetchNext()
-            {
-                if (iter.hasNext()) {
-                    return iter.next();
-                }
-
-                return NoDataReason.END_OF_DATA;
-            }
-
-            public void restart()
-            {
-                iter = data.iterator();
-            }
-
-            public void closeAllocation()
-            {
-                iter = null;
-                data = null;
-            }
-        };
-    }
-
-    /**
-     * Converts an iterator to a list.
-     */
-    protected static List toList(Iterator iterator)
-    {
-        ArrayList list = new ArrayList();
-        while (iterator.hasNext()) {
-            list.add(iterator.next());
-        }
-        return list;
-    }
-
-    /**
-     * Converts a TupleIter to a list.
-     */
-    protected static List toList(TupleIter tupleIter)
-    {
-        ArrayList list = new ArrayList();
-        while (true) {
-            Object o = tupleIter.fetchNext();
-            if (o == TupleIter.NoDataReason.END_OF_DATA) {
-                return list;
-            } else if (o == TupleIter.NoDataReason.UNDERFLOW) {
-                // Busy loops.
-                continue;
-            }
-
-            list.add(o);
-        }
-    }
-
-    /**
-     * Converts an enumeration to a list.
-     */
-    protected static List toList(Enumeration enumeration)
-    {
-        ArrayList list = new ArrayList();
-        while (enumeration.hasMoreElements()) {
-            list.add(enumeration.nextElement());
-        }
-        return list;
-    }
-
-    /**
      * Checks that an iterator returns the same objects as the contents of an
      * array.
      */
@@ -202,28 +125,9 @@ public abstract class EigenbaseTestCase
         Iterator iterator,
         Object [] a)
     {
-        ArrayList list = new ArrayList();
+        List<Object> list = new ArrayList<Object>();
         while (iterator.hasNext()) {
             list.add(iterator.next());
-        }
-        assertEquals(list, a);
-    }
-
-    /**
-     * Checks that a TupleIter returns the same objects as the contents of an
-     * array.
-     */
-    protected void assertEquals(
-        TupleIter iterator,
-        Object [] a)
-    {
-        ArrayList list = new ArrayList();
-        while (true) {
-            Object next = iterator.fetchNext();
-            if (next == TupleIter.NoDataReason.END_OF_DATA) {
-                break;
-            }
-            list.add(next);
         }
         assertEquals(list, a);
     }

@@ -20,7 +20,6 @@ package org.eigenbase.trace;
 import java.io.File;
 import java.util.logging.*;
 
-import org.eigenbase.oj.util.*;
 import org.eigenbase.rel.RelImplementorImpl;
 import org.eigenbase.relopt.*;
 import org.eigenbase.runtime.*;

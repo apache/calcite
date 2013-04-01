@@ -67,17 +67,6 @@ public class SaffronProperties
         new StringProperty(this, "saffron.class.dir", null);
 
     /**
-     * The boolean property "saffron.Statement.printBeforeCompile" controls
-     * whether {@link openjava.ptree.Statement} prints the statement before
-     * compiling it.
-     */
-    public final BooleanProperty printBeforeCompile =
-        new BooleanProperty(
-            this,
-            "saffron.Statement.printBeforeCompile",
-            false);
-
-    /**
      * The string property "saffron.java.compiler.class" is the name of the Java
      * compiler to use. It must implement {@link
      * org.eigenbase.javac.JavaCompiler}. The default value is

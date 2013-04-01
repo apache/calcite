@@ -23,8 +23,6 @@ import java.util.*;
 import java.util.logging.*;
 import java.util.regex.*;
 
-import org.eigenbase.oj.rel.*;
-import org.eigenbase.oj.rex.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
 import org.eigenbase.rel.metadata.*;
