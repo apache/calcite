@@ -1223,6 +1223,20 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJoinOnIn">
+        <Resource name="sql">
+            <![CDATA[select * from emp join dept
+ on emp.deptno = dept.deptno and emp.empno in (1, 3)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  JoinRel(condition=[AND(=($7, $9), OR(=($0, 1), =($0, 3)))], joinType=[inner])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSampleBernoulli">
         <Resource name="sql">
             <![CDATA[select * from emp tablesample bernoulli(50) where empno > 5]]>

@@ -2114,6 +2114,8 @@ public class SqlToRelConverter
         if (condition == null) {
             return rexBuilder.makeLiteral(true);
         }
+        bb.setRoot(Arrays.asList(leftRel, rightRel));
+        replaceSubqueries(bb, condition);
         switch (conditionType) {
         case On:
             bb.setRoot(Arrays.asList(leftRel, rightRel));

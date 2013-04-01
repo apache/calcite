@@ -91,6 +91,14 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
+    public void testJoinOnIn()
+    {
+        check(
+            "select * from emp join dept\n"
+            + " on emp.deptno = dept.deptno and emp.empno in (1, 3)",
+            "${plan}");
+    }
+
     public void testJoinUsing()
     {
         check("SELECT * FROM emp JOIN dept USING (deptno)", "${plan}");
