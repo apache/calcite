@@ -114,9 +114,7 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
         }
     }
 
-    public OptiqConnection connect(String url, Properties info)
-        throws SQLException
-    {
+    public Connection connect(String url, Properties info) throws SQLException {
         if (!acceptsURL(url)) {
             return null;
         }
