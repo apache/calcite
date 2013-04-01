@@ -17,11 +17,13 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import org.eigenbase.runtime.AbstractIterResultSet;
-import org.eigenbase.runtime.IteratorResultSet;
+import net.hydromatic.linq4j.function.Function0;
+import net.hydromatic.optiq.runtime.ColumnMetaData;
+import net.hydromatic.optiq.runtime.Cursor;
 
 import java.sql.*;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Implementation of {@link java.sql.DatabaseMetaData}
@@ -860,12 +862,31 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
 
     // Helpers
 
-    private static IteratorResultSet createEmptyResultSet() {
-        return IteratorResultSet.create(
-            Collections.EMPTY_LIST.iterator(),
-            new AbstractIterResultSet.FieldGetter(Object.class));
-    }
+    private ResultSet createEmptyResultSet() {
+        try {
+            return connection.driver.factory.newResultSet(
+                connection.createStatement(),
+                Collections.<ColumnMetaData>emptyList(),
+                new Function0<Cursor>() {
+                    public Cursor apply() {
+                        return new Cursor() {
+                            public List<Accessor> createAccessors(
+                                List<ColumnMetaData> types)
+                            {
+                                assert types.isEmpty();
+                                return Collections.emptyList();
+                            }
 
+                            public boolean next() {
+                                return false;
+                            }
+                        };
+                    }
+                });
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
 
 // End OptiqDatabaseMetaData.java

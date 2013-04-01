@@ -18,30 +18,21 @@
 package org.eigenbase.util;
 
 import java.awt.Toolkit;
-
 import java.io.*;
-
 import java.lang.Iterable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-
 import java.math.*;
-
 import java.net.*;
-
 import java.nio.charset.*;
-
 import java.sql.*;
-
 import java.text.*;
-
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.jar.*;
 import java.util.logging.*;
 import java.util.regex.*;
 
-import org.eigenbase.runtime.*;
 import org.eigenbase.sql.validate.*;
 
 
@@ -1018,15 +1009,6 @@ public class Util
         }
 
         System.loadLibrary(libName);
-    }
-
-    public static void restartIterator(Iterator iterator)
-    {
-        if (iterator instanceof RestartableIterator) {
-            ((RestartableIterator) iterator).restart();
-        } else {
-            throw new UnsupportedOperationException("restart");
-        }
     }
 
     /**

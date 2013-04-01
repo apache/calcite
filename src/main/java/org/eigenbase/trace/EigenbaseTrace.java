@@ -22,7 +22,6 @@ import java.util.logging.*;
 
 import org.eigenbase.rel.RelImplementorImpl;
 import org.eigenbase.relopt.*;
-import org.eigenbase.runtime.*;
 import org.eigenbase.util.Util;
 import org.eigenbase.util.property.*;
 
@@ -155,20 +154,6 @@ public abstract class EigenbaseTrace
     public static Logger getPropertyTracer()
     {
         return Logger.getLogger(Property.class.getName());
-    }
-
-    /**
-     * The "org.eigenbase.runtime.CompoundIterator" tracer traces {@link
-     * CompoundIterator}:
-     *
-     * <ul>
-     * <li>{@link Level#FINE} shows the transition to the next child Iterator.
-     * <li>{@link Level#FINER} shows every element.
-     * </ul>
-     */
-    public static Logger getCompoundIteratorTracer()
-    {
-        return Logger.getLogger(CompoundIterator.class.getName());
     }
 
     /**

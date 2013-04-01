@@ -17,10 +17,13 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Queryable;
 
+import net.hydromatic.linq4j.function.Function0;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.runtime.*;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import java.sql.*;
@@ -350,7 +353,9 @@ public abstract class OptiqStatement
                 }
             }
 
-            openResultSet = connection.factory.newResultSet(this, query);
+            openResultSet =
+                connection.factory.newResultSet(
+                    this, query.columnList, getCursorFactory(query));
         }
         // Release the monitor before executing, to give another thread the
         // opportunity to call cancel.
@@ -361,6 +366,24 @@ public abstract class OptiqStatement
                 "exception while executing query", e);
         }
         return openResultSet;
+    }
+
+    private static Function0<Cursor> getCursorFactory(
+        final OptiqPrepare.PrepareResult prepareResult)
+    {
+        return new Function0<Cursor>() {
+            public Cursor apply() {
+                Enumerator<?> enumerator = prepareResult.execute();
+                //noinspection unchecked
+                return prepareResult.columnList.size() == 1
+                    ? new ObjectEnumeratorCursor((Enumerator) enumerator)
+                    : prepareResult.resultClazz != null
+                      && !prepareResult.resultClazz.isArray()
+                    ? new RecordEnumeratorCursor(
+                        (Enumerator) enumerator, prepareResult.resultClazz)
+                    : new ArrayEnumeratorCursor((Enumerator) enumerator);
+            }
+        };
     }
 
     /**

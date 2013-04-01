@@ -22,8 +22,9 @@ import java.sql.*;
 import java.util.*;
 import java.util.regex.*;
 
-import org.eigenbase.runtime.AbstractIterResultSet;
 import org.eigenbase.util.Util;
+
+import net.hydromatic.optiq.jdbc.SqlTimeoutException;
 
 
 /**
@@ -419,7 +420,7 @@ public class ConcurrentTestCommandScript
                         }
                     } catch (SQLException ex) {
                         if (forced) {
-                            storeMessage(threadID, ex.getMessage()); //swallow
+                            storeMessage(threadID, ex.getMessage()); // swallow
                         } else {
                             throw ex;
                         }
@@ -1770,7 +1771,7 @@ public class ConcurrentTestCommandScript
                             "1 row affected.");
                     }
                 }
-            } catch (AbstractIterResultSet.SqlTimeoutException e) {
+            } catch (SqlTimeoutException e) {
                 if (!timeoutSet) {
                     throw e;
                 }
@@ -1950,7 +1951,7 @@ public class ConcurrentTestCommandScript
                         printedRowCount++;
                     }
                 }
-            } catch (AbstractIterResultSet.SqlTimeoutException e) {
+            } catch (SqlTimeoutException e) {
                 endTime = System.currentTimeMillis();
                 timedOut = true;
                 if (!withTimeout) {

@@ -34,7 +34,7 @@ import java.util.*;
  *
  * @author jhyde
  */
-abstract class AbstractCursor implements Cursor {
+public abstract class AbstractCursor implements Cursor {
     private static final int MILLIS_PER_DAY = 86400000;
     private static final Calendar LOCAL_CALENDAR = Calendar.getInstance();
 

@@ -15,28 +15,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.runtime;
+package net.hydromatic.optiq.jdbc;
 
-import java.util.*;
-
+import java.sql.SQLException;
 
 /**
- * RestartableIterator extends the Iterator interface with a method for
- * restarting to the beginning of the collection.
- *
- * @author John V. Sichi
- * @version $Id$
+ * Indicates that an operation timed out. This is not an error; you can
+ * retry the operation.
  */
-public interface RestartableIterator
-    extends Iterator
+public class SqlTimeoutException
+    extends SQLException
 {
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Restarts this iterator, so that a subsequent call to next() returns the
-     * first element in the collection being iterated.
-     */
-    public void restart();
+    SqlTimeoutException()
+    {
+        // SQLException(reason, SQLState, vendorCode)
+        // REVIEW mb 19-Jul-05 Is there a standard SQLState?
+        super("timeout", null, 0);
+    }
 }
 
-// End RestartableIterator.java
+// End SqlTimeoutException.java

@@ -63,7 +63,8 @@ abstract class OptiqPreparedStatement
             resultSetHoldability);
         this.prepareResult = parseQuery(sql);
         this.resultSetMetaData =
-            connection.factory.newResultSetMetaData(this, prepareResult);
+            connection.factory.newResultSetMetaData(
+                this, prepareResult.columnList);
     }
 
     // implement PreparedStatement

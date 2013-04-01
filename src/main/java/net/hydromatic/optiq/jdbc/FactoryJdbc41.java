@@ -18,10 +18,13 @@
 package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.function.Function0;
+import net.hydromatic.optiq.runtime.ColumnMetaData;
+import net.hydromatic.optiq.runtime.Cursor;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.sql.*;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -93,17 +96,21 @@ class FactoryJdbc41 implements Factory {
 
     public OptiqResultSet newResultSet(
         OptiqStatement statement,
-        OptiqPrepare.PrepareResult prepareResult)
+        List<ColumnMetaData> columnMetaDataList,
+        Function0<Cursor> cursorFactory)
     {
-        return new OptiqResultSet(statement, prepareResult);
+        final ResultSetMetaData metaData =
+            newResultSetMetaData(statement, columnMetaDataList);
+        return new OptiqResultSet(
+            statement, columnMetaDataList, metaData, cursorFactory);
     }
 
     public ResultSetMetaData newResultSetMetaData(
         OptiqStatement statement,
-        OptiqPrepare.PrepareResult prepareResult)
+        List<ColumnMetaData> columnMetaDataList)
     {
         return new OptiqResultSetMetaData(
-            statement, null, prepareResult.columnList);
+            statement, null, columnMetaDataList);
     }
 
     private static class OptiqConnectionJdbc41 extends OptiqConnectionImpl {

@@ -18,22 +18,20 @@
 package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Functions;
-import net.hydromatic.linq4j.function.Predicate1;
+import net.hydromatic.linq4j.expressions.*;
+import net.hydromatic.linq4j.function.*;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.MapSchema;
 
+import net.hydromatic.optiq.runtime.*;
+
 import org.eigenbase.reltype.*;
-import org.eigenbase.runtime.*;
-import org.eigenbase.util.Util;
 
 import java.lang.reflect.Field;
 import java.sql.*;
+import java.sql.Types;
 import java.util.*;
 
 /**
@@ -125,6 +123,27 @@ public class Meta {
         return mapSchema;
     }
 
+    private ResultSet createResultSet(
+        final Enumerable<?> enumerable,
+        final NamedFieldGetter columnGetter)
+    {
+        try {
+            OptiqResultSet x = connection.driver.factory.newResultSet(
+                connection.createStatement(),
+                columnGetter.columnNames,
+                new Function0<Cursor>() {
+                    public Cursor apply() {
+                        return columnGetter.cursor(
+                            ((Enumerable) enumerable).enumerator());
+                    }
+                });
+            x.execute();
+            return x;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     ResultSet getTables(
         String catalog,
         final String schemaPattern,
@@ -142,7 +161,7 @@ public class Meta {
                 }
             };
         }
-        return IteratorResultSet.create(
+        return createResultSet(
             schemas(catalog)
                 .where(Meta.<MetaSchema>matcher(schemaPattern))
                 .selectMany(
@@ -152,8 +171,7 @@ public class Meta {
                         }
                     })
                 .where(typeFilter)
-                .where(Meta.<MetaTable>matcher(tableNamePattern))
-                .iterator(),
+                .where(Meta.<MetaTable>matcher(tableNamePattern)),
             new NamedFieldGetter(
                 MetaTable.class,
                 "TABLE_CAT",
@@ -174,10 +192,9 @@ public class Meta {
         String tableNamePattern,
         String columnNamePattern)
     {
-        return IteratorResultSet.create(
+        return createResultSet(
             schemas(catalog)
-                .where(
-                    Meta.<MetaSchema>matcher(schemaPattern))
+                .where(Meta.<MetaSchema>matcher(schemaPattern))
                 .selectMany(
                     new Function1<MetaSchema, Enumerable<MetaTable>>() {
                         public Enumerable<MetaTable> apply(MetaSchema a0) {
@@ -192,9 +209,7 @@ public class Meta {
                             return columns(a0);
                         }
                     })
-                .where(
-                    Meta.<MetaColumn>matcher(columnNamePattern))
-                .iterator(),
+                .where(Meta.<MetaColumn>matcher(columnNamePattern)),
             new NamedFieldGetter(
                 MetaColumn.class,
                 "TABLE_CAT",
@@ -407,64 +422,81 @@ public class Meta {
     }
 
     private static class NamedFieldGetter
-        implements AbstractIterResultSet.ColumnGetter
     {
-        private final Field[] fields;
-        private final String[] columnNames;
+        private final List<Field> fields = new ArrayList<Field>();
+        private final List<ColumnMetaData> columnNames =
+            new ArrayList<ColumnMetaData>();
 
         public NamedFieldGetter(Class clazz, String... names) {
-            final List<String> columnNameList = new ArrayList<String>();
-            final List<Field> fieldList = new ArrayList<Field>();
-            StringBuilder buf = new StringBuilder();
             for (String name : names) {
-                columnNameList.add(name);
-                buf.setLength(0);
-                int nextUpper = -1;
-                for (int i = 0; i < name.length(); i++) {
-                    char c = name.charAt(i);
-                    if (c == '_') {
-                        nextUpper = i + 1;
-                        continue;
-                    }
-                    if (nextUpper == i) {
-                        c = Character.toUpperCase(c);
-                    } else {
-                        c = Character.toLowerCase(c);
-                    }
-                    buf.append(c);
-                }
-                String fieldName = buf.toString();
+                final int index = fields.size();
+                final String fieldName = uncamel(name);
+                final Field field;
                 try {
-                    fieldList.add(clazz.getField(fieldName));
+                    field = clazz.getField(fieldName);
                 } catch (NoSuchFieldException e) {
                     throw new RuntimeException(e);
                 }
+                columnNames.add(
+                    new ColumnMetaData(
+                        index, false, true, false, false,
+                        Primitive.is(field.getType())
+                            ? DatabaseMetaData.columnNullable
+                            : DatabaseMetaData.columnNoNulls,
+                        true, -1, name, name, null,
+                        0, 0, null, null, Types.VARCHAR, "VARCHAR", true,
+                        false, false, null));
+                fields.add(field);
             }
-            this.fields = fieldList.toArray(new Field[fieldList.size()]);
-            this.columnNames =
-                columnNameList.toArray(new String[columnNameList.size()]);
         }
 
-        public String [] getColumnNames()
-        {
-            return columnNames;
+        private String uncamel(String name) {
+            StringBuilder buf = new StringBuilder();
+            int nextUpper = -1;
+            for (int i = 0; i < name.length(); i++) {
+                char c = name.charAt(i);
+                if (c == '_') {
+                    nextUpper = i + 1;
+                    continue;
+                }
+                if (nextUpper == i) {
+                    c = Character.toUpperCase(c);
+                } else {
+                    c = Character.toLowerCase(c);
+                }
+                buf.append(c);
+            }
+            return buf.toString();
         }
 
-        public Object get(
-            Object o,
-            int columnIndex)
-        {
+        Object get(Object o, int columnIndex) {
             try {
-                return fields[columnIndex - 1].get(o);
+                return fields.get(columnIndex).get(o);
             } catch (IllegalArgumentException e) {
-                throw Util.newInternal(
-                    e,
-                    "Error while retrieving field " + fields[columnIndex - 1]);
+                throw new RuntimeException(e);
             } catch (IllegalAccessException e) {
-                throw Util.newInternal(
-                    e,
-                    "Error while retrieving field " + fields[columnIndex - 1]);
+                throw new RuntimeException(e);
             }
+        }
+
+        public Cursor cursor(final Enumerator<Object> enumerator) {
+            return new AbstractCursor() {
+                protected Getter createGetter(final int ordinal) {
+                    return new Getter() {
+                        public Object getObject() {
+                            return get(enumerator.current(), ordinal);
+                        }
+
+                        public boolean wasNull() {
+                            return getObject() == null;
+                        }
+                    };
+                }
+
+                public boolean next() {
+                    return enumerator.moveNext();
+                }
+            };
         }
     }
 

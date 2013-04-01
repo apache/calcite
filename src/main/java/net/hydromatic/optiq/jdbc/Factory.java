@@ -18,9 +18,12 @@
 package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.function.Function0;
+import net.hydromatic.optiq.runtime.ColumnMetaData;
+import net.hydromatic.optiq.runtime.Cursor;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -58,19 +61,21 @@ interface Factory {
      * {@link net.hydromatic.optiq.jdbc.OptiqResultSet#execute()} on it.
      *
      * @param statement Statement
-     * @param prepareResult Result
+     * @param columnMetaDataList Metadata for each column
+     * @param cursorFactory Called on execute to create a cursor
      * @return Result set
      */
     OptiqResultSet newResultSet(
         OptiqStatement statement,
-        OptiqPrepare.PrepareResult prepareResult);
+        List<ColumnMetaData> columnMetaDataList,
+        Function0<Cursor> cursorFactory);
 
     OptiqDatabaseMetaData newDatabaseMetaData(
         OptiqConnectionImpl connection);
 
     ResultSetMetaData newResultSetMetaData(
         OptiqStatement statement,
-        OptiqPrepare.PrepareResult prepareResult);
+        List<ColumnMetaData> prepareResult);
 }
 
 // End Factory.java

@@ -23,8 +23,9 @@ import java.sql.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import org.eigenbase.runtime.AbstractIterResultSet;
 import org.eigenbase.util.Util;
+
+import net.hydromatic.optiq.jdbc.SqlTimeoutException;
 
 
 /**
@@ -1001,7 +1002,7 @@ public class ConcurrentTestCommandGenerator
 
                     rows.add(row);
                 }
-            } catch (AbstractIterResultSet.SqlTimeoutException e) {
+            } catch (SqlTimeoutException e) {
                 if (!timeoutSet) {
                     throw e;
                 }

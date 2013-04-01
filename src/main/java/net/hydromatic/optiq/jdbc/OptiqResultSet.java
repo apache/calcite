@@ -17,7 +17,7 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.linq4j.function.Function0;
 import net.hydromatic.optiq.runtime.*;
 
 import java.io.InputStream;
@@ -35,7 +35,8 @@ import java.util.*;
 public class OptiqResultSet implements ResultSet {
     private final OptiqStatement statement;
     private final boolean[] wasNull = {false};
-    private final OptiqPrepare.PrepareResult prepareResult;
+    private final List<ColumnMetaData> columnMetaDataList;
+    private final Function0<Cursor> cursorFactory;
     private final ResultSetMetaData resultSetMetaData;
 
     private Cursor cursor;
@@ -52,23 +53,25 @@ public class OptiqResultSet implements ResultSet {
     private int concurrency;
     private int holdability;
     private boolean closed;
+    private long timeoutMillis;
+    private Cursor timeoutCursor;
 
     OptiqResultSet(
         OptiqStatement statement,
-        OptiqPrepare.PrepareResult<?> prepareResult)
+        List<ColumnMetaData> columnMetaDataList,
+        ResultSetMetaData resultSetMetaData,
+        Function0<Cursor> cursorFactory)
     {
         this.statement = statement;
-        this.prepareResult = prepareResult;
+        this.columnMetaDataList = columnMetaDataList;
+        this.cursorFactory = cursorFactory;
         this.type = statement.resultSetType;
         this.concurrency = statement.resultSetConcurrency;
         this.holdability = statement.resultSetHoldability;
         this.fetchSize = statement.getFetchSize();
         this.fetchDirection = statement.getFetchDirection();
-        this.resultSetMetaData =
-            statement.connection.factory.newResultSetMetaData(
-                statement, prepareResult);
-
-        for (ColumnMetaData column : prepareResult.columnList) {
+        this.resultSetMetaData = resultSetMetaData;
+        for (ColumnMetaData column : columnMetaDataList) {
             columnNameMap.put(column.label, columnNameMap.size());
         }
     }
@@ -83,6 +86,36 @@ public class OptiqResultSet implements ResultSet {
 
     public void close() {
         closed = true;
+        // TODO: for timeout, see IteratorResultSet.close
+/*
+        if (timeoutCursor != null) {
+            final long noTimeout = 0;
+            timeoutCursor.close(noTimeout);
+            timeoutCursor = null;
+        }
+*/
+    }
+
+    /**
+     * Sets the timeout that this result set will wait for a row from the
+     * underlying iterator.
+     *
+     * <p>Not a JDBC method.</p>
+     *
+     * @param timeoutMillis Timeout in milliseconds. Must be greater than zero.
+     */
+    void setTimeout(long timeoutMillis) {
+        assert timeoutMillis > 0;
+        assert this.timeoutMillis == 0;
+        this.timeoutMillis = timeoutMillis;
+        assert timeoutCursor == null;
+        timeoutCursor = cursor;
+
+        // TODO: for timeout, see IteratorResultSet.setTimeout
+/*
+        timeoutCursor = new TimeoutCursor(timeoutMillis);
+        timeoutCursor.start();
+*/
     }
 
     // not JDBC
@@ -112,17 +145,7 @@ public class OptiqResultSet implements ResultSet {
         statement.connection.driver.handler.onStatementExecute(
             statement, resultSink);
 
-        Enumerator enumerator = prepareResult.execute();
-        this.cursor =
-            prepareResult.columnList.size() == 1
-                ? new ObjectEnumeratorCursor(enumerator)
-                : prepareResult.resultClazz != null
-                    && !prepareResult.resultClazz.isArray()
-                ? new RecordEnumeratorCursor(
-                    enumerator, prepareResult.resultClazz)
-                : new ArrayEnumeratorCursor(enumerator);
-        final List<ColumnMetaData> columnMetaDataList =
-            prepareResult.columnList;
+        this.cursor = cursorFactory.apply();
         this.accessorList = cursor.createAccessors(columnMetaDataList);
         accessorMap.clear();
         for (Map.Entry<String, Integer> entry : columnNameMap.entrySet()) {
@@ -131,6 +154,7 @@ public class OptiqResultSet implements ResultSet {
     }
 
     public boolean next() throws SQLException {
+        // TODO: for timeout, see IteratorResultSet.next
         if (cursor.next()) {
             ++row;
             return true;
@@ -302,7 +326,11 @@ public class OptiqResultSet implements ResultSet {
     }
 
     public int findColumn(String columnLabel) throws SQLException {
-        return columnNameMap.get(columnLabel);
+        final Integer integer = columnNameMap.get(columnLabel);
+        if (integer == null) {
+            throw new SQLException("column '" + columnLabel + "' not found");
+        }
+        return integer;
     }
 
     public Reader getCharacterStream(int columnIndex) throws SQLException {
