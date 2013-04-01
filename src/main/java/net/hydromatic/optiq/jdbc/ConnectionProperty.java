@@ -97,7 +97,8 @@ enum ConnectionProperty {
             final ConnectionProperty connectionProperty =
                 NAME_TO_PROPS.get(name.toUpperCase());
             if (connectionProperty == null) {
-                throw new RuntimeException("Unknown property '" + name + "'");
+                // For now, don't throw. It messes up sub-projects.
+                //throw new RuntimeException("Unknown property '" + name + "'");
             }
             map.put(connectionProperty, properties.getProperty(name));
         }
