@@ -27,7 +27,7 @@ import net.hydromatic.linq4j.Ord;
 
 /**
  * <code>SetOpRel</code> is an abstract base for relational set operators such
- * as union, minus, and intersect.
+ * as UNION, MINUS (aka EXCEPT), and INTERSECT.
  *
  * @author John V. Sichi
  * @version $Id$
@@ -65,11 +65,6 @@ public abstract class SetOpRel
         List<RelNode> inputs)
     {
         return copy(traitSet, inputs, all);
-    }
-
-    public boolean isDistinct()
-    {
-        return !all;
     }
 
     @Override
@@ -116,13 +111,9 @@ public abstract class SetOpRel
     public boolean isHomogeneous(boolean compareNames)
     {
         RelDataType unionType = getRowType();
-        List<RelNode> inputs = getInputs();
-        for (int i = 0; i < inputs.size(); ++i) {
-            RelDataType inputType = inputs.get(i).getRowType();
+        for (RelNode input : getInputs()) {
             if (!RelOptUtil.areRowTypesEqual(
-                    inputType,
-                    unionType,
-                    compareNames))
+                    input.getRowType(), unionType, compareNames))
             {
                 return false;
             }
