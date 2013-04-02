@@ -85,7 +85,7 @@ public class ArrayTableTest extends TestCase {
         valueSet.add(0);
         valueSet.add(1);
         valueSet.add(10);
-        pair = valueSet.freeze(0);
+        pair = valueSet.freeze(0, null);
         assertTrue(
             pair.representation instanceof ArrayTable.BitSlicedPrimitiveArray);
         representation =
@@ -101,7 +101,7 @@ public class ArrayTableTest extends TestCase {
 
         // -32 takes us to 6 bit signed
         valueSet.add(-32);
-        pair = valueSet.freeze(0);
+        pair = valueSet.freeze(0, null);
         assertTrue(
             pair.representation instanceof ArrayTable.BitSlicedPrimitiveArray);
         representation =
@@ -115,7 +115,7 @@ public class ArrayTableTest extends TestCase {
 
         // 63 takes us to 7 bit signed
         valueSet.add(63);
-        pair = valueSet.freeze(0);
+        pair = valueSet.freeze(0, null);
         assertTrue(
             pair.representation instanceof ArrayTable.BitSlicedPrimitiveArray);
         representation =
@@ -125,7 +125,7 @@ public class ArrayTableTest extends TestCase {
 
         // 128 pushes us to 8 bit signed, i.e. byte
         valueSet.add(64);
-        pair = valueSet.freeze(0);
+        pair = valueSet.freeze(0, null);
         assertTrue(pair.representation instanceof ArrayTable.PrimitiveArray);
         ArrayTable.PrimitiveArray representation2 =
             (ArrayTable.PrimitiveArray) pair.representation;
@@ -143,7 +143,7 @@ public class ArrayTableTest extends TestCase {
         valueSet.add(1);
         valueSet.add(1);
         valueSet.add(0);
-        final ArrayTable.Column pair = valueSet.freeze(0);
+        final ArrayTable.Column pair = valueSet.freeze(0, null);
         assertTrue(
             pair.representation instanceof ArrayTable.BitSlicedPrimitiveArray);
         final ArrayTable.BitSlicedPrimitiveArray representation =
@@ -160,7 +160,7 @@ public class ArrayTableTest extends TestCase {
         final ColumnLoader.ValueSet valueSet =
             new ColumnLoader.ValueSet(boolean.class);
         valueSet.add(0);
-        final ArrayTable.Column pair = valueSet.freeze(0);
+        final ArrayTable.Column pair = valueSet.freeze(0, null);
         assertTrue(pair.representation instanceof ArrayTable.Constant);
         final ArrayTable.Constant representation =
             (ArrayTable.Constant) pair.representation;
@@ -176,7 +176,7 @@ public class ArrayTableTest extends TestCase {
             new ColumnLoader.ValueSet(String.class);
         valueSet.add("foo");
         valueSet.add("foo");
-        pair = valueSet.freeze(0);
+        pair = valueSet.freeze(0, null);
         assertTrue(pair.representation instanceof ArrayTable.ObjectArray);
         final ArrayTable.ObjectArray representation =
             (ArrayTable.ObjectArray) pair.representation;
@@ -188,7 +188,7 @@ public class ArrayTableTest extends TestCase {
         for (int i = 0; i < 2000; i++) {
             valueSet.add("foo");
         }
-        pair = valueSet.freeze(0);
+        pair = valueSet.freeze(0, null);
         final ArrayTable.ObjectDictionary representation2 =
             (ArrayTable.ObjectDictionary) pair.representation;
         assertTrue(
@@ -200,7 +200,7 @@ public class ArrayTableTest extends TestCase {
         // One different string. ObjectDictionary backed by 1-bit
         // BitSlicedPrimitiveArray
         valueSet.add("bar");
-        pair = valueSet.freeze(0);
+        pair = valueSet.freeze(0, null);
         final ArrayTable.ObjectDictionary representation3 =
             (ArrayTable.ObjectDictionary) pair.representation;
         assertTrue(
@@ -223,7 +223,7 @@ public class ArrayTableTest extends TestCase {
             new ColumnLoader.ValueSet(String.class);
 
         valueSet.add(null);
-        pair = valueSet.freeze(0);
+        pair = valueSet.freeze(0, null);
         assertTrue(pair.representation instanceof ArrayTable.ObjectArray);
         final ArrayTable.ObjectArray representation =
             (ArrayTable.ObjectArray) pair.representation;
@@ -233,7 +233,7 @@ public class ArrayTableTest extends TestCase {
         for (int i = 0; i < 3000; i++) {
             valueSet.add(null);
         }
-        pair = valueSet.freeze(0);
+        pair = valueSet.freeze(0, null);
         final ArrayTable.ObjectDictionary representation2 =
             (ArrayTable.ObjectDictionary) pair.representation;
         assertTrue(
@@ -249,7 +249,7 @@ public class ArrayTableTest extends TestCase {
         valueSet.add(null);
         valueSet.add("foo");
 
-        pair = valueSet.freeze(0);
+        pair = valueSet.freeze(0, null);
         assertTrue(pair.representation instanceof ArrayTable.ObjectArray);
         final ArrayTable.ObjectArray representation =
             (ArrayTable.ObjectArray) pair.representation;
@@ -259,7 +259,7 @@ public class ArrayTableTest extends TestCase {
         for (int i = 0; i < 3000; i++) {
             valueSet.add(null);
         }
-        pair = valueSet.freeze(0);
+        pair = valueSet.freeze(0, null);
         final ArrayTable.ObjectDictionary representation2 =
             (ArrayTable.ObjectDictionary) pair.representation;
         assertEquals(

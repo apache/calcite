@@ -85,7 +85,8 @@ public class CloneSchema extends MapSchema {
                 Expressions.constant(name),
                 Expressions.constant(Object.class)),
             loader.representationValues,
-            loader.size());
+            loader.size(),
+            loader.sortField);
     }
 
     /**

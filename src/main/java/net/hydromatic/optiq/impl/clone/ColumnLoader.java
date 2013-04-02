@@ -71,6 +71,7 @@ class ColumnLoader<T> {
     public final List<ArrayTable.Column> representationValues =
         new ArrayList<ArrayTable.Column>();
     private final JavaTypeFactory typeFactory;
+    public final int sortField;
 
     /** Creates a column loader, and performs the load. */
     ColumnLoader(
@@ -80,7 +81,9 @@ class ColumnLoader<T> {
     {
         this.typeFactory = typeFactory;
         sourceTable.into(list);
-        load(elementType);
+        final int[] sorts = {-1};
+        load(elementType, sorts);
+        this.sortField = sorts[0];
     }
 
     static int nextPowerOf2(int v) {
@@ -132,7 +135,7 @@ class ColumnLoader<T> {
         return list.size();
     }
 
-    private void load(final RelDataType elementType) {
+    private void load(final RelDataType elementType, int[] sort) {
         final List<Type> types =
             new AbstractList<Type>()
             {
@@ -147,6 +150,7 @@ class ColumnLoader<T> {
                     return fields.size();
                 }
             };
+        int[] sources = null;
         for (final Ord<Type> pair : Ord.zip(types)) {
             @SuppressWarnings("unchecked")
             final List<?> sliceList =
@@ -174,7 +178,45 @@ class ColumnLoader<T> {
             for (Object o : list2) {
                 valueSet.add((Comparable) o);
             }
-            representationValues.add(valueSet.freeze(pair.i));
+            if (sort != null
+                && sort[0] < 0
+                && valueSet.map.keySet().size() == list.size())
+            {
+                // We have discovered a the first unique key in the table.
+                sort[0] = pair.i;
+                final Comparable[] values =
+                    valueSet.values.toArray(new Comparable[list.size()]);
+                final Kev[] kevs = new Kev[list.size()];
+                for (int i = 0; i < kevs.length; i++) {
+                    kevs[i] = new Kev(i, values[i]);
+                }
+                Arrays.sort(kevs);
+                sources = new int[list.size()];
+                for (int i = 0; i < sources.length; i++) {
+                    sources[i] = kevs[i].source;
+                }
+
+                boolean identity = true;
+                for (int i = 0; i < sources.length; i++) {
+                    if (sources[i] != i) {
+                        identity = false;
+                        break;
+                    }
+                }
+                if (identity) {
+                    // Table was already sorted. Clear the permutation.
+                    // We've already set sort[0], so we won't check for another
+                    // sorted column.
+                    sources = null;
+                } else {
+                    // Re-sort all previous columns.
+                    for (int i = 0; i < pair.i; i++) {
+                        representationValues.set(
+                            i, representationValues.get(i).permute(sources));
+                    }
+                }
+            }
+            representationValues.add(valueSet.freeze(pair.i, sources));
         }
     }
 
@@ -238,10 +280,12 @@ class ColumnLoader<T> {
             values.add(e);
         }
 
-        ArrayTable.Column freeze(int ordinal) {
+        /** Freezes the contents of this value set into a column, optionally
+         * re-ordering if {@code sources} is specified. */
+        ArrayTable.Column freeze(int ordinal, int[] sources) {
             ArrayTable.Representation representation = chooseRep(ordinal);
             final int cardinality = map.size() + (containsNull ? 1 : 0);
-            final Object data = representation.freeze(this);
+            final Object data = representation.freeze(this, sources);
             return new ArrayTable.Column(representation, data, cardinality);
         }
 
@@ -367,6 +411,21 @@ class ColumnLoader<T> {
         private static long abs2(long v) {
             // -128 becomes +127
             return v < 0 ? ~v : v;
+        }
+    }
+
+    private static class Kev implements Comparable<Kev> {
+        private final int source;
+        private final Comparable key;
+
+        public Kev(int source, Comparable key) {
+            this.source = source;
+            this.key = key;
+        }
+
+        public int compareTo(Kev o) {
+            //noinspection unchecked
+            return key.compareTo(o.key);
         }
     }
 }

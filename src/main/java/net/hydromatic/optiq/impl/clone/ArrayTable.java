@@ -44,6 +44,7 @@ class ArrayTable<T>
     private final RelDataType relDataType;
     private final List<Column> columns;
     private final int size;
+    private final int sortField;
 
     /** Creates an ArrayTable. */
     public ArrayTable(
@@ -52,13 +53,15 @@ class ArrayTable<T>
         RelDataType relDataType,
         Expression expression,
         List<Column> columns,
-        int size)
+        int size,
+        int sortField)
     {
         super(schema.getQueryProvider(), elementType, expression);
         this.schema = schema;
         this.relDataType = relDataType;
         this.columns = columns;
         this.size = size;
+        this.sortField = sortField;
 
         assert relDataType.getFieldCount() == columns.size();
     }
@@ -204,13 +207,28 @@ class ArrayTable<T>
             this.dataSet = data;
             this.cardinality = cardinality;
         }
+
+        public Column permute(int[] targets) {
+            return new Column(
+                representation,
+                representation.permute(dataSet, targets),
+                cardinality);
+        }
     }
 
     public interface Representation {
         RepresentationType getType();
-        Object freeze(ColumnLoader.ValueSet valueSet);
+
+        /** Converts a value set into a compact representation. If
+         * {@code sources} is not null, permutes. */
+        Object freeze(ColumnLoader.ValueSet valueSet, int[] sources);
+
         Object getObject(Object dataSet, int ordinal);
         int getInt(Object dataSet, int ordinal);
+
+        /** Creates a data set that is the same as a given data set
+         * but re-ordered. */
+        Object permute(Object dataSet, int[] sources);
     }
 
     public static class ObjectArray implements Representation {
@@ -224,15 +242,24 @@ class ArrayTable<T>
             return RepresentationType.OBJECT_ARRAY;
         }
 
-        public Object freeze(ColumnLoader.ValueSet valueSet) {
-            // We assume:
-            // 1. The array does not need to be copied.
-            // 2. The values have been canonized.
-            return valueSet.values;
+        public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+            // We assume the values have been canonized.
+            final List<Comparable> list = permuteList(valueSet.values, sources);
+            return list.toArray(new Comparable[list.size()]);
+        }
+
+        public Object permute(Object dataSet, int[] sources) {
+            Comparable[] list = (Comparable[]) dataSet;
+            final int size = list.length;
+            final Comparable[] comparables = new Comparable[size];
+            for (int i = 0; i < size; i++) {
+                comparables[i] = list[sources[i]];
+            }
+            return comparables;
         }
 
         public Object getObject(Object dataSet, int ordinal) {
-            return ((List) dataSet).get(ordinal);
+            return ((Comparable[]) dataSet)[ordinal];
         }
 
         public int getInt(Object dataSet, int ordinal) {
@@ -255,9 +282,14 @@ class ArrayTable<T>
             return RepresentationType.PRIMITIVE_ARRAY;
         }
 
-        public Object freeze(final ColumnLoader.ValueSet valueSet) {
+        public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
             //noinspection unchecked
-            return primitive.toArray2((List) valueSet.values);
+            return primitive.toArray2(
+                permuteList((List) valueSet.values, sources));
+        }
+
+        public Object permute(Object dataSet, int[] sources) {
+          return primitive.permute(dataSet, sources);
         }
 
         public Object getObject(Object dataSet, int ordinal) {
@@ -274,7 +306,11 @@ class ArrayTable<T>
             return RepresentationType.PRIMITIVE_DICTIONARY;
         }
 
-        public Object freeze(ColumnLoader.ValueSet valueSet) {
+        public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+            throw new UnsupportedOperationException(); // TODO:
+        }
+
+        public Object permute(Object dataSet, int[] sources) {
             throw new UnsupportedOperationException(); // TODO:
         }
 
@@ -303,7 +339,7 @@ class ArrayTable<T>
             return RepresentationType.OBJECT_DICTIONARY;
         }
 
-        public Object freeze(ColumnLoader.ValueSet valueSet) {
+        public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
             final int n = valueSet.map.keySet().size();
             int extra = valueSet.containsNull ? 1 : 0;
             Comparable[] codeValues =
@@ -311,7 +347,8 @@ class ArrayTable<T>
             Arrays.sort(codeValues, 0, n);
             ColumnLoader.ValueSet codeValueSet =
                 new ColumnLoader.ValueSet(int.class);
-            for (Comparable value : valueSet.values) {
+            final List<Comparable> list = permuteList(valueSet.values, sources);
+            for (Comparable value : list) {
                 int code;
                 if (value == null) {
                     code = n;
@@ -321,8 +358,16 @@ class ArrayTable<T>
                 }
                 codeValueSet.add(code);
             }
-            Object codes = representation.freeze(codeValueSet);
+            Object codes = representation.freeze(codeValueSet, null);
             return Pair.of(codes, codeValues);
+        }
+
+        public Object permute(Object dataSet, int[] sources) {
+            final Pair<Object, Comparable[]> pair =
+                (Pair<Object, Comparable[]>) dataSet;
+            Object codes = pair.left;
+            Comparable[] codeValues = pair.right;
+            return Pair.of(representation.permute(codes, sources), codeValues);
         }
 
         public Object getObject(Object dataSet, int ordinal) {
@@ -341,7 +386,11 @@ class ArrayTable<T>
             return RepresentationType.STRING_DICTIONARY;
         }
 
-        public Object freeze(ColumnLoader.ValueSet valueSet) {
+        public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+            throw new UnsupportedOperationException(); // TODO:
+        }
+
+        public Object permute(Object dataSet, int[] sources) {
             throw new UnsupportedOperationException(); // TODO:
         }
 
@@ -359,7 +408,11 @@ class ArrayTable<T>
             return RepresentationType.BYTE_STRING_DICTIONARY;
         }
 
-        public Object freeze(ColumnLoader.ValueSet valueSet) {
+        public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+            throw new UnsupportedOperationException(); // TODO:
+        }
+
+        public Object permute(Object dataSet, int[] sources) {
             throw new UnsupportedOperationException(); // TODO:
         }
 
@@ -383,9 +436,13 @@ class ArrayTable<T>
             return RepresentationType.CONSTANT;
         }
 
-        public Object freeze(ColumnLoader.ValueSet valueSet) {
+        public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
             final int size = valueSet.values.size();
             return Pair.of(size == 0 ? null : valueSet.values.get(0), size);
+        }
+
+        public Object permute(Object dataSet, int[] sources) {
+            return dataSet;
         }
 
         public Object getObject(Object dataSet, int ordinal) {
@@ -419,9 +476,10 @@ class ArrayTable<T>
             return RepresentationType.BIT_SLICED_PRIMITIVE_ARRAY;
         }
 
-        public Object freeze(ColumnLoader.ValueSet valueSet) {
+        public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
             final int chunksPerWord = 64 / bitCount;
-            final List<Comparable> valueList = valueSet.values;
+            final List<Comparable> valueList =
+                permuteList(valueSet.values, sources);
             final int valueCount = valueList.size();
             final int wordCount =
                 (valueCount + (chunksPerWord - 1)) / chunksPerWord;
@@ -466,6 +524,18 @@ class ArrayTable<T>
                     }
                     longs[i] = v;
                 }
+            }
+            return longs;
+        }
+
+        public Object permute(Object dataSet, int[] sources) {
+            final long[] longs0 = (long[]) dataSet;
+            int n = sources.length;
+            final long[] longs = new long[longs0.length];
+            for (int i = 0; i < n; i++) {
+                orLong(
+                    bitCount, longs, i,
+                    getLong(bitCount, longs0, sources[i]));
             }
             return longs;
         }
@@ -554,6 +624,23 @@ class ArrayTable<T>
             final int shift = chunk * bitCount;
             values[word] |= value << shift;
         }
+    }
+
+    private static <E> List<E> permuteList(
+        final List<E> list, final int[] sources)
+    {
+        if (sources == null) {
+            return list;
+        }
+        return new AbstractList<E>() {
+            public E get(int index) {
+                return list.get(sources[index]);
+            }
+
+            public int size() {
+                return list.size();
+            }
+        };
     }
 }
 
