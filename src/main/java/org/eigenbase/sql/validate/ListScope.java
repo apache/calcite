@@ -39,15 +39,10 @@ public abstract class ListScope
     //~ Instance fields --------------------------------------------------------
 
     /**
-     * List of child {@link SqlValidatorNamespace} objects.
+     * List of child {@link SqlValidatorNamespace} objects and their names.
      */
-    protected final List<SqlValidatorNamespace> children =
-        new ArrayList<SqlValidatorNamespace>();
-
-    /**
-     * Aliases of the {@link SqlValidatorNamespace} objects.
-     */
-    protected final List<String> childrenNames = new ArrayList<String>();
+    protected final List<Pair<String, SqlValidatorNamespace>> children =
+        new ArrayList<Pair<String, SqlValidatorNamespace>>();
 
     //~ Constructors -----------------------------------------------------------
 
@@ -60,9 +55,8 @@ public abstract class ListScope
 
     public void addChild(SqlValidatorNamespace ns, String alias)
     {
-        Util.pre(alias != null, "alias != null");
-        children.add(ns);
-        childrenNames.add(alias);
+        assert alias != null;
+        children.add(Pair.of(alias, ns));
     }
 
     /**
@@ -72,7 +66,7 @@ public abstract class ListScope
      */
     public List<SqlValidatorNamespace> getChildren()
     {
-        return Collections.unmodifiableList(children);
+        return Pair.rightSlice(children);
     }
 
     protected SqlValidatorNamespace getChild(String alias)
@@ -82,11 +76,11 @@ public abstract class ListScope
                 throw Util.newInternal(
                     "no alias specified, but more than one table in from list");
             }
-            return children.get(0);
+            return children.get(0).right;
         } else {
-            for (int i = 0; i < children.size(); i++) {
-                if (childrenNames.get(i).equals(alias)) {
-                    return children.get(i);
+            for (Pair<String, SqlValidatorNamespace> child : children) {
+                if (child.left.equals(alias)) {
+                    return child.right;
                 }
             }
             return null;
@@ -95,16 +89,16 @@ public abstract class ListScope
 
     public void findAllColumnNames(List<SqlMoniker> result)
     {
-        for (SqlValidatorNamespace ns : children) {
-            addColumnNames(ns, result);
+        for (Pair<String, SqlValidatorNamespace> pair : children) {
+            addColumnNames(pair.right, result);
         }
         parent.findAllColumnNames(result);
     }
 
     public void findAliases(List<SqlMoniker> result)
     {
-        for (String childrenName : childrenNames) {
-            result.add(new SqlMonikerImpl(childrenName, SqlMonikerType.Table));
+        for (Pair<String, SqlValidatorNamespace> pair : children) {
+            result.add(new SqlMonikerImpl(pair.left, SqlMonikerType.Table));
         }
         parent.findAliases(result);
     }
@@ -115,11 +109,10 @@ public abstract class ListScope
     {
         int count = 0;
         String tableName = null;
-        for (int i = 0; i < children.size(); i++) {
-            SqlValidatorNamespace ns = children.get(i);
-            final RelDataType rowType = ns.getRowType();
+        for (Pair<String, SqlValidatorNamespace> child : children) {
+            final RelDataType rowType = child.right.getRowType();
             if (SqlValidatorUtil.lookupField(rowType, columnName) != null) {
-                tableName = childrenNames.get(i);
+                tableName = child.left;
                 count++;
             }
         }
@@ -141,7 +134,7 @@ public abstract class ListScope
         int [] offsetOut)
     {
         // First resolve by looking through the child namespaces.
-        final int i = childrenNames.indexOf(name);
+        final int i = Pair.leftSlice(children).indexOf(name);
         if (i >= 0) {
             if (ancestorOut != null) {
                 ancestorOut[0] = this;
@@ -149,7 +142,7 @@ public abstract class ListScope
             if (offsetOut != null) {
                 offsetOut[0] = i;
             }
-            return children.get(i);
+            return children.get(i).right;
         }
 
         // Then call the base class method, which will delegate to the
@@ -161,7 +154,8 @@ public abstract class ListScope
     {
         int found = 0;
         RelDataType theType = null;
-        for (SqlValidatorNamespace childNs : children) {
+        for (Pair<String, SqlValidatorNamespace> pair : children) {
+            SqlValidatorNamespace childNs = pair.right;
             final RelDataType childRowType = childNs.getRowType();
             final RelDataType type =
                 SqlValidatorUtil.lookupFieldType(childRowType, columnName);

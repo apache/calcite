@@ -168,7 +168,7 @@ public class SelectScope
         // TODO: compare fully qualified names
         final SqlNodeList orderList = getOrderList();
         if ((orderList.size() > 0)) {
-            SqlNode order0 = (SqlNode) orderList.get(0);
+            SqlNode order0 = orderList.get(0);
             monotonicity = SqlMonotonicity.Increasing;
             if ((order0 instanceof SqlCall)
                 && (((SqlCall) order0).getOperator()
@@ -191,8 +191,9 @@ public class SelectScope
             // Compute on demand first call.
             orderList = new SqlNodeList(SqlParserPos.ZERO);
             if (children.size() == 1) {
+                final SqlValidatorNamespace child = children.get(0).right;
                 final List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs =
-                    children.get(0).getMonotonicExprs();
+                    child.getMonotonicExprs();
                 if (monotonicExprs.size() > 0) {
                     orderList.add(monotonicExprs.get(0).left);
                 }
@@ -208,11 +209,8 @@ public class SelectScope
 
     public boolean existingWindowName(String winName)
     {
-        String listName;
-        ListIterator<String> entry = windowNames.listIterator();
-        while (entry.hasNext()) {
-            listName = entry.next();
-            if (0 == listName.compareToIgnoreCase(winName)) {
+        for (String windowName : windowNames) {
+            if (windowName.equalsIgnoreCase(winName)) {
                 return true;
             }
         }

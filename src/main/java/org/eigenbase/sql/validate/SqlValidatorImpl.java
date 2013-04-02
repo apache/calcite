@@ -345,10 +345,8 @@ public class SqlValidatorImpl
                 && identifier.names[0].equals("*"))
             {
                 SqlParserPos starPosition = identifier.getParserPosition();
-                for (String tableName : scope.childrenNames) {
-                    final SqlValidatorNamespace childScope =
-                        scope.getChild(tableName);
-                    final SqlNode from = childScope.getNode();
+                for (Pair<String, SqlValidatorNamespace> p : scope.children) {
+                    final SqlNode from = p.right.getNode();
                     final SqlValidatorNamespace fromNs = getNamespace(from);
                     assert fromNs != null;
                     final RelDataType rowType = fromNs.getRowType();
@@ -358,7 +356,7 @@ public class SqlValidatorImpl
                         // TODO: do real implicit collation here
                         final SqlNode exp =
                             new SqlIdentifier(
-                                new String[] { tableName, columnName },
+                                new String[] { p.left, columnName },
                                 starPosition);
                         addToSelectList(
                             selectItems,
@@ -2064,13 +2062,11 @@ public class SqlValidatorImpl
                 call.setOperand(0, newOperand);
             }
 
-            for (String tableName : overScope.childrenNames) {
-                final SqlValidatorNamespace childSpace =
-                    overScope.getChild(tableName);
+            for (Pair<String, SqlValidatorNamespace> p : overScope.children) {
                 registerNamespace(
                     usingScope,
-                    tableName,
-                    childSpace,
+                    p.left,
+                    p.right,
                     forceNullable);
             }
 
@@ -3011,16 +3007,15 @@ public class SqlValidatorImpl
 
         // Make sure that items in FROM clause have distinct aliases.
         final SqlValidatorScope fromScope = getFromScope(select);
-        final List<String> childrenNames =
-            ((SelectScope) fromScope).childrenNames;
-        int duplicateAliasOrdinal = firstDuplicate(childrenNames);
+        final List<Pair<String, SqlValidatorNamespace>> children =
+            ((SelectScope) fromScope).children;
+        int duplicateAliasOrdinal = firstDuplicate(Pair.leftSlice(children));
         if (duplicateAliasOrdinal >= 0) {
-            final SqlValidatorNamespace child =
-                ((SelectScope) fromScope).children.get(duplicateAliasOrdinal);
+            final Pair<String, SqlValidatorNamespace> child =
+                children.get(duplicateAliasOrdinal);
             throw newValidationError(
-                child.getEnclosingNode(),
-                EigenbaseResource.instance().FromAliasDuplicate.ex(
-                    childrenNames.get(duplicateAliasOrdinal)));
+                child.right.getEnclosingNode(),
+                EigenbaseResource.instance().FromAliasDuplicate.ex(child.left));
         }
 
         validateFrom(
