@@ -215,6 +215,15 @@ public class PrimitiveTest extends TestCase {
         + "class java.lang.Object, class java.lang.Object, 0]",
         list.toString());
   }
+
+  /** Test for {@link Primitive#permute(Object, int[])}. */
+  public void testPermute() {
+    char[] chars = {'a', 'b', 'c', 'd', 'e', 'f', 'g'};
+    int[] sources = {1, 2, 3, 4, 5, 6, 0};
+    final Object permute = Primitive.CHAR.permute(chars, sources);
+    assertTrue(permute instanceof char[]);
+    assertEquals("bcdefga", new String((char[]) permute));
+  }
 }
 
 // End PrimitiveTest.java

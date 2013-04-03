@@ -382,6 +382,71 @@ public enum Primitive {
     }
   }
 
+  /** Permutes an array. */
+  public Object permute(Object array, int[] sources) {
+    int i;
+    switch (this) {
+    case DOUBLE:
+      double[] doubles0 = (double[]) array;
+      double[] doubles = new double[doubles0.length];
+      for (i = 0; i < doubles.length; i++) {
+        doubles[i] = doubles0[sources[i]];
+      }
+      return doubles;
+    case FLOAT:
+      float[] floats0 = (float[]) array;
+      float[] floats = new float[floats0.length];
+      for (i = 0; i < floats.length; i++) {
+        floats[i] = floats0[sources[i]];
+      }
+      return floats;
+    case INT:
+      int[] ints0 = (int[]) array;
+      int[] ints = new int[ints0.length];
+      for (i = 0; i < ints.length; i++) {
+        ints[i] = ints0[sources[i]];
+      }
+      return ints;
+    case LONG:
+      long[] longs0 = (long[]) array;
+      long[] longs = new long[longs0.length];
+      for (i = 0; i < longs.length; i++) {
+        longs[i] = longs0[sources[i]];
+      }
+      return longs;
+    case SHORT:
+      short[] shorts0 = (short[]) array;
+      short[] shorts = new short[shorts0.length];
+      for (i = 0; i < shorts.length; i++) {
+        shorts[i] = shorts0[sources[i]];
+      }
+      return shorts;
+    case BOOLEAN:
+      boolean[] booleans0 = (boolean[]) array;
+      boolean[] booleans = new boolean[booleans0.length];
+      for (i = 0; i < booleans.length; i++) {
+        booleans[i] = booleans0[sources[i]];
+      }
+      return booleans;
+    case BYTE:
+      byte[] bytes0 = (byte[]) array;
+      byte[] bytes = new byte[bytes0.length];
+      for (i = 0; i < bytes.length; i++) {
+        bytes[i] = bytes0[sources[i]];
+      }
+      return bytes;
+    case CHAR:
+      char[] chars0 = (char[]) array;
+      char[] chars = new char[chars0.length];
+      for (i = 0; i < chars.length; i++) {
+        chars[i] = chars0[sources[i]];
+      }
+      return chars;
+    default:
+      throw new RuntimeException("unexpected: " + this);
+    }
+  }
+
   /**
    * Sends a field value to a sink.
    */
