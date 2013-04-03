@@ -37,7 +37,8 @@ public enum Primitive {
   CHAR(Character.TYPE, Character.class, 2, true, Character.MIN_VALUE,
       Character.MAX_VALUE),
   SHORT(Short.TYPE, Short.class, 2, true, Short.MIN_VALUE, Short.MAX_VALUE),
-  INT(Integer.TYPE, Integer.class, 2, true, Short.MIN_VALUE, Short.MAX_VALUE),
+  INT(Integer.TYPE, Integer.class, 2, true, Integer.MIN_VALUE,
+      Integer.MAX_VALUE),
   LONG(Long.TYPE, Long.class, 2, true, Long.MIN_VALUE, Long.MAX_VALUE),
   FLOAT(Float.TYPE, Float.class, 3, false, Float.MIN_VALUE, Float.MAX_VALUE),
   DOUBLE(Double.TYPE, Double.class, 3, false, Double.MIN_VALUE,
@@ -719,9 +720,10 @@ public enum Primitive {
   }
 
   public boolean assignableFrom(Primitive primitive) {
-    return family == primitive.family && ordinal() >= primitive.ordinal() && !(
-        this == SHORT
-        && primitive == CHAR) && !(this == CHAR && primitive == BYTE);
+    return family == primitive.family
+        && ordinal() >= primitive.ordinal()
+        && !(this == SHORT && primitive == CHAR)
+        && !(this == CHAR && primitive == BYTE);
   }
 
   /** Creates a number value of this primitive's box type. For example,
