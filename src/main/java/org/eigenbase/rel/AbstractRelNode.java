@@ -110,13 +110,6 @@ public abstract class AbstractRelNode
 
     //~ Methods ----------------------------------------------------------------
 
-    public RelNode clone()
-    {
-        return copy(
-            getTraitSet(),
-            getInputs());
-    }
-
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         // Note that empty set equals empty set, so relational expressions
         // with zero inputs do not generally need to implement their own copy
@@ -136,11 +129,6 @@ public abstract class AbstractRelNode
     {
         assert collection.size() == 1;
         return collection.get(0);
-    }
-
-    public boolean isAccessTo(RelOptTable table)
-    {
-        return getTable() == table;
     }
 
     public RexNode [] getChildExps()

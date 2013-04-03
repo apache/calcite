@@ -121,14 +121,6 @@ public class RelSubset
         return best;
     }
 
-    /**
-     * A <code>RelSubSet</code> is its own clone.
-     */
-    public RelSubset clone()
-    {
-        return this;
-    }
-
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         throw new UnsupportedOperationException();
     }

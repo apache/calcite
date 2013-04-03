@@ -41,13 +41,13 @@ import org.eigenbase.rex.*;
  * physical attributes. The RelTraitSet always contains a {@link Convention}
  * describing how the expression passes data to its consuming
  * relational expression, but may contain other traits, including some applied
- * externally. Because traits can be applied externally, implementaitons of
+ * externally. Because traits can be applied externally, implementations of
  * RelNode should never assume the size or contents of their trait set (beyond
  * those traits configured by the RelNode itself).</p>
  *
  * <p>For each calling-convention, there is a corresponding sub-interface of
- * RelNode. For example, {@code net.hydromatic.optiq.rules.java.EnumerableRel} has operations to
- * manage the conversion to a graph of
+ * RelNode. For example, {@code net.hydromatic.optiq.rules.java.EnumerableRel}
+ * has operations to manage the conversion to a graph of
  * {@code net.hydromatic.optiq.rules.java.EnumerableConvention}
  * calling-convention, and it interacts with a
  * {@code EnumerableRelImplementor}.</p>
@@ -70,12 +70,6 @@ public interface RelNode
     extends RelOptNode, Cloneable
 {
     //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Returns whether this relational expression is an access to <code>
-     * table</code>.
-     */
-    public boolean isAccessTo(RelOptTable table);
 
     /**
      * Returns an array of this relational expression's child expressions (not
@@ -296,20 +290,6 @@ public interface RelNode
      * @post return != null
      */
     public List<RelCollation> getCollationList();
-
-    /**
-     * Clones this RelNode.
-     *
-     * <b>IMPORTANT.</b> This method must be overridden whenever an existing,
-     * concrete RelNode is extended. Otherwise, calling clone() will produce a
-     * differently typed RelNode, resulting in invalid or incorrect query plans.
-     * (Since many sub-classes implement this method by calling {@link #copy} or
-     * a variant of it, it is sufficient in those cases to override
-     * {@code copy}.)
-     *
-     * @return a clone of this RelNode
-     */
-    RelNode clone();
 
     /**
      * Creates a copy of this relational expression, perhaps changing traits and

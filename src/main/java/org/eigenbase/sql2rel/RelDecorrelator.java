@@ -207,7 +207,7 @@ public class RelDecorrelator
 
     public void decorrelateRelGeneric(RelNode rel)
     {
-        RelNode newRel = rel.clone();
+        RelNode newRel = rel.copy(rel.getTraitSet(), rel.getInputs());
 
         if (rel.getInputs().size() > 0) {
             List<RelNode> oldInputs = rel.getInputs();

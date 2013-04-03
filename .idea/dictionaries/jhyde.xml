@@ -5,6 +5,7 @@
       <w>accessors</w>
       <w>convertlet</w>
       <w>deserialization</w>
+      <w>hydromatic</w>
       <w>implementor</w>
       <w>initializers</w>
       <w>inlining</w>

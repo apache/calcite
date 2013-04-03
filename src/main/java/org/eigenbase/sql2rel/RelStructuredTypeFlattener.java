@@ -549,7 +549,7 @@ public class RelStructuredTypeFlattener
 
     public void rewriteGeneric(RelNode rel)
     {
-        RelNode newRel = rel.clone();
+        RelNode newRel = rel.copy(rel.getTraitSet(), rel.getInputs());
         List<RelNode> oldInputs = rel.getInputs();
         for (int i = 0; i < oldInputs.size(); ++i) {
             newRel.replaceInput(
