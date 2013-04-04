@@ -882,7 +882,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
                             }
                         };
                     }
-                });
+                }).execute();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

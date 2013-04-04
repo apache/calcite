@@ -130,7 +130,7 @@ public class OptiqResultSet implements ResultSet {
      * constructor occurs while the statement is locked, to make sure that
      * execute/cancel don't happen at the same time.</p>
      */
-    void execute() {
+    OptiqResultSet execute() {
         // Call driver's callback. It is permitted to throw a RuntimeException.
         final boolean autoTemp =
             ConnectionProperty.AUTO_TEMP.getBoolean(
@@ -151,6 +151,7 @@ public class OptiqResultSet implements ResultSet {
         for (Map.Entry<String, Integer> entry : columnNameMap.entrySet()) {
             accessorMap.put(entry.getKey(), accessorList.get(entry.getValue()));
         }
+        return this;
     }
 
     public boolean next() throws SQLException {

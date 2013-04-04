@@ -127,6 +127,29 @@ public class JdbcFrontJdbcBackTest extends TestCase {
             );
     }
 
+    /** Tests a JDBC method known to be not implemented (as it happens,
+     * {@link java.sql.DatabaseMetaData#getPrimaryKeys}) that therefore uses
+     * empty result set. */
+    public void testEmpty() throws Exception {
+        assertThat()
+            .with(OptiqAssert.Config.JDBC_FOODMART2)
+            .doWithConnection(
+                new Function1<OptiqConnection, Object>() {
+                    public Object apply(OptiqConnection a0) {
+                        try {
+                            ResultSet rset =
+                                a0.getMetaData().getPrimaryKeys(
+                                    null, null, "sales_fact_1997");
+                            assertFalse(rset.next());
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                        return null;
+                    }
+                }
+            );
+    }
+
     public void testCase() {
         assertThat()
             .with(OptiqAssert.Config.JDBC_FOODMART2)

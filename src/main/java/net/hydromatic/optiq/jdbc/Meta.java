@@ -128,7 +128,7 @@ public class Meta {
         final NamedFieldGetter columnGetter)
     {
         try {
-            OptiqResultSet x = connection.driver.factory.newResultSet(
+            return connection.driver.factory.newResultSet(
                 connection.createStatement(),
                 columnGetter.columnNames,
                 new Function0<Cursor>() {
@@ -136,9 +136,7 @@ public class Meta {
                         return columnGetter.cursor(
                             ((Enumerable) enumerable).enumerator());
                     }
-                });
-            x.execute();
-            return x;
+                }).execute();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
