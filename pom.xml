@@ -5,7 +5,7 @@
   <!-- The basics. -->
   <groupId>net.hydromatic</groupId>
   <artifactId>optiq</artifactId>
-  <version>0.3</version>
+  <version>0.3-wip-${build.number}</version>
   <packaging>jar</packaging>
 
   <!-- More project information. -->
