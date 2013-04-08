@@ -5,8 +5,15 @@
   <!-- The basics. -->
   <groupId>net.hydromatic</groupId>
   <artifactId>optiq</artifactId>
-  <version>0.3.1</version>
   <packaging>jar</packaging>
+
+  <!-- Version number. 1 of the 2 following lines should be commented
+       out. The version number committed to github should be
+       x.x-SNAPSHOT except, briefly, when making a release. -->
+<!--
+  <version>0.3.1</version>
+-->
+  <version>0.3-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>optiq</name>
