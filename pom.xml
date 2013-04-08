@@ -5,7 +5,7 @@
   <!-- The basics. -->
   <groupId>net.hydromatic</groupId>
   <artifactId>optiq</artifactId>
-  <version>0.3-wip-${build.number}</version>
+  <version>0.3.1</version>
   <packaging>jar</packaging>
 
   <!-- More project information. -->
@@ -97,7 +97,7 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>linq4j</artifactId>
-      <version>0.1</version>
+      <version>0.1.1</version>
     </dependency>
     <dependency>
       <groupId>org.jgrapht</groupId>
