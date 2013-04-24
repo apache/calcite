@@ -75,13 +75,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                 context.getRootSchema(),
                 context.getDefaultSchemaPath(),
                 typeFactory);
-        final OptiqPreparingStmt preparingStmt =
-            new OptiqPreparingStmt(
-                catalogReader,
-                typeFactory,
-                context.getRootSchema(),
-                EnumerableConvention.ARRAY,
-                createPlanner());
         SqlParser parser = new SqlParser(sql);
         SqlNode sqlNode;
         try {
@@ -113,8 +106,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
         planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
         planner.addRule(JavaRules.ENUMERABLE_ONE_ROW_RULE);
-        planner.addRule(JavaRules.ENUMERABLE_CUSTOM_TO_ARRAY_RULE);
-        planner.addRule(JavaRules.ENUMERABLE_ARRAY_TO_CUSTOM_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_CUSTOM_FROM_ARRAY_RULE);
+        planner.addRule(JavaRules.ENUMERABLE_ARRAY_FROM_CUSTOM_RULE);
         planner.addRule(JavaRules.EnumerableCustomCalcRule.INSTANCE);
         planner.addRule(TableAccessRule.instance);
         planner.addRule(PushFilterPastProjectRule.instance);
