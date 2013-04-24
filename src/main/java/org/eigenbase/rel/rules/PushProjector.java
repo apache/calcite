@@ -627,8 +627,7 @@ public class PushProjector
                 if (rightFields != null) {
                     totalFields += rightFields.size();
                 }
-                BitSet exprArgs = new BitSet(totalFields);
-                call.accept(new RelOptUtil.InputFinder(exprArgs));
+                final BitSet exprArgs = RelOptUtil.InputFinder.bits(call);
                 if (exprArgs.cardinality() > 0) {
                     if (RelOptUtil.contains(leftFields, exprArgs)) {
                         addExpr(preserveLeft, call);
@@ -649,7 +648,6 @@ public class PushProjector
 
         public Void visitInputRef(RexInputRef inputRef)
         {
-//            if ()
             rexRefs.set(inputRef.getIndex());
             return null;
         }

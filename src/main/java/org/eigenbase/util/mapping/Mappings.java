@@ -252,6 +252,22 @@ public abstract class Mappings
         };
     }
 
+    /** Returns a mapping as a list such that {@code list.get(source)} is
+     * {@code mapping.getTarget(source)} and {@code list.size()} is
+     * {@code mapping.getSourceCount()}. */
+    public static List<Integer> asList(final TargetMapping mapping) {
+        return new AbstractList<Integer>() {
+            public Integer get(int source) {
+                int target = mapping.getTargetOpt(source);
+                return target < 0 ? null : target;
+            }
+
+            public int size() {
+                return mapping.getSourceCount();
+            }
+        };
+    }
+
     //~ Inner Interfaces -------------------------------------------------------
 
     /**

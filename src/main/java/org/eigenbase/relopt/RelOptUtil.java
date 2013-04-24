@@ -979,16 +979,8 @@ public abstract class RelOptUtil
                 RexNode op0 = operands[0];
                 RexNode op1 = operands[1];
 
-                BitSet projRefs0 = new BitSet(totalFieldCount);
-                BitSet projRefs1 = new BitSet(totalFieldCount);
-
-                RelOptUtil.InputFinder inputFinder0 =
-                    new RelOptUtil.InputFinder(projRefs0);
-                RelOptUtil.InputFinder inputFinder1 =
-                    new RelOptUtil.InputFinder(projRefs1);
-
-                op0.accept(inputFinder0);
-                op1.accept(inputFinder1);
+                final BitSet projRefs0 = RelOptUtil.InputFinder.bits(op0);
+                final BitSet projRefs1 = RelOptUtil.InputFinder.bits(op1);
 
                 if ((projRefs0.nextSetBit(firstRightField) < 0)
                     && (projRefs1.nextSetBit(firstLeftField)
@@ -1059,16 +1051,12 @@ public abstract class RelOptUtil
                 && ((leftKey == null) || (rightKey == null)))
             {
                 // no equality join keys found yet:
-                // try tranforming the condition to
+                // try transforming the condition to
                 // equality "join" conditions, e.g.
                 //     f(LHS) > 0 ===> ( f(LHS) > 0 ) = TRUE,
                 // and make the RHS produce TRUE, but only if we're strictly
                 // looking for equi-joins
-                BitSet projRefs = new BitSet(totalFieldCount);
-                RelOptUtil.InputFinder inputFinder =
-                    new RelOptUtil.InputFinder(projRefs);
-
-                condition.accept(inputFinder);
+                final BitSet projRefs = RelOptUtil.InputFinder.bits(condition);
                 leftKey = null;
                 rightKey = null;
 
@@ -1864,18 +1852,27 @@ public abstract class RelOptUtil
         RexNode rexPredicate,
         List<RexNode> rexList)
     {
-        if (rexPredicate == null) {
+        if (rexPredicate == null || rexPredicate.isAlwaysTrue()) {
             return;
         }
         if (rexPredicate.isA(RexKind.And)) {
-            final RexNode [] operands = ((RexCall) rexPredicate).getOperands();
-            for (int i = 0; i < operands.length; i++) {
-                RexNode operand = operands[i];
+            for (RexNode operand : ((RexCall) rexPredicate).getOperands()) {
                 decomposeConjunction(operand, rexList);
             }
         } else {
             rexList.add(rexPredicate);
         }
+    }
+
+    /**
+     * Returns condition decomposed by AND.
+     *
+     * <p>For example, {@code conjunctions(TRUE)} returns the empty list.</p>
+     */
+    public static List<RexNode> conjunctions(RexNode rexPredicate) {
+        final List<RexNode> list = new ArrayList<RexNode>();
+        decomposeConjunction(rexPredicate, list);
+        return list;
     }
 
     /**
@@ -1911,6 +1908,30 @@ public abstract class RelOptUtil
             left = rexBuilder.makeLiteral(true);
         }
         return left;
+    }
+
+    /** Combines a collection of predicates using AND. Returns TRUE if the
+     * collection is empty. */
+    public static RexNode composeConjunction(
+        RexBuilder rexBuilder,
+        List<RexNode> nodes)
+    {
+        RexNode node = null;
+        for (RexNode node1 : nodes) {
+            if (node1.isAlwaysTrue()) {
+                continue;
+            }
+            if (node == null) {
+                node = node1;
+            } else {
+                node =
+                    rexBuilder.makeCall(
+                        SqlStdOperatorTable.andOperator,
+                        node,
+                        node1);
+            }
+        }
+        return node == null ? rexBuilder.makeLiteral(true) : node;
     }
 
     /**
@@ -2010,8 +2031,7 @@ public abstract class RelOptUtil
         while (filterIter.hasNext()) {
             RexNode filter = filterIter.next();
 
-            BitSet filterBitmap = new BitSet(nTotalFields);
-            filter.accept(new InputFinder(filterBitmap));
+            final BitSet filterBitmap = InputFinder.bits(filter);
 
             // REVIEW - are there any expressions that need special handling
             // and therefore cannot be pushed?
@@ -2092,18 +2112,13 @@ public abstract class RelOptUtil
         List<RexNode> pushable,
         List<RexNode> notPushable)
     {
-        // convert the filter to a list
-        List<RexNode> filterList = new ArrayList<RexNode>();
-        RelOptUtil.decomposeConjunction(predicate, filterList);
-
         // for each filter, if the filter only references the child inputs,
         // then it can be pushed
         BitSet childBitmap = new BitSet(nChildFields);
         RelOptUtil.setRexInputBitmap(childBitmap, 0, nChildFields);
-        for (RexNode filter : filterList) {
-            BitSet filterRefs = new BitSet();
-            filter.accept(new RelOptUtil.InputFinder(filterRefs));
-            if (RelOptUtil.contains(childBitmap, filterRefs)) {
+        for (RexNode filter : conjunctions(predicate)) {
+            BitSet filterRefs = RelOptUtil.InputFinder.bits(filter);
+            if (contains(childBitmap, filterRefs)) {
                 pushable.add(filter);
             } else {
                 notPushable.add(filter);
@@ -2313,8 +2328,7 @@ public abstract class RelOptUtil
         // the post-join filter.  Since the filter effectively sits in
         // between the ProjectRel and the MultiJoinRel, the projection needs
         // to include those filter references.
-        BitSet inputRefs = new BitSet(multiJoin.getRowType().getFieldCount());
-        new RelOptUtil.InputFinder(inputRefs).apply(
+        BitSet inputRefs = InputFinder.bits(
             project.getProjectExps(),
             multiJoin.getPostJoinFilter());
 
@@ -2497,19 +2511,25 @@ public abstract class RelOptUtil
             this.extraFields = extraFields;
         }
 
+        /** Returns a bit set describing the inputs used by an expression. */
+        public static BitSet bits(RexNode node) {
+            final BitSet inputBitSet = new BitSet();
+            node.accept(new InputFinder(inputBitSet));
+            return inputBitSet;
+        }
+
+        /** Returns a bit set describing the inputs used by a collection of
+         * project expressions and an optional condition. */
+        public static BitSet bits(RexNode [] exprs, RexNode expr) {
+            final BitSet inputBitSet = new BitSet();
+            RexProgram.apply(new InputFinder(inputBitSet), exprs, expr);
+            return inputBitSet;
+        }
+
         public Void visitInputRef(RexInputRef inputRef)
         {
             rexRefSet.set(inputRef.getIndex());
             return null;
-        }
-
-        /**
-         * Applies this visitor to an array of expressions and an optional
-         * single expression.
-         */
-        public void apply(RexNode [] exprs, RexNode expr)
-        {
-            RexProgram.apply(this, exprs, expr);
         }
 
         @Override

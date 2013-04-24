@@ -86,7 +86,7 @@ public class RexPermuteInputsShuttle
                 return new RexInputRef(i, fields.get(i).getType());
             }
         }
-        return call;
+        return super.visitCall(call);
     }
 
     private static int lookup(List<RelDataTypeField> fields, String name) {

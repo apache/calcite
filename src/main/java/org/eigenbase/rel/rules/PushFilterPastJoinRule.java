@@ -84,10 +84,8 @@ public class PushFilterPastJoinRule
             joinRel = (JoinRel) call.rels[1];
         }
 
-        List<RexNode> joinFilters = new ArrayList<RexNode>();
-        RelOptUtil.decomposeConjunction(
-            joinRel.getCondition(),
-            joinFilters);
+        final List<RexNode> joinFilters =
+            RelOptUtil.conjunctions(joinRel.getCondition());
 
         if (filterRel == null) {
             // There is only the joinRel
@@ -107,13 +105,10 @@ public class PushFilterPastJoinRule
             }
         }
 
-        List<RexNode> aboveFilters = new ArrayList<RexNode>();
-
-        if (filterRel != null) {
-            RelOptUtil.decomposeConjunction(
-                filterRel.getCondition(),
-                aboveFilters);
-        }
+        final List<RexNode> aboveFilters =
+            filterRel != null
+                ? RelOptUtil.conjunctions(filterRel.getCondition())
+                : Collections.<RexNode>emptyList();
 
         List<RexNode> leftFilters = new ArrayList<RexNode>();
         List<RexNode> rightFilters = new ArrayList<RexNode>();
@@ -124,11 +119,9 @@ public class PushFilterPastJoinRule
         // (t1.a = 1 OR t1.b = 3)
         // (t2.a = 2 OR t2.b = 4)
 
-        /*
-         * Try to push down above filters. These are typically where clause
-         * filters. They can be pushed down if they are not on the NULL
-         * generating side.
-         */
+        // Try to push down above filters. These are typically where clause
+        // filters. They can be pushed down if they are not on the NULL
+        // generating side.
         boolean filterPushed = false;
         if (RelOptUtil.classifyFilters(
                 joinRel,
@@ -143,11 +136,9 @@ public class PushFilterPastJoinRule
             filterPushed = true;
         }
 
-        /*
-         * Try to push down filters in ON clause. A ON clause filter can only be
-         * pushed down if it does not affect the non-matching set, i.e. it is
-         * not on the side which is preserved.
-         */
+        // Try to push down filters in ON clause. A ON clause filter can only be
+        // pushed down if it does not affect the non-matching set, i.e. it is
+        // not on the side which is preserved.
         if (RelOptUtil.classifyFilters(
                 joinRel,
                 joinFilters,

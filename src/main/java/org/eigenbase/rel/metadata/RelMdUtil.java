@@ -536,27 +536,16 @@ public class RelMdUtil
         RexNode pred1,
         RexNode pred2)
     {
-        List<RexNode> list1 = new ArrayList<RexNode>();
-        List<RexNode> list2 = new ArrayList<RexNode>();
-        List<RexNode> unionList = new ArrayList<RexNode>();
-        RelOptUtil.decomposeConjunction(pred1, list1);
-        RelOptUtil.decomposeConjunction(pred2, list2);
+        final List<RexNode> unionList = new ArrayList<RexNode>();
+        final Set<String> strings = new HashSet<String>();
 
-        for (RexNode rex : list1) {
-            unionList.add(rex);
-        }
-        for (RexNode rex2 : list2) {
-            boolean add = true;
-            for (RexNode rex1 : list1) {
-                if (rex2.toString().compareTo(rex1.toString()) == 0) {
-                    add = false;
-                    break;
-                }
-                if (!add) {
-                    break;
-                }
+        for (RexNode rex : RelOptUtil.conjunctions(pred1)) {
+            if (strings.add(rex.toString())) {
+                unionList.add(rex);
             }
-            if (add) {
+        }
+        for (RexNode rex2 : RelOptUtil.conjunctions(pred2)) {
+            if (strings.add(rex2.toString())) {
                 unionList.add(rex2);
             }
         }
@@ -638,10 +627,10 @@ public class RelMdUtil
      * Forms two bitmaps by splitting the columns in a bitmap according to
      * whether or not the column references the child input or is an expression
      *
-     * @param projExprs
-     * @param groupKey bitmap whose columns will be split
-     * @param baseCols bitmap representing columns from the child input
-     * @param projCols bitmap representing non-child columns
+     * @param projExprs Project expressions
+     * @param groupKey Bitmap whose columns will be split
+     * @param baseCols Bitmap representing columns from the child input
+     * @param projCols Bitmap representing non-child columns
      */
     public static void splitCols(
         RexNode [] projExprs,
