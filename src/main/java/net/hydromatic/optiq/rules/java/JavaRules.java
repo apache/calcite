@@ -483,15 +483,25 @@ public class JavaRules {
         }
     }
 
-    public static final ConverterRule ENUMERABLE_ARRAY_TO_CUSTOM_RULE =
+    public static final ConverterRule ENUMERABLE_ARRAY_FROM_CUSTOM_RULE =
         new EnumerableConverterRule(
             EnumerableConvention.ARRAY,
             EnumerableConvention.CUSTOM);
 
-    public static final ConverterRule ENUMERABLE_CUSTOM_TO_ARRAY_RULE =
+    public static final ConverterRule ENUMERABLE_CUSTOM_FROM_ARRAY_RULE =
         new EnumerableConverterRule(
             EnumerableConvention.CUSTOM,
             EnumerableConvention.ARRAY);
+
+    /** @deprecated Name is misleading.
+     * Use {@link #ENUMERABLE_CUSTOM_FROM_ARRAY_RULE}. */
+    public static final ConverterRule ENUMERABLE_CUSTOM_TO_ARRAY_RULE =
+        ENUMERABLE_CUSTOM_FROM_ARRAY_RULE;
+
+    /** @deprecated Name is misleading.
+     * Use {@link #ENUMERABLE_CUSTOM_FROM_ARRAY_RULE}. */
+    public static final ConverterRule ENUMERABLE_ARRAY_TO_CUSTOM_RULE =
+        ENUMERABLE_ARRAY_FROM_CUSTOM_RULE;
 
     /**
      * Rule to convert a relational expression from
