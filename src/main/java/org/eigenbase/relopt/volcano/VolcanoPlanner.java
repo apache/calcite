@@ -155,6 +155,11 @@ public class VolcanoPlanner
      */
     private String originalRootString;
 
+    /**
+     * Whether the planner can accept new rules.
+     */
+    private boolean locked;
+
     //~ Constructors -----------------------------------------------------------
 
     /**
@@ -247,6 +252,9 @@ public class VolcanoPlanner
 
     public boolean addRule(RelOptRule rule)
     {
+        if (locked) {
+            return false;
+        }
         if (ruleSet.contains(rule)) {
             // Rule already exists.
             return false;
@@ -1431,6 +1439,17 @@ SUBSET_LOOP:
             final String token = matcher.group(); // e.g. "Subset#23."
             plan = plan.replace(token, "Subset#{" + i++ + "}.");
         }
+    }
+
+    /**
+     * Sets whether this planner is locked. A locked planner does not accept
+     * new rules. {@link #addRule(org.eigenbase.relopt.RelOptRule)} will do
+     * nothing and return false.
+     *
+     * @param locked Whether planner is locked
+     */
+    public void setLocked(boolean locked) {
+        this.locked = locked;
     }
 
     //~ Inner Classes ----------------------------------------------------------

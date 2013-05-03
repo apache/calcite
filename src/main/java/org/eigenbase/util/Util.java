@@ -2135,6 +2135,12 @@ public class Util
         return true;
     }
 
+    /** Returns the last element of a list. Throws if the list is empty or
+     * null. */
+    public static <T> T last(List<T> list) {
+        return list.get(list.size() - 1);
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     /**

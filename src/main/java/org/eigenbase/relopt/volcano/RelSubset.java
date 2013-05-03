@@ -383,7 +383,7 @@ public class RelSubset
                     pw.flush();
                     final String dump = sw.toString();
                     RuntimeException e =
-                        new RuntimeException(dump);
+                        new RelOptPlanner.CannotPlanException(dump);
                     tracer.throwing(
                         getClass().getName(),
                         "visit",

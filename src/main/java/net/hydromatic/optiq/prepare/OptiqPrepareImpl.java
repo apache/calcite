@@ -19,6 +19,7 @@ package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
+import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
@@ -90,9 +91,31 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             sql, sqlNode1, validator.getValidatedNodeType(sqlNode1));
     }
 
+    /** Creates a collection of planner factories.
+     *
+     * <p>The collection must have at least one factory, and each factory must
+     * create a planner. If the collection has more than one planner, Optiq will
+     * try each planner in turn.</p>
+     *
+     * <p>One of the things you can do with this mechanism is to try a simpler,
+     * faster, planner with a smaller rule set first, then fall back to a more
+     * complex planner for complex and costly queries.</p>
+     *
+     * <p>The default implementation returns a factory that calls
+     * {@link #createPlanner()}.</p> */
+    protected List<Function0<RelOptPlanner>> createPlannerFactories() {
+        return Collections.<Function0<RelOptPlanner>>singletonList(
+            new Function0<RelOptPlanner>() {
+                public RelOptPlanner apply() {
+                    return createPlanner();
+                }
+            }
+        );
+    }
+
     /** Creates a query planner and initializes it with a default set of
      * rules. */
-    protected VolcanoPlanner createPlanner() {
+    protected RelOptPlanner createPlanner() {
         final VolcanoPlanner planner = new VolcanoPlanner();
         planner.addRelTraitDef(ConventionTraitDef.instance);
         RelOptUtil.registerAbstractRels(planner);
@@ -148,6 +171,38 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                 context.getRootSchema(),
                 context.getDefaultSchemaPath(),
                 typeFactory);
+        final List<Function0<RelOptPlanner>> plannerFactories =
+            createPlannerFactories();
+        if (plannerFactories.isEmpty()) {
+            throw new AssertionError("no planner factories");
+        }
+        RuntimeException exception = new RuntimeException();
+        for (Function0<RelOptPlanner> plannerFactory : plannerFactories) {
+            final RelOptPlanner planner = plannerFactory.apply();
+            if (planner == null) {
+                throw new AssertionError("factory returned null planner");
+            }
+            try {
+                return prepare2_(
+                    context, sql, queryable, elementType, maxRowCount,
+                    catalogReader, planner);
+            } catch (RelOptPlanner.CannotPlanException e) {
+                exception = e;
+            }
+        }
+        throw exception;
+    }
+
+    <T> PrepareResult<T> prepare2_(
+        Context context,
+        String sql,
+        Queryable<T> queryable,
+        Type elementType,
+        int maxRowCount,
+        OptiqCatalogReader catalogReader,
+        RelOptPlanner planner)
+    {
+        final JavaTypeFactory typeFactory = context.getTypeFactory();
         final EnumerableConvention convention;
         if (elementType == Object[].class) {
             convention = EnumerableConvention.ARRAY;
@@ -160,7 +215,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                 typeFactory,
                 context.getRootSchema(),
                 convention,
-                createPlanner());
+                planner);
 
         final RelDataType x;
         final Prepare.PreparedResult preparedResult;
@@ -285,7 +340,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             RelDataTypeFactory typeFactory,
             Schema schema,
             Convention resultConvention,
-            VolcanoPlanner planner)
+            RelOptPlanner planner)
         {
             super(catalogReader, resultConvention);
             this.schema = schema;

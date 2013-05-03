@@ -26,6 +26,7 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 
 /**
@@ -284,12 +285,8 @@ public class SqlCaseOperator
             thenTypes.add(argTypes.get(j));
         }
 
-        thenTypes.add(last(argTypes));
+        thenTypes.add(Util.last(argTypes));
         return typeFactory.leastRestrictive(thenTypes);
-    }
-
-    private static <T> T last(List<T> list) {
-        return list.get(list.size() - 1);
     }
 
     public SqlOperandCountRange getOperandCountRange()
