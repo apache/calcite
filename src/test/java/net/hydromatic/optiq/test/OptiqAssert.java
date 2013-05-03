@@ -229,7 +229,7 @@ public class OptiqAssert {
                             optiqConnection.getRootSchema();
                         ReflectiveSchema.create(
                             optiqConnection, rootSchema, name, schema);
-                        connection.setSchema(name);
+                        optiqConnection.setSchema(name);
                         return optiqConnection;
                     }
                 });
