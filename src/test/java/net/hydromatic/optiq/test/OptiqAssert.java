@@ -28,6 +28,7 @@ import net.hydromatic.optiq.runtime.Hook;
 import junit.framework.Assert;
 import junit.framework.TestSuite;
 
+import org.eigenbase.sql.parser.SqlParserTest;
 import org.eigenbase.sql.test.SqlOperatorTest;
 import org.eigenbase.test.*;
 import org.eigenbase.util.Util;
@@ -76,6 +77,7 @@ public class OptiqAssert {
         testSuite.addTestSuite(SqlFunctionsTest.class);
         testSuite.addTestSuite(SqlOperatorTest.class);
         testSuite.addTestSuite(OptiqSqlOperatorTest.class);
+        testSuite.addTestSuite(SqlParserTest.class);
         testSuite.addTestSuite(ModelTest.class);
         testSuite.addTestSuite(RexProgramTest.class);
         testSuite.addTestSuite(RexTransformerTest.class);
