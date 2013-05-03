@@ -237,7 +237,11 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                     true,
                     false,
                     false,
-                    null));
+                    null,
+                    (Class) typeFactory.getJavaClass(
+                        x.isStruct()
+                            ? x.getFieldList().get(pair.i).getType()
+                            : type)));
         }
         Enumerable<T> enumerable =
             (Enumerable<T>) preparedResult.execute();

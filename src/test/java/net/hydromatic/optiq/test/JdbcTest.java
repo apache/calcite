@@ -21,11 +21,9 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Predicate1;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.AbstractTable;
-import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
@@ -56,12 +54,6 @@ import javax.sql.DataSource;
  * @author jhyde
  */
 public class JdbcTest extends TestCase {
-    public static final Method LINQ4J_AS_ENUMERABLE_METHOD =
-        Types.lookupMethod(
-            Linq4j.class,
-            "asEnumerable",
-            Object[].class);
-
     public static final Method GENERATE_STRINGS_METHOD =
         Types.lookupMethod(
             JdbcTest.class, "generateStrings", Integer.TYPE);
@@ -85,92 +77,6 @@ public class JdbcTest extends TestCase {
             buf.append("\n");
         }
         return buf.toString();
-    }
-
-    /**
-     * Test that uses a JDBC connection as a linq4j {@link QueryProvider}.
-     *
-     * @throws Exception on error
-     */
-    public void testQueryProvider() throws Exception {
-        Connection connection = getConnection("hr", "foodmart");
-        QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
-        ParameterExpression e = Expressions.parameter(Employee.class, "e");
-
-        // "Enumerable<T> asEnumerable(final T[] ts)"
-        List<Object[]> list =
-            queryProvider.createQuery(
-                Expressions.call(
-                    Expressions.call(
-                        Types.of(
-                            Enumerable.class,
-                            Employee.class),
-                        null,
-                        LINQ4J_AS_ENUMERABLE_METHOD,
-                        Arrays.<Expression>asList(
-                            Expressions.constant(new HrSchema().emps))),
-                    "asQueryable",
-                    Collections.<Expression>emptyList()),
-                Employee.class)
-                .where(
-                    Expressions.<Predicate1<Employee>>lambda(
-                        Expressions.lessThan(
-                            Expressions.field(
-                                e, "empid"),
-                            Expressions.constant(160)),
-                        Arrays.asList(e)))
-                .where(
-                    Expressions.<Predicate1<Employee>>lambda(
-                        Expressions.greaterThan(
-                            Expressions.field(
-                                e, "empid"),
-                            Expressions.constant(140)),
-                        Arrays.asList(e)))
-                .select(
-                    Expressions.<Function1<Employee, Object[]>>lambda(
-                        Expressions.new_(
-                            Object[].class,
-                            Arrays.<Expression>asList(
-                                Expressions.field(
-                                    e, "empid"),
-                                Expressions.call(
-                                    Expressions.field(
-                                        e, "name"),
-                                    "toUpperCase",
-                                    Collections.<Expression>emptyList()))),
-                        Arrays.asList(e)))
-                .toList();
-        assertEquals(1, list.size());
-        assertEquals(2, list.get(0).length);
-        assertEquals(150, list.get(0)[0]);
-        assertEquals("SEBASTIAN", list.get(0)[1]);
-    }
-
-    public void testQueryProviderSingleColumn() throws Exception {
-        Connection connection = getConnection("hr", "foodmart");
-        QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
-        ParameterExpression e = Expressions.parameter(Employee.class, "e");
-
-        // "Enumerable<T> asEnumerable(final T[] ts)"
-        List<Integer> list =
-            queryProvider.createQuery(
-                Expressions.call(
-                    Expressions.call(
-                        Types.of(
-                            Enumerable.class, Employee.class),
-                        null,
-                        LINQ4J_AS_ENUMERABLE_METHOD,
-                        Arrays.<Expression>asList(
-                            Expressions.constant(new HrSchema().emps))),
-                    "asQueryable",
-                    Collections.<Expression>emptyList()), Employee.class)
-                .select(
-                    Expressions.<Function1<Employee, Integer>>lambda(
-                        Expressions.field(
-                            e, "empid"),
-                        Arrays.asList(e)))
-                .toList();
-        assertEquals(Arrays.asList(100, 200, 150), list);
     }
 
     /**
@@ -237,67 +143,6 @@ public class JdbcTest extends TestCase {
                 };
             }
         };
-    }
-
-    /**
-     * Tests a relation that is accessed via method syntax.
-     * The function returns a {@link Queryable}.
-     */
-    public void _testOperator() throws SQLException, ClassNotFoundException {
-        Class.forName("net.hydromatic.optiq.jdbc.Driver");
-        Connection connection =
-            DriverManager.getConnection("jdbc:optiq:");
-        OptiqConnection optiqConnection =
-            connection.unwrap(OptiqConnection.class);
-        JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-        MutableSchema rootSchema = optiqConnection.getRootSchema();
-        MapSchema schema = MapSchema.create(optiqConnection, rootSchema, "s");
-        schema.addTableFunction(
-            "GenerateStrings",
-            Schemas.methodMember(
-                GENERATE_STRINGS_METHOD, typeFactory));
-        schema.addTableFunction(
-            "StringUnion",
-            Schemas.methodMember(
-                STRING_UNION_METHOD, typeFactory));
-        ReflectiveSchema.create(
-            optiqConnection, rootSchema, "hr", new HrSchema());
-        ResultSet resultSet = connection.createStatement().executeQuery(
-            "select *\n"
-            + "from table(s.StringUnion(\n"
-            + "  GenerateStrings(5),\n"
-            + "  cursor (select name from emps)))\n"
-            + "where char_length(s) > 3");
-        assertTrue(resultSet.next());
-    }
-
-    /**
-     * Tests a view.
-     */
-    public void testView() throws SQLException, ClassNotFoundException {
-        Class.forName("net.hydromatic.optiq.jdbc.Driver");
-        Connection connection =
-            DriverManager.getConnection("jdbc:optiq:");
-        OptiqConnection optiqConnection =
-            connection.unwrap(OptiqConnection.class);
-        MutableSchema rootSchema = optiqConnection.getRootSchema();
-        MapSchema schema = MapSchema.create(optiqConnection, rootSchema, "s");
-        schema.addTableFunction(
-            "emps_view",
-            ViewTable.viewFunction(
-                schema,
-                "emps_view",
-                "select * from \"hr\".\"emps\" where \"deptno\" = 10",
-                Collections.<String>emptyList()));
-        ReflectiveSchema.create(
-            optiqConnection, rootSchema, "hr", new HrSchema());
-        ResultSet resultSet = connection.createStatement().executeQuery(
-            "select *\n"
-            + "from \"s\".\"emps_view\"\n"
-            + "where \"empid\" < 120");
-        assertEquals(
-            "empid=100; deptno=10; name=Bill; commission=1000\n",
-            toString(resultSet));
     }
 
     static OptiqConnection getConnection(String... schema)
@@ -693,7 +538,7 @@ public class JdbcTest extends TestCase {
                     expected = queries[++i];
                 }
                 // uncomment to run specific queries:
-                if (i != 85) continue;
+//                if (i != 85) continue;
                 final OptiqAssert.AssertQuery query1 = with.query(query);
                 if (expected != null) {
                     query1.returns(expected);
@@ -902,6 +747,7 @@ public class JdbcTest extends TestCase {
                 }
             );
     }
+
     /** Tests a JDBC connection that provides a model (a single schema based on
      * a JDBC database). */
     public void testModel() {

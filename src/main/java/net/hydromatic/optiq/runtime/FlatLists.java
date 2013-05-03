@@ -472,7 +472,7 @@ public class FlatLists {
         }
     }
 
-    private static class ComparableList<T extends Comparable<T>>
+    static class ComparableList<T extends Comparable<T>>
         extends AbstractList<T>
         implements Comparable<List<T>>
     {
@@ -491,18 +491,24 @@ public class FlatLists {
         }
 
         public int compareTo(List<T> o) {
-            int size = size();
-            if (o.size() == size) {
-                return compare(this, o, size);
+            return compare(list, o);
+        }
+
+        static <T extends Comparable<T>>
+        int compare(List<T> list0, List<T> list1) {
+            final int size0 = list0.size();
+            final int size1 = list1.size();
+            if (size1 == size0) {
+                return compare(list0, list1, size0);
             }
-            final int c = compare(this, o, Math.min(size(), o.size()));
+            final int c = compare(list0, list1, Math.min(size0, size1));
             if (c != 0) {
                 return c;
             }
-            return size() - o.size();
+            return size0 - size1;
         }
 
-        private static <T extends Comparable>
+        static <T extends Comparable>
         int compare(List<T> list0, List<T> list1, int size) {
             for (int i = 0; i < size; i++) {
                 Comparable o0 = list0.get(i);

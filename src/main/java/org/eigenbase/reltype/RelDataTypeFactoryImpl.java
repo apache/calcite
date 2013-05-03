@@ -521,36 +521,20 @@ public abstract class RelDataTypeFactoryImpl
         extends RelDataTypeImpl
     {
         private final Class clazz;
-        private boolean isNullable;
+        private final boolean nullable;
         private SqlCollation collation;
         private Charset charset;
 
         public JavaType(Class clazz)
         {
-            super(fieldsOf(clazz));
-            this.clazz = clazz;
-
-            isNullable =
-                clazz.equals(Integer.class)
-                || clazz.equals(Long.class)
-                || clazz.equals(Short.class)
-                || clazz.equals(Integer.class)
-                || clazz.equals(Byte.class)
-                || clazz.equals(Double.class)
-                || clazz.equals(Float.class)
-                || clazz.equals(Boolean.class)
-                || clazz.equals(byte [].class)
-                || clazz.equals(String.class);
-            computeDigest();
+            this(clazz, !clazz.isPrimitive());
         }
 
         public JavaType(
             Class clazz,
             boolean nullable)
         {
-            this(clazz);
-            this.isNullable = nullable;
-            computeDigest();
+            this(clazz, nullable, null, null);
         }
 
         public JavaType(
@@ -559,11 +543,11 @@ public abstract class RelDataTypeFactoryImpl
             Charset charset,
             SqlCollation collation)
         {
-            this(clazz);
-            Util.pre(
-                SqlTypeUtil.inCharFamily(this),
-                "Need to be a chartype");
-            this.isNullable = nullable;
+            super(fieldsOf(clazz));
+            this.clazz = clazz;
+            this.nullable = nullable;
+            assert (charset != null) == SqlTypeUtil.inCharFamily(this)
+                : "Need to be a chartype";
             this.charset = charset;
             this.collation = collation;
             computeDigest();
@@ -576,7 +560,7 @@ public abstract class RelDataTypeFactoryImpl
 
         public boolean isNullable()
         {
-            return isNullable;
+            return nullable;
         }
 
         protected void generateTypeString(StringBuilder sb, boolean withDetail)

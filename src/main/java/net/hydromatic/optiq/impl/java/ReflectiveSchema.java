@@ -18,9 +18,7 @@
 package net.hydromatic.optiq.impl.java;
 
 import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.Types;
+import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
@@ -28,10 +26,7 @@ import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.eigenbase.reltype.RelDataType;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -62,10 +57,14 @@ public class ReflectiveSchema
         this.target = target;
         for (Field field : clazz.getFields()) {
             final String name = field.getName();
+            final Table<Object> table = fieldRelation(field);
+            if (table == null) {
+                continue;
+            }
             tableMap.put(
                 name,
                 new TableInSchemaImpl(
-                    this, name, TableType.TABLE, fieldRelation(field)));
+                    this, name, TableType.TABLE, table));
         }
         for (Method method : clazz.getMethods()) {
             if (method.getDeclaringClass() == Object.class) {
@@ -191,8 +190,13 @@ public class ReflectiveSchema
                 BuiltinMethod.GET_TARGET.method));
     }
 
+    /** Returns a table based on a particular field of this schema. If the
+     * field is not of the right type to be a relation, returns null. */
     private <T> Table<T> fieldRelation(final Field field) {
         final Type elementType = getElementType(field.getType());
+        if (elementType == null) {
+            return null;
+        }
         final RelDataType relDataType = typeFactory.createType(elementType);
         return new ReflectiveTable<T>(
             this,
@@ -226,25 +230,43 @@ public class ReflectiveSchema
         if (clazz.isArray()) {
             return clazz.getComponentType();
         }
-        if (Iterable.class.isInstance(clazz)) {
+        if (Iterable.class.isAssignableFrom(clazz)) {
             return Object.class;
         }
         return null; // not a collection/array/iterable
     }
 
-    private static Enumerable toEnumerable(Object o) {
+    private static Enumerable toEnumerable(final Object o) {
         if (o.getClass().isArray()) {
             if (o instanceof Object[]) {
                 return Linq4j.asEnumerable((Object[]) o);
+            } else {
+                return Linq4j.asEnumerable(Primitive.asList(o));
             }
-            // TODO: adapter for primitive arrays, e.g. float[].
-            throw new UnsupportedOperationException();
         }
         if (o instanceof Iterable) {
             return Linq4j.asEnumerable((Iterable) o);
         }
         throw new RuntimeException(
             "Cannot convert " + o.getClass() + " into a Enumerable");
+    }
+
+    private static List primitiveArrayAsList(
+        final Object o, final Primitive primitive)
+    {
+        return new AbstractList() {
+            final int length = Array.getLength(o);
+
+            @Override
+            public Object get(int index) {
+                return primitive.arrayItem(o, index);
+            }
+
+            @Override
+            public int size() {
+                return length;
+            }
+        };
     }
 
     private static abstract class ReflectiveTable<T>

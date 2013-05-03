@@ -93,7 +93,9 @@ public abstract class RelDataTypeImpl
             }
         }
         // Extra field
-        if (fields[fields.length - 1].getName().equals("_extra")) {
+        if (fields.length > 0
+            && fields[fields.length - 1].getName().equals("_extra"))
+        {
             return new RelDataTypeFieldImpl(
                 fieldName,
                 -1,

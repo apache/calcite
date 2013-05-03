@@ -443,7 +443,7 @@ public class Meta {
                             : DatabaseMetaData.columnNoNulls,
                         true, -1, name, name, null,
                         0, 0, null, null, Types.VARCHAR, "VARCHAR", true,
-                        false, false, null));
+                        false, false, null, field.getType()));
                 fields.add(field);
             }
         }

@@ -20,8 +20,7 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Linq4j;
 
-import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
@@ -210,8 +209,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
         final List<JdbcTest.Employee> employees =
             new ArrayList<JdbcTest.Employee>();
         OptiqAssert.AssertThat with = mutable(employees);
-        with
-            .query("select * from \"foo\".\"bar\"")
+        with.query("select * from \"foo\".\"bar\"")
             .returns("empid=0; deptno=0; name=first; commission=null\n");
         with.query("insert into \"foo\".\"bar\" select * from \"hr\".\"emps\"")
             .returns("ROWCOUNT=3\n");

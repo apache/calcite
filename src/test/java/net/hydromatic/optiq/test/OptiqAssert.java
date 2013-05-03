@@ -19,6 +19,8 @@ package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.function.Function1;
 
+import net.hydromatic.optiq.MutableSchema;
+import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcQueryProvider;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.Hook;
@@ -26,7 +28,6 @@ import net.hydromatic.optiq.runtime.Hook;
 import junit.framework.Assert;
 import junit.framework.TestSuite;
 
-import org.eigenbase.relopt.volcano.VolcanoPlannerTraitTest;
 import org.eigenbase.sql.test.SqlOperatorTest;
 import org.eigenbase.test.*;
 import org.eigenbase.util.Util;
@@ -34,7 +35,10 @@ import org.eigenbase.util.Util;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.*;
-import java.util.Properties;
+import java.sql.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * Fluid DSL for testing Optiq connections and queries.
@@ -42,6 +46,19 @@ import java.util.Properties;
  * @author jhyde
  */
 public class OptiqAssert {
+    private static final DateFormat UTC_DATE_FORMAT;
+    private static final DateFormat UTC_TIME_FORMAT;
+    private static final DateFormat UTC_TIMESTAMP_FORMAT;
+    static {
+        final TimeZone utc = TimeZone.getTimeZone("UTC");
+        UTC_DATE_FORMAT = new SimpleDateFormat("YYYY-MM-dd");
+        UTC_DATE_FORMAT.setTimeZone(utc);
+        UTC_TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
+        UTC_TIME_FORMAT.setTimeZone(utc);
+        UTC_TIMESTAMP_FORMAT = new SimpleDateFormat("YYYY-MM-dd'T'HH:mm:ss'Z'");
+        UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
+    }
+
     public static AssertThat assertThat() {
         return new AssertThat(Config.REGULAR);
     }
@@ -50,6 +67,7 @@ public class OptiqAssert {
     public static TestSuite suite() {
         TestSuite testSuite = new TestSuite();
         testSuite.addTestSuite(JdbcTest.class);
+        testSuite.addTestSuite(ReflectiveSchemaTest.class);
         testSuite.addTestSuite(LinqFrontJdbcBackTest.class);
         testSuite.addTestSuite(JdbcFrontLinqBackTest.class);
         testSuite.addTestSuite(JdbcFrontJdbcBackLinqMiddleTest.class);
@@ -70,6 +88,8 @@ public class OptiqAssert {
     {
         return new Function1<Throwable, Void>() {
             public Void apply(Throwable p0) {
+                Assert.assertNotNull(
+                    "expected exception but none was thrown", p0);
                 StringWriter stringWriter = new StringWriter();
                 PrintWriter printWriter = new PrintWriter(stringWriter);
                 p0.printStackTrace(printWriter);
@@ -132,14 +152,16 @@ public class OptiqAssert {
         StringBuilder buf = new StringBuilder();
         while (resultSet.next()) {
             int n = resultSet.getMetaData().getColumnCount();
-            for (int i = 1;; i++) {
-                buf.append(resultSet.getMetaData().getColumnLabel(i))
-                    .append("=")
-                    .append(resultSet.getObject(i));
-                if (i == n) {
-                    break;
+            if (n > 0) {
+                for (int i = 1;; i++) {
+                    buf.append(resultSet.getMetaData().getColumnLabel(i))
+                        .append("=")
+                        .append(str(resultSet, i));
+                    if (i == n) {
+                        break;
+                    }
+                    buf.append("; ");
                 }
-                buf.append("; ");
             }
             buf.append("\n");
         }
@@ -149,6 +171,24 @@ public class OptiqAssert {
 
         if (resultChecker != null) {
             resultChecker.apply(buf.toString());
+        }
+    }
+
+    private static String str(ResultSet resultSet, int i) throws SQLException {
+        final int columnType = resultSet.getMetaData().getColumnType(i);
+        switch (columnType) {
+        case Types.DATE:
+            final Date date = resultSet.getDate(i, null);
+            return date == null ? "null" : UTC_DATE_FORMAT.format(date);
+        case Types.TIME:
+            final Time time = resultSet.getTime(i, null);
+            return time == null ? "null" : UTC_TIME_FORMAT.format(time);
+        case Types.TIMESTAMP:
+            final Timestamp timestamp = resultSet.getTimestamp(i, null);
+            return timestamp == null
+                ? "null" : UTC_TIMESTAMP_FORMAT.format(timestamp);
+        default:
+            return String.valueOf(resultSet.getObject(i));
         }
     }
 
@@ -172,6 +212,27 @@ public class OptiqAssert {
 
         public AssertThat with(ConnectionFactory connectionFactory) {
             return new AssertThat(connectionFactory);
+        }
+
+        /** Sets the default schema to a reflective schema based on a given
+         * object. */
+        public AssertThat with(final String name, final Object schema) {
+            return with(
+                new OptiqAssert.ConnectionFactory() {
+                    public OptiqConnection createConnection() throws Exception {
+                        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+                        Connection connection =
+                            DriverManager.getConnection("jdbc:optiq:");
+                        OptiqConnection optiqConnection =
+                            connection.unwrap(OptiqConnection.class);
+                        MutableSchema rootSchema =
+                            optiqConnection.getRootSchema();
+                        ReflectiveSchema.create(
+                            optiqConnection, rootSchema, name, schema);
+                        connection.setSchema(name);
+                        return optiqConnection;
+                    }
+                });
         }
 
         public AssertThat withModel(final String model) {

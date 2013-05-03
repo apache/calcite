@@ -44,6 +44,9 @@ public class ColumnMetaData {
     public final boolean definitelyWritable;
     public final String columnClassName;
 
+    /** The type of the field that holds the value. Not a JDBC property. */
+    public final Class internalClass;
+
     public ColumnMetaData(
         int ordinal,
         boolean autoIncrement,
@@ -65,7 +68,8 @@ public class ColumnMetaData {
         boolean readOnly,
         boolean writable,
         boolean definitelyWritable,
-        String columnClassName)
+        String columnClassName,
+        Class internalClass)
     {
         this.ordinal = ordinal;
         this.autoIncrement = autoIncrement;
@@ -95,6 +99,7 @@ public class ColumnMetaData {
         this.writable = writable;
         this.definitelyWritable = definitelyWritable;
         this.columnClassName = columnClassName;
+        this.internalClass = internalClass;
     }
 
     private static <T> T first(T t0, T t1) {

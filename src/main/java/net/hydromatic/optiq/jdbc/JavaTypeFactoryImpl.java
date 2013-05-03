@@ -75,8 +75,7 @@ public class JavaTypeFactoryImpl
             return syntheticRecordType.relType;
         }
         if (!(type instanceof Class)) {
-            throw new UnsupportedOperationException(
-                "TODO: implement " + type + ": " + type.getClass());
+            throw new UnsupportedOperationException("TODO: implement " + type);
         }
         final Class clazz = (Class) type;
         switch (Primitive.flavor(clazz)) {
@@ -85,17 +84,14 @@ public class JavaTypeFactoryImpl
         case BOX:
             return createJavaType(Primitive.ofBox(clazz).boxClass);
         }
-        if (clazz == String.class) {
-            // TODO: similar special treatment for BigDecimal, BigInteger,
-            //  Date, Time, Timestamp, Double etc.
+        if (JavaToSqlTypeConversionRules.instance().lookup(clazz) != null) {
             return createJavaType(clazz);
         } else if (clazz.isArray()) {
             return createMultisetType(
                 createType(clazz.getComponentType()), -1);
         } else if (List.class.isAssignableFrom(clazz)) {
             return createArrayType(
-                createSqlType(SqlTypeName.ANY),
-                -1);
+                createSqlType(SqlTypeName.ANY), -1);
         } else if (Map.class.isAssignableFrom(clazz)) {
             return createMapType(
                 createSqlType(SqlTypeName.ANY),

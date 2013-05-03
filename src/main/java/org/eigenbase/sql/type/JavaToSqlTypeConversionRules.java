@@ -70,13 +70,14 @@ public class JavaToSqlTypeConversionRules
         rules.put(Character.class, SqlTypeName.CHAR);
         rules.put(char.class, SqlTypeName.CHAR);
 
+        rules.put(java.util.Date.class, SqlTypeName.TIMESTAMP);
         rules.put(Date.class, SqlTypeName.DATE);
         rules.put(Timestamp.class, SqlTypeName.TIMESTAMP);
         rules.put(Time.class, SqlTypeName.TIME);
         rules.put(BigDecimal.class, SqlTypeName.DECIMAL);
 
         rules.put(ResultSet.class, SqlTypeName.CURSOR);
-        rules.put(List.class, SqlTypeName.COLUMN_LIST);
+        rules.put(ColumnList.class, SqlTypeName.COLUMN_LIST);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -100,6 +101,13 @@ public class JavaToSqlTypeConversionRules
     public SqlTypeName lookup(Class javaClass)
     {
         return rules.get(javaClass);
+    }
+
+    /**
+     * Make this public when needed. To represent COLUMN_LIST SQL value, we need
+     * a type distinguishable from {@link List} in user-defined types.
+     */
+    private interface ColumnList extends List {
     }
 }
 

@@ -89,6 +89,8 @@ public enum BuiltinMethod {
         Functions.class, "identitySelector"),
     AS_ENUMERABLE(
         Linq4j.class, "asEnumerable", Object[].class),
+    AS_ENUMERABLE2(
+        Linq4j.class, "asEnumerable", Iterable.class),
     AS_LIST(
         Primitive.class, "asList", Object.class),
     ENUMERATOR_CURRENT(

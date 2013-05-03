@@ -85,13 +85,37 @@ public abstract class AbstractCursor implements Cursor {
         case Types.VARBINARY:
             return new BinaryAccessor(getter);
         case Types.DATE:
-            return new DateAccessor(getter);
+            switch (Rep.of(type.internalClass)) {
+            case PRIMITIVE_INT:
+                return new DateFromIntAccessor(getter);
+            case JAVA_SQL_DATE:
+                return new DateAccessor(getter);
+            default:
+                throw new AssertionError("bad " + type.internalClass);
+            }
         case Types.TIME:
-            return new TimeAccessor(getter);
+            switch (Rep.of(type.internalClass)) {
+            case PRIMITIVE_INT:
+                return new TimeFromIntAccessor(getter);
+            case JAVA_SQL_TIME:
+                return new TimeAccessor(getter);
+            default:
+                throw new AssertionError("bad " + type.internalClass);
+            }
         case Types.TIMESTAMP:
-            return new TimestampAccessor(getter);
+            switch (Rep.of(type.internalClass)) {
+            case PRIMITIVE_LONG:
+                return new TimestampFromLongAccessor(getter);
+            case JAVA_SQL_TIMESTAMP:
+                return new TimestampAccessor(getter);
+            case JAVA_UTIL_DATE:
+                return new TimestampFromUtilDateAccessor(getter);
+            default:
+                throw new AssertionError("bad " + type.internalClass);
+            }
         case Types.JAVA_OBJECT:
         case Types.ARRAY:
+        case Types.STRUCT:
         case Types.OTHER: // e.g. map
             return new ObjectAccessor(getter);
         default:
@@ -600,11 +624,12 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     /**
-     * Accessor that assumes that the underlying value is a DATE;
+     * Accessor that assumes that the underlying value is a DATE,
+     * in its default representation {@code int};
      * corresponds to {@link java.sql.Types#DATE}.
      */
-    private static class DateAccessor extends IntAccessor {
-        public DateAccessor(Getter getter) {
+    private static class DateFromIntAccessor extends IntAccessor {
+        public DateFromIntAccessor(Getter getter) {
             super(getter);
         }
 
@@ -633,11 +658,12 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     /**
-     * Accessor that assumes that the underlying value is a Time;
+     * Accessor that assumes that the underlying value is a Time,
+     * in its default representation {@code int};
      * corresponds to {@link java.sql.Types#TIME}.
      */
-    private static class TimeAccessor extends IntAccessor {
-        public TimeAccessor(Getter getter) {
+    private static class TimeFromIntAccessor extends IntAccessor {
+        public TimeFromIntAccessor(Getter getter) {
             super(getter);
         }
 
@@ -665,11 +691,12 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     /**
-     * Accessor that assumes that the underlying value is a TIMESTAMP;
+     * Accessor that assumes that the underlying value is a TIMESTAMP,
+     * in its default representation {@code long};
      * corresponds to {@link java.sql.Types#TIMESTAMP}.
      */
-    private static class TimestampAccessor extends LongAccessor {
-        public TimestampAccessor(Getter getter) {
+    private static class TimestampFromLongAccessor extends LongAccessor {
+        public TimestampFromLongAccessor(Getter getter) {
             super(getter);
         }
 
@@ -697,6 +724,125 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     /**
+     * Accessor that assumes that the underlying value is a DATE,
+     * represented as a java.sql.Date;
+     * corresponds to {@link java.sql.Types#DATE}.
+     */
+    private static class DateAccessor extends ObjectAccessor {
+        public DateAccessor(Getter getter) {
+            super(getter);
+        }
+
+        @Override
+        public Date getDate(Calendar calendar) {
+            java.sql.Date date  = (Date) getObject();
+            if (date == null) {
+                return null;
+            }
+            if (calendar != null) {
+                long v = date.getTime();
+                v -= calendar.getTimeZone().getOffset(v);
+                date = new Date(v);
+            }
+            return date;
+        }
+
+        @Override
+        public String getString() {
+            return getDate(LOCAL_CALENDAR).toString();
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a TIME,
+     * represented as a java.sql.Time;
+     * corresponds to {@link java.sql.Types#TIME}.
+     */
+    private static class TimeAccessor extends ObjectAccessor {
+        public TimeAccessor(Getter getter) {
+            super(getter);
+        }
+
+        @Override
+        public Time getTime(Calendar calendar) {
+            Time date  = (Time) getObject();
+            if (date == null) {
+                return null;
+            }
+            if (calendar != null) {
+                long v = date.getTime();
+                v -= calendar.getTimeZone().getOffset(v);
+                date = new Time(v);
+            }
+            return date;
+        }
+
+        @Override
+        public String getString() {
+            return getTime(LOCAL_CALENDAR).toString();
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a TIMESTAMP,
+     * represented as a java.sql.Timestamp;
+     * corresponds to {@link java.sql.Types#TIMESTAMP}.
+     */
+    private static class TimestampAccessor extends ObjectAccessor {
+        public TimestampAccessor(Getter getter) {
+            super(getter);
+        }
+
+        @Override
+        public Timestamp getTimestamp(Calendar calendar) {
+            Timestamp date  = (Timestamp) getObject();
+            if (date == null) {
+                return null;
+            }
+            if (calendar != null) {
+                long v = date.getTime();
+                v -= calendar.getTimeZone().getOffset(v);
+                date = new Timestamp(v);
+            }
+            return date;
+        }
+
+        @Override
+        public String getString() {
+            return getTimestamp(LOCAL_CALENDAR).toString();
+        }
+    }
+
+    /**
+     * Accessor that assumes that the underlying value is a TIMESTAMP,
+     * represented as a java.util.Date;
+     * corresponds to {@link java.sql.Types#TIMESTAMP}.
+     */
+    private static class TimestampFromUtilDateAccessor extends ObjectAccessor {
+        public TimestampFromUtilDateAccessor(Getter getter) {
+            super(getter);
+        }
+
+        @Override
+        public Timestamp getTimestamp(Calendar calendar) {
+            java.util.Date date  = (java.util.Date) getObject();
+            if (date == null) {
+                return null;
+            }
+            long v = date.getTime();
+            if (calendar != null) {
+                v -= calendar.getTimeZone().getOffset(v);
+            }
+            return new Timestamp(v);
+        }
+
+        @Override
+        public String getString() {
+            return getTimestamp(LOCAL_CALENDAR).toString();
+        }
+    }
+
+    /**
      * Accessor that assumes that the underlying value is an OBJECT;
      * corresponds to {@link java.sql.Types#JAVA_OBJECT}.
      */
@@ -710,6 +856,46 @@ public abstract class AbstractCursor implements Cursor {
         Object getObject();
 
         boolean wasNull();
+    }
+
+    enum Rep {
+        PRIMITIVE_BOOLEAN(boolean.class),
+        PRIMITIVE_BYTE(byte.class),
+        PRIMITIVE_CHAR(char.class),
+        PRIMITIVE_SHORT(short.class),
+        PRIMITIVE_INT(int.class),
+        PRIMITIVE_LONG(long.class),
+        PRIMITIVE_FLOAT(float.class),
+        PRIMITIVE_DOUBLE(double.class),
+        BOOLEAN(Boolean.class),
+        BYTE(Byte.class),
+        CHARACTER(Character.class),
+        SHORT(Short.class),
+        INTEGER(Integer.class),
+        LONG(Long.class),
+        FLOAT(Float.class),
+        DOUBLE(Double.class),
+        JAVA_SQL_TIME(Time.class),
+        JAVA_SQL_TIMESTAMP(Timestamp.class),
+        JAVA_SQL_DATE(java.sql.Date.class),
+        JAVA_UTIL_DATE(java.util.Date.class);
+
+        private final Class clazz;
+
+        Rep(Class clazz) {
+            this.clazz = clazz;
+        }
+
+        static Rep[] values = values();
+
+        static Rep of(Class clazz) {
+            for (Rep rep : values) {
+                if (rep.clazz == clazz) {
+                    return rep;
+                }
+            }
+            throw new IllegalArgumentException("no Rep for " + clazz);
+        }
     }
 }
 

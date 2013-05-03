@@ -151,6 +151,14 @@ public class Utilities {
             : v1 == null ? -1
             : v0.compareTo(v1);
     }
+
+    public static int compareNullsLast(List v0, List v1) {
+        //noinspection unchecked
+        return v0 == v1 ? 0
+            : v0 == null ? 1
+            : v1 == null ? -1
+            : FlatLists.ComparableList.compare(v0, v1);
+    }
 }
 
 // End Utilities.java

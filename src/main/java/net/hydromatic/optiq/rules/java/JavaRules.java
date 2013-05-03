@@ -373,6 +373,15 @@ public class JavaRules {
                     Expressions.call(
                         BuiltinMethod.AS_ENUMERABLE.method,
                         expression);
+            } else if (Types.isAssignableFrom(
+                    Iterable.class, expression.getType())
+                && !Types.isAssignableFrom(
+                    Enumerable.class, expression.getType()))
+            {
+                expression =
+                    Expressions.call(
+                        BuiltinMethod.AS_ENUMERABLE2.method,
+                        expression);
             }
             this.expression = expression;
 
