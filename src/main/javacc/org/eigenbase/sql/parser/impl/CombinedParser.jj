@@ -288,7 +288,8 @@ JAVACODE void checkQueryExpression(ExprContext exprContext)
 
 JAVACODE void checkNonQueryExpression(ExprContext exprContext)
 {
-    if (exprContext == ExprContext.ACCEPT_QUERY) {
+    switch (exprContext) {
+    case ACCEPT_QUERY:
         throw SqlUtil.newContextException(
             getPos(),
             EigenbaseResource.instance().IllegalNonQueryExpression.ex());
@@ -1345,6 +1346,96 @@ SqlNode SelectExpression() :
     }
 }
 
+SqlLiteral Natural() :
+{
+}
+{
+    (
+        <NATURAL> { return SqlLiteral.createBoolean(true, getPos()); }
+    |
+        { return SqlLiteral.createBoolean(false, getPos()); }
+    )
+}
+
+SqlLiteral JoinType() :
+{
+    SqlJoinOperator.JoinType joinType;
+}
+{
+    (
+        <JOIN> { joinType = SqlJoinOperator.JoinType.Inner; }
+    |
+        <INNER> <JOIN> { joinType = SqlJoinOperator.JoinType.Inner; }
+    |
+        <LEFT> [ <OUTER> ] <JOIN> { joinType = SqlJoinOperator.JoinType.Left; }
+    |
+        <RIGHT> [ <OUTER> ] <JOIN> { joinType = SqlJoinOperator.JoinType.Right; }
+    |
+        <FULL> [ <OUTER> ] <JOIN> { joinType = SqlJoinOperator.JoinType.Full; }
+    |
+        <CROSS> <JOIN> { joinType = SqlJoinOperator.JoinType.Cross; }
+    )
+    {
+        return SqlLiteral.createSymbol(joinType, getPos());
+    }
+}
+
+/** Matches "LEFT JOIN t ON ...", "RIGHT JOIN t USING ...", "JOIN t". */
+SqlNode JoinTable(SqlNode e) :
+{
+    SqlNode e2, condition;
+    SqlLiteral natural, joinType;
+    List list;
+    SqlParserPos pos;
+}
+{
+    natural = Natural()
+    joinType = JoinType()
+    e2 = TableRef()
+    (
+        <ON> { pos = getPos(); }
+        condition = Expression(ExprContext.ACCEPT_SUBQUERY) {
+            SqlParserPos onPos = pos.plus(getPos());
+            return SqlStdOperatorTable.joinOperator.createCall(
+                e,
+                natural,
+                joinType,
+                e2,
+                SqlLiteral.createSymbol(
+                    SqlJoinOperator.ConditionType.On, onPos),
+                condition,
+                joinType.getParserPosition());
+        }
+    |
+        <USING> { pos = getPos(); }
+        <LPAREN> list = SimpleIdentifierCommaList() <RPAREN> {
+            SqlParserPos usingPos = pos.plus(getPos());
+            return SqlStdOperatorTable.joinOperator.createCall(
+                e,
+                natural,
+                joinType,
+                e2,
+                SqlLiteral.createSymbol(
+                    SqlJoinOperator.ConditionType.Using, usingPos),
+                new SqlNodeList(list, usingPos),
+                joinType.getParserPosition());
+        }
+    |
+        {
+            return SqlStdOperatorTable.joinOperator.createCall(
+                e,
+                natural,
+                joinType,
+                e2,
+                SqlLiteral.createSymbol(
+                    SqlJoinOperator.ConditionType.None,
+                    joinType.getParserPosition()),
+                null,
+                joinType.getParserPosition());
+        }
+    )
+}
+
 // TODO jvs 15-Nov-2003:  SQL standard allows parentheses in the FROM list for
 // building up non-linear join trees (e.g. OUTER JOIN two tables, and then INNER
 // JOIN the result).  Also note that aliases on parenthesized FROM expressions
@@ -1359,12 +1450,9 @@ SqlNode SelectExpression() :
 SqlNode FromClause() :
 {
     SqlNode e, e2, condition;
-    boolean isNatural;
-    SqlJoinOperator.JoinType joinType;
+    SqlLiteral natural, joinType;
     List list;
     SqlParserPos pos;
-    SqlParserPos joinTypePos;
-    SqlParserPos naturalPos;
 }
 {
     e = TableRef()
@@ -1373,36 +1461,8 @@ SqlNode FromClause() :
         // seen a single entry FROM clause like 'FROM emps'. See comments
         // elsewhere regarding <COMMA> lookahead.
         LOOKAHEAD(2)
-        (
-            <NATURAL> {isNatural = true;}
-            |
-            {isNatural = false;}
-        )
-        {
-            naturalPos = getPos();
-        }
-        (
-            <JOIN>
-            {joinType = SqlJoinOperator.JoinType.Inner;}
-            |
-            <INNER> <JOIN>
-            {joinType = SqlJoinOperator.JoinType.Inner;}
-            |
-            <LEFT> [ <OUTER> ] <JOIN>
-            {joinType = SqlJoinOperator.JoinType.Left;}
-            |
-            <RIGHT> [ <OUTER> ] <JOIN>
-            {joinType = SqlJoinOperator.JoinType.Right;}
-            |
-            <FULL> [ <OUTER> ] <JOIN>
-            {joinType = SqlJoinOperator.JoinType.Full;}
-            |
-            <CROSS> <JOIN>
-            {joinType = SqlJoinOperator.JoinType.Cross;}
-        )
-        {
-            joinTypePos = getPos();
-        }
+        natural = Natural()
+        joinType = JoinType()
         e2 = TableRef()
         (
             <ON> { pos = getPos(); }
@@ -1410,13 +1470,13 @@ SqlNode FromClause() :
                 SqlParserPos onPos = pos.plus(getPos());
                 e = SqlStdOperatorTable.joinOperator.createCall(
                     e,
-                    SqlLiteral.createBoolean(isNatural, naturalPos),
-                    SqlLiteral.createSymbol(joinType, joinTypePos),
+                    natural,
+                    joinType,
                     e2,
                     SqlLiteral.createSymbol(
                         SqlJoinOperator.ConditionType.On, onPos),
                     condition,
-                    joinTypePos);
+                    joinType.getParserPosition());
             }
             |
             <USING> { pos = getPos(); }
@@ -1424,25 +1484,26 @@ SqlNode FromClause() :
                 SqlParserPos usingPos = pos.plus(getPos());
                 e = SqlStdOperatorTable.joinOperator.createCall(
                     e,
-                    SqlLiteral.createBoolean(isNatural, naturalPos),
-                    SqlLiteral.createSymbol(joinType, joinTypePos),
+                    natural,
+                    joinType,
                     e2,
                     SqlLiteral.createSymbol(
                         SqlJoinOperator.ConditionType.Using, usingPos),
                     new SqlNodeList(list, usingPos),
-                    joinTypePos);
+                    joinType.getParserPosition());
             }
             |
             {
                 e = SqlStdOperatorTable.joinOperator.createCall(
                     e,
-                    SqlLiteral.createBoolean(isNatural, naturalPos),
-                    SqlLiteral.createSymbol(joinType, joinTypePos),
+                    natural,
+                    joinType,
                     e2,
                     SqlLiteral.createSymbol(
-                        SqlJoinOperator.ConditionType.None, joinTypePos),
+                        SqlJoinOperator.ConditionType.None,
+                        joinType.getParserPosition()),
                     null,
-                    joinTypePos);
+                    joinType.getParserPosition());
             }
         )
         |
@@ -1450,7 +1511,7 @@ SqlNode FromClause() :
         // hint is necessary here.  I had to use this special semantic
         // lookahead form to get JavaCC to shut up, which makes
         // me even more uneasy.
-        LOOKAHEAD({true})
+        //LOOKAHEAD({true})
         <COMMA> { pos = getPos(); }
         e2 = TableRef() {
             e = SqlStdOperatorTable.joinOperator.createCall(
@@ -1508,7 +1569,7 @@ SqlNode TableRef() :
     |
         { boolean isLateral = false; }
         [<LATERAL> { isLateral = true;} ]
-        tableRef = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
+        tableRef = ParenthesizedExpression(ExprContext.ACCEPT_QUERY_OR_JOIN)
         over = TableOverOpt()
         {
             if (over != null) {
@@ -2118,7 +2179,12 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
     List list;
 }
 {
-    e = LeafQueryOrExpr(exprContext)
+    (
+        e = LeafQueryOrExpr(exprContext)
+    )
+    (
+        e = JoinTable(e)
+    ) *
     {
         list = startList(e);
     }

@@ -296,6 +296,11 @@ public abstract class SqlAbstractParserImpl
         ACCEPT_QUERY,
 
         /**
+         * Accept query or join expressions in this context.
+         */
+        ACCEPT_QUERY_OR_JOIN,
+
+        /**
          * Accept only non-query expressions in this context.
          */
         ACCEPT_NONQUERY,
@@ -310,7 +315,7 @@ public abstract class SqlAbstractParserImpl
          * Accept only CURSOR constructors, parenthesized queries, or non-query
          * expressions in this context.
          */
-        ACCEPT_CURSOR;
+        ACCEPT_CURSOR
     }
 
     //~ Instance fields --------------------------------------------------------

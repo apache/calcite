@@ -121,7 +121,7 @@ public class SqlParserTest
 
     /**
      * Tests that when there is an error, non-reserved keywords such as "A",
-     * "ABSOLUTE" (which naturally arise whenver a production uses
+     * "ABSOLUTE" (which naturally arise whenever a production uses
      * "&lt;IDENTIFIER&gt;") are removed, but reserved words such as "AND"
      * remain.
      */
@@ -264,18 +264,20 @@ public class SqlParserTest
 
     public void testIsBooleans()
     {
-        String [] inOut = { "NULL", "TRUE", "FALSE", "UNKNOWN" };
+        String [] inOuts = { "NULL", "TRUE", "FALSE", "UNKNOWN" };
 
-        for (int i = 0; i < inOut.length; i++) {
+        for (String inOut : inOuts) {
             check(
-                "select * from t where nOt fAlSe Is " + inOut[i],
-                "SELECT *" + NL + "FROM `T`" + NL + "WHERE ((NOT FALSE) IS "
-                + inOut[i] + ")");
+                "select * from t where nOt fAlSe Is " + inOut,
+                "SELECT *\n"
+                + "FROM `T`\n"
+                + "WHERE ((NOT FALSE) IS " + inOut + ")");
 
             check(
-                "select * from t where c1=1.1 IS NOT " + inOut[i],
-                "SELECT *" + NL + "FROM `T`" + NL
-                + "WHERE ((`C1` = 1.1) IS NOT " + inOut[i] + ")");
+                "select * from t where c1=1.1 IS NOT " + inOut,
+                "SELECT *\n"
+                + "FROM `T`\n"
+                + "WHERE ((`C1` = 1.1) IS NOT " + inOut + ")");
         }
     }
 
@@ -822,6 +824,18 @@ public class SqlParserTest
             + "WHERE (`DEPTNO` IN (SELECT `DEPTNO`" + NL + "FROM `DEPT`))");
     }
 
+    /** Tricky for the parser - looks like "IN (scalar, scalar)" but isn't. */
+    public void testInQueryWithComma()
+    {
+        check(
+            "select * from emp where deptno in (select deptno from dept group by 1, 2)",
+            "SELECT *\n"
+            + "FROM `EMP`\n"
+            + "WHERE (`DEPTNO` IN (SELECT `DEPTNO`\n"
+            + "FROM `DEPT`\n"
+            + "GROUP BY 1, 2))");
+    }
+
     public void testInSetop()
     {
         check(
@@ -1008,8 +1022,56 @@ public class SqlParserTest
                 }));
     }
 
-    public void testOuterJoinNoiseword()
-    {
+    public void testJoinOnParentheses() {
+        check(
+            "select * from a\n"
+            + " left join (b join c as c1 on 1 = 1) on 2 = 2\n"
+            + "where 3 = 3",
+            "SELECT *\n"
+            + "FROM `A`\n"
+            + "LEFT JOIN (`B` INNER JOIN `C` AS `C1` ON (1 = 1)) ON (2 = 2)\n"
+            + "WHERE (3 = 3)");
+    }
+
+    /** Same as {@link #testJoinOnParentheses()} but fancy aliases. */
+    public void testJoinOnParenthesesPlus() {
+        if (!Bug.TodoFixed) {
+            return;
+        }
+        check(
+            "select * from a\n"
+            + " left join (b as b1 (x, y) join (select * from c) c1 on 1 = 1) on 2 = 2\n"
+            + "where 3 = 3",
+            "SELECT *\n"
+            + "FROM `A`\n"
+            + "LEFT JOIN (`B` AS `B1` (`X`, `Y`) INNER JOIN (SELECT *\n"
+            + "FROM `C`) AS `C1` ON (1 = 1)) ON (2 = 2)\n"
+            + "WHERE (3 = 3)");
+    }
+
+    public void testExplicitTableInJoin() {
+        check(
+            "select * from a left join (table b) on 2 = 2 where 3 = 3",
+            "SELECT *\n"
+            + "FROM `A`\n"
+            + "LEFT JOIN (TABLE `B`) ON (2 = 2)\n"
+            + "WHERE (3 = 3)");
+    }
+
+    public void testSubqueryInJoin() {
+        check(
+            "select * from (select * from a cross join b) as ab\n"
+            + " left join ((table c) join d on 2 = 2) on 3 = 3\n"
+            + " where 4 = 4",
+            "SELECT *\n"
+            + "FROM (SELECT *\n"
+            + "FROM `A`\n"
+            + "CROSS JOIN `B`) AS `AB`\n"
+            + "LEFT JOIN ((TABLE `C`) INNER JOIN `D` ON (2 = 2)) ON (3 = 3)\n"
+            + "WHERE (4 = 4)");
+    }
+
+    public void testOuterJoinNoiseWord() {
         check(
             "select * from a left outer join b on 1 = 1 and 2 = 2 where 3 = 3",
             "SELECT *" + NL
@@ -1508,9 +1570,12 @@ public class SqlParserTest
     public void testPrecedenceSetOps()
     {
         check(
-            "select * from a union " + "select * from b intersect "
-            + "select * from c intersect " + "select * from d except "
-            + "select * from e except " + "select * from f union "
+            "select * from a union "
+            + "select * from b intersect "
+            + "select * from c intersect "
+            + "select * from d except "
+            + "select * from e except "
+            + "select * from f union "
             + "select * from g",
             TestUtil.fold(
                 new String[] {

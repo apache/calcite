@@ -40,6 +40,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlDialect;
+import org.eigenbase.util.Bug;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -618,6 +619,56 @@ public class JdbcTest extends TestCase {
                 + "and \"customer\".\"city\" in ('Anacortes', 'Ballard', 'Bellingham', 'Bremerton', 'Burien', 'Edmonds', 'Everett', 'Issaquah', 'Kirkland', 'Lynnwood', 'Marysville', 'Olympia', 'Port Orchard', 'Puyallup', 'Redmond', 'Renton', 'Seattle', 'Sedro Woolley', 'Spokane', 'Tacoma', 'Walla Walla', 'Yakima') group by \"time_by_day\".\"the_year\", \"product_class\".\"product_family\", \"customer\".\"country\", \"customer\".\"state_province\", \"customer\".\"city\"")
             .returns(
                 "c0=1997; c1=Drink; c2=USA; c3=WA; c4=Sedro Woolley; m0=58.0000\n");
+    }
+
+    /** Query that uses parenthesized JOIN. */
+    public void testSql92JoinParenthesized() {
+        if (!Bug.TodoFixed) {
+            return;
+        }
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.FOODMART_CLONE)
+            .query(
+                "select\n"
+                + "   \"product_class\".\"product_family\" as \"c0\",\n"
+                + "   \"product_class\".\"product_department\" as \"c1\",\n"
+                + "   \"customer\".\"country\" as \"c2\",\n"
+                + "   \"customer\".\"state_province\" as \"c3\",\n"
+                + "   \"customer\".\"city\" as \"c4\"\n"
+                + "from\n"
+                + "   \"sales_fact_1997\" as \"sales_fact_1997\"\n"
+                + "join (\"product\" as \"product\"\n"
+                + "     join \"product_class\" as \"product_class\"\n"
+                + "     on \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\")\n"
+                + "on  \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
+                + "join \"customer\" as \"customer\"\n"
+                + "on  \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\"\n"
+                + "join \"promotion\" as \"promotion\"\n"
+                + "on \"sales_fact_1997\".\"promotion_id\" = \"promotion\".\"promotion_id\"\n"
+                + "where (\"promotion\".\"media_type\" = 'Radio'\n"
+                + " or \"promotion\".\"media_type\" = 'TV'\n"
+                + " or \"promotion\".\"media_type\" = 'Sunday Paper'\n"
+                + " or \"promotion\".\"media_type\" = 'Street Handout')\n"
+                + " and (\"product_class\".\"product_family\" = 'Drink')\n"
+                + " and (\"customer\".\"country\" = 'USA' and \"customer\".\"state_province\""
+                + " = 'WA' and \"customer\".\"city\" = 'Bellingham')\n"
+                + "group by \"product_class\".\"product_family\",\n"
+                + "   \"product_class\".\"product_department\",\n"
+                + "   \"customer\".\"country\",\n"
+                + "   \"customer\".\"state_province\",\n"
+                + "   \"customer\".\"city\"\n"
+                + "order by \"product_class\".\"product_family\" ASC,\n"
+                + "   \"product_class\".\"product_department\" ASC,\n"
+                + "   \"customer\".\"country\" ASC,\n"
+                + "   \"customer\".\"state_province\" ASC,\n"
+                + "   \"customer\".\"city\" ASC")
+            .returns(
+                "+-------+---------------------+-----+------+------------+\n"
+                + "| c0    | c1                  | c2  | c3   | c4         |\n"
+                + "+-------+---------------------+-----+------+------------+\n"
+                + "| Drink | Alcoholic Beverages | USA | WA   | Bellingham |\n"
+                + "| Drink | Dairy               | USA | WA   | Bellingham |\n"
+                + "+-------+---------------------+-----+------+------------+\n");
     }
 
     /** Tests ORDER BY ... DESC NULLS FIRST. */
