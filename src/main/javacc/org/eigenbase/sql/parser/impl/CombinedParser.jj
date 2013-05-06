@@ -459,7 +459,7 @@ JAVACODE ParseException cleanupParseException(ParseException ex)
     //       {}
     //       {D}
     boolean id = false;
-    ArrayList prefixList = new ArrayList();
+    final List<int[]> prefixList = new ArrayList<int[]>();
     for (int i = 0; i < ex.expectedTokenSequences.length; ++i) {
         int[] seq = ex.expectedTokenSequences[i];
         int j = seq.length - 1;
@@ -484,7 +484,7 @@ JAVACODE ParseException cleanupParseException(ParseException ex)
     // identifiers in non-keyword contexts).  So, now we need
     // to clean those out, since they're totally irrelevant.
 
-    List list = new ArrayList();
+    final List<int[]> list = new ArrayList<int[]>();
     Metadata metadata = getMetadata();
     for (int i = 0; i < ex.expectedTokenSequences.length; ++i) {
         int [] seq = ex.expectedTokenSequences[i];
@@ -508,8 +508,7 @@ JAVACODE ParseException cleanupParseException(ParseException ex)
 JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
 {
     nextPrefix:
-    for (int j = 0; j < prefixes.length; j++) {
-        int[] prefix = prefixes[j];
+    for (int[] prefix : prefixes) {
         if (seq.length == prefix.length + 1) {
             for (int k = 0; k < prefix.length; k++) {
                 if (prefix[k] != seq[k]) {
@@ -1569,7 +1568,7 @@ SqlNode TableRef() :
     |
         { boolean isLateral = false; }
         [<LATERAL> { isLateral = true;} ]
-        tableRef = ParenthesizedExpression(ExprContext.ACCEPT_QUERY_OR_JOIN)
+        tableRef = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
         over = TableOverOpt()
         {
             if (over != null) {
@@ -2182,9 +2181,6 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
     (
         e = LeafQueryOrExpr(exprContext)
     )
-    (
-        e = JoinTable(e)
-    ) *
     {
         list = startList(e);
     }

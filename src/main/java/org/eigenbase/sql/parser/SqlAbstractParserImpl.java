@@ -296,11 +296,6 @@ public abstract class SqlAbstractParserImpl
         ACCEPT_QUERY,
 
         /**
-         * Accept query or join expressions in this context.
-         */
-        ACCEPT_QUERY_OR_JOIN,
-
-        /**
          * Accept only non-query expressions in this context.
          */
         ACCEPT_NONQUERY,
@@ -537,8 +532,7 @@ public abstract class SqlAbstractParserImpl
                 // First time through, build the list of all tokens.
                 final String [] tokenImages = parseException.getTokenImages();
                 if (tokenSet.isEmpty()) {
-                    for (int i = 0; i < tokenImages.length; i++) {
-                        String token = tokenImages[i];
+                    for (String token : tokenImages) {
                         String tokenVal = SqlParserUtil.getTokenVal(token);
                         if (tokenVal != null) {
                             tokenSet.add(tokenVal);
@@ -550,13 +544,9 @@ public abstract class SqlAbstractParserImpl
                 // syntactic context to the list we're building.
                 final int [][] expectedTokenSequences =
                     parseException.getExpectedTokenSequences();
-                for (int i = 0; i
-                    < expectedTokenSequences.length; i++)
-                {
-                    final int [] expectedTokenSequence =
-                        expectedTokenSequences[i];
-                    assert expectedTokenSequence.length == 1;
-                    final int tokenId = expectedTokenSequence[0];
+                for (final int[] tokens : expectedTokenSequences) {
+                    assert tokens.length == 1;
+                    final int tokenId = tokens[0];
                     String token = tokenImages[tokenId];
                     String tokenVal = SqlParserUtil.getTokenVal(token);
                     if (tokenVal != null) {
@@ -584,7 +574,7 @@ public abstract class SqlAbstractParserImpl
             String name)
             throws Throwable
         {
-            Class<? extends Object> clazz = parserImpl.getClass();
+            Class<?> clazz = parserImpl.getClass();
             try {
                 final Method method = clazz.getMethod(name, (Class []) null);
                 return method.invoke(parserImpl, (Object []) null);
@@ -609,11 +599,7 @@ public abstract class SqlAbstractParserImpl
             jdbcReservedSet.removeAll(sql92ReservedWordSet);
             jdbcReservedSet.removeAll(nonReservedKeyWordSet);
             int j = 0;
-            for (
-                Iterator<String> jdbcReservedIter = jdbcReservedSet.iterator();
-                jdbcReservedIter.hasNext();)
-            {
-                String jdbcReserved = jdbcReservedIter.next();
+            for (String jdbcReserved : jdbcReservedSet) {
                 if (j++ > 0) {
                     sb.append(",");
                 }

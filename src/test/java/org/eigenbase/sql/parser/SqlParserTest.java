@@ -96,9 +96,6 @@ public class SqlParserTest
         String sql,
         String expectedMsgPattern)
     {
-        if (!Bug.TodoFixed) {
-            return;
-        }
         getTester().checkFails(sql, expectedMsgPattern);
     }
 
@@ -110,9 +107,6 @@ public class SqlParserTest
         String sql,
         String expectedMsgPattern)
     {
-        if (!Bug.TodoFixed) {
-            return;
-        }
         getTester().checkExpFails(sql, expectedMsgPattern);
     }
 
@@ -127,31 +121,9 @@ public class SqlParserTest
             "select 0.5e1^.1^ from sales.emps",
             "(?s).*Encountered \".1\" at line 1, column 13.\n"
             + "Was expecting one of:\n"
-            + "    \"AND\" ...\n"
-            + "    \"AS\" ...\n"
-            + "    \"BETWEEN\" ...\n"
             + "    \"FROM\" ...\n"
-            + "    \"IN\" ...\n"
-            + "    \"IS\" ...\n"
-            + "    \"LIKE\" ...\n"
-            + "    \"MEMBER\" ...\n"
-            + "    \"MULTISET\" ...\n"
-            + "    \"NOT\" ...\n"
-            + "    \"OR\" ...\n"
-            + "    \"SIMILAR\" ...\n"
-            + "    \"SUBMULTISET\" ...\n"
             + "    \",\" ...\n"
-            + "    \"=\" ...\n"
-            + "    \">\" ...\n"
-            + "    \"<\" ...\n"
-            + "    \"<=\" ...\n"
-            + "    \">=\" ...\n"
-            + "    \"<>\" ...\n"
-            + "    \"\\+\" ...\n"
-            + "    \"-\" ...\n"
-            + "    \"\\*\" ...\n"
-            + "    \"/\" ...\n"
-            + "    \"\\|\\|\" ...\n"
+            + "    \"AS\" ...\n"
             + "    <IDENTIFIER> ...\n"
             + "    <QUOTED_IDENTIFIER> ...\n"
             + ".*");
@@ -575,9 +547,10 @@ public class SqlParserTest
             "values a similar to b like c similar to d escape e escape f",
             "(VALUES (ROW((`A` SIMILAR TO (`B` LIKE (`C` SIMILAR TO `D` ESCAPE `E`) ESCAPE `F`)))))");
 
+        // FIXME should fail at "escape"
         checkFails(
-            "select * from t where ^escape^ 'e'",
-            "(?s).*Encountered \"escape\" at line 1, column 23.*");
+            "select * from t ^where^ escape 'e'",
+            "(?s).*Encountered \"where escape\" at .*");
 
         // LIKE with +
         check(
@@ -590,9 +563,10 @@ public class SqlParserTest
             "(VALUES (ROW((`A` LIKE (`B` || `C`) ESCAPE `D`))))");
 
         // ESCAPE with no expression
+        // FIXME should fail at "escape"
         checkFails(
-            "values a like ^escape^ d",
-            "(?s).*Encountered \"escape\" at line 1, column 15.*");
+            "values a ^like^ escape d",
+            "(?s).*Encountered \"like escape\" at .*");
 
         // ESCAPE with no expression
         checkFails(
@@ -746,8 +720,8 @@ public class SqlParserTest
             "(?s)Encountered \\\",\\\" at .*");
 
         checkFails(
-            "select 1 from emp group by x, (^)^",
-            "(?s)Encountered \"\\)\" at .*");
+            "select 1 from emp group by x, ^(^)",
+            "(?s)Encountered \"\\( \\)\" at .*");
 
         // parentheses do not an empty GROUP BY make
         check(
@@ -960,6 +934,9 @@ public class SqlParserTest
     }
 
     public void testJoinOnParentheses() {
+        if (!Bug.TodoFixed) {
+            return;
+        }
         check(
             "select * from a\n"
             + " left join (b join c as c1 on 1 = 1) on 2 = 2\n"
@@ -996,6 +973,9 @@ public class SqlParserTest
     }
 
     public void testSubqueryInJoin() {
+        if (!Bug.TodoFixed) {
+            return;
+        }
         check(
             "select * from (select * from a cross join b) as ab\n"
             + " left join ((table c) join d on 2 = 2) on 3 = 3\n"
@@ -1029,8 +1009,8 @@ public class SqlParserTest
     public void testFullInnerJoinFails() {
         // cannot have more than one of INNER, FULL, LEFT, RIGHT, CROSS
         checkFails(
-            "select * from a full ^inner^ join b",
-            "(\\s|.)*Encountered \"inner\" at line 1, column 22(\\s|.)*");
+            "select * from a ^full^ inner join b",
+            "(?s).*Encountered \"full inner\" at line 1, column 17.*");
     }
 
     public void testFullOuterJoin() {
@@ -1044,8 +1024,8 @@ public class SqlParserTest
 
     public void testInnerOuterJoinFails() {
         checkFails(
-            "select * from a inner ^outer^ join b",
-            "(\\s|.)*Encountered \"outer\" at line 1, column 23(\\s|.)*");
+            "select * from a ^inner^ outer join b",
+            "(?s).*Encountered \"inner outer\" at line 1, column 17.*");
     }
 
     public void _testJoinAssociativity() {
@@ -1149,20 +1129,20 @@ public class SqlParserTest
     public void testContinuedLiteral() {
         checkExp(
             "'abba'\n'abba'",
-            TestUtil.fold("'abba'\n'abba'"));
+            "'abba'\n'abba'");
         checkExp(
             "'abba'\n'0001'",
-            TestUtil.fold("'abba'\n'0001'"));
+            "'abba'\n'0001'");
         checkExp(
             "N'yabba'\n'dabba'\n'doo'",
-            TestUtil.fold("_ISO-8859-1'yabba'\n'dabba'\n'doo'"));
+            "_ISO-8859-1'yabba'\n'dabba'\n'doo'");
         checkExp(
             "_iso-8859-1'yabba'\n'dabba'\n'don''t'",
-            TestUtil.fold("_ISO-8859-1'yabba'\n'dabba'\n'don''t'"));
+            "_ISO-8859-1'yabba'\n'dabba'\n'don''t'");
 
         checkExp(
             "x'01aa'\n'03ff'",
-            TestUtil.fold("X'01AA'\n'03FF'"));
+            "X'01AA'\n'03FF'");
 
         // a bad hexstring
         checkFails(
@@ -1363,7 +1343,7 @@ public class SqlParserTest
         // even if comment abuts the tokens at either end, it becomes a space
         check(
             "values ('abc'/* a comment*/'def')",
-            TestUtil.fold("(VALUES (ROW('abc'\n'def')))"));
+            "(VALUES (ROW('abc'\n'def')))");
 
         // comment which starts as soon as it has begun
         check(
@@ -1600,33 +1580,29 @@ public class SqlParserTest
             "select 1 from ^values^('x')",
             "Encountered \"values\" at line 1, column 15\\.\n"
             + "Was expecting one of:\n"
-            + "    \"LATERAL\" \\.\\.\\.\n"
-            + "    \"TABLE\" \\.\\.\\.\n"
-            + "    \"UNNEST\" \\.\\.\\.\n"
-            + "    \"\\(\" \\.\\.\\.\n"
             + "    <IDENTIFIER> \\.\\.\\.\n"
             + "    <QUOTED_IDENTIFIER> \\.\\.\\.\n"
             + "    <UNICODE_QUOTED_IDENTIFIER> \\.\\.\\.\n"
+            + "    \"LATERAL\" \\.\\.\\.\n"
+            + "    \"\\(\" \\.\\.\\.\n"
+            + "    \"UNNEST\" \\.\\.\\.\n"
+            + "    \"TABLE\" \\.\\.\\.\n"
             + "    ");
     }
 
     public void testEmptyValues() {
         checkFails(
-            "select * from (values(^)^)",
-            "(?s).*Encountered \"\\)\" at line .*");
+            "select * from (values^(^))",
+            "(?s).*Encountered \"\\( \\)\" at .*");
     }
 
     public void testExplicitTable() {
         check("table emp", "(TABLE `EMP`)");
 
+        // FIXME should fail at "123"
         checkFails(
-            "table ^123^",
-            "Encountered \"123\" at line 1, column 7\\.\n"
-            + "Was expecting one of:\n"
-            + "    <IDENTIFIER> \\.\\.\\.\n"
-            + "    <QUOTED_IDENTIFIER> \\.\\.\\.\n"
-            + "    <UNICODE_QUOTED_IDENTIFIER> \\.\\.\\.\n"
-            + "    ");
+            "^table^ 123",
+            "(?s)Encountered \"table 123\" at line 1, column 1\\.\n.*");
     }
 
     public void testExplicitTableOrdered() {
@@ -1644,13 +1620,14 @@ public class SqlParserTest
     }
 
     public void testSelectFromBareExplicitTableFails() {
+        // FIXME should fail at "emp"
         checkFails(
-            "select * from table ^emp^",
-            "(?s).*Encountered \"emp\" at line 1, column 21.*");
+            "select * from ^table^ emp",
+            "(?s).*Encountered \"table emp\" at .*");
 
         checkFails(
-            "select * from (table ^(^select empno from emp))",
-            "(?s)Encountered \"\\(\".*");
+            "select * from (^table^ (select empno from emp))",
+            "(?s)Encountered \"table \\(\".*");
     }
 
     public void testCollectionTable() {
@@ -1830,12 +1807,12 @@ public class SqlParserTest
             "x'1' \t\t\f\r \n"
             + "'2'--hi this is a comment'FF'\r\r\t\f \n"
             + "'34'",
-            TestUtil.fold("X'1'\n'2'\n'34'"));
+            "X'1'\n'2'\n'34'");
         checkExp(
             "x'1' \t\t\f\r \n"
             + "'000'--\n"
             + "'01'",
-            TestUtil.fold("X'1'\n'000'\n'01'"));
+            "X'1'\n'000'\n'01'");
         checkExp(
             "x'1234567890abcdef'=X'fFeEdDcCbBaA'",
             "(X'1234567890ABCDEF' = X'FFEEDDCCBBAA')");
@@ -1858,7 +1835,9 @@ public class SqlParserTest
         // valid syntax, but should fail in the validator
         check(
             "select x'1' '2' from t",
-            TestUtil.fold("SELECT X'1'\n'2'\nFROM `T`"));
+            "SELECT X'1'\n"
+            + "'2'\n"
+            + "FROM `T`");
     }
 
     public void testStringLiteral() {
@@ -1871,16 +1850,16 @@ public class SqlParserTest
         checkExp("_iSo-8859-1'bye'", "_ISO-8859-1'bye'");
         checkExp(
             "'three' \n ' blind'\n' mice'",
-            TestUtil.fold("'three'\n' blind'\n' mice'"));
+            "'three'\n' blind'\n' mice'");
         checkExp(
             "'three' -- comment \n ' blind'\n' mice'",
-            TestUtil.fold("'three'\n' blind'\n' mice'"));
+            "'three'\n' blind'\n' mice'");
         checkExp(
             "N'bye' \t\r\f\f\n' bye'",
-            TestUtil.fold("_ISO-8859-1'bye'\n' bye'"));
+            "_ISO-8859-1'bye'\n' bye'");
         checkExp(
             "_iso-8859-1'bye' \n\n--\n-- this is a comment\n' bye'",
-            TestUtil.fold("_ISO-8859-1'bye'\n' bye'"));
+            "_ISO-8859-1'bye'\n' bye'");
 
         // newline in string literal
         checkExp("'foo\rbar'", "'foo\rbar'");
@@ -2236,9 +2215,10 @@ public class SqlParserTest
             "(?s).*Encountered \"unbounded\".*");
 
         // WINDOW keyword is not permissible.
+        // FIXME should fail at "window"
         checkFails(
-            "select sum(x) over ^window^ (order by x) from bids",
-            "(?s).*Encountered \"window\".*");
+            "select sum(x) ^over^ window (order by x) from bids",
+            "(?s).*Encountered \"over window\".*");
 
         // ORDER BY must be before Frame spec
         checkFails(
@@ -2261,50 +2241,40 @@ public class SqlParserTest
 
         check(
             "select sum(x) over (order by x disallow partial) from bids",
-            TestUtil.fold(
-                "SELECT (SUM(`X`) OVER (ORDER BY `X` DISALLOW PARTIAL))\n"
-                + "FROM `BIDS`"));
+            "SELECT (SUM(`X`) OVER (ORDER BY `X` DISALLOW PARTIAL))\n"
+            + "FROM `BIDS`");
 
         check(
             "select sum(x) over (order by x) from bids",
-            TestUtil.fold(
-                "SELECT (SUM(`X`) OVER (ORDER BY `X`))\n"
-                + "FROM `BIDS`"));
+            "SELECT (SUM(`X`) OVER (ORDER BY `X`))\n"
+            + "FROM `BIDS`");
     }
 
     public void testAs() {
         // AS is optional for column aliases
         check(
             "select x y from t",
-            TestUtil.fold(
-                "SELECT `X` AS `Y`\n"
-                + "FROM `T`"));
+            "SELECT `X` AS `Y`\n" + "FROM `T`");
 
         check(
             "select x AS y from t",
-            TestUtil.fold(
-                "SELECT `X` AS `Y`\n"
-                + "FROM `T`"));
+            "SELECT `X` AS `Y`\n" + "FROM `T`");
         check(
             "select sum(x) y from t group by z",
-            TestUtil.fold(
-                "SELECT SUM(`X`) AS `Y`\n"
-                + "FROM `T`\n"
-                + "GROUP BY `Z`"));
+            "SELECT SUM(`X`) AS `Y`\n"
+            + "FROM `T`\n" + "GROUP BY `Z`");
 
         // Even after OVER
         check(
             "select count(z) over w foo from Bids window w as (order by x)",
-            TestUtil.fold(
-                "SELECT (COUNT(`Z`) OVER `W`) AS `FOO`\n"
-                + "FROM `BIDS`\n"
-                + "WINDOW `W` AS (ORDER BY `X`)"));
+            "SELECT (COUNT(`Z`) OVER `W`) AS `FOO`\n"
+            + "FROM `BIDS`\n"
+            + "WINDOW `W` AS (ORDER BY `X`)");
 
         // AS is optional for table correlation names
         final String expected =
-            TestUtil.fold(
-                "SELECT `X`\n"
-                + "FROM `T` AS `T1`");
+            "SELECT `X`\n"
+            + "FROM `T` AS `T1`";
         check("select x from t as t1", expected);
         check("select x from t t1", expected);
 
@@ -2322,41 +2292,34 @@ public class SqlParserTest
     public void testAsAliases() {
         check(
             "select x from t as t1 (a, b) where foo",
-            TestUtil.fold(
-                "SELECT `X`\n"
-                + "FROM `T` AS `T1` (`A`, `B`)\n"
-                + "WHERE `FOO`"));
+            "SELECT `X`\n"
+            + "FROM `T` AS `T1` (`A`, `B`)\n"
+            + "WHERE `FOO`");
 
         check(
             "select x from (values (1, 2), (3, 4)) as t1 (\"a\", b) where \"a\" > b",
-            TestUtil.fold(
-                "SELECT `X`\n"
-                + "FROM (VALUES (ROW(1, 2)), (ROW(3, 4))) AS `T1` (`a`, `B`)\n"
-                + "WHERE (`a` > `B`)"));
+            "SELECT `X`\n"
+            + "FROM (VALUES (ROW(1, 2)), (ROW(3, 4))) AS `T1` (`a`, `B`)\n"
+            + "WHERE (`a` > `B`)");
 
         // must have at least one column
         checkFails(
-            "select x from (values (1, 2), (3, 4)) as t1 (^)",
-            TestUtil.fold(
-                "(?s).*Was expecting one of:\n"
-                + "    <IDENTIFIER> ...\n"
-                + "    <QUOTED_IDENTIFIER>.*"));
+            "select x from (values (1, 2), (3, 4)) as t1 ^(^)",
+            "(?s).*Encountered \"\\( \\)\" at .*");
 
         // cannot have expressions
         checkFails(
             "select x from t as t1 (x ^+^ y)",
-            TestUtil.fold(
-                "(?s).*Was expecting one of:\n"
-                + "    \"\\)\" \\.\\.\\.\n"
-                + "    \",\" \\.\\.\\..*"));
+            "(?s).*Was expecting one of:\n"
+            + "    \"\\)\" \\.\\.\\.\n"
+            + "    \",\" \\.\\.\\..*");
 
         // cannot have compound identifiers
         checkFails(
             "select x from t as t1 (x^.^y)",
-            TestUtil.fold(
-                "(?s).*Was expecting one of:\n"
-                + "    \"\\)\" \\.\\.\\.\n"
-                + "    \",\" \\.\\.\\..*"));
+            "(?s).*Was expecting one of:\n"
+            + "    \"\\)\" \\.\\.\\.\n"
+            + "    \",\" \\.\\.\\..*");
     }
 
     public void testOver() {
@@ -4668,25 +4631,23 @@ public class SqlParserTest
         // No qualifier
         checkExpFails(
             "interval '1^'^",
-            TestUtil.fold(
-                "Encountered \"<EOF>\" at line 1, column 12\\.\n"
-                + "Was expecting one of:\n"
-                + "    \"DAY\" \\.\\.\\.\n"
-                + "    \"HOUR\" \\.\\.\\.\n"
-                + "    \"MINUTE\" \\.\\.\\.\n"
-                + "    \"MONTH\" \\.\\.\\.\n"
-                + "    \"SECOND\" \\.\\.\\.\n"
-                + "    \"YEAR\" \\.\\.\\.\n"
-                + "    "));
+            "Encountered \"<EOF>\" at line 1, column 12\\.\n"
+            + "Was expecting one of:\n"
+            + "    \"YEAR\" \\.\\.\\.\n"
+            + "    \"MONTH\" \\.\\.\\.\n"
+            + "    \"DAY\" \\.\\.\\.\n"
+            + "    \"HOUR\" \\.\\.\\.\n"
+            + "    \"MINUTE\" \\.\\.\\.\n"
+            + "    \"SECOND\" \\.\\.\\.\n"
+            + "    ");
 
-        // illegal qualfiers, no precision in either field
+        // illegal qualifiers, no precision in either field
         checkExpFails(
             "interval '1' year ^to^ year",
-            TestUtil.fold(
-                "(?s)Encountered \"to year\" at line 1, column 19.\n"
-                + "Was expecting one of:\n"
-                + "    <EOF> \n"
-                + "    \"AND\" \\.\\.\\..*"));
+            "(?s)Encountered \"to year\" at line 1, column 19.\n"
+            + "Was expecting one of:\n"
+            + "    <EOF> \n"
+            + "    \"NOT\" \\.\\.\\..*");
         checkExpFails("interval '1-2' year ^to^ day", ANY);
         checkExpFails("interval '1-2' year ^to^ hour", ANY);
         checkExpFails("interval '1-2' year ^to^ minute", ANY);
@@ -4721,7 +4682,7 @@ public class SqlParserTest
         checkExpFails("interval '1-2' second ^to^ minute", ANY);
         checkExpFails("interval '1-2' second ^to^ second", ANY);
 
-        // illegal qualfiers, including precision in start field
+        // illegal qualifiers, including precision in start field
         checkExpFails("interval '1' year(3) ^to^ year", ANY);
         checkExpFails("interval '1-2' year(3) ^to^ day", ANY);
         checkExpFails("interval '1-2' year(3) ^to^ hour", ANY);
@@ -4846,23 +4807,24 @@ public class SqlParserTest
         checkExpFails("interval '1-2' second(3) ^to^ second(2,6)", ANY);
 
         // precision of -1 (< minimum allowed)
-        checkExpFails("INTERVAL '0' YEAR(^-^1)", ANY);
-        checkExpFails("INTERVAL '0-0' YEAR(^-^1) TO MONTH", ANY);
-        checkExpFails("INTERVAL '0' MONTH(^-^1)", ANY);
-        checkExpFails("INTERVAL '0' DAY(^-^1)", ANY);
-        checkExpFails("INTERVAL '0 0' DAY(^-^1) TO HOUR", ANY);
-        checkExpFails("INTERVAL '0 0' DAY(^-^1) TO MINUTE", ANY);
-        checkExpFails("INTERVAL '0 0:0:0' DAY(^-^1) TO SECOND", ANY);
-        checkExpFails("INTERVAL '0 0:0:0' DAY TO SECOND(^-^1)", ANY);
-        checkExpFails("INTERVAL '0' HOUR(^-^1)", ANY);
-        checkExpFails("INTERVAL '0:0' HOUR(^-^1) TO MINUTE", ANY);
-        checkExpFails("INTERVAL '0:0:0' HOUR(^-^1) TO SECOND", ANY);
-        checkExpFails("INTERVAL '0:0:0' HOUR TO SECOND(^-^1)", ANY);
-        checkExpFails("INTERVAL '0' MINUTE(^-^1)", ANY);
-        checkExpFails("INTERVAL '0:0' MINUTE(^-^1) TO SECOND", ANY);
-        checkExpFails("INTERVAL '0:0' MINUTE TO SECOND(^-^1)", ANY);
-        checkExpFails("INTERVAL '0' SECOND(^-^1)", ANY);
-        checkExpFails("INTERVAL '0' SECOND(1, ^-^1)", ANY);
+        // FIXME should fail at "-" or "-1"
+        checkExpFails("INTERVAL '0' YEAR^(^-1)", ANY);
+        checkExpFails("INTERVAL '0-0' YEAR^(^-1) TO MONTH", ANY);
+        checkExpFails("INTERVAL '0' MONTH^(^-1)", ANY);
+        checkExpFails("INTERVAL '0' DAY^(^-1)", ANY);
+        checkExpFails("INTERVAL '0 0' DAY^(^-1) TO HOUR", ANY);
+        checkExpFails("INTERVAL '0 0' DAY^(^-1) TO MINUTE", ANY);
+        checkExpFails("INTERVAL '0 0:0:0' DAY^(^-1) TO SECOND", ANY);
+        checkExpFails("INTERVAL '0 0:0:0' DAY TO SECOND^(^-1)", ANY);
+        checkExpFails("INTERVAL '0' HOUR^(^-1)", ANY);
+        checkExpFails("INTERVAL '0:0' HOUR^(^-1) TO MINUTE", ANY);
+        checkExpFails("INTERVAL '0:0:0' HOUR^(^-1) TO SECOND", ANY);
+        checkExpFails("INTERVAL '0:0:0' HOUR TO SECOND^(^-1)", ANY);
+        checkExpFails("INTERVAL '0' MINUTE^(^-1)", ANY);
+        checkExpFails("INTERVAL '0:0' MINUTE^(^-1) TO SECOND", ANY);
+        checkExpFails("INTERVAL '0:0' MINUTE TO SECOND^(^-1)", ANY);
+        checkExpFails("INTERVAL '0' SECOND^(^-1)", ANY);
+        checkExpFails("INTERVAL '0' SECOND(1^,^ -1)", ANY);
 
         // These may actually be legal per SQL2003, as the first field is
         // "more significant" than the last, but we do not support them
@@ -5039,9 +5001,10 @@ public class SqlParserTest
 
     public void testParensInFrom() {
         // UNNEST may not occur within parentheses.
+        // FIXME should fail at "unnest"
         checkFails(
-            "select *from (^unnest^(x))",
-            "(?s)Encountered \"unnest\" at .*");
+            "select *from ^(^unnest(x))",
+            "(?s)Encountered \"\\( unnest\" at .*");
 
         // <table-name> may not occur within parentheses.
         checkFails(
@@ -5104,9 +5067,6 @@ public class SqlParserTest
 
     public void testMetadata() {
         SqlAbstractParserImpl.Metadata metadata = getParserImpl().getMetadata();
-        if (!Bug.TodoFixed) {
-            return;
-        }
         assertTrue(metadata.isReservedFunctionName("ABS"));
         assertFalse(metadata.isReservedFunctionName("FOO"));
 
@@ -5145,9 +5105,8 @@ public class SqlParserTest
     public void testTabStop() {
         check(
             "SELECT *\n\tFROM mytable",
-            TestUtil.fold(
-                "SELECT *\n"
-                + "FROM `MYTABLE`"));
+            "SELECT *\n"
+            + "FROM `MYTABLE`");
 
         // make sure that the tab stops do not affect the placement of the
         // error tokens
