@@ -942,6 +942,26 @@ public class JdbcTest extends TestCase {
                 + "EXPR$1 CHAR(2) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL\n");
     }
 
+    /** Test case for bug where if two tables have different element classes
+     * but those classes have identical fields, Optiq would generate code to use
+     * the wrong element class; a {@link ClassCastException} would ensue. */
+    public void testDifferentTypesSameFields() throws Exception {
+        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+        Connection connection = DriverManager.getConnection("jdbc:optiq:");
+        OptiqConnection optiqConnection =
+            connection.unwrap(OptiqConnection.class);
+        ReflectiveSchema.create(
+            optiqConnection, optiqConnection.getRootSchema(), "TEST",
+            new MySchema());
+        Statement statement = optiqConnection.createStatement();
+        ResultSet resultSet =
+            statement.executeQuery("SELECT \"myvalue\" from TEST.\"mytable2\"");
+        assertEquals("myvalue=2\n", toString(resultSet));
+        resultSet.close();
+        statement.close();
+        connection.close();
+    }
+
     public static class HrSchema {
         public final Employee[] emps = {
             new Employee(100, 10, "Bill", 1000),
@@ -1146,6 +1166,21 @@ public class JdbcTest extends TestCase {
                 }
             };
         }
+    }
+
+    public static class MyTable {
+        public String mykey = "foo";
+        public Integer myvalue = 1;
+    }
+
+    public static class MyTable2 {
+        public String mykey = "foo";
+        public Integer myvalue = 2;
+    }
+
+    public static class MySchema {
+        public MyTable[] mytable = { new MyTable() };
+        public MyTable2[] mytable2 = { new MyTable2() };
     }
 }
 

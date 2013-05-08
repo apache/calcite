@@ -20,6 +20,7 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.JavaRecordType;
 import net.hydromatic.optiq.prepare.Prepare;
 
 import net.hydromatic.linq4j.*;
@@ -32,6 +33,7 @@ import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
 import org.eigenbase.trace.EigenbaseTrace;
@@ -1670,10 +1672,40 @@ public class JavaRules {
                     "count",
                     Expressions.call(collectionParameter, "size"),
                     false);
+            Expression convertedChildExp;
+            if (!getChild().getRowType().equals(getRowType())) {
+                final JavaTypeFactory typeFactory =
+                    (JavaTypeFactory) getCluster().getTypeFactory();
+                PhysType physType =
+                    PhysTypeImpl.of(
+                        typeFactory,
+                        table.getRowType(),
+                        JavaRowFormat.CUSTOM);
+                List<Expression> expressionList = new ArrayList<Expression>();
+                final PhysType childPhysType =
+                    ((EnumerableRel) getChild()).getPhysType();
+                final ParameterExpression o =
+                    Expressions.parameter(childPhysType.getJavaRowType(), "o");
+                final int fieldCount =
+                    childPhysType.getRowType().getFieldCount();
+                for (int i = 0; i < fieldCount; i++) {
+                    expressionList.add(childPhysType.fieldReference(o, i));
+                }
+                convertedChildExp =
+                    builder.append(
+                        "convertedChild",
+                        Expressions.call(
+                            childExp,
+                            BuiltinMethod.SELECT.method,
+                            Expressions.lambda(
+                                physType.record(expressionList), o)));
+            } else {
+                convertedChildExp = childExp;
+            }
             builder.add(
                 Expressions.statement(
                     Expressions.call(
-                        childExp, "into", collectionParameter)));
+                        convertedChildExp, "into", collectionParameter)));
             builder.add(
                 Expressions.return_(
                     null,

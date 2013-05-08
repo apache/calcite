@@ -37,6 +37,17 @@ public class JavaRecordType extends RelRecordType {
         this.clazz = clazz;
         assert clazz != null;
     }
+
+    @Override public boolean equals(Object obj) {
+        return this == obj
+            || obj instanceof JavaRecordType
+            && fieldList.equals(((JavaRecordType) obj).fieldList)
+            && clazz == ((JavaRecordType) obj).clazz;
+    }
+
+    @Override public int hashCode() {
+        return fieldList.hashCode() ^ clazz.hashCode();
+    }
 }
 
 // End JavaRecordType.java
