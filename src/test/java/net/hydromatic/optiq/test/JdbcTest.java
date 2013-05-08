@@ -552,6 +552,16 @@ public class JdbcTest extends TestCase {
         }
     }
 
+    /** There was a bug representing a nullable timestamp using a {@link Long}
+     * internally. */
+    public void testNullableTimestamp() {
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.FOODMART_CLONE)
+            .query(
+                "select \"hire_date\" from \"employee\" where \"employee_id\" = 1")
+            .returns("hire_date=1994-12-01T08:00:00Z\n");
+    }
+
     public void testValues() {
         OptiqAssert.assertThat()
             .query("values (1), (2)")

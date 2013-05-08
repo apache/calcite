@@ -87,6 +87,7 @@ public abstract class AbstractCursor implements Cursor {
         case Types.DATE:
             switch (Rep.of(type.internalClass)) {
             case PRIMITIVE_INT:
+            case INTEGER:
                 return new DateFromIntAccessor(getter);
             case JAVA_SQL_DATE:
                 return new DateAccessor(getter);
@@ -96,6 +97,7 @@ public abstract class AbstractCursor implements Cursor {
         case Types.TIME:
             switch (Rep.of(type.internalClass)) {
             case PRIMITIVE_INT:
+            case INTEGER:
                 return new TimeFromIntAccessor(getter);
             case JAVA_SQL_TIME:
                 return new TimeAccessor(getter);
@@ -105,6 +107,7 @@ public abstract class AbstractCursor implements Cursor {
         case Types.TIMESTAMP:
             switch (Rep.of(type.internalClass)) {
             case PRIMITIVE_LONG:
+            case LONG:
                 return new TimestampFromLongAccessor(getter);
             case JAVA_SQL_TIMESTAMP:
                 return new TimestampAccessor(getter);
