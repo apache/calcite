@@ -7,13 +7,9 @@
   <artifactId>optiq</artifactId>
   <packaging>jar</packaging>
 
-  <!-- Version number. 1 of the 2 following lines should be commented
-       out. The version number committed to github should be
-       x.x-SNAPSHOT except, briefly, when making a release. -->
-<!--
-  <version>0.3.x</version>
--->
-  <version>0.3-SNAPSHOT</version>
+  <!-- Version number. The version number committed to github should be
+       x.x-SNAPSHOT or, briefly when making a release, something like 0.3.2. -->
+  <version>0.3.3</version>
 
   <!-- More project information. -->
   <name>optiq</name>
