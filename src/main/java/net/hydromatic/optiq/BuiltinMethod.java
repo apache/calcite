@@ -159,7 +159,7 @@ public enum BuiltinMethod {
     UNIX_TIME_TO_STRING(
         SqlFunctions.class, "unixTimeToString", int.class),
     UNIX_TIMESTAMP_TO_STRING(
-        SqlFunctions.class, "unixTimestampToString", int.class),
+        SqlFunctions.class, "unixTimestampToString", long.class),
     BOOLEAN_TO_STRING(
         SqlFunctions.class, "toString", boolean.class),
     ROUND_LONG(

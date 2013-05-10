@@ -494,7 +494,67 @@ public class SqlFunctions {
         return b0 == null || b1 != null && b0.compareTo(b1) > 0 ? b1 : b0;
     }
 
+    public static boolean greater(boolean b0, boolean b1) {
+        return b0 || b1;
+    }
+
+    public static boolean lesser(boolean b0, boolean b1) {
+        return b0 && b1;
+    }
+
+    public static byte greater(byte b0, byte b1) {
+        return b0 > b1 ? b0 : b1;
+    }
+
+    public static byte lesser(byte b0, byte b1) {
+        return b0 > b1 ? b1 : b0;
+    }
+
+    public static char greater(char b0, char b1) {
+        return b0 > b1 ? b0 : b1;
+    }
+
+    public static char lesser(char b0, char b1) {
+        return b0 > b1 ? b1 : b0;
+    }
+
+    public static short greater(short b0, short b1) {
+        return b0 > b1 ? b0 : b1;
+    }
+
+    public static short lesser(short b0, short b1) {
+        return b0 > b1 ? b1 : b0;
+    }
+
+    public static int greater(int b0, int b1) {
+        return b0 > b1 ? b0 : b1;
+    }
+
     public static int lesser(int b0, int b1) {
+        return b0 > b1 ? b1 : b0;
+    }
+
+    public static long greater(long b0, long b1) {
+        return b0 > b1 ? b0 : b1;
+    }
+
+    public static long lesser(long b0, long b1) {
+        return b0 > b1 ? b1 : b0;
+    }
+
+    public static float greater(float b0, float b1) {
+        return b0 > b1 ? b0 : b1;
+    }
+
+    public static float lesser(float b0, float b1) {
+        return b0 > b1 ? b1 : b0;
+    }
+
+    public static double greater(double b0, double b1) {
+        return b0 > b1 ? b0 : b1;
+    }
+
+    public static double lesser(double b0, double b1) {
         return b0 > b1 ? b1 : b0;
     }
 

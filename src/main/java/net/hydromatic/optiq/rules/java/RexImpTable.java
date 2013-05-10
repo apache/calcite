@@ -754,16 +754,22 @@ public class RexImpTable {
             //   : lesser(acc, arg)
             assert arguments.size() == 1;
             final Expression arg = arguments.get(0);
-            return Expressions.condition(
-                Expressions.equal(accumulator, NULL_EXPR),
-                arg,
-                Expressions.convert_(
-                    Expressions.call(
-                        SqlFunctions.class,
-                        aggregation == minOperator ? "lesser" : "greater",
-                        RexToLixTranslator.unbox(accumulator),
-                        arg),
-                    arg.getType()));
+            return optimize(
+                Expressions.condition(
+                    JavaRules.EnumUtil.foldOr(
+                        Expressions.<Expression>list(
+                            Expressions.equal(accumulator, NULL_EXPR))
+                            .appendIf(
+                                !Primitive.is(arg.type),
+                                Expressions.equal(arg, NULL_EXPR))),
+                    arg,
+                    Expressions.convert_(
+                        Expressions.call(
+                            SqlFunctions.class,
+                            aggregation == minOperator ? "lesser" : "greater",
+                            RexToLixTranslator.unbox(accumulator),
+                            RexToLixTranslator.unbox(arg)),
+                        arg.getType())));
         }
 
         public Expression implementResult(

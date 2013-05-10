@@ -30,6 +30,7 @@ import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import junit.framework.TestCase;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.*;
@@ -233,6 +234,41 @@ public class ReflectiveSchemaTest extends TestCase {
             .returns(
                 "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01T00:00:00Z; utilDate=1970-01-01T00:00:00Z\n"
                 + "primitiveBoolean=true; primitiveByte=127; primitiveChar=￿; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null\n");
+    }
+
+    /** Tests columns based on types such as java.sql.Date and java.util.Date.
+     *
+     * @see CatchallSchema#everyTypes */
+    public void testMax() throws Exception {
+        final OptiqAssert.AssertThat with =
+            OptiqAssert.assertThat()
+                .with("s", new CatchallSchema());
+        for (String fn : new String[]{"min", "max"}) {
+            for (Field field : EveryType.class.getFields()) {
+                with.query(
+                    "select " + fn + "(\"" + field.getName() + "\") as c\n"
+                    + "from \"s\".\"everyTypes\"")
+                    .returns(ReflectiveSchemaTest.<String, Void>constant(null));
+            }
+        }
+    }
+
+    // TODO: move into linq4j Functions
+    private static <T, R> Function1<T, R> constant(final R r) {
+        return new Function1<T, R>() {
+            public R apply(T s) {
+                return r;
+            }
+        };
+    }
+
+    // TODO: move into linq4j Functions
+    private static <T, R> Function1<T, R> constantNull() {
+        return new Function1<T, R>() {
+            public R apply(T s) {
+                return null;
+            }
+        };
     }
 
     /** Tests that if a field of a relation has an unrecognized type (in this
