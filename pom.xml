@@ -7,13 +7,9 @@
   <artifactId>linq4j</artifactId>
   <packaging>jar</packaging>
 
-  <!-- Version number. 1 of the 2 following lines should be commented
-       out. The version number committed to github should be
-       x.x-SNAPSHOT except, briefly, when making a release. -->
-<!--
-  <version>0.1.1</version>
--->
-  <version>0.1-SNAPSHOT</version>
+  <!-- Version number. The version number committed to github should be
+       TRUNK-SNAPSHOT or, briefly when making a release, something like 0.1.1. -->
+  <version>TRUNK-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>linq4j</name>

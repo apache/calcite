@@ -35,39 +35,43 @@ public class ExpressionTest extends TestCase {
   public void testLambdaCallsBinaryOp() {
     // A parameter for the lambda expression.
     ParameterExpression paramExpr =
-        Expressions.parameter(Integer.TYPE, "arg");
+        Expressions.parameter(Double.TYPE, "arg");
 
     // This expression represents a lambda expression
     // that adds 1 to the parameter value.
     FunctionExpression lambdaExpr = Expressions.lambda(
         Expressions.add(
             paramExpr,
-            Expressions.constant(2)),
+            Expressions.constant(2d)),
         Arrays.asList(paramExpr));
 
     // Print out the expression.
     String s = Expressions.toString(lambdaExpr);
     assertEquals(
         "new net.hydromatic.linq4j.function.Function1() {\n"
-        + "  public int apply(Integer arg) {\n"
-        + "    return arg + 2;\n"
+        + "  public double apply(double arg) {\n"
+        + "    return arg + 2.0D;\n"
+        + "  }\n"
+        + "  public Object apply(Double arg) {\n"
+        + "    return apply(\n"
+        + "      arg.doubleValue());\n"
         + "  }\n"
         + "  public Object apply(Object arg) {\n"
         + "    return apply(\n"
-        + "      (Integer) arg);\n"
+        + "      (Double) arg);\n"
         + "  }\n"
         + "}\n",
         s);
 
     // Compile and run the lambda expression.
-    // The value of the parameter is 1.
-    int n = (Integer) lambdaExpr.compile().dynamicInvoke(1);
+    // The value of the parameter is 1.5.
+    double n = (Double) lambdaExpr.compile().dynamicInvoke(1.5d);
 
     // This code example produces the following output:
     //
     // arg => (arg +2)
     // 3
-    assertEquals(3, n);
+    assertEquals(3.5D, n);
   }
 
   public void testLambdaPrimitiveTwoArgs() {
@@ -87,8 +91,13 @@ public class ExpressionTest extends TestCase {
     // Print out the expression.
     String s = Expressions.toString(lambdaExpr);
     assertEquals("new net.hydromatic.linq4j.function.Function2() {\n"
-        + "  public int apply(Integer key, Integer key2) {\n"
+        + "  public int apply(int key, int key2) {\n"
         + "    return key;\n"
+        + "  }\n"
+        + "  public Integer apply(Integer key, Integer key2) {\n"
+        + "    return apply(\n"
+        + "      key.intValue(),\n"
+        + "      key2.intValue());\n"
         + "  }\n"
         + "  public Integer apply(Object key, Object key2) {\n"
         + "    return apply(\n"

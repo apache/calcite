@@ -102,18 +102,42 @@ public final class FunctionExpression<F extends Function<?>>
     //        return apply((T1) p1, ...);
     //    }
     // }
+    //
+    // if any arguments are primitive there is an extra bridge method:
+    //
+    //  new Function1() {
+    //    public double apply(double p1, int p2) {
+    //      <body>
+    //    }
+    //    // box bridge method
+    //    public Double apply(Double p1, Integer p2) {
+    //      return apply(p1.doubleValue(), p2.intValue());
+    //    }
+    //    // bridge method
+    //    public Object apply(Object p1, Object p2) {
+    //      return apply((Double) p1, (Integer) p2);
+    //    }
     List<String> params = new ArrayList<String>();
     List<String> bridgeParams = new ArrayList<String>();
     List<String> bridgeArgs = new ArrayList<String>();
+    List<String> boxBridgeParams = new ArrayList<String>();
+    List<String> boxBridgeArgs = new ArrayList<String>();
     for (ParameterExpression parameterExpression : parameterList) {
-      params.add(Types.boxClassName(parameterExpression.getType())
-          + " "
-          + parameterExpression.name);
+      final Type parameterType = parameterExpression.getType();
+      final String parameterTypeName = Types.className(parameterType);
+      final String parameterBoxTypeName = Types.boxClassName(parameterType);
+      params.add(parameterTypeName + " " + parameterExpression.name);
+
       bridgeParams.add("Object " + parameterExpression.name);
-      bridgeArgs.add("("
-          + Types.boxClassName(parameterExpression.getType())
-          + ") "
+      bridgeArgs.add("(" + parameterBoxTypeName + ") "
           + parameterExpression.name);
+
+      boxBridgeParams.add(parameterBoxTypeName + " "
+          + parameterExpression.name);
+      boxBridgeArgs.add(parameterExpression.name
+          + (Primitive.is(parameterType)
+          ? "." + Primitive.of(parameterType).primitiveName + "Value()"
+          : ""));
     }
     Type bridgeResultType = Functions.FUNCTION_RESULT_TYPES.get(this.type);
     if (bridgeResultType == null) {
@@ -134,12 +158,24 @@ public final class FunctionExpression<F extends Function<?>>
         .list(" apply(", ", ", ") ", params)
         .append(Blocks.toFunctionBlock(body));
 
+    // Generate an intermediate bridge method if at least one parameter is
+    // primitive.
+    if (!boxBridgeParams.equals(params)) {
+      writer
+          .append("public ")
+          .append(Types.boxClassName(bridgeResultType))
+          .list(" apply(", ", ", ") ", boxBridgeParams)
+          .begin("{\n")
+          .list("return apply(\n", ",\n", ");\n", boxBridgeArgs)
+          .end("}\n");
+    }
+
     // Generate a bridge method. Argument types are looser (as if every
     // type parameter is set to 'Object').
     //
     // Skip the bridge method if there are no arguments. It would have the
     // same overload as the regular method.
-    if (!bridgeParams.isEmpty()) {
+    if (!bridgeParams.equals(params)) {
       writer
         .append("public ")
         .append(Types.boxClassName(bridgeResultType))
