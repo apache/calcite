@@ -67,6 +67,13 @@ public class Functions {
   private static final EqualityComparer<Object[]> ARRAY_COMPARER =
       new ArrayEqualityComparer();
 
+  private static final Function1 CONSTANT_NULL_FUNCTION1 =
+      new Function1() {
+        public Object apply(Object s) {
+          return null;
+        }
+      };
+
   @SuppressWarnings("unchecked")
   private static <K, V> Map<K, V> map(K k, V v, Object... rest) {
     final Map<K, V> map = new HashMap<K, V>();
@@ -83,6 +90,21 @@ public class Functions {
       inverseMap.put(entry.getValue(), entry.getKey());
     }
     return inverseMap;
+  }
+
+  /** Returns a 1-parameter function that always returns the same value. */
+  public static <T, R> Function1<T, R> constant(final R r) {
+    return new Function1<T, R>() {
+      public R apply(T s) {
+        return r;
+      }
+    };
+  }
+
+  /** Returns a 1-parameter function that always returns null. */
+  @SuppressWarnings("unchecked")
+  public static <T, R> Function1<T, R> constantNull() {
+    return CONSTANT_NULL_FUNCTION1;
   }
 
   /**

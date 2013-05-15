@@ -32,25 +32,22 @@ import java.util.*;
  * (e.g. {@link Integer}).</p>
  */
 public enum Primitive {
-  BOOLEAN(Boolean.TYPE, Boolean.class, 1, true, Boolean.FALSE, Boolean.TRUE),
-  BYTE(Byte.TYPE, Byte.class, 2, true, Byte.MIN_VALUE, Byte.MAX_VALUE),
-  CHAR(Character.TYPE, Character.class, 2, true, Character.MIN_VALUE,
+  BOOLEAN(Boolean.TYPE, Boolean.class, 1, Boolean.FALSE, Boolean.TRUE),
+  BYTE(Byte.TYPE, Byte.class, 2, Byte.MIN_VALUE, Byte.MAX_VALUE),
+  CHAR(Character.TYPE, Character.class, 2, Character.MIN_VALUE,
       Character.MAX_VALUE),
-  SHORT(Short.TYPE, Short.class, 2, true, Short.MIN_VALUE, Short.MAX_VALUE),
-  INT(Integer.TYPE, Integer.class, 2, true, Integer.MIN_VALUE,
-      Integer.MAX_VALUE),
-  LONG(Long.TYPE, Long.class, 2, true, Long.MIN_VALUE, Long.MAX_VALUE),
-  FLOAT(Float.TYPE, Float.class, 3, false, Float.MIN_VALUE, Float.MAX_VALUE),
-  DOUBLE(Double.TYPE, Double.class, 3, false, Double.MIN_VALUE,
-      Double.MAX_VALUE),
-  VOID(Void.TYPE, Void.class, 4, false, null, null),
-  OTHER(null, null, 5, false, null, null);
+  SHORT(Short.TYPE, Short.class, 2, Short.MIN_VALUE, Short.MAX_VALUE),
+  INT(Integer.TYPE, Integer.class, 2, Integer.MIN_VALUE, Integer.MAX_VALUE),
+  LONG(Long.TYPE, Long.class, 2, Long.MIN_VALUE, Long.MAX_VALUE),
+  FLOAT(Float.TYPE, Float.class, 3, Float.MIN_VALUE, Float.MAX_VALUE),
+  DOUBLE(Double.TYPE, Double.class, 3, Double.MIN_VALUE, Double.MAX_VALUE),
+  VOID(Void.TYPE, Void.class, 4, null, null),
+  OTHER(null, null, 5, null, null);
 
   public final Class primitiveClass;
   public final Class boxClass;
   public final String primitiveName; // e.g. "int"
   private final int family;
-  public final boolean fixed;
   public final Object min;
   public final Object max;
 
@@ -71,14 +68,13 @@ public enum Primitive {
     }
   }
 
-  Primitive(Class primitiveClass, Class boxClass, int family, boolean fixed,
-      Object min, Object max) {
+  Primitive(Class primitiveClass, Class boxClass, int family, Object min,
+      Object max) {
     this.primitiveClass = primitiveClass;
     this.family = family;
     this.primitiveName =
         primitiveClass != null ? primitiveClass.getSimpleName() : null;
     this.boxClass = boxClass;
-    this.fixed = fixed;
     this.min = min;
     this.max = max;
   }
@@ -86,8 +82,10 @@ public enum Primitive {
   /**
    * Returns the Primitive object for a given primitive class.
    *
-   * <p>For example, <code>of(Long.TYPE)</code> or <code>of(long.class)</code>
-   * returns {@link #LONG}.
+   * <p>For example, <code>of(long.class)</code> returns {@link #LONG}.
+   * Returns {@code null} when applied to a boxing or other class; for example
+   * <code>of(Long.class)</code> and <code>of(String.class)</code> return
+   * {@code null}.
    */
   public static Primitive of(Type type) {
     //noinspection SuspiciousMethodCalls
@@ -103,6 +101,20 @@ public enum Primitive {
   public static Primitive ofBox(Type type) {
     //noinspection SuspiciousMethodCalls
     return BOX_MAP.get(type);
+  }
+
+  /**
+   * Returns the Primitive object for a given primitive or boxing class.
+   *
+   * <p>For example, <code>ofBoxOr(Long.class)</code> and
+   * <code>ofBoxOr(long.class)</code> both return {@link #LONG}.
+   */
+  public static Primitive ofBoxOr(Type type) {
+    Primitive primitive = of(type);
+    if (primitive == null) {
+      primitive = ofBox(type);
+    }
+    return primitive;
   }
 
   /**
@@ -130,6 +142,35 @@ public enum Primitive {
       return Flavor.BOX;
     } else {
       return Flavor.OBJECT;
+    }
+  }
+
+  /** Returns whether this Primitive is a numeric type. */
+  public boolean isNumeric() {
+    // Per Java: Boolean and Character do not extend Number
+    switch (this) {
+    case BYTE:
+    case SHORT:
+    case INT:
+    case LONG:
+    case FLOAT:
+    case DOUBLE:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  /** Returns whether this Primitive is a fixed-point numeric type. */
+  public boolean isFixedNumeric() {
+    switch (this) {
+    case BYTE:
+    case SHORT:
+    case INT:
+    case LONG:
+      return true;
+    default:
+      return false;
     }
   }
 

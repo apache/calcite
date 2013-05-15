@@ -92,14 +92,18 @@ public class ConstantExpression extends Expression {
     final Primitive primitive = Primitive.of(type);
     if (primitive != null) {
       switch (primitive) {
+      case BYTE:
+        return writer.append("(byte)").append(value);
+      case CHAR:
+        return writer.append("(char)").append(value);
+      case SHORT:
+        return writer.append("(short)").append(value);
+      case LONG:
+        return writer.append(value).append("L");
       case FLOAT:
         return writer.append(value).append("F");
       case DOUBLE:
         return writer.append(value).append("D");
-      case LONG:
-        return writer.append(value).append("L");
-      case SHORT:
-        return writer.append("(short)").append(value);
       default:
         return writer.append(value);
       }

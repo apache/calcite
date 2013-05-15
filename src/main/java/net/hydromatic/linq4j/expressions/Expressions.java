@@ -1391,13 +1391,77 @@ public class Expressions {
       type = Boolean.TYPE;
       break;
     default:
-      // curiously, "short + short" has type "int". Who knew?
-      type = left.getType() == short.class || left.getType() == Short.class
-          ? int.class
-          : left.getType();
+      type = larger(left.type, right.type);
       break;
     }
     return new BinaryExpression(binaryType, type, left, right);
+  }
+
+  /** Returns an expression to box the value of a primitive expression.
+   * E.g. {@code box(e, Primitive.INT)} returns {@code Integer.valueOf(e)}. */
+  public static Expression box(Expression expression, Primitive primitive) {
+    return call(primitive.boxClass, "valueOf", expression);
+  }
+
+  /** Converts e.g. "anInteger" to "Integer.valueOf(anInteger)". */
+  public static Expression box(Expression expression) {
+    Primitive primitive = Primitive.of(expression.getType());
+    if (primitive == null) {
+      return expression;
+    }
+    return box(expression, primitive);
+  }
+
+  /** Returns an expression to unbox the value of a boxed-primitive expression.
+   * E.g. {@code unbox(e, Primitive.INT)} returns {@code e.intValue()}.
+   * It is assumed that e is of the right box type (or {@link Number})."Value */
+  public static Expression unbox(Expression expression, Primitive primitive) {
+    return call(expression, primitive.primitiveName + "Value");
+  }
+
+  /** Converts e.g. "anInteger" to "anInteger.intValue()". */
+  public static Expression unbox(Expression expression) {
+    Primitive primitive = Primitive.ofBox(expression.getType());
+    if (primitive == null) {
+      return expression;
+    }
+    return unbox(expression, primitive);
+  }
+
+  private Type largest(Type... types) {
+    Type max = types[0];
+    for (int i = 1; i < types.length; i++) {
+      max = larger(max, types[i]);
+    }
+    return max;
+  }
+
+  private static Type larger(Type type0, Type type1) {
+    // curiously, "short + short" has type "int".
+    // similarly, "byte + byte" has type "int".
+    // "byte / long" has type "long".
+    if (type0 == double.class
+        || type0 == Double.class
+        || type1 == double.class
+        || type1 == Double.class)
+    {
+      return double.class;
+    }
+    if (type0 == float.class
+        || type0 == Float.class
+        || type1 == float.class
+        || type1 == Float.class)
+    {
+      return float.class;
+    }
+    if (type0 == long.class
+        || type0 == Long.class
+        || type1 == long.class
+        || type1 == Long.class)
+    {
+      return long.class;
+    }
+    return int.class;
   }
 
   /**
@@ -2799,6 +2863,54 @@ public class Expressions {
    */
   public static Statement statement(Expression expression) {
     return new GotoExpression(GotoExpressionKind.Sequence, null, expression);
+  }
+
+  /** Combines a list of expressions using AND. Returns TRUE if the list is
+   * empty. */
+  public static Expression foldAnd(List<Expression> conditions) {
+    Expression e = null;
+    for (Expression condition : conditions) {
+      if (condition instanceof ConstantExpression) {
+        if ((Boolean) ((ConstantExpression) condition).value) {
+          continue;
+        } else {
+          return constant(false);
+        }
+      }
+      if (e == null) {
+        e = condition;
+      } else {
+        e = andAlso(e, condition);
+      }
+    }
+    if (e == null) {
+      return constant(true);
+    }
+    return e;
+  }
+
+  /** Combines a list of expressions using OR. Returns FALSE if the list is
+   * empty. */
+  public static Expression foldOr(List<Expression> conditions) {
+    Expression e = null;
+    for (Expression condition : conditions) {
+      if (condition instanceof ConstantExpression) {
+        if ((Boolean) ((ConstantExpression) condition).value) {
+          return constant(true);
+        } else {
+          continue;
+        }
+      }
+      if (e == null) {
+        e = condition;
+      } else {
+        e = orElse(e, condition);
+      }
+    }
+    if (e == null) {
+      return constant(false);
+    }
+    return e;
   }
 
   /**

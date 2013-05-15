@@ -135,6 +135,65 @@ public class ExpressionTest extends TestCase {
     assertEquals("lo w", s);
   }
 
+  public void testFoldAnd() {
+    // empty list yields true
+    final List<Expression> list0 = Collections.emptyList();
+    assertEquals(
+        "true",
+        Expressions.toString(
+            Expressions.foldAnd(list0)));
+    assertEquals(
+        "false",
+        Expressions.toString(
+            Expressions.foldOr(list0)));
+
+    final List<Expression> list1 =
+        Arrays.asList(
+            Expressions.equal(Expressions.constant(1), Expressions.constant(2)),
+            Expressions.equal(Expressions.constant(3), Expressions.constant(4)),
+            Expressions.constant(true),
+            Expressions.equal(Expressions.constant(5),
+                Expressions.constant(6)));
+    // true is eliminated from AND
+    assertEquals(
+        "1 == 2 && 3 == 4 && 5 == 6",
+        Expressions.toString(
+            Expressions.foldAnd(list1)));
+    // a single true makes OR true
+    assertEquals(
+        "true",
+        Expressions.toString(
+            Expressions.foldOr(list1)));
+
+    final List<Expression> list2 =
+        Collections.<Expression>singletonList(
+            Expressions.constant(true));
+    assertEquals(
+        "true",
+        Expressions.toString(
+            Expressions.foldAnd(list2)));
+    assertEquals(
+        "true",
+        Expressions.toString(
+            Expressions.foldOr(list2)));
+
+    final List<Expression> list3 =
+        Arrays.asList(
+            Expressions.equal(Expressions.constant(1), Expressions.constant(2)),
+            Expressions.constant(false),
+            Expressions.equal(Expressions.constant(5),
+                Expressions.constant(6)));
+    // false causes whole list to be false
+    assertEquals(
+        "false",
+        Expressions.toString(
+            Expressions.foldAnd(list3)));
+    assertEquals(
+        "1 == 2 || 5 == 6",
+        Expressions.toString(
+            Expressions.foldOr(list3)));
+  }
+
   public void testWrite() {
     assertEquals(
         "1 + 2.0F + 3L + Long.valueOf(4L)",

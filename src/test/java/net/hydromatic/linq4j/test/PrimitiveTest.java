@@ -70,6 +70,20 @@ public class PrimitiveTest extends TestCase {
     assertEquals(boolean[].class, Primitive.box(boolean[].class));
   }
 
+  public void testOfBox() {
+    assertEquals(Primitive.INT, Primitive.ofBox(Integer.class));
+    assertNull(Primitive.ofBox(int.class));
+    assertNull(Primitive.ofBox(String.class));
+    assertNull(Primitive.ofBox(Integer[].class));
+  }
+
+  public void testOfBoxOr() {
+    assertEquals(Primitive.INT, Primitive.ofBox(Integer.class));
+    assertNull(Primitive.ofBox(int.class));
+    assertNull(Primitive.ofBox(String.class));
+    assertNull(Primitive.ofBox(Integer[].class));
+  }
+
   /** Tests the {@link Primitive#number(Number)} method. */
   public void testNumber() {
     Number number = Primitive.SHORT.number(Integer.valueOf(2));

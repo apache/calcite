@@ -421,18 +421,16 @@ public class Types {
       //   Integer foo(BigDecimal o) {
       //     return o.intValue();
       //   }
-      return Expressions.call(expression,
-          Primitive.ofBox(returnType).primitiveName + "Value");
+      return Expressions.unbox(expression, Primitive.ofBox(returnType));
     }
     if (Primitive.is(returnType) && !Primitive.is(type)) {
       // E.g.
       //   int foo(Object o) {
-      //     return (int) (Integer) o;
+      //     return ((Integer) o).intValue();
       //   }
-      return Expressions.convert_(
-          Expressions.convert_(expression,
-              Types.box(returnType)),
-          returnType);
+      return Expressions.unbox(
+          Expressions.convert_(expression, Types.box(returnType)),
+          Primitive.of(returnType));
     }
     if (!Primitive.is(returnType) && Primitive.is(type)) {
       // E.g.

@@ -1003,6 +1003,50 @@ public class Linq4jTest extends TestCase {
             .toString());
   }
 
+  public void testList0() {
+    final List<Employee> employees = Arrays.asList(
+        new Employee(100, "Fred", 10),
+        new Employee(110, "Bill", 30),
+        new Employee(120, "Eric", 10),
+        new Employee(130, "Janet", 10));
+    final List<Employee> result = new ArrayList<Employee>();
+    Linq4j.asEnumerable(employees)
+        .where(
+            new Predicate1<Employee>() {
+              public boolean apply(Employee e) {
+                return e.name.contains("e");
+              }
+            })
+        .into(result);
+    assertEquals(
+        "[Employee(name: Fred, deptno:10), Employee(name: Janet, deptno:10)]",
+        result.toString());
+  }
+
+  public void testList() {
+    final List<Employee> employees = Arrays.asList(
+        new Employee(100, "Fred", 10),
+        new Employee(110, "Bill", 30),
+        new Employee(120, "Eric", 10),
+        new Employee(130, "Janet", 10));
+    final Map<Employee, Department> empDepts =
+        new HashMap<Employee, Department>();
+    for (Employee employee : employees) {
+      empDepts.put(employee, depts[(employee.deptno - 10) / 10]);
+    }
+    final List<Grouping<Object, Map.Entry<Employee, Department>>> result =
+        new ArrayList<Grouping<Object, Map.Entry<Employee, Department>>>();
+    Linq4j.asEnumerable(empDepts.entrySet())
+        .groupBy(
+            new Function1<Map.Entry<Employee, Department>, Object>() {
+              public Object apply(Map.Entry<Employee, Department> entry) {
+                return entry.getValue();
+              }
+            })
+        .into(result);
+    assertNotNull(result.toString());
+  }
+
   public static class Employee {
     public final int empno;
     public final String name;
