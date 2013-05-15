@@ -17,7 +17,14 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.linq4j.function.Function0;
+import net.hydromatic.optiq.runtime.ColumnMetaData;
+import net.hydromatic.optiq.runtime.Cursor;
+
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Utility methods, mainly concerning error-handling.
@@ -48,6 +55,35 @@ public class Helper {
 
     public SQLException toSQLException(SQLException exception) {
         return exception;
+    }
+
+    /** Creates an empty result set. Useful for JDBC metadata methods that are
+     * not implemented or which query entities that are not supported (e.g.
+     * triggers in Lingual). */
+    public ResultSet createEmptyResultSet(OptiqConnectionImpl connection) {
+        try {
+            return connection.driver.factory.newResultSet(
+                connection.createStatement(),
+                Collections.<ColumnMetaData>emptyList(),
+                new Function0<Cursor>() {
+                    public Cursor apply() {
+                        return new Cursor() {
+                            public List<Accessor> createAccessors(
+                                List<ColumnMetaData> types)
+                            {
+                                assert types.isEmpty();
+                                return Collections.emptyList();
+                            }
+
+                            public boolean next() {
+                                return false;
+                            }
+                        };
+                    }
+                }).execute();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
 

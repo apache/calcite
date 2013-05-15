@@ -17,13 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.linq4j.function.Function0;
-import net.hydromatic.optiq.runtime.ColumnMetaData;
-import net.hydromatic.optiq.runtime.Cursor;
-
 import java.sql.*;
-import java.util.Collections;
-import java.util.List;
+
 
 /**
  * Implementation of {@link java.sql.DatabaseMetaData}
@@ -530,7 +525,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String schemaPattern,
         String procedureNamePattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getProcedureColumns(
@@ -539,7 +534,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String procedureNamePattern,
         String columnNamePattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getTables(
@@ -552,15 +547,15 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public ResultSet getSchemas() throws SQLException {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getCatalogs() throws SQLException {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getTableTypes() throws SQLException {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getColumns(
@@ -579,7 +574,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String table,
         String columnNamePattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getTablePrivileges(
@@ -587,7 +582,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String schemaPattern,
         String tableNamePattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getBestRowIdentifier(
@@ -597,31 +592,31 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         int scope,
         boolean nullable) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getVersionColumns(
         String catalog, String schema, String table) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getPrimaryKeys(
         String catalog, String schema, String table) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getImportedKeys(
         String catalog, String schema, String table) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getExportedKeys(
         String catalog, String schema, String table) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getCrossReference(
@@ -632,11 +627,11 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String foreignSchema,
         String foreignTable) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getTypeInfo() throws SQLException {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getIndexInfo(
@@ -646,7 +641,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         boolean unique,
         boolean approximate) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public boolean supportsResultSetType(int type) throws SQLException {
@@ -706,7 +701,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String typeNamePattern,
         int[] types) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public Connection getConnection() throws SQLException {
@@ -734,7 +729,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String schemaPattern,
         String typeNamePattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getSuperTables(
@@ -742,7 +737,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String schemaPattern,
         String tableNamePattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getAttributes(
@@ -751,7 +746,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String typeNamePattern,
         String attributeNamePattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public boolean supportsResultSetHoldability(int holdability)
@@ -799,7 +794,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     public ResultSet getSchemas(
         String catalog, String schemaPattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public boolean supportsStoredFunctionsUsingCallSyntax()
@@ -813,7 +808,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     }
 
     public ResultSet getClientInfoProperties() throws SQLException {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getFunctions(
@@ -821,7 +816,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String schemaPattern,
         String functionNamePattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getFunctionColumns(
@@ -830,7 +825,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String functionNamePattern,
         String columnNamePattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public ResultSet getPseudoColumns(
@@ -839,7 +834,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
         String tableNamePattern,
         String columnNamePattern) throws SQLException
     {
-        return createEmptyResultSet();
+        return connection.helper.createEmptyResultSet(connection);
     }
 
     public boolean generatedKeyAlwaysReturned() throws SQLException {
@@ -858,34 +853,6 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return iface.isInstance(this);
-    }
-
-    // Helpers
-
-    private ResultSet createEmptyResultSet() {
-        try {
-            return connection.driver.factory.newResultSet(
-                connection.createStatement(),
-                Collections.<ColumnMetaData>emptyList(),
-                new Function0<Cursor>() {
-                    public Cursor apply() {
-                        return new Cursor() {
-                            public List<Accessor> createAccessors(
-                                List<ColumnMetaData> types)
-                            {
-                                assert types.isEmpty();
-                                return Collections.emptyList();
-                            }
-
-                            public boolean next() {
-                                return false;
-                            }
-                        };
-                    }
-                }).execute();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
 
