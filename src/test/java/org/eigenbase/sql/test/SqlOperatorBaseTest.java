@@ -4560,11 +4560,11 @@ public abstract class SqlOperatorBaseTest
             "^avg(cast(null as varchar(2)))^",
             "(?s)Cannot apply 'AVG' to arguments of type 'AVG\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'AVG\\(<NUMERIC>\\)'.*",
             false);
+        getTester().checkType("AVG(CAST(NULL AS INTEGER))", "INTEGER");
+        getTester().checkType("AVG(DISTINCT 1.5)", "DECIMAL(2, 1)");
         if (!enable) {
             return;
         }
-        getTester().checkType("AVG(CAST(NULL AS INTEGER))", "INTEGER");
-        getTester().checkType("AVG(DISTINCT 1.5)", "DECIMAL(2, 1)");
         final String [] values = { "0", "CAST(null AS FLOAT)", "3", "3" };
         getTester().checkAgg(
             "AVG(x)", values, 2d, 0d);

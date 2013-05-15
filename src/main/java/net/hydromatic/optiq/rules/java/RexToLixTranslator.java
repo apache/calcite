@@ -25,6 +25,7 @@ import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactoryImpl;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
@@ -119,29 +120,7 @@ public class RexToLixTranslator {
         InputGetter inputGetter)
     {
         return new RexToLixTranslator(program, typeFactory, inputGetter, list)
-            .translate(program.getProjectList());
-    }
-
-    /** Converts e.g. "anInteger" to "anInteger.intValue()". */
-    static Expression unbox(Expression expression) {
-        Primitive primitive = Primitive.ofBox(expression.getType());
-        if (primitive != null) {
-            return convert(
-                expression,
-                primitive.primitiveClass);
-        }
-        return expression;
-    }
-
-    /** Converts e.g. "anInteger" to "Integer.valueOf(anInteger)". */
-    static Expression box(Expression expression) {
-        Primitive primitive = Primitive.of(expression.getType());
-        if (primitive != null) {
-            return convert(
-                expression,
-                primitive.boxClass);
-        }
-        return expression;
+            .translateList(program.getProjectList());
     }
 
     Expression translate(RexNode expr) {
@@ -271,6 +250,9 @@ public class RexToLixTranslator {
      * @return Translated expression
      */
     private Expression translate0(RexNode expr, RexImpTable.NullAs nullAs) {
+        if (nullAs == RexImpTable.NullAs.NULL && !expr.getType().isNullable()) {
+            nullAs = RexImpTable.NullAs.NOT_POSSIBLE;
+        }
         if (expr instanceof RexInputRef) {
             final int index = ((RexInputRef) expr).getIndex();
             Expression x = inputGetter.field(list, index);
@@ -287,7 +269,7 @@ public class RexToLixTranslator {
         if (expr instanceof RexLiteral) {
             return translateLiteral(
                 expr,
-                typeFactory.createTypeWithNullability(
+                nullifyType(
                     expr.getType(),
                     isNullable(expr)
                     && nullAs != RexImpTable.NullAs.NOT_POSSIBLE),
@@ -367,10 +349,7 @@ public class RexToLixTranslator {
             value2 = value == null ? null : ((NlsString) value).getValue();
             break;
         default:
-            Primitive primitive = Primitive.ofBox(javaClass);
-            if (primitive == null) {
-                primitive = Primitive.of(javaClass);
-            }
+            final Primitive primitive = Primitive.ofBoxOr(javaClass);
             if (primitive != null && value instanceof Number) {
                 value2 = primitive.number((Number) value);
             } else {
@@ -391,7 +370,7 @@ public class RexToLixTranslator {
         return list;
     }
 
-    List<Expression> translateList(List<RexNode> operandList) {
+    List<Expression> translateList(List<? extends RexNode> operandList) {
         final List<Expression> list = new ArrayList<Expression>();
         for (RexNode rex : operandList) {
             final Expression translate = translate(rex);
@@ -403,16 +382,6 @@ public class RexToLixTranslator {
             }
         }
         return list;
-    }
-
-    private List<Expression> translate(
-        List<RexLocalRef> rexList)
-    {
-        List<Expression> translateds = new ArrayList<Expression>();
-        for (RexNode rexExpr : rexList) {
-            translateds.add(translate(rexExpr));
-        }
-        return translateds;
     }
 
     public static Expression translateCondition(
@@ -475,18 +444,16 @@ public class RexToLixTranslator {
                 // fall through
             }
             // Generate "x.shortValue()".
-            return Expressions.call(
-                operand, toPrimitive.primitiveName + "Value");
+            return Expressions.unbox(operand, toPrimitive);
         } else if (fromBox != null && toBox != null) {
             // E.g. from "Short" to "Integer"
             // Generate "x == null ? null : Integer.valueOf(x.intValue())"
             return Expressions.condition(
                 Expressions.equal(operand, RexImpTable.NULL_EXPR),
                 RexImpTable.NULL_EXPR,
-                Expressions.call(
-                    toBox.boxClass,
-                    "valueOf",
-                    Expressions.call(operand, toBox.primitiveName + "Value")));
+                Expressions.box(
+                    Expressions.unbox(operand, toBox),
+                    toBox));
         } else if (fromBox != null && toType == BigDecimal.class) {
             // E.g. from "Integer" to "BigDecimal".
             // Generate "x == null ? null : new BigDecimal(x.intValue())"
@@ -496,8 +463,7 @@ public class RexToLixTranslator {
                 Expressions.new_(
                     BigDecimal.class,
                     Arrays.<Expression>asList(
-                        Expressions.call(
-                            operand, fromBox.primitiveClass + "Value"))));
+                        Expressions.unbox(operand, fromBox))));
         } else if (fromPrimitive != null && toType == BigDecimal.class) {
             // E.g. from "int" to "BigDecimal".
             // Generate "new BigDecimal(x)"
@@ -563,8 +529,8 @@ public class RexToLixTranslator {
                         Expressions.call(
                             map,
                             BuiltinMethod.MAP_PUT.method,
-                            box(translate(key)),
-                            box(translate(value)))));
+                            Expressions.box(translate(key)),
+                            Expressions.box(translate(value)))));
             }
             return map;
         case ARRAY_VALUE_CONSTRUCTOR:
@@ -578,7 +544,7 @@ public class RexToLixTranslator {
                         Expressions.call(
                             lyst,
                             BuiltinMethod.LIST_ADD.method,
-                            box(translate(value)))));
+                            Expressions.box(translate(value)))));
             }
             return lyst;
         default:
@@ -615,6 +581,23 @@ public class RexToLixTranslator {
         map.put(e, nullable);
         return new RexToLixTranslator(
             program, typeFactory, inputGetter, list, map, builder);
+    }
+
+    public RelDataType nullifyType(RelDataType type, boolean nullable) {
+        final Primitive primitive = javaPrimitive(type);
+        if (primitive != null) {
+            return typeFactory.createJavaType(primitive.primitiveClass);
+        } else {
+            return typeFactory.createTypeWithNullability(type, nullable);
+        }
+    }
+
+    private Primitive javaPrimitive(RelDataType type) {
+        if (type instanceof RelDataTypeFactoryImpl.JavaType) {
+            return Primitive.ofBox(
+                ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass());
+        }
+      return null;
     }
 
     /** Translates a field of an input to an expression. */

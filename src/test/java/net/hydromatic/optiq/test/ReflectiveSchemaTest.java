@@ -20,8 +20,7 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Types;
-import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.linq4j.function.Predicate1;
+import net.hydromatic.linq4j.function.*;
 import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.Schemas;
 import net.hydromatic.optiq.impl.ViewTable;
@@ -30,8 +29,7 @@ import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import junit.framework.TestCase;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.sql.*;
 import java.util.*;
 import java.util.Date;
@@ -118,8 +116,7 @@ public class ReflectiveSchemaTest extends TestCase {
                 Expressions.call(
                     Expressions.call(
                         net.hydromatic.linq4j.expressions.Types.of(
-                            Enumerable.class,
-                            Employee.class),
+                            Enumerable.class, Employee.class),
                         null,
                         LINQ4J_AS_ENUMERABLE_METHOD,
                         Arrays.<Expression>asList(
@@ -127,11 +124,9 @@ public class ReflectiveSchemaTest extends TestCase {
                                 new JdbcTest.HrSchema().emps))),
                     "asQueryable",
                     Collections.<Expression>emptyList()), Employee.class)
-                .select(
-                    Expressions.<Function1<Employee, Integer>>lambda(
-                        Expressions.field(
-                            e, "empid"),
-                        Arrays.asList(e)))
+                .select(Expressions.<Function1<Employee, Integer>>lambda(
+                    Expressions.field(e, "empid"),
+                    Arrays.asList(e)))
                 .toList();
         assertEquals(Arrays.asList(100, 200, 150), list);
     }
@@ -233,42 +228,85 @@ public class ReflectiveSchemaTest extends TestCase {
         with.query("select * from \"s\".\"everyTypes\"")
             .returns(
                 "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01T00:00:00Z; utilDate=1970-01-01T00:00:00Z\n"
-                + "primitiveBoolean=true; primitiveByte=127; primitiveChar=￿; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null\n");
+                + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null\n");
     }
 
     /** Tests columns based on types such as java.sql.Date and java.util.Date.
      *
      * @see CatchallSchema#everyTypes */
-    public void testMax() throws Exception {
+    public void testAggregateFunctions() throws Exception {
         final OptiqAssert.AssertThat with =
             OptiqAssert.assertThat()
                 .with("s", new CatchallSchema());
-        for (String fn : new String[]{"min", "max"}) {
-            for (Field field : EveryType.class.getFields()) {
+        checkAgg(with, "min");
+        checkAgg(with, "max");
+        checkAgg(with, "avg");
+        checkAgg(with, "count");
+    }
+
+
+    private void checkAgg(OptiqAssert.AssertThat with, String fn) {
+        for (Field field
+            : fn.equals("avg") ? EveryType.numericFields() : EveryType.fields())
+        {
+            with.query(
+                "select " + fn + "(\"" + field.getName() + "\") as c\n"
+                + "from \"s\".\"everyTypes\"")
+                .returns(Functions.<String, Void>constantNull());
+        }
+    }
+
+    public void testDivide() throws Exception {
+        final OptiqAssert.AssertThat with =
+            OptiqAssert.assertThat().with("s", new CatchallSchema());
+        with.query(
+            "select \"wrapperLong\" / \"primitiveLong\" as c\n"
+            + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
+            .planContains(
+                "return current13.wrapperLong == null ? null : Long.valueOf(current13.wrapperLong.longValue() / current13.primitiveLong);")
+            .returns("C=null\n");
+        with.query(
+            "select \"wrapperLong\" / \"wrapperLong\" as c\n"
+            + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
+            .planContains(
+                "return current13.wrapperLong == null ? null : Long.valueOf(current13.wrapperLong.longValue() / current13.wrapperLong.longValue());")
+            .returns("C=null\n");
+    }
+
+    public void testOp() throws Exception {
+        final OptiqAssert.AssertThat with =
+            OptiqAssert.assertThat()
+                .with("s", new CatchallSchema());
+        checkOp(with, "+");
+        checkOp(with, "-");
+        checkOp(with, "*");
+        checkOp(with, "/");
+    }
+
+    private void checkOp(OptiqAssert.AssertThat with, String fn) {
+        for (Field field : EveryType.numericFields()) {
+            for (Field field2 : EveryType.numericFields()) {
+                final String name = "\"" + field.getName() + "\"";
+                final String name2 = "\"" + field2.getName() + "\"";
                 with.query(
-                    "select " + fn + "(\"" + field.getName() + "\") as c\n"
-                    + "from \"s\".\"everyTypes\"")
-                    .returns(ReflectiveSchemaTest.<String, Void>constant(null));
+                    "select " + name + "\n"
+                    + " " + fn + " " + name2 + " as c\n"
+                    + "from \"s\".\"everyTypes\"\n"
+                    + "where " + name + " <> 0")
+                    .returns(Functions.<String, Void>constantNull());
             }
         }
     }
 
-    // TODO: move into linq4j Functions
-    private static <T, R> Function1<T, R> constant(final R r) {
-        return new Function1<T, R>() {
-            public R apply(T s) {
-                return r;
-            }
-        };
-    }
-
-    // TODO: move into linq4j Functions
-    private static <T, R> Function1<T, R> constantNull() {
-        return new Function1<T, R>() {
-            public R apply(T s) {
-                return null;
-            }
-        };
+    private static boolean isNumeric(Class type) {
+        switch (Primitive.flavor(type)) {
+        case BOX:
+            return Primitive.ofBox(type).isNumeric();
+        case PRIMITIVE:
+            return Primitive.of(type).isNumeric();
+        default:
+            return Number.class.isAssignableFrom(type); // e.g. BigDecimal
+        }
     }
 
     /** Tests that if a field of a relation has an unrecognized type (in this
@@ -386,6 +424,20 @@ public class ReflectiveSchemaTest extends TestCase {
             this.sqlTime = sqlTime;
             this.sqlTimestamp = sqlTimestamp;
             this.utilDate = utilDate;
+        }
+
+        static Enumerable<Field> fields() {
+            return Linq4j.asEnumerable(EveryType.class.getFields());
+        }
+
+        static Enumerable<Field> numericFields() {
+            return fields()
+                .where(
+                    new Predicate1<Field>() {
+                        public boolean apply(Field v1) {
+                            return isNumeric(v1.getType());
+                        }
+                    });
         }
     }
 

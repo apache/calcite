@@ -201,7 +201,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
                         Expressions.field(thatParameter, field.getName())));
         }
         blockBuilder2.add(
-            Expressions.return_(null, JavaRules.EnumUtil.foldAnd(conditions)));
+            Expressions.return_(null, Expressions.foldAnd(conditions)));
         classDeclaration.memberDeclarations.add(
             Expressions.methodDecl(
                 Modifier.PUBLIC,

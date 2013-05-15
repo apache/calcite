@@ -232,7 +232,7 @@ public class ReduceAggregatesRule
         RelDataType sumType =
             typeFactory.createTypeWithNullability(
                 avgInputType,
-                true);
+                avgInputType.isNullable() || nGroups == 0);
         SqlSumAggFunction sumAgg = new SqlSumAggFunction(sumType);
         AggregateCall sumCall =
             new AggregateCall(

@@ -20,7 +20,6 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.JavaRecordType;
 import net.hydromatic.optiq.prepare.Prepare;
 
 import net.hydromatic.linq4j.*;
@@ -33,9 +32,9 @@ import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
 
@@ -286,7 +285,6 @@ public class JavaRules {
                 body);
         }
 
-
         static Type javaClass(
             JavaTypeFactory typeFactory, RelDataType type)
         {
@@ -302,46 +300,6 @@ public class JavaRules {
             }
             final Type clazz = typeFactory.getJavaClass(type);
             return clazz instanceof Class ? (Class) clazz : Object[].class;
-        }
-
-        public static Expression foldAnd(List<Expression> conditions) {
-            Expression e = null;
-            for (Expression condition : conditions) {
-                if (condition instanceof ConstantExpression
-                    && (Boolean) ((ConstantExpression) condition).value)
-                {
-                    continue;
-                }
-                if (e == null) {
-                    e = condition;
-                } else {
-                    e = Expressions.andAlso(e, condition);
-                }
-            }
-            if (e == null) {
-                return Expressions.constant(true);
-            }
-            return e;
-        }
-
-        public static Expression foldOr(List<Expression> conditions) {
-            Expression e = null;
-            for (Expression condition : conditions) {
-                if (condition instanceof ConstantExpression
-                    && !(Boolean) ((ConstantExpression) condition).value)
-                {
-                    continue;
-                }
-                if (e == null) {
-                    e = condition;
-                } else {
-                    e = Expressions.orElse(e, condition);
-                }
-            }
-            if (e == null) {
-                return Expressions.constant(false);
-            }
-            return e;
         }
     }
 
@@ -503,16 +461,6 @@ public class JavaRules {
         new EnumerableConverterRule(
             EnumerableConvention.CUSTOM,
             EnumerableConvention.ARRAY);
-
-    /** @deprecated Name is misleading.
-     * Use {@link #ENUMERABLE_CUSTOM_FROM_ARRAY_RULE}. */
-    public static final ConverterRule ENUMERABLE_CUSTOM_TO_ARRAY_RULE =
-        ENUMERABLE_CUSTOM_FROM_ARRAY_RULE;
-
-    /** @deprecated Name is misleading.
-     * Use {@link #ENUMERABLE_CUSTOM_FROM_ARRAY_RULE}. */
-    public static final ConverterRule ENUMERABLE_ARRAY_TO_CUSTOM_RULE =
-        ENUMERABLE_ARRAY_FROM_CUSTOM_RULE;
 
     /**
      * Rule to convert a relational expression from
@@ -803,6 +751,13 @@ public class JavaRules {
     {
         private final PhysType physType;
 
+        private static final List<Aggregation> SUPPORTED_AGGREGATIONS =
+            Arrays.<Aggregation>asList(
+                SqlStdOperatorTable.countOperator,
+                SqlStdOperatorTable.minOperator,
+                SqlStdOperatorTable.maxOperator,
+                SqlStdOperatorTable.sumOperator);
+
         public EnumerableAggregateRel(
             RelOptCluster cluster,
             RelTraitSet traitSet,
@@ -818,6 +773,11 @@ public class JavaRules {
                 if (aggCall.isDistinct()) {
                     throw new InvalidRelException(
                         "distinct aggregation not supported");
+                }
+                final Aggregation aggregation = aggCall.getAggregation();
+                if (!SUPPORTED_AGGREGATIONS.contains(aggregation)) {
+                    throw new InvalidRelException(
+                        "aggregation " + aggregation + " not supported");
                 }
             }
             this.physType =
@@ -1021,7 +981,7 @@ public class JavaRules {
                 } else {
                     bb2.add(
                         Expressions.ifThen(
-                            EnumUtil.foldAnd(conditions),
+                            Expressions.foldAnd(conditions),
                             assign));
                 }
             }

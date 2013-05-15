@@ -32,7 +32,7 @@ import static net.hydromatic.optiq.runtime.SqlFunctions.*;
  */
 public class SqlFunctionsTest extends TestCase {
     public void testCharLength() {
-        assertEquals((Integer) 3, charLength("xyz"));
+        assertEquals(3, charLength("xyz"));
     }
 
     public void testConcat() {

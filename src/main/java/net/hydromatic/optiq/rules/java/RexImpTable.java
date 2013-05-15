@@ -206,7 +206,7 @@ public class RexImpTable {
                     final List<Expression> expressions =
                         translator.translateList(
                             call2.getOperandList(), nullAs);
-                    return JavaRules.EnumUtil.foldAnd(expressions);
+                    return Expressions.foldAnd(expressions);
                 }
             };
         case OR:
@@ -395,7 +395,7 @@ public class RexImpTable {
             // If "f" is strict, then "f(a0, a1) IS NOT NULL" is
             // equivalent to "a0 IS NOT NULL AND a1 IS NOT NULL".
             if (nullPolicy == NullPolicy.STRICT) {
-                return JavaRules.EnumUtil.foldAnd(
+                return Expressions.foldAnd(
                     translator.translateList(
                         call.getOperandList(), nullAs));
             }
@@ -404,7 +404,7 @@ public class RexImpTable {
             // If "f" is strict, then "f(a0, a1) IS NULL" is
             // equivalent to "a0 IS NULL OR a1 IS NULL".
             if (nullPolicy == NullPolicy.STRICT) {
-                return JavaRules.EnumUtil.foldOr(
+                return Expressions.foldOr(
                     translator.translateList(
                         call.getOperandList(), nullAs));
             }
@@ -442,9 +442,9 @@ public class RexImpTable {
             }
             return optimize(
                 Expressions.condition(
-                    JavaRules.EnumUtil.foldOr(list),
+                    Expressions.foldOr(list),
                     NULL_EXPR,
-                    RexToLixTranslator.box(
+                    Expressions.box(
                         implementCall(translator, call, implementor, nullAs))));
         case FALSE:
             // v0 != null && v1 != null && f(v0, v1)
@@ -457,7 +457,7 @@ public class RexImpTable {
                 }
             }
             list.add(implementCall(translator, call, implementor, nullAs));
-            return JavaRules.EnumUtil.foldAnd(list);
+            return Expressions.foldAnd(list);
         case NOT_POSSIBLE:
             // Need to transmit to the implementor the fact that call cannot
             // return null. In particular, it should return a primitive (e.g.
@@ -480,18 +480,12 @@ public class RexImpTable {
         switch (nullAs) {
         case NOT_POSSIBLE:
             for (Expression translatedOperand : translatedOperands) {
-                if (isConstantNull(translatedOperand)) {
+                if (Expressions.isConstantNull(translatedOperand)) {
                     return NULL_EXPR;
                 }
             }
         }
         return implementor.implement(translator, call, translatedOperands);
-    }
-
-    // TODO: remove and use linq4j
-    static boolean isConstantNull(Expression e) {
-        return e instanceof ConstantExpression
-               && ((ConstantExpression) e).value == null;
     }
 
     /** Implements an aggregate function by generating a call to a method that
@@ -756,7 +750,7 @@ public class RexImpTable {
             final Expression arg = arguments.get(0);
             return optimize(
                 Expressions.condition(
-                    JavaRules.EnumUtil.foldOr(
+                    Expressions.foldOr(
                         Expressions.<Expression>list(
                             Expressions.equal(accumulator, NULL_EXPR))
                             .appendIf(
@@ -767,8 +761,8 @@ public class RexImpTable {
                         Expressions.call(
                             SqlFunctions.class,
                             aggregation == minOperator ? "lesser" : "greater",
-                            RexToLixTranslator.unbox(accumulator),
-                            RexToLixTranslator.unbox(arg)),
+                            Expressions.unbox(accumulator),
+                            Expressions.unbox(arg)),
                         arg.getType())));
         }
 
@@ -859,7 +853,7 @@ public class RexImpTable {
             //     return x == null ? y : y == null ? x : x OP y
             if (backupMethodName != null) {
                 final Primitive primitive =
-                    Primitive.of(expressions.get(0).getType());
+                    Primitive.ofBoxOr(expressions.get(0).getType());
                 if (primitive == null
                     || !COMP_OP_TYPES.contains(primitive))
                 {
@@ -1067,8 +1061,7 @@ public class RexImpTable {
                 && sourceType.isNullable()
                 && !Primitive.is(translatedOperands.get(0).getType());
             final RelDataType targetType =
-                translator.typeFactory.createTypeWithNullability(
-                    call.getType(), nullable);
+                translator.nullifyType(call.getType(), nullable);
             return translator.translateCast(
                 sourceType, targetType, translatedOperands.get(0));
         }

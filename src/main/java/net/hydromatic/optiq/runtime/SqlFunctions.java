@@ -99,7 +99,7 @@ public class SqlFunctions {
     }
 
     /** SQL CHARACTER_LENGTH(string) function. */
-    public static Integer charLength(String s) {
+    public static int charLength(String s) {
         return s.length();
     }
 
@@ -201,13 +201,13 @@ public class SqlFunctions {
     }
 
     /** SQL &lt; operator applied to String values. */
-    public static Boolean lt(String b0, String b1) {
-        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) < 0);
+    public static boolean lt(String b0, String b1) {
+        return b0.compareTo(b1) < 0;
     }
 
     /** SQL &lt; operator applied to BigDecimal values. */
-    public static Boolean lt(BigDecimal b0, BigDecimal b1) {
-        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) < 0);
+    public static boolean lt(BigDecimal b0, BigDecimal b1) {
+        return b0.compareTo(b1) < 0;
     }
 
     // <=
@@ -218,13 +218,13 @@ public class SqlFunctions {
     }
 
     /** SQL &le; operator applied to String values. */
-    public static Boolean le(String b0, String b1) {
-        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) <= 0);
+    public static boolean le(String b0, String b1) {
+        return b0.compareTo(b1) <= 0;
     }
 
     /** SQL &le; operator applied to BigDecimal values. */
-    public static Boolean le(BigDecimal b0, BigDecimal b1) {
-        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) <= 0);
+    public static boolean le(BigDecimal b0, BigDecimal b1) {
+        return b0.compareTo(b1) <= 0;
     }
 
     // >
@@ -235,13 +235,13 @@ public class SqlFunctions {
     }
 
     /** SQL &gt; operator applied to String values. */
-    public static Boolean gt(String b0, String b1) {
-        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) > 0);
+    public static boolean gt(String b0, String b1) {
+        return b0.compareTo(b1) > 0;
     }
 
     /** SQL &gt; operator applied to BigDecimal values. */
-    public static Boolean gt(BigDecimal b0, BigDecimal b1) {
-        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) > 0);
+    public static boolean gt(BigDecimal b0, BigDecimal b1) {
+        return b0.compareTo(b1) > 0;
     }
 
     // >=
@@ -252,13 +252,13 @@ public class SqlFunctions {
     }
 
     /** SQL &ge; operator applied to String values. */
-    public static Boolean ge(String b0, String b1) {
-        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) >= 0);
+    public static boolean ge(String b0, String b1) {
+        return b0.compareTo(b1) >= 0;
     }
 
     /** SQL &ge; operator applied to BigDecimal values. */
-    public static Boolean ge(BigDecimal b0, BigDecimal b1) {
-        return (b0 == null || b1 == null) ? null : (b0.compareTo(b1) >= 0);
+    public static boolean ge(BigDecimal b0, BigDecimal b1) {
+        return b0.compareTo(b1) >= 0;
     }
 
     // +
