@@ -627,6 +627,38 @@ public class SqlFunctions {
         }
     }
 
+    // Don't need parseByte etc. - Byte.parseByte is sufficient.
+
+    public static char parseChar(String s) {
+        return s.charAt(0);
+    }
+
+    public static short parseShort(String s) {
+        return Short.parseShort(s.trim());
+    }
+
+    public static int parseInt(String s) {
+        return Integer.parseInt(s.trim());
+    }
+
+    public static long parseLong(String s) {
+        return Long.parseLong(s.trim());
+    }
+
+    public static float parseFloat(String s) {
+        return Float.parseFloat(s.trim());
+    }
+
+    public static double parseDouble(String s) {
+        return Double.parseDouble(s.trim());
+    }
+
+    // Don't need shortValueOf etc. - Short.valueOf is sufficient.
+
+    public static Character charValueOf(String s) {
+        return s.charAt(0);
+    }
+
     /** Helper for CAST(... AS VARCHAR(maxLength)). */
     public static String truncate(String s, int maxLength) {
         return s.length() > maxLength ? s.substring(0, maxLength) : s;

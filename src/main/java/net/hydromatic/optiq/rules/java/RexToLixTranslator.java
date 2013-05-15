@@ -428,6 +428,47 @@ public class RexToLixTranslator {
         final Primitive toBox = Primitive.ofBox(toType);
         final Primitive fromBox = Primitive.ofBox(fromType);
         final Primitive fromPrimitive = Primitive.of(fromType);
+        if (fromType == String.class) {
+            if (toPrimitive != null) {
+                switch (toPrimitive) {
+                case CHAR:
+                case SHORT:
+                case INT:
+                case LONG:
+                case FLOAT:
+                case DOUBLE:
+                    // Generate "SqlFunctions.parseChar(x)".
+                    return Expressions.call(
+                        SqlFunctions.class,
+                        "parse"
+                        + SqlFunctions.initcap(toPrimitive.primitiveName),
+                        operand);
+                default:
+                    // Generate "Short.parseShort(x)".
+                    return Expressions.call(
+                        toPrimitive.boxClass,
+                        "parse"
+                        + SqlFunctions.initcap(toPrimitive.primitiveName),
+                        operand);
+                }
+            }
+            if (toBox != null) {
+                switch (toBox) {
+                case CHAR:
+                    // Generate "SqlFunctions.charValueOf(x)".
+                    return Expressions.call(
+                        SqlFunctions.class,
+                        toBox.primitiveName + "ValueOf",
+                        operand);
+                default:
+                    // Generate "Short.valueOf(x)".
+                    return Expressions.call(
+                        toBox.boxClass,
+                        "valueOf",
+                        operand);
+                }
+            }
+        }
         if (toPrimitive != null) {
             if (fromPrimitive != null) {
                 // E.g. from "float" to "double"
@@ -510,6 +551,14 @@ public class RexToLixTranslator {
             }
         }
         return Expressions.convert_(operand, toType);
+    }
+
+    private static <T> T elvis(T t0, T t1) {
+        return t0 != null ? t0 : t1;
+    }
+
+    private static <T> T elvis(T t0, T t1, T t2) {
+        return t0 != null ? t0 : t1 != null ? t1 : t2;
     }
 
     public Expression translateConstructor(

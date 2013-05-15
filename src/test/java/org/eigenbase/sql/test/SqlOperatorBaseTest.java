@@ -262,6 +262,7 @@ public abstract class SqlOperatorBaseTest
     /** For development. Put any old code in here. */
     public void testDummy()
     {
+        checkCastToScalarOkay("'1'", "INTEGER", "1");
     }
 
     public void testBetween()
@@ -640,14 +641,25 @@ public abstract class SqlOperatorBaseTest
 
         checkCastToScalarOkay("1.234E3", "INTEGER", "1234");
         checkCastToScalarOkay("-9.99E2", "INTEGER", "-999");
-        if (!enable) {
-            return;
-        }
         checkCastToScalarOkay("'1'", "INTEGER", "1");
         checkCastToScalarOkay("' 01 '", "INTEGER", "1");
         checkCastToScalarOkay("'-1'", "INTEGER", "-1");
         checkCastToScalarOkay("' -00 '", "INTEGER", "0");
 
+        // string to integer
+        getTester().checkScalarExact("cast('6543' as integer)", "6543");
+        getTester().checkScalarExact("cast(' -123 ' as int)", "-123");
+        getTester().checkScalarExact(
+            "cast('654342432412312' as bigint)",
+            "BIGINT NOT NULL",
+            "654342432412312");
+    }
+
+    public void testCastStringToDecimal() {
+        getTester().setFor(SqlStdOperatorTable.castFunc);
+        if (!DECIMAL) {
+            return;
+        }
         // string to decimal
         getTester().checkScalarExact(
             "cast('1.29' as decimal(2,1))",
@@ -677,16 +689,13 @@ public abstract class SqlOperatorBaseTest
             "cast(' -1.21e' as decimal(2,1))",
             invalidCharMessage,
             true);
+    }
 
-        // string to integer
-        getTester().checkScalarExact("cast('6543' as integer)", "6543");
-        if (Bug.Frg26Fixed) {
-            getTester().checkScalarExact("cast(' -123 ' as int)", "-123");
+    public void testCastIntervalToNumeric() {
+        getTester().setFor(SqlStdOperatorTable.castFunc);
+        if (!INTERVAL) {
+            return;
         }
-        getTester().checkScalarExact(
-            "cast('654342432412312' as bigint)",
-            "BIGINT NOT NULL",
-            "654342432412312");
 
         // interval to decimal
         getTester().checkScalarExact(
@@ -1012,9 +1021,6 @@ public abstract class SqlOperatorBaseTest
 
         checkCastToApproxOkay("1", "DOUBLE", 1, 0);
         checkCastToApproxOkay("1.0", "DOUBLE", 1, 0);
-        if (!enable) {
-            return;
-        }
         checkCastToApproxOkay("-2.3", "FLOAT", -2.3, 0.000001);
         checkCastToApproxOkay("'1'", "DOUBLE", 1, 0);
         checkCastToApproxOkay("'  -1e-37  '", "DOUBLE", -1e-37, 0);
@@ -1029,7 +1035,7 @@ public abstract class SqlOperatorBaseTest
         // null
         getTester().checkNull("cast(null as integer)");
         if (DECIMAL) {
-          getTester().checkNull("cast(null as decimal(4,3))");
+            getTester().checkNull("cast(null as decimal(4,3))");
         }
         getTester().checkNull("cast(null as double)");
         getTester().checkNull("cast(null as varchar(10))");
