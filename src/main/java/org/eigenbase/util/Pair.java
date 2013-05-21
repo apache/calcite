@@ -179,10 +179,12 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
         };
     }
 
-    public static <K, V> List<K> leftSlice(final List<Pair<K, V>> pairs) {
+    public static <K, V> List<K> leftSlice(
+        final List<? extends Map.Entry<K, V>> pairs)
+    {
         return new AbstractList<K>() {
             public K get(int index) {
-                return pairs.get(index).left;
+                return pairs.get(index).getKey();
             }
 
             public int size() {
@@ -191,10 +193,12 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
         };
     }
 
-    public static <K, V> List<V> rightSlice(final List<Pair<K, V>> pairs) {
+    public static <K, V> List<V> rightSlice(
+        final List<? extends Map.Entry<K, V>> pairs)
+    {
         return new AbstractList<V>() {
             public V get(int index) {
-                return pairs.get(index).right;
+                return pairs.get(index).getValue();
             }
 
             public int size() {

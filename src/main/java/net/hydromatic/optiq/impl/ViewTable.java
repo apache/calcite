@@ -83,8 +83,7 @@ public class ViewTable<T>
     {
         return expandView(
             context.getPreparingStmt(),
-            ((JavaTypeFactory) context.getCluster().getTypeFactory())
-                .createType(elementType),
+            getRowType(),
             viewSql);
     }
 

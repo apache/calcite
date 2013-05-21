@@ -1414,7 +1414,7 @@ public abstract class RelOptUtil
                 leftKeys.add(((RexInputRef) leftKey).getIndex());
             } else {
                 newLeftFields.add(leftKey);
-                newLeftFieldNames.add(leftKey.toString());
+                newLeftFieldNames.add("$left" + newLeftKeyCount);
                 leftKeys.add(origLeftInputSize + newLeftKeyCount);
                 newLeftKeyCount++;
             }
@@ -1441,7 +1441,7 @@ public abstract class RelOptUtil
                 rightKeys.add(((RexInputRef) rightKey).getIndex());
             } else {
                 newRightFields.add(rightKey);
-                newRightFieldNames.add(rightKey.toString());
+                newRightFieldNames.add("$right" + newRightKeyCount);
                 rightKeys.add(origRightInputSize + newRightKeyCount);
                 newRightKeyCount++;
             }
