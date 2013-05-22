@@ -8,8 +8,8 @@
   <packaging>jar</packaging>
 
   <!-- Version number. The version number committed to github should be
-       TRUNK-SNAPSHOT or, briefly when making a release, something like 0.1.1. -->
-  <version>0.1.2</version>
+       TRUNK-SNAPSHOT except, briefly, when making a release. Next up: 0.1.3. -->
+  <version>TRUNK-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>linq4j</name>
