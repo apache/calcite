@@ -3045,18 +3045,12 @@ public abstract class SqlOperatorBaseTest
     public void testNotLikeOperator()
     {
         getTester().setFor(SqlStdOperatorTable.notLikeOperator, VM_EXPAND);
-        if (!enable) {
-            return;
-        }
         getTester().checkBoolean("'abc' not like '_b_'", Boolean.FALSE);
     }
 
     public void testLikeOperator()
     {
         getTester().setFor(SqlStdOperatorTable.likeOperator);
-        if (!enable) {
-            return;
-        }
         getTester().checkBoolean("''  like ''", Boolean.TRUE);
         getTester().checkBoolean("'a' like 'a'", Boolean.TRUE);
         getTester().checkBoolean("'a' like 'b'", Boolean.FALSE);
@@ -3077,9 +3071,6 @@ public abstract class SqlOperatorBaseTest
     public void testNotSimilarToOperator()
     {
         getTester().setFor(SqlStdOperatorTable.notSimilarOperator, VM_EXPAND);
-        if (!enable) {
-            return;
-        }
         getTester().checkBoolean("'ab' not similar to 'a_'", false);
         getTester().checkBoolean("'aabc' not similar to 'ab*c+d'", true);
         getTester().checkBoolean("'ab' not similar to 'a' || '_'", false);
@@ -3095,9 +3086,6 @@ public abstract class SqlOperatorBaseTest
     public void testSimilarToOperator()
     {
         getTester().setFor(SqlStdOperatorTable.similarOperator);
-        if (!enable) {
-            return;
-        }
 
         // like LIKE
         getTester().checkBoolean("''  similar to ''", Boolean.TRUE);
@@ -3251,44 +3239,44 @@ public abstract class SqlOperatorBaseTest
         getTester().checkBoolean("'y' similar to '(x?)*y'", Boolean.TRUE);
         getTester().checkBoolean("'y' similar to 'x+?y'", Boolean.FALSE);
 
-        // all the following tests wrong results due to missing functionality
-        // or defect (FRG-375, 377 & 378).
-        if (Bug.Frg378Fixed) {
-            // following 2 tests have different behavior under javaVM
-            // and fennelVM. FennelVM throws exception.
-            getTester().checkBoolean("'y' similar to 'x?+y'", Boolean.TRUE);
-            getTester().checkBoolean("'y' similar to 'x*+y'", Boolean.TRUE);
+        getTester().checkBoolean("'y' similar to 'x?+y'", Boolean.TRUE);
+        getTester().checkBoolean("'y' similar to 'x*+y'", Boolean.TRUE);
 
-            // The following two tests throws exception(They probably should).
-            // "Dangling meta character '*' near index 2"
+        // The following two tests throws exception(They probably should).
+        // "Dangling meta character '*' near index 2"
 
-            //getTester().checkBoolean("'y' similar to 'x+*y'", Boolean.TRUE);
-            //getTester().checkBoolean("'y' similar to 'x?*y'", Boolean.TRUE);
-
-            // some negative tests
-            getTester().checkFails(
-                "'yd' similar to '[x-ze-a]d'",
-                "Illegal character range near index 6" + NL
-                + "\\[x-ze-a\\]d" + NL + "      \\^",
-                true);   // illegal range
-
-            getTester().checkFails(
-                "'yd3223' similar to '[:LOWER:]{2}[:DIGIT:]{,5}'",
-                "Illegal repetition near index 20" + NL
-                + "\\[\\:LOWER\\:\\]\\{2\\}\\[\\:DIGIT\\:\\]\\{,5\\}" + NL
-                + "                    \\^",
-                true);
-
-            getTester().checkFails(
-                "'cd' similar to '[(a-e)]d' ",
-                "Invalid regular expression: \\[\\(a-e\\)\\]d at 1",
-                true);
-
-            getTester().checkFails(
-                "'yd' similar to '[(a-e)]d' ",
-                "Invalid regular expression: \\[\\(a-e\\)\\]d at 1",
-                true);
+        if (enable) {
+            getTester().checkBoolean("'y' similar to 'x+*y'", Boolean.TRUE);
+            getTester().checkBoolean("'y' similar to 'x?*y'", Boolean.TRUE);
         }
+
+        // some negative tests
+        getTester().checkFails(
+            "'yd' similar to '[x-ze-a]d'",
+            "Illegal character range near index 6\n"
+            + "\\[x-ze-a\\]d\n"
+            + "      \\^",
+            true);   // illegal range
+
+        getTester().checkFails(
+            "'yd3223' similar to '[:LOWER:]{2}[:DIGIT:]{,5}'",
+            "Illegal repetition near index 20\n"
+            + "\\[\\:LOWER\\:\\]\\{2\\}\\[\\:DIGIT\\:\\]\\{,5\\}\n"
+            + "                    \\^",
+            true);
+
+        getTester().checkFails(
+            "'cd' similar to '[(a-e)]d' ",
+            "Invalid regular expression: \\[\\(a-e\\)\\]d at 1",
+            true);
+
+        getTester().checkFails(
+            "'yd' similar to '[(a-e)]d' ",
+            "Invalid regular expression: \\[\\(a-e\\)\\]d at 1",
+            true);
+
+        // all the following tests wrong results due to missing functionality
+        // or defect (FRG-375, 377).
 
         if (Bug.Frg375Fixed) {
             getTester().checkBoolean(

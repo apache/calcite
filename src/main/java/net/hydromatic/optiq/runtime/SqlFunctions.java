@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Helper methods to implement SQL functions in generated code.
@@ -170,6 +171,30 @@ public class SqlFunctions {
         return s.substring(0, start - 1)
             + r
             + s.substring(start - 1 + length);
+    }
+
+    /** SQL {@code LIKE} function. */
+    public static boolean like(String s, String pattern) {
+        final String regex = Like.sqlToRegexLike(pattern, null);
+        return Pattern.matches(regex, s);
+    }
+
+    /** SQL {@code LIKE} function with escape. */
+    public static boolean like(String s, String pattern, String escape) {
+        final String regex = Like.sqlToRegexLike(pattern, escape);
+        return Pattern.matches(regex, s);
+    }
+
+    /** SQL {@code SIMILAR} function. */
+    public static boolean similar(String s, String pattern) {
+        final String regex = Like.sqlToRegexSimilar(pattern, null);
+        return Pattern.matches(regex, s);
+    }
+
+    /** SQL {@code SIMILAR} function with escape. */
+    public static boolean similar(String s, String pattern, String escape) {
+        final String regex = Like.sqlToRegexSimilar(pattern, escape);
+        return Pattern.matches(regex, s);
     }
 
     // =

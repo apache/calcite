@@ -116,6 +116,23 @@ public class RexImpTable {
         map.put(isNotTrueOperator, new IsXxxImplementor(true, true));
         map.put(isFalseOperator, new IsXxxImplementor(false, false));
         map.put(isNotFalseOperator, new IsXxxImplementor(false, true));
+
+        // LIKE and SIMILAR
+        final MethodImplementor likeImplementor =
+            new MethodImplementor(BuiltinMethod.LIKE.method);
+        defineImplementor(
+            likeOperator, NullPolicy.STRICT, likeImplementor, false);
+        defineImplementor(
+            notLikeOperator, NullPolicy.STRICT,
+            NotImplementor.of(likeImplementor), false);
+        final MethodImplementor similarImplementor =
+            new MethodImplementor(BuiltinMethod.SIMILAR.method);
+        defineImplementor(
+            similarOperator, NullPolicy.STRICT, similarImplementor, false);
+        defineImplementor(
+            notSimilarOperator, NullPolicy.STRICT,
+            NotImplementor.of(similarImplementor), false);
+
         map.put(caseOperator, new CaseImplementor());
         defineImplementor(
             SqlStdOperatorTable.castFunc,
@@ -1144,6 +1161,28 @@ public class RexImpTable {
                         operands[0],
                         seek ? NullAs.FALSE : NullAs.TRUE));
             }
+        }
+    }
+
+    private static class NotImplementor implements NotNullImplementor {
+        private final NotNullImplementor implementor;
+
+        public NotImplementor(NotNullImplementor implementor) {
+            this.implementor = implementor;
+        }
+
+        private static NotNullImplementor of(NotNullImplementor implementor) {
+            return new NotImplementor(implementor);
+        }
+
+        public Expression implement(
+            RexToLixTranslator translator,
+            RexCall call,
+            List<Expression> translatedOperands)
+        {
+            final Expression expression =
+                implementor.implement(translator, call, translatedOperands);
+            return Expressions.not(expression);
         }
     }
 }

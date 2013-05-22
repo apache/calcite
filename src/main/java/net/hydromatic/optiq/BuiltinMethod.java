@@ -146,6 +146,10 @@ public enum BuiltinMethod {
         SqlFunctions.class, "ltrim", String.class),
     RTRIM(
         SqlFunctions.class, "rtrim", String.class),
+    LIKE(
+        SqlFunctions.class, "like", String.class, String.class),
+    SIMILAR(
+        SqlFunctions.class, "similar", String.class, String.class),
     IS_TRUE(
         SqlFunctions.class, "isTrue", Boolean.class),
     IS_NOT_FALSE(

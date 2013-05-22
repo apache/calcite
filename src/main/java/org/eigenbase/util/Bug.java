@@ -56,15 +56,6 @@ public abstract class Bug
 
     public static final boolean Dt239Fixed = false;
 
-    /**
-     * Window Rank functions are supported through the validator but not
-     * implenmented by calculator. Disable tests and modified SqlRankFunction to
-     * return "Unknown Function".
-     */
-    public static final boolean Dt561Fixed = false;
-
-    public static final boolean Dt591Fixed = false;
-
     public static final boolean Dt785Fixed = false;
 
     // angel
@@ -109,11 +100,6 @@ public abstract class Bug
      */
     public static final boolean Dt1684Fixed = false;
 
-    /**
-     * Whether dtbug1684 "Integration issues" is fixed.
-     */
-    public static final boolean Dt1847Fixed = false;
-
     // kkrueger
 
     // mberkowitz
@@ -138,13 +124,6 @@ public abstract class Bug
      */
     public static final boolean Fnl25Fixed = false;
 
-    /**
-     * Whether <a href="http://issues.eigenbase.org/browse/FNL-54">issue FNL-54:
-     * cast time to timestamp should initialize date to current_date</a> is
-     * fixed.
-     */
-    public static final boolean Fnl54Fixed = false;
-
     // johnk
 
     // jouellette
@@ -152,12 +131,6 @@ public abstract class Bug
     // jpham
 
     // jvs
-
-    /**
-     * Whether <a href="http://issues.eigenbase.org/browse/FRG-26">issue
-     * FRG-26</a> is fixed.
-     */
-    public static final boolean Frg26Fixed = false;
 
     /**
      * Whether <a href="http://issues.eigenbase.org/browse/FRG-73">issue FRG-73:
@@ -171,13 +144,6 @@ public abstract class Bug
      * fixed.
      */
     public static final boolean Frg78Fixed = false;
-
-    /**
-     * Whether <a href="http://issues.eigenbase.org/browse/FRG-103">issue
-     * FRG-103: validator allows duplicate target columns in insert</a> is
-     * fixed.
-     */
-    public static final boolean Frg103Fixed = false;
 
     /**
      * Whether <a href="http://issues.eigenbase.org/browse/FRG-140">issue
@@ -246,7 +212,7 @@ public abstract class Bug
      * FRG-378: Regular expressions in SIMILAR TO predicates
      * potentially dont match SQL:2008 spec in a few cases.</a> is fixed.
      */
-    public static final boolean Frg378Fixed = false;
+    public static final boolean Frg378Fixed = true;
 
     /** Temporary. */
     public static final boolean TodoFixed = false;
