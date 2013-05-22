@@ -9,7 +9,7 @@
 
   <!-- Version number. The version number committed to github should be
        TRUNK-SNAPSHOT or, briefly when making a release, something like 0.3.2. -->
-  <version>TRUNK-SNAPSHOT</version>
+  <version>0.3.4</version>
 
   <!-- More project information. -->
   <name>optiq</name>
@@ -100,7 +100,7 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>linq4j</artifactId>
-      <version>TRUNK-SNAPSHOT</version>
+      <version>0.1.2</version>
     </dependency>
     <dependency>
       <groupId>org.jgrapht</groupId>
