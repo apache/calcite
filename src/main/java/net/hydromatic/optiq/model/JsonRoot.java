@@ -36,6 +36,7 @@ import java.util.List;
  */
 public class JsonRoot {
     public String version;
+    public String defaultSchema;
     public final List<JsonSchema> schemas = new ArrayList<JsonSchema>();
 }
 

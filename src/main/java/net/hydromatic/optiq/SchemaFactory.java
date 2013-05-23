@@ -17,33 +17,26 @@
 */
 package net.hydromatic.optiq;
 
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.reltype.RelDataType;
-
 import java.util.Map;
 
 /**
- * Factory for {@link Table} objects.
+ * Factory for {@link net.hydromatic.optiq.Schema} objects.
  *
- * <p>A class that implements TableFactory specified in a schema must have a
+ * <p>A class that implements SchemaFactory specified in a schema must have a
  * public default constructor.</p>
  */
-public interface TableFactory<T extends Table> {
-    /** Creates a Table.
+public interface SchemaFactory {
+    /** Creates a Schema.
      *
-     * @param typeFactory Type factory
-     * @param schema Schema this table belongs to
-     * @param name Name of this table
+     * <p>The implementation must register the schema in the parent schema,
+     * by calling {@link MutableSchema#addSchema(String, Schema)}.</p>
+     *
+     * @param schema Parent schema
+     * @param name Name of this schema
      * @param operand The "operand" JSON property
-     * @param rowType Row type. Specified if the "columns" JSON property.
      */
-    T create(
-        JavaTypeFactory typeFactory,
-        Schema schema,
-        String name,
-        Map<String, Object> operand,
-        RelDataType rowType);
+    Schema create(
+        MutableSchema schema, String name, Map<String, Object> operand);
 }
 
-// End TableFactory.java
+// End SchemaFactory.java

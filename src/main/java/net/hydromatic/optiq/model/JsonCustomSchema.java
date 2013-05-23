@@ -15,35 +15,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.reltype.RelDataType;
+package net.hydromatic.optiq.model;
 
 import java.util.Map;
 
 /**
- * Factory for {@link Table} objects.
+ * JSON schema element that represents a custom schema.
  *
- * <p>A class that implements TableFactory specified in a schema must have a
- * public default constructor.</p>
+ * @see net.hydromatic.optiq.model.JsonRoot Description of schema elements
  */
-public interface TableFactory<T extends Table> {
-    /** Creates a Table.
-     *
-     * @param typeFactory Type factory
-     * @param schema Schema this table belongs to
-     * @param name Name of this table
-     * @param operand The "operand" JSON property
-     * @param rowType Row type. Specified if the "columns" JSON property.
-     */
-    T create(
-        JavaTypeFactory typeFactory,
-        Schema schema,
-        String name,
-        Map<String, Object> operand,
-        RelDataType rowType);
+public class JsonCustomSchema extends JsonSchema {
+    /** Name of the factory class for this schema. Must implement interface
+     * {@link net.hydromatic.optiq.SchemaFactory} and have a public default
+     * constructor. */
+    public String factory;
+
+    /** Operand. May be a JSON object (represented as Map) or null. */
+    public Map<String, Object> operand;
+
+    public void accept(ModelHandler handler) {
+        handler.visit(this);
+    }
 }
 
-// End TableFactory.java
+// End JsonCustomSchema.java

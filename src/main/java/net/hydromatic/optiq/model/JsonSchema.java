@@ -31,7 +31,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     defaultImpl = JsonMapSchema.class)
 @JsonSubTypes({
     @JsonSubTypes.Type(value = JsonMapSchema.class, name = "map"),
-    @JsonSubTypes.Type(value = JsonJdbcSchema.class, name = "jdbc")})
+    @JsonSubTypes.Type(value = JsonJdbcSchema.class, name = "jdbc"),
+    @JsonSubTypes.Type(value = JsonCustomSchema.class, name = "custom")})
 public abstract class JsonSchema {
     public String name;
 

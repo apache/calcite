@@ -17,10 +17,7 @@
 */
 package net.hydromatic.optiq.model;
 
-import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.TableFactory;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.java.MapSchema;
@@ -36,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.*;
 import javax.sql.DataSource;
 
@@ -73,6 +71,13 @@ public class ModelHandler {
             schema.accept(this);
         }
         pop(schemaStack, pair);
+      if (root.defaultSchema != null) {
+        try {
+          connection.setSchema(root.defaultSchema);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      }
     }
 
     public void visit(JsonMapSchema jsonSchema) {
@@ -86,6 +91,21 @@ public class ModelHandler {
             jsonTable.accept(this);
         }
         pop(schemaStack, pair);
+    }
+
+    public void visit(JsonCustomSchema jsonSchema) {
+        try {
+            final MutableSchema parentSchema = currentSchema();
+            final Class clazz = Class.forName(jsonSchema.factory);
+            final SchemaFactory schemaFactory =
+                (SchemaFactory) clazz.newInstance();
+            final Schema schema =
+                schemaFactory.create(
+                    parentSchema, jsonSchema.name, jsonSchema.operand);
+            parentSchema.addSchema(jsonSchema.name, schema);
+        } catch (Exception e) {
+            throw new RuntimeException("Error instantiating " + jsonSchema, e);
+        }
     }
 
     public void visit(JsonJdbcSchema jsonSchema) {

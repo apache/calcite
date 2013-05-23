@@ -24,6 +24,7 @@ import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.AbstractTable;
+import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
@@ -846,7 +847,7 @@ public class JdbcTest extends TestCase {
 
     /** Tests a JDBC connection that provides a model that contains custom
      * tables. */
-    public void testModelCustom() {
+    public void testModelCustomTable() {
         OptiqAssert.assertThat()
             .withModel(
                 "{\n"
@@ -859,8 +860,8 @@ public class JdbcTest extends TestCase {
                 + "           name: 'EMPLOYEES',\n"
                 + "           type: 'custom',\n"
                 + "           factory: '"
-                + EmpDeptFactory.class.getName() + "',\n"
-                + "           operand: ['foo', 'bar', 345]\n"
+                + EmpDeptTableFactory.class.getName() + "',\n"
+                + "           operand: {'foo': 1, 'bar': [345, 357] }\n"
                 + "         }\n"
                 + "       ]\n"
                 + "     }\n"
@@ -870,6 +871,48 @@ public class JdbcTest extends TestCase {
             .returns(
                 "empid=100; deptno=10; name=Bill; commission=1000\n"
                 + "empid=150; deptno=10; name=Sebastian; commission=null\n");
+    }
+
+    /** Tests a JDBC connection that provides a model that contains a custom
+     * schema. */
+    public void testModelCustomSchema() throws Exception {
+        final OptiqAssert.AssertThat that =
+            OptiqAssert.assertThat().withModel(
+                "{\n"
+                + "  version: '1.0',\n"
+                + "  defaultSchema: 'adhoc',\n"
+                + "  schemas: [\n"
+                + "    {\n"
+                + "      name: 'empty'\n"
+                + "    },\n"
+                + "    {\n"
+                + "      name: 'adhoc',\n"
+                + "      type: 'custom',\n"
+                + "      factory: '"
+                + MySchemaFactory.class.getName()
+                + "',\n"
+                + "      operand: {'tableName': 'ELVIS'}\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}");
+      // check that the specified 'defaultSchema' was used
+      that.doWithConnection(
+          new Function1<OptiqConnection, Object>() {
+            public Object apply(OptiqConnection connection) {
+              try {
+                assertEquals("adhoc", connection.getSchema());
+                return null;
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          });
+        that.query("select * from \"adhoc\".ELVIS where \"deptno\" = 10")
+            .returns(
+                "empid=100; deptno=10; name=Bill; commission=1000\n"
+                + "empid=150; deptno=10; name=Sebastian; commission=null\n");
+        that.query("select * from \"adhoc\".EMPLOYEES")
+            .throws_("Table 'adhoc.EMPLOYEES' not found");
     }
 
     /** Tests a JDBC connection that provides a model that contains a view. */
@@ -886,8 +929,8 @@ public class JdbcTest extends TestCase {
                 + "           name: 'EMPLOYEES',\n"
                 + "           type: 'custom',\n"
                 + "           factory: '"
-                + EmpDeptFactory.class.getName() + "',\n"
-                + "           operand: ['foo', 'bar', 345]\n"
+                + EmpDeptTableFactory.class.getName() + "',\n"
+                + "           operand: {'foo': true, 'bar': 345}\n"
                 + "         },\n"
                 + "         {\n"
                 + "           name: 'V',\n"
@@ -1126,10 +1169,13 @@ public class JdbcTest extends TestCase {
         }
     }
 
-    public static class EmpDeptFactory implements TableFactory {
+    public static class EmpDeptTableFactory implements TableFactory<Table> {
         public Table create(
             JavaTypeFactory typeFactory,
-            Schema schema, String name, Object operand, RelDataType rowType)
+            Schema schema,
+            String name,
+            Map<String, Object> operand,
+            RelDataType rowType)
         {
             final Class clazz;
             final Object[] array;
@@ -1150,6 +1196,33 @@ public class JdbcTest extends TestCase {
                     return Linq4j.enumerator(Arrays.asList(array));
                 }
             };
+        }
+    }
+
+    public static class MySchemaFactory implements SchemaFactory {
+        public Schema create(
+            MutableSchema parentSchema,
+            String name,
+            Map<String, Object> operand)
+        {
+            final OptiqConnection connection =
+                (OptiqConnection) parentSchema.getQueryProvider();
+            final MapSchema schema =
+                MapSchema.create(
+                    connection, parentSchema, name);
+
+            // create an HR schema and mine its "emps" table
+            final Schema hrSchema =
+                ReflectiveSchema.create(
+                    connection, connection.getRootSchema(), "hr",
+                    new HrSchema());
+            final Table table = hrSchema.getTable("emps", Object.class);
+
+            String tableName = (String) operand.get("tableName");
+            schema.addTable(
+                new TableInSchemaImpl(
+                    schema, tableName, Schema.TableType.TABLE, table));
+            return schema;
         }
     }
 

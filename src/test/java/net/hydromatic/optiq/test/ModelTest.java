@@ -25,17 +25,23 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.*;
 
 /**
  * Unit test for data models.
  */
 public class ModelTest extends TestCase {
-    /** Reads a simple schema from a string into objects. */
-    public void testRead() throws IOException {
+    private ObjectMapper mapper() {
         final ObjectMapper mapper = new ObjectMapper();
         mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
         mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-        Object root0 = mapper.readValue(
+        return mapper;
+    }
+
+    /** Reads a simple schema from a string into objects. */
+    public void testRead() throws IOException {
+        final ObjectMapper mapper = mapper();
+        JsonRoot root = mapper.readValue(
             "{\n"
             + "  version: '1.0',\n"
             + "   schemas: [\n"
@@ -63,8 +69,6 @@ public class ModelTest extends TestCase {
             + "   ]\n"
             + "}",
             JsonRoot.class);
-        assertTrue(root0 instanceof JsonRoot);
-        JsonRoot root = (JsonRoot) root0;
         assertEquals("1.0", root.version);
         assertEquals(1, root.schemas.size());
         final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
@@ -81,10 +85,8 @@ public class ModelTest extends TestCase {
 
     /** Reads a simple schema containing JdbcSchema, a sub-type of Schema. */
     public void testSubtype() throws IOException {
-        final ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-        mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-        Object root0 = mapper.readValue(
+        final ObjectMapper mapper = mapper();
+        JsonRoot root = mapper.readValue(
             "{\n"
             + "  version: '1.0',\n"
             + "   schemas: [\n"
@@ -100,12 +102,40 @@ public class ModelTest extends TestCase {
             + "   ]\n"
             + "}",
             JsonRoot.class);
-        assertTrue(root0 instanceof JsonRoot);
-        JsonRoot root = (JsonRoot) root0;
         assertEquals("1.0", root.version);
         assertEquals(1, root.schemas.size());
         final JsonJdbcSchema schema = (JsonJdbcSchema) root.schemas.get(0);
         assertEquals("FoodMart", schema.name);
+    }
+
+    /** Reads a custom schema. */
+    public void testCustomSchema() throws IOException {
+        final ObjectMapper mapper = mapper();
+        JsonRoot root = mapper.readValue(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       type: 'custom',\n"
+            + "       name: 'My Custom Schema',\n"
+            + "       factory: 'com.acme.MySchemaFactory',\n"
+            + "       operand: {a: 'foo', b: [1, 3.5] }\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}",
+            JsonRoot.class);
+        assertEquals("1.0", root.version);
+        assertEquals(1, root.schemas.size());
+        final JsonCustomSchema schema = (JsonCustomSchema) root.schemas.get(0);
+        assertEquals("My Custom Schema", schema.name);
+        assertEquals("com.acme.MySchemaFactory", schema.factory);
+        assertEquals("foo", schema.operand.get("a"));
+        assertNull(schema.operand.get("c"));
+        assertTrue(schema.operand.get("b") instanceof List);
+        final List list = (List) schema.operand.get("b");
+        assertEquals(2, list.size());
+        assertEquals(1, list.get(0));
+        assertEquals(3.5, list.get(1));
     }
 }
 

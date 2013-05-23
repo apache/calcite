@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.model;
 
+import java.util.Map;
+
 /**
  * Custom table schema element.
  *
@@ -28,8 +30,8 @@ public class JsonCustomTable extends JsonTable {
      * constructor. */
     public String factory;
 
-    /** Operand. May be any JSON type, including object, array, null. */
-    public Object operand;
+  /** Operand. May be a JSON object (represented as Map) or null. */
+    public Map<String, Object> operand;
 
     public void accept(ModelHandler handler) {
         handler.visit(this);
