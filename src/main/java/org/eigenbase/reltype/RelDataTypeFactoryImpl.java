@@ -40,8 +40,12 @@ public abstract class RelDataTypeFactoryImpl
 {
     //~ Instance fields --------------------------------------------------------
 
-    private HashMap<RelDataType, RelDataType> map =
+    private final Map<RelDataType, RelDataType> map =
         new HashMap<RelDataType, RelDataType>();
+
+    private static final Map<Class, RelDataTypeFamily> CLASS_FAMILIES =
+        Util.<Class, RelDataTypeFamily>mapOf(
+            String.class, SqlTypeFamily.CHARACTER);
 
     //~ Constructors -----------------------------------------------------------
 
@@ -54,7 +58,12 @@ public abstract class RelDataTypeFactoryImpl
     // implement RelDataTypeFactory
     public RelDataType createJavaType(Class clazz)
     {
-        return canonize(new JavaType(clazz));
+        final JavaType javaType =
+            clazz == String.class
+            ? new JavaType(
+                clazz, true, getDefaultCharset(), SqlCollation.IMPLICIT)
+            : new JavaType(clazz);
+        return canonize(javaType);
     }
 
     // implement RelDataTypeFactory
@@ -318,7 +327,7 @@ public abstract class RelDataTypeFactoryImpl
     {
         ArrayList<RelDataType> typeList = new ArrayList<RelDataType>();
         getTypeArray(types, typeList);
-        return (RelDataType []) typeList.toArray(
+        return typeList.toArray(
             new RelDataType[typeList.size()]);
     }
 
@@ -561,6 +570,12 @@ public abstract class RelDataTypeFactoryImpl
         public boolean isNullable()
         {
             return nullable;
+        }
+
+        @Override
+        public RelDataTypeFamily getFamily() {
+            RelDataTypeFamily family = CLASS_FAMILIES.get(clazz);
+            return family != null ? family : this;
         }
 
         protected void generateTypeString(StringBuilder sb, boolean withDetail)

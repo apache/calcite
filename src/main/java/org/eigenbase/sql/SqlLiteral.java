@@ -595,8 +595,7 @@ public class SqlLiteral
             }
             SqlCollation collation = string.getCollation();
             if (null == collation) {
-                collation =
-                    new SqlCollation(SqlCollation.Coercibility.Coercible);
+                collation = SqlCollation.COERCIBLE;
             }
             RelDataType type =
                 typeFactory.createSqlType(

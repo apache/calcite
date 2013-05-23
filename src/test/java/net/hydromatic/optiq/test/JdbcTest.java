@@ -744,6 +744,18 @@ public class JdbcTest extends TestCase {
                 "empid=100; deptno=10; name=Bill; commission=1000\n");
     }
 
+    /** Tests the LIKE operator. */
+    public void testLike() {
+        OptiqAssert.assertThat()
+            .with(OptiqAssert.Config.REGULAR)
+            .query(
+                "select * from \"hr\".\"emps\"\n"
+                + "where \"name\" like '%i__'")
+            .returns(
+                "empid=100; deptno=10; name=Bill; commission=1000\n"
+                + "empid=150; deptno=10; name=Sebastian; commission=null\n");
+    }
+
     /** Tests array index. */
     public void testArray() {
         OptiqAssert.assertThat()

@@ -1165,7 +1165,7 @@ public abstract class SqlTypeUtil
         }
         SqlCollation collation = type.getCollation();
         if (collation == null) {
-            collation = new SqlCollation(SqlCollation.Coercibility.Implicit);
+            collation = SqlCollation.IMPLICIT;
         }
 
         // todo: should get the implicit collation from repository

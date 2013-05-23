@@ -39,6 +39,11 @@ import org.eigenbase.util.*;
 public class SqlCollation
     implements Serializable
 {
+    public static final SqlCollation COERCIBLE =
+        new SqlCollation(Coercibility.Coercible);
+    public static final SqlCollation IMPLICIT =
+        new SqlCollation(Coercibility.Implicit);
+
     //~ Enums ------------------------------------------------------------------
 
     /**

@@ -271,7 +271,7 @@ public class SqlDataTypeSpec
     {
         String name = typeName.getSimple();
 
-        //for now we only support builtin datatypes
+        // for now we only support builtin datatypes
         if (SqlTypeName.get(name) == null) {
             throw validator.newValidationError(
                 this,
@@ -323,8 +323,7 @@ public class SqlDataTypeSpec
             // specification> is the default collating sequence for the
             // character repertoire of TD and the result of the <cast
             // specification> has the Coercible coercibility characteristic."
-            SqlCollation collation =
-                new SqlCollation(SqlCollation.Coercibility.Coercible);
+            SqlCollation collation = SqlCollation.COERCIBLE;
 
             Charset charset;
             if (null == charSetName) {
