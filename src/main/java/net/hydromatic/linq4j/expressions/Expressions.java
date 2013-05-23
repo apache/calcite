@@ -1388,6 +1388,8 @@ public class Expressions {
     case LessThanOrEqual:
     case GreaterThan:
     case GreaterThanOrEqual:
+    case AndAlso:
+    case OrElse:
       type = Boolean.TYPE;
       break;
     default:
