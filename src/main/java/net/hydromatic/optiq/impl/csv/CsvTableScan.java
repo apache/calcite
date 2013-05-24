@@ -91,8 +91,7 @@ public class CsvTableScan
   }
 
   public BlockExpression implement(EnumerableRelImplementor implementor) {
-    Expression expression = null;
-    return Blocks.toBlock(expression);
+    return Blocks.toBlock(csvTable.getExpression());
   }
 }
 

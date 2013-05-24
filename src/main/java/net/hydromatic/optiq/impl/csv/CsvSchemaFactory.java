@@ -28,6 +28,10 @@ import java.util.Map;
  * <p>Allows a custom schema to be included in a model.json file.</p>
  */
 public class CsvSchemaFactory implements SchemaFactory {
+  // public constructor, per factory contract
+  public CsvSchemaFactory() {
+  }
+
   public Schema create(MutableSchema parentSchema, String name,
       Map<String, Object> operand) {
     Map map = (Map) operand;
