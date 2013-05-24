@@ -18,10 +18,21 @@ You need Java (1.5 or higher; 1.7 preferred) and maven (2 or higher).
 Run sqlline
 ===========
 
+Sqlline is a shell that connects to any JDBC data source and lets you execute SQL queries.
+Connect to Optiq and try out some queries.
+
     $ ./sqlline
     sqlline> !connect jdbc:optiq:model=target/test-classes/model.json admin admin
-    sqlline> select * from emp;
     sqlline> !tables
+    sqlline> !describe emps
+    sqlline> SELECT * FROM emps;
+    sqlline> EXPLAIN PLAN FOR SELECT * FROM emps;
+    sqlline> !connect jdbc:optiq:model=target/test-classes/smart.json admin admin
+    sqlline> EXPLAIN PLAN FOR SELECT * FROM emps;
+    sqlline> SELECT depts.name, count(*)
+    . . . .> FROM emps JOIN depts USING (deptno)
+    . . . .> GROUP BY depts.name;
+    sqlline> VALUES char_length('hello, ' || 'world!');
     sqlline> !quit
 
 
