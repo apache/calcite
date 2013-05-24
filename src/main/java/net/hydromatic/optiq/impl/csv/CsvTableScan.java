@@ -35,22 +35,14 @@ import java.util.*;
  *
  * <p>Like any table scan, it serves as a leaf node of a query tree.</p>
  */
-public class CsvTableScan
-    extends TableAccessRelBase
-    implements EnumerableRel
-{
+public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
   final CsvTable csvTable;
   final List<String> fieldList;
   final PhysType physType;
 
-  protected CsvTableScan(
-      RelOptCluster cluster,
-      RelOptTable table,
-      CsvTable csvTable,
-      List<String> fieldList)
-  {
-    super(
-        cluster, cluster.traitSetOf(EnumerableConvention.ARRAY), table);
+  protected CsvTableScan(RelOptCluster cluster, RelOptTable table,
+      CsvTable csvTable, List<String> fieldList) {
+    super(cluster, cluster.traitSetOf(EnumerableConvention.ARRAY), table);
     this.csvTable = csvTable;
     this.fieldList = fieldList;
     this.physType =
@@ -74,10 +66,9 @@ public class CsvTableScan
 
   @Override
   public void explain(RelOptPlanWriter pw) {
-    pw.explain(
-        this,
-        Collections.singletonList(
-            Pair.<String, Object>of("table", table.getQualifiedName())));
+    pw.explain(this, Collections.singletonList(
+        Pair.<String, Object>of("table",
+            Arrays.asList(table.getQualifiedName()))));
   }
 
   @Override

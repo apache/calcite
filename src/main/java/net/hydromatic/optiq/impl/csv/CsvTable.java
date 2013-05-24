@@ -22,17 +22,17 @@ import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.rules.java.EnumerableConvention;
+import net.hydromatic.optiq.rules.java.JavaRules;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Pair;
 
 import au.com.bytecode.opencsv.CSVReader;
 
 import java.io.*;
-import java.lang.reflect.Type;
 import java.util.*;
 
 /**
@@ -60,15 +60,6 @@ class CsvTable
     assert tableName != null;
   }
 
-  /** Creates a table based on a CSV file, deducing its column types by reading
-   * the first line of the file. */
-  public static CsvTable create(CsvSchema schema, File file, String tableName) {
-    final List<CsvFieldType> fieldTypes = new ArrayList<CsvFieldType>();
-    final RelDataType rowType =
-        deduceRowType(schema.typeFactory, file, fieldTypes);
-    return new CsvTable(schema, tableName, file, rowType, fieldTypes);
-  }
-
   public String toString() {
     return "CsvTable {" + tableName + "}";
   }
@@ -81,7 +72,7 @@ class CsvTable
     return schema;
   }
 
-  public Type getElementType() {
+  public Class getElementType() {
     return Object[].class;
   }
 
@@ -115,11 +106,12 @@ class CsvTable
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable)
   {
-    return new CsvTableScan(
-        context.getCluster(),
-        relOptTable,
-        this,
-        RelOptUtil.getFieldNameList(relOptTable.getRowType()));
+      return new JavaRules.EnumerableTableAccessRel(
+          context.getCluster(),
+          context.getCluster().traitSetOf(EnumerableConvention.ARRAY),
+          relOptTable,
+          getExpression(),
+          getElementType());
   }
 
   /** Deduces the names and types of a table's columns by reading the first line

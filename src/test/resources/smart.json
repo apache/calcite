@@ -1,0 +1,15 @@
+{
+  version: '1.0',
+  defaultSchema: 'SALES',
+  schemas: [
+    {
+      name: 'SALES',
+      type: 'custom',
+      factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',
+      operand: {
+        directory: 'target/test-classes/sales',
+        smart: true
+      }
+    }
+  ]
+}

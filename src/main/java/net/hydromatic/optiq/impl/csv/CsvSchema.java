@@ -22,9 +22,10 @@ import net.hydromatic.linq4j.expressions.Expression;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
-
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
+
+import org.eigenbase.reltype.RelDataType;
 
 import java.io.*;
 import java.util.*;
@@ -37,17 +38,30 @@ public class CsvSchema implements Schema {
   private final Schema parentSchema;
   final File directoryFile;
   private final Expression expression;
+  private final boolean smart;
   final JavaTypeFactory typeFactory;
   private Map<String, TableInSchema> map;
 
+  /**
+   * Creates a CSV schema.
+   *
+   * @param parentSchema Parent schema
+   * @param directoryFile Directory that holds .csv files
+   * @param expression Java expression to create an instance of this schema
+   *                   in generated code
+   * @param smart      Whether to instantiate smart tables that undergo
+   *                   query optimization
+   */
   public CsvSchema(
       Schema parentSchema,
       File directoryFile,
-      Expression expression)
+      Expression expression,
+      boolean smart)
   {
     this.parentSchema = parentSchema;
     this.directoryFile = directoryFile;
     this.expression = expression;
+    this.smart = smart;
     this.typeFactory = ((OptiqConnection) getQueryProvider()).getTypeFactory();
   }
 
@@ -106,7 +120,15 @@ public class CsvSchema implements Schema {
           tableName = tableName.substring(
               0, tableName.length() - ".csv".length());
         }
-        final CsvTable table = CsvTable.create(this, file, tableName);
+        final List<CsvFieldType> fieldTypes = new ArrayList<CsvFieldType>();
+        final RelDataType rowType =
+            CsvTable.deduceRowType(typeFactory, file, fieldTypes);
+        final CsvTable table;
+        if (smart) {
+          table = new CsvSmartTable(this, tableName, file, rowType, fieldTypes);
+        } else {
+          table = new CsvTable(this, tableName, file, rowType, fieldTypes);
+        }
         map.put(
             tableName,
             new TableInSchemaImpl(this, tableName, TableType.TABLE, table));

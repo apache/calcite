@@ -27,6 +27,7 @@ import java.util.Map;
  *
  * <p>Allows a custom schema to be included in a model.json file.</p>
  */
+@SuppressWarnings("UnusedDeclaration")
 public class CsvSchemaFactory implements SchemaFactory {
   // public constructor, per factory contract
   public CsvSchemaFactory() {
@@ -36,11 +37,13 @@ public class CsvSchemaFactory implements SchemaFactory {
       Map<String, Object> operand) {
     Map map = (Map) operand;
     String directory = (String) map.get("directory");
+    Boolean smart = (Boolean) map.get("smart");
     final CsvSchema schema =
         new CsvSchema(
             parentSchema,
             new File(directory),
-            parentSchema.getSubSchemaExpression(name, CsvSchema.class));
+            parentSchema.getSubSchemaExpression(name, CsvSchema.class),
+            smart != null && smart);
     parentSchema.addSchema(name, schema);
     return schema;
   }
