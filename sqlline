@@ -7,6 +7,6 @@ if [ ! -f cp.txt ]; then
     mvn dependency:build-classpath -Dmdep.outputFile=cp.txt
 fi
 
-java -cp "$(cat cp.txt)" sqlline.SqlLine "$@"
+exec java -cp "target/classes:target/test-classes:$(cat cp.txt)" sqlline.SqlLine "$@"
 
 # End sqlline
