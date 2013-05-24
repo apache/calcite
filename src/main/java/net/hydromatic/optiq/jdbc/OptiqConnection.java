@@ -72,6 +72,9 @@ public interface OptiqConnection extends Connection, QueryProvider {
 
     // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
     void setSchema(String schema) throws SQLException;
+
+    // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
+    String getSchema() throws SQLException;
 }
 
 // End OptiqConnection.java
