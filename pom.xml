@@ -8,8 +8,8 @@
   <packaging>jar</packaging>
 
   <!-- Version number. The version number committed to github should be
-       TRUNK-SNAPSHOT except, briefly, when making a release. Next up: 0.3.6. -->
-  <version>TRUNK-SNAPSHOT</version>
+       TRUNK-SNAPSHOT except, briefly, when making a release. Next up: 0.3.7. -->
+  <version>0.3.6</version>
 
   <!-- More project information. -->
   <name>optiq</name>
@@ -100,7 +100,7 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>linq4j</artifactId>
-      <version>TRUNK-SNAPSHOT</version>
+      <version>0.1.3</version>
     </dependency>
     <dependency>
       <groupId>org.jgrapht</groupId>
