@@ -38,7 +38,13 @@ public class Driver extends UnregisteredDriver {
     }
 
     protected DriverVersion createDriverVersion() {
-        return new OptiqDriverVersion();
+        return DriverVersion.load(
+            Driver.class,
+            "net-hydromatic-optiq-jdbc.properties",
+            "Optiq JDBC Driver",
+            "unknown version",
+            "Optiq",
+            "unknown version");
     }
 
     @Override

@@ -17,14 +17,29 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 /**
  * Driver version information.
  *
  * <p>Each driver implementation must provide an instance of this class, in
- * order to implement {@link Driver#createDriverVersion()}.
- * Typically, drivers create a subclass in a with a constructor that provides
+ * order to implement {@link Driver#createDriverVersion()}.</p>
+ *
+ * <p>There are two typical ways for a driver to instantiate its version
+ * information:</p>
+ *
+ * <ul>
+ *
+ * <li>A driver might create a subclass in a with a constructor that provides
  * all of the arguments for the base class. The instance is held in a separate
- * file, so that that version information can be generated.</p>
+ * file, so that that version information can be generated.</li>
+ *
+ * <li>A driver might store the version information in a .properties file and
+ * load it using {@link #load}.</li>
+ *
+ * </ul>
  */
 public class DriverVersion {
     public final int majorVersion;
@@ -58,6 +73,64 @@ public class DriverVersion {
         this.jdbcCompliant = jdbcCompliant;
         this.databaseMajorVersion = databaseMajorVersion;
         this.databaseMinorVersion = databaseMinorVersion;
+    }
+
+    /** Loads a driver version from a properties file, read from the classpath.
+     * The arguments provide defaults if the properties cannot be loaded.
+     *
+     * @param driverClass Class of driver; used to find resource
+     * @param resourceName Name of resource file
+     * @param driverName Fallback name of driver
+     * @param driverVersion Fallback version of driver
+     * @param productName Fallback product name
+     * @param productVersion Fallback product version
+     * @return A populated driver version object, never null
+     */
+    public static DriverVersion load(
+        Class<Driver> driverClass,
+        String resourceName,
+        String driverName,
+        String driverVersion,
+        String productName,
+        String productVersion)
+    {
+        boolean jdbcCompliant = true;
+        int majorVersion = 0;
+        int minorVersion = 0;
+        int databaseMajorVersion = 0;
+        int databaseMinorVersion = 0;
+        try {
+            final InputStream inStream =
+                driverClass.getClassLoader().getResourceAsStream(resourceName);
+            if (inStream != null) {
+                final Properties properties = new Properties();
+                properties.load(inStream);
+                driverName = properties.getProperty("driver.name");
+                driverVersion = properties.getProperty("driver.version");
+                productName = properties.getProperty("product.name");
+                productVersion = properties.getProperty("product.version");
+                jdbcCompliant =
+                    Boolean.valueOf(properties.getProperty("jdbc.compliant"));
+                majorVersion =
+                    Integer.valueOf(
+                        properties.getProperty("driver.version.major"));
+                minorVersion =
+                    Integer.valueOf(
+                        properties.getProperty("driver.version.minor"));
+                databaseMajorVersion =
+                    Integer.valueOf(
+                        properties.getProperty("database.version.major"));
+                databaseMinorVersion =
+                    Integer.valueOf(
+                        properties.getProperty("database.version.minor"));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new DriverVersion(
+            driverName, driverVersion, productName, productVersion,
+            jdbcCompliant, majorVersion, minorVersion, databaseMajorVersion,
+            databaseMinorVersion);
     }
 }
 

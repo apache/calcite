@@ -8,8 +8,8 @@
   <packaging>jar</packaging>
 
   <!-- Version number. The version number committed to github should be
-       TRUNK-SNAPSHOT except, briefly, when making a release. Next up: 0.3.7. -->
-  <version>0.3.6</version>
+       TRUNK-SNAPSHOT except, briefly, when making a release. Next: 0.3.8. -->
+  <version>0.3.7</version>
 
   <!-- More project information. -->
   <name>optiq</name>
@@ -234,6 +234,16 @@
         </executions>
       </plugin>
     </plugins>
+
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <directory>src/main/resources/version</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
   </build>
 
 </project>

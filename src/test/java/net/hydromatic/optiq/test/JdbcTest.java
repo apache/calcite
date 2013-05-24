@@ -240,6 +240,52 @@ public class JdbcTest extends TestCase {
         connection.close();
     }
 
+    /**
+     * Make sure that the properties look sane.
+     */
+    public void testVersion() throws ClassNotFoundException, SQLException {
+        Class.forName("net.hydromatic.optiq.jdbc.Driver");
+        Connection connection = DriverManager.getConnection("jdbc:optiq:");
+        OptiqConnection optiqConnection =
+            connection.unwrap(OptiqConnection.class);
+        final DatabaseMetaData metaData = optiqConnection.getMetaData();
+        assertEquals("Optiq JDBC Driver", metaData.getDriverName());
+
+        final String driverVersion = metaData.getDriverVersion();
+        final int driverMajorVersion = metaData.getDriverMajorVersion();
+        final int driverMinorVersion = metaData.getDriverMinorVersion();
+        assertEquals(0, driverMajorVersion);
+        assertEquals(3, driverMinorVersion);
+
+        assertEquals("Optiq", metaData.getDatabaseProductName());
+        final String databaseProductVersion =
+            metaData.getDatabaseProductVersion();
+        final int databaseMajorVersion = metaData.getDatabaseMajorVersion();
+        assertEquals(driverMajorVersion, databaseMajorVersion);
+        final int databaseMinorVersion = metaData.getDatabaseMinorVersion();
+        assertEquals(driverMinorVersion, databaseMinorVersion);
+
+        // Check how version is composed of major and minor version.
+        if (!driverVersion.endsWith("-SNAPSHOT")) {
+            assertTrue(driverVersion.startsWith("0."));
+            String[] split = driverVersion.split("\\.");
+            assertTrue(split.length >= 2);
+            assertTrue(
+                driverVersion.startsWith(
+                    driverMajorVersion + "." + driverMinorVersion + "."));
+        }
+        if (!databaseProductVersion.endsWith("-SNAPSHOT")) {
+            assertTrue(databaseProductVersion.startsWith("0."));
+            String[] split = databaseProductVersion.split("\\.");
+            assertTrue(split.length >= 2);
+            assertTrue(
+                databaseProductVersion.startsWith(
+                    databaseMajorVersion + "." + databaseMinorVersion + "."));
+        }
+
+        connection.close();
+    }
+
     /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
     public void testMetaDataColumns()
         throws ClassNotFoundException, SQLException
