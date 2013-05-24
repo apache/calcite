@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.rules.java.*;
 
+import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.TableAccessRelBase;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
@@ -49,7 +50,7 @@ public class CsvTableScan
       List<String> fieldList)
   {
     super(
-        cluster, cluster.traitSetOf(Convention.NONE), table);
+        cluster, cluster.traitSetOf(EnumerableConvention.ARRAY), table);
     this.csvTable = csvTable;
     this.fieldList = fieldList;
     this.physType =
@@ -63,6 +64,12 @@ public class CsvTableScan
 
   public PhysType getPhysType() {
     return physType;
+  }
+
+  @Override
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert inputs.isEmpty();
+    return new CsvTableScan(getCluster(), table, csvTable, fieldList);
   }
 
   @Override

@@ -9,7 +9,7 @@ data source and quickly get a full SQL/JDBC interface.
 Download and build
 ==================
 
-You need Java (1.7 or higher) and maven (2 or higher).
+You need Java (1.5 or higher; 1.7 preferred) and maven (2 or higher).
 
     $ git clone git://github.com/julianhyde/optiq-csv.git
     $ cd optiq-csv
@@ -19,7 +19,10 @@ Run sqlline
 ===========
 
     $ ./sqlline
-    sqlline> connect jdbc:optiq:model=target/test-classes/model.json admin admin
+    sqlline> !connect jdbc:optiq:model=target/test-classes/model.json admin admin
+    sqlline> select * from emp;
+    sqlline> !tables
+    sqlline> !quit
 
 
 Advanced use
