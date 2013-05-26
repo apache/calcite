@@ -10,43 +10,44 @@ data source and quickly get a full SQL/JDBC interface.
 Download and build
 ==================
 
-You need Java (1.5 or higher; 1.7 preferred) and maven (2 or higher).
+You need Java (1.5 or higher; 1.7 preferred), git and maven (2 or higher).
 
-    $ git clone git://github.com/julianhyde/optiq-csv.git
-    $ cd optiq-csv
-    $ mvn compile
+```bash
+$ git clone git://github.com/julianhyde/optiq-csv.git
+$ cd optiq-csv
+$ mvn compile
+```
 
-Run sqlline
-===========
+Kick the tires
+==============
 
-Sqlline is a shell that connects to any JDBC data source and lets you execute SQL queries.
-Connect to Optiq and try out some queries.
+Let's take a quick look at optiq-csv's (and optiq's) features.
+We'll use <code>sqlline</code>, a SQL shell that connects to
+any JDBC data source and is included with optiq-csv.
 
-    $ ./sqlline
-    sqlline> !connect jdbc:optiq:model=target/test-classes/model.json admin admin
-    sqlline> !tables
-    sqlline> !describe emps
-    sqlline> SELECT * FROM emps;
-    sqlline> EXPLAIN PLAN FOR SELECT * FROM emps;
-    sqlline> !connect jdbc:optiq:model=target/test-classes/smart.json admin admin
-    sqlline> EXPLAIN PLAN FOR SELECT * FROM emps;
-    sqlline> SELECT depts.name, count(*)
-    . . . .> FROM emps JOIN depts USING (deptno)
-    . . . .> GROUP BY depts.name;
-    sqlline> VALUES char_length('hello, ' || 'world!');
-    sqlline> !quit
+Connect to Optiq and try out some queries:
 
+```SQL
+$ ./sqlline
+sqlline> !connect jdbc:optiq:model=target/test-classes/model.json admin admin
+sqlline> !tables
+sqlline> !describe emps
+sqlline> SELECT * FROM emps;
+sqlline> EXPLAIN PLAN FOR SELECT * FROM emps;
+sqlline> !connect jdbc:optiq:model=target/test-classes/smart.json admin admin
+sqlline> EXPLAIN PLAN FOR SELECT * FROM emps;
+sqlline> SELECT depts.name, count(*)
+. . . .> FROM emps JOIN depts USING (deptno)
+. . . .> GROUP BY depts.name;
+sqlline> VALUES char_length('hello, ' || 'world!');
+sqlline> !quit
+```
 
-Advanced use
-============
+As you can see, Optiq has a full SQL implementation that can efficiently
+query any data source.
 
-You can also register a CsvSchema as a schema within an Optiq instance.
-Then you can combine with other data sources.
-
-You can write a "vanity JDBC driver" with a different name.
-
-You can add optimizer rules and new implementations of relational
-operators to execute queries more efficiently.
+For a more leisurely walk through what Optiq can do and how it does it,
+try <a href="TUTORIAL.md">the Tutorial</a>.
 
 More information
 ================
