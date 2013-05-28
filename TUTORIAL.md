@@ -14,15 +14,22 @@ data formats. Even though there are not many lines of code, it covers
 several important concepts:
 * user-defined schema using SchemaFactory and Schema interfaces;
 * declaring schemas in a model JSON file;
+* declaring views in a model JSON file;
 * user-defined table using the Table interface;
 * determining the record type of a table;
 * a simple implementation of Table that enumerates all rows directly;
 * advanced implementation of Table that translates to relational operators using planner rules.
 
-Without further ado, let's get started. Assuming you have already installed
-(using <code>git clone</code> and <code>mvn install</code>, as described above),
-we'll connect to Optiq using the
-<code>sqlline</code> utility, which is included in the optiq-csv github project.
+## First queries
+
+Without further ado, let's get started.
+
+If you haven't already installed, follow the instructions in the <a href="README.md">README</a>.
+It's just two commands: <code>git clone</code> followed <code>mvn install</code>.
+
+Now let's connect to Optiq using 
+<a href="https://github.com/julianhyde/sqlline">sqlline</a>, a SQL shell
+that is included in the optiq-csv github project.
 
 ```bash
 $ ./sqlline
@@ -42,6 +49,11 @@ sqlline> !tables
 | null       | metadata     | TABLES      | SYSTEM_TABLE  | null     | null |
 +------------+--------------+-------------+---------------+----------+------+
 ```
+
+(JDBC experts, note: sqlline's <code>!tables</code> command is just executing
+<a href="http://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTables(java.lang.String, java.lang.String, java.lang.String, java.lang.String[])"><code>DatabaseMetaData.getTables()</code></a>
+behind the scenes.
+It has other commands to query JDBC metadata, such as <code>!columns</code> and <code>!describe</code>.)
 
 As you can see there are 4 tables in the system: tables
 <code>EMPS</code> and <code>DEPTS</code> in the current
@@ -97,6 +109,8 @@ sqlline> VALUES CHAR_LENGTH('Hello, ' || 'world!');
 
 Optiq has many other SQL features. We don't have time to cover them
 here. Write some more queries to experiment.
+
+## Schema discovery
 
 Now, how did Optiq find these tables? Remember, core Optiq does not
 know anything about CSV files. (As a "database without a storage
@@ -168,18 +182,13 @@ not support them.) The tables implement Optiq's <a
 href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/Table.html">Table</a> interface. <code>CsvSchema</code> produces tables that are instances of
 <a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvTable.java">CsvTable</a>.
 
-Here is the relevant code from <code>CsvSchema</code>:
+Here is the relevant code from <code>CsvSchema</code>, overriding the
+<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/java/MapSchema.html#initialTables()">initialTables</a></code>
+method in the <code>MapSchema</code> base class.
 
 ```java
-private Map<String, TableInSchema> map;
-
-public Collection<TableInSchema> getTables() {
-  return computeMap().values();
-}
-
-private synchronized Map<String, TableInSchema> computeMap() {
-  if (map == null) {
-    map = new HashMap<String, TableInSchema>();
+  protected Collection<TableInSchema> initialTables() {
+    final List<TableInSchema> list = new ArrayList<TableInSchema>();
     File[] files = directoryFile.listFiles(
         new FilenameFilter() {
           public boolean accept(File dir, String name) {
@@ -201,13 +210,11 @@ private synchronized Map<String, TableInSchema> computeMap() {
       } else {
         table = new CsvTable(this, tableName, file, rowType, fieldTypes);
       }
-      map.put(
-          tableName,
+      list.add(
           new TableInSchemaImpl(this, tableName, TableType.TABLE, table));
     }
+    return list;
   }
-  return map;
-}
 ```
 
 The schema scans the directory and finds all files whose name ends
@@ -216,9 +223,75 @@ is <code>target/test-classes/sales</code> and contains files
 <code>EMPS.csv</code> and <code>DEPTS.csv</code>, which these become
 the tables <code>EMPS</code> and <code>DEPTS</code>.
 
+## Tables and views in schemas
+
 Note how we did not need to define any tables in the model; the schema
-generated the tables automatically. (Some schema types allow you to define
-tables explicitly, using the <code>tables</code> property of a schema.)
+generated the tables automatically. 
+
+Some schema types allow you to define extra tables,
+beyond those that are created automatically,
+using the <code>tables</code> property of a schema.
+
+(Specifically, Optiq checks whether the schema
+returned from <code>SchemaFactory.create</code> implements the
+<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/MutableSchema.html">MutableSchema</a></code>
+interface. If it does, you can define tables in the model.
+Further, if the schema extends the
+<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/java/MapSchema.html">MapSchema</a></code>
+class, Optiq will call
+<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/java/MapSchema.html#initialize()">MapSchema.initialize()</a></code>
+to create the automatic tables,
+then go ahead and create the explicit tables.)
+
+<code>CsvSchema</code> allows explicit tables, so let's see how to create
+an important and useful type of table, namely a view.
+
+A view looks like a table when you are writing a query, but it doesn't store data.
+It derives its result by executing a query.
+The view is expanded while the query is being planned, so the query planner
+can often perform optimizations like removing expressions from the SELECT
+clause that are not used in the final result.
+
+Here is a schema that defines a view:
+
+```json
+{
+  version: '1.0',
+  defaultSchema: 'SALES',
+  schemas: [
+    {
+      name: 'SALES',
+      type: 'custom',
+      factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',
+      operand: {
+        directory: 'target/test-classes/sales'
+      },
+      tables: [
+        {
+          name: 'FEMALE_EMPS',
+          type: 'view',
+          sql: 'SELECT * FROM emps WHERE gender = \'F\''
+        }
+      ]
+    }
+  ]
+}
+```
+
+The line <code>type: 'view'</code> tags it as a view, as opposed to a regular table
+or a custom table. Note that single-quotes within the view definition are escaped using a
+back-slash, in the normal way for JSON.
+
+We can now execute queries using that view just as if it were a table:
+
+```sql
+sqlline> SELECT e.name, d.name FROM female_emps AS e JOIN depts AS d on e.deptno = d.deptno;
++--------+------------+
+|  NAME  |    NAME    |
++--------+------------+
+| Wilma  | Marketing  |
++--------+------------+
+```
 
 ## JDBC adapter
 
