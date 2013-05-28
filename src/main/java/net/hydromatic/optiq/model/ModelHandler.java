@@ -71,21 +71,25 @@ public class ModelHandler {
             schema.accept(this);
         }
         pop(schemaStack, pair);
-      if (root.defaultSchema != null) {
-        try {
-          connection.setSchema(root.defaultSchema);
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
+        if (root.defaultSchema != null) {
+            try {
+                connection.setSchema(root.defaultSchema);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         }
-      }
     }
 
     public void visit(JsonMapSchema jsonSchema) {
-        final MutableSchema parentSchema = currentSchema();
+        final MutableSchema parentSchema = currentMutableSchema("schema");
         final MapSchema schema =
             MapSchema.create(connection, parentSchema, jsonSchema.name);
-        final Pair<String, Schema> pair =
-            Pair.<String, Schema>of(jsonSchema.name, schema);
+        schema.initialize();
+        populateSchema(jsonSchema, schema);
+    }
+
+    private void populateSchema(JsonMapSchema jsonSchema, Schema schema) {
+        final Pair<String, Schema> pair = Pair.of(jsonSchema.name, schema);
         push(schemaStack, pair);
         for (JsonTable jsonTable : jsonSchema.tables) {
             jsonTable.accept(this);
@@ -95,7 +99,8 @@ public class ModelHandler {
 
     public void visit(JsonCustomSchema jsonSchema) {
         try {
-            final MutableSchema parentSchema = currentSchema();
+            final MutableSchema parentSchema =
+                currentMutableSchema("sub-schema");
             final Class clazz = Class.forName(jsonSchema.factory);
             final SchemaFactory schemaFactory =
                 (SchemaFactory) clazz.newInstance();
@@ -103,6 +108,10 @@ public class ModelHandler {
                 schemaFactory.create(
                     parentSchema, jsonSchema.name, jsonSchema.operand);
             parentSchema.addSchema(jsonSchema.name, schema);
+            if (schema instanceof MapSchema) {
+                ((MapSchema) schema).initialize();
+            }
+            populateSchema(jsonSchema, schema);
         } catch (Exception e) {
             throw new RuntimeException("Error instantiating " + jsonSchema, e);
         }
@@ -111,7 +120,7 @@ public class ModelHandler {
     public void visit(JsonJdbcSchema jsonSchema) {
         JdbcSchema.create(
             connection,
-            currentSchema(),
+            currentMutableSchema("jdbc schema"),
             dataSource(jsonSchema),
             jsonSchema.jdbcCatalog,
             jsonSchema.jdbcSchema,
@@ -141,7 +150,7 @@ public class ModelHandler {
 
     public void visit(JsonCustomTable jsonTable) {
         try {
-            final MutableSchema schema = currentSchema();
+            final MutableSchema schema = currentMutableSchema("table");
             final Class clazz = Class.forName(jsonTable.factory);
             final TableFactory tableFactory =
                 (TableFactory) clazz.newInstance();
@@ -162,7 +171,7 @@ public class ModelHandler {
 
     public void visit(JsonView jsonView) {
         try {
-            final MutableSchema schema = currentSchema();
+            final MutableSchema schema = currentMutableSchema("view");
             final List<String> path =
                 jsonView.path == null
                     ? Collections.singletonList(peek(schemaStack).left)
@@ -177,8 +186,18 @@ public class ModelHandler {
         }
     }
 
-    private MutableSchema currentSchema() {
-        return (MutableSchema) peek(schemaStack).right;
+    private Schema currentSchema() {
+        return peek(schemaStack).right;
+    }
+
+    private MutableSchema currentMutableSchema(String elementType) {
+        final Schema schema = currentSchema();
+        if (schema instanceof MutableSchema) {
+            return (MutableSchema) schema;
+        }
+        throw new RuntimeException(
+            "Cannot define " + elementType + "; parent schema " + schema
+            + " is not mutable");
     }
 }
 

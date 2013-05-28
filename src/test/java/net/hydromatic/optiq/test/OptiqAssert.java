@@ -255,6 +255,33 @@ public class OptiqAssert {
             return new AssertQuery(connectionFactory, sql);
         }
 
+        /** Asserts that there is an exception with the given message while
+         * creating a connection. */
+        public void connectThrows(String message) {
+            connectThrows(checkException(message));
+        }
+
+        /** Asserts that there is an exception that matches the given predicate
+         * while creating a connection. */
+        public void connectThrows(
+            Function1<Throwable, Void> exceptionChecker)
+        {
+            Throwable throwable;
+            try {
+                Connection x = connectionFactory.createConnection();
+                try {
+                    x.close();
+                } catch (SQLException e) {
+                    // ignore
+                }
+                throwable = null;
+            } catch (Throwable e) {
+                throwable = e;
+            }
+            exceptionChecker.apply(throwable);
+        }
+
+        /** Creates a connection and executes a callback. */
         public <T> T doWithConnection(Function1<OptiqConnection, T> fn)
             throws Exception
         {

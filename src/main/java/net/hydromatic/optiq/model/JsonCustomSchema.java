@@ -24,7 +24,7 @@ import java.util.Map;
  *
  * @see net.hydromatic.optiq.model.JsonRoot Description of schema elements
  */
-public class JsonCustomSchema extends JsonSchema {
+public class JsonCustomSchema extends JsonMapSchema {
     /** Name of the factory class for this schema. Must implement interface
      * {@link net.hydromatic.optiq.SchemaFactory} and have a public default
      * constructor. */
@@ -35,6 +35,11 @@ public class JsonCustomSchema extends JsonSchema {
 
     public void accept(ModelHandler handler) {
         handler.visit(this);
+    }
+
+    @Override
+    public String toString() {
+        return "JsonCustomSchema(name=" + name + ")";
     }
 }
 

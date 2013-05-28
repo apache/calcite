@@ -71,6 +71,23 @@ public class MapSchema implements MutableSchema {
     }
 
     /**
+     * Creates a MapSchema that is a sub-schema.
+     *
+     * @param parentSchema Parent schema
+     * @param expression Expression for schema
+     */
+    public MapSchema(
+        Schema parentSchema,
+        Expression expression)
+    {
+        this(
+            parentSchema.getQueryProvider(),
+            ((OptiqConnection) parentSchema.getQueryProvider())
+                .getTypeFactory(),
+            expression);
+    }
+
+    /**
      * Creates a MapSchema within another schema.
      *
      * @param optiqConnection Connection to Optiq (also a query provider)
@@ -90,6 +107,14 @@ public class MapSchema implements MutableSchema {
                 parentSchema.getSubSchemaExpression(name, Object.class));
         parentSchema.addSchema(name, schema);
         return schema;
+    }
+
+    /** Called by Optiq after creation, before loading tables explicitly defined
+     * in a JSON model. */
+    public void initialize() {
+        for (TableInSchema tableInSchema : initialTables()) {
+            tableMap.put(tableInSchema.name, tableInSchema);
+        }
     }
 
     public Expression getExpression() {
@@ -118,6 +143,7 @@ public class MapSchema implements MutableSchema {
         if (tableFunctions != null) {
             for (TableFunction tableFunction : tableFunctions) {
                 if (tableFunction.getParameters().isEmpty()) {
+                    //noinspection unchecked
                     return tableFunction.apply(Collections.emptyList());
                 }
             }
@@ -165,10 +191,22 @@ public class MapSchema implements MutableSchema {
                 BuiltinMethod.GET_SUB_SCHEMA.method,
                 Collections.<Expression>singletonList(
                     Expressions.constant(name)));
+        //noinspection unchecked
         if (type != null && !type.isAssignableFrom(Schema.class)) {
             return Expressions.convert_(call, type);
         }
         return call;
+    }
+
+    /** Returns the initial set of tables.
+     *
+     * <p>The default implementation returns an empty list. Derived classes
+     * may override this method to create tables based on their schema type. For
+     * example, a CSV provider might scan for all ".csv" files in a particular
+     * directory and return a table for each.</p>
+     */
+    protected Collection<TableInSchema> initialTables() {
+        return Collections.emptyList();
     }
 
     private Type deduceType(Object schemaObject) {

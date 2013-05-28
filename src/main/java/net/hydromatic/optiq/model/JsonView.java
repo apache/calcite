@@ -36,6 +36,11 @@ public class JsonView extends JsonTable {
     public void accept(ModelHandler handler) {
         handler.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "JsonView(name=" + name + ")";
+    }
 }
 
 // End JsonView.java

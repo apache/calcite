@@ -23,8 +23,7 @@ import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.AbstractTable;
-import net.hydromatic.optiq.impl.TableInSchemaImpl;
+import net.hydromatic.optiq.impl.*;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
@@ -851,9 +850,8 @@ public class JdbcTest extends TestCase {
                             }
                             statement.setMaxRows(2);
                             assertEquals(2, statement.getMaxRows());
-                            final ResultSet resultSet =
-                                statement.executeQuery(
-                                    "select * from \"hr\".\"emps\"");
+                            final ResultSet resultSet = statement.executeQuery(
+                                "select * from \"hr\".\"emps\"");
                             assertTrue(resultSet.next());
                             assertTrue(resultSet.next());
                             assertFalse(resultSet.next());
@@ -864,8 +862,7 @@ public class JdbcTest extends TestCase {
                             throw new RuntimeException(e);
                         }
                     }
-                }
-            );
+                });
     }
 
     /** Tests a JDBC connection that provides a model (a single schema based on
@@ -941,24 +938,61 @@ public class JdbcTest extends TestCase {
                 + "    }\n"
                 + "  ]\n"
                 + "}");
-      // check that the specified 'defaultSchema' was used
-      that.doWithConnection(
-          new Function1<OptiqConnection, Object>() {
-            public Object apply(OptiqConnection connection) {
-              try {
-                assertEquals("adhoc", connection.getSchema());
-                return null;
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
-              }
-            }
-          });
+        // check that the specified 'defaultSchema' was used
+        that.doWithConnection(
+            new Function1<OptiqConnection, Object>() {
+                public Object apply(OptiqConnection connection) {
+                    try {
+                        assertEquals("adhoc", connection.getSchema());
+                        return null;
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
         that.query("select * from \"adhoc\".ELVIS where \"deptno\" = 10")
             .returns(
                 "empid=100; deptno=10; name=Bill; commission=1000\n"
                 + "empid=150; deptno=10; name=Sebastian; commission=null\n");
         that.query("select * from \"adhoc\".EMPLOYEES")
             .throws_("Table 'adhoc.EMPLOYEES' not found");
+    }
+
+    /** Tests that an immutable schema in a model cannot contain a view. */
+    public void testModelImmutableSchemaCannotContainView() throws Exception {
+        final OptiqAssert.AssertThat that =
+            OptiqAssert.assertThat().withModel(
+                "{\n"
+                + "  version: '1.0',\n"
+                + "  defaultSchema: 'adhoc',\n"
+                + "  schemas: [\n"
+                + "    {\n"
+                + "      name: 'empty'\n"
+                + "    },\n"
+                + "    {\n"
+                + "      name: 'adhoc',\n"
+                + "      type: 'custom',\n"
+                + "      tables: [\n"
+                + "        {\n"
+                + "          name: 'v',\n"
+                + "          type: 'view',\n"
+                + "          sql: 'values (1)'\n"
+                + "        }\n"
+                + "      ],\n"
+                + "      factory: '"
+                + MySchemaFactory.class.getName()
+                + "',\n"
+                + "      operand: {\n"
+                + "           'tableName': 'ELVIS',\n"
+                + "           'mutable': false\n"
+                + "      }\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}");
+        that.connectThrows(
+            "Cannot define view; parent schema "
+            + "DelegatingSchema(delegate=ReflectiveSchema(target=HrSchema)) is "
+            + "not mutable");
     }
 
     /** Tests a JDBC connection that provides a model that contains a view. */
@@ -1064,6 +1098,11 @@ public class JdbcTest extends TestCase {
     }
 
     public static class HrSchema {
+        @Override
+        public String toString() {
+            return "HrSchema";
+        }
+
         public final Employee[] emps = {
             new Employee(100, 10, "Bill", 1000),
             new Employee(200, 20, "Eric", 500),
@@ -1253,22 +1292,26 @@ public class JdbcTest extends TestCase {
         {
             final OptiqConnection connection =
                 (OptiqConnection) parentSchema.getQueryProvider();
-            final MapSchema schema =
-                MapSchema.create(
-                    connection, parentSchema, name);
-
-            // create an HR schema and mine its "emps" table
-            final Schema hrSchema =
+            final ReflectiveSchema schema =
                 ReflectiveSchema.create(
-                    connection, connection.getRootSchema(), "hr",
-                    new HrSchema());
-            final Table table = hrSchema.getTable("emps", Object.class);
+                    connection, parentSchema, name, new HrSchema());
+
+            // Mine the EMPS table and add it under another name e.g. ELVIS
+            final Table table = schema.getTable("emps", Object.class);
 
             String tableName = (String) operand.get("tableName");
             schema.addTable(
                 new TableInSchemaImpl(
                     schema, tableName, Schema.TableType.TABLE, table));
-            return schema;
+
+            final Boolean mutable = (Boolean) operand.get("mutable");
+            if (mutable == null || mutable) {
+                return schema;
+            } else {
+                // Wrap the schema in DelegatingSchema so that it does not
+                // implement MutableSchema.
+                return new DelegatingSchema(schema);
+            }
         }
     }
 

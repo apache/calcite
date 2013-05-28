@@ -9,7 +9,7 @@
 
   <!-- Version number. The version number committed to github should be
        TRUNK-SNAPSHOT except, briefly, when making a release. Next: 0.3.8. -->
-  <version>0.3.7</version>
+  <version>TRUNK-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>optiq</name>

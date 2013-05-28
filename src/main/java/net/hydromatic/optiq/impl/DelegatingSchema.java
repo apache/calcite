@@ -43,6 +43,11 @@ public class DelegatingSchema implements Schema {
         this.schema = schema;
     }
 
+    @Override
+    public String toString() {
+        return "DelegatingSchema(delegate=" + schema + ")";
+    }
+
     public Map<String, List<TableFunction>> getTableFunctions() {
         return schema.getTableFunctions();
     }

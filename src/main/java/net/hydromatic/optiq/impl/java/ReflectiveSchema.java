@@ -67,7 +67,9 @@ public class ReflectiveSchema
                     this, name, TableType.TABLE, table));
         }
         for (Method method : clazz.getMethods()) {
-            if (method.getDeclaringClass() == Object.class) {
+            if (method.getDeclaringClass() == Object.class
+                || method.getName().equals("toString"))
+            {
                 continue;
             }
             putMulti(
@@ -100,6 +102,11 @@ public class ReflectiveSchema
                     name, ReflectiveSchema.class));
         parentSchema.addSchema(name, schema);
         return schema;
+    }
+
+    @Override
+    public String toString() {
+        return "ReflectiveSchema(target=" + target + ")";
     }
 
     /** Returns the wrapped object. (May not appear to be used, but is used in
@@ -249,24 +256,6 @@ public class ReflectiveSchema
         }
         throw new RuntimeException(
             "Cannot convert " + o.getClass() + " into a Enumerable");
-    }
-
-    private static List primitiveArrayAsList(
-        final Object o, final Primitive primitive)
-    {
-        return new AbstractList() {
-            final int length = Array.getLength(o);
-
-            @Override
-            public Object get(int index) {
-                return primitive.arrayItem(o, index);
-            }
-
-            @Override
-            public int size() {
-                return length;
-            }
-        };
     }
 
     private static abstract class ReflectiveTable<T>
