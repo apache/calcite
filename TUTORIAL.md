@@ -187,34 +187,34 @@ Here is the relevant code from <code>CsvSchema</code>, overriding the
 method in the <code>MapSchema</code> base class.
 
 ```java
-  protected Collection<TableInSchema> initialTables() {
-    final List<TableInSchema> list = new ArrayList<TableInSchema>();
-    File[] files = directoryFile.listFiles(
-        new FilenameFilter() {
-          public boolean accept(File dir, String name) {
-            return name.endsWith(".csv");
-          }
-        });
-    for (File file : files) {
-      String tableName = file.getName();
-      if (tableName.endsWith(".csv")) {
-        tableName = tableName.substring(
-            0, tableName.length() - ".csv".length());
-      }
-      final List<CsvFieldType> fieldTypes = new ArrayList<CsvFieldType>();
-      final RelDataType rowType =
-          CsvTable.deduceRowType(typeFactory, file, fieldTypes);
-      final CsvTable table;
-      if (smart) {
-        table = new CsvSmartTable(this, tableName, file, rowType, fieldTypes);
-      } else {
-        table = new CsvTable(this, tableName, file, rowType, fieldTypes);
-      }
-      list.add(
-          new TableInSchemaImpl(this, tableName, TableType.TABLE, table));
+protected Collection<TableInSchema> initialTables() {
+  final List<TableInSchema> list = new ArrayList<TableInSchema>();
+  File[] files = directoryFile.listFiles(
+      new FilenameFilter() {
+        public boolean accept(File dir, String name) {
+          return name.endsWith(".csv");
+        }
+      });
+  for (File file : files) {
+    String tableName = file.getName();
+    if (tableName.endsWith(".csv")) {
+      tableName = tableName.substring(
+          0, tableName.length() - ".csv".length());
     }
-    return list;
+    final List<CsvFieldType> fieldTypes = new ArrayList<CsvFieldType>();
+    final RelDataType rowType =
+        CsvTable.deduceRowType(typeFactory, file, fieldTypes);
+    final CsvTable table;
+    if (smart) {
+      table = new CsvSmartTable(this, tableName, file, rowType, fieldTypes);
+    } else {
+      table = new CsvTable(this, tableName, file, rowType, fieldTypes);
+    }
+    list.add(
+        new TableInSchemaImpl(this, tableName, TableType.TABLE, table));
   }
+  return list;
+}
 ```
 
 The schema scans the directory and finds all files whose name ends
@@ -278,7 +278,7 @@ Here is a schema that defines a view:
 }
 ```
 
-The line <code>type: 'view'</code> tags it as a view, as opposed to a regular table
+The line <code>type: 'view'</code> tags <code>FEMALE_EMPS</code> as a view, as opposed to a regular table
 or a custom table. Note that single-quotes within the view definition are escaped using a
 back-slash, in the normal way for JSON.
 
@@ -292,6 +292,84 @@ sqlline> SELECT e.name, d.name FROM female_emps AS e JOIN depts AS d on e.deptno
 | Wilma  | Marketing  |
 +--------+------------+
 ```
+
+## Custom tables
+
+Custom tables are tables whose implementation is driven by user-defined code.
+They don't need to live in a custom schema.
+
+There is an example in <code>model-with-custom-table.json</code>:
+
+```json
+{
+  version: '1.0',
+  defaultSchema: 'CUSTOM_TABLE',
+  schemas: [
+    {
+      name: 'CUSTOM_TABLE',
+      tables: [
+        {
+          name: 'EMPS',
+          type: 'custom',
+          factory: 'net.hydromatic.optiq.impl.csv.CsvTableFactory',
+          operand: {
+            file: 'target/test-classes/sales/EMPS.csv',
+            smart: false
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+We can query the table it in the usual way:
+
+```sql
+sqlline> !connect jdbc:optiq:model=target/test-classes/model-with-custom-table.json admin admin
+sqlline> SELECT empno, name FROM custom_table.emps;
++--------+--------+
+| EMPNO  |  NAME  |
++--------+--------+
+| 100    | Fred   |
+| 110    | Eric   |
+| 110    | John   |
+| 120    | Wilma  |
+| 130    | Alice  |
++--------+--------+
+```
+
+The schema is a regular one, and contains a custom table powered by
+<a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvTableFactory.java">net.hydromatic.optiq.impl.csv.CsvTableFactory</a>,
+which implements the Optiq interface
+<a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/TableFactory.html">TableFactory</a>.
+Its <code>create</code> method instantiates a
+table, passing in the <code>file</code> argument from the model file:
+
+```java
+public CsvTable create(Schema schema, String name,
+    Map<String, Object> map, RelDataType rowType) {
+  String fileName = (String) map.get("file");
+  Boolean smart = (Boolean) map.get("smart");
+  final File file = new File(fileName);
+  final List<CsvFieldType> list = new ArrayList<CsvFieldType>();
+  final RelDataType rowType2 =
+      CsvTable.deduceRowType(schema.getTypeFactory(), file, list);
+  final RelDataType rowType3 = rowType != null ? rowType : rowType2;
+  return new CsvTable(schema, name, file, rowType3, list);
+}
+```
+
+Implementing a custom table is often a simpler alternative to implementing
+a custom schema. Both approaches might end up creating a similar implementation
+of the <code>Table</code> interface, but for the custom table you don't
+need to implement metadata discovery. (<code>CsvTableFactory</code>
+creates a <code>CsvTable</code>, just as <code>CsvSchema</code> does,
+but the table implementation does not scan the filesystem for .csv files.)
+
+Custom tables require more work for the author of the model (the author
+needs to specify each table and its file explicitly) but also give the author
+more control (say, providing different parameters for each table).
 
 ## JDBC adapter
 
@@ -397,12 +475,14 @@ defined earlier in the model, like this:
 }
 ```
 
-You can use this approach for any type of schema, not just JDBC.
+You can use this approach to create a clone schema on any type of
+schema, not just JDBC.
 
-We plan to develop more sophisticated caching strategies, and a more
-complete and efficient implementation of in-memory tables, but for now
-the cloning JDBC adapter shows what is possible and allows us to try
-out our initial implementations.
+The cloning adapter isn't the be-all and end-all. We plan to develop
+more sophisticated caching strategies, and a more complete and
+efficient implementation of in-memory tables, but for now the cloning
+JDBC adapter shows what is possible and allows us to try out our
+initial implementations.
 
 ## Further topics
 
@@ -416,15 +496,13 @@ How to enable DML operations (INSERT, UPDATE and DELETE) on your schema.
 
 (To be written.)
 
-### Defining views in a model file
-
-(To be written.)
-
 ### Calling conventions
 
 (To be written.)
 
-## Statistics and cost
+### Statistics and cost
+
+(To be written.)
 
 ### Defining and using user-defined functions
 
@@ -441,6 +519,10 @@ How to enable DML operations (INSERT, UPDATE and DELETE) on your schema.
 ### Built-in SQL implementation
 
 How does Optiq implement SQL, if an adapter does not implement all of the core relational operators?
+
+(To be written.)
+
+### Table functions
 
 (To be written.)
 

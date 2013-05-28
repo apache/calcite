@@ -41,14 +41,14 @@ import java.util.*;
 class CsvTable
     extends AbstractQueryable<Object[]>
     implements TranslatableTable<Object[]> {
-  private final CsvSchema schema;
+  private final Schema schema;
   private final String tableName;
   private final File file;
   private final RelDataType rowType;
   private final List<CsvFieldType> fieldTypes;
 
   /** Creates a CsvTable. */
-  CsvTable(CsvSchema schema, String tableName, File file, RelDataType rowType,
+  CsvTable(Schema schema, String tableName, File file, RelDataType rowType,
       List<CsvFieldType> fieldTypes) {
     this.schema = schema;
     this.tableName = tableName;

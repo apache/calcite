@@ -69,15 +69,19 @@ public class CsvTest extends TestCase {
    * Reads from a table.
    */
   public void testSelect() throws SQLException {
-    checkSql("select * from EMPS");
+    checkSql("select * from EMPS", "model");
   }
 
-  private void checkSql(String sql) throws SQLException {
+  public void testCustomTable() throws SQLException {
+    checkSql("select * from CUSTOM_TABLE.EMPS", "model-with-custom-table");
+  }
+
+  private void checkSql(String sql, String model) throws SQLException {
     Connection connection = null;
     Statement statement = null;
     try {
       Properties info = new Properties();
-      info.put("model", "target/test-classes/model.json");
+      info.put("model", "target/test-classes/" + model + ".json");
       connection = DriverManager.getConnection("jdbc:optiq:", info);
       statement = connection.createStatement();
       final ResultSet resultSet =
