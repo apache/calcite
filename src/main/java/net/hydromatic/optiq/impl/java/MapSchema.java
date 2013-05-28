@@ -22,7 +22,6 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.eigenbase.reltype.RelDataType;
 
@@ -82,28 +81,25 @@ public class MapSchema implements MutableSchema {
     {
         this(
             parentSchema.getQueryProvider(),
-            ((OptiqConnection) parentSchema.getQueryProvider())
-                .getTypeFactory(),
+            parentSchema.getTypeFactory(),
             expression);
     }
 
     /**
      * Creates a MapSchema within another schema.
      *
-     * @param optiqConnection Connection to Optiq (also a query provider)
      * @param parentSchema Parent schema
      * @param name Name of new schema
      * @return New MapSchema
      */
     public static MapSchema create(
-        OptiqConnection optiqConnection,
         MutableSchema parentSchema,
         String name)
     {
         MapSchema schema =
             new MapSchema(
-                optiqConnection,
-                optiqConnection.getTypeFactory(),
+                parentSchema.getQueryProvider(),
+                parentSchema.getTypeFactory(),
                 parentSchema.getSubSchemaExpression(name, Object.class));
         parentSchema.addSchema(name, schema);
         return schema;
@@ -115,6 +111,10 @@ public class MapSchema implements MutableSchema {
         for (TableInSchema tableInSchema : initialTables()) {
             tableMap.put(tableInSchema.name, tableInSchema);
         }
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+        return typeFactory;
     }
 
     public Expression getExpression() {

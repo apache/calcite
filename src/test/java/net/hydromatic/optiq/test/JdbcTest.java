@@ -93,7 +93,7 @@ public class JdbcTest extends TestCase {
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
         MutableSchema rootSchema = optiqConnection.getRootSchema();
-        MapSchema schema = MapSchema.create(optiqConnection, rootSchema, "s");
+        MapSchema schema = MapSchema.create(rootSchema, "s");
         rootSchema.addTableFunction(
             "GenerateStrings",
             Schemas.methodMember(
@@ -200,7 +200,6 @@ public class JdbcTest extends TestCase {
 
         JdbcSchema foodmart =
             JdbcSchema.create(
-                optiqConnection,
                 optiqConnection.getRootSchema(),
                 dataSource,
                 "foodmart",
@@ -208,8 +207,7 @@ public class JdbcTest extends TestCase {
                 "foodmart");
         if (withClone) {
             CloneSchema.create(
-                optiqConnection, optiqConnection.getRootSchema(),
-                "foodmart2", foodmart);
+                optiqConnection.getRootSchema(), "foodmart2", foodmart);
         }
         optiqConnection.setSchema("foodmart2");
         return optiqConnection;
@@ -326,8 +324,7 @@ public class JdbcTest extends TestCase {
     public void testCloneSchema() throws ClassNotFoundException, SQLException {
         final OptiqConnection connection = JdbcTest.getConnection(null, false);
         Schema foodmart = connection.getRootSchema().getSubSchema("foodmart");
-        CloneSchema.create(
-            connection, connection.getRootSchema(), "foodmart2", foodmart);
+        CloneSchema.create(connection.getRootSchema(), "foodmart2", foodmart);
         Statement statement = connection.createStatement();
         ResultSet resultSet =
             statement.executeQuery(
@@ -1280,7 +1277,6 @@ public class JdbcTest extends TestCase {
 
     public static class EmpDeptTableFactory implements TableFactory<Table> {
         public Table create(
-            JavaTypeFactory typeFactory,
             Schema schema,
             String name,
             Map<String, Object> operand,
@@ -1298,7 +1294,7 @@ public class JdbcTest extends TestCase {
             return new AbstractTable(
                 schema,
                 clazz,
-                typeFactory.createType(clazz),
+                schema.getTypeFactory().createType(clazz),
                 name)
             {
                 public Enumerator enumerator() {

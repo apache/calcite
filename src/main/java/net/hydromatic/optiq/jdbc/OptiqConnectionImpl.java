@@ -24,14 +24,10 @@ import net.hydromatic.linq4j.expressions.ParameterExpression;
 import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
-import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
-
-import org.apache.commons.dbcp.BasicDataSource;
 
 import java.lang.reflect.Type;
 import java.sql.*;
@@ -107,43 +103,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
         this.info = info;
         this.metaData = factory.newDatabaseMetaData(this);
         this.holdability = metaData.getResultSetHoldability();
-        this.informationSchema =
-            metaData.meta.createInformationSchema();
-
-        // Temporary... for testing under Mondrian.
-        if (info.getProperty("cloneFoodMart") != null) {
-            addFoodMartCloneSchema();
-        }
-    }
-
-    private void addFoodMartCloneSchema() {
-        try {
-            Class.forName("com.mysql.jdbc.Driver");
-            BasicDataSource dataSource = new BasicDataSource();
-            dataSource.setUrl(
-                "jdbc:mysql://localhost/foodmart?user=foodmart&password=foodmart");
-            dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-            dataSource.setUsername("foodmart");
-            dataSource.setPassword("foodmart");
-
-            JdbcSchema foodmart =
-                JdbcSchema.create(
-                    this,
-                    getRootSchema(),
-                    dataSource,
-                    "foodmart",
-                    "",
-                    "foodmart");
-            CloneSchema.create(
-                this,
-                getRootSchema(),
-                "foodmart2",
-                foodmart);
-
-            setSchema("foodmart2");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        this.informationSchema = metaData.meta.createInformationSchema();
     }
 
     // OptiqConnection methods

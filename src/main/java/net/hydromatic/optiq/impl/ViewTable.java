@@ -106,8 +106,6 @@ public class ViewTable<T>
     }
 
     private static class ViewTableFunction<T> implements TableFunction<T> {
-        private final JavaTypeFactory typeFactory;
-        private final OptiqConnection optiqConnection;
         private final String viewSql;
         private final Schema schema;
         private final String name;
@@ -123,8 +121,6 @@ public class ViewTable<T>
             this.schema = schema;
             this.name = name;
             this.schemaPath = schemaPath;
-            this.optiqConnection = (OptiqConnection) schema.getQueryProvider();
-            this.typeFactory = optiqConnection.getTypeFactory();
         }
 
         public List<Parameter> getParameters() {
@@ -136,11 +132,12 @@ public class ViewTable<T>
                 OptiqPrepare.DEFAULT_FACTORY.apply().parse(
                     new OptiqPrepare.Context() {
                         public JavaTypeFactory getTypeFactory() {
-                            return typeFactory;
+                            return schema.getTypeFactory();
                         }
 
                         public Schema getRootSchema() {
-                            return optiqConnection.getRootSchema();
+                            return ((OptiqConnection) schema.getQueryProvider())
+                                .getRootSchema();
                         }
 
                         public List<String> getDefaultSchemaPath() {
@@ -149,7 +146,7 @@ public class ViewTable<T>
                     },
                     viewSql);
             return new ViewTable<T>(
-                schema, typeFactory.getJavaClass(parsed.rowType),
+                schema, schema.getTypeFactory().getJavaClass(parsed.rowType),
                 parsed.rowType, name, viewSql, schemaPath);
         }
 

@@ -23,7 +23,6 @@ import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.TableFactory;
 import net.hydromatic.optiq.impl.AbstractTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
@@ -57,9 +56,7 @@ public class RangeTable extends AbstractTable<Integer> {
     public static RangeTable create(
         Schema schema, String tableName, String columnName, int start, int end)
     {
-        final OptiqConnection connection =
-            (OptiqConnection) schema.getQueryProvider();
-        final JavaTypeFactory typeFactory = connection.getTypeFactory();
+        final JavaTypeFactory typeFactory = schema.getTypeFactory();
         final RelDataType integerType =
             typeFactory.createSqlType(SqlTypeName.INTEGER);
         final RelDataType rowType =
@@ -97,7 +94,6 @@ public class RangeTable extends AbstractTable<Integer> {
      * file. */
     public static class Factory implements TableFactory<RangeTable> {
         public RangeTable create(
-            JavaTypeFactory typeFactory,
             Schema schema,
             String name,
             Map<String, Object> operand,

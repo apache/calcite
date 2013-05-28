@@ -59,8 +59,7 @@ public class Meta {
      * schema called "metadata" that contains tables "TABLES", "COLUMNS" etc. */
     MapSchema createInformationSchema() {
         final MapSchema mapSchema =
-            MapSchema.create(
-                connection, connection.getRootSchema(), "metadata");
+            MapSchema.create(connection.getRootSchema(), "metadata");
         mapSchema.addTable(
             new TableInSchemaImpl(
                 mapSchema,

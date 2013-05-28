@@ -143,7 +143,7 @@ public class ReflectiveSchemaTest extends TestCase {
             connection.unwrap(OptiqConnection.class);
         JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
         MutableSchema rootSchema = optiqConnection.getRootSchema();
-        MapSchema schema = MapSchema.create(optiqConnection, rootSchema, "s");
+        MapSchema schema = MapSchema.create(rootSchema, "s");
         schema.addTableFunction(
             "GenerateStrings",
             Schemas.methodMember(
@@ -176,7 +176,7 @@ public class ReflectiveSchemaTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         MutableSchema rootSchema = optiqConnection.getRootSchema();
-        MapSchema schema = MapSchema.create(optiqConnection, rootSchema, "s");
+        MapSchema schema = MapSchema.create(rootSchema, "s");
         schema.addTableFunction(
             "emps_view",
             ViewTable.viewFunction(

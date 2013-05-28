@@ -17,8 +17,6 @@
 */
 package net.hydromatic.optiq;
 
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
 import org.eigenbase.reltype.RelDataType;
 
 import java.util.Map;
@@ -78,14 +76,12 @@ import java.util.Map;
 public interface TableFactory<T extends Table> {
     /** Creates a Table.
      *
-     * @param typeFactory Type factory
      * @param schema Schema this table belongs to
      * @param name Name of this table
      * @param operand The "operand" JSON property
      * @param rowType Row type. Specified if the "columns" JSON property.
      */
     T create(
-        JavaTypeFactory typeFactory,
         Schema schema,
         String name,
         Map<String, Object> operand,

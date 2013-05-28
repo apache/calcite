@@ -20,6 +20,7 @@ package net.hydromatic.optiq.impl;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import java.util.Collection;
 import java.util.List;
@@ -78,6 +79,10 @@ public class DelegatingSchema implements Schema {
 
     public Schema getSubSchema(String name) {
         return schema.getSubSchema(name);
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+        return schema.getTypeFactory();
     }
 }
 

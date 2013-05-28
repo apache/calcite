@@ -243,8 +243,8 @@ public class JdbcFrontLinqBackTest extends TestCase {
                             OptiqConnection.class);
                         MutableSchema rootSchema =
                             optiqConnection.getRootSchema();
-                        MapSchema mapSchema = MapSchema.create(
-                            optiqConnection, rootSchema, "foo");
+                        MapSchema mapSchema =
+                            MapSchema.create(rootSchema, "foo");
                         final String tableName = "bar";
                         final JdbcTest.AbstractModifiableTable table =
                             new JdbcTest.AbstractModifiableTable(

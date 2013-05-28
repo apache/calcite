@@ -24,7 +24,6 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import java.util.Map;
 
@@ -99,22 +98,20 @@ public class CloneSchema extends MapSchema {
     /**
      * Creates a CloneSchema within another schema.
      *
-     * @param optiqConnection Connection to Optiq (also a query provider)
      * @param parentSchema Parent schema
      * @param name Name of new schema
      * @param sourceSchema Source schema
      * @return New CloneSchema
      */
     public static CloneSchema create(
-        OptiqConnection optiqConnection,
         MutableSchema parentSchema,
         String name,
         Schema sourceSchema)
     {
         CloneSchema schema =
             new CloneSchema(
-                optiqConnection,
-                optiqConnection.getTypeFactory(),
+                parentSchema.getQueryProvider(),
+                parentSchema.getTypeFactory(),
                 parentSchema.getSubSchemaExpression(name, Object.class),
                 sourceSchema);
         parentSchema.addSchema(name, schema);
@@ -151,16 +148,9 @@ public class CloneSchema extends MapSchema {
             String name,
             Map<String, Object> operand)
         {
-            final OptiqConnection connection =
-                (OptiqConnection) parentSchema.getQueryProvider();
             JdbcSchema jdbcSchema =
-                JdbcSchema.create(
-                    connection, parentSchema, name + "$source", operand);
-            return CloneSchema.create(
-                connection,
-                parentSchema,
-                name,
-                jdbcSchema);
+                JdbcSchema.create(parentSchema, name + "$source", operand);
+            return CloneSchema.create(parentSchema, name, jdbcSchema);
         }
     }
 }

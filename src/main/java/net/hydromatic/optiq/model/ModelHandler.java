@@ -83,7 +83,7 @@ public class ModelHandler {
     public void visit(JsonMapSchema jsonSchema) {
         final MutableSchema parentSchema = currentMutableSchema("schema");
         final MapSchema schema =
-            MapSchema.create(connection, parentSchema, jsonSchema.name);
+            MapSchema.create(parentSchema, jsonSchema.name);
         schema.initialize();
         populateSchema(jsonSchema, schema);
     }
@@ -119,7 +119,6 @@ public class ModelHandler {
 
     public void visit(JsonJdbcSchema jsonSchema) {
         JdbcSchema.create(
-            connection,
             currentMutableSchema("jdbc schema"),
             dataSource(jsonSchema),
             jsonSchema.jdbcCatalog,
@@ -156,7 +155,6 @@ public class ModelHandler {
                 (TableFactory) clazz.newInstance();
             final Table table =
                 tableFactory.create(
-                    connection.getTypeFactory(),
                     schema,
                     jsonTable.name,
                     jsonTable.operand,

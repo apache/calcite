@@ -22,7 +22,6 @@ import net.hydromatic.linq4j.expressions.Expression;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
@@ -89,7 +88,6 @@ public class JdbcSchema implements Schema {
     /**
      * Creates a JdbcSchema within another schema.
      *
-     * @param optiqConnection Connection to Optiq (also a query provider)
      * @param parentSchema Parent schema
      * @param dataSource Data source
      * @param jdbcCatalog Catalog name, or null
@@ -98,7 +96,6 @@ public class JdbcSchema implements Schema {
      * @return New JdbcSchema
      */
     public static JdbcSchema create(
-        OptiqConnection optiqConnection,
         MutableSchema parentSchema,
         DataSource dataSource,
         String jdbcCatalog,
@@ -107,12 +104,12 @@ public class JdbcSchema implements Schema {
     {
         JdbcSchema schema =
             new JdbcSchema(
-                optiqConnection,
+                parentSchema.getQueryProvider(),
                 dataSource,
                 JdbcSchema.createDialect(dataSource),
                 jdbcCatalog,
                 jdbcSchema,
-                optiqConnection.getTypeFactory(),
+                parentSchema.getTypeFactory(),
                 parentSchema.getSubSchemaExpression(
                     name, Schema.class));
         parentSchema.addSchema(name, schema);
@@ -122,14 +119,12 @@ public class JdbcSchema implements Schema {
     /**
      * Creates a JdbcSchema, taking credentials from a map.
      *
-     * @param connection Optiq connection
      * @param parentSchema Parent schema
      * @param name Name
      * @param operand Map of property/value pairs
      * @return A JdbcSchema
      */
     public static JdbcSchema create(
-        OptiqConnection connection,
         MutableSchema parentSchema,
         String name,
         Map<String, Object> operand)
@@ -146,9 +141,7 @@ public class JdbcSchema implements Schema {
         }
         String jdbcCatalog = (String) operand.get("jdbcCatalog");
         String jdbcSchema = (String) operand.get("jdbcSchema");
-        return create(
-            connection, parentSchema, dataSource, jdbcCatalog, jdbcSchema,
-            name);
+        return create(parentSchema, dataSource, jdbcCatalog, jdbcSchema, name);
     }
 
     /** Returns a suitable SQL dialect for the given data source. */
@@ -361,13 +354,7 @@ public class JdbcSchema implements Schema {
             String name,
             Map<String, Object> operand)
         {
-            final OptiqConnection connection =
-                (OptiqConnection) parentSchema.getQueryProvider();
-            return JdbcSchema.create(
-                connection,
-                parentSchema,
-                name,
-                operand);
+            return JdbcSchema.create(parentSchema, name, operand);
         }
     }
 }
