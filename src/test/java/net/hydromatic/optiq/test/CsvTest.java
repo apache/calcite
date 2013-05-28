@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.test;
 
 import junit.framework.TestCase;
+import net.hydromatic.linq4j.function.Function1;
 
 import java.io.PrintStream;
 import java.sql.*;
@@ -69,14 +70,70 @@ public class CsvTest extends TestCase {
    * Reads from a table.
    */
   public void testSelect() throws SQLException {
-    checkSql("select * from EMPS", "model");
+    checkSql("model", "select * from EMPS");
   }
 
   public void testCustomTable() throws SQLException {
-    checkSql("select * from CUSTOM_TABLE.EMPS", "model-with-custom-table");
+    checkSql("model-with-custom-table", "select * from CUSTOM_TABLE.EMPS");
   }
 
-  private void checkSql(String sql, String model) throws SQLException {
+  public void testPushDownProjectDumb() throws SQLException {
+    // rule does not fire, because we're using 'dumb' tables in simple model
+    checkSql("model", "explain plan for select * from EMPS",
+        "PLAN=EnumerableCalcRel(expr#0..9=[{inputs}], proj#0..9=[{exprs}])\n"
+        + "  EnumerableTableAccessRel(table=[[SALES, EMPS]])\n"
+        + "\n");
+  }
+
+  public void testPushDownProject() throws SQLException {
+    checkSql("smart", "explain plan for select * from EMPS",
+        "PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n"
+        + "\n");
+  }
+
+  public void testPushDownProject2() throws SQLException {
+    checkSql("smart", "explain plan for select name, empno from EMPS",
+        "PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 0]])\n"
+        + "\n");
+    // make sure that it works...
+    checkSql("smart", "select name, empno from EMPS",
+        "NAME=Fred; EMPNO=100\n"
+        + "NAME=Eric; EMPNO=110\n"
+        + "NAME=John; EMPNO=110\n"
+        + "NAME=Wilma; EMPNO=120\n"
+        + "NAME=Alice; EMPNO=130\n");
+  }
+
+  private void checkSql(String model, String sql) throws SQLException {
+    checkSql(sql, model, new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          output(resultSet, System.out);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
+      }
+    });
+  }
+
+  private void checkSql(String model, String sql, final String expected)
+      throws SQLException {
+    checkSql(sql, model, new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          String actual = CsvTest.toString(resultSet);
+          assertEquals(expected, actual);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
+      }
+    });
+  }
+
+  private void checkSql(String sql, String model, Function1<ResultSet, Void> fn)
+      throws SQLException {
     Connection connection = null;
     Statement statement = null;
     try {
@@ -87,10 +144,27 @@ public class CsvTest extends TestCase {
       final ResultSet resultSet =
           statement.executeQuery(
               sql);
-      output(resultSet, System.out);
+      fn.apply(resultSet);
     } finally {
       close(connection, statement);
     }
+  }
+
+  private static String toString(ResultSet resultSet) throws SQLException {
+    StringBuilder buf = new StringBuilder();
+    while (resultSet.next()) {
+      int n = resultSet.getMetaData().getColumnCount();
+      String sep = "";
+      for (int i = 1; i <= n; i++) {
+        buf.append(sep)
+            .append(resultSet.getMetaData().getColumnLabel(i))
+            .append("=")
+            .append(resultSet.getObject(i));
+        sep = "; ";
+      }
+      buf.append("\n");
+    }
+    return buf.toString();
   }
 
   private void output(ResultSet resultSet, PrintStream out)

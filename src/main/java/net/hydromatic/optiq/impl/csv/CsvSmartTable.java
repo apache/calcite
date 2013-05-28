@@ -19,7 +19,6 @@ package net.hydromatic.optiq.impl.csv;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.reltype.RelDataType;
 
 import java.io.File;
@@ -40,11 +39,10 @@ class CsvSmartTable extends CsvTable {
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable)
   {
-    return new CsvTableScan(
-        context.getCluster(),
-        relOptTable,
-        this,
-        RelOptUtil.getFieldNameList(relOptTable.getRowType()));
+    // Request all fields.
+    final int fieldCount = relOptTable.getRowType().getFieldCount();
+    final int[] fields = CsvEnumerator.identityList(fieldCount);
+    return new CsvTableScan(context.getCluster(), relOptTable, this, fields);
   }
 }
 

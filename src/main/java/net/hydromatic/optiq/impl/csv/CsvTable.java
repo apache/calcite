@@ -38,8 +38,7 @@ import java.util.*;
 /**
  * Table based on a CSV file.
  */
-class CsvTable
-    extends AbstractQueryable<Object[]>
+public class CsvTable extends AbstractQueryable<Object[]>
     implements TranslatableTable<Object[]> {
   private final Schema schema;
   private final String tableName;
@@ -85,12 +84,10 @@ class CsvTable
   }
 
   public Expression getExpression() {
-    return Expressions.call(
-        schema.getExpression(),
+    return Expressions.convert_(Expressions.call(schema.getExpression(),
         "getTable",
-        Expressions.<Expression>list()
-            .append(Expressions.constant(tableName))
-            .append(Expressions.constant(getElementType())));
+        Expressions.<Expression>list().append(Expressions.constant(tableName)).append(
+            Expressions.constant(getElementType()))), CsvTable.class);
   }
 
   public Iterator<Object[]> iterator() {
@@ -98,20 +95,30 @@ class CsvTable
   }
 
   public Enumerator<Object[]> enumerator() {
-    return new CsvEnumerator(
-        file, fieldTypes.toArray(new CsvFieldType[fieldTypes.size()]));
+    return new CsvEnumerator(file,
+        fieldTypes.toArray(new CsvFieldType[fieldTypes.size()]));
+  }
+
+  /** Returns an enumerable over a given projection of the fields. */
+  public Enumerable<Object[]> project(final int[] fields) {
+    return new AbstractEnumerable<Object[]>() {
+      public Enumerator<Object[]> enumerator() {
+        return new CsvEnumerator(file,
+            fieldTypes.toArray(new CsvFieldType[fieldTypes.size()]), fields);
+      }
+    };
   }
 
   public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable)
   {
-      return new JavaRules.EnumerableTableAccessRel(
-          context.getCluster(),
-          context.getCluster().traitSetOf(EnumerableConvention.ARRAY),
-          relOptTable,
-          getExpression(),
-          getElementType());
+    return new JavaRules.EnumerableTableAccessRel(
+        context.getCluster(),
+        context.getCluster().traitSetOf(EnumerableConvention.ARRAY),
+        relOptTable,
+        getExpression(),
+        getElementType());
   }
 
   /** Deduces the names and types of a table's columns by reading the first line

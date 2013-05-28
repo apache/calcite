@@ -26,7 +26,6 @@ import org.eigenbase.rel.TableAccessRelBase;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.util.Pair;
 
 import java.util.*;
 
@@ -37,14 +36,14 @@ import java.util.*;
  */
 public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
   final CsvTable csvTable;
-  final List<String> fieldList;
+  final int[] fields;
   final PhysType physType;
 
   protected CsvTableScan(RelOptCluster cluster, RelOptTable table,
-      CsvTable csvTable, List<String> fieldList) {
+      CsvTable csvTable, int[] fields) {
     super(cluster, cluster.traitSetOf(EnumerableConvention.ARRAY), table);
     this.csvTable = csvTable;
-    this.fieldList = fieldList;
+    this.fields = fields;
     this.physType =
         PhysTypeImpl.of(
             (JavaTypeFactory) cluster.getTypeFactory(),
@@ -61,28 +60,34 @@ public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
   @Override
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
-    return new CsvTableScan(getCluster(), table, csvTable, fieldList);
+    return new CsvTableScan(getCluster(), table, csvTable, fields);
   }
 
   @Override
-  public void explain(RelOptPlanWriter pw) {
-    pw.explain(this, Collections.singletonList(
-        Pair.<String, Object>of("table",
-            Arrays.asList(table.getQualifiedName()))));
+  public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    return super.explainTerms(pw)
+        .item("fields", Primitive.asList(fields));
   }
 
   @Override
   public RelDataType deriveRowType() {
     final RelDataTypeFactory.FieldInfoBuilder builder =
         new RelDataTypeFactory.FieldInfoBuilder();
-    for (String field : fieldList) {
-      builder.add(table.getRowType().getField(field));
+    for (int field : fields) {
+      builder.add(table.getRowType().getFieldList().get(field));
     }
     return getCluster().getTypeFactory().createStructType(builder);
   }
 
+  @Override
+  public void register(RelOptPlanner planner) {
+    planner.addRule(CsvPushProjectOntoTableRule.INSTANCE);
+  }
+
   public BlockExpression implement(EnumerableRelImplementor implementor) {
-    return Blocks.toBlock(csvTable.getExpression());
+    return Blocks.toBlock(
+        Expressions.call(csvTable.getExpression(), "project",
+            Expressions.constant(fields)));
   }
 }
 

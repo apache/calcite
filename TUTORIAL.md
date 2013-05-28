@@ -183,7 +183,7 @@ href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/Table.html">T
 <a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvTable.java">CsvTable</a>.
 
 Here is the relevant code from <code>CsvSchema</code>, overriding the
-<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/java/MapSchema.html#initialTables()">initialTables</a></code>
+<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/java/MapSchema.html#initialTables()">initialTables()</a></code>
 method in the <code>MapSchema</code> base class.
 
 ```java
@@ -371,6 +371,157 @@ Custom tables require more work for the author of the model (the author
 needs to specify each table and its file explicitly) but also give the author
 more control (say, providing different parameters for each table).
 
+## Optimizing queries using planner rules
+
+The table implementations we have seen so far are fine as long as the tables
+don't contain a great deal of data. But if your customer table has, say, a
+hundred columns and a million rows, you would rather that the system did not
+retrieve all of the data for every query. You would like Optiq to negotiate
+with the adapter and find a more efficient way of accessing the data.
+
+This negotiation is a simple form of query optimization. Optiq supports query
+optimization by adding <i>planner rules</i>. Planner rules operate by
+looking for patterns in the query parse tree (for instance a project on top
+of a certain kind of table), and
+
+Planner rules are also extensible, like schemas and tables. So, if you have a
+data store that you want to access via SQL, you first define a custom table or
+schema, and then you define some rules to make the access efficient.
+
+To see this in action, let's use a planner rule to access
+a subset of columns from a CSV file. Let's run the same query against two very
+similar schemas:
+
+```sql
+sqlline> !connect jdbc:optiq:model=target/test-classes/model.json admin admin
+sqlline> explain plan for select name from emps;
++-----------------------------------------------------+
+| PLAN                                                |
++-----------------------------------------------------+
+| EnumerableCalcRel(expr#0..9=[{inputs}], NAME=[$t1]) |
+|   EnumerableTableAccessRel(table=[[SALES, EMPS]])   |
++-----------------------------------------------------+
+sqlline> !connect jdbc:optiq:model=target/test-classes/smart.json admin admin
+sqlline> explain plan for select name from emps;
++-----------------------------------------------------+
+| PLAN                                                |
++-----------------------------------------------------+
+| EnumerableCalcRel(expr#0..9=[{inputs}], NAME=[$t1]) |
+|   CsvTableScan(table=[[SALES, EMPS]])               |
++-----------------------------------------------------+
+```
+
+What causes the difference in plan? Let's follow the trail of evidence. In the
+<code>smart.json</code> model file, there is just one extra line:
+
+```json
+smart: true
+```
+
+This causes <code>CsvSchema</code> to be created with <code>smart = true</code>,
+and its <code>createTable</code> method creates instances of
+<a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvSmartTable.java">CsvSmartTable</a>
+rather than a <code>CsvTable</code>.
+
+<code>CsvSmartTable</code> overrides the
+<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/TranslatableTable#toRel()">TranslatableTable.toRel()</a></code>
+method to create
+<a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvTableScan.java">CsvTableScan</a>.
+Table scans are the leaves of a query operator tree.
+The usual implementation is
+<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/java/JavaRules.EnumerableTableAccessRel.html">EnumerableTableAccessRel</a></code>,
+but we have created a distinctive sub-type that will cause rules to fire.
+
+Here is the rule in its entirety:
+
+```java
+public class CsvPushProjectOntoTableRule extends RelOptRule {
+  public static final CsvPushProjectOntoTableRule INSTANCE =
+    new CsvPushProjectOntoTableRule();
+
+  private CsvPushProjectOntoTableRule() {
+    super(
+        new RelOptRuleOperand(
+            ProjectRel.class,
+            new RelOptRuleOperand(
+                CsvTableScan.class)),
+        "CsvPushProjectOntoTableRule");
+  }
+
+  @Override
+  public void onMatch(RelOptRuleCall call) {
+    final ProjectRel project = (ProjectRel) call.getRels()[0];
+    final CsvTableScan scan = (CsvTableScan) call.getRels()[1];
+    int[] fields = getProjectFields(project.getProjectExps());
+    if (fields == null) {
+      // Project contains expressions more complex than just field references.
+      return;
+    }
+    call.transformTo(
+        new CsvTableScan(
+            scan.getCluster(),
+            scan.getTable(),
+            scan.csvTable,
+            fields));
+  }
+
+  private int[] getProjectFields(RexNode[] exps) {
+    final int[] fields = new int[exps.length];
+    for (int i = 0; i < exps.length; i++) {
+      final RexNode exp = exps[i];
+      if (exp instanceof RexInputRef) {
+        fields[i] = ((RexInputRef) exp).getIndex();
+      } else {
+        return null; // not a simple projection
+      }
+    }
+    return fields;
+  }
+}
+```
+
+The constructor declares the pattern of relational expressions that will cause
+the rule to file.
+
+The <code>onMatch</code> method generates a new relational expression and calls
+<code><a href="http://www.hydromatic.net/optiq/apidocs/org/eigenbase/relopt/RelOptRuleCall.html#transformTo(org.eigenbase.rel.RelNode)">RelOptRuleCall.transformTo()</a></code>
+to indicate that the rule has fired successfully.
+
+## The query optimization process
+
+There's a lot to say about how clever Optiq's query planner is, but we won't say
+it here. The cleverness is designed to take the burden off you, the writer of
+planner rules.
+
+First, Optiq doesn't fire rules in a prescribed order. The query optimization process
+follows many branches of a branching tree, just like a chess playing program
+examines many possible sequences of moves. If rules A and B both match a given
+section of the query operator tree, then Optiq can fire both.
+
+Second, Optiq uses cost in choosing between plans, but the cost model doesn't
+prevent rules from firing which may seem to be more expensive in the short term.
+
+Many optimizers have a linear optimization scheme. Faced with a choice between
+rule A and rule B, as above, such an optimizer needs to choose immediately. It
+might have a policy such as "apply rule A to the whole tree, then apply rule B
+to the whole tree", or apply a cost-based policy, applying the rule that
+produces the cheaper result.
+
+Optiq doesn't require such compromises.
+This makes it simple to combine various sets of rules.
+If, say you want to combine rules to recognize materialized views with rules to
+read from CSV and JDBC source systems, you just give Optiq the set of all rules
+and tell it to go at it.
+
+Optiq does use a cost model. The cost model decides which plan to ultimately use,
+and sometimes to prune the search tree to prevent the search space from
+exploding, but it never forces you to choose between rule A and rule B. This is
+important, because it avoids falling into local minima in the search space that
+are not actually optimal.
+
+Also (you guessed it) the cost model is pluggable, as are the table and query
+operator statistics it is based upon. But that can be a subject for later.
+
 ## JDBC adapter
 
 The JDBC adapter maps a schema in a JDBC data source as an Optiq schema.
@@ -404,7 +555,7 @@ href="http://mondrian.pentaho.com/documentation/installation.php#2_Set_up_test_d
 installation instructions</a>.)
 
 <b>Current limitations</b>: The JDBC adapter currently only pushes
-down table scan operations; all other processing (filting, joins,
+down table scan operations; all other processing (filtering, joins,
 aggregations and so forth) occurs within Optiq. Our goal is to push
 down as much processing as possible to the source system, translating
 syntax, data types and built-in functions as we go. If an Optiq query
