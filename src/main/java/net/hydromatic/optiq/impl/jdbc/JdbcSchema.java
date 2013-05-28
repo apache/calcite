@@ -119,9 +119,45 @@ public class JdbcSchema implements Schema {
         return schema;
     }
 
+    /**
+     * Creates a JdbcSchema, taking credentials from a map.
+     *
+     * @param connection Optiq connection
+     * @param parentSchema Parent schema
+     * @param name Name
+     * @param operand Map of property/value pairs
+     * @return A JdbcSchema
+     */
+    public static JdbcSchema create(
+        OptiqConnection connection,
+        MutableSchema parentSchema,
+        String name,
+        Map<String, Object> operand)
+    {
+        DataSource dataSource = null;
+        try {
+            final String dataSource1 = (String) operand.get("dataSource");
+            if (dataSource1 != null) {
+                final Class<?> clazz = Class.forName((String) dataSource1);
+                dataSource = (DataSource) clazz.newInstance();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error while reading dataSource", e);
+        }
+        String jdbcCatalog = (String) operand.get("jdbcCatalog");
+        String jdbcSchema = (String) operand.get("jdbcSchema");
+        return create(
+            connection, parentSchema, dataSource, jdbcCatalog, jdbcSchema,
+            name);
+    }
+
     /** Returns a suitable SQL dialect for the given data source. */
     public static SqlDialect createDialect(DataSource dataSource) {
         return JdbcUtils.DialectPool.INSTANCE.get(dataSource);
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+        return typeFactory;
     }
 
     public Expression getExpression() {
@@ -292,6 +328,46 @@ public class JdbcSchema implements Schema {
                 table = JdbcSchema.this.getTable(name, elementType);
             }
             return table;
+        }
+    }
+
+    /** Schema factory that creates a
+     * {@link net.hydromatic.optiq.impl.clone.CloneSchema}.
+     * This allows you to create a clone schema inside a model.json file.
+     *
+     * <pre>{@code
+     * {
+     *   version: '1.0',
+     *   defaultSchema: 'FOODMART_CLONE',
+     *   schemas: [
+     *     {
+     *       name: 'FOODMART_CLONE',
+     *       type: 'custom',
+     *       factory: 'net.hydromatic.optiq.impl.clone.CloneSchema.Factory',
+     *       operand: {
+     *         driver: 'com.mysql.jdbc.Driver',
+     *         url: 'jdbc:mysql://localhost/foodmart',
+     *         user: 'foodmart',
+     *         password: 'foodmart'
+     *       }
+     *     }
+     *   ]
+     * }
+     * }</pre>
+     */
+    public static class Factory implements SchemaFactory {
+        public Schema create(
+            MutableSchema parentSchema,
+            String name,
+            Map<String, Object> operand)
+        {
+            final OptiqConnection connection =
+                (OptiqConnection) parentSchema.getQueryProvider();
+            return JdbcSchema.create(
+                connection,
+                parentSchema,
+                name,
+                operand);
         }
     }
 }

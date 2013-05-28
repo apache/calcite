@@ -25,6 +25,7 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.*;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
+import net.hydromatic.optiq.impl.generate.RangeTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
@@ -350,7 +351,7 @@ public class JdbcTest extends TestCase {
                 + "the_year=1998; C=365; M=April\n");
     }
 
-    public void testCloneGroupBy2() {
+    public void _testCloneGroupBy2() {
         OptiqAssert.assertThat()
             .with(OptiqAssert.Config.FOODMART_CLONE)
             .query(
@@ -870,20 +871,13 @@ public class JdbcTest extends TestCase {
     public void testModel() {
         OptiqAssert.assertThat()
             .withModel(
-                "{\n"
-                + "  version: '1.0',\n"
-                + "   schemas: [\n"
-                + "     {\n"
-                + "       type: 'jdbc',\n"
-                + "       name: 'foodmart',\n"
+                "{\n" + "  version: '1.0',\n" + "   schemas: [\n" + "     {\n"
+                + "       type: 'jdbc',\n" + "       name: 'foodmart',\n"
                 + "       jdbcUser: 'foodmart',\n"
                 + "       jdbcPassword: 'foodmart',\n"
                 + "       jdbcUrl: 'jdbc:mysql://localhost',\n"
                 + "       jdbcCatalog: 'foodmart',\n"
-                + "       jdbcSchema: ''\n"
-                + "     }\n"
-                + "   ]\n"
-                + "}")
+                + "       jdbcSchema: ''\n" + "     }\n" + "   ]\n" + "}")
             .query("select count(*) as c from \"foodmart\".\"time_by_day\"")
             .returns("C=730\n");
     }
@@ -914,6 +908,36 @@ public class JdbcTest extends TestCase {
             .returns(
                 "empid=100; deptno=10; name=Bill; commission=1000\n"
                 + "empid=150; deptno=10; name=Sebastian; commission=null\n");
+    }
+
+    /** Tests a JDBC connection that provides a model that contains custom
+     * tables. */
+    public void testModelCustomTable2() {
+        OptiqAssert.assertThat()
+            .withModel(
+                "{\n"
+                + "  version: '1.0',\n"
+                + "   schemas: [\n"
+                + "     {\n"
+                + "       name: 'MATH',\n"
+                + "       tables: [\n"
+                + "         {\n"
+                + "           name: 'INTEGERS',\n"
+                + "           type: 'custom',\n"
+                + "           factory: '"
+                + RangeTable.Factory.class.getName() + "',\n"
+                + "           operand: {'column': 'N', 'start': 3, 'end': 7 }\n"
+                + "         }\n"
+                + "       ]\n"
+                + "     }\n"
+                + "   ]\n"
+                + "}")
+            .query("select * from math.integers")
+            .returns(
+                "N=3\n"
+                + "N=4\n"
+                + "N=5\n"
+                + "N=6\n");
     }
 
     /** Tests a JDBC connection that provides a model that contains a custom

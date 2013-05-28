@@ -23,12 +23,19 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.*;
+import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
+
+import java.util.Map;
 
 /**
  * Schema that contains in-memory copies of tables from a JDBC schema.
  */
 public class CloneSchema extends MapSchema {
+    // TODO: implement 'driver' property
+    // TODO: implement 'source' property
+    // TODO: test Factory
+
     private final Schema sourceSchema;
 
     /**
@@ -112,6 +119,49 @@ public class CloneSchema extends MapSchema {
                 sourceSchema);
         parentSchema.addSchema(name, schema);
         return schema;
+    }
+
+    /** Schema factory that creates a
+     * {@link net.hydromatic.optiq.impl.clone.CloneSchema}.
+     * This allows you to create a clone schema inside a model.json file.
+     *
+     * <pre>{@code
+     * {
+     *   version: '1.0',
+     *   defaultSchema: 'FOODMART_CLONE',
+     *   schemas: [
+     *     {
+     *       name: 'FOODMART_CLONE',
+     *       type: 'custom',
+     *       factory: 'net.hydromatic.optiq.impl.clone.CloneSchema.Factory',
+     *       operand: {
+     *         driver: 'com.mysql.jdbc.Driver',
+     *         url: 'jdbc:mysql://localhost/foodmart',
+     *         user: 'foodmart',
+     *         password: 'foodmart'
+     *       }
+     *     }
+     *   ]
+     * }
+     * }</pre>
+     */
+    public static class Factory implements SchemaFactory {
+        public Schema create(
+            MutableSchema parentSchema,
+            String name,
+            Map<String, Object> operand)
+        {
+            final OptiqConnection connection =
+                (OptiqConnection) parentSchema.getQueryProvider();
+            JdbcSchema jdbcSchema =
+                JdbcSchema.create(
+                    connection, parentSchema, name + "$source", operand);
+            return CloneSchema.create(
+                connection,
+                parentSchema,
+                name,
+                jdbcSchema);
+        }
     }
 }
 

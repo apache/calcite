@@ -26,6 +26,52 @@ import java.util.Map;
 /**
  * Factory for {@link Table} objects.
  *
+ * <p>A table factory allows you to include custom tables in a model file.
+ * For example, here is a model that contains a custom table that generates
+ * a range of integers.</p>
+ *
+ * <pre>{@code
+ * {
+ *   version: '1.0',
+ *   defaultSchema: 'MATH',
+ *   schemas: [
+ *     {
+ *       name: 'MATH',
+ *       tables: [
+ *         {
+ *           name: 'INTEGERS',
+ *           type: 'custom',
+ *           factory: 'com.acme.IntegerTable',
+ *           operand: {
+ *             start: 3,
+ *             end: 7,
+ *             column: 'N'
+ *           }
+ *         }
+ *       ]
+ *     }
+ *   ]
+ * }
+ * }
+ * </pre>
+ *
+ * <p>Given that schema, the query</p>
+ *
+ * <pre>{@code SELECT * FROM math.integers}</pre>
+ *
+ * <p>returns</p>
+ *
+ * <pre>{@code
+ * +---+
+ * | N |
+ * +---+
+ * | 3 |
+ * | 4 |
+ * | 5 |
+ * | 6 |
+ * +---+
+ * }</pre>
+ *
  * <p>A class that implements TableFactory specified in a schema must have a
  * public default constructor.</p>
  */
