@@ -17,13 +17,11 @@
 */
 package net.hydromatic.optiq.impl.csv;
 
-import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
+import net.hydromatic.optiq.impl.java.MapSchema;
 
 import org.eigenbase.reltype.RelDataType;
 
@@ -34,13 +32,9 @@ import java.util.*;
  * Schema mapped onto a directory of CSV files. Each table in the schema
  * is a CSV file in that directory.
  */
-public class CsvSchema implements Schema {
-  private final Schema parentSchema;
+public class CsvSchema extends MapSchema {
   final File directoryFile;
-  private final Expression expression;
   private final boolean smart;
-  final JavaTypeFactory typeFactory;
-  private Map<String, TableInSchema> map;
 
   /**
    * Creates a CSV schema.
@@ -58,83 +52,39 @@ public class CsvSchema implements Schema {
       Expression expression,
       boolean smart)
   {
-    this.parentSchema = parentSchema;
+    super(parentSchema, expression);
     this.directoryFile = directoryFile;
-    this.expression = expression;
     this.smart = smart;
-    this.typeFactory = ((OptiqConnection) getQueryProvider()).getTypeFactory();
   }
 
-  public Expression getExpression() {
-    return expression;
-  }
-
-  public List<TableFunction> getTableFunctions(String name) {
-    return Collections.emptyList();
-  }
-
-  public QueryProvider getQueryProvider() {
-    return parentSchema.getQueryProvider();
-  }
-
-  public Collection<TableInSchema> getTables() {
-    return computeMap().values();
-  }
-
-  public <T> Table<T> getTable(String name, Class<T> elementType) {
-    final TableInSchema tableInSchema = computeMap().get(name);
-    //noinspection unchecked
-    return tableInSchema == null
-        ? null
-        : (Table) tableInSchema.getTable(elementType);
-  }
-
-  public Map<String, List<TableFunction>> getTableFunctions() {
-    // this kind of schema does not have table functions
-    return Collections.emptyMap();
-  }
-
-  public Schema getSubSchema(String name) {
-    // this kind of schema does not have sub-schemas
-    return null;
-  }
-
-  public Collection<String> getSubSchemaNames() {
-    // this kind of schema does not have sub-schemas
-    return Collections.emptyList();
-  }
-
-  /** Returns the map of tables by name, populating the map on first use. */
-  private synchronized Map<String, TableInSchema> computeMap() {
-    if (map == null) {
-      map = new HashMap<String, TableInSchema>();
-      File[] files = directoryFile.listFiles(
-          new FilenameFilter() {
-            public boolean accept(File dir, String name) {
-              return name.endsWith(".csv");
-            }
-          });
-      for (File file : files) {
-        String tableName = file.getName();
-        if (tableName.endsWith(".csv")) {
-          tableName = tableName.substring(
-              0, tableName.length() - ".csv".length());
-        }
-        final List<CsvFieldType> fieldTypes = new ArrayList<CsvFieldType>();
-        final RelDataType rowType =
-            CsvTable.deduceRowType(typeFactory, file, fieldTypes);
-        final CsvTable table;
-        if (smart) {
-          table = new CsvSmartTable(this, tableName, file, rowType, fieldTypes);
-        } else {
-          table = new CsvTable(this, tableName, file, rowType, fieldTypes);
-        }
-        map.put(
-            tableName,
-            new TableInSchemaImpl(this, tableName, TableType.TABLE, table));
+  @Override
+  protected Collection<TableInSchema> initialTables() {
+    final List<TableInSchema> list = new ArrayList<TableInSchema>();
+    File[] files = directoryFile.listFiles(
+        new FilenameFilter() {
+          public boolean accept(File dir, String name) {
+            return name.endsWith(".csv");
+          }
+        });
+    for (File file : files) {
+      String tableName = file.getName();
+      if (tableName.endsWith(".csv")) {
+        tableName = tableName.substring(
+            0, tableName.length() - ".csv".length());
       }
+      final List<CsvFieldType> fieldTypes = new ArrayList<CsvFieldType>();
+      final RelDataType rowType =
+          CsvTable.deduceRowType(typeFactory, file, fieldTypes);
+      final CsvTable table;
+      if (smart) {
+        table = new CsvSmartTable(this, tableName, file, rowType, fieldTypes);
+      } else {
+        table = new CsvTable(this, tableName, file, rowType, fieldTypes);
+      }
+      list.add(
+          new TableInSchemaImpl(this, tableName, TableType.TABLE, table));
     }
-    return map;
+    return list;
   }
 }
 

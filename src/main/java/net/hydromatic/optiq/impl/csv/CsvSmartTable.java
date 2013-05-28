@@ -23,7 +23,6 @@ import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.reltype.RelDataType;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,16 +34,6 @@ class CsvSmartTable extends CsvTable {
   CsvSmartTable(CsvSchema schema, String tableName, File file,
       RelDataType rowType, List<CsvFieldType> fieldTypes) {
     super(schema, tableName, file, rowType, fieldTypes);
-  }
-
-  /** Creates a table based on a CSV file, deducing its column types by reading
-   * the first line of the file. */
-  public static CsvSmartTable create(CsvSchema schema, File file,
-      String tableName) {
-    final List<CsvFieldType> fieldTypes = new ArrayList<CsvFieldType>();
-    final RelDataType rowType =
-        deduceRowType(schema.typeFactory, file, fieldTypes);
-    return new CsvSmartTable(schema, tableName, file, rowType, fieldTypes);
   }
 
   public RelNode toRel(

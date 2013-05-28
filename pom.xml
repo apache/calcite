@@ -82,7 +82,7 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq</artifactId>
-      <version>0.3.7</version>
+      <version>TRUNK-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
