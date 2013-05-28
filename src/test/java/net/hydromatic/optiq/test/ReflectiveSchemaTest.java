@@ -152,11 +152,7 @@ public class ReflectiveSchemaTest extends TestCase {
             "StringUnion",
             Schemas.methodMember(
                 JdbcTest.STRING_UNION_METHOD, typeFactory));
-        ReflectiveSchema.create(
-            optiqConnection,
-            rootSchema,
-            "hr",
-            new JdbcTest.HrSchema());
+        ReflectiveSchema.create(rootSchema, "hr", new JdbcTest.HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
             + "from table(s.StringUnion(\n"
@@ -184,8 +180,7 @@ public class ReflectiveSchemaTest extends TestCase {
                 "emps_view",
                 "select * from \"hr\".\"emps\" where \"deptno\" = 10",
                 Collections.<String>emptyList()));
-        ReflectiveSchema.create(
-            optiqConnection, rootSchema, "hr", new JdbcTest.HrSchema());
+        ReflectiveSchema.create(rootSchema, "hr", new JdbcTest.HrSchema());
         ResultSet resultSet = connection.createStatement().executeQuery(
             "select *\n"
             + "from \"s\".\"emps_view\"\n"

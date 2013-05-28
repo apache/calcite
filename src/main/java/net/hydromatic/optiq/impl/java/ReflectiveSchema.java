@@ -43,16 +43,18 @@ public class ReflectiveSchema
     /**
      * Creates a ReflectiveSchema.
      *
-     * @param optiqConnection Connection to Optiq (also a query provider)
+     * @param parentSchema Parent schema
      * @param target Object whose fields will be sub-objects of the schema
      * @param expression Expression for schema
      */
     public ReflectiveSchema(
-        OptiqConnection optiqConnection,
+        Schema parentSchema,
         Object target,
         Expression expression)
     {
-        super(optiqConnection, optiqConnection.getTypeFactory(), expression);
+        super(
+            parentSchema.getQueryProvider(),
+            parentSchema.getTypeFactory(), expression);
         this.clazz = target.getClass();
         this.target = target;
         for (Field field : clazz.getFields()) {
@@ -82,21 +84,19 @@ public class ReflectiveSchema
     /**
      * Creates a ReflectiveSchema within another schema.
      *
-     * @param optiqConnection Connection to Optiq (also a query provider)
      * @param parentSchema Parent schema
      * @param name Name of new schema
      * @param target Object whose fields become the tables of the schema
      * @return New ReflectiveSchema
      */
     public static ReflectiveSchema create(
-        OptiqConnection optiqConnection,
         MutableSchema parentSchema,
         String name,
         Object target)
     {
         ReflectiveSchema schema =
             new ReflectiveSchema(
-                optiqConnection,
+                parentSchema,
                 target,
                 parentSchema.getSubSchemaExpression(
                     name, ReflectiveSchema.class));

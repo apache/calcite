@@ -229,8 +229,7 @@ public class OptiqAssert {
                             connection.unwrap(OptiqConnection.class);
                         MutableSchema rootSchema =
                             optiqConnection.getRootSchema();
-                        ReflectiveSchema.create(
-                            optiqConnection, rootSchema, name, schema);
+                        ReflectiveSchema.create(rootSchema, name, schema);
                         optiqConnection.setSchema(name);
                         return optiqConnection;
                     }

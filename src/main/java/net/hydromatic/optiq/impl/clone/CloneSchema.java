@@ -17,7 +17,6 @@
 */
 package net.hydromatic.optiq.impl.clone;
 
-import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
@@ -40,18 +39,16 @@ public class CloneSchema extends MapSchema {
     /**
      * Creates a CloneSchema.
      *
-     * @param queryProvider Query provider
-     * @param typeFactory Type factory
+     * @param parentSchema Parent schema
      * @param expression Expression for schema
      * @param sourceSchema JDBC data source
      */
     public CloneSchema(
-        QueryProvider queryProvider,
-        JavaTypeFactory typeFactory,
+        Schema parentSchema,
         Expression expression,
         Schema sourceSchema)
     {
-        super(queryProvider, typeFactory, expression);
+        super(parentSchema, expression);
         this.sourceSchema = sourceSchema;
     }
 
@@ -110,8 +107,7 @@ public class CloneSchema extends MapSchema {
     {
         CloneSchema schema =
             new CloneSchema(
-                parentSchema.getQueryProvider(),
-                parentSchema.getTypeFactory(),
+                parentSchema,
                 parentSchema.getSubSchemaExpression(name, Object.class),
                 sourceSchema);
         parentSchema.addSchema(name, schema);

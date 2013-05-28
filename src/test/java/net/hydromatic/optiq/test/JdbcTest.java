@@ -158,12 +158,11 @@ public class JdbcTest extends TestCase {
         MutableSchema rootSchema = optiqConnection.getRootSchema();
         final List<String> schemaList = Arrays.asList(schema);
         if (schemaList.contains("hr")) {
-            ReflectiveSchema.create(
-                optiqConnection, rootSchema, "hr", new HrSchema());
+            ReflectiveSchema.create(rootSchema, "hr", new HrSchema());
         }
         if (schemaList.contains("foodmart")) {
             ReflectiveSchema.create(
-                optiqConnection, rootSchema, "foodmart", new FoodmartSchema());
+                rootSchema, "foodmart", new FoodmartSchema());
         }
         if (schemaList.contains("metadata")) {
             // always present
@@ -222,8 +221,7 @@ public class JdbcTest extends TestCase {
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
         ReflectiveSchema.create(
-            optiqConnection, optiqConnection.getRootSchema(),
-            "hr", new HrSchema());
+            optiqConnection.getRootSchema(), "hr", new HrSchema());
         Statement statement = optiqConnection.createStatement();
         ResultSet resultSet = statement.executeQuery(
             "select d.\"deptno\", min(e.\"empid\")\n"
@@ -1061,7 +1059,7 @@ public class JdbcTest extends TestCase {
                                 .connect("jdbc:optiq:", new Properties());
                         MutableSchema rootSchema = connection.getRootSchema();
                         ReflectiveSchema.create(
-                            connection, rootSchema, "hr", new HrSchema());
+                            rootSchema, "hr", new HrSchema());
                         connection.setSchema("hr");
                         return connection;
                     }
@@ -1106,9 +1104,8 @@ public class JdbcTest extends TestCase {
         Connection connection = DriverManager.getConnection("jdbc:optiq:");
         OptiqConnection optiqConnection =
             connection.unwrap(OptiqConnection.class);
-        ReflectiveSchema.create(
-            optiqConnection, optiqConnection.getRootSchema(), "TEST",
-            new MySchema());
+        final MutableSchema rootSchema = optiqConnection.getRootSchema();
+        ReflectiveSchema.create(rootSchema, "TEST", new MySchema());
         Statement statement = optiqConnection.createStatement();
         ResultSet resultSet =
             statement.executeQuery("SELECT \"myvalue\" from TEST.\"mytable2\"");
@@ -1310,11 +1307,8 @@ public class JdbcTest extends TestCase {
             String name,
             Map<String, Object> operand)
         {
-            final OptiqConnection connection =
-                (OptiqConnection) parentSchema.getQueryProvider();
             final ReflectiveSchema schema =
-                ReflectiveSchema.create(
-                    connection, parentSchema, name, new HrSchema());
+                ReflectiveSchema.create(parentSchema, name, new HrSchema());
 
             // Mine the EMPS table and add it under another name e.g. ELVIS
             final Table table = schema.getTable("emps", Object.class);

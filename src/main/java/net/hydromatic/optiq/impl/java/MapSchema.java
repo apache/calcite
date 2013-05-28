@@ -98,8 +98,7 @@ public class MapSchema implements MutableSchema {
     {
         MapSchema schema =
             new MapSchema(
-                parentSchema.getQueryProvider(),
-                parentSchema.getTypeFactory(),
+                parentSchema,
                 parentSchema.getSubSchemaExpression(name, Object.class));
         parentSchema.addSchema(name, schema);
         return schema;
