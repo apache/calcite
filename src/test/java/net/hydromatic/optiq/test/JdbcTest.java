@@ -64,6 +64,26 @@ public class JdbcTest extends TestCase {
         Types.lookupMethod(
             JdbcTest.class, "stringUnion", Queryable.class, Queryable.class);
 
+    public static final String FOODMART_SCHEMA =
+        "     {\n"
+        + "       type: 'jdbc',\n"
+        + "       name: 'foodmart',\n"
+        + "       jdbcUser: 'foodmart',\n"
+        + "       jdbcPassword: 'foodmart',\n"
+        + "       jdbcUrl: 'jdbc:mysql://localhost',\n"
+        + "       jdbcCatalog: 'foodmart',\n"
+        + "       jdbcSchema: ''\n"
+        + "     }\n";
+
+    public static final String FOODMART_MODEL =
+        "{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'foodmart',\n"
+        + "   schemas: [\n"
+        + FOODMART_SCHEMA
+        + "   ]\n"
+        + "}";
+
     static String toString(ResultSet resultSet) throws SQLException {
         StringBuilder buf = new StringBuilder();
         while (resultSet.next()) {
@@ -251,7 +271,7 @@ public class JdbcTest extends TestCase {
         final int driverMajorVersion = metaData.getDriverMajorVersion();
         final int driverMinorVersion = metaData.getDriverMinorVersion();
         assertEquals(0, driverMajorVersion);
-        assertEquals(3, driverMinorVersion);
+        assertEquals(4, driverMinorVersion);
 
         assertEquals("Optiq", metaData.getDatabaseProductName());
         final String databaseProductVersion =
@@ -261,7 +281,9 @@ public class JdbcTest extends TestCase {
         final int databaseMinorVersion = metaData.getDatabaseMinorVersion();
         assertEquals(driverMinorVersion, databaseMinorVersion);
 
-        // Check how version is composed of major and minor version.
+        // Check how version is composed of major and minor version. Note that
+        // version is stored in pom.xml; major and minor version are
+        // stored in net-hydromatic-optiq-jdbc.properties.
         if (!driverVersion.endsWith("-SNAPSHOT")) {
             assertTrue(driverVersion.startsWith("0."));
             String[] split = driverVersion.split("\\.");
@@ -865,14 +887,7 @@ public class JdbcTest extends TestCase {
      * a JDBC database). */
     public void testModel() {
         OptiqAssert.assertThat()
-            .withModel(
-                "{\n" + "  version: '1.0',\n" + "   schemas: [\n" + "     {\n"
-                + "       type: 'jdbc',\n" + "       name: 'foodmart',\n"
-                + "       jdbcUser: 'foodmart',\n"
-                + "       jdbcPassword: 'foodmart',\n"
-                + "       jdbcUrl: 'jdbc:mysql://localhost',\n"
-                + "       jdbcCatalog: 'foodmart',\n"
-                + "       jdbcSchema: ''\n" + "     }\n" + "   ]\n" + "}")
+            .withModel(FOODMART_MODEL)
             .query("select count(*) as c from \"foodmart\".\"time_by_day\"")
             .returns("C=730\n");
     }
