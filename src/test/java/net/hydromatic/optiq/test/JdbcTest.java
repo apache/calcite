@@ -1015,8 +1015,8 @@ public class JdbcTest extends TestCase {
     }
 
     /** Tests a JDBC connection that provides a model that contains a view. */
-    public void testModelView() {
-        OptiqAssert.assertThat()
+    public void testModelView() throws Exception {
+        final OptiqAssert.AssertThat with = OptiqAssert.assertThat()
             .withModel(
                 "{\n"
                 + "  version: '1.0',\n"
@@ -1039,11 +1039,42 @@ public class JdbcTest extends TestCase {
                 + "       ]\n"
                 + "     }\n"
                 + "   ]\n"
-                + "}")
-            .query("select * from \"adhoc\".V order by \"name\" desc")
+                + "}");
+
+        with.query("select * from \"adhoc\".V order by \"name\" desc")
             .returns(
                 "empid=150; deptno=10; name=Sebastian; commission=null\n"
                 + "empid=100; deptno=10; name=Bill; commission=1000\n");
+
+        // Make sure that views appear in metadata.
+        with.doWithConnection(
+            new Function1<OptiqConnection, Void>() {
+                public Void apply(OptiqConnection a0) {
+                    try {
+                        final DatabaseMetaData metaData = a0.getMetaData();
+
+                        // all table types
+                        assertEquals(
+                            "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=EMPLOYEES; TABLE_TYPE=TABLE; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n"
+                            + "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=V; TABLE_TYPE=VIEW; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n",
+                            JdbcTest.toString(
+                                metaData.getTables(null, "adhoc", null, null)));
+
+                        // views only
+                        assertEquals(
+                            "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=V; TABLE_TYPE=VIEW; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n",
+                            JdbcTest.toString(
+                                metaData.getTables(
+                                    null, "adhoc", null,
+                                    new String[] {
+                                        Schema.TableType.VIEW.name()})));
+                        return null;
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        );
     }
 
     /** Tests saving query results into temporary tables, per

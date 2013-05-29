@@ -28,6 +28,7 @@ import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.runtime.*;
 
 import org.eigenbase.reltype.*;
+import org.eigenbase.util.Pair;
 
 import java.lang.reflect.Field;
 import java.sql.*;
@@ -45,14 +46,26 @@ public class Meta {
         this.connection = connection;
     }
 
-    static <T extends Named> Predicate1<T> matcher(
-        final String pattern)
-    {
+    static <T extends Named> Predicate1<T> namedMatcher(final String pattern) {
         return new Predicate1<T>() {
             public boolean apply(T v1) {
+                return matches(v1.getName(), pattern);
+            }
+        };
+    }
+
+    static Predicate1<String> matcher(final String pattern) {
+        return new Predicate1<String>() {
+            public boolean apply(String v1) {
                 return matches(v1, pattern);
             }
         };
+    }
+
+    public static boolean matches(String element, String pattern) {
+        return pattern == null
+               || pattern.equals("%")
+               || element.equals(pattern); // TODO: better wildcard
     }
 
     /** Creates the data dictionary, also called the information schema. It is a
@@ -144,7 +157,7 @@ public class Meta {
     ResultSet getTables(
         String catalog,
         final String schemaPattern,
-        String tableNamePattern,
+        final String tableNamePattern,
         String[] types) throws SQLException
     {
         final Predicate1<MetaTable> typeFilter;
@@ -160,15 +173,20 @@ public class Meta {
         }
         return createResultSet(
             schemas(catalog)
-                .where(Meta.<MetaSchema>matcher(schemaPattern))
+                .where(Meta.<MetaSchema>namedMatcher(schemaPattern))
                 .selectMany(
                     new Function1<MetaSchema, Enumerable<MetaTable>>() {
                         public Enumerable<MetaTable> apply(MetaSchema a0) {
-                            return tables(a0);
+                            return tables(a0)
+                                .where(
+                                    Meta.<MetaTable>namedMatcher(
+                                        tableNamePattern))
+                                .concat(
+                                    tableFunctions(
+                                        a0, matcher(tableNamePattern)));
                         }
                     })
-                .where(typeFilter)
-                .where(Meta.<MetaTable>matcher(tableNamePattern)),
+                .where(typeFilter),
             new NamedFieldGetter(
                 MetaTable.class,
                 "TABLE_CAT",
@@ -191,7 +209,7 @@ public class Meta {
     {
         return createResultSet(
             schemas(catalog)
-                .where(Meta.<MetaSchema>matcher(schemaPattern))
+                .where(Meta.<MetaSchema>namedMatcher(schemaPattern))
                 .selectMany(
                     new Function1<MetaSchema, Enumerable<MetaTable>>() {
                         public Enumerable<MetaTable> apply(MetaSchema a0) {
@@ -199,14 +217,14 @@ public class Meta {
                         }
                     })
                 .where(
-                    Meta.<MetaTable>matcher(tableNamePattern))
+                    Meta.<MetaTable>namedMatcher(tableNamePattern))
                 .selectMany(
                     new Function1<MetaTable, Enumerable<MetaColumn>>() {
                         public Enumerable<MetaColumn> apply(MetaTable a0) {
                             return columns(a0);
                         }
                     })
-                .where(Meta.<MetaColumn>matcher(columnNamePattern)),
+                .where(Meta.<MetaColumn>namedMatcher(columnNamePattern)),
             new NamedFieldGetter(
                 MetaColumn.class,
                 "TABLE_CAT",
@@ -262,10 +280,38 @@ public class Meta {
                 });
     }
 
-    public static boolean matches(Named element, String pattern) {
-        return pattern == null
-               || pattern.equals("%")
-               || element.getName().equals(pattern); // TODO: better wildcard
+    Enumerable<MetaTable> tableFunctions(
+        final MetaSchema schema,
+        final Predicate1<String> matcher)
+    {
+        final List<Pair<String, TableFunction>> list =
+            new ArrayList<Pair<String, TableFunction>>();
+        for (Map.Entry<String, List<TableFunction>> entry
+            : schema.optiqSchema.getTableFunctions().entrySet())
+        {
+            if (matcher.apply(entry.getKey())) {
+                for (TableFunction tableFunction : entry.getValue()) {
+                    if (tableFunction.getParameters().isEmpty()) {
+                        list.add(Pair.of(entry.getKey(), tableFunction));
+                    }
+                }
+            }
+        }
+        return Linq4j
+            .asEnumerable(list)
+            .select(
+                new Function1<Pair<String, TableFunction>, MetaTable>() {
+                    public MetaTable apply(Pair<String, TableFunction> a0) {
+                        final Table table =
+                            a0.right.apply(Collections.emptyList());
+                        return new MetaTable(
+                            table,
+                            schema.catalogName,
+                            schema.schemaName,
+                            a0.left,
+                            Schema.TableType.VIEW.name());
+                    }
+                });
     }
 
     public Enumerable<MetaColumn> columns(final MetaTable table) {
