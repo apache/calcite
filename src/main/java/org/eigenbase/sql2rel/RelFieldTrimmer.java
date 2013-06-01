@@ -158,7 +158,7 @@ public class RelFieldTrimmer
         final RelDataType rowType = input.getRowType();
         List<RelDataTypeField> fieldList = rowType.getFieldList();
         final List<RexNode> exprList = new ArrayList<RexNode>();
-        final List<String> nameList = RelOptUtil.getFieldNameList(rowType);
+        final List<String> nameList = rowType.getFieldNames();
         RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
         assert trimResult.right.getSourceCount() == fieldList.size();
         for (int i = 0; i < fieldList.size(); i++) {

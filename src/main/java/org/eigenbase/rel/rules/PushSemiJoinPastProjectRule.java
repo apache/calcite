@@ -67,9 +67,9 @@ public class PushSemiJoinPastProjectRule
         // otherwise, we wouldn't have created this semijoin
         List<Integer> newLeftKeys = new ArrayList<Integer>();
         List<Integer> leftKeys = semiJoin.getLeftKeys();
-        RexNode [] projExprs = project.getProjectExps();
+        List<RexNode> projExprs = project.getProjectExpList();
         for (int i = 0; i < leftKeys.size(); i++) {
-            RexInputRef inputRef = (RexInputRef) projExprs[leftKeys.get(i)];
+            RexInputRef inputRef = (RexInputRef) projExprs.get(leftKeys.get(i));
             newLeftKeys.add(inputRef.getIndex());
         }
 
@@ -93,7 +93,7 @@ public class PushSemiJoinPastProjectRule
             CalcRel.createProject(
                 newSemiJoin,
                 projExprs,
-                RelOptUtil.getFieldNames(project.getRowType()));
+                project.getRowType().getFieldNames());
 
         call.transformTo(newProject);
     }

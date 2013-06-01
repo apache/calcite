@@ -110,6 +110,10 @@ public abstract class ProjectRelBase
         return exps;
     }
 
+    public List<RexNode> getProjectExpList() {
+        return Arrays.asList(exps);
+    }
+
     public int getFlags()
     {
         return flags;

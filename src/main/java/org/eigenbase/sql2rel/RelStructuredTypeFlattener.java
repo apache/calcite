@@ -137,7 +137,7 @@ public class RelStructuredTypeFlattener
         // everything back into structured form for return to the
         // client.
         restructured = false;
-        RexNode [] structuringExps = null;
+        List<RexNode> structuringExps = null;
         if (restructure) {
             iRestructureInput = 0;
             structuringExps = restructureFields(root.getRowType());
@@ -149,30 +149,24 @@ public class RelStructuredTypeFlattener
             return CalcRel.createProject(
                 flattened,
                 structuringExps,
-                RelOptUtil.getFieldNames(root.getRowType()));
+                root.getRowType().getFieldNames());
         } else {
             return flattened;
         }
     }
 
-    private RexNode [] restructureFields(
-        RelDataType structuredType)
-    {
-        RexNode [] structuringExps =
-            new RexNode[structuredType.getFieldList().size()];
-        int iOutput = 0;
+    private List<RexNode> restructureFields(RelDataType structuredType) {
+        List<RexNode> structuringExps = new ArrayList<RexNode>();
         for (RelDataTypeField field : structuredType.getFieldList()) {
             // TODO:  row
             if (field.getType().getSqlTypeName() == SqlTypeName.STRUCTURED) {
                 restructured = true;
-                structuringExps[iOutput] = restructure(field.getType());
-                ++iOutput;
+                structuringExps.add(restructure(field.getType()));
             } else {
-                structuringExps[iOutput] =
+                structuringExps.add(
                     new RexInputRef(
                         iRestructureInput,
-                        field.getType());
-                ++iOutput;
+                        field.getType()));
                 ++iRestructureInput;
             }
         }
@@ -190,11 +184,11 @@ public class RelStructuredTypeFlattener
         ++iRestructureInput;
 
         // Use NEW to put flattened data back together into a structure.
-        RexNode [] inputExprs = restructureFields(structuredType);
+        List<RexNode> inputExprs = restructureFields(structuredType);
         RexNode newInvocation =
             rexBuilder.makeNewInvocation(
                 structuredType,
-                inputExprs);
+                inputExprs.toArray(new RexNode[inputExprs.size()]));
 
         if (!structuredType.isNullable()) {
             // Optimize away the null test.
@@ -460,9 +454,9 @@ public class RelStructuredTypeFlattener
     {
         final List<RexNode> flattenedExpList = new ArrayList<RexNode>();
         final List<String> flattenedFieldNameList = new ArrayList<String>();
-        String [] fieldNames = RelOptUtil.getFieldNames(rel.getRowType());
+        List<String> fieldNames = rel.getRowType().getFieldNames();
         flattenProjections(
-            rel.getProjectExps(),
+            rel.getProjectExpList(),
             fieldNames,
             "",
             flattenedExpList,
@@ -501,10 +495,9 @@ public class RelStructuredTypeFlattener
         // Convert the projections.
         final List<RexNode> flattenedExpList = new ArrayList<RexNode>();
         final List<String> flattenedFieldNameList = new ArrayList<String>();
-        String [] fieldNames = RelOptUtil.getFieldNames(rel.getRowType());
+        List<String> fieldNames = rel.getRowType().getFieldNames();
         flattenProjections(
-            (RexNode []) program.getProjectList().toArray(
-                new RexNode[program.getProjectList().size()]),
+            program.getProjectList(),
             fieldNames,
             "",
             flattenedExpList,
@@ -560,17 +553,18 @@ public class RelStructuredTypeFlattener
     }
 
     private void flattenProjections(
-        RexNode [] exps,
-        String [] fieldNames,
+        List<? extends RexNode> exps,
+        List<String> fieldNames,
         String prefix,
         List<RexNode> flattenedExps,
         List<String> flattenedFieldNames)
     {
-        for (int i = 0; i < exps.length; ++i) {
-            RexNode exp = exps[i];
+        for (int i = 0; i < exps.size(); ++i) {
+            RexNode exp = exps.get(i);
             String fieldName =
-                ((fieldNames == null) || (fieldNames[i] == null)) ? ("$" + i)
-                : fieldNames[i];
+                (fieldNames == null || fieldNames.get(i) == null)
+                    ? ("$" + i)
+                    : fieldNames.get(i);
             if (!prefix.equals("")) {
                 fieldName = prefix + "$" + fieldName;
             }
@@ -633,8 +627,9 @@ public class RelStructuredTypeFlattener
                     }
                 }
                 flattenProjections(
-                    call.getOperands(),
-                    new String[call.getOperands().length],
+                    call.getOperandList(),
+                    Collections.<String>nCopies(
+                        call.getOperands().length, null),
                     fieldName,
                     flattenedExps,
                     flattenedFieldNames);
@@ -841,13 +836,13 @@ public class RelStructuredTypeFlattener
             return flattenComparison(
                 rexBuilder,
                 rexCall.getOperator(),
-                rexCall.getOperands());
+                rexCall.getOperandList());
         }
 
         private RexNode flattenComparison(
             RexBuilder rexBuilder,
             SqlOperator op,
-            RexNode [] exprs)
+            List<RexNode> exprs)
         {
             List<RexNode> flattenedExps = new ArrayList<RexNode>();
             flattenProjections(

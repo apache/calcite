@@ -116,10 +116,10 @@ public class MergeProjectRule
         // re-expand the topmost projection expressions, now that they
         // reference the children of the bottom-most project
         int nProjExprs = projExprs.length;
-        RexNode [] newProjExprs = new RexNode[nProjExprs];
+        List<RexNode> newProjExprs = new ArrayList<RexNode>();
         List<RexLocalRef> projList = mergedProgram.getProjectList();
         for (int i = 0; i < nProjExprs; i++) {
-            newProjExprs[i] = mergedProgram.expandLocalRef(projList.get(i));
+            newProjExprs.add(mergedProgram.expandLocalRef(projList.get(i)));
         }
 
         // replace the two projects with a combined projection
@@ -127,7 +127,7 @@ public class MergeProjectRule
             (ProjectRel) CalcRel.createProject(
                 bottomProject.getChild(),
                 newProjExprs,
-                RelOptUtil.getFieldNames(topProject.getRowType()));
+                topProject.getRowType().getFieldNames());
 
         call.transformTo(newProjectRel);
     }

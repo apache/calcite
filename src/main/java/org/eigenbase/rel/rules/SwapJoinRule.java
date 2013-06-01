@@ -120,12 +120,12 @@ public class SwapJoinRule
             newJoin.setVariablesStopped(
                 new HashSet<String>(join.getVariablesStopped()));
         }
-        final RexNode [] exps =
+        final List<RexNode> exps =
             RelOptUtil.createSwappedJoinExprs(newJoin, join, true);
         return CalcRel.createProject(
             newJoin,
             exps,
-            RelOptUtil.getFieldNames(join.getRowType()),
+            join.getRowType().getFieldNames(),
             true);
     }
 
@@ -156,16 +156,13 @@ public class SwapJoinRule
         // b0,b1,a0,a1,a2 from (select a0,a1,a2,b0,b1 from b join a)' is the
         // same as 'b join a'. If we didn't do this, the swap join rule
         // would fire on the new join, ad infinitum.
-        final RexNode [] exps =
-            RelOptUtil.createSwappedJoinExprs(
-                newJoin,
-                join,
-                false);
+        final List<RexNode> exps =
+            RelOptUtil.createSwappedJoinExprs(newJoin, join, false);
         RelNode project =
             CalcRel.createProject(
                 swapped,
                 exps,
-                RelOptUtil.getFieldNames(newJoin.getRowType()));
+                newJoin.getRowType().getFieldNames());
 
         // Make sure extra traits are carried over from the original rel
         project =

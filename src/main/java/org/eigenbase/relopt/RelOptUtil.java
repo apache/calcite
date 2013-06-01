@@ -156,17 +156,7 @@ public abstract class RelOptUtil
      */
     public static List<String> getFieldNameList(final RelDataType type)
     {
-        return new AbstractList<String>() {
-            public String get(int index)
-            {
-                return type.getFieldList().get(index).getName();
-            }
-
-            public int size()
-            {
-                return type.getFieldCount();
-            }
-        };
+        return type.getFieldNames();
     }
 
     /**
@@ -2249,7 +2239,7 @@ public abstract class RelOptUtil
      *
      * @return array of expression representing the swapped join inputs
      */
-    public static RexNode [] createSwappedJoinExprs(
+    public static List<RexNode> createSwappedJoinExprs(
         RelNode newJoin,
         JoinRel origJoin,
         boolean origOrder)
@@ -2257,15 +2247,15 @@ public abstract class RelOptUtil
         final RelDataTypeField [] newJoinFields =
             newJoin.getRowType().getFields();
         final RexBuilder rexBuilder = newJoin.getCluster().getRexBuilder();
-        final RexNode [] exps = new RexNode[newJoinFields.length];
+        final List<RexNode> exps = new ArrayList<RexNode>();
         final int nFields =
             origOrder ? origJoin.getRight().getRowType().getFieldCount()
             : origJoin.getLeft().getRowType().getFieldCount();
-        for (int i = 0; i < exps.length; i++) {
-            final int source = (i + nFields) % exps.length;
+        for (int i = 0; i < newJoinFields.length; i++) {
+            final int source = (i + nFields) % newJoinFields.length;
             RelDataTypeField field =
                 origOrder ? newJoinFields[source] : newJoinFields[i];
-            exps[i] = rexBuilder.makeInputRef(field.getType(), source);
+            exps.add(rexBuilder.makeInputRef(field.getType(), source));
         }
         return exps;
     }

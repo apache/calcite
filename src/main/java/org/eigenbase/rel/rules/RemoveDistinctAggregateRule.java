@@ -97,8 +97,7 @@ public final class RemoveDistinctAggregateRule
         RelDataTypeField [] aggFields = aggregate.getRowType().getFields();
         final List<RexInputRef> refs =
             new ArrayList<RexInputRef>(aggFields.length);
-        final List<String> fieldNames =
-            RelOptUtil.getFieldNameList(aggregate.getRowType());
+        final List<String> fieldNames = aggregate.getRowType().getFieldNames();
         final BitSet groupSet = aggregate.getGroupSet();
         for (int i : Util.toIter(groupSet)) {
             refs.add(

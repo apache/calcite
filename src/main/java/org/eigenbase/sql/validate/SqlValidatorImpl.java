@@ -4412,9 +4412,7 @@ public class SqlValidatorImpl
             super(getOrderScope(select));
             this.select = select;
             this.root = root;
-            this.aliasList =
-                RelOptUtil.getFieldNameList(
-                    getNamespace(select).getRowType());
+            this.aliasList = getNamespace(select).getRowType().getFieldNames();
         }
 
         public SqlNode go()

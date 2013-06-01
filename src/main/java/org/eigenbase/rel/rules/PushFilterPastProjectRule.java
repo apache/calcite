@@ -69,8 +69,8 @@ public class PushFilterPastProjectRule
         ProjectRel newProjRel =
             (ProjectRel) CalcRel.createProject(
                 newFilterRel,
-                projRel.getProjectExps(),
-                RelOptUtil.getFieldNames(projRel.getRowType()));
+                projRel.getProjectExpList(),
+                projRel.getRowType().getFieldNames());
 
         call.transformTo(newProjRel);
     }

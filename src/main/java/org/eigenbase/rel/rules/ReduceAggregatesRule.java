@@ -136,7 +136,7 @@ public class ReduceAggregatesRule
                     input,
                     inputExprs,
                     CompositeList.of(
-                        RelOptUtil.getFieldNameList(input.getRowType()),
+                        input.getRowType().getFieldNames(),
                         Collections.<String>nCopies(
                             extraArgCount,
                             null)));
@@ -149,7 +149,7 @@ public class ReduceAggregatesRule
             CalcRel.createProject(
                 newAggRel,
                 projList,
-                RelOptUtil.getFieldNameList(oldAggRel.getRowType()));
+                oldAggRel.getRowType().getFieldNames());
 
         ruleCall.transformTo(projectRel);
     }
