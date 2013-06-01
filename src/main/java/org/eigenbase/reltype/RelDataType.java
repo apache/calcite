@@ -68,6 +68,14 @@ public interface RelDataType /*extends Type*/
     public List<RelDataTypeField> getFieldList();
 
     /**
+     * Returns the names of the fields in a struct type. The field count is
+     * equal to the size of the returned list.
+     *
+     * @return read-only list of field names
+     */
+    public List<String> getFieldNames();
+
+    /**
      * Gets the fields in a struct type. The field count is equal to the length
      * of the returned array.
      *

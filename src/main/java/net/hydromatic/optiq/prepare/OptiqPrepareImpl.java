@@ -366,7 +366,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                 query.createCluster(rexBuilder.getTypeFactory(), rexBuilder);
 
             RelNode rootRel =
-                new LixToRelTranslator(cluster)
+                new LixToRelTranslator(cluster, OptiqPreparingStmt.this)
                     .translate(queryable);
 
             if (timingTracer != null) {
@@ -525,7 +525,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                         getClass().getClassLoader());
             } catch (Exception e) {
                 throw Helper.INSTANCE.wrap(
-                    "Error while compiling generated Java code:\n" + s, e);
+                    "Error while compiling generated Java code:\n"
+                    + s,
+                    e);
             }
 
             if (timingTracer != null) {

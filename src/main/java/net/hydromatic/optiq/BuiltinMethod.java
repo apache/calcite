@@ -23,10 +23,12 @@ import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.*;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
+import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.runtime.*;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import javax.sql.DataSource;
 
 /**
  * Builtin methods.
@@ -44,6 +46,10 @@ public enum BuiltinMethod {
         ReflectiveSchema.class, "getTarget"),
     DATA_CONTEXT_GET_TABLE(
         DataContext.class, "getTable", String.class, Class.class),
+    JDBC_SCHEMA_DATA_SOURCE(
+        JdbcSchema.class, "getDataSource"),
+    RESULT_SET_ENUMERABLE_OF(
+        ResultSetEnumerable.class, "of", DataSource.class, String.class),
     JOIN(
         ExtendedEnumerable.class, "join", Enumerable.class, Function1.class,
         Function1.class, Function2.class),

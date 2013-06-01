@@ -23,6 +23,7 @@ import java.nio.charset.*;
 
 import java.util.*;
 
+import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
@@ -121,6 +122,10 @@ public abstract class RelDataTypeImpl
     {
         assert (isStruct());
         return fieldList;
+    }
+
+    public List<String> getFieldNames() {
+        return RelOptUtil.getFieldNameList(this);
     }
 
     // implement RelDataType

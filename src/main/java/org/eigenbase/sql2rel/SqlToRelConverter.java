@@ -2352,7 +2352,7 @@ public class SqlToRelConverter
                 // select a dummy constant here.
                 preExprs =
                     Collections.singletonList(
-                        (RexNode) rexBuilder.makeLiteral(true));
+                        (RexNode) rexBuilder.makeExactLiteral(BigDecimal.ZERO));
                 preNames = Collections.singletonList(null);
             }
 

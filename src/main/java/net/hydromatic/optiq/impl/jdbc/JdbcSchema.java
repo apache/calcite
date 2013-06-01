@@ -45,16 +45,18 @@ import javax.sql.DataSource;
 public class JdbcSchema implements Schema {
     final QueryProvider queryProvider;
     final DataSource dataSource;
-    private final String catalog;
-    private final String schema;
+    final String catalog;
+    final String schema;
     final JavaTypeFactory typeFactory;
     private final Expression expression;
     final SqlDialect dialect;
+    final JdbcConvention convention;
 
     /**
      * Creates a JDBC schema.
      *
      * @param queryProvider Query provider
+     * @param name Schema name
      * @param dataSource Data source
      * @param dialect SQL dialect
      * @param catalog Catalog name, or null
@@ -63,6 +65,7 @@ public class JdbcSchema implements Schema {
      */
     public JdbcSchema(
         QueryProvider queryProvider,
+        String name,
         DataSource dataSource,
         SqlDialect dialect,
         String catalog,
@@ -78,6 +81,7 @@ public class JdbcSchema implements Schema {
         this.schema = schema;
         this.typeFactory = typeFactory;
         this.expression = expression;
+        this.convention = JdbcConvention.of(this, name);
         assert expression != null;
         assert typeFactory != null;
         assert dialect != null;
@@ -105,6 +109,7 @@ public class JdbcSchema implements Schema {
         JdbcSchema schema =
             new JdbcSchema(
                 parentSchema.getQueryProvider(),
+                name,
                 dataSource,
                 JdbcSchema.createDialect(dataSource),
                 jdbcCatalog,
@@ -147,6 +152,11 @@ public class JdbcSchema implements Schema {
     /** Returns a suitable SQL dialect for the given data source. */
     public static SqlDialect createDialect(DataSource dataSource) {
         return JdbcUtils.DialectPool.INSTANCE.get(dataSource);
+    }
+
+    // Used by generated code.
+    public DataSource getDataSource() {
+        return dataSource;
     }
 
     public JavaTypeFactory getTypeFactory() {

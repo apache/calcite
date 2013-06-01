@@ -67,7 +67,6 @@ public class OptiqAssert {
     /** Returns a {@link TestSuite junit suite} of all Optiq tests. */
     public static TestSuite suite() {
         TestSuite testSuite = new TestSuite();
-        testSuite.addTestSuite(JdbcTest.class);
         testSuite.addTestSuite(ReflectiveSchemaTest.class);
         testSuite.addTestSuite(LinqFrontJdbcBackTest.class);
         testSuite.addTestSuite(JdbcFrontLinqBackTest.class);
@@ -81,6 +80,8 @@ public class OptiqAssert {
         testSuite.addTestSuite(ModelTest.class);
         testSuite.addTestSuite(RexProgramTest.class);
         testSuite.addTestSuite(RexTransformerTest.class);
+        testSuite.addTestSuite(JdbcAdapterTest.class);
+        testSuite.addTestSuite(JdbcTest.class);
         //testSuite.addTestSuite(VolcanoPlannerTraitTest.class);
         return testSuite;
     }
@@ -411,12 +412,36 @@ public class OptiqAssert {
             }
         }
 
+        public AssertQuery explainContains(final String expected) {
+            try {
+                assertQuery(
+                    createConnection(),
+                    "explain plan for " + sql,
+                    new Function1<String, Void>() {
+                        public Void apply(String s) {
+                            Assert.assertTrue(s, s.contains(expected));
+                            return null;
+                        }
+                    }, null);
+                return this;
+            } catch (Exception e) {
+                throw new RuntimeException(
+                    "exception while explaining [" + sql + "]", e);
+            }
+        }
+
         public AssertQuery planContains(String expected) {
             ensurePlan();
             Assert.assertTrue(
                 "Plan [" + plan + "] contains [" + expected + "]",
                 plan.contains(expected));
             return this;
+        }
+
+        public AssertQuery planHasSql(String expected) {
+            return planContains(
+                "getDataSource(), \"" + expected.replaceAll("\n", "\\\\n")
+                + "\")");
         }
 
         private void ensurePlan() {

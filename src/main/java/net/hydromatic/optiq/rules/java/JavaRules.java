@@ -1273,11 +1273,7 @@ public class JavaRules {
         public EnumerableUnionRel copy(
             RelTraitSet traitSet, List<RelNode> inputs, boolean all)
         {
-            return new EnumerableUnionRel(
-                getCluster(),
-                traitSet,
-                inputs,
-                all);
+            return new EnumerableUnionRel(getCluster(), traitSet, inputs, all);
         }
 
         public PhysType getPhysType() {

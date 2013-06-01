@@ -1538,6 +1538,8 @@ public abstract class RelOptUtil
         planner.addRule(RemoveEmptyRule.unionInstance);
         planner.addRule(RemoveEmptyRule.projectInstance);
         planner.addRule(RemoveEmptyRule.filterInstance);
+
+        //planner.addRule(RemoveTrivialProjectRule.instance);
     }
 
     /**

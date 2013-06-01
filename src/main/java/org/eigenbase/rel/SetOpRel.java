@@ -22,6 +22,8 @@ import java.util.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 
+import net.hydromatic.optiq.runtime.FlatLists;
+
 import net.hydromatic.linq4j.Ord;
 
 
@@ -65,6 +67,14 @@ public abstract class SetOpRel
         List<RelNode> inputs)
     {
         return copy(traitSet, inputs, all);
+    }
+
+    @Override
+    public void replaceInput(int ordinalInParent, RelNode p) {
+        final RelNode[] newInputs = inputs.toArray(new RelNode[inputs.size()]);
+        newInputs[ordinalInParent] = p;
+        inputs = FlatLists.of(newInputs);
+        recomputeDigest();
     }
 
     @Override

@@ -24,6 +24,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptCluster;
+import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
 
@@ -38,13 +39,23 @@ import java.util.List;
  *
  * @author jhyde
  */
-class LixToRelTranslator {
+class LixToRelTranslator implements RelOptTable.ToRelContext {
     final RelOptCluster cluster;
+    private final Prepare preparingStmt;
     final JavaTypeFactory typeFactory;
 
-    public LixToRelTranslator(RelOptCluster cluster) {
+    public LixToRelTranslator(RelOptCluster cluster, Prepare preparingStmt) {
         this.cluster = cluster;
+        this.preparingStmt = preparingStmt;
         this.typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
+    }
+
+    public RelOptCluster getCluster() {
+        return cluster;
+    }
+
+    public Prepare getPreparingStmt() {
+        return preparingStmt;
     }
 
     public <T> RelNode translate(Queryable<T> queryable) {

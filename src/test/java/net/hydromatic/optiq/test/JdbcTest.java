@@ -72,7 +72,7 @@ public class JdbcTest extends TestCase {
         + "       jdbcPassword: 'foodmart',\n"
         + "       jdbcUrl: 'jdbc:mysql://localhost',\n"
         + "       jdbcCatalog: 'foodmart',\n"
-        + "       jdbcSchema: ''\n"
+        + "       jdbcSchema: null\n"
         + "     }\n";
 
     public static final String FOODMART_MODEL =
@@ -222,7 +222,7 @@ public class JdbcTest extends TestCase {
                 optiqConnection.getRootSchema(),
                 dataSource,
                 "foodmart",
-                "",
+                null,
                 "foodmart");
         if (withClone) {
             CloneSchema.create(
@@ -1238,6 +1238,7 @@ public class JdbcTest extends TestCase {
         {
             super(
                 queryProvider,
+                "FoodMart",
                 dataSource,
                 dialect,
                 catalog,

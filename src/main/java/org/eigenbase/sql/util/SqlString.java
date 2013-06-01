@@ -22,7 +22,7 @@ import org.eigenbase.sql.SqlDialect;
 /**
  * String that represents a kocher SQL statement, expression, or fragment.
  *
- * <p>A SqlString just contains a regular Java string, but the SqlWtring wrapper
+ * <p>A SqlString just contains a regular Java string, but the SqlString wrapper
  * indicates that the string has been created carefully guarding against all SQL
  * dialect and injection issues.
  *

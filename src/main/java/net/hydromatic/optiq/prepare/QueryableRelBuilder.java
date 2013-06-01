@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.FunctionExpression;
 import net.hydromatic.linq4j.function.*;
 import net.hydromatic.optiq.Table;
+import net.hydromatic.optiq.TranslatableTable;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rex.RexNode;
@@ -66,13 +67,19 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
             return rel;
         }
         if (queryable instanceof Table) {
-            return new TableAccessRel(
-                translator.cluster,
+            final OptiqPrepareImpl.RelOptTableImpl relOptTable =
                 new OptiqPrepareImpl.RelOptTableImpl(
                     null,
                     ((Table) queryable).getRowType(),
                     new String[0],
-                    (Table) queryable));
+                    (Table) queryable);
+            if (queryable instanceof TranslatableTable) {
+                return ((TranslatableTable) queryable)
+                    .toRel(translator, relOptTable);
+            } else {
+                return new TableAccessRel(
+                    translator.cluster, relOptTable);
+            }
         }
         return translator.translate(queryable.getExpression());
     }

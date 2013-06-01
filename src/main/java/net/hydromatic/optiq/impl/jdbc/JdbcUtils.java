@@ -17,7 +17,6 @@
 */
 package net.hydromatic.optiq.impl.jdbc;
 
-import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.function.*;
 
@@ -39,48 +38,6 @@ import javax.sql.DataSource;
 final class JdbcUtils {
     private JdbcUtils() {
         throw new AssertionError("no instances!");
-    }
-
-    /** Executes a SQL query and returns the results as an enumerator. The
-     * parameterization not withstanding, the result type must be an array of
-     * objects. */
-    static <T> Enumerator<T> sqlEnumerator(
-        String sql,
-        JdbcSchema dataContext,
-        Function1<ResultSet, Function0<T>> rowBuilderFactory)
-    {
-        Connection connection;
-        Statement statement;
-        try {
-            connection = dataContext.dataSource.getConnection();
-            statement = connection.createStatement();
-            final ResultSet resultSet;
-            resultSet = statement.executeQuery(sql);
-            final Function0<T> rowBuilder = rowBuilderFactory.apply(resultSet);
-            return new Enumerator<T>() {
-                public T current() {
-                    return rowBuilder.apply();
-                }
-
-                public boolean moveNext() {
-                    try {
-                        return resultSet.next();
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-
-                public void reset() {
-                    try {
-                        resultSet.first();
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            };
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     static List<Primitive> getPrimitives(

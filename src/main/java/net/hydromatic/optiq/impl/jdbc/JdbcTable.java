@@ -19,13 +19,16 @@ package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
-
 import net.hydromatic.linq4j.function.*;
-import net.hydromatic.optiq.*;
 
+import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.runtime.ResultSetEnumerable;
+
+import org.eigenbase.rel.RelNode;
+import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.SqlWriter;
-import org.eigenbase.sql.pretty.SqlPrettyWriter;
+import org.eigenbase.sql.util.SqlBuilder;
+import org.eigenbase.sql.util.SqlString;
 
 import java.lang.reflect.Type;
 import java.sql.ResultSet;
@@ -42,9 +45,11 @@ import java.util.*;
  *
  * @author jhyde
  */
-class JdbcTable extends AbstractQueryable<Object[]> implements Table<Object[]> {
+class JdbcTable extends AbstractQueryable<Object[]>
+    implements TranslatableTable<Object[]>
+{
     private final JdbcSchema schema;
-    private final String tableName;
+    public final String tableName;
     private final RelDataType rowType;
 
     public JdbcTable(
@@ -94,24 +99,41 @@ class JdbcTable extends AbstractQueryable<Object[]> implements Table<Object[]> {
     }
 
     public Enumerator<Object[]> enumerator() {
-        SqlWriter writer = new SqlPrettyWriter(schema.dialect);
-        writer.keyword("select");
-        writer.literal("*");
-        writer.keyword("from");
-        writer.identifier("foodmart");
-        writer.literal(".");
-        writer.identifier(tableName);
-        final String sql = writer.toString();
-
+        final SqlString sql = generateSql();
         Function1<ResultSet, Function0<Object[]>> rowBuilderFactory =
             JdbcUtils.ObjectArrayRowBuilder.factory(
                 JdbcUtils.getPrimitives(
                     schema.typeFactory, rowType));
-        return JdbcUtils.sqlEnumerator(sql, schema, rowBuilderFactory);
+        return ResultSetEnumerable.of(
+            schema.getDataSource(),
+            sql.getSql(),
+            rowBuilderFactory).enumerator();
+    }
+
+    SqlString generateSql() {
+        SqlBuilder writer = new SqlBuilder(schema.dialect);
+        writer.append("SELECT * FROM ");
+        final ArrayList<String> strings = new ArrayList<String>();
+        if (schema.catalog != null) {
+            strings.add(schema.catalog);
+        }
+        if (schema.schema != null) {
+            strings.add(schema.schema);
+        }
+        strings.add(tableName);
+        writer.identifier(strings);
+        return writer.toSqlString();
     }
 
     public RelDataType getRowType() {
         return rowType;
+    }
+
+    public RelNode toRel(
+        RelOptTable.ToRelContext context, RelOptTable relOptTable)
+    {
+        return new JdbcTableScan(
+            context.getCluster(), relOptTable, this, schema.convention);
     }
 }
 
