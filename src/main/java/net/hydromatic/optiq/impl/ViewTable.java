@@ -44,116 +44,111 @@ public class ViewTable<T>
     extends AbstractTable<T>
     implements TranslatableTable<T>
 {
+  private final String viewSql;
+  private final List<String> schemaPath;
+
+  public ViewTable(
+      Schema schema,
+      Type elementType,
+      RelDataType relDataType,
+      String tableName,
+      String viewSql,
+      List<String> schemaPath) {
+    super(schema, elementType, relDataType, tableName);
+    this.viewSql = viewSql;
+    this.schemaPath = schemaPath;
+  }
+
+  /** Table function that returns a view. */
+  public static <T> TableFunction<T> viewFunction(
+      final Schema schema,
+      final String name,
+      final String viewSql,
+      final List<String> schemaPath) {
+    return new ViewTableFunction<T>(schema, name, viewSql, schemaPath);
+  }
+
+  public Enumerator<T> enumerator() {
+    return schema
+        .getQueryProvider()
+        .<T>createQuery(getExpression(), elementType)
+        .enumerator();
+  }
+
+  public RelNode toRel(
+      RelOptTable.ToRelContext context,
+      RelOptTable relOptTable) {
+    return expandView(
+        context.getPreparingStmt(),
+        getRowType(),
+        viewSql);
+  }
+
+  private RelNode expandView(
+      Prepare preparingStmt,
+      RelDataType rowType,
+      String queryString) {
+    try {
+      RelNode rel =
+          preparingStmt.expandView(rowType, queryString, schemaPath);
+
+      rel = RelOptUtil.createCastRel(rel, rowType, true);
+      rel = preparingStmt.flattenTypes(rel, false);
+      return rel;
+    } catch (Throwable e) {
+      throw Util.newInternal(
+          e, "Error while parsing view definition:  " + queryString);
+    }
+  }
+
+  private static class ViewTableFunction<T> implements TableFunction<T> {
     private final String viewSql;
+    private final Schema schema;
+    private final String name;
     private final List<String> schemaPath;
 
-    public ViewTable(
+    private ViewTableFunction(
         Schema schema,
-        Type elementType,
-        RelDataType relDataType,
-        String tableName,
+        String name,
         String viewSql,
-        List<String> schemaPath)
-    {
-        super(schema, elementType, relDataType, tableName);
-        this.viewSql = viewSql;
-        this.schemaPath = schemaPath;
+        List<String> schemaPath) {
+      this.viewSql = viewSql;
+      this.schema = schema;
+      this.name = name;
+      this.schemaPath = schemaPath;
     }
 
-    /** Table function that returns a view. */
-    public static <T> TableFunction<T> viewFunction(
-        final Schema schema,
-        final String name,
-        final String viewSql,
-        final List<String> schemaPath)
-    {
-        return new ViewTableFunction<T>(schema, name, viewSql, schemaPath);
+    public List<Parameter> getParameters() {
+      return Collections.emptyList();
     }
 
-    public Enumerator<T> enumerator() {
-        return schema
-            .getQueryProvider()
-            .<T>createQuery(getExpression(), elementType)
-            .enumerator();
+    public Table<T> apply(List<Object> arguments) {
+      OptiqPrepare.ParseResult parsed =
+          OptiqPrepare.DEFAULT_FACTORY.apply().parse(
+              new OptiqPrepare.Context() {
+                public JavaTypeFactory getTypeFactory() {
+                  return schema.getTypeFactory();
+                }
+
+                public Schema getRootSchema() {
+                  return ((OptiqConnection) schema.getQueryProvider())
+                      .getRootSchema();
+                }
+
+                public List<String> getDefaultSchemaPath() {
+                  return schemaPath;
+                }
+              },
+              viewSql);
+      return new ViewTable<T>(
+          schema, schema.getTypeFactory().getJavaClass(parsed.rowType),
+          parsed.rowType, name, viewSql, schemaPath);
     }
 
-    public RelNode toRel(
-        RelOptTable.ToRelContext context,
-        RelOptTable relOptTable)
-    {
-        return expandView(
-            context.getPreparingStmt(),
-            getRowType(),
-            viewSql);
+    public Type getElementType() {
+      return apply(Collections.emptyList()).getElementType();
     }
-
-    private RelNode expandView(
-        Prepare preparingStmt,
-        RelDataType rowType,
-        String queryString)
-    {
-        try {
-            RelNode rel =
-                preparingStmt.expandView(rowType, queryString, schemaPath);
-
-            rel = RelOptUtil.createCastRel(rel, rowType, true);
-            rel = preparingStmt.flattenTypes(rel, false);
-            return rel;
-        } catch (Throwable e) {
-            throw Util.newInternal(
-                e, "Error while parsing view definition:  " + queryString);
-        }
-    }
-
-    private static class ViewTableFunction<T> implements TableFunction<T> {
-        private final String viewSql;
-        private final Schema schema;
-        private final String name;
-        private final List<String> schemaPath;
-
-        private ViewTableFunction(
-            Schema schema,
-            String name,
-            String viewSql,
-            List<String> schemaPath)
-        {
-            this.viewSql = viewSql;
-            this.schema = schema;
-            this.name = name;
-            this.schemaPath = schemaPath;
-        }
-
-        public List<Parameter> getParameters() {
-            return Collections.emptyList();
-        }
-
-        public Table<T> apply(List<Object> arguments) {
-            OptiqPrepare.ParseResult parsed =
-                OptiqPrepare.DEFAULT_FACTORY.apply().parse(
-                    new OptiqPrepare.Context() {
-                        public JavaTypeFactory getTypeFactory() {
-                            return schema.getTypeFactory();
-                        }
-
-                        public Schema getRootSchema() {
-                            return ((OptiqConnection) schema.getQueryProvider())
-                                .getRootSchema();
-                        }
-
-                        public List<String> getDefaultSchemaPath() {
-                            return schemaPath;
-                        }
-                    },
-                    viewSql);
-            return new ViewTable<T>(
-                schema, schema.getTypeFactory().getJavaClass(parsed.rowType),
-                parsed.rowType, name, viewSql, schemaPath);
-        }
-
-        public Type getElementType() {
-            return apply(Collections.emptyList()).getElementType();
-        }
-    }
+  }
 }
 
 // End ViewTable.java

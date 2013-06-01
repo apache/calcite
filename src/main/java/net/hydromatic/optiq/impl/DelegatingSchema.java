@@ -29,61 +29,59 @@ import java.util.Map;
 /**
  * Implementation of {@link net.hydromatic.optiq.Schema} that delegates to an
  * underlying schema.
- *
- * @author jhyde
  */
 public class DelegatingSchema implements Schema {
-    protected final Schema schema;
+  protected final Schema schema;
 
-    /**
-     * Creates a DelegatingSchema.
-     *
-     * @param schema Underlying schema
-     */
-    public DelegatingSchema(Schema schema) {
-        this.schema = schema;
-    }
+  /**
+   * Creates a DelegatingSchema.
+   *
+   * @param schema Underlying schema
+   */
+  public DelegatingSchema(Schema schema) {
+    this.schema = schema;
+  }
 
-    @Override
-    public String toString() {
-        return "DelegatingSchema(delegate=" + schema + ")";
-    }
+  @Override
+  public String toString() {
+    return "DelegatingSchema(delegate=" + schema + ")";
+  }
 
-    public Map<String, List<TableFunction>> getTableFunctions() {
-        return schema.getTableFunctions();
-    }
+  public Map<String, List<TableFunction>> getTableFunctions() {
+    return schema.getTableFunctions();
+  }
 
-    public Expression getExpression() {
-        return schema.getExpression();
-    }
+  public Expression getExpression() {
+    return schema.getExpression();
+  }
 
-    public QueryProvider getQueryProvider() {
-        return schema.getQueryProvider();
-    }
+  public QueryProvider getQueryProvider() {
+    return schema.getQueryProvider();
+  }
 
-    public Collection<TableInSchema> getTables() {
-        return schema.getTables();
-    }
+  public Collection<TableInSchema> getTables() {
+    return schema.getTables();
+  }
 
-    public <T> Table<T> getTable(String name, Class<T> elementType) {
-        return schema.getTable(name, elementType);
-    }
+  public <T> Table<T> getTable(String name, Class<T> elementType) {
+    return schema.getTable(name, elementType);
+  }
 
-    public List<TableFunction> getTableFunctions(String name) {
-        return schema.getTableFunctions(name);
-    }
+  public List<TableFunction> getTableFunctions(String name) {
+    return schema.getTableFunctions(name);
+  }
 
-    public Collection<String> getSubSchemaNames() {
-        return schema.getSubSchemaNames();
-    }
+  public Collection<String> getSubSchemaNames() {
+    return schema.getSubSchemaNames();
+  }
 
-    public Schema getSubSchema(String name) {
-        return schema.getSubSchema(name);
-    }
+  public Schema getSubSchema(String name) {
+    return schema.getSubSchema(name);
+  }
 
-    public JavaTypeFactory getTypeFactory() {
-        return schema.getTypeFactory();
-    }
+  public JavaTypeFactory getTypeFactory() {
+    return schema.getTypeFactory();
+  }
 }
 
 // End DelegatingSchema.java

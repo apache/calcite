@@ -26,59 +26,56 @@ import java.lang.reflect.Field;
  * {@link net.hydromatic.linq4j.Enumerator} that
  * returns a record for each row. The record is a synthetic class whose fields
  * are all public.
- *
- * @author jhyde
  */
 public class RecordEnumeratorCursor<E> extends AbstractCursor {
-    private final Enumerator<E> enumerator;
-    private final Class<E> clazz;
+  private final Enumerator<E> enumerator;
+  private final Class<E> clazz;
 
-    /**
-     * Creates a RecordEnumeratorCursor.
-     *
-     * @param enumerator Enumerator
-     * @param clazz Element type
-     */
-    public RecordEnumeratorCursor(
-        Enumerator<E> enumerator,
-        Class<E> clazz)
-    {
-        this.enumerator = enumerator;
-        this.clazz = clazz;
+  /**
+   * Creates a RecordEnumeratorCursor.
+   *
+   * @param enumerator Enumerator
+   * @param clazz Element type
+   */
+  public RecordEnumeratorCursor(
+      Enumerator<E> enumerator,
+      Class<E> clazz) {
+    this.enumerator = enumerator;
+    this.clazz = clazz;
+  }
+
+  @Override
+  protected Getter createGetter(int ordinal) {
+    return new RecordEnumeratorGetter(clazz.getFields()[ordinal]);
+  }
+
+  @Override
+  public boolean next() {
+    return enumerator.moveNext();
+  }
+
+  class RecordEnumeratorGetter implements Getter {
+    protected final Field field;
+
+    public RecordEnumeratorGetter(Field field) {
+      this.field = field;
     }
 
-    @Override
-    protected Getter createGetter(int ordinal) {
-        return new RecordEnumeratorGetter(clazz.getFields()[ordinal]);
+    public Object getObject() {
+      Object o;
+      try {
+        o = field.get(enumerator.current());
+      } catch (IllegalAccessException e) {
+        throw new RuntimeException(e);
+      }
+      wasNull[0] = (o == null);
+      return o;
     }
 
-    @Override
-    public boolean next() {
-        return enumerator.moveNext();
+    public boolean wasNull() {
+      return wasNull[0];
     }
-
-    class RecordEnumeratorGetter implements Getter {
-        protected final Field field;
-
-        public RecordEnumeratorGetter(Field field) {
-            this.field = field;
-        }
-
-        public Object getObject() {
-            Object o;
-            try {
-                o = field.get(enumerator.current());
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-            }
-            wasNull[0] = (o == null);
-            return o;
-        }
-
-        public boolean wasNull() {
-            return wasNull[0];
-        }
-    }
+  }
 }
 
 // End RecordEnumeratorCursor.java

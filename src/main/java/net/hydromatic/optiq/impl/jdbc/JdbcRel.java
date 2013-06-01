@@ -24,7 +24,7 @@ import org.eigenbase.sql.util.SqlString;
  * Relational expression that uses JDBC calling convention.
  */
 public interface JdbcRel extends RelNode {
-    SqlString implement(JdbcImplementor implementor);
+  SqlString implement(JdbcImplementor implementor);
 }
 
 // End JdbcRel.java

@@ -21,24 +21,22 @@ import java.util.Comparator;
 
 /**
  * Comparator that uses the natural ordering of [@link Comparable} values.
- *
- * @author jhyde
  */
 public final class ComparableComparator<T extends Comparable>
     implements Comparator<T>
 {
-    private static final ComparableComparator INSTANCE =
-        new ComparableComparator();
+  private static final ComparableComparator INSTANCE =
+      new ComparableComparator();
 
-    @SuppressWarnings("unchecked")
-    public static <T extends Comparable> ComparableComparator<T> instance() {
-        return INSTANCE;
-    }
+  @SuppressWarnings("unchecked")
+  public static <T extends Comparable> ComparableComparator<T> instance() {
+    return INSTANCE;
+  }
 
-    @SuppressWarnings("unchecked")
-    public int compare(T o1, T o2) {
-        return o1.compareTo(o2);
-    }
+  @SuppressWarnings("unchecked")
+  public int compare(T o1, T o2) {
+    return o1.compareTo(o2);
+  }
 }
 
 // End ComparableComparator.java

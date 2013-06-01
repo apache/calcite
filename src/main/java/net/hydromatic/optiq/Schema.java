@@ -57,53 +57,52 @@ import java.util.Map;
  */
 public interface Schema extends DataContext {
 
-    /**
-     * Returns a list of table functions in this schema with the given name, or
-     * an empty list if there is no such table function.
-     *
-     * @param name Name of table function
-     * @return List of table functions with given name, or empty list
-     */
-    List<TableFunction> getTableFunctions(String name);
+  /**
+   * Returns a list of table functions in this schema with the given name, or
+   * an empty list if there is no such table function.
+   *
+   * @param name Name of table function
+   * @return List of table functions with given name, or empty list
+   */
+  List<TableFunction> getTableFunctions(String name);
 
-    /**
-     * Returns a table with the given name, or null.
-     *
-     * @param name Table name
-     * @param elementType Element type
-     * @return Table, or null
-     */
-    <E> Table<E> getTable(String name, Class<E> elementType);
+  /**
+   * Returns a table with the given name, or null.
+   *
+   * @param name Table name
+   * @param elementType Element type
+   * @return Table, or null
+   */
+  <E> Table<E> getTable(String name, Class<E> elementType);
 
-    Expression getExpression();
+  Expression getExpression();
 
-    QueryProvider getQueryProvider();
+  QueryProvider getQueryProvider();
 
-    Map<String, List<TableFunction>> getTableFunctions();
+  Map<String, List<TableFunction>> getTableFunctions();
 
-    Collection<String> getSubSchemaNames();
+  Collection<String> getSubSchemaNames();
 
-    Collection<TableInSchema> getTables();
+  Collection<TableInSchema> getTables();
 
-    abstract class TableInSchema {
-        public final Schema schema;
-        public final String name;
-        public final TableType tableType;
+  abstract class TableInSchema {
+    public final Schema schema;
+    public final String name;
+    public final TableType tableType;
 
-        public TableInSchema(
-            Schema schema, String name, TableType tableType)
-        {
-            this.schema = schema;
-            this.name = name;
-            this.tableType = tableType;
-        }
-
-        public abstract <E> Table<E> getTable(Class<E> elementType);
+    public TableInSchema(
+        Schema schema, String name, TableType tableType) {
+      this.schema = schema;
+      this.name = name;
+      this.tableType = tableType;
     }
 
-    enum TableType {
-        TABLE, VIEW, SYSTEM_TABLE, LOCAL_TEMPORARY,
-    }
+    public abstract <E> Table<E> getTable(Class<E> elementType);
+  }
+
+  enum TableType {
+    TABLE, VIEW, SYSTEM_TABLE, LOCAL_TEMPORARY,
+  }
 }
 
 // End Schema.java

@@ -38,16 +38,16 @@ import org.eigenbase.relopt.Convention;
  * instantiated, at the start of planning, for each JDBC database in play.</p>
  */
 public class JdbcConvention extends Convention.Impl {
-    public final JdbcSchema jdbcSchema;
+  public final JdbcSchema jdbcSchema;
 
-    public JdbcConvention(JdbcSchema jdbcSchema, String name) {
-        super("JDBC." + name, JdbcRel.class);
-        this.jdbcSchema = jdbcSchema;
-    }
+  public JdbcConvention(JdbcSchema jdbcSchema, String name) {
+    super("JDBC." + name, JdbcRel.class);
+    this.jdbcSchema = jdbcSchema;
+  }
 
-    public static JdbcConvention of(JdbcSchema jdbcSchema, String name) {
-        return new JdbcConvention(jdbcSchema, name);
-    }
+  public static JdbcConvention of(JdbcSchema jdbcSchema, String name) {
+    return new JdbcConvention(jdbcSchema, name);
+  }
 }
 
 // End JdbcConvention.java

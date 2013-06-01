@@ -65,19 +65,19 @@ import java.util.Map;
  * public default constructor.</p>
  */
 public interface SchemaFactory {
-    /** Creates a Schema.
-     *
-     * <p>The implementation must register the schema in the parent schema,
-     * by calling {@link MutableSchema#addSchema(String, Schema)}.</p>
-     *
-     * @param schema Parent schema
-     * @param name Name of this schema
-     * @param operand The "operand" JSON property
-     */
-    Schema create(
-        MutableSchema schema,
-        String name,
-        Map<String, Object> operand);
+  /** Creates a Schema.
+   *
+   * <p>The implementation must register the schema in the parent schema,
+   * by calling {@link MutableSchema#addSchema(String, Schema)}.</p>
+   *
+   * @param schema Parent schema
+   * @param name Name of this schema
+   * @param operand The "operand" JSON property
+   */
+  Schema create(
+      MutableSchema schema,
+      String name,
+      Map<String, Object> operand);
 }
 
 // End SchemaFactory.java

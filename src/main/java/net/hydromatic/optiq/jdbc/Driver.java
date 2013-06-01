@@ -26,48 +26,47 @@ import java.sql.SQLException;
  * Optiq JDBC driver.
  */
 public class Driver extends UnregisteredDriver {
-    public static final String CONNECT_STRING_PREFIX = "jdbc:optiq:";
+  public static final String CONNECT_STRING_PREFIX = "jdbc:optiq:";
 
-    static {
-        new Driver().register();
-    }
+  static {
+    new Driver().register();
+  }
 
-    @Override
-    protected String getConnectStringPrefix() {
-        return CONNECT_STRING_PREFIX;
-    }
+  @Override
+  protected String getConnectStringPrefix() {
+    return CONNECT_STRING_PREFIX;
+  }
 
-    protected DriverVersion createDriverVersion() {
-        return DriverVersion.load(
-            Driver.class,
-            "net-hydromatic-optiq-jdbc.properties",
-            "Optiq JDBC Driver",
-            "unknown version",
-            "Optiq",
-            "unknown version");
-    }
+  protected DriverVersion createDriverVersion() {
+    return DriverVersion.load(
+        Driver.class,
+        "net-hydromatic-optiq-jdbc.properties",
+        "Optiq JDBC Driver",
+        "unknown version",
+        "Optiq",
+        "unknown version");
+  }
 
-    @Override
-    protected Handler createHandler() {
-        return new HandlerImpl() {
-            @Override
-            public void onConnectionInit(OptiqConnection connection)
-                throws SQLException
-            {
-                super.onConnectionInit(connection);
-                final String model =
-                    ConnectionProperty.MODEL.getString(
-                        connection.getProperties());
-                if (model != null) {
-                    try {
-                        new ModelHandler(connection, model);
-                    } catch (IOException e) {
-                        throw new SQLException(e);
-                    }
-                }
-            }
-        };
-    }
+  @Override
+  protected Handler createHandler() {
+    return new HandlerImpl() {
+      @Override
+      public void onConnectionInit(OptiqConnection connection)
+          throws SQLException {
+        super.onConnectionInit(connection);
+        final String model =
+            ConnectionProperty.MODEL.getString(
+                connection.getProperties());
+        if (model != null) {
+          try {
+            new ModelHandler(connection, model);
+          } catch (IOException e) {
+            throw new SQLException(e);
+          }
+        }
+      }
+    };
+  }
 }
 
 // End Driver.java

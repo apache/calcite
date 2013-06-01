@@ -25,22 +25,22 @@ import java.util.Map;
  * @see net.hydromatic.optiq.model.JsonRoot Description of schema elements
  */
 public class JsonCustomSchema extends JsonMapSchema {
-    /** Name of the factory class for this schema. Must implement interface
-     * {@link net.hydromatic.optiq.SchemaFactory} and have a public default
-     * constructor. */
-    public String factory;
+  /** Name of the factory class for this schema. Must implement interface
+   * {@link net.hydromatic.optiq.SchemaFactory} and have a public default
+   * constructor. */
+  public String factory;
 
-    /** Operand. May be a JSON object (represented as Map) or null. */
-    public Map<String, Object> operand;
+  /** Operand. May be a JSON object (represented as Map) or null. */
+  public Map<String, Object> operand;
 
-    public void accept(ModelHandler handler) {
-        handler.visit(this);
-    }
+  public void accept(ModelHandler handler) {
+    handler.visit(this);
+  }
 
-    @Override
-    public String toString() {
-        return "JsonCustomSchema(name=" + name + ")";
-    }
+  @Override
+  public String toString() {
+    return "JsonCustomSchema(name=" + name + ")";
+  }
 }
 
 // End JsonCustomSchema.java

@@ -35,40 +35,39 @@ class ListTable<T>
     extends BaseQueryable<T>
     implements Table<T>
 {
-    private final Schema schema;
-    private final RelDataType relDataType;
-    private final List<T> list;
+  private final Schema schema;
+  private final RelDataType relDataType;
+  private final List<T> list;
 
-    /** Creates a ListTable. */
-    public ListTable(
-        Schema schema,
-        Type elementType,
-        RelDataType relDataType,
-        Expression expression,
-        List<T> list)
-    {
-        super(schema.getQueryProvider(), elementType, expression);
-        this.schema = schema;
-        this.relDataType = relDataType;
-        this.list = list;
-    }
+  /** Creates a ListTable. */
+  public ListTable(
+      Schema schema,
+      Type elementType,
+      RelDataType relDataType,
+      Expression expression,
+      List<T> list) {
+    super(schema.getQueryProvider(), elementType, expression);
+    this.schema = schema;
+    this.relDataType = relDataType;
+    this.list = list;
+  }
 
-    public DataContext getDataContext() {
-        return schema;
-    }
+  public DataContext getDataContext() {
+    return schema;
+  }
 
-    public RelDataType getRowType() {
-        return relDataType;
-    }
+  public RelDataType getRowType() {
+    return relDataType;
+  }
 
-    @Override
-    public Enumerator<T> enumerator() {
-        return Linq4j.enumerator(list);
-    }
+  @Override
+  public Enumerator<T> enumerator() {
+    return Linq4j.enumerator(list);
+  }
 
-    public Statistic getStatistic() {
-        return Statistics.of(list.size(), Collections.<BitSet>emptyList());
-    }
+  public Statistic getStatistic() {
+    return Statistics.of(list.size(), Collections.<BitSet>emptyList());
+  }
 }
 
 // End ListTable.java

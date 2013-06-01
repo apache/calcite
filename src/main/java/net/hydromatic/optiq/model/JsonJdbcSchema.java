@@ -23,16 +23,16 @@ package net.hydromatic.optiq.model;
  * @see JsonRoot Description of JSON schema elements
  */
 public class JsonJdbcSchema extends JsonSchema {
-    public String jdbcUrl;
-    public String jdbcUser;
-    public String jdbcPassword;
-    public String jdbcCatalog;
-    public String jdbcSchema;
+  public String jdbcUrl;
+  public String jdbcUser;
+  public String jdbcPassword;
+  public String jdbcCatalog;
+  public String jdbcSchema;
 
-    @Override
-    public void accept(ModelHandler handler) {
-        handler.visit(this);
-    }
+  @Override
+  public void accept(ModelHandler handler) {
+    handler.visit(this);
+  }
 }
 
 // End JsonJdbcSchema.java

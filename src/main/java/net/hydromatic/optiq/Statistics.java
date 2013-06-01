@@ -25,35 +25,35 @@ import java.util.*;
  * Utility functions regarding {@link Statistic}.
  */
 public class Statistics {
-    /** Returns a {@link Statistic} that knows nothing about a table. */
-    public static final Statistic UNKNOWN =
-        new Statistic() {
-            public Double getRowCount() {
-                return null;
-            }
+  /** Returns a {@link Statistic} that knows nothing about a table. */
+  public static final Statistic UNKNOWN =
+      new Statistic() {
+        public Double getRowCount() {
+          return null;
+        }
 
-            public boolean isKey(BitSet columns) {
-                return false;
-            }
-        };
+        public boolean isKey(BitSet columns) {
+          return false;
+        }
+      };
 
-    /** Returns a statistic with a given row count and set of unique keys. */
-    public static Statistic of(final double rowCount, final List<BitSet> keys) {
-        return new Statistic() {
-            public Double getRowCount() {
-                return rowCount;
-            }
+  /** Returns a statistic with a given row count and set of unique keys. */
+  public static Statistic of(final double rowCount, final List<BitSet> keys) {
+    return new Statistic() {
+      public Double getRowCount() {
+        return rowCount;
+      }
 
-            public boolean isKey(BitSet columns) {
-                for (BitSet key : keys) {
-                    if (Util.isSupersetOf(columns, key)) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        };
-    }
+      public boolean isKey(BitSet columns) {
+        for (BitSet key : keys) {
+          if (Util.isSupersetOf(columns, key)) {
+            return true;
+          }
+        }
+        return false;
+      }
+    };
+  }
 }
 
 // End Statistics.java

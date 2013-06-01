@@ -74,18 +74,18 @@ import java.util.Map;
  * public default constructor.</p>
  */
 public interface TableFactory<T extends Table> {
-    /** Creates a Table.
-     *
-     * @param schema Schema this table belongs to
-     * @param name Name of this table
-     * @param operand The "operand" JSON property
-     * @param rowType Row type. Specified if the "columns" JSON property.
-     */
-    T create(
-        Schema schema,
-        String name,
-        Map<String, Object> operand,
-        RelDataType rowType);
+  /** Creates a Table.
+   *
+   * @param schema Schema this table belongs to
+   * @param name Name of this table
+   * @param operand The "operand" JSON property
+   * @param rowType Row type. Specified if the "columns" JSON property.
+   */
+  T create(
+      Schema schema,
+      String name,
+      Map<String, Object> operand,
+      RelDataType rowType);
 }
 
 // End TableFactory.java

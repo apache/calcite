@@ -24,18 +24,16 @@ import net.hydromatic.linq4j.Queryable;
 
 /**
  * Implementation of {@link QueryProvider} that talks to JDBC databases.
- *
- * @author jhyde
  */
 public final class JdbcQueryProvider extends QueryProviderImpl {
-    public static JdbcQueryProvider INSTANCE = new JdbcQueryProvider();
+  public static JdbcQueryProvider INSTANCE = new JdbcQueryProvider();
 
-    private JdbcQueryProvider() {
-    }
+  private JdbcQueryProvider() {
+  }
 
-    public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
-        return null;
-    }
+  public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
+    return null;
+  }
 }
 
 // End JdbcQueryProvider.java

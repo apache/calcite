@@ -23,48 +23,46 @@ import net.hydromatic.linq4j.Enumerator;
  * Implementation of {@link Cursor} on top of an
  * {@link net.hydromatic.linq4j.Enumerator} that
  * returns an array of {@link Object} for each row.
- *
- * @author jhyde
  */
 public class ArrayEnumeratorCursor extends AbstractCursor {
-    private final Enumerator<Object[]> enumerator;
+  private final Enumerator<Object[]> enumerator;
 
-    /**
-     * Creates an ArrayEnumeratorCursor.
-     *
-     * @param enumerator Enumerator
-     */
-    public ArrayEnumeratorCursor(Enumerator<Object[]> enumerator) {
-        this.enumerator = enumerator;
+  /**
+   * Creates an ArrayEnumeratorCursor.
+   *
+   * @param enumerator Enumerator
+   */
+  public ArrayEnumeratorCursor(Enumerator<Object[]> enumerator) {
+    this.enumerator = enumerator;
+  }
+
+  @Override
+  protected Getter createGetter(int ordinal) {
+    return new ArrayEnumeratorGetter(ordinal);
+  }
+
+  @Override
+  public boolean next() {
+    return enumerator.moveNext();
+  }
+
+  class ArrayEnumeratorGetter implements Getter {
+    protected final int field;
+
+    public ArrayEnumeratorGetter(int field) {
+      this.field = field;
     }
 
-    @Override
-    protected Getter createGetter(int ordinal) {
-        return new ArrayEnumeratorGetter(ordinal);
+    public Object getObject() {
+      Object o = enumerator.current()[field];
+      wasNull[0] = (o == null);
+      return o;
     }
 
-    @Override
-    public boolean next() {
-        return enumerator.moveNext();
+    public boolean wasNull() {
+      return wasNull[0];
     }
-
-    class ArrayEnumeratorGetter implements Getter {
-        protected final int field;
-
-        public ArrayEnumeratorGetter(int field) {
-            this.field = field;
-        }
-
-        public Object getObject() {
-            Object o = enumerator.current()[field];
-            wasNull[0] = (o == null);
-            return o;
-        }
-
-        public boolean wasNull() {
-            return wasNull[0];
-        }
-    }
+  }
 }
 
 // End ArrayEnumeratorCursor.java

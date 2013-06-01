@@ -23,37 +23,37 @@ import org.eigenbase.relopt.*;
 /**
  * Family of calling conventions that return results as an
  * {@link net.hydromatic.linq4j.Enumerable}.
-*/
+ */
 public enum EnumerableConvention implements Convention {
-    /** Convention that returns result as an Enumerable, each record as an array
-     * of objects. Records of 0 and 1 fields are represented as empty lists
-     * and scalars, respectively. */
-    ARRAY(JavaRowFormat.ARRAY),
+  /** Convention that returns result as an Enumerable, each record as an array
+   * of objects. Records of 0 and 1 fields are represented as empty lists
+   * and scalars, respectively. */
+  ARRAY(JavaRowFormat.ARRAY),
 
-    /** Convention that returns result as an Enumerable, each record as an
-     * object that has one data member for each column. Records of 0 and 1
-     * fields are represented as empty lists and scalars, respectively. */
-    CUSTOM(JavaRowFormat.CUSTOM);
+  /** Convention that returns result as an Enumerable, each record as an
+   * object that has one data member for each column. Records of 0 and 1
+   * fields are represented as empty lists and scalars, respectively. */
+  CUSTOM(JavaRowFormat.CUSTOM);
 
-    private final String name;
-    public final JavaRowFormat format;
+  private final String name;
+  public final JavaRowFormat format;
 
-    EnumerableConvention(JavaRowFormat format) {
-        this.format = format;
-        this.name = "ENUMERABLE_" + name();
-    }
+  EnumerableConvention(JavaRowFormat format) {
+    this.format = format;
+    this.name = "ENUMERABLE_" + name();
+  }
 
-    public Class getInterface() {
-        return EnumerableRel.class;
-    }
+  public Class getInterface() {
+    return EnumerableRel.class;
+  }
 
-    public String getName() {
-        return name;
-    }
+  public String getName() {
+    return name;
+  }
 
-    public RelTraitDef getTraitDef() {
-        return ConventionTraitDef.instance;
-    }
+  public RelTraitDef getTraitDef() {
+    return ConventionTraitDef.instance;
+  }
 }
 
 // End EnumerableConvention.java

@@ -51,8 +51,7 @@ public class MongoSchema extends MapSchema {
       Schema parentSchema,
       String host,
       String database,
-      Expression expression)
-  {
+      Expression expression) {
     super(parentSchema, expression);
     try {
       MongoClient mongo = new MongoClient(host);

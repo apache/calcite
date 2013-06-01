@@ -23,46 +23,46 @@ import junit.framework.TestCase;
  * Tests for the {@link net.hydromatic.optiq.impl.jdbc} package.
  */
 public class JdbcAdapterTest extends TestCase {
-    public void testUnionPlan() {
-        OptiqAssert.assertThat()
-            .withModel(JdbcTest.FOODMART_MODEL)
-            .query(
-                "select * from sales_fact_1997\n"
-                + "union all\n"
-                + "select * from sales_fact_1998")
-            .explainContains(
-                "PLAN=JdbcToEnumerableConverter\n"
-                + "  JdbcUnionRel(all=[true])\n"
-                + "    JdbcTableScan(table=[[foodmart, SALES_FACT_1997]])\n"
-                + "    JdbcTableScan(table=[[foodmart, SALES_FACT_1998]])")
-            .planHasSql(
-                "SELECT * FROM `foodmart`.`SALES_FACT_1997`\n"
-                + "UNION ALL \n"
-                + "SELECT * FROM `foodmart`.`SALES_FACT_1998`")
-            .runs();
-    }
+  public void testUnionPlan() {
+    OptiqAssert.assertThat()
+        .withModel(JdbcTest.FOODMART_MODEL)
+        .query(
+            "select * from sales_fact_1997\n"
+            + "union all\n"
+            + "select * from sales_fact_1998")
+        .explainContains(
+            "PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcUnionRel(all=[true])\n"
+            + "    JdbcTableScan(table=[[foodmart, SALES_FACT_1997]])\n"
+            + "    JdbcTableScan(table=[[foodmart, SALES_FACT_1998]])")
+        .planHasSql(
+            "SELECT * FROM `foodmart`.`SALES_FACT_1997`\n"
+            + "UNION ALL \n"
+            + "SELECT * FROM `foodmart`.`SALES_FACT_1998`")
+        .runs();
+  }
 
-    public void testFilterUnionPlan() {
-        OptiqAssert.assertThat()
-            .withModel(JdbcTest.FOODMART_MODEL)
-            .query(
-                "select * from (\n"
-                + "  select * from sales_fact_1997\n"
-                + "  union all\n"
-                + "  select * from sales_fact_1998)\n"
-                + "where \"product_id\" = 1")
-            .planHasSql(
-                "SELECT *\n"
-                + "FROM (\n"
-                + "    SELECT * FROM `foodmart`.`SALES_FACT_1997`) AS `t`\n"
-                + "WHERE `product_id` = 1\n"
-                + "UNION ALL \n"
-                + "SELECT *\n"
-                + "FROM (\n"
-                + "    SELECT * FROM `foodmart`.`SALES_FACT_1998`) AS `t`\n"
-                + "WHERE `product_id` = 1")
-            .runs();
-    }
+  public void testFilterUnionPlan() {
+    OptiqAssert.assertThat()
+        .withModel(JdbcTest.FOODMART_MODEL)
+        .query(
+            "select * from (\n"
+            + "  select * from sales_fact_1997\n"
+            + "  union all\n"
+            + "  select * from sales_fact_1998)\n"
+            + "where \"product_id\" = 1")
+        .planHasSql(
+            "SELECT *\n"
+            + "FROM (\n"
+            + "    SELECT * FROM `foodmart`.`SALES_FACT_1997`) AS `t`\n"
+            + "WHERE `product_id` = 1\n"
+            + "UNION ALL \n"
+            + "SELECT *\n"
+            + "FROM (\n"
+            + "    SELECT * FROM `foodmart`.`SALES_FACT_1998`) AS `t`\n"
+            + "WHERE `product_id` = 1")
+        .runs();
+  }
 }
 
 // End JdbcAdapterTest.java

@@ -24,9 +24,9 @@ package net.hydromatic.optiq.server;
  * management facilities.
  */
 public interface OptiqServer {
-    void removeStatement(OptiqServerStatement optiqServerStatement);
+  void removeStatement(OptiqServerStatement optiqServerStatement);
 
-    void addStatement(OptiqServerStatement optiqServerStatement);
+  void addStatement(OptiqServerStatement optiqServerStatement);
 }
 
 // End OptiqServer.java

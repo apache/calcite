@@ -35,62 +35,61 @@ public abstract class AbstractTable<T>
     extends AbstractQueryable<T>
     implements Table<T>
 {
-    protected final Type elementType;
-    private final RelDataType relDataType;
-    protected final Schema schema;
-    protected final String tableName;
+  protected final Type elementType;
+  private final RelDataType relDataType;
+  protected final Schema schema;
+  protected final String tableName;
 
-    protected AbstractTable(
-        Schema schema,
-        Type elementType,
-        RelDataType relDataType,
-        String tableName)
-    {
-        this.schema = schema;
-        this.elementType = elementType;
-        this.relDataType = relDataType;
-        this.tableName = tableName;
-        assert schema != null;
-        assert relDataType != null;
-        assert elementType != null;
-        assert tableName != null;
-    }
+  protected AbstractTable(
+      Schema schema,
+      Type elementType,
+      RelDataType relDataType,
+      String tableName) {
+    this.schema = schema;
+    this.elementType = elementType;
+    this.relDataType = relDataType;
+    this.tableName = tableName;
+    assert schema != null;
+    assert relDataType != null;
+    assert elementType != null;
+    assert tableName != null;
+  }
 
-    public QueryProvider getProvider() {
-        return schema.getQueryProvider();
-    }
+  public QueryProvider getProvider() {
+    return schema.getQueryProvider();
+  }
 
-    public DataContext getDataContext() {
-        return schema;
-    }
+  public DataContext getDataContext() {
+    return schema;
+  }
 
-    // Default implementation. Override if you have statistics.
-    public Statistic getStatistic() {
-        return Statistics.UNKNOWN;
-    }
+  // Default implementation. Override if you have statistics.
+  public Statistic getStatistic() {
+    return Statistics.UNKNOWN;
+  }
 
-    public Type getElementType() {
-        return elementType;
-    }
+  public Type getElementType() {
+    return elementType;
+  }
 
-    public RelDataType getRowType() {
-        return relDataType;
-    }
+  public RelDataType getRowType() {
+    return relDataType;
+  }
 
-    public Expression getExpression() {
-        return Expressions.call(
-            schema.getExpression(),
-            BuiltinMethod.DATA_CONTEXT_GET_TABLE.method,
-            Expressions.<Expression>list()
-                .append(Expressions.constant(tableName))
-                .appendIf(
-                    elementType instanceof Class,
-                    Expressions.constant(elementType)));
-    }
+  public Expression getExpression() {
+    return Expressions.call(
+        schema.getExpression(),
+        BuiltinMethod.DATA_CONTEXT_GET_TABLE.method,
+        Expressions.<Expression>list()
+            .append(Expressions.constant(tableName))
+            .appendIf(
+                elementType instanceof Class,
+                Expressions.constant(elementType)));
+  }
 
-    public Iterator<T> iterator() {
-        return Linq4j.enumeratorIterator(enumerator());
-    }
+  public Iterator<T> iterator() {
+    return Linq4j.enumeratorIterator(enumerator());
+  }
 }
 
 // End AbstractTable.java

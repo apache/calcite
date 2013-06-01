@@ -23,31 +23,31 @@ import org.eigenbase.reltype.RelRecordType;
 import java.util.List;
 
 /**
-* Record type based on a Java class. The fields of the type are the fields
+ * Record type based on a Java class. The fields of the type are the fields
  * of the class.
  *
  * <p><strong>NOTE: This class is experimental and subject to
  * change/removal without notice</strong>.</p>
-*/
+ */
 public class JavaRecordType extends RelRecordType {
-    final Class clazz;
+  final Class clazz;
 
-    public JavaRecordType(List<RelDataTypeField> fields, Class clazz) {
-        super(fields);
-        this.clazz = clazz;
-        assert clazz != null;
-    }
+  public JavaRecordType(List<RelDataTypeField> fields, Class clazz) {
+    super(fields);
+    this.clazz = clazz;
+    assert clazz != null;
+  }
 
-    @Override public boolean equals(Object obj) {
-        return this == obj
-            || obj instanceof JavaRecordType
-            && fieldList.equals(((JavaRecordType) obj).fieldList)
-            && clazz == ((JavaRecordType) obj).clazz;
-    }
+  @Override public boolean equals(Object obj) {
+    return this == obj
+        || obj instanceof JavaRecordType
+        && fieldList.equals(((JavaRecordType) obj).fieldList)
+        && clazz == ((JavaRecordType) obj).clazz;
+  }
 
-    @Override public int hashCode() {
-        return fieldList.hashCode() ^ clazz.hashCode();
-    }
+  @Override public int hashCode() {
+    return fieldList.hashCode() ^ clazz.hashCode();
+  }
 }
 
 // End JavaRecordType.java

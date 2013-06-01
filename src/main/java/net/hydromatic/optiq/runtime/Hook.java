@@ -29,57 +29,57 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * <p>For testing and debugging rather than for end-users.</p>
  */
 public enum Hook {
-    /** Called with the generated Java plan, just before it is compiled by
-     * Janino. */
-    JAVA_PLAN;
+  /** Called with the generated Java plan, just before it is compiled by
+   * Janino. */
+  JAVA_PLAN;
 
-    private final List<Function1<Object, Object>> handlers =
-        new CopyOnWriteArrayList<Function1<Object, Object>>();
+  private final List<Function1<Object, Object>> handlers =
+      new CopyOnWriteArrayList<Function1<Object, Object>>();
 
-    /** Adds a handler for this Hook.
-     *
-     * <p>Returns a {@link Hook.Closeable} so that you can use the following
-     * try-finally pattern to prevent leaks:</p>
-     *
-     * <blockquote><pre>
-     *     final Hook.Closeable closeable = Hook.FOO.add(HANDLER);
-     *     try {
-     *         ...
-     *     } finally {
-     *         closeable.close();
-     *     }</pre>
-     * </blockquote>
-     */
-    public Closeable add(final Function1<Object, Object> handler) {
-        handlers.add(handler);
-        return new Closeable() {
-            public void close() {
-                remove(handler);
-            }
-        };
+  /** Adds a handler for this Hook.
+   *
+   * <p>Returns a {@link Hook.Closeable} so that you can use the following
+   * try-finally pattern to prevent leaks:</p>
+   *
+   * <blockquote><pre>
+   *     final Hook.Closeable closeable = Hook.FOO.add(HANDLER);
+   *     try {
+   *         ...
+   *     } finally {
+   *         closeable.close();
+   *     }</pre>
+   * </blockquote>
+   */
+  public Closeable add(final Function1<Object, Object> handler) {
+    handlers.add(handler);
+    return new Closeable() {
+      public void close() {
+        remove(handler);
+      }
+    };
+  }
+
+  /** Removes a handler from this Hook. */
+  private boolean remove(Function1 handler) {
+    return handlers.remove(handler);
+  }
+
+  /** Runs all handlers registered for this Hook, with the given argument. */
+  public void run(Object arg) {
+    for (Function1<Object, Object> handler : handlers) {
+      handler.apply(arg);
     }
+  }
 
-    /** Removes a handler from this Hook. */
-    private boolean remove(Function1 handler) {
-        return handlers.remove(handler);
-    }
-
-    /** Runs all handlers registered for this Hook, with the given argument. */
-    public void run(Object arg) {
-        for (Function1<Object, Object> handler : handlers) {
-            handler.apply(arg);
-        }
-    }
-
-    /** Removes a Hook after use.
-     *
-     * <p>Note: Although it would be convenient, this interface cannot extend
-     * {@code AutoCloseable} while Optiq maintains compatibility with
-     * JDK 1.6.</p>
-     */
-    public interface Closeable /*extends AutoCloseable*/ {
-        void close(); // override, removing "throws"
-    }
+  /** Removes a Hook after use.
+   *
+   * <p>Note: Although it would be convenient, this interface cannot extend
+   * {@code AutoCloseable} while Optiq maintains compatibility with
+   * JDK 1.6.</p>
+   */
+  public interface Closeable /*extends AutoCloseable*/ {
+    void close(); // override, removing "throws"
+  }
 }
 
 // End Hook.java

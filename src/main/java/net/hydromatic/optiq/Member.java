@@ -49,39 +49,39 @@ import java.util.List;
  * arguments, it is "evaluated" each time it is used in a query.</p>
  */
 public interface Member {
-    /**
-     * The name of this function.
-     */
-    String getName();
+  /**
+   * The name of this function.
+   */
+  String getName();
 
-    /**
-     * Returns the parameters of this member.
-     *
-     * @return Parameters; never null
-     */
-    List<Parameter> getParameters();
+  /**
+   * Returns the parameters of this member.
+   *
+   * @return Parameters; never null
+   */
+  List<Parameter> getParameters();
 
-    /**
-     * Returns the type of this function's result.
-     *
-     * @return Type of result; never null
-     */
-    RelDataType getType();
+  /**
+   * Returns the type of this function's result.
+   *
+   * @return Type of result; never null
+   */
+  RelDataType getType();
 
-    /**
-     * Evaluates this member to yield a result. The result is a
-     * {@link net.hydromatic.linq4j.Queryable}.
-     *
-     * @param schemaInstance Object that is an instance of the containing
-     *                       {@link net.hydromatic.optiq.Schema}
-     * @param arguments List of arguments to the call; must match
-     *                  {@link #getParameters() parameters} in number and type
-     *
-     * @return An instance of this schema object, as a Queryable
-     */
-    Queryable evaluate(
-        Object schemaInstance,
-        List<Object> arguments);
+  /**
+   * Evaluates this member to yield a result. The result is a
+   * {@link net.hydromatic.linq4j.Queryable}.
+   *
+   * @param schemaInstance Object that is an instance of the containing
+   *                       {@link net.hydromatic.optiq.Schema}
+   * @param arguments List of arguments to the call; must match
+   *                  {@link #getParameters() parameters} in number and type
+   *
+   * @return An instance of this schema object, as a Queryable
+   */
+  Queryable evaluate(
+      Object schemaInstance,
+      List<Object> arguments);
 }
 
 // End Member.java

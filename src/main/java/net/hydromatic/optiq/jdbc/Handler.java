@@ -27,35 +27,35 @@ import java.sql.SQLException;
  * need to achieve special effects.</p>
  */
 public interface Handler {
-    /** Called when a connection is being created. If it throws, the connection
-     * will not be created.
-     *
-     * @param connection Connection
-     * @throws SQLException on error
-     */
-    void onConnectionInit(OptiqConnection connection) throws SQLException;
+  /** Called when a connection is being created. If it throws, the connection
+   * will not be created.
+   *
+   * @param connection Connection
+   * @throws SQLException on error
+   */
+  void onConnectionInit(OptiqConnection connection) throws SQLException;
 
-    /** Called by Optiq server when a statement is being executed.
-     *
-     * <p>If the session would like the statement results stored in a temporary
-     * table, {@code resultSink} is not null.
-     * The provider must call its {@link ResultSink#toBeCompleted}
-     * method at some point during execution (not necessarily before the call to
-     * this method returns).</p>
-     *
-     * @param statement Statement
-     * @param resultSink Place to put result of query. Null if Optiq does not
-     *                   want results stored to a temporary table
-     * @throws RuntimeException on error
-     */
-    void onStatementExecute(
-        OptiqStatement statement,
-        ResultSink resultSink) throws RuntimeException;
+  /** Called by Optiq server when a statement is being executed.
+   *
+   * <p>If the session would like the statement results stored in a temporary
+   * table, {@code resultSink} is not null.
+   * The provider must call its {@link ResultSink#toBeCompleted}
+   * method at some point during execution (not necessarily before the call to
+   * this method returns).</p>
+   *
+   * @param statement Statement
+   * @param resultSink Place to put result of query. Null if Optiq does not
+   *                   want results stored to a temporary table
+   * @throws RuntimeException on error
+   */
+  void onStatementExecute(
+      OptiqStatement statement,
+      ResultSink resultSink) throws RuntimeException;
 
-    interface ResultSink {
-        /** Registers a temporary table. */
-        void toBeCompleted();
-    }
+  interface ResultSink {
+    /** Registers a temporary table. */
+    void toBeCompleted();
+  }
 }
 
 // End Handler.java

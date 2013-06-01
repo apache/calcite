@@ -34,9 +34,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(value = JsonJdbcSchema.class, name = "jdbc"),
     @JsonSubTypes.Type(value = JsonCustomSchema.class, name = "custom")})
 public abstract class JsonSchema {
-    public String name;
+  public String name;
 
-    public abstract void accept(ModelHandler handler);
+  public abstract void accept(ModelHandler handler);
 }
 
 // End JsonSchema.java

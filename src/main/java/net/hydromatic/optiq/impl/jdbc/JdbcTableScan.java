@@ -30,39 +30,38 @@ import java.util.List;
  * Relational expression representing a scan of a table in a JDBC data source.
  */
 public class JdbcTableScan extends TableAccessRelBase implements JdbcRel {
-    final JdbcTable jdbcTable;
+  final JdbcTable jdbcTable;
 
-    protected JdbcTableScan(
-        RelOptCluster cluster,
-        RelOptTable table,
-        JdbcTable jdbcTable,
-        JdbcConvention jdbcConvention)
-    {
-        super(cluster, cluster.traitSetOf(jdbcConvention), table);
-        this.jdbcTable = jdbcTable;
-        assert jdbcTable != null;
-    }
+  protected JdbcTableScan(
+      RelOptCluster cluster,
+      RelOptTable table,
+      JdbcTable jdbcTable,
+      JdbcConvention jdbcConvention) {
+    super(cluster, cluster.traitSetOf(jdbcConvention), table);
+    this.jdbcTable = jdbcTable;
+    assert jdbcTable != null;
+  }
 
-    @Override
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert inputs.isEmpty();
-        return new JdbcTableScan(
-            getCluster(), table, jdbcTable, (JdbcConvention) getConvention());
-    }
+  @Override
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert inputs.isEmpty();
+    return new JdbcTableScan(
+        getCluster(), table, jdbcTable, (JdbcConvention) getConvention());
+  }
 
-    @Override
-    public void register(RelOptPlanner planner) {
-        final JdbcConvention out = (JdbcConvention) getConvention();
-        for (RelOptRule rule : JdbcRules.rules(out)) {
-            planner.addRule(rule);
-        }
-        planner.addRule(PushFilterPastSetOpRule.instance);
-        planner.addRule(RemoveTrivialProjectRule.instance);
+  @Override
+  public void register(RelOptPlanner planner) {
+    final JdbcConvention out = (JdbcConvention) getConvention();
+    for (RelOptRule rule : JdbcRules.rules(out)) {
+      planner.addRule(rule);
     }
+    planner.addRule(PushFilterPastSetOpRule.instance);
+    planner.addRule(RemoveTrivialProjectRule.instance);
+  }
 
-    public SqlString implement(JdbcImplementor implementor) {
-        return jdbcTable.generateSql();
-    }
+  public SqlString implement(JdbcImplementor implementor) {
+    return jdbcTable.generateSql();
+  }
 }
 
 // End JdbcTableScan.java

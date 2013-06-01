@@ -21,10 +21,10 @@ package net.hydromatic.optiq.jdbc;
  * Implementation of {@link Factory} for JDBC 4.0 (corresponds to JDK 1.6).
  */
 public class FactoryJdbc4Impl extends FactoryJdbc41 {
-    /** Creates a JDBC factory. */
-    FactoryJdbc4Impl() {
-        super(4, 0);
-    }
+  /** Creates a JDBC factory. */
+  FactoryJdbc4Impl() {
+    super(4, 0);
+  }
 }
 
 // End FactoryJdbc4Impl.java

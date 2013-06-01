@@ -29,34 +29,32 @@ import org.eigenbase.util.Util;
 
 /**
  * Tests for a linq4j front-end and JDBC back-end.
- *
- * @author jhyde
  */
 public class LinqFrontJdbcBackTest extends TestCase {
-    public void testTableWhere() {
-        try {
-            final OptiqConnection connection =
-                JdbcTest.getConnection(null, false);
-            Schema schema =
-                connection.getRootSchema().getSubSchema("foodmart");
-            ParameterExpression c =
-                Expressions.parameter(
-                    JdbcTest.Customer.class, "c");
-            String s =
-                schema.getTable("customer", JdbcTest.Customer.class)
-                    .where(
-                        Expressions.<Predicate1<JdbcTest.Customer>>lambda(
-                            Expressions.lessThan(
-                                Expressions.field(c, "customer_id"),
-                                Expressions.constant(5)),
-                            c))
-                    .toList()
-                    .toString();
-            Util.discard(s);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+  public void testTableWhere() {
+    try {
+      final OptiqConnection connection =
+          JdbcTest.getConnection(null, false);
+      Schema schema =
+          connection.getRootSchema().getSubSchema("foodmart");
+      ParameterExpression c =
+          Expressions.parameter(
+              JdbcTest.Customer.class, "c");
+      String s =
+          schema.getTable("customer", JdbcTest.Customer.class)
+              .where(
+                  Expressions.<Predicate1<JdbcTest.Customer>>lambda(
+                      Expressions.lessThan(
+                          Expressions.field(c, "customer_id"),
+                          Expressions.constant(5)),
+                      c))
+              .toList()
+              .toString();
+      Util.discard(s);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
+  }
 }
 
 // End LinqFrontJdbcBackTest.java

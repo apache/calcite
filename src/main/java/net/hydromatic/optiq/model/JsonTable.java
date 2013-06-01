@@ -36,10 +36,10 @@ import java.util.List;
     @JsonSubTypes.Type(value = JsonCustomTable.class, name = "custom"),
     @JsonSubTypes.Type(value = JsonView.class, name = "view")})
 public abstract class JsonTable {
-    public String name;
-    public final List<JsonColumn> columns = new ArrayList<JsonColumn>();
+  public String name;
+  public final List<JsonColumn> columns = new ArrayList<JsonColumn>();
 
-    public abstract void accept(ModelHandler handler);
+  public abstract void accept(ModelHandler handler);
 }
 
 // End JsonTable.java

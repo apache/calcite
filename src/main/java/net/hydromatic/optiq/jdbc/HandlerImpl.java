@@ -25,17 +25,15 @@ import java.sql.SQLException;
  * class, to ensure forward compatibility.
  */
 public class HandlerImpl implements Handler {
-    public void onConnectionInit(OptiqConnection connection)
-        throws SQLException
-    {
-        // nothing
-    }
+  public void onConnectionInit(OptiqConnection connection)
+      throws SQLException {
+    // nothing
+  }
 
-    public void onStatementExecute(
-        OptiqStatement statement, ResultSink resultSink) throws RuntimeException
-    {
-        // nothing
-    }
+  public void onStatementExecute(
+      OptiqStatement statement, ResultSink resultSink) throws RuntimeException {
+    // nothing
+  }
 }
 
 // End HandlerImpl.java

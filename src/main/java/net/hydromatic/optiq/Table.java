@@ -28,12 +28,12 @@ import org.eigenbase.reltype.RelDataType;
  * @see TableFunction
  */
 public interface Table<T> extends Queryable<T> {
-    DataContext getDataContext();
+  DataContext getDataContext();
 
-    RelDataType getRowType();
+  RelDataType getRowType();
 
-    /** Returns a provider of statistics about this table. */
-    Statistic getStatistic();
+  /** Returns a provider of statistics about this table. */
+  Statistic getStatistic();
 }
 
 // End Table.java

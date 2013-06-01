@@ -26,21 +26,21 @@ import java.util.List;
  * @see JsonRoot Description of schema elements
  */
 public class JsonView extends JsonTable {
-    /** SQL query that is the definition of the view. */
-    public String sql;
+  /** SQL query that is the definition of the view. */
+  public String sql;
 
-    /** Schema name(s) to use when resolving query. If not specified, defaults
-     * to current schema. */
-    public List<String> path;
+  /** Schema name(s) to use when resolving query. If not specified, defaults
+   * to current schema. */
+  public List<String> path;
 
-    public void accept(ModelHandler handler) {
-        handler.visit(this);
-    }
+  public void accept(ModelHandler handler) {
+    handler.visit(this);
+  }
 
-    @Override
-    public String toString() {
-        return "JsonView(name=" + name + ")";
-    }
+  @Override
+  public String toString() {
+    return "JsonView(name=" + name + ")";
+  }
 }
 
 // End JsonView.java

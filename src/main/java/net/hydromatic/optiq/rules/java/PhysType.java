@@ -37,73 +37,73 @@ import java.util.List;
  * type.</p>
  */
 public interface PhysType {
-    /** Returns the Java type (often a Class) that represents a row. For
-     * example, in one row format, always returns {@code Object[].class}. */
-    Type getJavaRowType();
+  /** Returns the Java type (often a Class) that represents a row. For
+   * example, in one row format, always returns {@code Object[].class}. */
+  Type getJavaRowType();
 
-    /** Returns the SQL row type. */
-    RelDataType getRowType();
+  /** Returns the SQL row type. */
+  RelDataType getRowType();
 
-    /** Returns the Java class of the field with the given ordinal. */
-    Class fieldClass(int field);
+  /** Returns the Java class of the field with the given ordinal. */
+  Class fieldClass(int field);
 
-    /** Returns whether a given field allows null values. */
-    boolean fieldNullable(int index);
+  /** Returns whether a given field allows null values. */
+  boolean fieldNullable(int index);
 
-    /** Generates a reference to a given field in an expression.
-     *
-     * <p>For example given {@code expression=employee} and {@code field=2},
-     * generates</p>
-     * <pre>{@code employee.deptno}</pre>
-     *
-     * @param expression Expression
-     * @param field Ordinal of field
-     * @return Expression to access the field of the expression
-     */
-    Expression fieldReference(Expression expression, int field);
+  /** Generates a reference to a given field in an expression.
+   *
+   * <p>For example given {@code expression=employee} and {@code field=2},
+   * generates</p>
+   * <pre>{@code employee.deptno}</pre>
+   *
+   * @param expression Expression
+   * @param field Ordinal of field
+   * @return Expression to access the field of the expression
+   */
+  Expression fieldReference(Expression expression, int field);
 
-    /** Generates an accessor function for a given list of fields.
-     *
-     * <p>For example:</p>
-     * <pre>{@code
-     * new Function1<Employee, Object[]> {
-     *    public Object[] apply(Employee v1) {
-     *        return new Object[] {v1.<fieldN>, v1.<fieldM>};
-     *    }
-     * }
-     * }</pre>
-     */
-    Expression generateAccessor(List<Integer> fields);
+  /** Generates an accessor function for a given list of fields.
+   *
+   * <p>For example:</p>
+   * <pre>{@code
+   * new Function1<Employee, Object[]> {
+   *    public Object[] apply(Employee v1) {
+   *        return new Object[] {v1.<fieldN>, v1.<fieldM>};
+   *    }
+   * }
+   * }</pre>
+   */
+  Expression generateAccessor(List<Integer> fields);
 
-    /** Generates a selector with the default row format. */
-    Expression generateSelector(
-        ParameterExpression parameter,
-        List<Integer> fields);
+  /** Generates a selector with the default row format. */
+  Expression generateSelector(
+      ParameterExpression parameter,
+      List<Integer> fields);
 
-    /** Projects a given collection of fields from this input record, into
-     * a particular preferred output format. The output format is optimized
-     * if there are 0 or 1 fields. */
-    PhysType project(
-        List<Integer> integers,
-        JavaRowFormat format);
+  /** Projects a given collection of fields from this input record, into
+   * a particular preferred output format. The output format is optimized
+   * if there are 0 or 1 fields. */
+  PhysType project(
+      List<Integer> integers,
+      JavaRowFormat format);
 
-    /** Returns a lambda to create a collation key and a comparator. The
-     * comparator is sometimes null. */
-    Pair<Expression, Expression> generateCollationKey(
-        List<RelFieldCollation> collations);
+  /** Returns a lambda to create a collation key and a comparator. The
+   * comparator is sometimes null. */
+  Pair<Expression, Expression> generateCollationKey(
+      List<RelFieldCollation> collations);
 
-    /** Returns a expression that yields a comparer, or null if this type
-     * is comparable. */
-    Expression comparer();
+  /** Returns a expression that yields a comparer, or null if this type
+   * is comparable. */
+  Expression comparer();
 
-    /** Generates an expression that creates a record for a row, initializing
-     * its fields with the given expressions. There must be one expression per
-     * field.
-     *
-     * @param expressions Expression to initialize each field
-     * @return Expression to create a row
-     */
-    Expression record(List<Expression> expressions);
+  /** Generates an expression that creates a record for a row, initializing
+   * its fields with the given expressions. There must be one expression per
+   * field.
+   *
+   * @param expressions Expression to initialize each field
+   * @return Expression to create a row
+   */
+  Expression record(List<Expression> expressions);
 }
 
 // End PhysType.java

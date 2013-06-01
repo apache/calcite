@@ -29,95 +29,93 @@ import java.util.Map;
 /**
  * Interface to an iteration that is similar to, and can easily support,
  * a JDBC {@link ResultSet}, but is simpler to implement.
- *
- * @author jhyde
  */
 public interface Cursor {
-    /**
-     * Creates a list of accessors, one per column.
-     *
-     * @param types List of column types, per {@link java.sql.Types}.
-     * @return List of column accessors
-     */
-    List<Accessor> createAccessors(List<ColumnMetaData> types);
+  /**
+   * Creates a list of accessors, one per column.
+   *
+   * @param types List of column types, per {@link java.sql.Types}.
+   * @return List of column accessors
+   */
+  List<Accessor> createAccessors(List<ColumnMetaData> types);
 
-    /**
-     * Moves to the next row.
-     *
-     * @return Whether moved
-     */
-    boolean next();
+  /**
+   * Moves to the next row.
+   *
+   * @return Whether moved
+   */
+  boolean next();
 
-    /**
-     * Accessor of a column value.
-     */
-    interface Accessor {
-        String getString();
+  /**
+   * Accessor of a column value.
+   */
+  interface Accessor {
+    String getString();
 
-        boolean getBoolean();
+    boolean getBoolean();
 
-        byte getByte();
+    byte getByte();
 
-        short getShort();
+    short getShort();
 
-        int getInt();
+    int getInt();
 
-        long getLong();
+    long getLong();
 
-        float getFloat();
+    float getFloat();
 
-        double getDouble();
+    double getDouble();
 
-        BigDecimal getBigDecimal();
+    BigDecimal getBigDecimal();
 
-        BigDecimal getBigDecimal(int scale);
+    BigDecimal getBigDecimal(int scale);
 
-        byte[] getBytes();
+    byte[] getBytes();
 
-        Date getDate();
+    Date getDate();
 
-        Time getTime();
+    Time getTime();
 
-        Timestamp getTimestamp();
+    Timestamp getTimestamp();
 
-        InputStream getAsciiStream();
+    InputStream getAsciiStream();
 
-        InputStream getUnicodeStream();
+    InputStream getUnicodeStream();
 
-        InputStream getBinaryStream();
+    InputStream getBinaryStream();
 
-        Object getObject();
+    Object getObject();
 
-        Reader getCharacterStream();
+    Reader getCharacterStream();
 
-        Object getObject(Map<String, Class<?>> map);
+    Object getObject(Map<String, Class<?>> map);
 
-        Ref getRef();
+    Ref getRef();
 
-        Blob getBlob();
+    Blob getBlob();
 
-        Clob getClob();
+    Clob getClob();
 
-        Array getArray();
+    Array getArray();
 
-        Date getDate(Calendar cal);
+    Date getDate(Calendar cal);
 
-        Time getTime(Calendar cal);
+    Time getTime(Calendar cal);
 
-        Timestamp getTimestamp(Calendar cal);
+    Timestamp getTimestamp(Calendar cal);
 
-        URL getURL();
+    URL getURL();
 
-        NClob getNClob();
+    NClob getNClob();
 
-        SQLXML getSQLXML();
+    SQLXML getSQLXML();
 
-        String getNString();
+    String getNString();
 
-        Reader getNCharacterStream();
+    Reader getNCharacterStream();
 
-        <T> T getObject(Class<T> type);
-    }
+    <T> T getObject(Class<T> type);
+  }
 }
 
 // End Cursor.java

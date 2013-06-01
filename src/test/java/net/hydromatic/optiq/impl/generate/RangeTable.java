@@ -36,75 +36,72 @@ import java.util.NoSuchElementException;
  * Table that returns a range of integers.
  */
 public class RangeTable extends AbstractTable<Integer> {
-    private final int start;
-    private final int end;
+  private final int start;
+  private final int end;
 
-    protected RangeTable(
-        Schema schema,
-        Type elementType,
-        RelDataType relDataType,
-        String tableName,
-        int start,
-        int end)
-    {
-        super(schema, elementType, relDataType, tableName);
-        this.start = start;
-        this.end = end;
-    }
+  protected RangeTable(
+      Schema schema,
+      Type elementType,
+      RelDataType relDataType,
+      String tableName,
+      int start,
+      int end) {
+    super(schema, elementType, relDataType, tableName);
+    this.start = start;
+    this.end = end;
+  }
 
-    /** Creates a RangeTable. */
-    public static RangeTable create(
-        Schema schema, String tableName, String columnName, int start, int end)
-    {
-        final JavaTypeFactory typeFactory = schema.getTypeFactory();
-        final RelDataType integerType =
-            typeFactory.createSqlType(SqlTypeName.INTEGER);
-        final RelDataType rowType =
-            typeFactory.createStructType(
-                RelDataTypeFactory.FieldInfoBuilder
-                    .of(columnName, integerType));
-        return new RangeTable(
-            schema, Object[].class, rowType, tableName, start, end);
-    }
+  /** Creates a RangeTable. */
+  public static RangeTable create(
+      Schema schema, String tableName, String columnName, int start, int end) {
+    final JavaTypeFactory typeFactory = schema.getTypeFactory();
+    final RelDataType integerType =
+        typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType =
+        typeFactory.createStructType(
+            RelDataTypeFactory.FieldInfoBuilder
+                .of(columnName, integerType));
+    return new RangeTable(
+        schema, Object[].class, rowType, tableName, start, end);
+  }
 
-    public Enumerator<Integer> enumerator() {
-        return new Enumerator<Integer>() {
-            int current = start - 1;
+  public Enumerator<Integer> enumerator() {
+    return new Enumerator<Integer>() {
+      int current = start - 1;
 
-            public Integer current() {
-                if (current >= end) {
-                    throw new NoSuchElementException();
-                }
-                return current;
-            }
-
-            public boolean moveNext() {
-                ++current;
-                return current < end;
-            }
-
-            public void reset() {
-                current = start - 1;
-            }
-        };
-    }
-
-    /** Implementation of {@link net.hydromatic.optiq.TableFactory} that allows
-     * a {@link RangeTable} to be included as a custom table in an Optiq model
-     * file. */
-    public static class Factory implements TableFactory<RangeTable> {
-        public RangeTable create(
-            Schema schema,
-            String name,
-            Map<String, Object> operand,
-            RelDataType rowType)
-        {
-            final String columnName = (String) operand.get("column");
-            final int start = (Integer) operand.get("start");
-            final int end = (Integer) operand.get("end");
-            return RangeTable.create(schema, name, columnName, start, end);
+      public Integer current() {
+        if (current >= end) {
+          throw new NoSuchElementException();
         }
+        return current;
+      }
+
+      public boolean moveNext() {
+        ++current;
+        return current < end;
+      }
+
+      public void reset() {
+        current = start - 1;
+      }
+    };
+  }
+
+  /** Implementation of {@link net.hydromatic.optiq.TableFactory} that allows
+   * a {@link RangeTable} to be included as a custom table in an Optiq model
+   * file. */
+  public static class Factory implements TableFactory<RangeTable> {
+    public RangeTable create(
+        Schema schema,
+        String name,
+        Map<String, Object> operand,
+        RelDataType rowType) {
+      final String columnName = (String) operand.get("column");
+      final int start = (Integer) operand.get("start");
+      final int end = (Integer) operand.get("end");
+      return RangeTable.create(schema, name, columnName, start, end);
     }
+  }
 }
 
 // End RangeTable.java

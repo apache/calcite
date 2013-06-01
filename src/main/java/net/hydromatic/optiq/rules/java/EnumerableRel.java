@@ -26,26 +26,24 @@ import org.eigenbase.rel.RelNode;
  * A relational expression of one of the
  * {@link net.hydromatic.optiq.rules.java.EnumerableConvention} calling
  * conventions.
- *
- * @author jhyde
  */
 public interface EnumerableRel
     extends RelNode
 {
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Creates a plan for this expression according to a calling convention.
-     *
-     * @param implementor implementor
-     */
-    BlockExpression implement(EnumerableRelImplementor implementor);
+  /**
+   * Creates a plan for this expression according to a calling convention.
+   *
+   * @param implementor implementor
+   */
+  BlockExpression implement(EnumerableRelImplementor implementor);
 
-    /**
-     * Describes the Java type returned by this relational expression, and the
-     * mapping between it and the fields of the logical row type.
-     */
-    PhysType getPhysType();
+  /**
+   * Describes the Java type returned by this relational expression, and the
+   * mapping between it and the fields of the logical row type.
+   */
+  PhysType getPhysType();
 
 }
 

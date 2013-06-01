@@ -27,13 +27,13 @@ import java.util.BitSet;
  * @see Statistics
  */
 public interface Statistic {
-    /** Returns the approximate number of rows in the table. */
-    Double getRowCount();
+  /** Returns the approximate number of rows in the table. */
+  Double getRowCount();
 
-    /** Returns whether the given set of columns is a unique key, or a superset
-     * of a unique key, of the table.
-     */
-    boolean isKey(BitSet columns);
+  /** Returns whether the given set of columns is a unique key, or a superset
+   * of a unique key, of the table.
+   */
+  boolean isKey(BitSet columns);
 }
 
 // End Statistic.java

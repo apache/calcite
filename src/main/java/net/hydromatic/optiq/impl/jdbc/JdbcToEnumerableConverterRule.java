@@ -30,22 +30,22 @@ import org.eigenbase.relopt.RelTraitSet;
  * {@link EnumerableConvention#ARRAY}.
  */
 public class JdbcToEnumerableConverterRule extends ConverterRule {
-    JdbcToEnumerableConverterRule(JdbcConvention out) {
-        super(
-            RelNode.class,
-            out,
-            EnumerableConvention.ARRAY,
-            "JdbcToEnumerableConverterRule");
-    }
+  JdbcToEnumerableConverterRule(JdbcConvention out) {
+    super(
+        RelNode.class,
+        out,
+        EnumerableConvention.ARRAY,
+        "JdbcToEnumerableConverterRule");
+  }
 
-    @Override
-    public RelNode convert(RelNode rel) {
-        RelTraitSet newTraitSet =
-            rel.getTraitSet().replace(
-                ConventionTraitDef.instance, getOutTrait());
-        return new JdbcToEnumerableConverter(
-            rel.getCluster(), newTraitSet, rel);
-    }
+  @Override
+  public RelNode convert(RelNode rel) {
+    RelTraitSet newTraitSet =
+        rel.getTraitSet().replace(
+            ConventionTraitDef.instance, getOutTrait());
+    return new JdbcToEnumerableConverter(
+        rel.getCluster(), newTraitSet, rel);
+  }
 }
 
 // End JdbcToEnumerableConverterRule.java

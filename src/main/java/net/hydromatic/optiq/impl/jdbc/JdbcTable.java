@@ -42,99 +42,95 @@ import java.util.*;
  * such as {@link net.hydromatic.linq4j.Queryable#where(net.hydromatic.linq4j.function.Predicate2)}.
  * The resulting queryable can then be converted to a SQL query, which can be
  * executed efficiently on the JDBC server.</p>
- *
- * @author jhyde
  */
 class JdbcTable extends AbstractQueryable<Object[]>
     implements TranslatableTable<Object[]>
 {
-    private final JdbcSchema schema;
-    public final String tableName;
-    private final RelDataType rowType;
+  private final JdbcSchema schema;
+  public final String tableName;
+  private final RelDataType rowType;
 
-    public JdbcTable(
-        RelDataType rowType,
-        JdbcSchema schema,
-        String tableName)
-    {
-        this.rowType = rowType;
-        this.schema = schema;
-        this.tableName = tableName;
-        assert rowType != null;
-        assert schema != null;
-        assert tableName != null;
-    }
+  public JdbcTable(
+      RelDataType rowType,
+      JdbcSchema schema,
+      String tableName) {
+    this.rowType = rowType;
+    this.schema = schema;
+    this.tableName = tableName;
+    assert rowType != null;
+    assert schema != null;
+    assert tableName != null;
+  }
 
-    public String toString() {
-        return "JdbcTable {" + tableName + "}";
-    }
+  public String toString() {
+    return "JdbcTable {" + tableName + "}";
+  }
 
-    public QueryProvider getProvider() {
-        return schema.queryProvider;
-    }
+  public QueryProvider getProvider() {
+    return schema.queryProvider;
+  }
 
-    public DataContext getDataContext() {
-        return schema;
-    }
+  public DataContext getDataContext() {
+    return schema;
+  }
 
-    public Type getElementType() {
-        return Object[].class;
-    }
+  public Type getElementType() {
+    return Object[].class;
+  }
 
-    public Expression getExpression() {
-        return Expressions.call(
-            schema.getExpression(),
-            BuiltinMethod.DATA_CONTEXT_GET_TABLE.method,
-            Expressions.<Expression>list()
-                .append(Expressions.constant(tableName))
-                .append(Expressions.constant(getElementType())));
-    }
+  public Expression getExpression() {
+    return Expressions.call(
+        schema.getExpression(),
+        BuiltinMethod.DATA_CONTEXT_GET_TABLE.method,
+        Expressions.<Expression>list()
+            .append(Expressions.constant(tableName))
+            .append(Expressions.constant(getElementType())));
+  }
 
-    public Statistic getStatistic() {
-        return Statistics.UNKNOWN;
-    }
+  public Statistic getStatistic() {
+    return Statistics.UNKNOWN;
+  }
 
-    public Iterator<Object[]> iterator() {
-        return Linq4j.enumeratorIterator(enumerator());
-    }
+  public Iterator<Object[]> iterator() {
+    return Linq4j.enumeratorIterator(enumerator());
+  }
 
-    public Enumerator<Object[]> enumerator() {
-        final SqlString sql = generateSql();
-        Function1<ResultSet, Function0<Object[]>> rowBuilderFactory =
-            JdbcUtils.ObjectArrayRowBuilder.factory(
-                JdbcUtils.getPrimitives(
-                    schema.typeFactory, rowType));
-        return ResultSetEnumerable.of(
-            schema.getDataSource(),
-            sql.getSql(),
-            rowBuilderFactory).enumerator();
-    }
+  public Enumerator<Object[]> enumerator() {
+    final SqlString sql = generateSql();
+    Function1<ResultSet, Function0<Object[]>> rowBuilderFactory =
+        JdbcUtils.ObjectArrayRowBuilder.factory(
+            JdbcUtils.getPrimitives(
+                schema.typeFactory, rowType));
+    return ResultSetEnumerable.of(
+        schema.getDataSource(),
+        sql.getSql(),
+        rowBuilderFactory).enumerator();
+  }
 
-    SqlString generateSql() {
-        SqlBuilder writer = new SqlBuilder(schema.dialect);
-        writer.append("SELECT * FROM ");
-        final ArrayList<String> strings = new ArrayList<String>();
-        if (schema.catalog != null) {
-            strings.add(schema.catalog);
-        }
-        if (schema.schema != null) {
-            strings.add(schema.schema);
-        }
-        strings.add(tableName);
-        writer.identifier(strings);
-        return writer.toSqlString();
+  SqlString generateSql() {
+    SqlBuilder writer = new SqlBuilder(schema.dialect);
+    writer.append("SELECT * FROM ");
+    final ArrayList<String> strings = new ArrayList<String>();
+    if (schema.catalog != null) {
+      strings.add(schema.catalog);
     }
+    if (schema.schema != null) {
+      strings.add(schema.schema);
+    }
+    strings.add(tableName);
+    writer.identifier(strings);
+    return writer.toSqlString();
+  }
 
-    public RelDataType getRowType() {
-        return rowType;
-    }
+  public RelDataType getRowType() {
+    return rowType;
+  }
 
-    public RelNode toRel(
-        RelOptTable.ToRelContext context, RelOptTable relOptTable)
-    {
-        return new JdbcTableScan(
-            context.getCluster(), relOptTable, this, schema.convention);
-    }
+  public RelNode toRel(
+      RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+    return new JdbcTableScan(
+        context.getCluster(), relOptTable, this, schema.convention);
+  }
 }
 
 // End JdbcTable.java

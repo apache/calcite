@@ -33,19 +33,19 @@ import java.util.List;
  * without notice.</p>
  */
 public interface ModifiableTable<E> extends Table<E> {
-    /** Returns the modifiable collection.
-     * Modifying the collection will change the table's contents. */
-    Collection getModifiableCollection();
+  /** Returns the modifiable collection.
+   * Modifying the collection will change the table's contents. */
+  Collection getModifiableCollection();
 
-    /** Creates a relational expression that modifies this table. */
-    TableModificationRelBase toModificationRel(
-        RelOptCluster cluster,
-        RelOptTable table,
-        Prepare.CatalogReader catalogReader,
-        RelNode child,
-        TableModificationRelBase.Operation operation,
-        List<String> updateColumnList,
-        boolean flattened);
+  /** Creates a relational expression that modifies this table. */
+  TableModificationRelBase toModificationRel(
+      RelOptCluster cluster,
+      RelOptTable table,
+      Prepare.CatalogReader catalogReader,
+      RelNode child,
+      TableModificationRelBase.Operation operation,
+      List<String> updateColumnList,
+      boolean flattened);
 }
 
 // End ModifiableTable.java

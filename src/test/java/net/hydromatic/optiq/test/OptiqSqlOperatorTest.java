@@ -31,58 +31,57 @@ import java.sql.*;
  */
 public class OptiqSqlOperatorTest extends SqlOperatorBaseTest {
 
-    private static SqlTester STATIC_TESTER;
+  private static SqlTester STATIC_TESTER;
 
-    public OptiqSqlOperatorTest(String testName) {
-        super(testName, false);
+  public OptiqSqlOperatorTest(String testName) {
+    super(testName, false);
+  }
+
+  @Override
+  protected void setUp() throws Exception {
+    if (STATIC_TESTER != null) {
+      return;
     }
+    final OptiqConnection connection =
+        JdbcTest.getConnection("hr");
 
-    @Override
-    protected void setUp() throws Exception {
-        if (STATIC_TESTER != null) {
-            return;
-        }
-        final OptiqConnection connection =
-            JdbcTest.getConnection("hr");
-
-        STATIC_TESTER =
-            new SqlValidatorTestCase.TesterImpl(SqlConformance.Default) {
-                @Override
-                public void check(
-                    String query,
-                    TypeChecker typeChecker,
-                    ResultChecker resultChecker)
-                {
-                    System.out.println(query);
-                    super.check(
-                        query,
-                        typeChecker,
-                        resultChecker);
-                    Statement statement = null;
-                    try {
-                        statement = connection.createStatement();
-                        final ResultSet resultSet =
-                            statement.executeQuery(query);
-                        resultChecker.checkResult(resultSet);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    } finally {
-                        if (statement != null) {
-                            try {
-                                statement.close();
-                            } catch (SQLException e) {
-                                // ignore
-                            }
-                        }
-                    }
+    STATIC_TESTER =
+        new SqlValidatorTestCase.TesterImpl(SqlConformance.Default) {
+          @Override
+          public void check(
+              String query,
+              TypeChecker typeChecker,
+              ResultChecker resultChecker) {
+            System.out.println(query);
+            super.check(
+                query,
+                typeChecker,
+                resultChecker);
+            Statement statement = null;
+            try {
+              statement = connection.createStatement();
+              final ResultSet resultSet =
+                  statement.executeQuery(query);
+              resultChecker.checkResult(resultSet);
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            } finally {
+              if (statement != null) {
+                try {
+                  statement.close();
+                } catch (SQLException e) {
+                  // ignore
                 }
-            };
-    }
+              }
+            }
+          }
+        };
+  }
 
-    @Override
-    protected SqlTester getTester() {
-        return STATIC_TESTER;
-    }
+  @Override
+  protected SqlTester getTester() {
+    return STATIC_TESTER;
+  }
 }
 
 // End OptiqSqlOperatorTest.java

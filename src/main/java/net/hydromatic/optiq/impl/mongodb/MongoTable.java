@@ -95,8 +95,7 @@ public class MongoTable extends AbstractQueryable<Object[]>
 
   public RelNode toRel(
       RelOptTable.ToRelContext context,
-      RelOptTable relOptTable)
-  {
+      RelOptTable relOptTable) {
     return new JavaRules.EnumerableTableAccessRel(
         context.getCluster(),
         context.getCluster().traitSetOf(EnumerableConvention.CUSTOM),

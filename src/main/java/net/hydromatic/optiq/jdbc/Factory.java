@@ -32,50 +32,50 @@ import java.util.Properties;
  * <p>There is an implementation for each supported JDBC version.</p>
  */
 interface Factory {
-    int getJdbcMajorVersion();
+  int getJdbcMajorVersion();
 
-    int getJdbcMinorVersion();
+  int getJdbcMinorVersion();
 
-    OptiqConnectionImpl newConnection(
-        UnregisteredDriver driver,
-        Factory factory,
-        Function0<OptiqPrepare> prepareFactory,
-        String url,
-        Properties info);
+  OptiqConnectionImpl newConnection(
+      UnregisteredDriver driver,
+      Factory factory,
+      Function0<OptiqPrepare> prepareFactory,
+      String url,
+      Properties info);
 
-    OptiqStatement newStatement(
-        OptiqConnectionImpl connection,
-        int resultSetType,
-        int resultSetConcurrency,
-        int resultSetHoldability);
+  OptiqStatement newStatement(
+      OptiqConnectionImpl connection,
+      int resultSetType,
+      int resultSetConcurrency,
+      int resultSetHoldability);
 
-    OptiqPreparedStatement newPreparedStatement(
-        OptiqConnectionImpl connection,
-        String sql,
-        int resultSetType,
-        int resultSetConcurrency,
-        int resultSetHoldability) throws SQLException;
+  OptiqPreparedStatement newPreparedStatement(
+      OptiqConnectionImpl connection,
+      String sql,
+      int resultSetType,
+      int resultSetConcurrency,
+      int resultSetHoldability) throws SQLException;
 
-    /**
-     * Creates a result set. You will then need to call
-     * {@link net.hydromatic.optiq.jdbc.OptiqResultSet#execute()} on it.
-     *
-     * @param statement Statement
-     * @param columnMetaDataList Metadata for each column
-     * @param cursorFactory Called on execute to create a cursor
-     * @return Result set
-     */
-    OptiqResultSet newResultSet(
-        OptiqStatement statement,
-        List<ColumnMetaData> columnMetaDataList,
-        Function0<Cursor> cursorFactory);
+  /**
+   * Creates a result set. You will then need to call
+   * {@link net.hydromatic.optiq.jdbc.OptiqResultSet#execute()} on it.
+   *
+   * @param statement Statement
+   * @param columnMetaDataList Metadata for each column
+   * @param cursorFactory Called on execute to create a cursor
+   * @return Result set
+   */
+  OptiqResultSet newResultSet(
+      OptiqStatement statement,
+      List<ColumnMetaData> columnMetaDataList,
+      Function0<Cursor> cursorFactory);
 
-    OptiqDatabaseMetaData newDatabaseMetaData(
-        OptiqConnectionImpl connection);
+  OptiqDatabaseMetaData newDatabaseMetaData(
+      OptiqConnectionImpl connection);
 
-    ResultSetMetaData newResultSetMetaData(
-        OptiqStatement statement,
-        List<ColumnMetaData> prepareResult);
+  ResultSetMetaData newResultSetMetaData(
+      OptiqStatement statement,
+      List<ColumnMetaData> prepareResult);
 }
 
 // End Factory.java

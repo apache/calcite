@@ -24,26 +24,26 @@ import java.util.List;
  * Function that returns a {@link Table}.
  */
 public interface TableFunction<T> {
-    /**
-     * Returns the parameters of this table function.
-     *
-     * @return Parameters; never null
-     */
-    List<Parameter> getParameters();
+  /**
+   * Returns the parameters of this table function.
+   *
+   * @return Parameters; never null
+   */
+  List<Parameter> getParameters();
 
-    /**
-     * Returns the record type of the table yielded by this function when
-     * applied to parameters of given types.
-     */
-    Type getElementType();
+  /**
+   * Returns the record type of the table yielded by this function when
+   * applied to parameters of given types.
+   */
+  Type getElementType();
 
-    /**
-     * Applies arguments to yield a table.
-     *
-     * @param arguments Arguments
-     * @return Table
-     */
-    Table<T> apply(List<Object> arguments);
+  /**
+   * Applies arguments to yield a table.
+   *
+   * @param arguments Arguments
+   * @return Table
+   */
+  Table<T> apply(List<Object> arguments);
 
 }
 

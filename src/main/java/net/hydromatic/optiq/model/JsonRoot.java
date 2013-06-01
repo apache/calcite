@@ -35,9 +35,9 @@ import java.util.List;
  *       {@link JsonColumn}</pre>
  */
 public class JsonRoot {
-    public String version;
-    public String defaultSchema;
-    public final List<JsonSchema> schemas = new ArrayList<JsonSchema>();
+  public String version;
+  public String defaultSchema;
+  public final List<JsonSchema> schemas = new ArrayList<JsonSchema>();
 }
 
 // End JsonRoot.java

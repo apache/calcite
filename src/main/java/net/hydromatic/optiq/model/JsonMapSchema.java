@@ -26,12 +26,12 @@ import java.util.List;
  * @see JsonRoot Description of JSON schema elements
  */
 public class JsonMapSchema extends JsonSchema {
-    public final List<JsonTable> tables = new ArrayList<JsonTable>();
+  public final List<JsonTable> tables = new ArrayList<JsonTable>();
 
-    @Override
-    public void accept(ModelHandler handler) {
-        handler.visit(this);
-    }
+  @Override
+  public void accept(ModelHandler handler) {
+    handler.visit(this);
+  }
 }
 
 // End JsonMapSchema.java

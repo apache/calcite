@@ -23,7 +23,7 @@ package net.hydromatic.optiq.model;
  * @see JsonRoot Description of JSON schema elements
  */
 public class JsonColumn {
-    public String name;
+  public String name;
 }
 
 // End JsonColumn.java

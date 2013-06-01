@@ -23,46 +23,44 @@ import net.hydromatic.linq4j.Enumerator;
  * Implementation of {@link Cursor} on top of an
  * {@link net.hydromatic.linq4j.Enumerator} that
  * returns an {@link Object} for each row.
- *
- * @author jhyde
  */
 public class ObjectEnumeratorCursor extends AbstractCursor {
-    private final Enumerator<Object> enumerator;
+  private final Enumerator<Object> enumerator;
 
-    /**
-     * Creates an ObjectEnumeratorCursor.
-     *
-     * @param enumerator Enumerator
-     */
-    public ObjectEnumeratorCursor(Enumerator<Object> enumerator) {
-        this.enumerator = enumerator;
+  /**
+   * Creates an ObjectEnumeratorCursor.
+   *
+   * @param enumerator Enumerator
+   */
+  public ObjectEnumeratorCursor(Enumerator<Object> enumerator) {
+    this.enumerator = enumerator;
+  }
+
+  @Override
+  protected Getter createGetter(int ordinal) {
+    return new ObjectEnumeratorGetter(ordinal);
+  }
+
+  @Override
+  public boolean next() {
+    return enumerator.moveNext();
+  }
+
+  class ObjectEnumeratorGetter implements Getter {
+    public ObjectEnumeratorGetter(int field) {
+      assert field == 0;
     }
 
-    @Override
-    protected Getter createGetter(int ordinal) {
-        return new ObjectEnumeratorGetter(ordinal);
+    public Object getObject() {
+      Object o = enumerator.current();
+      wasNull[0] = (o == null);
+      return o;
     }
 
-    @Override
-    public boolean next() {
-        return enumerator.moveNext();
+    public boolean wasNull() {
+      return wasNull[0];
     }
-
-    class ObjectEnumeratorGetter implements Getter {
-        public ObjectEnumeratorGetter(int field) {
-            assert field == 0;
-        }
-
-        public Object getObject() {
-            Object o = enumerator.current();
-            wasNull[0] = (o == null);
-            return o;
-        }
-
-        public boolean wasNull() {
-            return wasNull[0];
-        }
-    }
+  }
 }
 
 // End ObjectEnumeratorCursor.java

@@ -22,42 +22,40 @@ import java.util.Comparator;
 
 /**
  * Compares arrays.
- *
- * @author jhyde
  */
 public class ArrayComparator implements Comparator<Object[]> {
-    private final Comparator[] comparators;
+  private final Comparator[] comparators;
 
-    public ArrayComparator(Comparator... comparators) {
-        this.comparators = comparators;
-    }
+  public ArrayComparator(Comparator... comparators) {
+    this.comparators = comparators;
+  }
 
-    public ArrayComparator(boolean... descendings) {
-        this.comparators = comparators(descendings);
-    }
+  public ArrayComparator(boolean... descendings) {
+    this.comparators = comparators(descendings);
+  }
 
-    private static Comparator[] comparators(boolean[] descendings) {
-        Comparator[] comparators = new Comparator[descendings.length];
-        for (int i = 0; i < descendings.length; i++) {
-            boolean descending = descendings[i];
-            comparators[i] =
-                descending
-                    ? Collections.reverseOrder()
-                    : ComparableComparator.instance();
-        }
-        return comparators;
+  private static Comparator[] comparators(boolean[] descendings) {
+    Comparator[] comparators = new Comparator[descendings.length];
+    for (int i = 0; i < descendings.length; i++) {
+      boolean descending = descendings[i];
+      comparators[i] =
+          descending
+              ? Collections.reverseOrder()
+              : ComparableComparator.instance();
     }
+    return comparators;
+  }
 
-    public int compare(Object[] o1, Object[] o2) {
-        for (int i = 0; i < comparators.length; i++) {
-            Comparator comparator = comparators[i];
-            int c = comparator.compare(o1[i], o2[i]);
-            if (c != 0) {
-                return c;
-            }
-        }
-        return 0;
+  public int compare(Object[] o1, Object[] o2) {
+    for (int i = 0; i < comparators.length; i++) {
+      Comparator comparator = comparators[i];
+      int c = comparator.compare(o1[i], o2[i]);
+      if (c != 0) {
+        return c;
+      }
     }
+    return 0;
+  }
 }
 
 // End ArrayComparator.java

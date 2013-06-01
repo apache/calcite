@@ -23,10 +23,10 @@ import java.lang.reflect.Type;
  * Adds type information to a {@link net.hydromatic.linq4j.Enumerable}.
  */
 public interface Typed {
-    /**
-     * Gets the type of the element(s) that are returned in this collection.
-     */
-    public Type getElementType();
+  /**
+   * Gets the type of the element(s) that are returned in this collection.
+   */
+  public Type getElementType();
 }
 
 // End Typed.java

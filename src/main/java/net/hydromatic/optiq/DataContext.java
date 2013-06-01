@@ -25,20 +25,20 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
  * Runtime context allowing access to the tables in a database.
  */
 public interface DataContext {
-    /**
-     * Returns a table with a given name and element type, or null if not found.
-     */
-    <T> Queryable<T> getTable(String name, Class<T> elementType);
+  /**
+   * Returns a table with a given name and element type, or null if not found.
+   */
+  <T> Queryable<T> getTable(String name, Class<T> elementType);
 
-    /**
-     * Returns a sub-schema with a given name, or null.
-     */
-    Schema getSubSchema(String name);
+  /**
+   * Returns a sub-schema with a given name, or null.
+   */
+  Schema getSubSchema(String name);
 
-    /**
-     * Returns the type factory.
-     */
-    JavaTypeFactory getTypeFactory();
+  /**
+   * Returns the type factory.
+   */
+  JavaTypeFactory getTypeFactory();
 }
 
 // End DataContext.java

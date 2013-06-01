@@ -25,35 +25,33 @@ import java.util.List;
 
 /**
  * Type factory that can register Java classes as record types.
- *
- * @author jhyde
  */
 public interface JavaTypeFactory extends RelDataTypeFactory {
-    /**
-     * Creates a record type based upon the public fields of a Java class.
-     *
-     * @param clazz Java class
-     * @return Record type that remembers its Java class
-     */
-    RelDataType createStructType(Class clazz);
+  /**
+   * Creates a record type based upon the public fields of a Java class.
+   *
+   * @param clazz Java class
+   * @return Record type that remembers its Java class
+   */
+  RelDataType createStructType(Class clazz);
 
-    /**
-     * Creates a type, deducing whether a record, scalar or primitive type
-     * is needed.
-     *
-     * @param type Java type, such as a {@link Class}
-     * @return Record or scalar type
-     */
-    RelDataType createType(Type type);
+  /**
+   * Creates a type, deducing whether a record, scalar or primitive type
+   * is needed.
+   *
+   * @param type Java type, such as a {@link Class}
+   * @return Record or scalar type
+   */
+  RelDataType createType(Type type);
 
-    Type getJavaClass(RelDataType type);
+  Type getJavaClass(RelDataType type);
 
-    /** Creates a synthetic Java class whose fields have the given Java
-     * types. */
-    Type createSyntheticType(List<Type> types);
+  /** Creates a synthetic Java class whose fields have the given Java
+   * types. */
+  Type createSyntheticType(List<Type> types);
 
-    /** Converts a type in Java format to a SQL-oriented type. */
-    RelDataType toSql(RelDataType type);
+  /** Converts a type in Java format to a SQL-oriented type. */
+  RelDataType toSql(RelDataType type);
 }
 
 // End JavaTypeFactory.java

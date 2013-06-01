@@ -23,27 +23,27 @@ import org.eigenbase.reltype.RelDataType;
  * Parameter to a {@link TableFunction}.
  */
 public interface Parameter {
-    /**
-     * Zero-based ordinal of this parameter within the member's parameter
-     * list.
-     *
-     * @return Parameter ordinal
-     */
-    int getOrdinal();
+  /**
+   * Zero-based ordinal of this parameter within the member's parameter
+   * list.
+   *
+   * @return Parameter ordinal
+   */
+  int getOrdinal();
 
-    /**
-     * Name of the parameter.
-     *
-     * @return Parameter name
-     */
-    String getName();
+  /**
+   * Name of the parameter.
+   *
+   * @return Parameter name
+   */
+  String getName();
 
-    /**
-     * Returns the type of this parameter.
-     *
-     * @return Parameter type.
-     */
-    RelDataType getType();
+  /**
+   * Returns the type of this parameter.
+   *
+   * @return Parameter type.
+   */
+  RelDataType getType();
 }
 
 // End Parameter.java

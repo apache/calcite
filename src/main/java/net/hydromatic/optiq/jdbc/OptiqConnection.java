@@ -39,42 +39,42 @@ import java.util.Properties;
  * expression trees as queries.</p>
  */
 public interface OptiqConnection extends Connection, QueryProvider {
-    /**
-     * Returns the root schema.
-     *
-     * <p>You can define objects (such as relations) in this schema, and
-     * also nested schemas.</p>
-     *
-     * @return Root schema
-     */
-    MutableSchema getRootSchema();
+  /**
+   * Returns the root schema.
+   *
+   * <p>You can define objects (such as relations) in this schema, and
+   * also nested schemas.</p>
+   *
+   * @return Root schema
+   */
+  MutableSchema getRootSchema();
 
-    /**
-     * Returns the type factory.
-     *
-     * @return Type factory
-     */
-    JavaTypeFactory getTypeFactory();
+  /**
+   * Returns the type factory.
+   *
+   * @return Type factory
+   */
+  JavaTypeFactory getTypeFactory();
 
-    /**
-     * Returns an instance of the connection properties.
-     *
-     * <p>NOTE: The resulting collection of properties is same collection used
-     * by the connection, and is writable, but behavior if you modify the
-     * collection is undefined. Some implementations might, for example, see
-     * a modified property, but only if you set it before you create a
-     * statement. We will remove this method when there are better
-     * implementations of stateful connections and configuration.</p>
-     *
-     * @return properties
-     */
-    Properties getProperties();
+  /**
+   * Returns an instance of the connection properties.
+   *
+   * <p>NOTE: The resulting collection of properties is same collection used
+   * by the connection, and is writable, but behavior if you modify the
+   * collection is undefined. Some implementations might, for example, see
+   * a modified property, but only if you set it before you create a
+   * statement. We will remove this method when there are better
+   * implementations of stateful connections and configuration.</p>
+   *
+   * @return properties
+   */
+  Properties getProperties();
 
-    // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
-    void setSchema(String schema) throws SQLException;
+  // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
+  void setSchema(String schema) throws SQLException;
 
-    // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
-    String getSchema() throws SQLException;
+  // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
+  String getSchema() throws SQLException;
 }
 
 // End OptiqConnection.java

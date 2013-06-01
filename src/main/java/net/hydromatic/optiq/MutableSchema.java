@@ -23,20 +23,20 @@ import net.hydromatic.linq4j.expressions.Expression;
  * Schema that can be modified.
  */
 public interface MutableSchema extends Schema {
-    /** Defines a table-function in this schema. There can be multiple
-     * table-functions with the same name; this method will not remove a
-     * table-function with the same name, just define another overloading. */
-    void addTableFunction(String name, TableFunction tableFunction);
+  /** Defines a table-function in this schema. There can be multiple
+   * table-functions with the same name; this method will not remove a
+   * table-function with the same name, just define another overloading. */
+  void addTableFunction(String name, TableFunction tableFunction);
 
-    /** Defines a table within this schema. */
-    void addTable(TableInSchema table);
+  /** Defines a table within this schema. */
+  void addTable(TableInSchema table);
 
-    /** Adds a child schema of this schema. */
-    void addSchema(String name, Schema schema);
+  /** Adds a child schema of this schema. */
+  void addSchema(String name, Schema schema);
 
-    /** Returns the expression with which a sub-schema of this schema with a
-     * given name and type should be accessed. */
-    Expression getSubSchemaExpression(String name, Class type);
+  /** Returns the expression with which a sub-schema of this schema with a
+   * given name and type should be accessed. */
+  Expression getSubSchemaExpression(String name, Class type);
 }
 
 // End MutableSchema.java

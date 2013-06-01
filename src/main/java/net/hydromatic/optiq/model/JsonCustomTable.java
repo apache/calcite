@@ -25,17 +25,17 @@ import java.util.Map;
  * @see JsonRoot Description of schema elements
  */
 public class JsonCustomTable extends JsonTable {
-    /** Name of the factory class for this table. Must implement interface
-     * {@link net.hydromatic.optiq.TableFactory} and have a public default
-     * constructor. */
-    public String factory;
+  /** Name of the factory class for this table. Must implement interface
+   * {@link net.hydromatic.optiq.TableFactory} and have a public default
+   * constructor. */
+  public String factory;
 
   /** Operand. May be a JSON object (represented as Map) or null. */
-    public Map<String, Object> operand;
+  public Map<String, Object> operand;
 
-    public void accept(ModelHandler handler) {
-        handler.visit(this);
-    }
+  public void accept(ModelHandler handler) {
+    handler.visit(this);
+  }
 }
 
 // End JsonCustomTable.java

@@ -27,31 +27,31 @@ import org.eigenbase.util.Util;
  * State for generating a SQL statement.
  */
 public class JdbcImplementor {
-    final SqlDialect dialect;
-    int indent;
+  final SqlDialect dialect;
+  int indent;
 
-    public JdbcImplementor(SqlDialect dialect) {
-        this.dialect = dialect;
-    }
+  public JdbcImplementor(SqlDialect dialect) {
+    this.dialect = dialect;
+  }
 
-    public SqlBuilder subquery(SqlBuilder buf, int i, RelNode e, String alias) {
-        buf.append("(");
-        ++indent;
-        newline(buf)
-            .append(visitChild(i, e));
-        --indent;
-        buf.append(") AS ").identifier(alias);
-        return buf;
-    }
+  public SqlBuilder subquery(SqlBuilder buf, int i, RelNode e, String alias) {
+    buf.append("(");
+    ++indent;
+    newline(buf)
+        .append(visitChild(i, e));
+    --indent;
+    buf.append(") AS ").identifier(alias);
+    return buf;
+  }
 
-    public SqlString visitChild(int i, RelNode e) {
-        return ((JdbcRel) e).implement(this);
-    }
+  public SqlString visitChild(int i, RelNode e) {
+    return ((JdbcRel) e).implement(this);
+  }
 
-    public SqlBuilder newline(SqlBuilder buf) {
-        return buf.append("\n")
-            .append(Util.spaces(indent * 4));
-    }
+  public SqlBuilder newline(SqlBuilder buf) {
+    return buf.append("\n")
+        .append(Util.spaces(indent * 4));
+  }
 }
 
 // End JdbcImplementor.java

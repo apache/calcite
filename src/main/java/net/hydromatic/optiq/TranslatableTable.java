@@ -30,14 +30,12 @@ import org.eigenbase.relopt.RelOptTable;
  * EnumerableTableAccessRel. Generally a Table will implements this interface to
  * create a particular subclass of RelNode, and also register rules that act
  * on that particular subclass of RelNode.</p>
- *
- * @author jhyde
  */
 public interface TranslatableTable<T> extends Table<T> {
-    /** Converts this table into a {@link RelNode relational expression}. */
-    RelNode toRel(
-        RelOptTable.ToRelContext context,
-        RelOptTable relOptTable);
+  /** Converts this table into a {@link RelNode relational expression}. */
+  RelNode toRel(
+      RelOptTable.ToRelContext context,
+      RelOptTable relOptTable);
 }
 
 // End TranslatableTable.java

@@ -32,116 +32,111 @@ import javax.sql.DataSource;
 
 /**
  * Utilities for the JDBC provider.
- *
- * @author jhyde
  */
 final class JdbcUtils {
-    private JdbcUtils() {
-        throw new AssertionError("no instances!");
+  private JdbcUtils() {
+    throw new AssertionError("no instances!");
+  }
+
+  static List<Primitive> getPrimitives(
+      JavaTypeFactory typeFactory, RelDataType rowType) {
+    final List<RelDataTypeField> fields = rowType.getFieldList();
+    final List<Primitive> primitiveList = new ArrayList<Primitive>();
+    for (RelDataTypeField field : fields) {
+      Class clazz = (Class) typeFactory.getJavaClass(field.getType());
+      primitiveList.add(
+          Primitive.of(clazz) != null
+              ? Primitive.of(clazz)
+              : Primitive.OTHER);
+    }
+    return primitiveList;
+  }
+
+  public static class DialectPool {
+    final Map<List, SqlDialect> map = new HashMap<List, SqlDialect>();
+
+    public static final DialectPool INSTANCE = new DialectPool();
+
+    SqlDialect get(DataSource dataSource) {
+      Connection connection = null;
+      try {
+        connection = dataSource.getConnection();
+        DatabaseMetaData metaData = connection.getMetaData();
+        String productName = metaData.getDatabaseProductName();
+        String productVersion = metaData.getDatabaseProductVersion();
+        List key = Arrays.asList(productName, productVersion);
+        SqlDialect dialect = map.get(key);
+        if (dialect == null) {
+          dialect =
+              new SqlDialect(
+                  SqlDialect.getProduct(productName, productVersion),
+                  productName,
+                  metaData.getIdentifierQuoteString());
+          map.put(key, dialect);
+        }
+        connection.close();
+        connection = null;
+        return dialect;
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      } finally {
+        if (connection != null) {
+          try {
+            connection.close();
+          } catch (SQLException e) {
+            // ignore
+          }
+        }
+      }
+    }
+  }
+
+  /** Builder that calls {@link ResultSet#getObject(int)} for every column,
+   * or {@code getXxx} if the result type is a primitive {@code xxx},
+   * and returns an array of objects for each row. */
+  public static class ObjectArrayRowBuilder implements Function0<Object[]> {
+    private final ResultSet resultSet;
+    private final int columnCount;
+    private final Primitive[] primitives;
+
+    public ObjectArrayRowBuilder(
+        ResultSet resultSet, Primitive[] primitives) throws SQLException {
+      this.resultSet = resultSet;
+      this.primitives = primitives;
+      this.columnCount = resultSet.getMetaData().getColumnCount();
     }
 
-    static List<Primitive> getPrimitives(
-        JavaTypeFactory typeFactory, RelDataType rowType)
-    {
-        final List<RelDataTypeField> fields = rowType.getFieldList();
-        final List<Primitive> primitiveList = new ArrayList<Primitive>();
-        for (RelDataTypeField field : fields) {
-            Class clazz = (Class) typeFactory.getJavaClass(field.getType());
-            primitiveList.add(
-                Primitive.of(clazz) != null
-                    ? Primitive.of(clazz)
-                    : Primitive.OTHER);
+    public static Function1<ResultSet, Function0<Object[]>> factory(
+        List<Primitive> primitiveList) {
+      final Primitive[] primitives =
+          primitiveList.toArray(new Primitive[primitiveList.size()]);
+      return new Function1<ResultSet, Function0<Object[]>>() {
+        public Function0<Object[]> apply(ResultSet resultSet) {
+          try {
+            return new ObjectArrayRowBuilder(resultSet, primitives);
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
         }
-        return primitiveList;
+      };
     }
 
-    public static class DialectPool {
-        final Map<List, SqlDialect> map = new HashMap<List, SqlDialect>();
-
-        public static final DialectPool INSTANCE = new DialectPool();
-
-        SqlDialect get(DataSource dataSource) {
-            Connection connection = null;
-            try {
-                connection = dataSource.getConnection();
-                DatabaseMetaData metaData = connection.getMetaData();
-                String productName = metaData.getDatabaseProductName();
-                String productVersion = metaData.getDatabaseProductVersion();
-                List key = Arrays.asList(productName, productVersion);
-                SqlDialect dialect = map.get(key);
-                if (dialect == null) {
-                    dialect =
-                        new SqlDialect(
-                            SqlDialect.getProduct(productName, productVersion),
-                            productName,
-                            metaData.getIdentifierQuoteString());
-                    map.put(key, dialect);
-                }
-                connection.close();
-                connection = null;
-                return dialect;
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            } finally {
-                if (connection != null) {
-                    try {
-                        connection.close();
-                    } catch (SQLException e) {
-                        // ignore
-                    }
-                }
-            }
+    public Object[] apply() {
+      try {
+        final Object[] values = new Object[columnCount];
+        for (int i = 0; i < columnCount; i++) {
+          values[i] = value(i);
         }
+        return values;
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
     }
 
-    /** Builder that calls {@link ResultSet#getObject(int)} for every column,
-     * or {@code getXxx} if the result type is a primitive {@code xxx},
-     * and returns an array of objects for each row. */
-    public static class ObjectArrayRowBuilder implements Function0<Object[]> {
-        private final ResultSet resultSet;
-        private final int columnCount;
-        private final Primitive[] primitives;
-
-        public ObjectArrayRowBuilder(
-            ResultSet resultSet, Primitive[] primitives) throws SQLException
-        {
-            this.resultSet = resultSet;
-            this.primitives = primitives;
-            this.columnCount = resultSet.getMetaData().getColumnCount();
-        }
-
-        public static Function1<ResultSet, Function0<Object[]>> factory(
-            List<Primitive> primitiveList)
-        {
-            final Primitive[] primitives =
-                primitiveList.toArray(new Primitive[primitiveList.size()]);
-            return new Function1<ResultSet, Function0<Object[]>>() {
-                public Function0<Object[]> apply(ResultSet resultSet) {
-                    try {
-                        return new ObjectArrayRowBuilder(resultSet, primitives);
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            };
-        }
-
-        public Object[] apply() {
-            try {
-                final Object[] values = new Object[columnCount];
-                for (int i = 0; i < columnCount; i++) {
-                    values[i] = value(i);
-                }
-                return values;
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        private Object value(int i) throws SQLException {
-            return primitives[i].jdbcGet(resultSet, i + 1);
-        }
+    private Object value(int i) throws SQLException {
+      return primitives[i].jdbcGet(resultSet, i + 1);
     }
+  }
 }
 
 // End JdbcUtils.java

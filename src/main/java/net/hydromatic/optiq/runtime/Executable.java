@@ -22,19 +22,17 @@ import net.hydromatic.optiq.DataContext;
 
 /**
  * Executable statement.
- *
- * @author jhyde
  */
 public interface Executable {
-    /**
-     * Executes this statement and returns an enumerable which will yield rows.
-     * The {@code environment} parameter provides the values in the root of the
-     * environment (usually schemas).
-     *
-     * @param dataContext Environment that provides tables
-     * @return Enumerable over rows
-     */
-    Enumerable execute(DataContext dataContext);
+  /**
+   * Executes this statement and returns an enumerable which will yield rows.
+   * The {@code environment} parameter provides the values in the root of the
+   * environment (usually schemas).
+   *
+   * @param dataContext Environment that provides tables
+   * @return Enumerable over rows
+   */
+  Enumerable execute(DataContext dataContext);
 }
 
 // End Executable.java
