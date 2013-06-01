@@ -50,8 +50,7 @@ public class CsvSchema extends MapSchema {
       Schema parentSchema,
       File directoryFile,
       Expression expression,
-      boolean smart)
-  {
+      boolean smart) {
     super(parentSchema, expression);
     this.directoryFile = directoryFile;
     this.smart = smart;
@@ -81,8 +80,7 @@ public class CsvSchema extends MapSchema {
       } else {
         table = new CsvTable(this, tableName, file, rowType, fieldTypes);
       }
-      list.add(
-          new TableInSchemaImpl(this, tableName, TableType.TABLE, table));
+      list.add(new TableInSchemaImpl(this, tableName, TableType.TABLE, table));
     }
     return list;
   }

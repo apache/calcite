@@ -17,8 +17,9 @@
 */
 package net.hydromatic.optiq.test;
 
-import junit.framework.TestCase;
 import net.hydromatic.linq4j.function.Function1;
+
+import junit.framework.TestCase;
 
 import java.io.PrintStream;
 import java.sql.*;

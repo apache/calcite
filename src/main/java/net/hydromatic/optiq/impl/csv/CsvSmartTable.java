@@ -37,8 +37,7 @@ class CsvSmartTable extends CsvTable {
 
   public RelNode toRel(
       RelOptTable.ToRelContext context,
-      RelOptTable relOptTable)
-  {
+      RelOptTable relOptTable) {
     // Request all fields.
     final int fieldCount = relOptTable.getRowType().getFieldCount();
     final int[] fields = CsvEnumerator.identityList(fieldCount);

@@ -84,10 +84,14 @@ public class CsvTable extends AbstractQueryable<Object[]>
   }
 
   public Expression getExpression() {
-    return Expressions.convert_(Expressions.call(schema.getExpression(),
-        "getTable",
-        Expressions.<Expression>list().append(Expressions.constant(tableName)).append(
-            Expressions.constant(getElementType()))), CsvTable.class);
+    return Expressions.convert_(
+        Expressions.call(
+            schema.getExpression(),
+            "getTable",
+            Expressions.<Expression>list()
+                .append(Expressions.constant(tableName))
+                .append(Expressions.constant(getElementType()))),
+        CsvTable.class);
   }
 
   public Iterator<Object[]> iterator() {
@@ -111,8 +115,7 @@ public class CsvTable extends AbstractQueryable<Object[]>
 
   public RelNode toRel(
       RelOptTable.ToRelContext context,
-      RelOptTable relOptTable)
-  {
+      RelOptTable relOptTable) {
     return new JavaRules.EnumerableTableAccessRel(
         context.getCluster(),
         context.getCluster().traitSetOf(EnumerableConvention.ARRAY),

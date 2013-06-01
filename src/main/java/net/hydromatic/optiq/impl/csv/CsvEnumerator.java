@@ -17,9 +17,9 @@
 */
 package net.hydromatic.optiq.impl.csv;
 
-import au.com.bytecode.opencsv.CSVReader;
-
 import net.hydromatic.linq4j.Enumerator;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 import java.io.*;
 
