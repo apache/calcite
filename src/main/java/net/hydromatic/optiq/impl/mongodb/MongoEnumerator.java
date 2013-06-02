@@ -19,13 +19,12 @@ package net.hydromatic.optiq.impl.mongodb;
 
 import net.hydromatic.linq4j.Enumerator;
 
-import com.mongodb.DB;
+import com.mongodb.*;
 
 /** Enumerator that reads from a MongoDB collection. */
-class MongoEnumerator implements Enumerator<Object[]> {
-  private final DB mongoDb;
-  private final String collectionName;
-  private Object[] current;
+class MongoEnumerator implements Enumerator<Object> {
+  private final DBCursor cursor;
+  private DBObject current;
 
   /** Creates a MongoEnumerator.
    *
@@ -33,26 +32,25 @@ class MongoEnumerator implements Enumerator<Object[]> {
    * @param collectionName Collection name
    */
   public MongoEnumerator(DB mongoDb, String collectionName) {
-    this.mongoDb = mongoDb;
-    this.collectionName = collectionName;
+    this.cursor = mongoDb.getCollection(collectionName).find();
   }
 
-  public Object[] current() {
+  public Object current() {
     return current;
   }
 
   public boolean moveNext() {
     try {
-      final String[] strings = null;
-      current = convertRow(strings);
-      return true;
+      if (cursor.hasNext()) {
+        current = cursor.next();
+        return true;
+      } else {
+        current = null;
+        return false;
+      }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-  }
-
-  private Object[] convertRow(String[] strings) {
-    return strings;
   }
 
   public void reset() {

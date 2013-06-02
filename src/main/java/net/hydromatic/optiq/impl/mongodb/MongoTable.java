@@ -34,8 +34,8 @@ import java.util.Iterator;
 /**
  * Table based on a MongoDB collection.
  */
-public class MongoTable extends AbstractQueryable<Object[]>
-    implements TranslatableTable<Object[]> {
+public class MongoTable extends AbstractQueryable<Object>
+    implements TranslatableTable<Object> {
   private final MongoSchema schema;
   private final String tableName;
   private final RelDataType rowType;
@@ -85,11 +85,11 @@ public class MongoTable extends AbstractQueryable<Object[]>
         MongoTable.class);
   }
 
-  public Iterator<Object[]> iterator() {
+  public Iterator<Object> iterator() {
     return Linq4j.enumeratorIterator(enumerator());
   }
 
-  public Enumerator<Object[]> enumerator() {
+  public Enumerator<Object> enumerator() {
     return new MongoEnumerator(schema.mongoDb, tableName);
   }
 
@@ -98,7 +98,7 @@ public class MongoTable extends AbstractQueryable<Object[]>
       RelOptTable relOptTable) {
     return new JavaRules.EnumerableTableAccessRel(
         context.getCluster(),
-        context.getCluster().traitSetOf(EnumerableConvention.CUSTOM),
+        context.getCluster().traitSetOf(EnumerableConvention.ARRAY),
         relOptTable,
         getExpression(),
         getElementType());

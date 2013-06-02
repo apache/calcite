@@ -79,6 +79,7 @@ public class OptiqAssert {
     testSuite.addTestSuite(RexProgramTest.class);
     testSuite.addTestSuite(RexTransformerTest.class);
     testSuite.addTestSuite(JdbcAdapterTest.class);
+    testSuite.addTestSuite(MongoAdapterTest.class);
     testSuite.addTestSuite(JdbcTest.class);
     //testSuite.addTestSuite(VolcanoPlannerTraitTest.class);
     return testSuite;

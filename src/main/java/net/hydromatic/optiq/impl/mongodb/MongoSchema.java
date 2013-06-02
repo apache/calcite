@@ -30,7 +30,6 @@ import org.eigenbase.sql.type.SqlTypeName;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 
-import java.net.UnknownHostException;
 import java.util.*;
 
 /**
@@ -56,7 +55,7 @@ public class MongoSchema extends MapSchema {
     try {
       MongoClient mongo = new MongoClient(host);
       this.mongoDb = mongo.getDB(database);
-    } catch (UnknownHostException e) {
+    } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
@@ -64,10 +63,13 @@ public class MongoSchema extends MapSchema {
   @Override
   protected Collection<TableInSchema> initialTables() {
     final List<TableInSchema> list = new ArrayList<TableInSchema>();
+    final RelDataType mapType =
+        typeFactory.createMapType(
+            typeFactory.createSqlType(SqlTypeName.VARCHAR),
+            typeFactory.createSqlType(SqlTypeName.ANY));
     final RelDataType rowType =
-        getTypeFactory().createStructType(
-            new RelDataTypeFactory.FieldInfoBuilder()
-                .add("_MAP", getTypeFactory().createSqlType(SqlTypeName.MAP)));
+        typeFactory.createStructType(
+            new RelDataTypeFactory.FieldInfoBuilder().add("_MAP", mapType));
     for (String collection : mongoDb.getCollectionNames()) {
       final MongoTable table = new MongoTable(this, collection, rowType);
       list.add(
