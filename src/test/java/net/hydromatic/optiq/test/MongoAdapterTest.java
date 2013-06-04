@@ -39,11 +39,6 @@ public class MongoAdapterTest extends TestCase {
       + "       name: 'foodmart',\n"
       + "       tables: [\n"
       + "         {\n"
-      + "           name: 'warehouse',\n"
-      + "           type: 'view',\n"
-      + "           sql: 'select cast(_MAP[\\'warehouse_id\\'] AS double) AS \"warehouse_id\", cast(_MAP[\\'warehouse_state_province\\'] AS varchar(20)) AS \"warehouse_state_province\" from \"_foodmart\".\"warehouse\"'\n"
-      + "         },\n"
-      + "         {\n"
       + "           name: 'sales_fact_1997',\n"
       + "           type: 'view',\n"
       + "           sql: 'select cast(_MAP[\\'product_id\\'] AS double) AS \"product_id\" from \"_foodmart\".\"sales_fact_1997\"'\n"
@@ -52,6 +47,16 @@ public class MongoAdapterTest extends TestCase {
       + "           name: 'sales_fact_1998',\n"
       + "           type: 'view',\n"
       + "           sql: 'select cast(_MAP[\\'product_id\\'] AS double) AS \"product_id\" from \"_foodmart\".\"sales_fact_1998\"'\n"
+      + "         },\n"
+      + "         {\n"
+      + "           name: 'store',\n"
+      + "           type: 'view',\n"
+      + "           sql: 'select cast(_MAP[\\'store_id\\'] AS double) AS \"store_id\", cast(_MAP[\\'store_name\\'] AS varchar(20)) AS \"store_name\" from \"_foodmart\".\"store\"'\n"
+      + "         },\n"
+      + "         {\n"
+      + "           name: 'warehouse',\n"
+      + "           type: 'view',\n"
+      + "           sql: 'select cast(_MAP[\\'warehouse_id\\'] AS double) AS \"warehouse_id\", cast(_MAP[\\'warehouse_state_province\\'] AS varchar(20)) AS \"warehouse_state_province\" from \"_foodmart\".\"warehouse\"'\n"
       + "         }\n"
       + "       ]\n"
       + "     }\n";
@@ -118,6 +123,26 @@ public class MongoAdapterTest extends TestCase {
             + "warehouse_id=7.0; warehouse_state_province=CA\n"
             + "warehouse_id=14.0; warehouse_state_province=CA\n"
             + "warehouse_id=24.0; warehouse_state_province=CA\n");
+  }
+
+  public void testInPlan() {
+    if (!ENABLED) {
+      return;
+    }
+    OptiqAssert.assertThat()
+        .withModel(MONGO_FOODMART_MODEL)
+        .query(
+            "select \"store_id\", \"store_name\" from \"store\"\n"
+            + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
+        .returns(
+            "store_id=1.0; store_name=Store 1\n"
+            + "store_id=3.0; store_name=Store 3\n"
+            + "store_id=7.0; store_name=Store 7\n"
+            + "store_id=10.0; store_name=Store 10\n"
+            + "store_id=11.0; store_name=Store 11\n"
+            + "store_id=15.0; store_name=Store 15\n"
+            + "store_id=16.0; store_name=Store 16\n"
+            + "store_id=24.0; store_name=Store 24\n");
   }
 }
 

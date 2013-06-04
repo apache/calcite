@@ -351,6 +351,17 @@ public class ReflectiveSchemaTest extends TestCase {
             + "\n");
   }
 
+  /** Test case for a bug where a Java string 'Abc' compared to a char 'Ab'
+   * would be truncated to the char precision and falsely match. */
+  public void testPrefix() throws Exception {
+    OptiqAssert.assertThat()
+        .with("s", new CatchallSchema())
+        .query(
+            "select * from \"s\".\"prefixEmps\" where \"name\" in ('Ab', 'Abd')")
+        .returns(
+            "empid=2; deptno=10; name=Ab; commission=null\n"
+            + "empid=4; deptno=10; name=Abd; commission=null\n");
+  }
 
   public static class EmployeeWithHireDate extends Employee {
     public final java.sql.Date hireDate;
@@ -486,6 +497,13 @@ public class ReflectiveSchemaTest extends TestCase {
     public final AllPrivate[] allPrivates = { new AllPrivate() };
 
     public final BadType[] badTypes = { new BadType() };
+
+    public final Employee[] prefixEmps = {
+        new Employee(1, 10, "A", null),
+        new Employee(2, 10, "Ab", null),
+        new Employee(3, 10, "Abc", null),
+        new Employee(4, 10, "Abd", null),
+    };
   }
 
   public static class DateColumnSchema {

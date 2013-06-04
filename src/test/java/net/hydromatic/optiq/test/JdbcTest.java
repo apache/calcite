@@ -529,6 +529,24 @@ public class JdbcTest extends TestCase {
       "c0=WA; c1=1997; m0=124366.0000; m1=263793.2200\n",
       "select count(distinct \"product_id\") from \"product\"",
       "EXPR$0=1560\n",
+      "select \"store\".\"store_name\" as \"c0\",\n"
+      + " \"time_by_day\".\"the_year\" as \"c1\",\n"
+      + " sum(\"sales_fact_1997\".\"store_sales\") as \"m0\"\n"
+      + "from \"store\" as \"store\",\n"
+      + " \"sales_fact_1997\" as \"sales_fact_1997\",\n"
+      + " \"time_by_day\" as \"time_by_day\"\n"
+      + "where \"sales_fact_1997\".\"store_id\" = \"store\".\"store_id\"\n"
+      + "and \"store\".\"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')\n"
+      + "and \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\"\n"
+      + "and \"time_by_day\".\"the_year\" = 1997\n"
+      + "group by \"store\".\"store_name\",\n"
+      + " \"time_by_day\".\"the_year\"\n",
+      "c0=Store 7; c1=1997; m0=54545.2800\n"
+      + "c0=Store 24; c1=1997; m0=54431.1400\n"
+      + "c0=Store 16; c1=1997; m0=49634.4600\n"
+      + "c0=Store 3; c1=1997; m0=52896.3000\n"
+      + "c0=Store 15; c1=1997; m0=52644.0700\n"
+      + "c0=Store 11; c1=1997; m0=55058.7900\n"
   };
 
   /** Test case for

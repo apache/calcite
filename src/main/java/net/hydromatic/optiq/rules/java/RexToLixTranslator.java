@@ -202,7 +202,8 @@ public class RexToLixTranslator {
         case VARCHAR:
           // If this is a widening cast, no need to truncate.
           final int sourcePrecision = sourceType.getPrecision();
-          if (sourcePrecision >= 0
+          if (sourcePrecision < 0
+              || sourcePrecision >= 0
               && sourcePrecision <= targetPrecision) {
             break truncate;
           }

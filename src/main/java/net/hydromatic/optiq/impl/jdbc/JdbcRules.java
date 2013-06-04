@@ -32,9 +32,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.util.SqlBuilder;
 import org.eigenbase.sql.util.SqlString;
 import org.eigenbase.trace.EigenbaseTrace;
-import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.eigenbase.util.*;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -358,10 +356,7 @@ public class JdbcRules {
           return false;
         }
       }
-      if (i != program.getInputRowType().getFieldCount()) {
-        return false;
-      }
-      return true;
+      return i == program.getInputRowType().getFieldCount();
     }
 
     private static void expr(
@@ -374,8 +369,7 @@ public class JdbcRules {
             program.getInputRowType().getFieldNames().get(
                 ((RexInputRef) rex).getIndex()));
       } else if (rex instanceof RexLiteral) {
-        RexLiteral rexLiteral = (RexLiteral) rex;
-        buf.append(rexLiteral.getValue2().toString());
+        toSql(buf, (RexLiteral) rex);
       } else if (rex instanceof RexCall) {
         final RexCall call = (RexCall) rex;
         switch (call.getOperator().getSyntax()) {
@@ -392,6 +386,18 @@ public class JdbcRules {
       } else {
         throw new AssertionError(rex);
       }
+    }
+  }
+
+  private static SqlBuilder toSql(SqlBuilder buf, RexLiteral rex) {
+    switch (rex.getTypeName()) {
+    case CHAR:
+    case VARCHAR:
+      return buf.append(
+          new NlsString(rex.getValue2().toString(), null, null)
+              .asSql(false, false));
+    default:
+      return buf.append(rex.getValue2().toString());
     }
   }
 
