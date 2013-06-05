@@ -17,9 +17,12 @@
 */
 package net.hydromatic.optiq.test;
 
+import net.hydromatic.optiq.jdbc.OptiqConnection;
+
 import junit.framework.TestCase;
 
-import java.util.Random;
+import java.sql.DriverManager;
+import java.util.Properties;
 
 /**
  * Tests for the {@link net.hydromatic.optiq.impl.mongodb} package.
@@ -72,10 +75,12 @@ public class MongoAdapterTest extends TestCase {
 
   /** Disabled by default, because we do not expect Mongo to be installed and
    * populated with the FoodMart data set. */
-  private static final boolean ENABLED = new Random().nextInt(2) < 0;
+  private boolean enabled() {
+    return false;
+  }
 
   public void testUnionPlan() {
-    if (!ENABLED) {
+    if (!enabled()) {
       return;
     }
     OptiqAssert.assertThat()
@@ -94,7 +99,7 @@ public class MongoAdapterTest extends TestCase {
   }
 
   public void testFilterUnionPlan() {
-    if (!ENABLED) {
+    if (!enabled()) {
       return;
     }
     OptiqAssert.assertThat()
@@ -109,7 +114,7 @@ public class MongoAdapterTest extends TestCase {
   }
 
   public void testSelectWhere() {
-    if (!ENABLED) {
+    if (!enabled()) {
       return;
     }
     OptiqAssert.assertThat()
@@ -119,14 +124,15 @@ public class MongoAdapterTest extends TestCase {
         .explainContains(
             "PLAN=EnumerableCalcRel(expr#0=[{inputs}], expr#1=['warehouse_id'], expr#2=[ITEM($t0, $t1)], expr#3=[CAST($t2):DOUBLE NOT NULL], expr#4=['warehouse_state_province'], expr#5=[ITEM($t0, $t4)], expr#6=[CAST($t5):VARCHAR(20) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL], expr#7=['CA'], expr#8=[=($t6, $t7)], warehouse_id=[$t3], warehouse_state_province=[$t6], $condition=[$t8])\n"
             + "  EnumerableTableAccessRel(table=[[_foodmart, warehouse]])")
-        .returns("warehouse_id=6.0; warehouse_state_province=CA\n"
+        .returns(
+            "warehouse_id=6.0; warehouse_state_province=CA\n"
             + "warehouse_id=7.0; warehouse_state_province=CA\n"
             + "warehouse_id=14.0; warehouse_state_province=CA\n"
             + "warehouse_id=24.0; warehouse_state_province=CA\n");
   }
 
   public void testInPlan() {
-    if (!ENABLED) {
+    if (!enabled()) {
       return;
     }
     OptiqAssert.assertThat()
@@ -143,6 +149,31 @@ public class MongoAdapterTest extends TestCase {
             + "store_id=15.0; store_name=Store 15\n"
             + "store_id=16.0; store_name=Store 16\n"
             + "store_id=24.0; store_name=Store 24\n");
+  }
+
+  /** Query based on the "mongo-zips" model. */
+  public void testZips() {
+    if (!enabled()) {
+      return;
+    }
+    OptiqAssert.assertThat()
+        .with(
+            new OptiqAssert.ConnectionFactory() {
+              public OptiqConnection createConnection() throws Exception {
+                Class.forName("net.hydromatic.optiq.jdbc.Driver");
+                final Properties info = new Properties();
+                info.setProperty("model",
+                    "target/test-classes/mongo-zips-model.json");
+                return (OptiqConnection) DriverManager.getConnection(
+                    "jdbc:optiq:", info);
+              }
+            })
+        .query("select count(*) from zips")
+        .returns("EXPR$0=29467\n")
+        .explainContains(
+            "PLAN=EnumerableAggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
+            + "  EnumerableCalcRel(expr#0=[{inputs}], expr#1=[0], $f0=[$t1])\n"
+            + "    EnumerableTableAccessRel(table=[[mongo_raw, zips]])");
   }
 }
 

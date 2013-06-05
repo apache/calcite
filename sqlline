@@ -1,0 +1,11 @@
+#!/bin/bash
+# sqlline - Script to launch SQL shell
+
+# Build classpath on first call. (To force rebuild, remove .classpath.txt.)
+if [ ! -f .classpath.txt ]; then
+    mvn dependency:build-classpath -Dmdep.outputFile=.classpath.txt
+fi
+
+exec java -cp "target/classes:target/test-classes:$(cat .classpath.txt)" sqlline.SqlLine "$@"
+
+# End sqlline

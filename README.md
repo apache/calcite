@@ -141,7 +141,11 @@ project provides a CSV adapter, which is fully functional for use in application
 but is also simple enough to serve as a good template if you are writing
 your own adapter.
 
-See the <a href="https://github.com/julianhyde/optiq-csv/blob/master/TUTORIAL.md">tutorial</a>.
+See the <a href="https://github.com/julianhyde/optiq-csv/blob/master/TUTORIAL.md">optiq-csv tutorial</a>
+for information on using optiq-csv and writing adapters.
+
+See the <a href="HOWTO.md">HOWTO</a> for more information about using other
+adapters, and about using Optiq in general.
 
 ## Status
 
@@ -179,6 +183,7 @@ The following features are complete.
 * Project page: http://www.hydromatic.net/optiq
 * Source code: http://github.com/julianhyde/optiq
 * Developers list: http://groups.google.com/group/optiq-dev
+* <a href="HOWTO.md">HOWTO</a>
 
 ### Presentations
 
