@@ -21,18 +21,19 @@ import net.hydromatic.linq4j.Enumerator;
 
 import com.mongodb.*;
 
+import java.util.Iterator;
+
 /** Enumerator that reads from a MongoDB collection. */
 class MongoEnumerator implements Enumerator<Object> {
-  private final DBCursor cursor;
+  private final Iterator<DBObject> cursor;
   private DBObject current;
 
   /** Creates a MongoEnumerator.
    *
-   * @param mongoDb Connection to a Mongo database
-   * @param collectionName Collection name
+   * @param cursor Mongo iterator (usually a {@link DBCursor})
    */
-  public MongoEnumerator(DB mongoDb, String collectionName) {
-    this.cursor = mongoDb.getCollection(collectionName).find();
+  public MongoEnumerator(Iterator<DBObject> cursor) {
+    this.cursor = cursor;
   }
 
   public Object current() {

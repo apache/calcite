@@ -76,7 +76,7 @@ public class MongoAdapterTest extends TestCase {
   /** Disabled by default, because we do not expect Mongo to be installed and
    * populated with the FoodMart data set. */
   private boolean enabled() {
-    return false;
+    return true;
   }
 
   public void testUnionPlan() {
@@ -173,7 +173,8 @@ public class MongoAdapterTest extends TestCase {
         .explainContains(
             "PLAN=EnumerableAggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
             + "  EnumerableCalcRel(expr#0=[{inputs}], expr#1=[0], $f0=[$t1])\n"
-            + "    EnumerableTableAccessRel(table=[[mongo_raw, zips]])");
+            + "    MongoToEnumerableConverter\n"
+            + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[]])");
   }
 }
 

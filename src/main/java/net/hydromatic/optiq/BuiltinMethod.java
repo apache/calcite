@@ -24,6 +24,7 @@ import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.*;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
+import net.hydromatic.optiq.impl.mongodb.MongoTable;
 import net.hydromatic.optiq.runtime.*;
 
 import java.lang.reflect.Method;
@@ -48,6 +49,10 @@ public enum BuiltinMethod {
       JdbcSchema.class, "getDataSource"),
   RESULT_SET_ENUMERABLE_OF(
       ResultSetEnumerable.class, "of", DataSource.class, String.class),
+  MONGO_TABLE_FIND(
+      MongoTable.class, "find", String.class, String.class),
+  MONGO_TABLE_AGGREGATE(
+      MongoTable.class, "aggregate", String[].class),
   JOIN(
       ExtendedEnumerable.class, "join", Enumerable.class, Function1.class,
       Function1.class, Function2.class),

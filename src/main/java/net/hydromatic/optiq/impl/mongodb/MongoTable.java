@@ -22,14 +22,16 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
-import net.hydromatic.optiq.rules.java.JavaRules;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.util.Pair;
 
-import java.util.Iterator;
+import com.mongodb.*;
+import com.mongodb.util.JSON;
+
+import java.util.*;
 
 /**
  * Table based on a MongoDB collection.
@@ -85,23 +87,71 @@ public class MongoTable extends AbstractQueryable<Object>
         MongoTable.class);
   }
 
+  public RelNode toRel(
+      RelOptTable.ToRelContext context,
+      RelOptTable relOptTable) {
+    return new MongoTableScan(context.getCluster(),
+        context.getCluster().traitSetOf(MongoRel.CONVENTION), relOptTable,
+        this, rowType, Collections.<Pair<String, String>>emptyList());
+  }
+
   public Iterator<Object> iterator() {
     return Linq4j.enumeratorIterator(enumerator());
   }
 
   public Enumerator<Object> enumerator() {
-    return new MongoEnumerator(schema.mongoDb, tableName);
+    return find(null, null).enumerator();
   }
 
-  public RelNode toRel(
-      RelOptTable.ToRelContext context,
-      RelOptTable relOptTable) {
-    return new JavaRules.EnumerableTableAccessRel(
-        context.getCluster(),
-        context.getCluster().traitSetOf(EnumerableConvention.ARRAY),
-        relOptTable,
-        getExpression(),
-        getElementType());
+  /** Executes a "find" operation on the underlying collection.
+   *
+   * <p>For example,
+   * <code>zipsTable.find("{state: 'OR'}", "{city: 1, zipcode: 1}")</code></p>
+   *
+   * @param filterJson Filter JSON string, or null
+   * @param projectJson Project JSON string, or null
+   * @return Enumerator of results
+   */
+  public Enumerable<Object> find(String filterJson, String projectJson) {
+    final DBCollection collection = schema.mongoDb.getCollection(tableName);
+    final DBObject filter =
+        filterJson == null ? null : (DBObject) JSON.parse(filterJson);
+    final DBObject project =
+        projectJson == null ? null : (DBObject) JSON.parse(projectJson);
+    return new AbstractEnumerable<Object>() {
+      public Enumerator<Object> enumerator() {
+        final DBCursor cursor = collection.find(filter, project);
+        return new MongoEnumerator(cursor);
+      }
+    };
+  }
+
+  /** Executes an "aggregate" operation on the underlying collection.
+   *
+   * <p>For example:
+   * <code>zipsTable.aggregate(
+   * "{$filter: {state: 'OR'}",
+   * "{$group: {_id: '$city', c: {$sum: 1}, p: {$sum: '$pop'}}}")
+   * </code></p>
+   *
+   * @param operations One or more JSON strings
+   * @return Enumerator of results
+   */
+  public Enumerable<Object> aggregate(String... operations) {
+    List<DBObject> list = new ArrayList<DBObject>();
+    for (String operation : operations) {
+      list.add((DBObject) JSON.parse(operation));
+    }
+    final DBObject first = list.get(0);
+    final List<DBObject> rest = list.subList(1, list.size());
+    return new AbstractEnumerable<Object>() {
+      public Enumerator<Object> enumerator() {
+        final AggregationOutput result =
+            schema.mongoDb.getCollection(tableName)
+                .aggregate(first, rest.toArray(new DBObject[rest.size()]));
+        return new MongoEnumerator(result.results().iterator());
+      }
+    };
   }
 }
 
