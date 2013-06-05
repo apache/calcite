@@ -83,7 +83,7 @@ public class RexImpTable {
     // logical
     defineBinary(andOperator, AndAlso, NullPolicy.AND, null);
     defineBinary(orOperator, OrElse, NullPolicy.OR, null);
-    defineUnary(notOperator, Not, NullPolicy.STRICT);
+    defineUnary(notOperator, Not, NullPolicy.NOT);
 
     // comparisons
     defineBinary(lessThanOperator, LessThan, NullPolicy.STRICT, "lt");
@@ -233,10 +233,16 @@ public class RexImpTable {
         public Expression implement(
             RexToLixTranslator translator, RexCall call, NullAs nullAs) {
           final RexCall call2 = call2(harmonize, translator, call);
-          final Expression t0 =
-              translator.translate(call2.getOperandList().get(0));
-          final Expression t1 =
-              translator.translate(call2.getOperandList().get(1));
+          final NullAs nullAs2 = nullAs == NullAs.TRUE ? NullAs.NULL : nullAs;
+          final List<Expression> expressions =
+              translator.translateList(call2.getOperandList(), nullAs2);
+          switch (nullAs) {
+          case NOT_POSSIBLE:
+          case FALSE:
+            return Expressions.foldOr(expressions);
+          }
+          final Expression t0 = expressions.get(0);
+          final Expression t1 = expressions.get(1);
           if (!nullable(call2, 0) && !nullable(call2, 1)) {
             return Expressions.orElse(t0, t1);
           }
@@ -253,6 +259,28 @@ public class RexImpTable {
                       Expressions.not(t0),
                       t1,
                       BOXED_TRUE_EXPR)));
+        }
+      };
+    case NOT:
+      // If any of the arguments are false, result is true;
+      // else if any arguments are null, result is null;
+      // else false.
+      return new CallImplementor() {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call, NullAs nullAs) {
+          NullAs nullAs2;
+          switch (nullAs) {
+          case FALSE:
+            nullAs2 = NullAs.TRUE;
+            break;
+          case TRUE:
+            nullAs2 = NullAs.FALSE;
+            break;
+          default:
+            nullAs2 = nullAs;
+          }
+          return implementNullSemantics0(
+              translator, call, nullAs2, nullPolicy, harmonize, implementor);
         }
       };
     case NONE:
@@ -443,12 +471,14 @@ public class RexImpTable {
           translator = translator.setNullable(operand.e, false);
         }
       }
+      final Expression box =
+          Expressions.box(
+              implementCall(translator, call, implementor, nullAs));
       return optimize(
           Expressions.condition(
               Expressions.foldOr(list),
-              NULL_EXPR,
-              Expressions.box(
-                  implementCall(translator, call, implementor, nullAs))));
+              Types.castIfNecessary(box.getType(), NULL_EXPR),
+              box));
     case FALSE:
       // v0 != null && v1 != null && f(v0, v1)
       for (Ord<RexNode> operand : Ord.zip(call.getOperands())) {
@@ -887,6 +917,9 @@ public class RexImpTable {
     /** If any of the arguments are true, result is true; else if any
      * arguments are null, result is null; else false. */
     OR,
+    /** If any argument is true, result is false; else if any argument is null,
+     * result is null; else true. */
+    NOT,
     NONE
   }
 

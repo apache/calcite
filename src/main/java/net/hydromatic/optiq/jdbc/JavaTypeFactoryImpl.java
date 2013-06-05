@@ -247,6 +247,10 @@ public class JavaTypeFactoryImpl
     private SyntheticRecordType(RelDataType relType, String name) {
       this.relType = relType;
       this.name = name;
+      assert relType == null
+             || new HashSet<String>(relType.getFieldNames()).size()
+                == relType.getFieldNames().size()
+          : "field names not distinct: " + relType;
     }
 
     public String getName() {

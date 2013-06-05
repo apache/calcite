@@ -186,7 +186,7 @@ public abstract class AggregateRelBase
                         if (aggCall.getName() != null) {
                             name = aggCall.getName();
                         } else {
-                            name = "$f" + index;
+                            name = "$f" + (groupSet.cardinality() + index);
                         }
                         assert typeMatchesInferred(aggCall, true);
                         return new RelDataTypeFieldImpl(

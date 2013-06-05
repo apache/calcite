@@ -78,9 +78,9 @@ public class JdbcTest extends TestCase {
       + "  version: '1.0',\n"
       + "  defaultSchema: 'foodmart',\n"
       + "   schemas: [\n"
-          + FOODMART_SCHEMA
-          + "   ]\n"
-          + "}";
+      + FOODMART_SCHEMA
+      + "   ]\n"
+      + "}";
 
   static String toString(ResultSet resultSet) throws SQLException {
     StringBuilder buf = new StringBuilder();
@@ -546,7 +546,48 @@ public class JdbcTest extends TestCase {
       + "c0=Store 16; c1=1997; m0=49634.4600\n"
       + "c0=Store 3; c1=1997; m0=52896.3000\n"
       + "c0=Store 15; c1=1997; m0=52644.0700\n"
-      + "c0=Store 11; c1=1997; m0=55058.7900\n"
+      + "c0=Store 11; c1=1997; m0=55058.7900\n",
+      "select \"customer\".\"yearly_income\" as \"c0\","
+      + " \"customer\".\"education\" as \"c1\" \n"
+      + "from \"customer\" as \"customer\",\n"
+      + " \"sales_fact_1997\" as \"sales_fact_1997\"\n"
+      + "where \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\"\n"
+      + " and ((not (\"customer\".\"yearly_income\" in ('$10K - $30K', '$50K - $70K'))\n"
+      + " or (\"customer\".\"yearly_income\" is null)))\n"
+      + "group by \"customer\".\"yearly_income\",\n"
+      + " \"customer\".\"education\"\n"
+      + "order by \"customer\".\"yearly_income\" ASC NULLS LAST,\n"
+      + " \"customer\".\"education\" ASC NULLS LAST",
+      "c0=$110K - $130K; c1=Bachelors Degree\n"
+      + "c0=$110K - $130K; c1=Graduate Degree\n"
+      + "c0=$110K - $130K; c1=High School Degree\n"
+      + "c0=$110K - $130K; c1=Partial College\n"
+      + "c0=$110K - $130K; c1=Partial High School\n"
+      + "c0=$130K - $150K; c1=Bachelors Degree\n"
+      + "c0=$130K - $150K; c1=Graduate Degree\n"
+      + "c0=$130K - $150K; c1=High School Degree\n"
+      + "c0=$130K - $150K; c1=Partial College\n"
+      + "c0=$130K - $150K; c1=Partial High School\n"
+      + "c0=$150K +; c1=Bachelors Degree\n"
+      + "c0=$150K +; c1=Graduate Degree\n"
+      + "c0=$150K +; c1=High School Degree\n"
+      + "c0=$150K +; c1=Partial College\n"
+      + "c0=$150K +; c1=Partial High School\n"
+      + "c0=$30K - $50K; c1=Bachelors Degree\n"
+      + "c0=$30K - $50K; c1=Graduate Degree\n"
+      + "c0=$30K - $50K; c1=High School Degree\n"
+      + "c0=$30K - $50K; c1=Partial College\n"
+      + "c0=$30K - $50K; c1=Partial High School\n"
+      + "c0=$70K - $90K; c1=Bachelors Degree\n"
+      + "c0=$70K - $90K; c1=Graduate Degree\n"
+      + "c0=$70K - $90K; c1=High School Degree\n"
+      + "c0=$70K - $90K; c1=Partial College\n"
+      + "c0=$70K - $90K; c1=Partial High School\n"
+      + "c0=$90K - $110K; c1=Bachelors Degree\n"
+      + "c0=$90K - $110K; c1=Graduate Degree\n"
+      + "c0=$90K - $110K; c1=High School Degree\n"
+      + "c0=$90K - $110K; c1=Partial College\n"
+      + "c0=$90K - $110K; c1=Partial High School\n",
   };
 
   /** Test case for
@@ -612,7 +653,7 @@ public class JdbcTest extends TestCase {
           expected = queries[++i];
         }
         // uncomment to run specific queries:
-//                if (i != 85) continue;
+        //if (i != queries.length - 1) continue;
         final OptiqAssert.AssertQuery query1 = with.query(query);
         if (expected != null) {
           query1.returns(expected);
@@ -839,6 +880,33 @@ public class JdbcTest extends TestCase {
             "deptno=10; E=Employee [empid: 100, deptno: 10, name: Bill]\n"
             + "deptno=30; E=null\n"
             + "deptno=40; E=Employee [empid: 200, deptno: 20, name: Eric]\n");
+  }
+
+  /** Tests the NOT IN operator. Problems arose in code-generation because
+   * the column allows nulls. */
+  public void testNotIn() {
+    predicate("\"name\" not in ('a', 'b') or \"name\" is null")
+        .returns(
+            "empid=100; deptno=10; name=Bill; commission=1000\n"
+            + "empid=200; deptno=20; name=Eric; commission=500\n"
+            + "empid=150; deptno=10; name=Sebastian; commission=null\n");
+
+    // And some similar combinations...
+    predicate("\"name\" in ('a', 'b') or \"name\" is null");
+    predicate("\"name\" in ('a', 'b', null) or \"name\" is null");
+    predicate("\"name\" in ('a', 'b') or \"name\" is not null");
+    predicate("\"name\" in ('a', 'b', null) or \"name\" is not null");
+    predicate("\"name\" not in ('a', 'b', null) or \"name\" is not null");
+    predicate("\"name\" not in ('a', 'b', null) and \"name\" is not null");
+  }
+
+  private OptiqAssert.AssertQuery predicate(String foo) {
+      return OptiqAssert.assertThat()
+          .with(OptiqAssert.Config.REGULAR)
+          .query(
+              "select * from \"hr\".\"emps\"\n"
+              + "where " + foo)
+          .runs();
   }
 
   /** Tests the TABLES table in the information schema. */
