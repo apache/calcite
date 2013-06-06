@@ -410,13 +410,8 @@ public class JavaRules {
 
     private EnumerableCustomCalcRule() {
       super(
-          new RelOptRuleOperand(
-              EnumerableCalcRel.class,
-              (RelTrait) null,
-              new RelOptRuleOperand(
-                  RelNode.class,
-                  EnumerableConvention.ARRAY,
-                  RelOptRuleOperand.Dummy.ANY)),
+          some(EnumerableCalcRel.class,
+              any(RelNode.class, EnumerableConvention.ARRAY)),
           "EnumerableCustomCalcRule");
     }
 
@@ -1646,9 +1641,7 @@ public class JavaRules {
   public static class EnumerableOneRowRule extends RelOptRule {
     private EnumerableOneRowRule() {
       super(
-          new RelOptRuleOperand(
-              OneRowRel.class,
-              Convention.NONE),
+          leaf(OneRowRel.class, Convention.NONE),
           "EnumerableOneRowRule");
     }
 

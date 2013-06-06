@@ -34,9 +34,7 @@ public abstract class RelOptRule
 {
     //~ Static fields/initializers ---------------------------------------------
 
-    /**
-     * Shorthand for {@link RelOptRuleOperand.Dummy#ANY}.
-     */
+    /** Shorthand for {@link RelOptRuleOperand.Dummy#ANY}. */
     public static final RelOptRuleOperand.Dummy ANY =
         RelOptRuleOperand.Dummy.ANY;
 
@@ -90,7 +88,136 @@ public abstract class RelOptRule
         assignSolveOrder();
     }
 
+    //~ Methods for creating operands ------------------------------------------
+
+    /**
+     * Creates an operand that matches a relational expression that has no
+     * children.
+     *
+     * @param clazz Class of relational expression to match (must not be null)
+     * @return Operand
+     */
+    public static RelOptRuleOperand leaf(
+        Class<? extends RelNode> clazz)
+    {
+        return leaf(clazz, null);
+    }
+
+    /**
+     * Creates an operand that matches a relational expression that has no
+     * children.
+     *
+     * @param clazz Class of relational expression to match (must not be null)
+     * @param trait Trait to match, or null to match any trait
+     * @return Operand
+     */
+    public static RelOptRuleOperand leaf(
+        Class<? extends RelNode> clazz,
+        RelTrait trait)
+    {
+        return new RelOptRuleOperand(
+            clazz, trait, RelOptRuleOperand.Dummy.LEAF,
+            new RelOptRuleOperand[0]);
+    }
+
+    /**
+     * Creates an operand that matches a relational expression that has any
+     * number of children.
+     *
+     * @param clazz Class of relational expression to match (must not be null)
+     * @return Operand
+     */
+    public static RelOptRuleOperand any(
+        Class<? extends RelNode> clazz)
+    {
+        return any(clazz, null);
+    }
+
+    /**
+     * Creates an operand that matches a relational expression that has any
+     * number of children.
+     *
+     * @param clazz Class of relational expression to match (must not be null)
+     * @param trait Trait to match, or null to match any trait
+     * @return Operand
+     */
+    public static RelOptRuleOperand any(
+        Class<? extends RelNode> clazz,
+        RelTrait trait)
+    {
+        return new RelOptRuleOperand(
+            clazz, trait, RelOptRuleOperand.Dummy.ANY, null);
+    }
+
+    /**
+     * Creates an operand which matches a given trait and matches child operands
+     * in the order they appear.
+     *
+     * @param clazz Class of relational expression to match (must not be null)
+     * @param first First child operand
+     * @param rest Remaining child operands
+     */
+    public static RelOptRuleOperand some(
+        Class<? extends RelNode> clazz,
+        RelOptRuleOperand first,
+        RelOptRuleOperand ... rest)
+    {
+        return some(clazz, null, first, rest);
+    }
+
+    /**
+     * Creates an operand which matches a given trait and matches child operands
+     * in the order they appear.
+     *
+     * @param clazz Class of relational expression to match (must not be null)
+     * @param trait Trait to match, or null to match any trait
+     * @param first First child operand
+     * @param rest Remaining child operands
+     */
+    public static RelOptRuleOperand some(
+        Class<? extends RelNode> clazz,
+        RelTrait trait,
+        RelOptRuleOperand first,
+        RelOptRuleOperand ... rest)
+    {
+        return new RelOptRuleOperand(
+            clazz, trait, RelOptRuleOperand.Dummy.SOME, array(first, rest));
+    }
+
+    /**
+     * Creates an operand that matches a relational expression and its children
+     * in any order.
+     *
+     * @param clazz Class of relational expression to match (must not be null)
+     * @param first First child operand
+     * @param rest Remaining child operands
+     * @return Operand
+     */
+    public static RelOptRuleOperand unordered(
+        Class<? extends RelNode> clazz,
+        RelOptRuleOperand first,
+        RelOptRuleOperand... rest)
+    {
+        return new RelOptRuleOperand(
+            clazz, null, RelOptRuleOperand.Dummy.UNORDERED,
+            array(first, rest));
+    }
+
     //~ Methods ----------------------------------------------------------------
+
+    private static RelOptRuleOperand[] array(
+        RelOptRuleOperand first, RelOptRuleOperand[] rest)
+    {
+        assert first != null;
+        for (RelOptRuleOperand operand : rest) {
+            assert operand != null;
+        }
+        final RelOptRuleOperand[] operands =
+            new RelOptRuleOperand[rest.length + 1];
+        operands[0] = first;
+        System.arraycopy(rest, 0, operands, 1, rest.length);
+        return operands;
+    }
 
     /**
      * Creates a flattened list of this operand and its descendants in prefix

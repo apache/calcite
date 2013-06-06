@@ -60,8 +60,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         super(
             new RelOptRuleOperand(
                 JoinRel.class,
-                new RelOptRuleOperand(JoinRel.class),
-                new RelOptRuleOperand(RelNode.class)),
+                any(JoinRel.class),
+                any(RelNode.class)),
             "RotateJoinRule");
     }
 

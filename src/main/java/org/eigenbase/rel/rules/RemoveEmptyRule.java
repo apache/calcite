@@ -50,13 +50,9 @@ public abstract class RemoveEmptyRule
      */
     public static final RemoveEmptyRule unionInstance =
         new RemoveEmptyRule(
-            new RelOptRuleOperand(
+            unordered(
                 UnionRel.class,
-                null,
-                true,
-                new RelOptRuleOperand(
-                    EmptyRel.class,
-                    ANY)),
+                leaf(EmptyRel.class)),
             "Union")
         {
             public void onMatch(RelOptRuleCall call)
@@ -113,8 +109,7 @@ public abstract class RemoveEmptyRule
             new RelOptRuleOperand(
                 ProjectRel.class,
                 (RelTrait) null,
-                new RelOptRuleOperand(
-                    EmptyRel.class)),
+                leaf(EmptyRel.class)),
             "Project")
         {
             public void onMatch(RelOptRuleCall call)
@@ -142,8 +137,7 @@ public abstract class RemoveEmptyRule
             new RelOptRuleOperand(
                 FilterRel.class,
                 (RelTrait) null,
-                new RelOptRuleOperand(
-                    EmptyRel.class)),
+                leaf(EmptyRel.class)),
             "Filter")
         {
             public void onMatch(RelOptRuleCall call)
