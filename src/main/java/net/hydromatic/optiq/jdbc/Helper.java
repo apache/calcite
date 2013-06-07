@@ -58,10 +58,11 @@ public class Helper {
   /** Creates an empty result set. Useful for JDBC metadata methods that are
    * not implemented or which query entities that are not supported (e.g.
    * triggers in Lingual). */
-  public ResultSet createEmptyResultSet(OptiqConnectionImpl connection) {
+  public ResultSet createEmptyResultSet(OptiqConnection connection) {
     try {
-      return connection.driver.factory.newResultSet(
-          connection.createStatement(),
+      final OptiqConnectionImpl connection1 = (OptiqConnectionImpl) connection;
+      return connection1.driver.factory.newResultSet(
+          connection1.createStatement(),
           Collections.<ColumnMetaData>emptyList(),
           new Function0<Cursor>() {
             public Cursor apply() {
