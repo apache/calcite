@@ -32,10 +32,7 @@ import org.eigenbase.rex.*;
  * FilterRel} or {@link CalcRel}. If it did, then the same {@link CalcRel} would
  * be formed via several transformation paths, which is a waste of effort.</p>
  *
- * @author jhyde
- * @version $Id$
  * @see FilterToCalcRule
- * @since Mar 7, 2004
  */
 public class ProjectToCalcRule
     extends RelOptRule
@@ -48,17 +45,14 @@ public class ProjectToCalcRule
 
     private ProjectToCalcRule()
     {
-        super(
-            new RelOptRuleOperand(
-                ProjectRel.class,
-                ANY));
+        super(any(ProjectRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        final ProjectRel project = (ProjectRel) call.rels[0];
+        final ProjectRel project = call.rel(0);
         final RelNode child = project.getChild();
         final RelDataType rowType = project.getRowType();
         final RexNode [] projectExprs =

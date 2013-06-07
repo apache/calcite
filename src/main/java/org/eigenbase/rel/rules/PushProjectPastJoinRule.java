@@ -29,9 +29,6 @@ import org.eigenbase.rex.*;
  * PushProjectPastJoinRule implements the rule for pushing a projection past a
  * join by splitting the projection into a projection on top of each child of
  * the join.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PushProjectPastJoinRule
     extends RelOptRule
@@ -66,9 +63,8 @@ public class PushProjectPastJoinRule
         PushProjector.ExprCondition preserveExprCondition)
     {
         super(
-            new RelOptRuleOperand(
-                ProjectRel.class,
-                new RelOptRuleOperand(JoinRel.class, ANY)));
+            some(
+                ProjectRel.class, any(JoinRel.class)));
         this.preserveExprCondition = preserveExprCondition;
     }
 
@@ -77,8 +73,8 @@ public class PushProjectPastJoinRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        ProjectRel origProj = (ProjectRel) call.rels[0];
-        JoinRel joinRel = (JoinRel) call.rels[1];
+        ProjectRel origProj = call.rel(0);
+        JoinRel joinRel = call.rel(1);
 
         // locate all fields referenced in the projection and join condition;
         // determine which inputs are referenced in the projection and

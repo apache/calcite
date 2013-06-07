@@ -27,8 +27,6 @@ import org.eigenbase.relopt.*;
  * Collection of rules which remove sections of a query plan known never to
  * produce any rows.
  *
- * @author Julian Hyde
- * @version $Id$
  * @see EmptyRel
  */
 public abstract class RemoveEmptyRule
@@ -57,7 +55,7 @@ public abstract class RemoveEmptyRule
         {
             public void onMatch(RelOptRuleCall call)
             {
-                UnionRel union = (UnionRel) call.rels[0];
+                UnionRel union = call.rel(0);
                 final List<RelNode> childRels = call.getChildRels(union);
                 final List<RelNode> newChildRels = new ArrayList<RelNode>();
                 for (RelNode childRel : childRels) {
@@ -106,15 +104,13 @@ public abstract class RemoveEmptyRule
      */
     public static final RemoveEmptyRule projectInstance =
         new RemoveEmptyRule(
-            new RelOptRuleOperand(
-                ProjectRel.class,
-                (RelTrait) null,
-                leaf(EmptyRel.class)),
+            some(
+                ProjectRel.class, leaf(EmptyRel.class)),
             "Project")
         {
             public void onMatch(RelOptRuleCall call)
             {
-                ProjectRel project = (ProjectRel) call.rels[0];
+                ProjectRel project = call.rel(0);
                 call.transformTo(
                     new EmptyRel(
                         project.getCluster(),
@@ -134,15 +130,13 @@ public abstract class RemoveEmptyRule
      */
     public static final RemoveEmptyRule filterInstance =
         new RemoveEmptyRule(
-            new RelOptRuleOperand(
-                FilterRel.class,
-                (RelTrait) null,
-                leaf(EmptyRel.class)),
+            some(
+                FilterRel.class, leaf(EmptyRel.class)),
             "Filter")
         {
             public void onMatch(RelOptRuleCall call)
             {
-                FilterRel filter = (FilterRel) call.rels[0];
+                FilterRel filter = call.rel(0);
                 call.transformTo(
                     new EmptyRel(
                         filter.getCluster(),

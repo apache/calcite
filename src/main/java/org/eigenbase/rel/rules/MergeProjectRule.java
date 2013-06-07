@@ -27,9 +27,6 @@ import org.eigenbase.rex.*;
 /**
  * MergeProjectRule merges a {@link ProjectRel} into another {@link ProjectRel},
  * provided the projects aren't projecting identical sets of input references.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class MergeProjectRule
     extends RelOptRule
@@ -62,9 +59,8 @@ public class MergeProjectRule
     public MergeProjectRule(boolean force)
     {
         super(
-            new RelOptRuleOperand(
-                ProjectRel.class,
-                new RelOptRuleOperand(ProjectRel.class, ANY)),
+            some(
+                ProjectRel.class, any(ProjectRel.class)),
             "MergeProjectRule" + (force ? ": force mode" : ""));
         this.force = force;
     }
@@ -74,8 +70,8 @@ public class MergeProjectRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        ProjectRel topProject = (ProjectRel) call.rels[0];
-        ProjectRel bottomProject = (ProjectRel) call.rels[1];
+        ProjectRel topProject = call.rel(0);
+        ProjectRel bottomProject = call.rel(1);
         RexBuilder rexBuilder = topProject.getCluster().getRexBuilder();
 
         // if we're not in force mode and the two projects reference identical

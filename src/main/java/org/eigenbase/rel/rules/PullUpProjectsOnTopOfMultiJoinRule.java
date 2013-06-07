@@ -46,9 +46,6 @@ import org.eigenbase.relopt.*;
  *
  * <p>See the superclass for details on restrictions regarding which {@link
  * ProjectRel}s cannot be pulled.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PullUpProjectsOnTopOfMultiJoinRule
     extends PullUpProjectsAboveJoinRule
@@ -58,35 +55,35 @@ public class PullUpProjectsOnTopOfMultiJoinRule
     public static final PullUpProjectsOnTopOfMultiJoinRule
         instanceTwoProjectChildren =
             new PullUpProjectsOnTopOfMultiJoinRule(
-                new RelOptRuleOperand(
+                some(
                     JoinRel.class,
-                    new RelOptRuleOperand(
+                    some(
                         ProjectRel.class,
-                        new RelOptRuleOperand(MultiJoinRel.class, ANY)),
-                    new RelOptRuleOperand(
+                        any(MultiJoinRel.class)),
+                    some(
                         ProjectRel.class,
-                        new RelOptRuleOperand(MultiJoinRel.class, ANY))),
+                        any(MultiJoinRel.class))),
                 "PullUpProjectsOnTopOfMultiJoinRule: with two ProjectRel children");
 
     public static final PullUpProjectsOnTopOfMultiJoinRule
         instanceLeftProjectChild =
             new PullUpProjectsOnTopOfMultiJoinRule(
-                new RelOptRuleOperand(
+                some(
                     JoinRel.class,
-                    new RelOptRuleOperand(
+                    some(
                         ProjectRel.class,
-                        new RelOptRuleOperand(MultiJoinRel.class, ANY))),
+                        any(MultiJoinRel.class))),
                 "PullUpProjectsOnTopOfMultiJoinRule: with ProjectRel on left");
 
     public static final PullUpProjectsOnTopOfMultiJoinRule
         instanceRightProjectChild =
             new PullUpProjectsOnTopOfMultiJoinRule(
-                new RelOptRuleOperand(
+                some(
                     JoinRel.class,
-                    new RelOptRuleOperand(RelNode.class, ANY),
-                    new RelOptRuleOperand(
-                        ProjectRel.class,
-                        new RelOptRuleOperand(MultiJoinRel.class, ANY))),
+                    any(RelNode.class),
+                some(
+                    ProjectRel.class,
+                    any(MultiJoinRel.class))),
                 "PullUpProjectsOnTopOfMultiJoinRule: with ProjectRel on right");
 
     //~ Constructors -----------------------------------------------------------
@@ -116,9 +113,9 @@ public class PullUpProjectsOnTopOfMultiJoinRule
     protected ProjectRel getRightChild(RelOptRuleCall call)
     {
         if (call.rels.length == 4) {
-            return (ProjectRel) call.rels[2];
+            return call.rel(2);
         } else {
-            return (ProjectRel) call.rels[3];
+            return call.rel(3);
         }
     }
 
@@ -132,11 +129,11 @@ public class PullUpProjectsOnTopOfMultiJoinRule
         // and which projection we're dealing with
         MultiJoinRel multiJoin;
         if (leftChild) {
-            multiJoin = (MultiJoinRel) call.rels[2];
+            multiJoin = call.rel(2);
         } else if (call.rels.length == 4) {
-            multiJoin = (MultiJoinRel) call.rels[3];
+            multiJoin = call.rel(3);
         } else {
-            multiJoin = (MultiJoinRel) call.rels[4];
+            multiJoin = call.rel(4);
         }
 
         // create a new MultiJoinRel that reflects the columns in the projection

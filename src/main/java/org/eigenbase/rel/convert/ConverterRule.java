@@ -24,10 +24,6 @@ import org.eigenbase.relopt.*;
 /**
  * Abstract base class for a rule which converts from one calling convention to
  * another without changing semantics.
- *
- * @author jhyde
- * @version $Id$
- * @since May 5, 2003
  */
 public abstract class ConverterRule
     extends RelOptRule
@@ -109,7 +105,7 @@ public abstract class ConverterRule
 
     public void onMatch(RelOptRuleCall call)
     {
-        RelNode rel = call.rels[0];
+        RelNode rel = call.rel(0);
         if (rel.getTraitSet().contains(inTrait)) {
             final RelNode converted = convert(rel);
             if (converted != null) {
@@ -126,7 +122,7 @@ public abstract class ConverterRule
         public ConverterRelOptRuleOperand(
             Class<? extends RelNode> clazz, RelTrait in)
         {
-            super(clazz, in, RelOptRule.ANY);
+            super(clazz, in, RelOptRule.ANY, null);
         }
 
         public boolean matches(RelNode rel)

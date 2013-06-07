@@ -24,9 +24,6 @@ import org.eigenbase.rex.*;
 
 /**
  * MergeFilterRule implements the rule for combining two {@link FilterRel}s
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class MergeFilterRule
     extends RelOptRule
@@ -41,9 +38,8 @@ public class MergeFilterRule
     private MergeFilterRule()
     {
         super(
-            new RelOptRuleOperand(
-                FilterRel.class,
-                new RelOptRuleOperand(FilterRel.class, ANY)));
+            some(
+                FilterRel.class, any(FilterRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -51,8 +47,8 @@ public class MergeFilterRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        FilterRel topFilter = (FilterRel) call.rels[0];
-        FilterRel bottomFilter = (FilterRel) call.rels[1];
+        FilterRel topFilter = call.rel(0);
+        FilterRel bottomFilter = call.rel(1);
 
         // use RexPrograms to merge the two FilterRels into a single program
         // so we can convert the two FilterRel conditions to directly

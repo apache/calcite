@@ -28,10 +28,6 @@ import org.eigenbase.rex.*;
  * Planner rule which merges a {@link CalcRel} onto a {@link CalcRel}. The
  * resulting {@link CalcRel} has the same project list as the upper {@link
  * CalcRel}, but expressed in terms of the lower {@link CalcRel}'s inputs.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 7, 2004
  */
 public class MergeCalcRule
     extends RelOptRule
@@ -45,17 +41,16 @@ public class MergeCalcRule
     private MergeCalcRule()
     {
         super(
-            new RelOptRuleOperand(
-                CalcRel.class,
-                new RelOptRuleOperand(CalcRel.class, ANY)));
+            some(
+                CalcRel.class, any(CalcRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        final CalcRel topCalc = (CalcRel) call.rels[0];
-        final CalcRel bottomCalc = (CalcRel) call.rels[1];
+        final CalcRel topCalc = call.rel(0);
+        final CalcRel bottomCalc = call.rel(1);
 
         // Don't merge a calc which contains windowed aggregates onto a
         // calc. That would effectively be pushing a windowed aggregate down

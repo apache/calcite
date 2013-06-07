@@ -25,9 +25,6 @@ import org.eigenbase.rex.*;
 /**
  * PushProjectPastFilterRule implements the rule for pushing a projection past a
  * filter.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PushProjectPastFilterRule
     extends RelOptRule
@@ -50,9 +47,8 @@ public class PushProjectPastFilterRule
     private PushProjectPastFilterRule()
     {
         super(
-            new RelOptRuleOperand(
-                ProjectRel.class,
-                new RelOptRuleOperand(FilterRel.class, ANY)));
+            some(
+                ProjectRel.class, any(FilterRel.class)));
         this.preserveExprCondition = PushProjector.ExprCondition.FALSE;
     }
 
@@ -82,11 +78,11 @@ public class PushProjectPastFilterRule
         FilterRel filterRel;
 
         if (call.rels.length == 2) {
-            origProj = (ProjectRel) call.rels[0];
-            filterRel = (FilterRel) call.rels[1];
+            origProj = call.rel(0);
+            filterRel = call.rel(1);
         } else {
             origProj = null;
-            filterRel = (FilterRel) call.rels[0];
+            filterRel = call.rel(0);
         }
         RelNode rel = filterRel.getChild();
         RexNode origFilter = filterRel.getCondition();

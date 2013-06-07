@@ -30,10 +30,7 @@ import org.eigenbase.rex.*;
  * resulting {@link CalcRel} has the same project list as the original {@link
  * ProjectRel}, but expressed in terms of the original {@link CalcRel}'s inputs.
  *
- * @author jhyde
- * @version $Id$
  * @see MergeFilterOntoCalcRule
- * @since Mar 7, 2004
  */
 public class MergeProjectOntoCalcRule
     extends RelOptRule
@@ -48,17 +45,16 @@ public class MergeProjectOntoCalcRule
     private MergeProjectOntoCalcRule()
     {
         super(
-            new RelOptRuleOperand(
-                ProjectRel.class,
-                new RelOptRuleOperand(CalcRel.class, ANY)));
+            some(
+                ProjectRel.class, any(CalcRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        final ProjectRel project = (ProjectRel) call.rels[0];
-        final CalcRel calc = (CalcRel) call.rels[1];
+        final ProjectRel project = call.rel(0);
+        final CalcRel calc = call.rel(1);
 
         // Don't merge a project which contains windowed aggregates onto a
         // calc. That would effectively be pushing a windowed aggregate down

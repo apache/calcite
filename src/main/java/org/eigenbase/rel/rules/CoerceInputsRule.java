@@ -29,9 +29,6 @@ import org.eigenbase.reltype.*;
  * CoerceInputsRule precasts inputs to a particular type. This can be used to
  * assist operator implementations which impose requirements on their input
  * types.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class CoerceInputsRule
     extends RelOptRule
@@ -56,7 +53,7 @@ public class CoerceInputsRule
         boolean coerceNames)
     {
         super(
-            new RelOptRuleOperand(consumerRelClass, ANY),
+            any(consumerRelClass),
             "CoerceInputsRule:" + consumerRelClass.getName());
         this.consumerRelClass = consumerRelClass;
         this.coerceNames = coerceNames;
@@ -73,7 +70,7 @@ public class CoerceInputsRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        RelNode consumerRel = call.rels[0];
+        RelNode consumerRel = call.rel(0);
         if (consumerRel.getClass() != consumerRelClass) {
             // require exact match on type
             return;

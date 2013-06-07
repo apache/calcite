@@ -62,9 +62,6 @@ import org.eigenbase.rex.*;
  *      inner MultiJoinRel and right outer join on input#0 in the second inner
  *      MultiJoinRel
  * </pre>
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class ConvertMultiJoinRule
     extends RelOptRule
@@ -80,20 +77,18 @@ public class ConvertMultiJoinRule
     private ConvertMultiJoinRule()
     {
         super(
-            new RelOptRuleOperand(
-                JoinRel.class,
-                new RelOptRuleOperand(RelNode.class, ANY),
-                new RelOptRuleOperand(RelNode.class, ANY)));
+            some(
+                JoinRel.class, any(RelNode.class), any(RelNode.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        JoinRel origJoinRel = (JoinRel) call.rels[0];
+        JoinRel origJoinRel = call.rel(0);
 
-        RelNode left = call.rels[1];
-        RelNode right = call.rels[2];
+        RelNode left = call.rel(1);
+        RelNode right = call.rel(2);
 
         // combine the children MultiJoinRel inputs into an array of inputs
         // for the new MultiJoinRel

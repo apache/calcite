@@ -45,9 +45,6 @@ import org.eigenbase.util.*;
  * <p>While decimals are generally not implemented by the eigenbase runtime, the
  * rule is optionally applied, in order to support the situation in which we
  * would like to push down decimal operations to an external database.
- *
- * @author jpham
- * @version $Id$
  */
 public class ReduceDecimalsRule
     extends RelOptRule
@@ -61,7 +58,7 @@ public class ReduceDecimalsRule
      */
     private ReduceDecimalsRule()
     {
-        super(new RelOptRuleOperand(CalcRel.class, ANY));
+        super(any(CalcRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -75,7 +72,7 @@ public class ReduceDecimalsRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        CalcRel calcRel = (CalcRel) call.rels[0];
+        CalcRel calcRel = call.rel(0);
 
         // Expand decimals in every expression in this program. If no
         // expression changes, don't apply the rule.
@@ -834,7 +831,7 @@ public class ReduceDecimalsRule
             {
                 // decimal to decimal
                 RexNode value = decodeValue(operand);
-                RexNode scaled = null;
+                RexNode scaled;
                 if (fromScale <= toScale) {
                     scaled = ensureScale(value, fromScale, toScale);
                 } else {
@@ -1263,23 +1260,6 @@ public class ReduceDecimalsRule
                         true);
             }
             return type;
-        }
-    }
-
-    /**
-     * An expander which casts decimal arguments as call return type
-     */
-    private class CastArgAsReturnExpander
-        extends CastArgAsTypeExpander
-    {
-        private CastArgAsReturnExpander(RexBuilder builder)
-        {
-            super(builder);
-        }
-
-        public RelDataType getArgType(RexCall call, int ordinal)
-        {
-            return call.getType();
         }
     }
 

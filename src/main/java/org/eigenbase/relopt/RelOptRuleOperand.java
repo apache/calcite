@@ -111,7 +111,7 @@ public class RelOptRuleOperand
      * @param children Child operands; or null, meaning match any number of
      * children
      */
-    RelOptRuleOperand(
+    protected RelOptRuleOperand(
         Class<? extends RelNode> clazz,
         RelTrait trait,
         Dummy dummy,
@@ -140,6 +140,7 @@ public class RelOptRuleOperand
         this.children = children;
         if (children != null) {
             for (RelOptRuleOperand child : this.children) {
+                assert child.parent == null : "cannot re-use operands";
                 child.parent = this;
             }
         }

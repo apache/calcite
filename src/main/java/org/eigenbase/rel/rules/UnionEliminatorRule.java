@@ -25,10 +25,6 @@ import org.eigenbase.relopt.*;
  * <code>UnionEliminatorRule</code> checks to see if its possible to optimize a
  * Union call by eliminating the Union operator altogether in the case the call
  * consists of only one input.
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Feb 4, 2005
  */
 public class UnionEliminatorRule
     extends RelOptRule
@@ -43,17 +39,14 @@ public class UnionEliminatorRule
      */
     private UnionEliminatorRule()
     {
-        super(
-            new RelOptRuleOperand(
-                UnionRel.class,
-                ANY));
+        super(any(UnionRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        UnionRel union = (UnionRel) call.rels[0];
+        UnionRel union = call.rel(0);
         if (union.getInputs().size() != 1) {
             return;
         }

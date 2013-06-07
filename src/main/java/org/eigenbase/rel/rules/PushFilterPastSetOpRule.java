@@ -29,9 +29,6 @@ import org.eigenbase.rex.*;
 /**
  * PushFilterPastSetOpRule implements the rule for pushing a {@link FilterRel}
  * past a {@link SetOpRel}.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PushFilterPastSetOpRule
     extends RelOptRule
@@ -47,9 +44,8 @@ public class PushFilterPastSetOpRule
     private PushFilterPastSetOpRule()
     {
         super(
-            new RelOptRuleOperand(
-                FilterRel.class,
-                new RelOptRuleOperand(SetOpRel.class, ANY)));
+            some(
+                FilterRel.class, any(SetOpRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -57,8 +53,8 @@ public class PushFilterPastSetOpRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        FilterRel filterRel = (FilterRel) call.rels[0];
-        SetOpRel setOpRel = (SetOpRel) call.rels[1];
+        FilterRel filterRel = call.rel(0);
+        SetOpRel setOpRel = call.rel(1);
 
         RelOptCluster cluster = setOpRel.getCluster();
         RexNode condition = filterRel.getCondition();

@@ -32,9 +32,6 @@ import org.eigenbase.util.*;
 /**
  * Rule to reduce aggregates to simpler forms. Currently only AVG(x) to
  * SUM(x)/COUNT(x), but eventually will handle others such as STDDEV.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class ReduceAggregatesRule
     extends RelOptRule
@@ -45,8 +42,7 @@ public class ReduceAggregatesRule
      * The singleton.
      */
     public static final ReduceAggregatesRule instance =
-        new ReduceAggregatesRule(
-            new RelOptRuleOperand(AggregateRel.class, ANY));
+        new ReduceAggregatesRule(any(AggregateRel.class));
 
     //~ Constructors -----------------------------------------------------------
 

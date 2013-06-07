@@ -44,14 +44,14 @@ public class RemoveTrivialProjectRule
 
     private RemoveTrivialProjectRule()
     {
-        super(new RelOptRuleOperand(ProjectRel.class, ANY));
+        super(any(ProjectRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        ProjectRel project = (ProjectRel) call.rels[0];
+        ProjectRel project = call.rel(0);
         RelNode child = project.getChild();
         final RelDataType childRowType = child.getRowType();
         if (!childRowType.isStruct()) {

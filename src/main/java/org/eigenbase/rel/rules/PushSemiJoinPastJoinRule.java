@@ -32,9 +32,6 @@ import org.eigenbase.rex.*;
  * SemiJoinRel(JoinRel(X, Y), Z) --> JoinRel(X, SemiJoinRel(Y, Z)) Whether this
  * first or second conversion is applied depends on which operands actually
  * participate in the semijoin.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PushSemiJoinPastJoinRule
     extends RelOptRule
@@ -50,9 +47,8 @@ public class PushSemiJoinPastJoinRule
     private PushSemiJoinPastJoinRule()
     {
         super(
-            new RelOptRuleOperand(
-                SemiJoinRel.class,
-                new RelOptRuleOperand(JoinRel.class, ANY)));
+            some(
+                SemiJoinRel.class, any(JoinRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -60,8 +56,8 @@ public class PushSemiJoinPastJoinRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        SemiJoinRel semiJoin = (SemiJoinRel) call.rels[0];
-        JoinRel joinRel = (JoinRel) call.rels[1];
+        SemiJoinRel semiJoin = call.rel(0);
+        JoinRel joinRel = call.rel(1);
         List<Integer> leftKeys = semiJoin.getLeftKeys();
         List<Integer> rightKeys = semiJoin.getRightKeys();
 
@@ -89,8 +85,8 @@ public class PushSemiJoinPastJoinRule
         // determine which operands below the semijoin are the actual
         // Rels that participate in the semijoin
         int nKeysFromX = 0;
-        for (int i = 0; i < leftKeys.size(); i++) {
-            if (leftKeys.get(i) < nFieldsX) {
+        for (int leftKey : leftKeys) {
+            if (leftKey < nFieldsX) {
                 nKeysFromX++;
             }
         }

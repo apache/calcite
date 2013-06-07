@@ -45,17 +45,16 @@ public class RemoveDistinctRule
         // distinct to make it correct up-front, we can get rid of the reference
         // to the child here.
         super(
-            new RelOptRuleOperand(
-                AggregateRel.class,
-                new RelOptRuleOperand(RelNode.class, ANY)));
+            some(
+                AggregateRel.class, any(RelNode.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        AggregateRel distinct = (AggregateRel) call.rels[0];
-        RelNode child = call.rels[1];
+        AggregateRel distinct = call.rel(0);
+        RelNode child = call.rel(1);
         if (!distinct.getAggCallList().isEmpty()
             || !child.isKey(distinct.getGroupSet()))
         {

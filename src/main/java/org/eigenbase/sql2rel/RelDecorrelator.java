@@ -39,9 +39,6 @@ import org.eigenbase.util.*;
  * expression (RelNode) tree with non-correlated expressions that are produced
  * from joining the RelNode that produces the corExp with the RelNode that
  * references it.
- *
- * @author Rushan Chen
- * @version $Id$
  */
 public class RelDecorrelator
     implements ReflectiveVisitor
@@ -1772,18 +1769,18 @@ public class RelDecorrelator
         public RemoveSingleAggregateRule()
         {
             super(
-                new RelOptRuleOperand(
+                some(
                     AggregateRel.class,
-                    new RelOptRuleOperand(
+                    some(
                         ProjectRel.class,
-                        new RelOptRuleOperand(AggregateRel.class, ANY))));
+                        any(AggregateRel.class))));
         }
 
         public void onMatch(RelOptRuleCall call)
         {
-            AggregateRel singleAggRel = (AggregateRel) call.rels[0];
-            ProjectRel projRel = (ProjectRel) call.rels[1];
-            AggregateRel aggRel = (AggregateRel) call.rels[2];
+            AggregateRel singleAggRel = call.rel(0);
+            ProjectRel projRel = call.rel(1);
+            AggregateRel aggRel = call.rel(2);
 
             // check singleAggRel is single_value agg
             if ((!singleAggRel.getGroupSet().isEmpty())
@@ -1831,25 +1828,23 @@ public class RelDecorrelator
         public RemoveCorrelationForScalarProjectRule()
         {
             super(
-                new RelOptRuleOperand(
+                some(
                     CorrelatorRel.class,
-                    new RelOptRuleOperand(RelNode.class, ANY),
-                    new RelOptRuleOperand(
+                    any(RelNode.class),
+                    some(
                         AggregateRel.class,
-                        new RelOptRuleOperand(
+                        some(
                             ProjectRel.class,
-                            new RelOptRuleOperand(
-                                RelNode.class,
-                                ANY)))));
+                            any(RelNode.class)))));
         }
 
-        public void onMatch(RelOptRuleCall call)
+      public void onMatch(RelOptRuleCall call)
         {
-            CorrelatorRel corRel = (CorrelatorRel) call.rels[0];
-            RelNode leftInputRel = call.rels[1];
-            AggregateRel aggRel = (AggregateRel) call.rels[2];
-            ProjectRel projRel = (ProjectRel) call.rels[3];
-            RelNode rightInputRel = call.rels[4];
+            CorrelatorRel corRel = call.rel(0);
+            RelNode leftInputRel = call.rel(1);
+            AggregateRel aggRel = call.rel(2);
+            ProjectRel projRel = call.rel(3);
+            RelNode rightInputRel = call.rel(4);
             RelOptCluster cluster = corRel.getCluster();
 
             currentRel = corRel;
@@ -2053,28 +2048,26 @@ public class RelDecorrelator
         public RemoveCorrelationForScalarAggregateRule()
         {
             super(
-                new RelOptRuleOperand(
+                some(
                     CorrelatorRel.class,
-                    new RelOptRuleOperand(RelNode.class, ANY),
-                    new RelOptRuleOperand(
+                    any(RelNode.class),
+                    some(
                         ProjectRel.class,
-                        new RelOptRuleOperand(
+                        some(
                             AggregateRel.class,
-                            new RelOptRuleOperand(
+                            some(
                                 ProjectRel.class,
-                                new RelOptRuleOperand(
-                                    RelNode.class,
-                                    ANY))))));
+                                any(RelNode.class))))));
         }
 
         public void onMatch(RelOptRuleCall call)
         {
-            CorrelatorRel corRel = (CorrelatorRel) call.rels[0];
-            RelNode leftInputRel = call.rels[1];
-            ProjectRel aggOutputProjRel = (ProjectRel) call.rels[2];
-            AggregateRel aggRel = (AggregateRel) call.rels[3];
-            ProjectRel aggInputProjRel = (ProjectRel) call.rels[4];
-            RelNode rightInputRel = call.rels[5];
+            CorrelatorRel corRel = call.rel(0);
+            RelNode leftInputRel = call.rel(1);
+            ProjectRel aggOutputProjRel = call.rel(2);
+            AggregateRel aggRel = call.rel(3);
+            ProjectRel aggInputProjRel = call.rel(4);
+            RelNode rightInputRel = call.rel(5);
             RelOptCluster cluster = corRel.getCluster();
 
             currentRel = corRel;
@@ -2477,30 +2470,30 @@ public class RelDecorrelator
         {
             super(
                 flavor
-                ? new RelOptRuleOperand(
+                ? some(
                     CorrelatorRel.class,
-                    new RelOptRuleOperand(RelNode.class, ANY),
-                    new RelOptRuleOperand(
+                    any(RelNode.class),
+                    some(
                         ProjectRel.class,
-                        new RelOptRuleOperand(AggregateRel.class, ANY)))
-                : new RelOptRuleOperand(
+                        any(AggregateRel.class)))
+                : some(
                     CorrelatorRel.class,
-                    new RelOptRuleOperand(RelNode.class, ANY),
-                    new RelOptRuleOperand(AggregateRel.class, ANY)));
+                    any(RelNode.class),
+                    any(AggregateRel.class)));
             this.flavor = flavor;
         }
 
         public void onMatch(RelOptRuleCall call)
         {
-            CorrelatorRel corRel = (CorrelatorRel) call.rels[0];
-            RelNode leftInputRel = call.rels[1];
+            CorrelatorRel corRel = call.rel(0);
+            RelNode leftInputRel = call.rel(1);
             ProjectRel aggOutputProjRel;
             AggregateRel aggRel;
             if (flavor) {
-                aggOutputProjRel = (ProjectRel) call.rels[2];
-                aggRel = (AggregateRel) call.rels[3];
+                aggOutputProjRel = call.rel(2);
+                aggRel = call.rel(3);
             } else {
-                aggRel = (AggregateRel) call.rels[2];
+                aggRel = call.rel(2);
 
                 // Create identity projection
                 List<RexNode> exprList = new ArrayList<RexNode>();

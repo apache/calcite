@@ -43,9 +43,6 @@ import org.eigenbase.util.mapping.*;
  * of the group list, removing it will leave a hole. In this case, the rule adds
  * a project before the aggregate to reorder the columns, and permutes them back
  * afterwards.
- *
- * @author jhyde
- * @version $Id$
  */
 public class PullConstantsThroughAggregatesRule
     extends RelOptRule
@@ -66,9 +63,9 @@ public class PullConstantsThroughAggregatesRule
     private PullConstantsThroughAggregatesRule()
     {
         super(
-            new RelOptRuleOperand(
+            some(
                 AggregateRel.class,
-                new RelOptRuleOperand(CalcRel.class, ANY)));
+                any(CalcRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -76,8 +73,8 @@ public class PullConstantsThroughAggregatesRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        AggregateRel aggregate = (AggregateRel) call.getRels()[0];
-        CalcRel child = (CalcRel) call.getRels()[1];
+        AggregateRel aggregate = call.rel(0);
+        CalcRel child = call.rel(1);
         final RexProgram program = child.getProgram();
 
         final RelDataType childRowType = child.getRowType();

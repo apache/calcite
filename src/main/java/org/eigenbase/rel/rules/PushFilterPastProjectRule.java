@@ -25,9 +25,6 @@ import org.eigenbase.rex.*;
 /**
  * PushFilterPastProjectRule implements the rule for pushing a {@link FilterRel}
  * past a {@link ProjectRel}.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PushFilterPastProjectRule
     extends RelOptRule
@@ -43,9 +40,8 @@ public class PushFilterPastProjectRule
     private PushFilterPastProjectRule()
     {
         super(
-            new RelOptRuleOperand(
-                FilterRel.class,
-                new RelOptRuleOperand(ProjectRel.class, ANY)));
+            some(
+                FilterRel.class, any(ProjectRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -53,8 +49,8 @@ public class PushFilterPastProjectRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        FilterRel filterRel = (FilterRel) call.rels[0];
-        ProjectRel projRel = (ProjectRel) call.rels[1];
+        FilterRel filterRel = call.rel(0);
+        ProjectRel projRel = call.rel(1);
 
         // convert the filter to one that references the child of the project
         RexNode newCondition =

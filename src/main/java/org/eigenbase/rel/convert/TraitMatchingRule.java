@@ -26,9 +26,6 @@ import org.eigenbase.relopt.*;
  * its input already matches the expected output trait. This can be used with
  * {@link org.eigenbase.relopt.hep.HepPlanner} in cases where alternate
  * implementations are available and it is desirable to minimize converters.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class TraitMatchingRule
     extends RelOptRule
@@ -48,11 +45,9 @@ public class TraitMatchingRule
     public TraitMatchingRule(ConverterRule converterRule)
     {
         super(
-            new RelOptRuleOperand(
+            some(
                 converterRule.getOperand().getMatchedClass(),
-                new RelOptRuleOperand(
-                    RelNode.class,
-                    ANY)),
+                any(RelNode.class)),
             "TraitMatchingRule: " + converterRule);
         assert (converterRule.getOperand().getChildOperands() == null);
         this.converter = converterRule;
@@ -68,7 +63,7 @@ public class TraitMatchingRule
 
     public void onMatch(RelOptRuleCall call)
     {
-        RelNode input = call.rels[1];
+        RelNode input = call.rel(1);
         if (input.getTraitSet().contains(converter.getOutTrait())) {
             converter.onMatch(call);
         }

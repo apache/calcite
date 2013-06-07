@@ -27,9 +27,6 @@ import org.eigenbase.relopt.*;
 /**
  * CombineUnionsRule implements the rule for combining two non-distinct {@link
  * UnionRel}s into a single {@link UnionRel}.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class CombineUnionsRule
     extends RelOptRule
@@ -45,10 +42,8 @@ public class CombineUnionsRule
     private CombineUnionsRule()
     {
         super(
-            new RelOptRuleOperand(
-                UnionRel.class,
-                new RelOptRuleOperand(RelNode.class, ANY),
-                new RelOptRuleOperand(RelNode.class, ANY)));
+            some(
+                UnionRel.class, any(RelNode.class), any(RelNode.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -56,7 +51,7 @@ public class CombineUnionsRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        UnionRel topUnionRel = (UnionRel) call.rels[0];
+        UnionRel topUnionRel = call.rel(0);
         UnionRel bottomUnionRel;
 
         // We want to combine the UnionRel that's in the second input first.
@@ -64,10 +59,10 @@ public class CombineUnionsRule
         // rather than explicit UnionRels.  By doing so, and firing this rule
         // in a bottom-up order, it allows us to only specify a single
         // pattern for this rule.
-        if (call.rels[2] instanceof UnionRel) {
-            bottomUnionRel = (UnionRel) call.rels[2];
-        } else if (call.rels[1] instanceof UnionRel) {
-            bottomUnionRel = (UnionRel) call.rels[1];
+        if (call.rel(2) instanceof UnionRel) {
+            bottomUnionRel = call.rel(2);
+        } else if (call.rel(1) instanceof UnionRel) {
+            bottomUnionRel = call.rel(1);
         } else {
             return;
         }
@@ -80,7 +75,7 @@ public class CombineUnionsRule
         // Combine the inputs from the bottom union with the other inputs from
         // the top union
         List<RelNode> unionInputs = new ArrayList<RelNode>();
-        if (call.rels[2] instanceof UnionRel) {
+        if (call.rel(2) instanceof UnionRel) {
             assert topUnionRel.getInputs().size() == 2;
             unionInputs.add(topUnionRel.getInput(0));
             unionInputs.addAll(bottomUnionRel.getInputs());

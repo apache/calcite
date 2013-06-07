@@ -39,14 +39,14 @@ public class UnionToDistinctRule
      */
     private UnionToDistinctRule()
     {
-        super(new RelOptRuleOperand(UnionRel.class, ANY));
+        super(any(UnionRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        UnionRel union = (UnionRel) call.rels[0];
+        UnionRel union = call.rel(0);
         if (union.all) {
             return; // nothing to do
         }

@@ -25,9 +25,6 @@ import org.eigenbase.relopt.*;
  * PushSemiJoinPastFilterRule implements the rule for pushing semijoins down in
  * a tree past a filter in order to trigger other rules that will convert
  * semijoins. SemiJoinRel(FilterRel(X), Y) --> FilterRel(SemiJoinRel(X, Y))
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PushSemiJoinPastFilterRule
     extends RelOptRule
@@ -43,9 +40,8 @@ public class PushSemiJoinPastFilterRule
     private PushSemiJoinPastFilterRule()
     {
         super(
-            new RelOptRuleOperand(
-                SemiJoinRel.class,
-                new RelOptRuleOperand(FilterRel.class, ANY)));
+            some(
+                SemiJoinRel.class, any(FilterRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -53,8 +49,8 @@ public class PushSemiJoinPastFilterRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        SemiJoinRel semiJoin = (SemiJoinRel) call.rels[0];
-        FilterRel filter = (FilterRel) call.rels[1];
+        SemiJoinRel semiJoin = call.rel(0);
+        FilterRel filter = call.rel(1);
 
         RelNode newSemiJoin =
             new SemiJoinRel(

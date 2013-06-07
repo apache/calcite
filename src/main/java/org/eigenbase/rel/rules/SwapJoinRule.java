@@ -29,10 +29,6 @@ import org.eigenbase.util.*;
 /**
  * <code>SwapJoinRule</code> permutes the inputs to a join. Outer joins cannot
  * be permuted.
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 26, 2003
  */
 public class SwapJoinRule
     extends RelOptRule
@@ -51,10 +47,7 @@ public class SwapJoinRule
      */
     private SwapJoinRule()
     {
-        super(
-            new RelOptRuleOperand(
-                JoinRel.class,
-                ANY));
+        super(any(JoinRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -131,7 +124,7 @@ public class SwapJoinRule
 
     public void onMatch(final RelOptRuleCall call)
     {
-        JoinRel join = (JoinRel) call.rels[0];
+        JoinRel join = call.rel(0);
 
         if (!join.getSystemFieldList().isEmpty()) {
             // FIXME Enable this rule for joins with system fields

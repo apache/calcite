@@ -26,26 +26,19 @@ import org.eigenbase.relopt.*;
 /**
  * PushJoinThroughUnionRule implements the rule for pushing a
  * {@link JoinRel} past a non-distinct {@link UnionRel}.
- *
- * @author John Sichi
- * @version $Id$
  */
 public class PushJoinThroughUnionRule extends RelOptRule
 {
     public static final PushJoinThroughUnionRule instanceUnionOnLeft =
         new PushJoinThroughUnionRule(
-            new RelOptRuleOperand(
-                JoinRel.class,
-                new RelOptRuleOperand(UnionRel.class, RelOptRule.ANY),
-                new RelOptRuleOperand(RelNode.class, ANY)),
+            some(
+                JoinRel.class, any(UnionRel.class), any(RelNode.class)),
             "union on left");
 
     public static final PushJoinThroughUnionRule instanceUnionOnRight =
         new PushJoinThroughUnionRule(
-            new RelOptRuleOperand(
-                JoinRel.class,
-                new RelOptRuleOperand(RelNode.class, ANY),
-                new RelOptRuleOperand(UnionRel.class, RelOptRule.ANY)),
+            some(
+                JoinRel.class, any(RelNode.class), any(UnionRel.class)),
             "union on right");
 
     public PushJoinThroughUnionRule(RelOptRuleOperand operand, String id)
@@ -57,17 +50,17 @@ public class PushJoinThroughUnionRule extends RelOptRule
 
     public void onMatch(RelOptRuleCall call)
     {
-        JoinRel joinRel = (JoinRel) call.rels[0];
+        JoinRel joinRel = call.rel(0);
         UnionRel unionRel;
         RelNode otherInput;
         boolean unionOnLeft;
-        if (call.rels[1] instanceof UnionRel) {
-            unionRel = (UnionRel) call.rels[1];
-            otherInput = call.rels[2];
+        if (call.rel(1) instanceof UnionRel) {
+            unionRel = call.rel(1);
+            otherInput = call.rel(2);
             unionOnLeft = true;
         } else {
-            otherInput = call.rels[1];
-            unionRel = (UnionRel) call.rels[2];
+            otherInput = call.rel(1);
+            unionRel = call.rel(2);
             unionOnLeft = false;
         }
         if (!unionRel.all) {

@@ -26,9 +26,6 @@ import net.hydromatic.optiq.prepare.Prepare;
 /**
  * TableAccessRule converts a TableAccessRel to the result of calling {@link
  * RelOptTable#toRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class TableAccessRule
     extends RelOptRule
@@ -41,17 +38,14 @@ public class TableAccessRule
 
     private TableAccessRule()
     {
-        super(
-            new RelOptRuleOperand(
-                TableAccessRel.class,
-                ANY));
+        super(any(TableAccessRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        final TableAccessRel oldRel = (TableAccessRel) call.rels[0];
+        final TableAccessRel oldRel = call.rel(0);
         RelNode newRel =
             oldRel.getTable().toRel(
                 new RelOptTable.ToRelContext() {

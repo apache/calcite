@@ -27,9 +27,6 @@ import org.eigenbase.rex.*;
 /**
  * PushFilterPastJoinRule implements the rule for pushing filters above and
  * within a join node into the join node and/or its children nodes.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PushFilterPastJoinRule
     extends RelOptRule
@@ -45,9 +42,8 @@ public class PushFilterPastJoinRule
     private PushFilterPastJoinRule()
     {
         super(
-            new RelOptRuleOperand(
-                FilterRel.class,
-                new RelOptRuleOperand(JoinRel.class, ANY)));
+            some(
+                FilterRel.class, any(JoinRel.class)));
     }
 
     /**
@@ -78,10 +74,10 @@ public class PushFilterPastJoinRule
 
         if (call.rels.length == 1) {
             filterRel = null;
-            joinRel = (JoinRel) call.rels[0];
+            joinRel = call.rel(0);
         } else {
-            filterRel = (FilterRel) call.rels[0];
-            joinRel = (JoinRel) call.rels[1];
+            filterRel = call.rel(0);
+            joinRel = call.rel(1);
         }
 
         final List<RexNode> joinFilters =

@@ -28,9 +28,6 @@ import org.eigenbase.rex.*;
  * PushProjectPastSetOpRule implements the rule for pushing a {@link ProjectRel}
  * past a {@link SetOpRel}. The children of the {@link SetOpRel} will project
  * only the {@link RexInputRef}s referenced in the original {@link ProjectRel}.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PushProjectPastSetOpRule
     extends RelOptRule
@@ -65,9 +62,8 @@ public class PushProjectPastSetOpRule
         PushProjector.ExprCondition preserveExprCondition)
     {
         super(
-            new RelOptRuleOperand(
-                ProjectRel.class,
-                new RelOptRuleOperand(SetOpRel.class, ANY)));
+            some(
+                ProjectRel.class, any(SetOpRel.class)));
         this.preserveExprCondition = preserveExprCondition;
     }
 
@@ -76,8 +72,8 @@ public class PushProjectPastSetOpRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        ProjectRel origProj = (ProjectRel) call.rels[0];
-        SetOpRel setOpRel = (SetOpRel) call.rels[1];
+        ProjectRel origProj = call.rel(0);
+        SetOpRel setOpRel = call.rel(1);
 
         // cannot push project past a distinct
         if (!setOpRel.all) {

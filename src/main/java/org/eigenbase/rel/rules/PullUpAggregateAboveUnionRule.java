@@ -32,9 +32,6 @@ import org.eigenbase.relopt.*;
  *
  * <p>This rule only handles cases where the {@link UnionRel}s still have only
  * two inputs.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PullUpAggregateAboveUnionRule
     extends RelOptRule
@@ -50,12 +47,12 @@ public class PullUpAggregateAboveUnionRule
     private PullUpAggregateAboveUnionRule()
     {
         super(
-            new RelOptRuleOperand(
+            some(
                 AggregateRel.class,
-                new RelOptRuleOperand(
+                some(
                     UnionRel.class,
-                    new RelOptRuleOperand(RelNode.class, ANY),
-                    new RelOptRuleOperand(RelNode.class, ANY))));
+                    any(RelNode.class),
+                    any(RelNode.class))));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -63,14 +60,14 @@ public class PullUpAggregateAboveUnionRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        UnionRel unionRel = (UnionRel) call.rels[1];
+        UnionRel unionRel = call.rel(1);
 
         // If distincts haven't been removed yet, defer invoking this rule
         if (!unionRel.all) {
             return;
         }
 
-        AggregateRel topAggRel = (AggregateRel) call.rels[0];
+        AggregateRel topAggRel = call.rel(0);
         AggregateRel bottomAggRel;
 
         // We want to apply this rule on the pattern where the AggregateRel
@@ -79,16 +76,16 @@ public class PullUpAggregateAboveUnionRule
         // UnionRels.  By doing so, and firing this rule in a bottom-up order,
         // it allows us to only specify a single pattern for this rule.
         List<RelNode> unionInputs;
-        if (call.rels[3] instanceof AggregateRel) {
-            bottomAggRel = (AggregateRel) call.rels[3];
+        if (call.rel(3) instanceof AggregateRel) {
+            bottomAggRel = call.rel(3);
             unionInputs = Arrays.asList(
-                call.rels[2],
-                call.rels[3].getInput(0));
-        } else if (call.rels[2] instanceof AggregateRel) {
-            bottomAggRel = (AggregateRel) call.rels[2];
+                call.rel(2),
+                call.rel(3).getInput(0));
+        } else if (call.rel(2) instanceof AggregateRel) {
+            bottomAggRel = call.rel(2);
             unionInputs = Arrays.asList(
-                call.rels[2].getInput(0),
-                call.rels[3]);
+                call.rel(2).getInput(0),
+                call.rel(3));
         } else {
             return;
         }

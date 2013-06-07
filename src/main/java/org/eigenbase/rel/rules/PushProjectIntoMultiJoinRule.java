@@ -25,9 +25,6 @@ import org.eigenbase.relopt.*;
  * PushProjectIntoMultiJoinRule implements the rule for pushing projection
  * information from a {@link ProjectRel} into the {@link MultiJoinRel} that is
  * input into the {@link ProjectRel}.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PushProjectIntoMultiJoinRule
     extends RelOptRule
@@ -43,17 +40,16 @@ public class PushProjectIntoMultiJoinRule
     private PushProjectIntoMultiJoinRule()
     {
         super(
-            new RelOptRuleOperand(
-                ProjectRel.class,
-                new RelOptRuleOperand(MultiJoinRel.class, ANY)));
+            some(
+                ProjectRel.class, any(MultiJoinRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        ProjectRel project = (ProjectRel) call.rels[0];
-        MultiJoinRel multiJoin = (MultiJoinRel) call.rels[1];
+        ProjectRel project = call.rel(0);
+        MultiJoinRel multiJoin = call.rel(1);
 
         // if all inputs have their projFields set, then projection information
         // has already been pushed into each input

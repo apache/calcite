@@ -29,9 +29,6 @@ import org.eigenbase.rex.*;
 /**
  * PushFilterPastTableFunctionRule implements the rule for pushing a
  * {@link FilterRel} past a {@link TableFunctionRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class PushFilterPastTableFunctionRule
     extends RelOptRule
@@ -47,9 +44,8 @@ public class PushFilterPastTableFunctionRule
     private PushFilterPastTableFunctionRule()
     {
         super(
-            new RelOptRuleOperand(
-                FilterRel.class,
-                new RelOptRuleOperand(TableFunctionRel.class, ANY)));
+            some(
+                FilterRel.class, any(TableFunctionRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -57,8 +53,8 @@ public class PushFilterPastTableFunctionRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        FilterRel filterRel = (FilterRel) call.rels[0];
-        TableFunctionRel funcRel = (TableFunctionRel) call.rels[1];
+        FilterRel filterRel = call.rel(0);
+        TableFunctionRel funcRel = call.rel(1);
         Set<RelColumnMapping> columnMappings = funcRel.getColumnMappings();
         if ((columnMappings == null) || (columnMappings.isEmpty())) {
             // No column mapping information, so no pushdown
@@ -67,8 +63,7 @@ public class PushFilterPastTableFunctionRule
         }
 
         List<RelNode> funcInputs = funcRel.getInputs();
-        int nFuncInputs = funcInputs.size();
-        if (nFuncInputs != 1) {
+        if (funcInputs.size() != 1) {
             // TODO:  support more than one relational input; requires
             // offsetting field indices, similar to join
             return;
@@ -87,9 +82,9 @@ public class PushFilterPastTableFunctionRule
                 return;
             }
         }
-        List<RelNode> newFuncInputs = new ArrayList<RelNode>(nFuncInputs);
-        RelOptCluster cluster = funcRel.getCluster();
-        RexNode condition = filterRel.getCondition();
+        final List<RelNode> newFuncInputs = new ArrayList<RelNode>();
+        final RelOptCluster cluster = funcRel.getCluster();
+        final RexNode condition = filterRel.getCondition();
 
         // create filters on top of each func input, modifying the filter
         // condition to reference the child instead
@@ -98,16 +93,16 @@ public class PushFilterPastTableFunctionRule
         // TODO:  these need to be non-zero once we
         // support arbitrary mappings
         int [] adjustments = new int[origFields.length];
-        for (int i = 0; i < nFuncInputs; i++) {
+        for (RelNode funcInput : funcInputs) {
             RexNode newCondition =
                 condition.accept(
                     new RelOptUtil.RexInputConverter(
                         rexBuilder,
                         origFields,
-                        funcInputs.get(i).getRowType().getFields(),
+                        funcInput.getRowType().getFields(),
                         adjustments));
             newFuncInputs.add(
-                new FilterRel(cluster, funcInputs.get(i), newCondition));
+                new FilterRel(cluster, funcInput, newCondition));
         }
 
         // create a new UDX whose children are the filters created above

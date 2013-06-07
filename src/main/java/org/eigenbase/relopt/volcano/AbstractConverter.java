@@ -105,16 +105,13 @@ public class AbstractConverter
          */
         private ExpandConversionRule()
         {
-            super(
-                new RelOptRuleOperand(
-                    AbstractConverter.class,
-                    ANY));
+            super(any(AbstractConverter.class));
         }
 
         public void onMatch(RelOptRuleCall call)
         {
             final VolcanoPlanner planner = (VolcanoPlanner) call.getPlanner();
-            AbstractConverter converter = (AbstractConverter) call.rels[0];
+            AbstractConverter converter = call.rel(0);
             final RelNode child = converter.getChild();
             RelNode converted =
                 planner.changeTraitsUsingConverters(

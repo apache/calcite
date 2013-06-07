@@ -26,9 +26,6 @@ import org.eigenbase.sql.fun.*;
 /**
  * Rule to replace isNotDistinctFromOperator with logical equivalent conditions
  * in a {@link FilterRel}.
- *
- * @author Rushan Chen
- * @version $Id$
  */
 public final class RemoveIsNotDistinctFromRule
     extends RelOptRule
@@ -45,14 +42,14 @@ public final class RemoveIsNotDistinctFromRule
 
     private RemoveIsNotDistinctFromRule()
     {
-        super(new RelOptRuleOperand(FilterRel.class, ANY));
+        super(any(FilterRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        FilterRel oldFilterRel = (FilterRel) call.rels[0];
+        FilterRel oldFilterRel = call.rel(0);
         RexNode oldFilterCond = oldFilterRel.getCondition();
 
         if (RexUtil.findOperatorCall(

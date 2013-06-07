@@ -113,6 +113,10 @@ public abstract class RelOptRuleCall
         return rels;
     }
 
+    public <T extends RelNode> T rel(int ordinal) {
+        return (T) rels[ordinal];
+    }
+
     /**
      * Returns the children of a given relational expression node matched in a
      * rule.

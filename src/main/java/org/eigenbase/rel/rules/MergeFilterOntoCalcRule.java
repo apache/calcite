@@ -29,10 +29,7 @@ import org.eigenbase.rex.*;
  * result is a {@link CalcRel} whose filter condition is the logical AND of the
  * two.
  *
- * @author jhyde
- * @version $Id$
  * @see MergeFilterOntoCalcRule
- * @since Mar 7, 2004
  */
 public class MergeFilterOntoCalcRule
     extends RelOptRule
@@ -47,17 +44,16 @@ public class MergeFilterOntoCalcRule
     private MergeFilterOntoCalcRule()
     {
         super(
-            new RelOptRuleOperand(
-                FilterRel.class,
-                new RelOptRuleOperand(CalcRel.class, ANY)));
+            some(
+                FilterRel.class, any(CalcRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        final FilterRel filter = (FilterRel) call.rels[0];
-        final CalcRel calc = (CalcRel) call.rels[1];
+        final FilterRel filter = call.rel(0);
+        final CalcRel calc = call.rel(1);
 
         // Don't merge a filter onto a calc which contains windowed aggregates.
         // That would effectively be pushing a multiset down through a filter.

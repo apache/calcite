@@ -416,15 +416,14 @@ public class JavaRules {
     }
 
     public void onMatch(RelOptRuleCall call) {
-      final EnumerableCalcRel calc =
-          (EnumerableCalcRel) call.getRels()[0];
+      final EnumerableCalcRel calc = call.rel(0);
       final RelTraitSet traitSet =
           calc.getTraitSet().replace(EnumerableConvention.CUSTOM);
       call.transformTo(
           new EnumerableCalcRel(
               calc.getCluster(),
               calc.getTraitSet(),
-              convert(call.getRels()[1], traitSet),
+              convert(call.rel(1), traitSet),
               calc.getProgram(),
               calc.flags));
     }
@@ -1647,7 +1646,7 @@ public class JavaRules {
 
     @Override
     public void onMatch(RelOptRuleCall call) {
-      final OneRowRel rel = (OneRowRel) call.getRels()[0];
+      final OneRowRel rel = call.rel(0);
       call.transformTo(
           new ValuesRel(
               rel.getCluster(),

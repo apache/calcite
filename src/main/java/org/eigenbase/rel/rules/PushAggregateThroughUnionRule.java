@@ -28,9 +28,6 @@ import org.eigenbase.sql.fun.*;
 /**
  * PushAggregateThroughUnionRule implements the rule for pushing an
  * {@link AggregateRel} past a non-distinct {@link UnionRel}.
- *
- * @author John Sichi
- * @version $Id$
  */
 public class PushAggregateThroughUnionRule extends RelOptRule
 {
@@ -43,15 +40,14 @@ public class PushAggregateThroughUnionRule extends RelOptRule
     private PushAggregateThroughUnionRule()
     {
         super(
-            new RelOptRuleOperand(
-                AggregateRel.class,
-                new RelOptRuleOperand(UnionRel.class, RelOptRule.ANY)));
+            some(
+                AggregateRel.class, any(UnionRel.class)));
     }
 
     public void onMatch(RelOptRuleCall call)
     {
-        AggregateRel aggRel = (AggregateRel) call.rels[0];
-        UnionRel unionRel = (UnionRel) call.rels[1];
+        AggregateRel aggRel = call.rel(0);
+        UnionRel unionRel = call.rel(1);
 
         if (!unionRel.all) {
             // This transformation is only valid for UNION ALL.

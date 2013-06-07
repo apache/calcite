@@ -46,9 +46,6 @@ import org.eigenbase.util.*;
  *
  * would require emitting a NULL emp row if a certain department contained no
  * employees, and CorrelatorRel cannot do that.</p>
- *
- * @author jhyde
- * @version $Id$
  */
 public class NestedLoopsJoinRule
     extends RelOptRule
@@ -65,17 +62,14 @@ public class NestedLoopsJoinRule
      */
     private NestedLoopsJoinRule()
     {
-        super(
-            new RelOptRuleOperand(
-                JoinRel.class,
-                ANY));
+        super(any(JoinRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public boolean matches(RelOptRuleCall call)
     {
-        JoinRel join = (JoinRel) call.rels[0];
+        JoinRel join = call.rel(0);
         switch (join.getJoinType()) {
         case INNER:
         case LEFT:
@@ -91,7 +85,7 @@ public class NestedLoopsJoinRule
     public void onMatch(RelOptRuleCall call)
     {
         assert matches(call);
-        final JoinRel join = (JoinRel) call.rels[0];
+        final JoinRel join = call.rel(0);
         final List<Integer> leftKeys = new ArrayList<Integer>();
         final List<Integer> rightKeys = new ArrayList<Integer>();
         RelNode right = join.getRight();

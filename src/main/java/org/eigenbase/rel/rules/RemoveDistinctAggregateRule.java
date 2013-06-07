@@ -29,10 +29,6 @@ import org.eigenbase.util.*;
 
 /**
  * Rule to remove distinct aggregates from a {@link AggregateRel}.
- *
- * @author jhyde
- * @version $Id$
- * @since 3 February, 2006
  */
 public final class RemoveDistinctAggregateRule
     extends RelOptRule
@@ -52,14 +48,14 @@ public final class RemoveDistinctAggregateRule
      */
     private RemoveDistinctAggregateRule()
     {
-        super(new RelOptRuleOperand(AggregateRel.class, ANY));
+        super(any(AggregateRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        AggregateRel aggregate = (AggregateRel) call.rels[0];
+        AggregateRel aggregate = call.rel(0);
         if (!aggregate.containsDistinctCall()) {
             return;
         }

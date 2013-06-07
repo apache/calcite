@@ -26,9 +26,6 @@ import org.eigenbase.relopt.*;
  * scan on a join factor. Namely, if the join factor does not reduce to a single
  * table that can be scanned using an index. This rule should only be applied
  * after attempts have been made to convert SemiJoinRels.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class RemoveSemiJoinRule
     extends RelOptRule
@@ -43,7 +40,7 @@ public class RemoveSemiJoinRule
      */
     private RemoveSemiJoinRule()
     {
-        super(new RelOptRuleOperand(SemiJoinRel.class, ANY));
+        super(any(SemiJoinRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -51,7 +48,7 @@ public class RemoveSemiJoinRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        call.transformTo(call.rels[0].getInput(0));
+        call.transformTo(call.rel(0).getInput(0));
     }
 }
 

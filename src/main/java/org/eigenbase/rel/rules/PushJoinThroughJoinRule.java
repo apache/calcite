@@ -58,18 +58,16 @@ public class PushJoinThroughJoinRule extends RelOptRule {
 
     private PushJoinThroughJoinRule() {
         super(
-            new RelOptRuleOperand(
-                JoinRel.class,
-                any(JoinRel.class),
-                any(RelNode.class)),
+            some(
+                JoinRel.class, any(JoinRel.class), any(RelNode.class)),
             "RotateJoinRule");
     }
 
     @Override
     public void onMatch(RelOptRuleCall call) {
-        final JoinRel topJoin = (JoinRel) call.rels[0];
-        final JoinRel bottomJoin = (JoinRel) call.rels[1];
-        final RelNode relC = call.rels[2];
+        final JoinRel topJoin = call.rel(0);
+        final JoinRel bottomJoin = call.rel(1);
+        final RelNode relC = call.rel(2);
         final RelNode relA = bottomJoin.getLeft();
         final RelNode relB = bottomJoin.getRight();
 

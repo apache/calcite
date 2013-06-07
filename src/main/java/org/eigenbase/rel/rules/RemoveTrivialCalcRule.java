@@ -28,8 +28,6 @@ import org.eigenbase.rex.*;
  * <p>A {@link CalcRel} is trivial if it projects its input fields in their
  * original order, and it does not filter.
  *
- * @author Julian Hyde
- * @version $Id$
  * @see org.eigenbase.rel.rules.RemoveTrivialProjectRule
  */
 public class RemoveTrivialCalcRule
@@ -44,10 +42,7 @@ public class RemoveTrivialCalcRule
 
     private RemoveTrivialCalcRule()
     {
-        super(
-            new RelOptRuleOperand(
-                CalcRel.class,
-                ANY));
+        super(any(CalcRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -55,7 +50,7 @@ public class RemoveTrivialCalcRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        CalcRel calc = (CalcRel) call.rels[0];
+        CalcRel calc = call.rel(0);
         RexProgram program = calc.getProgram();
         if (!program.isTrivial()) {
             return;

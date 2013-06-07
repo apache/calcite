@@ -22,6 +22,7 @@ import java.util.List;
 import junit.framework.*;
 
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
+
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
 import org.eigenbase.relopt.*;
@@ -30,9 +31,7 @@ import org.eigenbase.util.*;
 
 
 /**
- * VolcanoPlannerTraitTest
- *
- * @author Stephan Zuercher
+ * Unit test for handling of traits by {@link VolcanoPlanner}.
  */
 public class VolcanoPlannerTraitTest
     extends TestCase
@@ -512,7 +511,7 @@ public class VolcanoPlannerTraitTest
     {
         PhysLeafRule()
         {
-            super(new RelOptRuleOperand(NoneLeafRel.class, ANY));
+            super(any(NoneLeafRel.class));
         }
 
         // implement RelOptRule
@@ -524,7 +523,7 @@ public class VolcanoPlannerTraitTest
         // implement RelOptRule
         public void onMatch(RelOptRuleCall call)
         {
-            NoneLeafRel leafRel = (NoneLeafRel) call.rels[0];
+            NoneLeafRel leafRel = call.rel(0);
             call.transformTo(
                 new PhysLeafRel(
                     leafRel.getCluster(),
@@ -537,7 +536,7 @@ public class VolcanoPlannerTraitTest
     {
         IterSingleRule()
         {
-            super(new RelOptRuleOperand(NoneSingleRel.class, ANY));
+            super(any(NoneSingleRel.class));
         }
 
         // implement RelOptRule
@@ -554,7 +553,7 @@ public class VolcanoPlannerTraitTest
         // implement RelOptRule
         public void onMatch(RelOptRuleCall call)
         {
-            NoneSingleRel rel = (NoneSingleRel) call.rels[0];
+            NoneSingleRel rel = call.rel(0);
 
             RelNode converted =
                 convert(
@@ -573,7 +572,7 @@ public class VolcanoPlannerTraitTest
     {
         IterSingleRule2()
         {
-            super(new RelOptRuleOperand(NoneSingleRel.class, ANY));
+            super(any(NoneSingleRel.class));
         }
 
         // implement RelOptRule
@@ -590,7 +589,7 @@ public class VolcanoPlannerTraitTest
         // implement RelOptRule
         public void onMatch(RelOptRuleCall call)
         {
-            NoneSingleRel rel = (NoneSingleRel) call.rels[0];
+            NoneSingleRel rel = call.rel(0);
 
             RelNode converted =
                 convert(

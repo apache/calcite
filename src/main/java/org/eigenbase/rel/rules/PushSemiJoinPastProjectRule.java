@@ -31,9 +31,6 @@ import org.eigenbase.rex.*;
  * semijoins.
  *
  * <p>SemiJoinRel(ProjectRel(X), Y) --> ProjectRel(SemiJoinRel(X, Y))
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PushSemiJoinPastProjectRule
     extends RelOptRule
@@ -49,9 +46,8 @@ public class PushSemiJoinPastProjectRule
     private PushSemiJoinPastProjectRule()
     {
         super(
-            new RelOptRuleOperand(
-                SemiJoinRel.class,
-                new RelOptRuleOperand(ProjectRel.class, ANY)));
+            some(
+                SemiJoinRel.class, any(ProjectRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -59,8 +55,8 @@ public class PushSemiJoinPastProjectRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        SemiJoinRel semiJoin = (SemiJoinRel) call.rels[0];
-        ProjectRel project = (ProjectRel) call.rels[1];
+        SemiJoinRel semiJoin = call.rel(0);
+        ProjectRel project = call.rel(1);
 
         // convert the LHS semijoin keys to reference the child projection
         // expression; all projection expressions must be RexInputRefs,
@@ -68,8 +64,8 @@ public class PushSemiJoinPastProjectRule
         List<Integer> newLeftKeys = new ArrayList<Integer>();
         List<Integer> leftKeys = semiJoin.getLeftKeys();
         List<RexNode> projExprs = project.getProjectExpList();
-        for (int i = 0; i < leftKeys.size(); i++) {
-            RexInputRef inputRef = (RexInputRef) projExprs.get(leftKeys.get(i));
+        for (int leftKey : leftKeys) {
+            RexInputRef inputRef = (RexInputRef) projExprs.get(leftKey);
             newLeftKeys.add(inputRef.getIndex());
         }
 

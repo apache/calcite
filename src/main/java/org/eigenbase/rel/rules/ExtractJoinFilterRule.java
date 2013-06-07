@@ -31,10 +31,6 @@ import org.eigenbase.reltype.RelDataTypeField;
  * <p>One benefit of this transformation is that after it, the join condition
  * can be combined with conditions and expressions above the join. It also makes
  * the <code>FennelCartesianJoinRule</code> applicable.
- *
- * @author jhyde
- * @version $Id$
- * @since 3 February, 2006
  */
 public final class ExtractJoinFilterRule
     extends RelOptRule
@@ -54,14 +50,14 @@ public final class ExtractJoinFilterRule
      */
     private ExtractJoinFilterRule()
     {
-        super(new RelOptRuleOperand(JoinRel.class, ANY));
+        super(any(JoinRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        JoinRel joinRel = (JoinRel) call.rels[0];
+        JoinRel joinRel = call.rel(0);
 
         if (joinRel.getJoinType() != JoinRelType.INNER) {
             return;

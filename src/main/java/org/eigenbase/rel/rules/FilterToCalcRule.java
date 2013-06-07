@@ -33,10 +33,6 @@ import org.eigenbase.rex.*;
  * FilterToCalcRule} or {@link ProjectToCalcRule}) or a {@link CalcRel}. This
  * {@link FilterRel} will eventually be converted by {@link
  * MergeFilterOntoCalcRule}.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 7, 2004
  */
 public class FilterToCalcRule
     extends RelOptRule
@@ -49,17 +45,14 @@ public class FilterToCalcRule
 
     private FilterToCalcRule()
     {
-        super(
-            new RelOptRuleOperand(
-                FilterRel.class,
-                ANY));
+        super(any(FilterRel.class));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        final FilterRel filter = (FilterRel) call.rels[0];
+        final FilterRel filter = call.rel(0);
         final RelNode rel = filter.getChild();
 
         // Create a program containing a filter.

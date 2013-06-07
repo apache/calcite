@@ -30,9 +30,6 @@ import org.eigenbase.rex.*;
  * ProjectRel}s beneath a {@link JoinRel} above the {@link JoinRel}. Projections
  * are pulled up if the {@link ProjectRel} doesn't originate from a null
  * generating input in an outer join.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PullUpProjectsAboveJoinRule
     extends RelOptRule
@@ -43,25 +40,20 @@ public class PullUpProjectsAboveJoinRule
 
     public static final PullUpProjectsAboveJoinRule instanceTwoProjectChildren =
         new PullUpProjectsAboveJoinRule(
-            new RelOptRuleOperand(
-                JoinRel.class,
-                new RelOptRuleOperand(ProjectRel.class, ANY),
-                new RelOptRuleOperand(ProjectRel.class, ANY)),
+            some(
+                JoinRel.class, any(ProjectRel.class), any(ProjectRel.class)),
             "PullUpProjectsAboveJoinRule: with two ProjectRel children");
 
     public static final PullUpProjectsAboveJoinRule instanceLeftProjectChild =
         new PullUpProjectsAboveJoinRule(
-            new RelOptRuleOperand(
-                JoinRel.class,
-                new RelOptRuleOperand(ProjectRel.class, ANY)),
+            some(
+                JoinRel.class, any(ProjectRel.class)),
             "PullUpProjectsAboveJoinRule: with ProjectRel on left");
 
     public static final PullUpProjectsAboveJoinRule instanceRightProjectChild =
         new PullUpProjectsAboveJoinRule(
-            new RelOptRuleOperand(
-                JoinRel.class,
-                new RelOptRuleOperand(RelNode.class, ANY),
-                new RelOptRuleOperand(ProjectRel.class, ANY)),
+            some(
+                JoinRel.class, any(RelNode.class), any(ProjectRel.class)),
             "PullUpProjectsAboveJoinRule: with ProjectRel on right");
 
     //~ Constructors -----------------------------------------------------------
@@ -78,7 +70,7 @@ public class PullUpProjectsAboveJoinRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        JoinRel joinRel = (JoinRel) call.rels[0];
+        JoinRel joinRel = call.rel(0);
         JoinRelType joinType = joinRel.getJoinType();
 
         ProjectRel leftProj;
@@ -88,11 +80,11 @@ public class PullUpProjectsAboveJoinRule
 
         // see if at least one input's projection doesn't generate nulls
         if (hasLeftChild(call) && !joinType.generatesNullsOnLeft()) {
-            leftProj = (ProjectRel) call.rels[1];
+            leftProj = call.rel(1);
             leftJoinChild = getProjectChild(call, leftProj, true);
         } else {
             leftProj = null;
-            leftJoinChild = call.rels[1];
+            leftJoinChild = call.rel(1);
         }
         if (hasRightChild(call) && !joinType.generatesNullsOnRight()) {
             rightProj = getRightChild(call);
@@ -240,7 +232,7 @@ public class PullUpProjectsAboveJoinRule
      */
     protected boolean hasLeftChild(RelOptRuleCall call)
     {
-        return (call.rels[1] instanceof ProjectRel);
+        return (call.rel(1) instanceof ProjectRel);
     }
 
     /**
@@ -260,7 +252,7 @@ public class PullUpProjectsAboveJoinRule
      */
     protected ProjectRel getRightChild(RelOptRuleCall call)
     {
-        return (ProjectRel) call.rels[2];
+        return call.rel(2);
     }
 
     /**
