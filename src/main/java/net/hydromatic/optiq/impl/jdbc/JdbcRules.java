@@ -380,6 +380,20 @@ public class JdbcRules {
               .append(' ');
           expr(buf, program, call.getOperandList().get(1));
           break;
+        case Prefix:
+          buf.append(call.getOperator().toString())
+              .append(' ');
+          expr(buf, program, call.getOperandList().get(0));
+          break;
+        case Function:
+          buf.append(call.getOperator().toString())
+              .append('(');
+          for (Ord<RexNode> operand : Ord.zip(call.getOperandList())) {
+            buf.append(operand.i > 0 ? ", " : "");
+            expr(buf, program, operand.e);
+          }
+          buf.append(')');
+          break;
         default:
           throw new AssertionError(call.getOperator());
         }
@@ -444,13 +458,6 @@ public class JdbcRules {
         throws InvalidRelException {
       super(cluster, traitSet, child, groupSet, aggCalls);
       assert getConvention() instanceof JdbcConvention;
-
-      for (AggregateCall aggCall : aggCalls) {
-        if (aggCall.isDistinct()) {
-          throw new InvalidRelException(
-              "distinct aggregation not supported");
-        }
-      }
     }
 
     @Override
@@ -486,16 +493,14 @@ public class JdbcRules {
         i++;
       }
       for (AggregateCall aggCall : aggCalls) {
-        buf.append(i > 0 ? ", " : "");
-        buf.append(aggCall.getAggregation().getName());
-        buf.append("(");
-        if (aggCall.getArgList().isEmpty()) {
-          buf.append("*");
-        } else {
-          for (Ord<Integer> call : Ord.zip(aggCall.getArgList())) {
-            buf.append(call.i > 0 ? ", " : "");
-            buf.append(inFields.get(call.e));
-          }
+        buf.append(i > 0 ? ", " : "")
+            .append(aggCall.getAggregation().getName())
+            .append("(")
+            .append(aggCall.isDistinct() ? "DISTINCT " : "")
+            .append(aggCall.getArgList().isEmpty() ? "*" : "");
+        for (Ord<Integer> call : Ord.zip(aggCall.getArgList())) {
+          buf.append(call.i > 0 ? ", " : "")
+              .append(inFields.get(call.e));
         }
         buf.append(")");
         alias(buf, null, fields.get(i));
@@ -571,7 +576,29 @@ public class JdbcRules {
     }
 
     public SqlString implement(JdbcImplementor implementor) {
-      throw new AssertionError(); // TODO:
+      final SqlBuilder buf = new SqlBuilder(implementor.dialect);
+      buf.append("SELECT * FROM ");
+      implementor.subquery(buf, 0, getChild(), "t");
+      implementor.newline(buf)
+          .append("ORDER BY ");
+      for (Ord<RelFieldCollation> collation : Ord.zip(collations)) {
+        buf.append(collation.i > 0 ? ", " : "");
+        buf.append(collation.e.getFieldIndex() + 1);
+        switch (collation.e.getDirection()) {
+        case Descending:
+        case StrictlyDescending:
+          buf.append(" DESC");
+        }
+        switch (collation.e.nullDirection) {
+        case FIRST:
+          buf.append(" NULLS FIRST");
+          break;
+        case LAST:
+          buf.append(" NULLS FIRST");
+          break;
+        }
+      }
+      return buf.toSqlString();
     }
   }
 

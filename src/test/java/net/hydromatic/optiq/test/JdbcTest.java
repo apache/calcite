@@ -588,6 +588,8 @@ public class JdbcTest extends TestCase {
       + "c0=$90K - $110K; c1=High School Degree\n"
       + "c0=$90K - $110K; c1=Partial College\n"
       + "c0=$90K - $110K; c1=Partial High School\n",
+      "select \"time_by_day\".\"the_year\" as \"c0\", \"product_class\".\"product_family\" as \"c1\", \"customer\".\"state_province\" as \"c2\", \"customer\".\"city\" as \"c3\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\", \"customer\" as \"customer\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" and \"product_class\".\"product_family\" = 'Drink' and \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\" and \"customer\".\"state_province\" = 'WA' and \"customer\".\"city\" in ('Anacortes', 'Ballard', 'Bellingham', 'Bremerton', 'Burien', 'Edmonds', 'Everett', 'Issaquah', 'Kirkland', 'Lynnwood', 'Marysville', 'Olympia', 'Port Orchard', 'Puyallup', 'Redmond', 'Renton', 'Seattle', 'Sedro Woolley', 'Spokane', 'Tacoma', 'Walla Walla', 'Yakima') group by \"time_by_day\".\"the_year\", \"product_class\".\"product_family\", \"customer\".\"state_province\", \"customer\".\"city\"",
+      "c0=1997; c1=Drink; c2=WA; c3=Sedro Woolley; m0=58.0000\n",
   };
 
   /** Test case for
@@ -653,7 +655,7 @@ public class JdbcTest extends TestCase {
           expected = queries[++i];
         }
         // uncomment to run specific queries:
-        //if (i != queries.length - 1) continue;
+//      if (i != queries.length - 1) continue;
         final OptiqAssert.AssertQuery query1 = with.query(query);
         if (expected != null) {
           query1.returns(expected);

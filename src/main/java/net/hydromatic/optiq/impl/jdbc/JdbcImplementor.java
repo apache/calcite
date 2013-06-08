@@ -35,12 +35,19 @@ public class JdbcImplementor {
   }
 
   public SqlBuilder subquery(SqlBuilder buf, int i, RelNode e, String alias) {
-    buf.append("(");
-    ++indent;
-    newline(buf)
-        .append(visitChild(i, e));
-    --indent;
-    buf.append(") AS ").identifier(alias);
+    if (e instanceof JdbcTableScan) {
+      // Generate "table" rather than "(select * from table)". MySQL planner
+      // chokes on the latter. (3:14 vs 0:00.39 for testDistinctCount.)
+      ((JdbcTableScan) e).jdbcTable.tableName(buf);
+    } else {
+      buf.append("(");
+      ++indent;
+      newline(buf)
+          .append(visitChild(i, e));
+      --indent;
+      buf.append(")");
+    }
+    buf.append(" AS ").identifier(alias);
     return buf;
   }
 

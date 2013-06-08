@@ -108,8 +108,12 @@ class JdbcTable extends AbstractQueryable<Object[]>
   }
 
   SqlString generateSql() {
-    SqlBuilder writer = new SqlBuilder(schema.dialect);
-    writer.append("SELECT * FROM ");
+    SqlBuilder buf = new SqlBuilder(schema.dialect);
+    buf.append("SELECT * FROM ");
+    return tableName(buf).toSqlString();
+  }
+
+  SqlBuilder tableName(SqlBuilder buf) {
     final ArrayList<String> strings = new ArrayList<String>();
     if (schema.catalog != null) {
       strings.add(schema.catalog);
@@ -118,8 +122,7 @@ class JdbcTable extends AbstractQueryable<Object[]>
       strings.add(schema.schema);
     }
     strings.add(tableName);
-    writer.identifier(strings);
-    return writer.toSqlString();
+    return buf.identifier(strings);
   }
 
   public RelDataType getRowType() {

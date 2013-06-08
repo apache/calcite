@@ -198,6 +198,19 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
             + "  on s.\"customer_id\" = c.\"customer_id\"\n"
             + "group by c.\"state_province\", c.\"country\"\n"
             + "order by c.\"state_province\", 2")
+        .planHasSql(
+            "SELECT * FROM (\n"
+            + "    SELECT `state_province` AS `state_province`, `S` AS `S`, `DC` AS `DC`\n"
+            + "    FROM (\n"
+            + "        SELECT `state_province`, `country`, SUM(unit_sales) AS `S`, COUNT(DISTINCT customer_id0) AS `DC`\n"
+            + "         FROM (\n"
+            + "            SELECT `state_province` AS `state_province`, `country` AS `country`, `unit_sales` AS `unit_sales`, `customer_id0` AS `customer_id0`\n"
+            + "            FROM (\n"
+            + "                SELECT `t0`.`product_id`, `t0`.`time_id`, `t0`.`customer_id`, `t0`.`promotion_id`, `t0`.`store_id`, `t0`.`store_sales`, `t0`.`store_cost`, `t0`.`unit_sales`, `t1`.`customer_id` AS `customer_id0`, `t1`.`account_num`, `t1`.`lname`, `t1`.`fname`, `t1`.`mi`, `t1`.`address1`, `t1`.`address2`, `t1`.`address3`, `t1`.`address4`, `t1`.`city`, `t1`.`state_province`, `t1`.`postal_code`, `t1`.`country`, `t1`.`customer_region_id`, `t1`.`phone1`, `t1`.`phone2`, `t1`.`birthdate`, `t1`.`marital_status`, `t1`.`yearly_income`, `t1`.`gender`, `t1`.`total_children`, `t1`.`num_children_at_home`, `t1`.`education`, `t1`.`date_accnt_opened`, `t1`.`member_card`, `t1`.`occupation`, `t1`.`houseowner`, `t1`.`num_cars_owned`, `t1`.`fullname` FROM `foodmart`.`sales_fact_1997` AS `t0`\n"
+            + "                JOIN `foodmart`.`customer` AS `t1`\n"
+            + "                ON `t0`.`customer_id` = `t1`.`customer_id`) AS `t`) AS `t`\n"
+            + "        GROUP BY `state_province`, `country`) AS `t`) AS `t`\n"
+            + "ORDER BY 1, 2")
         .returns(
             "state_province=CA; S=74748.0000; DC=2716\n"
             + "state_province=OR; S=67659.0000; DC=1037\n"
