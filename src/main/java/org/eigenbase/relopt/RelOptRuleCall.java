@@ -113,7 +113,16 @@ public abstract class RelOptRuleCall
         return rels;
     }
 
+    /**
+     * Retrieves the {@code ordinal}th matched relational expression. This
+     * corresponds to the {@code ordinal}th operand of the rule.
+     *
+     * @param ordinal Ordinal
+     * @param <T> Type
+     * @return Relational expression
+     */
     public <T extends RelNode> T rel(int ordinal) {
+        //noinspection unchecked
         return (T) rels[ordinal];
     }
 

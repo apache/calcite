@@ -727,7 +727,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           return new RelOptTableImpl(
               this,
               table.getRowType(),
-              Pair.leftSlice(pairs).toArray(new String[pairs.size()]),
+              Pair.left(pairs).toArray(new String[pairs.size()]),
               table);
         }
         return null;

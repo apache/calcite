@@ -35,12 +35,11 @@ import java.util.regex.*;
 
 import org.eigenbase.sql.validate.*;
 
+import net.hydromatic.linq4j.Ord;
+
 
 /**
  * Miscellaneous utility functions.
- *
- * @author jhyde
- * @version $Id$
  */
 public class Util
 {
@@ -1228,6 +1227,22 @@ public class Util
             sb.append(' ');
         }
         return sb.toString();
+    }
+
+    /** Converts an iterable to a string. */
+    public static <T> String toString(
+        Iterable<T> iterable, String start, String sep, String end)
+    {
+        final StringBuilder buf = new StringBuilder();
+        buf.append(start);
+        for (Ord<T> ord : Ord.zip(iterable)) {
+            if (ord.i > 0) {
+                buf.append(sep);
+            }
+            buf.append(ord.e);
+        }
+        buf.append(end);
+        return buf.toString();
     }
 
     /**

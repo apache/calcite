@@ -18,22 +18,27 @@
 package net.hydromatic.optiq.impl.mongodb;
 
 import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.linq4j.function.Function1;
 
 import com.mongodb.*;
 
-import java.util.Iterator;
+import java.util.*;
 
 /** Enumerator that reads from a MongoDB collection. */
 class MongoEnumerator implements Enumerator<Object> {
   private final Iterator<DBObject> cursor;
-  private DBObject current;
+  private final Function1<DBObject, Object> getter;
+  private Object current;
 
   /** Creates a MongoEnumerator.
    *
-   * @param cursor Mongo iterator (usually a {@link DBCursor})
+   * @param cursor Mongo iterator (usually a {@link com.mongodb.DBCursor})
+   * @param getter Converts an object into a list of fields
    */
-  public MongoEnumerator(Iterator<DBObject> cursor) {
+  public MongoEnumerator(Iterator<DBObject> cursor,
+      Function1<DBObject, Object> getter) {
     this.cursor = cursor;
+    this.getter = getter;
   }
 
   public Object current() {
@@ -43,7 +48,8 @@ class MongoEnumerator implements Enumerator<Object> {
   public boolean moveNext() {
     try {
       if (cursor.hasNext()) {
-        current = cursor.next();
+        DBObject map = cursor.next();
+        current = getter.apply(map);
         return true;
       } else {
         current = null;
@@ -56,6 +62,49 @@ class MongoEnumerator implements Enumerator<Object> {
 
   public void reset() {
     throw new UnsupportedOperationException();
+  }
+
+  static Function1<DBObject, Map> mapGetter() {
+    return new Function1<DBObject, Map>() {
+      public Map apply(DBObject a0) {
+        return (Map) a0;
+      }
+    };
+  }
+
+  static Function1<DBObject, Object> singletonGetter(
+      final String field) {
+    return new Function1<DBObject, Object>() {
+      public Object apply(DBObject a0) {
+        return a0.get(field);
+      }
+    };
+  }
+
+  /**
+   * @param fields List of fields to project; or null to return map
+   */
+  static Function1<DBObject, Object[]> listGetter(
+      final List<String> fields) {
+    return new Function1<DBObject, Object[]>() {
+      public Object[] apply(DBObject a0) {
+        Object[] objects = new Object[fields.size()];
+        for (int i = 0; i < fields.size(); i++) {
+          String s = fields.get(i);
+          objects[i] = a0.get(s);
+        }
+        return objects;
+      }
+    };
+  }
+
+  static Function1<DBObject, Object> getter(List<String> fields) {
+    //noinspection unchecked
+    return fields == null
+        ? (Function1) mapGetter()
+        : fields.size() == 1
+            ? singletonGetter(fields.get(0))
+            : listGetter(fields);
   }
 }
 

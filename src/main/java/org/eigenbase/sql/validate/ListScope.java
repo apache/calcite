@@ -66,7 +66,7 @@ public abstract class ListScope
      */
     public List<SqlValidatorNamespace> getChildren()
     {
-        return Pair.rightSlice(children);
+        return Pair.right(children);
     }
 
     protected SqlValidatorNamespace getChild(String alias)
@@ -134,7 +134,7 @@ public abstract class ListScope
         int [] offsetOut)
     {
         // First resolve by looking through the child namespaces.
-        final int i = Pair.leftSlice(children).indexOf(name);
+        final int i = Pair.left(children).indexOf(name);
         if (i >= 0) {
             if (ancestorOut != null) {
                 ancestorOut[0] = this;

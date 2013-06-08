@@ -50,9 +50,9 @@ public enum BuiltinMethod {
   RESULT_SET_ENUMERABLE_OF(
       ResultSetEnumerable.class, "of", DataSource.class, String.class),
   MONGO_TABLE_FIND(
-      MongoTable.class, "find", String.class, String.class),
+      MongoTable.class, "find", String.class, String.class, List.class),
   MONGO_TABLE_AGGREGATE(
-      MongoTable.class, "aggregate", String[].class),
+      MongoTable.class, "aggregate", List.class, List.class),
   JOIN(
       ExtendedEnumerable.class, "join", Enumerable.class, Function1.class,
       Function1.class, Function2.class),

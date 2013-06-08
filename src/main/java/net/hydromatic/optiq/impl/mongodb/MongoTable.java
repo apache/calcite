@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 
+import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.optiq.*;
 
 import org.eigenbase.rel.RelNode;
@@ -92,7 +93,7 @@ public class MongoTable extends AbstractQueryable<Object>
       RelOptTable relOptTable) {
     return new MongoTableScan(context.getCluster(),
         context.getCluster().traitSetOf(MongoRel.CONVENTION), relOptTable,
-        this, rowType, Collections.<Pair<String, String>>emptyList());
+        this, null, Collections.<Pair<String, String>>emptyList());
   }
 
   public Iterator<Object> iterator() {
@@ -100,7 +101,7 @@ public class MongoTable extends AbstractQueryable<Object>
   }
 
   public Enumerator<Object> enumerator() {
-    return find(null, null).enumerator();
+    return find(null, null, null).enumerator();
   }
 
   /** Executes a "find" operation on the underlying collection.
@@ -110,18 +111,21 @@ public class MongoTable extends AbstractQueryable<Object>
    *
    * @param filterJson Filter JSON string, or null
    * @param projectJson Project JSON string, or null
+   * @param fields List of fields to project; or null to return map
    * @return Enumerator of results
    */
-  public Enumerable<Object> find(String filterJson, String projectJson) {
+  public Enumerable<Object> find(String filterJson, String projectJson,
+      final List<String> fields) {
     final DBCollection collection = schema.mongoDb.getCollection(tableName);
     final DBObject filter =
         filterJson == null ? null : (DBObject) JSON.parse(filterJson);
     final DBObject project =
         projectJson == null ? null : (DBObject) JSON.parse(projectJson);
+    final Function1<DBObject, Object> getter = MongoEnumerator.getter(fields);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         final DBCursor cursor = collection.find(filter, project);
-        return new MongoEnumerator(cursor);
+        return new MongoEnumerator(cursor, getter);
       }
     };
   }
@@ -134,22 +138,25 @@ public class MongoTable extends AbstractQueryable<Object>
    * "{$group: {_id: '$city', c: {$sum: 1}, p: {$sum: '$pop'}}}")
    * </code></p>
    *
+   * @param fields List of fields to project; or null to return map
    * @param operations One or more JSON strings
    * @return Enumerator of results
    */
-  public Enumerable<Object> aggregate(String... operations) {
+  public Enumerable<Object> aggregate(final List<String> fields,
+      List<String> operations) {
     List<DBObject> list = new ArrayList<DBObject>();
     for (String operation : operations) {
       list.add((DBObject) JSON.parse(operation));
     }
     final DBObject first = list.get(0);
     final List<DBObject> rest = list.subList(1, list.size());
+    final Function1<DBObject, Object> getter = MongoEnumerator.getter(fields);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         final AggregationOutput result =
             schema.mongoDb.getCollection(tableName)
                 .aggregate(first, rest.toArray(new DBObject[rest.size()]));
-        return new MongoEnumerator(result.results().iterator());
+        return new MongoEnumerator(result.results().iterator(), getter);
       }
     };
   }

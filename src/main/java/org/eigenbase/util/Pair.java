@@ -23,11 +23,12 @@ import java.util.*;
 /**
  * Pair of objects.
  *
- * @author jhyde
- * @version $Id$
- * @since Oct 17, 2007
+ * <p>Because a pair implements {@link #equals(Object)}, {@link #hashCode()} and
+ * {@link #compareTo(Pair)}, it can be used in any kind of
+ * {@link java.util.Collection}.
  */
-public class Pair<T1, T2> implements Map.Entry<T1, T2>
+public class Pair<T1, T2>
+    implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>
 {
     //~ Instance fields --------------------------------------------------------
 
@@ -70,7 +71,8 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
 
     public boolean equals(Object obj)
     {
-        return (obj instanceof Pair)
+        return this == obj
+            || (obj instanceof Pair)
             && Util.equal(this.left, ((Pair) obj).left)
             && Util.equal(this.right, ((Pair) obj).right);
     }
@@ -79,6 +81,18 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
     {
         int h1 = Util.hash(0, left);
         return Util.hash(h1, right);
+    }
+
+    public int compareTo(Pair<T1, T2> that) {
+        int c = compare((Comparable) this.left, (Comparable) that.left);
+        if (c == 0) {
+            c = compare((Comparable) this.right, (Comparable) that.right);
+        }
+        return c;
+    }
+
+    public String toString() {
+        return "<" + left + ", " + right + ">";
     }
 
     public T1 getKey() {
@@ -91,6 +105,29 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
 
     public T2 setValue(T2 value) {
         throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Compares a pair of comparable values of the same type. Null collates
+     * less than everything else, but equal to itself.
+     *
+     * @param c1 First value
+     * @param c2 Second value
+     * @return  a negative integer, zero, or a positive integer if c1
+     *          is less than, equal to, or greater than c2.
+     */
+    private static <C extends Comparable<C>> int compare(C c1, C c2) {
+        if (c1 == null) {
+            if (c2 == null) {
+                return 0;
+            } else {
+                return -1;
+            }
+        } else if (c2 == null) {
+            return 1;
+        } else {
+            return c1.compareTo(c2);
+        }
     }
 
     /**
@@ -179,7 +216,97 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
         };
     }
 
-    public static <K, V> List<K> leftSlice(
+    /**
+     * Converts two arrays into a list of {@link Pair}s.
+     *
+     * <p>The length of the combined list is the lesser of the lengths of the
+     * source arrays. But typically the source arrays will be the same
+     * length.</p>
+     *
+     * @param ks Left array
+     * @param vs Right array
+     * @return List of pairs
+     */
+    public static <K, V> List<Pair<K, V>> zip(
+        final K[] ks,
+        final V[] vs)
+    {
+        return new AbstractList<Pair<K, V>>() {
+            public Pair<K, V> get(int index) {
+                return Pair.of(ks[index], vs[index]);
+            }
+
+            public int size() {
+                return Math.min(ks.length, vs.length);
+            }
+        };
+    }
+
+    /**
+     * Returns an iterable over the left slice of an iterable.
+     *
+     * @param iterable Iterable over pairs
+     * @param <L> Left type
+     * @param <R> Right type
+     * @return Iterable over the left elements
+     */
+    public static <L, R> Iterable<L> left(
+        final Iterable<? extends Map.Entry<L, R>> iterable)
+    {
+        return new Iterable<L>() {
+            public Iterator<L> iterator() {
+                final Iterator<? extends Map.Entry<L, R>> iterator =
+                    iterable.iterator();
+                return new Iterator<L>() {
+                    public boolean hasNext() {
+                        return iterator.hasNext();
+                    }
+
+                    public L next() {
+                        return iterator.next().getKey();
+                    }
+
+                    public void remove() {
+                        iterator.remove();
+                    }
+                };
+            }
+        };
+    }
+
+    /**
+     * Returns an iterable over the right slice of an iterable.
+     *
+     * @param iterable Iterable over pairs
+     * @param <L> right type
+     * @param <R> Right type
+     * @return Iterable over the right elements
+     */
+    public static <L, R> Iterable<R> right(
+        final Iterable<? extends Map.Entry<L, R>> iterable)
+    {
+        return new Iterable<R>() {
+            public Iterator<R> iterator() {
+                final Iterator<? extends Map.Entry<L, R>> iterator =
+                    iterable.iterator();
+                return new Iterator<R>() {
+                    public boolean hasNext() {
+                        return iterator.hasNext();
+                    }
+
+                    public R next() {
+                        return iterator.next().getValue();
+                    }
+
+                    public void remove() {
+                        iterator.remove();
+                    }
+                };
+            }
+        };
+    }
+
+    public static <K, V> List<K> left(
         final List<? extends Map.Entry<K, V>> pairs)
     {
         return new AbstractList<K>() {
@@ -193,7 +320,7 @@ public class Pair<T1, T2> implements Map.Entry<T1, T2>
         };
     }
 
-    public static <K, V> List<V> rightSlice(
+    public static <K, V> List<V> right(
         final List<? extends Map.Entry<K, V>> pairs)
     {
         return new AbstractList<V>() {

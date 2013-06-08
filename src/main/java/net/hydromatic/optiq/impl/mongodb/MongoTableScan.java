@@ -34,26 +34,40 @@ import java.util.*;
 public class MongoTableScan extends TableAccessRelBase implements MongoRel {
   final MongoTable mongoTable;
   final List<Pair<String, String>> ops;
+  final RelDataType projectRowType;
 
+  /**
+   * Creates a MongoTableScan.
+   *
+   * @param cluster        Cluster
+   * @param traitSet       Traits
+   * @param table          Table
+   * @param mongoTable     MongoDB table
+   * @param projectRowType Fields & types to project; null to project raw row
+   * @param ops            List of operators to apply
+   */
   protected MongoTableScan(RelOptCluster cluster, RelTraitSet traitSet,
-      RelOptTable table, MongoTable mongoTable, RelDataType rowType,
+      RelOptTable table, MongoTable mongoTable, RelDataType projectRowType,
       List<Pair<String, String>> ops) {
     super(cluster, traitSet, table);
     this.mongoTable = mongoTable;
-    this.rowType = rowType;
+    this.projectRowType = projectRowType;
     this.ops =
         Collections.unmodifiableList(new ArrayList<Pair<String, String>>(ops));
 
     assert mongoTable != null;
-    assert rowType != null;
     assert getConvention() == MongoRel.CONVENTION;
   }
 
   @Override
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
-    return new MongoTableScan(getCluster(), traitSet, table, mongoTable,
-        rowType, ops);
+    return this;
+  }
+
+  @Override
+  public RelDataType deriveRowType() {
+    return projectRowType != null ? projectRowType : super.deriveRowType();
   }
 
   @Override
@@ -63,8 +77,19 @@ public class MongoTableScan extends TableAccessRelBase implements MongoRel {
   }
 
   @Override
+  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    // scans with a small project list are cheaper
+    final float f = projectRowType == null ? 1f
+        : (float) projectRowType.getFieldCount() / 100f;
+    return super.computeSelfCost(planner).multiplyBy(.1 * f);
+  }
+
+  @Override
   public void register(RelOptPlanner planner) {
     planner.addRule(MongoToEnumerableConverterRule.INSTANCE);
+    for (RelOptRule rule : MongoRules.RULES) {
+      planner.addRule(rule);
+    }
   }
 
   public void implement(Implementor implementor) {

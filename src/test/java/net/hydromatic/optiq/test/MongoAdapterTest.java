@@ -73,6 +73,19 @@ public class MongoAdapterTest extends TestCase {
       + "   ]\n"
       + "}";
 
+  /** Connection factory based on the "mongo-zips" model. */
+  public static final OptiqAssert.ConnectionFactory ZIPS =
+      new OptiqAssert.ConnectionFactory() {
+        public OptiqConnection createConnection() throws Exception {
+          Class.forName("net.hydromatic.optiq.jdbc.Driver");
+          final Properties info = new Properties();
+          info.setProperty("model",
+              "target/test-classes/mongo-zips-model.json");
+          return (OptiqConnection)
+              DriverManager.getConnection("jdbc:optiq:", info);
+        }
+      };
+
   /** Disabled by default, because we do not expect Mongo to be installed and
    * populated with the FoodMart data set. */
   private boolean enabled() {
@@ -80,10 +93,8 @@ public class MongoAdapterTest extends TestCase {
   }
 
   public void testUnionPlan() {
-    if (!enabled()) {
-      return;
-    }
     OptiqAssert.assertThat()
+        .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
         .query(
             "select * from \"sales_fact_1997\"\n"
@@ -91,18 +102,21 @@ public class MongoAdapterTest extends TestCase {
             + "select * from \"sales_fact_1998\"")
         .explainContains(
             "PLAN=EnumerableUnionRel(all=[true])\n"
-            + "  EnumerableCalcRel(expr#0=[{inputs}], expr#1=['product_id'], expr#2=[ITEM($t0, $t1)], expr#3=[CAST($t2):DOUBLE NOT NULL], product_id=[$t3])\n"
-            + "    EnumerableTableAccessRel(table=[[_foodmart, sales_fact_1997]])\n"
-            + "  EnumerableCalcRel(expr#0=[{inputs}], expr#1=['product_id'], expr#2=[ITEM($t0, $t1)], expr#3=[CAST($t2):DOUBLE NOT NULL], product_id=[$t3])\n"
-            + "    EnumerableTableAccessRel(table=[[_foodmart, sales_fact_1998]])")
-        .runs();
+            + "  EnumerableCalcRel(expr#0=[{inputs}], product_id=[$t0])\n"
+            + "    MongoToEnumerableConverter\n"
+            + "      MongoTableScan(table=[[_foodmart, sales_fact_1997]], ops=[[<{product_id: 1}, {$project ...}>]])\n"
+            + "  EnumerableCalcRel(expr#0=[{inputs}], product_id=[$t0])\n"
+            + "    MongoToEnumerableConverter\n"
+            + "      MongoTableScan(table=[[_foodmart, sales_fact_1998]], ops=[[<{product_id: 1}, {$project ...}>]])")
+        .limit(2)
+        .returns(
+            "product_id=337.0\n"
+            + "product_id=1512.0\n");
   }
 
   public void testFilterUnionPlan() {
-    if (!enabled()) {
-      return;
-    }
     OptiqAssert.assertThat()
+        .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
         .query(
             "select * from (\n"
@@ -114,16 +128,15 @@ public class MongoAdapterTest extends TestCase {
   }
 
   public void testSelectWhere() {
-    if (!enabled()) {
-      return;
-    }
     OptiqAssert.assertThat()
+        .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
         .query(
             "select * from \"warehouse\" where \"warehouse_state_province\" = 'CA'")
         .explainContains(
-            "PLAN=EnumerableCalcRel(expr#0=[{inputs}], expr#1=['warehouse_id'], expr#2=[ITEM($t0, $t1)], expr#3=[CAST($t2):DOUBLE NOT NULL], expr#4=['warehouse_state_province'], expr#5=[ITEM($t0, $t4)], expr#6=[CAST($t5):VARCHAR(20) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL], expr#7=['CA'], expr#8=[=($t6, $t7)], warehouse_id=[$t3], warehouse_state_province=[$t6], $condition=[$t8])\n"
-            + "  EnumerableTableAccessRel(table=[[_foodmart, warehouse]])")
+            "PLAN=EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=['CA'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+            + "  MongoToEnumerableConverter\n"
+            + "    MongoTableScan(table=[[_foodmart, warehouse]], ops=[[<{warehouse_id: 1, warehouse_state_province: 1}, {$project ...}>]])")
         .returns(
             "warehouse_id=6.0; warehouse_state_province=CA\n"
             + "warehouse_id=7.0; warehouse_state_province=CA\n"
@@ -132,10 +145,8 @@ public class MongoAdapterTest extends TestCase {
   }
 
   public void testInPlan() {
-    if (!enabled()) {
-      return;
-    }
     OptiqAssert.assertThat()
+        .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
         .query(
             "select \"store_id\", \"store_name\" from \"store\"\n"
@@ -153,28 +164,46 @@ public class MongoAdapterTest extends TestCase {
 
   /** Query based on the "mongo-zips" model. */
   public void testZips() {
-    if (!enabled()) {
-      return;
-    }
     OptiqAssert.assertThat()
-        .with(
-            new OptiqAssert.ConnectionFactory() {
-              public OptiqConnection createConnection() throws Exception {
-                Class.forName("net.hydromatic.optiq.jdbc.Driver");
-                final Properties info = new Properties();
-                info.setProperty("model",
-                    "target/test-classes/mongo-zips-model.json");
-                return (OptiqConnection) DriverManager.getConnection(
-                    "jdbc:optiq:", info);
-              }
-            })
+        .enable(enabled())
+        .with(ZIPS)
         .query("select count(*) from zips")
         .returns("EXPR$0=29467\n")
         .explainContains(
             "PLAN=EnumerableAggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
-            + "  EnumerableCalcRel(expr#0=[{inputs}], expr#1=[0], $f0=[$t1])\n"
+            + "  EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], $f0=[$t5])\n"
             + "    MongoToEnumerableConverter\n"
-            + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[]])");
+            + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project ...}>]])");
+  }
+
+  public void testProject() {
+    OptiqAssert.assertThat()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select state, city from zips")
+        .limit(2)
+        .returns(
+            "STATE=AL; CITY=ACMAR\n"
+            + "STATE=AL; CITY=ADAMSVILLE\n")
+        .explainContains(
+            "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], STATE=[$t3], CITY=[$t0])\n"
+            + "  MongoToEnumerableConverter\n"
+            + "    MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project ...}>]])");
+  }
+
+  public void testFilter() {
+    OptiqAssert.assertThat()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select state, city from zips where state = 'CA'")
+        .limit(2)
+        .returns(
+            "STATE=CA; CITY=LOS ANGELES\n"
+            + "STATE=CA; CITY=LOS ANGELES\n")
+        .explainContains(
+            "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=['CA'], expr#6=[=($t3, $t5)], STATE=[$t3], CITY=[$t0], $condition=[$t6])\n"
+            + "  MongoToEnumerableConverter\n"
+            + "    MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project ...}>]])");
   }
 }
 

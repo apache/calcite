@@ -22,7 +22,6 @@ import java.math.*;
 import java.util.*;
 import java.util.logging.*;
 
-import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.resgen.*;
 import org.eigenbase.resource.*;
@@ -3009,7 +3008,7 @@ public class SqlValidatorImpl
         final SqlValidatorScope fromScope = getFromScope(select);
         final List<Pair<String, SqlValidatorNamespace>> children =
             ((SelectScope) fromScope).children;
-        int duplicateAliasOrdinal = firstDuplicate(Pair.leftSlice(children));
+        int duplicateAliasOrdinal = firstDuplicate(Pair.left(children));
         if (duplicateAliasOrdinal >= 0) {
             final Pair<String, SqlValidatorNamespace> child =
                 children.get(duplicateAliasOrdinal);

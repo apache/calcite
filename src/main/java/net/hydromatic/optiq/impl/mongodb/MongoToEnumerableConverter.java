@@ -19,6 +19,9 @@ package net.hydromatic.optiq.impl.mongodb;
 
 import net.hydromatic.linq4j.expressions.*;
 
+import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Functions;
+import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.rules.java.*;
 
@@ -96,6 +99,8 @@ public class MongoToEnumerableConverter
         ++findCount;
       }
     }
+    final Expression fields =
+        list.append("fields", constantArrayList(getRowType().getFieldNames()));
     final Expression table =
         list.append("table", mongoImplementor.table.getExpression());
     final Expression enumerable;
@@ -105,18 +110,39 @@ public class MongoToEnumerableConverter
               Expressions.call(
                   table, "find",
                   Expressions.constant(filter, String.class),
-                  Expressions.constant(project, String.class)));
+                  Expressions.constant(project, String.class),
+                  fields));
     } else {
-      final List<String> opList = Pair.rightSlice(mongoImplementor.list);
-      final String[] ops = opList.toArray(new String[opList.size()]);
+      final Expression ops =
+          list.append("ops",
+              constantArrayList(Pair.right(mongoImplementor.list)));
       enumerable =
           list.append("enumerable",
               Expressions.call(
-                  table, "aggregate", Expressions.constant(ops)));
+                  table, "aggregate", fields, ops));
     }
     list.add(
         Expressions.return_(null, enumerable));
     return list.toBlock();
+  }
+
+  /** E.g. {@code constantArrayList("x", "y")} returns
+   * "Arrays.asList('x', 'y')". */
+  private static <T> MethodCallExpression constantArrayList(List<T> values) {
+    return Expressions.call(
+        BuiltinMethod.ARRAYS_AS_LIST.method,
+        Expressions.newArrayInit(String.class, constantList(values)));
+  }
+
+  /** E.g. {@code constantList("x", "y")} returns
+   * {@code {ConstantExpression("x"), ConstantExpression("y")}}. */
+  private static <T> List<Expression> constantList(List<T> values) {
+    return Functions.apply(values,
+        new Function1<T, Expression>() {
+          public Expression apply(T a0) {
+            return Expressions.constant(a0);
+          }
+        });
   }
 }
 
