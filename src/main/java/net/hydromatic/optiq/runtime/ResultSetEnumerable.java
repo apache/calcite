@@ -39,29 +39,42 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private final String sql;
   private final Function1<ResultSet, Function0<T>> rowBuilderFactory;
 
-  private static final Function1<ResultSet, Function0<Object[]>>
-      ARRAY_ROW_BUILDER_FACTORY =
-      new Function1<ResultSet, Function0<Object[]>>() {
-        public Function0<Object[]> apply(final ResultSet resultSet) {
+  private static final Function1<ResultSet, Function0<Object>>
+      AUTO_ROW_BUILDER_FACTORY =
+      new Function1<ResultSet, Function0<Object>>() {
+        public Function0<Object> apply(final ResultSet resultSet) {
           final int columnCount;
           try {
             columnCount = resultSet.getMetaData().getColumnCount();
           } catch (SQLException e) {
             throw new RuntimeException(e);
           }
-          return new Function0<Object[]>() {
-            public Object[] apply() {
-              try {
-                final List<Object> list = new ArrayList<Object>();
-                for (int i = 0; i < columnCount; i++) {
-                  list.add(resultSet.getObject(i + 1));
+          if (columnCount == 1) {
+            return new Function0<Object>() {
+              public Object apply() {
+                try {
+                  return resultSet.getObject(1);
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
                 }
-                return list.toArray();
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
               }
-            }
-          };
+            };
+          } else {
+            //noinspection unchecked
+            return (Function0) new Function0<Object[]>() {
+              public Object[] apply() {
+                try {
+                  final List<Object> list = new ArrayList<Object>();
+                  for (int i = 0; i < columnCount; i++) {
+                    list.add(resultSet.getObject(i + 1));
+                  }
+                  return list.toArray();
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            };
+          }
         }
       };
 
@@ -75,14 +88,12 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   }
 
   /** Creates an ResultSetEnumerable. */
-  public static Enumerable<Object[]> of(
-      DataSource dataSource, String sql) {
-    return of(dataSource, sql, ARRAY_ROW_BUILDER_FACTORY);
+  public static Enumerable<Object> of(DataSource dataSource, String sql) {
+    return of(dataSource, sql, AUTO_ROW_BUILDER_FACTORY);
   }
 
-  /** Executes a SQL query and returns the results as an enumerator. The
-   * parameterization not withstanding, the result type must be an array of
-   * objects. */
+  /** Executes a SQL query and returns the results as an enumerator, using a
+   * row builder to convert JDBC column values into rows. */
   public static <T> Enumerable<T> of(
       DataSource dataSource,
       String sql,

@@ -410,6 +410,13 @@ public class SqlDialect
         return databaseProduct;
     }
 
+    /** Returns whether the dialect supports character set names as part of a
+     * data type, for instance {@code VARCHAR(30) CHARACTER SET `ISO-8859-1`}.
+     */
+    public boolean supportsCharSet() {
+        return databaseProduct != DatabaseProduct.MYSQL;
+    }
+
     /**
      * A few utility functions copied from org.eigenbase.util.Util. We have
      * copied them because we wish to keep SqlDialect's dependencies to a

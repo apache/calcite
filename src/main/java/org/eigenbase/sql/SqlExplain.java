@@ -44,7 +44,13 @@ public class SqlExplain
     public static enum Depth
         implements SqlLiteral.SqlSymbol
     {
-        Type, Logical, Physical,
+        Type, Logical, Physical;
+
+        /** Creates a parse-tree node representing an occurrence of this symbol
+         * at a particular position in the parsed text. */
+        public SqlLiteral symbol(SqlParserPos pos) {
+            return SqlLiteral.createSymbol(this, pos);
+        }
     }
 
     //~ Instance fields --------------------------------------------------------

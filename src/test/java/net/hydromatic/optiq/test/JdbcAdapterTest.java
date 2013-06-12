@@ -36,9 +36,11 @@ public class JdbcAdapterTest extends TestCase {
             + "    JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
             + "    JdbcTableScan(table=[[foodmart, sales_fact_1998]])")
         .planHasSql(
-            "SELECT * FROM `foodmart`.`sales_fact_1997`\n"
-            + "UNION ALL \n"
-            + "SELECT * FROM `foodmart`.`sales_fact_1998`")
+            "SELECT *\n"
+            + "FROM `foodmart`.`sales_fact_1997`\n"
+            + "UNION ALL\n"
+            + "SELECT *\n"
+            + "FROM `foodmart`.`sales_fact_1998`")
         .runs();
   }
 
@@ -53,11 +55,11 @@ public class JdbcAdapterTest extends TestCase {
             + "where \"product_id\" = 1")
         .planHasSql(
             "SELECT *\n"
-            + "FROM `foodmart`.`sales_fact_1997` AS `t`\n"
+            + "FROM `foodmart`.`sales_fact_1997`\n"
             + "WHERE `product_id` = 1\n"
-            + "UNION ALL \n"
+            + "UNION ALL\n"
             + "SELECT *\n"
-            + "FROM `foodmart`.`sales_fact_1998` AS `t`\n"
+            + "FROM `foodmart`.`sales_fact_1998`\n"
             + "WHERE `product_id` = 1")
         .runs();
   }
@@ -69,8 +71,8 @@ public class JdbcAdapterTest extends TestCase {
             "select \"store_id\", \"store_name\" from \"store\"\n"
             + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
         .planHasSql(
-            "SELECT `store_id` AS `store_id`, `store_name` AS `store_name`\n"
-            + "FROM `foodmart`.`store` AS `t`\n"
+            "SELECT `store_id`, `store_name`\n"
+            + "FROM `foodmart`.`store`\n"
             + "WHERE `store_name` = 'Store 1' OR `store_name` = 'Store 10' OR `store_name` = 'Store 11' OR `store_name` = 'Store 15' OR `store_name` = 'Store 16' OR `store_name` = 'Store 24' OR `store_name` = 'Store 3' OR `store_name` = 'Store 7'")
         .returns(
             "store_id=1; store_name=Store 1\n"

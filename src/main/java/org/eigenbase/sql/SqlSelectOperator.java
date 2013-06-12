@@ -154,7 +154,7 @@ public class SqlSelectOperator
             selectClause =
                 new SqlIdentifier(
                     "*",
-                    selectClause.getParserPosition());
+                    SqlParserPos.ZERO);
         }
         final SqlWriter.Frame selectListFrame =
             writer.startList(SqlWriter.FrameTypeEnum.SelectList);

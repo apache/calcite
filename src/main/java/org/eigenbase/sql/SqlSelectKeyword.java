@@ -17,14 +17,12 @@
 */
 package org.eigenbase.sql;
 
+import org.eigenbase.sql.parser.SqlParserPos;
 import org.eigenbase.util.*;
 
 
 /**
  * Defines the keywords which can occur immediately after the "SELECT" keyword.
- *
- * @author jhyde
- * @version $Id$
  */
 public class SqlSelectKeyword
     extends EnumeratedValues.BasicValue
@@ -58,6 +56,12 @@ public class SqlSelectKeyword
     public int ordinal()
     {
         return getOrdinal();
+    }
+
+    /** Creates a parse-tree node representing an occurrence of this keyword
+     * at a particular position in the parsed text. */
+    public SqlLiteral symbol(SqlParserPos pos) {
+        return SqlLiteral.createSymbol(this, pos);
     }
 }
 

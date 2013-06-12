@@ -63,6 +63,12 @@ public class SqlJoinOperator
          * USING (DEPTNO)"
          */
         Using;
+
+        /** Creates a parse-tree node representing an occurrence of this join
+         * type at a particular position in the parsed text. */
+        public SqlLiteral symbol(SqlParserPos pos) {
+            return SqlLiteral.createSymbol(this, pos);
+        }
     }
 
     /**
@@ -102,6 +108,13 @@ public class SqlJoinOperator
          * join conditions are specified in the <code>WHERE</code> clause.
          */
         Comma;
+
+        /** Creates a parse-tree node representing an occurrence of this
+         * condition type keyword at a particular position in the parsed
+         * text. */
+        public SqlLiteral symbol(SqlParserPos pos) {
+            return SqlLiteral.createSymbol(this, pos);
+        }
     }
 
     //~ Constructors -----------------------------------------------------------
@@ -168,13 +181,6 @@ public class SqlJoinOperator
     {
         final SqlNode left = operands[SqlJoin.LEFT_OPERAND];
 
-        // REVIEW jvs 16-June-2006:  I commented out this and
-        // corresponding endList below because it is redundant
-        // with enclosing FROM frame pushed by SqlSelectOperator.
-        /*
-        final SqlWriter.Frame frame0 =
-         writer.startList(SqlWriter.FrameTypeEnum.FromList, "", "");
-         */
         left.unparse(
             writer,
             leftPrec,
@@ -237,9 +243,6 @@ public class SqlJoinOperator
                 throw Util.unexpected(conditionType);
             }
         }
-        /*
-        writer.endList(frame0);
-         */
     }
 }
 

@@ -1153,11 +1153,9 @@ public class SqlValidatorImpl
             SqlStdOperatorTable.joinOperator.createCall(
                 leftJoinTerm,
                 SqlLiteral.createBoolean(false, SqlParserPos.ZERO),
-                SqlLiteral.createSymbol(joinType, SqlParserPos.ZERO),
+                joinType.symbol(SqlParserPos.ZERO),
                 targetTable,
-                SqlLiteral.createSymbol(
-                    SqlJoinOperator.ConditionType.On,
-                    SqlParserPos.ZERO),
+                SqlJoinOperator.ConditionType.On.symbol(SqlParserPos.ZERO),
                 call.getCondition(),
                 SqlParserPos.ZERO);
         SqlSelect select =

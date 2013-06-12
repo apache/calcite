@@ -127,7 +127,7 @@ public class OptiqAssert {
       }
 
       @Override
-      public AssertQuery returns(Function1<String, Void> checker) {
+      public AssertQuery returns(Function1<ResultSet, Void> checker) {
         return this;
       }
 
@@ -202,21 +202,49 @@ public class OptiqAssert {
     };
   }
 
-  static Function1<String, Void> checkResult(final String expected) {
-    return new Function1<String, Void>() {
-      public Void apply(String p0) {
-        Assert.assertEquals(expected, p0);
-        return null;
+  static Function1<ResultSet, Void> checkResult(final String expected) {
+    return new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final String resultString = OptiqAssert.toString(resultSet);
+          Assert.assertEquals(expected, resultString);
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
       }
     };
   }
 
-  public static Function1<String, Void> checkResultContains(
+  static Function1<ResultSet, Void> checkResultUnordered(
+      final String... lines) {
+    return new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final Collection<String> actualSet = new TreeSet<String>();
+          OptiqAssert.toStringList(resultSet, actualSet);
+          final TreeSet<String> expectedSet =
+              new TreeSet<String>(Arrays.asList(lines));
+          Assert.assertEquals(expectedSet, actualSet);
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
+  }
+
+  public static Function1<ResultSet, Void> checkResultContains(
       final String expected) {
-    return new Function1<String, Void>() {
-      public Void apply(String p0) {
-        Assert.assertTrue(p0, p0.contains(expected));
-        return null;
+    return new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet s) {
+        try {
+          final String actual = OptiqAssert.toString(s);
+          Assert.assertTrue(actual, actual.contains(expected));
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
       }
     };
   }
@@ -225,7 +253,7 @@ public class OptiqAssert {
       Connection connection,
       String sql,
       int limit,
-      Function1<String, Void> resultChecker,
+      Function1<ResultSet, Void> resultChecker,
       Function1<Throwable, Void> exceptionChecker)
       throws Exception {
     Statement statement = connection.createStatement();
@@ -250,7 +278,16 @@ public class OptiqAssert {
       }
       throw e;
     }
-    StringBuilder buf = new StringBuilder();
+    if (resultChecker != null) {
+      resultChecker.apply(resultSet);
+    }
+    resultSet.close();
+    statement.close();
+    connection.close();
+  }
+
+  static String toString(ResultSet resultSet) throws SQLException {
+    final StringBuilder buf = new StringBuilder();
     while (resultSet.next()) {
       int n = resultSet.getMetaData().getColumnCount();
       if (n > 0) {
@@ -266,12 +303,27 @@ public class OptiqAssert {
       }
       buf.append("\n");
     }
-    resultSet.close();
-    statement.close();
-    connection.close();
+    return buf.toString();
+  }
 
-    if (resultChecker != null) {
-      resultChecker.apply(buf.toString());
+  static void toStringList(ResultSet resultSet, Collection<String> list)
+      throws SQLException {
+    final StringBuilder buf = new StringBuilder();
+    while (resultSet.next()) {
+      int n = resultSet.getMetaData().getColumnCount();
+      if (n > 0) {
+        for (int i = 1;; i++) {
+          buf.append(resultSet.getMetaData().getColumnLabel(i))
+              .append("=")
+              .append(str(resultSet, i));
+          if (i == n) {
+            break;
+          }
+          buf.append("; ");
+        }
+      }
+      list.add(buf.toString());
+      buf.setLength(0);
     }
   }
 
@@ -480,7 +532,7 @@ public class OptiqAssert {
       return returns(checkResult(expected));
     }
 
-    public AssertQuery returns(Function1<String, Void> checker) {
+    public AssertQuery returns(Function1<ResultSet, Void> checker) {
       try {
         assertQuery(createConnection(), sql, limit, checker, null);
         return this;
@@ -488,6 +540,10 @@ public class OptiqAssert {
         throw new RuntimeException(
             "exception while executing [" + sql + "]", e);
       }
+    }
+
+    public AssertQuery returnsUnordered(String... lines) {
+      return returns(checkResultUnordered(lines));
     }
 
     public AssertQuery throws_(String message) {
@@ -515,10 +571,15 @@ public class OptiqAssert {
       try {
         assertQuery(
             createConnection(),
-            "explain plan for " + sql, limit, new Function1<String, Void>() {
-              public Void apply(String s) {
-                Assert.assertTrue(s, s.contains(expected));
-                return null;
+            "explain plan for " + sql, limit, new Function1<ResultSet, Void>() {
+              public Void apply(ResultSet s) {
+                try {
+                  final String actual = OptiqAssert.toString(s);
+                  Assert.assertTrue(actual, actual.contains(expected));
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
               }
             }, null);
         return this;

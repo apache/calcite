@@ -259,6 +259,9 @@ public abstract class SqlUtil
         if (null != quantifier) {
             quantifier.unparse(writer, 0, 0);
         }
+        if (operands.length == 0 && operator instanceof SqlAggFunction) {
+            writer.sep("*");
+        }
         for (int i = 0; i < operands.length; i++) {
             SqlNode operand = operands[i];
             writer.sep(",");

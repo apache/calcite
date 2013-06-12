@@ -101,6 +101,12 @@ public class SqlWindowOperator
         {
             return sql;
         }
+
+        /** Creates a parse-tree node representing an occurrence of this bound
+         * type at a particular position in the parsed text. */
+        public SqlNode symbol(SqlParserPos pos) {
+            return SqlLiteral.createSymbol(this, pos);
+        }
     }
 
     //~ Constructors -----------------------------------------------------------
@@ -656,17 +662,17 @@ public class SqlWindowOperator
 
     public static SqlNode createCurrentRow(SqlParserPos pos)
     {
-        return SqlLiteral.createSymbol(Bound.CURRENT_ROW, pos);
+        return Bound.CURRENT_ROW.symbol(pos);
     }
 
     public static SqlNode createUnboundedFollowing(SqlParserPos pos)
     {
-        return SqlLiteral.createSymbol(Bound.UNBOUNDED_FOLLOWING, pos);
+        return Bound.UNBOUNDED_FOLLOWING.symbol(pos);
     }
 
     public static SqlNode createUnboundedPreceding(SqlParserPos pos)
     {
-        return SqlLiteral.createSymbol(Bound.UNBOUNDED_PRECEDING, pos);
+        return Bound.UNBOUNDED_PRECEDING.symbol(pos);
     }
 
     public static SqlNode createFollowing(SqlLiteral literal, SqlParserPos pos)

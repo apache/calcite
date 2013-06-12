@@ -18,13 +18,13 @@
 package net.hydromatic.optiq.impl.jdbc;
 
 import org.eigenbase.rel.RelNode;
-import org.eigenbase.sql.util.SqlString;
+import org.eigenbase.sql.SqlNode;
 
 /**
  * Relational expression that uses JDBC calling convention.
  */
 public interface JdbcRel extends RelNode {
-  SqlString implement(JdbcImplementor implementor);
+  JdbcImplementor.Result implement(JdbcImplementor implementor);
 }
 
 // End JdbcRel.java

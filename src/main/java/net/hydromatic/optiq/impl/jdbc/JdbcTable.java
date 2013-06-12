@@ -27,7 +27,10 @@ import net.hydromatic.optiq.runtime.ResultSetEnumerable;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.util.SqlBuilder;
+import org.eigenbase.sql.*;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.parser.SqlParserPos;
+import org.eigenbase.sql.pretty.SqlPrettyWriter;
 import org.eigenbase.sql.util.SqlString;
 
 import java.lang.reflect.Type;
@@ -108,13 +111,21 @@ class JdbcTable extends AbstractQueryable<Object[]>
   }
 
   SqlString generateSql() {
-    SqlBuilder buf = new SqlBuilder(schema.dialect);
-    buf.append("SELECT * FROM ");
-    return tableName(buf).toSqlString();
+    SqlSelect node =
+        SqlStdOperatorTable.selectOperator.createCall(
+            SqlNodeList.Empty,
+            new SqlNodeList(
+                Collections.singletonList(
+                    new SqlIdentifier("*", SqlParserPos.ZERO)),
+                SqlParserPos.ZERO),
+            tableName(), null, null, null, null, null, SqlParserPos.ZERO);
+    final SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.DUMMY);
+    node.unparse(writer, 0, 0);
+    return writer.toSqlString();
   }
 
-  SqlBuilder tableName(SqlBuilder buf) {
-    final ArrayList<String> strings = new ArrayList<String>();
+  SqlIdentifier tableName() {
+    final List<String> strings = new ArrayList<String>();
     if (schema.catalog != null) {
       strings.add(schema.catalog);
     }
@@ -122,7 +133,9 @@ class JdbcTable extends AbstractQueryable<Object[]>
       strings.add(schema.schema);
     }
     strings.add(tableName);
-    return buf.identifier(strings);
+    return new SqlIdentifier(
+        strings.toArray(new String[strings.size()]),
+        SqlParserPos.ZERO);
   }
 
   public RelDataType getRowType() {

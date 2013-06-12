@@ -75,7 +75,7 @@ public class JdbcToEnumerableConverter
         (JdbcConvention) child.getConvention();
     String sql = generateSql(jdbcConvention.jdbcSchema.dialect);
     if (OptiqPrepareImpl.DEBUG) {
-      System.out.println(sql);
+      System.out.println("[" + sql + "]");
     }
     final Expression constant =
         list.append("sql", Expressions.constant(sql));
@@ -97,7 +97,9 @@ public class JdbcToEnumerableConverter
 
   private String generateSql(SqlDialect dialect) {
     final JdbcImplementor jdbcImplementor = new JdbcImplementor(dialect);
-    return jdbcImplementor.visitChild(0, getChild()).getSql();
+    final JdbcImplementor.Result result =
+        jdbcImplementor.visitChild(0, getChild());
+    return result.asQuery().toSqlString(dialect).getSql();
   }
 }
 

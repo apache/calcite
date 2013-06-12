@@ -311,7 +311,7 @@ public class SqlCaseOperator
     /**
      * Creates a call to the switched form of the case operator, viz:
      *
-     * <blockquote><code>CASE caseIdentifier<br/>
+     * <blockquote><code>CASE value<br/>
      * WHEN whenList[0] THEN thenList[0]<br/>
      * WHEN whenList[1] THEN thenList[1]<br/>
      * ...<br/>
@@ -320,12 +320,12 @@ public class SqlCaseOperator
      */
     public SqlCase createSwitchedCall(
         SqlParserPos pos,
-        SqlNode caseIdentifier,
+        SqlNode value,
         SqlNodeList whenList,
         SqlNodeList thenList,
         SqlNode elseClause)
     {
-        if (null != caseIdentifier) {
+        if (null != value) {
             List<SqlNode> list = whenList.getList();
             for (int i = 0; i < list.size(); i++) {
                 SqlNode e = list.get(i);
@@ -333,7 +333,7 @@ public class SqlCaseOperator
                     i,
                     SqlStdOperatorTable.equalsOperator.createCall(
                         pos,
-                        caseIdentifier,
+                        value,
                         e));
             }
         }
@@ -344,6 +344,7 @@ public class SqlCaseOperator
 
         return (SqlCase) createCall(
             pos,
+            null,
             whenList,
             thenList,
             elseClause);
@@ -357,9 +358,13 @@ public class SqlCaseOperator
     {
         final SqlWriter.Frame frame =
             writer.startList(CaseFrameType, "CASE", "END");
+        SqlNode value = operands[SqlCase.VALUE_OPERAND];
         SqlNodeList whenList = (SqlNodeList) operands[SqlCase.WHEN_OPERANDS];
         SqlNodeList thenList = (SqlNodeList) operands[SqlCase.THEN_OPERANDS];
         assert whenList.size() == thenList.size();
+        if (value != null) {
+            value.unparse(writer, 0, 0);
+        }
         for (Pair<SqlNode, SqlNode> pair : Pair.zip(whenList, thenList)) {
             writer.sep("WHEN");
             pair.left.unparse(writer, 0, 0);

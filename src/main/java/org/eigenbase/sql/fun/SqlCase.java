@@ -36,19 +36,24 @@ public class SqlCase
     //~ Static fields/initializers ---------------------------------------------
 
     /**
-     * WHEN_OPERANDS = 0
+     * VALUE_OPERAND = 0
      */
-    public static final int WHEN_OPERANDS = 0;
+    public static final int VALUE_OPERAND = 0;
 
     /**
-     * THEN_OPERANDS = 1
+     * WHEN_OPERANDS = 1
      */
-    public static final int THEN_OPERANDS = 1;
+    public static final int WHEN_OPERANDS = 1;
 
     /**
-     * ELSE_OPERAND = 2
+     * THEN_OPERANDS = 2
      */
-    public static final int ELSE_OPERAND = 2;
+    public static final int THEN_OPERANDS = 2;
+
+    /**
+     * ELSE_OPERAND = 3
+     */
+    public static final int ELSE_OPERAND = 3;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -64,8 +69,8 @@ public class SqlCase
      * expression
      * </ul>
      *
-     * <p>See {@link #WHEN_OPERANDS}, {@link #THEN_OPERANDS}, {@link
-     * #ELSE_OPERAND}.
+     * <p>See {@link #VALUE_OPERAND}, {@link #WHEN_OPERANDS},
+     * {@link #THEN_OPERANDS}, {@link #ELSE_OPERAND}.
      */
     SqlCase(
         SqlCaseOperator operator,
@@ -76,6 +81,11 @@ public class SqlCase
     }
 
     //~ Methods ----------------------------------------------------------------
+
+    public SqlNode getValueOperand()
+    {
+        return operands[VALUE_OPERAND];
+    }
 
     public SqlNodeList getWhenOperands()
     {

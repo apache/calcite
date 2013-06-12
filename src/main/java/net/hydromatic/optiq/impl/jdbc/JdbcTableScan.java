@@ -22,8 +22,8 @@ import org.eigenbase.rel.TableAccessRelBase;
 import org.eigenbase.rel.rules.PushFilterPastSetOpRule;
 import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
 import org.eigenbase.relopt.*;
-import org.eigenbase.sql.util.SqlString;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -59,8 +59,9 @@ public class JdbcTableScan extends TableAccessRelBase implements JdbcRel {
     planner.addRule(RemoveTrivialProjectRule.instance);
   }
 
-  public SqlString implement(JdbcImplementor implementor) {
-    return jdbcTable.generateSql();
+  public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+    return implementor.result(jdbcTable.tableName(),
+        Collections.singletonList(JdbcImplementor.Clause.FROM), this);
   }
 }
 

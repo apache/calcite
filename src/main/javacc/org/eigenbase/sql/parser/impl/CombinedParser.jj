@@ -704,12 +704,12 @@ List FunctionParameterList(
     }
     [ <DISTINCT>
         {
-            e = SqlLiteral.createSymbol(SqlSelectKeyword.Distinct, getPos());
+            e = SqlSelectKeyword.Distinct.symbol(getPos());
         }
         |
       <ALL>
         {
-            e = SqlLiteral.createSymbol(SqlSelectKeyword.All, getPos());
+            e = SqlSelectKeyword.All.symbol(getPos());
         }
     ]
     {
@@ -818,12 +818,10 @@ SqlSelect SqlSelect() :
     SqlSelectKeywords(keywords)
     (
         <DISTINCT> {
-            keywords.add(
-                SqlLiteral.createSymbol(SqlSelectKeyword.Distinct, getPos()));
+            keywords.add(SqlSelectKeyword.Distinct.symbol(getPos()));
         }
         |   <ALL> {
-            keywords.add(
-                SqlLiteral.createSymbol(SqlSelectKeyword.All, getPos()));
+            keywords.add(SqlSelectKeyword.All.symbol(getPos()));
         }
         |   E()
     )
@@ -887,8 +885,8 @@ SqlNode SqlExplain() :
         return new SqlExplain(
             SqlStdOperatorTable.explainOperator,
             stmt,
-            SqlLiteral.createSymbol(detailLevel, SqlParserPos.ZERO),
-            SqlLiteral.createSymbol(depth, SqlParserPos.ZERO),
+            detailLevel.symbol(SqlParserPos.ZERO),
+            depth.symbol(SqlParserPos.ZERO),
             SqlLiteral.createBoolean(asXml, SqlParserPos.ZERO),
             nDynamicParams,
             pos);
@@ -1375,7 +1373,7 @@ SqlLiteral JoinType() :
         <CROSS> <JOIN> { joinType = SqlJoinOperator.JoinType.Cross; }
     )
     {
-        return SqlLiteral.createSymbol(joinType, getPos());
+        return joinType.symbol(getPos());
     }
 }
 
@@ -1399,9 +1397,8 @@ SqlNode JoinTable(SqlNode e) :
                 e,
                 natural,
                 joinType,
-                e2,
-                SqlLiteral.createSymbol(
-                    SqlJoinOperator.ConditionType.On, onPos),
+                e2,                
+                SqlJoinOperator.ConditionType.On.symbol(onPos),
                 condition,
                 joinType.getParserPosition());
         }
@@ -1414,8 +1411,7 @@ SqlNode JoinTable(SqlNode e) :
                 natural,
                 joinType,
                 e2,
-                SqlLiteral.createSymbol(
-                    SqlJoinOperator.ConditionType.Using, usingPos),
+                SqlJoinOperator.ConditionType.Using.symbol(usingPos),
                 new SqlNodeList(list, usingPos),
                 joinType.getParserPosition());
         }
@@ -1426,8 +1422,7 @@ SqlNode JoinTable(SqlNode e) :
                 natural,
                 joinType,
                 e2,
-                SqlLiteral.createSymbol(
-                    SqlJoinOperator.ConditionType.None,
+                SqlJoinOperator.ConditionType.None.symbol(
                     joinType.getParserPosition()),
                 null,
                 joinType.getParserPosition());
@@ -1472,8 +1467,7 @@ SqlNode FromClause() :
                     natural,
                     joinType,
                     e2,
-                    SqlLiteral.createSymbol(
-                        SqlJoinOperator.ConditionType.On, onPos),
+                    SqlJoinOperator.ConditionType.On.symbol(onPos),
                     condition,
                     joinType.getParserPosition());
             }
@@ -1486,8 +1480,7 @@ SqlNode FromClause() :
                     natural,
                     joinType,
                     e2,
-                    SqlLiteral.createSymbol(
-                        SqlJoinOperator.ConditionType.Using, usingPos),
+                    SqlJoinOperator.ConditionType.Using.symbol(usingPos),
                     new SqlNodeList(list, usingPos),
                     joinType.getParserPosition());
             }
@@ -1498,8 +1491,7 @@ SqlNode FromClause() :
                     natural,
                     joinType,
                     e2,
-                    SqlLiteral.createSymbol(
-                        SqlJoinOperator.ConditionType.None,
+                    SqlJoinOperator.ConditionType.None.symbol(
                         joinType.getParserPosition()),
                     null,
                     joinType.getParserPosition());
@@ -1516,11 +1508,9 @@ SqlNode FromClause() :
             e = SqlStdOperatorTable.joinOperator.createCall(
                 e,
                 SqlLiteral.createBoolean(false, pos),
-                SqlLiteral.createSymbol(SqlJoinOperator.JoinType.Comma,
-                    SqlParserPos.ZERO),
+                SqlJoinOperator.JoinType.Comma.symbol(SqlParserPos.ZERO),
                 e2,
-                SqlLiteral.createSymbol(
-                    SqlJoinOperator.ConditionType.None, SqlParserPos.ZERO),
+                SqlJoinOperator.ConditionType.None.symbol(SqlParserPos.ZERO),
                 null,
                 pos);
         }

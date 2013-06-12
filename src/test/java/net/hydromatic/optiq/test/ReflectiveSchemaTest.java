@@ -246,7 +246,7 @@ public class ReflectiveSchemaTest extends TestCase {
       with.query(
           "select " + fn + "(\"" + field.getName() + "\") as c\n"
               + "from \"s\".\"everyTypes\"")
-          .returns(Functions.<String, Void>constantNull());
+          .returns(Functions.<ResultSet, Void>constantNull());
     }
   }
 
@@ -287,7 +287,7 @@ public class ReflectiveSchemaTest extends TestCase {
             + " " + fn + " " + name2 + " as c\n"
             + "from \"s\".\"everyTypes\"\n"
             + "where " + name + " <> 0")
-            .returns(Functions.<String, Void>constantNull());
+            .returns(Functions.<ResultSet, Void>constantNull());
       }
     }
   }

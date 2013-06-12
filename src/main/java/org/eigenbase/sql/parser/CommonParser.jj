@@ -511,7 +511,7 @@ List FunctionParameterList(
     }
     [ <DISTINCT>
         {
-            e = SqlLiteral.createSymbol(SqlSelectKeyword.Distinct, getPos());
+            e = SqlSelectKeyword.Distinct.symbol(getPos());
         }
         |
       <ALL>
