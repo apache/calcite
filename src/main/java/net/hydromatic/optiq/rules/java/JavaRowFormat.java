@@ -129,12 +129,10 @@ public enum JavaRowFormat {
     }
 
     @Override
-    public Expression field(
-        Expression expression, int field, Class fieldType) {
-      return Types.castIfNecessary(
-          fieldType,
-          Expressions.arrayIndex(
-              expression, Expressions.constant(field)));
+    public Expression field(Expression expression, int field, Class fieldType) {
+      return RexToLixTranslator.convert(
+          Expressions.arrayIndex(expression, Expressions.constant(field)),
+          fieldType);
     }
   };
 

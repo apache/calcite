@@ -17,8 +17,8 @@
 */
 package net.hydromatic.optiq.runtime;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
+import java.math.*;
+import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -638,6 +638,10 @@ public class SqlFunctions {
     return x ? "TRUE" : "FALSE";
   }
 
+  private static Object cannotConvert(Object o, Class toType) {
+    throw new RuntimeException("Cannot convert " + o + " to " + toType);
+  }
+
   /** CAST(VARCHAR AS BOOLEAN). */
   public static boolean toBoolean(String s) {
     s = trim(s);
@@ -650,41 +654,140 @@ public class SqlFunctions {
     }
   }
 
+  public static boolean toBoolean(Number number) {
+    return !number.equals(0);
+  }
+
+  public static boolean toBoolean(Object o) {
+    return o instanceof Boolean ? (Boolean) o
+        : o instanceof Number ? toBoolean((Number) o)
+        : o instanceof String ? toBoolean((String) o)
+        : (Boolean) cannotConvert(o, boolean.class);
+  }
+
   // Don't need parseByte etc. - Byte.parseByte is sufficient.
 
-  public static char parseChar(String s) {
+  public static byte toByte(Object o) {
+    return o instanceof Byte ? (Byte) o
+        : o instanceof Number ? toByte((Number) o)
+        : Byte.parseByte(o.toString());
+  }
+
+  public static byte toByte(Number number) {
+    return number.byteValue();
+  }
+
+  public static char toChar(String s) {
     return s.charAt(0);
   }
 
-  public static short parseShort(String s) {
+  public static Character toCharBoxed(String s) {
+    return s.charAt(0);
+  }
+
+  public static short toShort(String s) {
     return Short.parseShort(s.trim());
   }
 
-  public static int parseInt(String s) {
+  public static short toShort(Number number) {
+    return number.shortValue();
+  }
+
+  public static short toShort(Object o) {
+    return o instanceof Short ? (Short) o
+        : o instanceof Number ? toShort((Number) o)
+        : o instanceof String ? toShort((String) o)
+        : (Short) cannotConvert(o, short.class);
+  }
+
+  public static int toInt(String s) {
     return Integer.parseInt(s.trim());
   }
 
-  public static long parseLong(String s) {
+  public static int toInt(Number number) {
+    return number.intValue();
+  }
+
+  public static int toInt(Object o) {
+    return o instanceof Integer ? (Integer) o
+        : o instanceof Number ? toInt((Number) o)
+        : o instanceof String ? toInt((String) o)
+        : (Integer) cannotConvert(o, int.class);
+  }
+
+  public static long toLong(String s) {
+    if (s.startsWith("199") && s.contains(":")) {
+      return Timestamp.valueOf(s).getTime();
+    }
     return Long.parseLong(s.trim());
   }
 
-  public static float parseFloat(String s) {
+  public static long toLong(Number number) {
+    return number.longValue();
+  }
+
+  public static long toLong(Object o) {
+    return o instanceof Long ? (Long) o
+        : o instanceof Number ? toLong((Number) o)
+        : o instanceof String ? toLong((String) o)
+        : (Long) cannotConvert(o, long.class);
+  }
+
+  public static float toFloat(String s) {
     return Float.parseFloat(s.trim());
   }
 
-  public static double parseDouble(String s) {
+  public static float toFloat(Number number) {
+    return number.floatValue();
+  }
+
+  public static float toFloat(Object o) {
+    return o instanceof Float ? (Float) o
+        : o instanceof Number ? toFloat((Number) o)
+            : o instanceof String ? toFloat((String) o)
+                : (Float) cannotConvert(o, float.class);
+  }
+
+  public static double toDouble(String s) {
     return Double.parseDouble(s.trim());
+  }
+
+  public static double toDouble(Number number) {
+    return number.doubleValue();
+  }
+
+  public static double toDouble(Object o) {
+    return o instanceof Double ? (Double) o
+        : o instanceof Number ? toDouble((Number) o)
+        : o instanceof String ? toDouble((String) o)
+        : (Double) cannotConvert(o, double.class);
+  }
+
+  public static BigDecimal toBigDecimal(String s) {
+    return new BigDecimal(s.trim());
+  }
+
+  public static BigDecimal toBigDecimal(Number number) {
+    // There are some values of "long" that cannot be represented as "double".
+    // Not so "int". If it isn't a long, go straight to double.
+    return number instanceof BigDecimal ? (BigDecimal) number
+        : number instanceof BigInteger ? new BigDecimal((BigInteger) number)
+        : number instanceof Long ? new BigDecimal(number.longValue())
+        : new BigDecimal(number.doubleValue());
+  }
+
+  public static BigDecimal toBigDecimal(Object o) {
+    return o instanceof Number ? toBigDecimal((Number) o)
+        : toBigDecimal(o.toString());
   }
 
   // Don't need shortValueOf etc. - Short.valueOf is sufficient.
 
-  public static Character charValueOf(String s) {
-    return s.charAt(0);
-  }
-
   /** Helper for CAST(... AS VARCHAR(maxLength)). */
   public static String truncate(String s, int maxLength) {
-    return s.length() > maxLength ? s.substring(0, maxLength) : s;
+    return s == null ? null
+        : s.length() > maxLength ? s.substring(0, maxLength)
+        : s;
   }
 
   /** Cheap, unsafe, long power. power(2, 3) returns 8. */

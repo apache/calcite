@@ -1,0 +1,205 @@
+{
+  version: '1.0',
+  defaultSchema: 'foodmart',
+  schemas: [
+    {
+      type: 'custom',
+      name: 'foodmart_raw',
+      factory: 'net.hydromatic.optiq.impl.mongodb.MongoSchemaFactory',
+      operand: {
+        host: 'localhost',
+        database: 'foodmart'
+      }
+    },
+    {
+      name: 'foodmart',
+      tables: [
+        {
+          name: 'sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'customer_id\'] AS INTEGER) AS \"customer_id\",\n cast(_MAP[\'promotion_id\'] AS INTEGER) AS \"promotion_id\",\n cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\"\nfrom \"foodmart_raw\".\"sales_fact_1997\"'
+        },
+        {
+          name: 'sales_fact_1998',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'customer_id\'] AS INTEGER) AS \"customer_id\",\n cast(_MAP[\'promotion_id\'] AS INTEGER) AS \"promotion_id\",\n cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\"\nfrom \"foodmart_raw\".\"sales_fact_1998\"'
+        },
+        {
+          name: 'sales_fact_dec_1998',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'customer_id\'] AS INTEGER) AS \"customer_id\",\n cast(_MAP[\'promotion_id\'] AS INTEGER) AS \"promotion_id\",\n cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\"\nfrom \"foodmart_raw\".\"sales_fact_dec_1998\"'
+        },
+        {
+          name: 'inventory_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'warehouse_id\'] AS INTEGER) AS \"warehouse_id\",\n cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'units_ordered\'] AS INTEGER) AS \"units_ordered\",\n cast(_MAP[\'units_shipped\'] AS INTEGER) AS \"units_shipped\",\n cast(_MAP[\'warehouse_sales\'] AS DECIMAL(10,4)) AS \"warehouse_sales\",\n cast(_MAP[\'warehouse_cost\'] AS DECIMAL(10,4)) AS \"warehouse_cost\",\n cast(_MAP[\'supply_time\'] AS SMALLINT) AS \"supply_time\",\n cast(_MAP[\'store_invoice\'] AS DECIMAL(10,4)) AS \"store_invoice\"\nfrom \"foodmart_raw\".\"inventory_fact_1997\"'
+        },
+        {
+          name: 'inventory_fact_1998',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'warehouse_id\'] AS INTEGER) AS \"warehouse_id\",\n cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'units_ordered\'] AS INTEGER) AS \"units_ordered\",\n cast(_MAP[\'units_shipped\'] AS INTEGER) AS \"units_shipped\",\n cast(_MAP[\'warehouse_sales\'] AS DECIMAL(10,4)) AS \"warehouse_sales\",\n cast(_MAP[\'warehouse_cost\'] AS DECIMAL(10,4)) AS \"warehouse_cost\",\n cast(_MAP[\'supply_time\'] AS SMALLINT) AS \"supply_time\",\n cast(_MAP[\'store_invoice\'] AS DECIMAL(10,4)) AS \"store_invoice\"\nfrom \"foodmart_raw\".\"inventory_fact_1998\"'
+        },
+        {
+          name: 'agg_pl_01_sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'customer_id\'] AS INTEGER) AS \"customer_id\",\n cast(_MAP[\'store_sales_sum\'] AS DECIMAL(10,4)) AS \"store_sales_sum\",\n cast(_MAP[\'store_cost_sum\'] AS DECIMAL(10,4)) AS \"store_cost_sum\",\n cast(_MAP[\'unit_sales_sum\'] AS DECIMAL(10,4)) AS \"unit_sales_sum\",\n cast(_MAP[\'fact_count\'] AS INTEGER) AS \"fact_count\"\nfrom \"foodmart_raw\".\"agg_pl_01_sales_fact_1997\"'
+        },
+        {
+          name: 'agg_ll_01_sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'customer_id\'] AS INTEGER) AS \"customer_id\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\",\n cast(_MAP[\'fact_count\'] AS INTEGER) AS \"fact_count\"\nfrom \"foodmart_raw\".\"agg_ll_01_sales_fact_1997\"'
+        },
+        {
+          name: 'agg_l_03_sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'customer_id\'] AS INTEGER) AS \"customer_id\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\",\n cast(_MAP[\'fact_count\'] AS INTEGER) AS \"fact_count\"\nfrom \"foodmart_raw\".\"agg_l_03_sales_fact_1997\"'
+        },
+        {
+          name: 'agg_l_04_sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\",\n cast(_MAP[\'customer_count\'] AS INTEGER) AS \"customer_count\",\n cast(_MAP[\'fact_count\'] AS INTEGER) AS \"fact_count\"\nfrom \"foodmart_raw\".\"agg_l_04_sales_fact_1997\"'
+        },
+        {
+          name: 'agg_l_05_sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'customer_id\'] AS INTEGER) AS \"customer_id\",\n cast(_MAP[\'promotion_id\'] AS INTEGER) AS \"promotion_id\",\n cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\",\n cast(_MAP[\'fact_count\'] AS INTEGER) AS \"fact_count\"\nfrom \"foodmart_raw\".\"agg_l_05_sales_fact_1997\"'
+        },
+        {
+          name: 'agg_c_10_sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'month_of_year\'] AS SMALLINT) AS \"month_of_year\",\n cast(_MAP[\'quarter\'] AS VARCHAR(30)) AS \"quarter\",\n cast(_MAP[\'the_year\'] AS SMALLINT) AS \"the_year\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\",\n cast(_MAP[\'customer_count\'] AS INTEGER) AS \"customer_count\",\n cast(_MAP[\'fact_count\'] AS INTEGER) AS \"fact_count\"\nfrom \"foodmart_raw\".\"agg_c_10_sales_fact_1997\"'
+        },
+        {
+          name: 'agg_c_14_sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'customer_id\'] AS INTEGER) AS \"customer_id\",\n cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'promotion_id\'] AS INTEGER) AS \"promotion_id\",\n cast(_MAP[\'month_of_year\'] AS SMALLINT) AS \"month_of_year\",\n cast(_MAP[\'quarter\'] AS VARCHAR(30)) AS \"quarter\",\n cast(_MAP[\'the_year\'] AS SMALLINT) AS \"the_year\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\",\n cast(_MAP[\'fact_count\'] AS INTEGER) AS \"fact_count\"\nfrom \"foodmart_raw\".\"agg_c_14_sales_fact_1997\"'
+        },
+        {
+          name: 'agg_lc_100_sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'customer_id\'] AS INTEGER) AS \"customer_id\",\n cast(_MAP[\'quarter\'] AS VARCHAR(30)) AS \"quarter\",\n cast(_MAP[\'the_year\'] AS SMALLINT) AS \"the_year\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\",\n cast(_MAP[\'fact_count\'] AS INTEGER) AS \"fact_count\"\nfrom \"foodmart_raw\".\"agg_lc_100_sales_fact_1997\"'
+        },
+        {
+          name: 'agg_c_special_sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'promotion_id\'] AS INTEGER) AS \"promotion_id\",\n cast(_MAP[\'customer_id\'] AS INTEGER) AS \"customer_id\",\n cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'time_month\'] AS SMALLINT) AS \"time_month\",\n cast(_MAP[\'time_quarter\'] AS VARCHAR(30)) AS \"time_quarter\",\n cast(_MAP[\'time_year\'] AS SMALLINT) AS \"time_year\",\n cast(_MAP[\'store_sales_sum\'] AS DECIMAL(10,4)) AS \"store_sales_sum\",\n cast(_MAP[\'store_cost_sum\'] AS DECIMAL(10,4)) AS \"store_cost_sum\",\n cast(_MAP[\'unit_sales_sum\'] AS DECIMAL(10,4)) AS \"unit_sales_sum\",\n cast(_MAP[\'fact_count\'] AS INTEGER) AS \"fact_count\"\nfrom \"foodmart_raw\".\"agg_c_special_sales_fact_1997\"'
+        },
+        {
+          name: 'agg_g_ms_pcat_sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'gender\'] AS VARCHAR(30)) AS \"gender\",\n cast(_MAP[\'marital_status\'] AS VARCHAR(30)) AS \"marital_status\",\n cast(_MAP[\'product_family\'] AS VARCHAR(30)) AS \"product_family\",\n cast(_MAP[\'product_department\'] AS VARCHAR(30)) AS \"product_department\",\n cast(_MAP[\'product_category\'] AS VARCHAR(30)) AS \"product_category\",\n cast(_MAP[\'month_of_year\'] AS SMALLINT) AS \"month_of_year\",\n cast(_MAP[\'quarter\'] AS VARCHAR(30)) AS \"quarter\",\n cast(_MAP[\'the_year\'] AS SMALLINT) AS \"the_year\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\",\n cast(_MAP[\'customer_count\'] AS INTEGER) AS \"customer_count\",\n cast(_MAP[\'fact_count\'] AS INTEGER) AS \"fact_count\"\nfrom \"foodmart_raw\".\"agg_g_ms_pcat_sales_fact_1997\"'
+        },
+        {
+          name: 'agg_lc_06_sales_fact_1997',
+          type: 'view',
+          sql: 'select cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'city\'] AS VARCHAR(30)) AS \"city\",\n cast(_MAP[\'state_province\'] AS VARCHAR(30)) AS \"state_province\",\n cast(_MAP[\'country\'] AS VARCHAR(30)) AS \"country\",\n cast(_MAP[\'store_sales\'] AS DECIMAL(10,4)) AS \"store_sales\",\n cast(_MAP[\'store_cost\'] AS DECIMAL(10,4)) AS \"store_cost\",\n cast(_MAP[\'unit_sales\'] AS DECIMAL(10,4)) AS \"unit_sales\",\n cast(_MAP[\'fact_count\'] AS INTEGER) AS \"fact_count\"\nfrom \"foodmart_raw\".\"agg_lc_06_sales_fact_1997\"'
+        },
+        {
+          name: 'currency',
+          type: 'view',
+          sql: 'select cast(_MAP[\'currency_id\'] AS INTEGER) AS \"currency_id\",\n cast(_MAP[\'date\'] AS DATE) AS \"date\",\n cast(_MAP[\'currency\'] AS VARCHAR(30)) AS \"currency\",\n cast(_MAP[\'conversion_ratio\'] AS DECIMAL(10,4)) AS \"conversion_ratio\"\nfrom \"foodmart_raw\".\"currency\"'
+        },
+        {
+          name: 'account',
+          type: 'view',
+          sql: 'select cast(_MAP[\'account_id\'] AS INTEGER) AS \"account_id\",\n cast(_MAP[\'account_parent\'] AS INTEGER) AS \"account_parent\",\n cast(_MAP[\'account_description\'] AS VARCHAR(30)) AS \"account_description\",\n cast(_MAP[\'account_type\'] AS VARCHAR(30)) AS \"account_type\",\n cast(_MAP[\'account_rollup\'] AS VARCHAR(30)) AS \"account_rollup\",\n cast(_MAP[\'Custom_Members\'] AS VARCHAR(255)) AS \"Custom_Members\"\nfrom \"foodmart_raw\".\"account\"'
+        },
+        {
+          name: 'category',
+          type: 'view',
+          sql: 'select cast(_MAP[\'category_id\'] AS VARCHAR(30)) AS \"category_id\",\n cast(_MAP[\'category_parent\'] AS VARCHAR(30)) AS \"category_parent\",\n cast(_MAP[\'category_description\'] AS VARCHAR(30)) AS \"category_description\",\n cast(_MAP[\'category_rollup\'] AS VARCHAR(30)) AS \"category_rollup\"\nfrom \"foodmart_raw\".\"category\"'
+        },
+        {
+          name: 'customer',
+          type: 'view',
+          sql: 'select cast(_MAP[\'customer_id\'] AS INTEGER) AS \"customer_id\",\n cast(_MAP[\'account_num\'] AS BIGINT) AS \"account_num\",\n cast(_MAP[\'lname\'] AS VARCHAR(30)) AS \"lname\",\n cast(_MAP[\'fname\'] AS VARCHAR(30)) AS \"fname\",\n cast(_MAP[\'mi\'] AS VARCHAR(30)) AS \"mi\",\n cast(_MAP[\'address1\'] AS VARCHAR(30)) AS \"address1\",\n cast(_MAP[\'address2\'] AS VARCHAR(30)) AS \"address2\",\n cast(_MAP[\'address3\'] AS VARCHAR(30)) AS \"address3\",\n cast(_MAP[\'address4\'] AS VARCHAR(30)) AS \"address4\",\n cast(_MAP[\'city\'] AS VARCHAR(30)) AS \"city\",\n cast(_MAP[\'state_province\'] AS VARCHAR(30)) AS \"state_province\",\n cast(_MAP[\'postal_code\'] AS VARCHAR(30)) AS \"postal_code\",\n cast(_MAP[\'country\'] AS VARCHAR(30)) AS \"country\",\n cast(_MAP[\'customer_region_id\'] AS INTEGER) AS \"customer_region_id\",\n cast(_MAP[\'phone1\'] AS VARCHAR(30)) AS \"phone1\",\n cast(_MAP[\'phone2\'] AS VARCHAR(30)) AS \"phone2\",\n cast(_MAP[\'birthdate\'] AS DATE) AS \"birthdate\",\n cast(_MAP[\'marital_status\'] AS VARCHAR(30)) AS \"marital_status\",\n cast(_MAP[\'yearly_income\'] AS VARCHAR(30)) AS \"yearly_income\",\n cast(_MAP[\'gender\'] AS VARCHAR(30)) AS \"gender\",\n cast(_MAP[\'total_children\'] AS SMALLINT) AS \"total_children\",\n cast(_MAP[\'num_children_at_home\'] AS SMALLINT) AS \"num_children_at_home\",\n cast(_MAP[\'education\'] AS VARCHAR(30)) AS \"education\",\n cast(_MAP[\'date_accnt_opened\'] AS DATE) AS \"date_accnt_opened\",\n cast(_MAP[\'member_card\'] AS VARCHAR(30)) AS \"member_card\",\n cast(_MAP[\'occupation\'] AS VARCHAR(30)) AS \"occupation\",\n cast(_MAP[\'houseowner\'] AS VARCHAR(30)) AS \"houseowner\",\n cast(_MAP[\'num_cars_owned\'] AS INTEGER) AS \"num_cars_owned\",\n cast(_MAP[\'fullname\'] AS VARCHAR(60)) AS \"fullname\"\nfrom \"foodmart_raw\".\"customer\"'
+        },
+        {
+          name: 'days',
+          type: 'view',
+          sql: 'select cast(_MAP[\'day\'] AS INTEGER) AS \"day\",\n cast(_MAP[\'week_day\'] AS VARCHAR(30)) AS \"week_day\"\nfrom \"foodmart_raw\".\"days\"'
+        },
+        {
+          name: 'department',
+          type: 'view',
+          sql: 'select cast(_MAP[\'department_id\'] AS INTEGER) AS \"department_id\",\n cast(_MAP[\'department_description\'] AS VARCHAR(30)) AS \"department_description\"\nfrom \"foodmart_raw\".\"department\"'
+        },
+        {
+          name: 'employee',
+          type: 'view',
+          sql: 'select cast(_MAP[\'employee_id\'] AS INTEGER) AS \"employee_id\",\n cast(_MAP[\'full_name\'] AS VARCHAR(30)) AS \"full_name\",\n cast(_MAP[\'first_name\'] AS VARCHAR(30)) AS \"first_name\",\n cast(_MAP[\'last_name\'] AS VARCHAR(30)) AS \"last_name\",\n cast(_MAP[\'position_id\'] AS INTEGER) AS \"position_id\",\n cast(_MAP[\'position_title\'] AS VARCHAR(30)) AS \"position_title\",\n cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'department_id\'] AS INTEGER) AS \"department_id\",\n cast(_MAP[\'birth_date\'] AS DATE) AS \"birth_date\",\n cast(_MAP[\'hire_date\'] AS TIMESTAMP) AS \"hire_date\",\n cast(_MAP[\'end_date\'] AS TIMESTAMP) AS \"end_date\",\n cast(_MAP[\'salary\'] AS DECIMAL(10,4)) AS \"salary\",\n cast(_MAP[\'supervisor_id\'] AS INTEGER) AS \"supervisor_id\",\n cast(_MAP[\'education_level\'] AS VARCHAR(30)) AS \"education_level\",\n cast(_MAP[\'marital_status\'] AS VARCHAR(30)) AS \"marital_status\",\n cast(_MAP[\'gender\'] AS VARCHAR(30)) AS \"gender\",\n cast(_MAP[\'management_role\'] AS VARCHAR(30)) AS \"management_role\"\nfrom \"foodmart_raw\".\"employee\"'
+        },
+        {
+          name: 'employee_closure',
+          type: 'view',
+          sql: 'select cast(_MAP[\'employee_id\'] AS INTEGER) AS \"employee_id\",\n cast(_MAP[\'supervisor_id\'] AS INTEGER) AS \"supervisor_id\",\n cast(_MAP[\'distance\'] AS INTEGER) AS \"distance\"\nfrom \"foodmart_raw\".\"employee_closure\"'
+        },
+        {
+          name: 'expense_fact',
+          type: 'view',
+          sql: 'select cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'account_id\'] AS INTEGER) AS \"account_id\",\n cast(_MAP[\'exp_date\'] AS TIMESTAMP) AS \"exp_date\",\n cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'category_id\'] AS VARCHAR(30)) AS \"category_id\",\n cast(_MAP[\'currency_id\'] AS INTEGER) AS \"currency_id\",\n cast(_MAP[\'amount\'] AS DECIMAL(10,4)) AS \"amount\"\nfrom \"foodmart_raw\".\"expense_fact\"'
+        },
+        {
+          name: 'position',
+          type: 'view',
+          sql: 'select cast(_MAP[\'position_id\'] AS INTEGER) AS \"position_id\",\n cast(_MAP[\'position_title\'] AS VARCHAR(30)) AS \"position_title\",\n cast(_MAP[\'pay_type\'] AS VARCHAR(30)) AS \"pay_type\",\n cast(_MAP[\'min_scale\'] AS DECIMAL(10,4)) AS \"min_scale\",\n cast(_MAP[\'max_scale\'] AS DECIMAL(10,4)) AS \"max_scale\",\n cast(_MAP[\'management_role\'] AS VARCHAR(30)) AS \"management_role\"\nfrom \"foodmart_raw\".\"position\"'
+        },
+        {
+          name: 'product',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_class_id\'] AS INTEGER) AS \"product_class_id\",\n cast(_MAP[\'product_id\'] AS INTEGER) AS \"product_id\",\n cast(_MAP[\'brand_name\'] AS VARCHAR(60)) AS \"brand_name\",\n cast(_MAP[\'product_name\'] AS VARCHAR(60)) AS \"product_name\",\n cast(_MAP[\'SKU\'] AS BIGINT) AS \"SKU\",\n cast(_MAP[\'SRP\'] AS DECIMAL(10,4)) AS \"SRP\",\n cast(_MAP[\'gross_weight\'] AS REAL) AS \"gross_weight\",\n cast(_MAP[\'net_weight\'] AS REAL) AS \"net_weight\",\n cast(_MAP[\'recyclable_package\'] AS BOOLEAN) AS \"recyclable_package\",\n cast(_MAP[\'low_fat\'] AS BOOLEAN) AS \"low_fat\",\n cast(_MAP[\'units_per_case\'] AS SMALLINT) AS \"units_per_case\",\n cast(_MAP[\'cases_per_pallet\'] AS SMALLINT) AS \"cases_per_pallet\",\n cast(_MAP[\'shelf_width\'] AS REAL) AS \"shelf_width\",\n cast(_MAP[\'shelf_height\'] AS REAL) AS \"shelf_height\",\n cast(_MAP[\'shelf_depth\'] AS REAL) AS \"shelf_depth\"\nfrom \"foodmart_raw\".\"product\"'
+        },
+        {
+          name: 'product_class',
+          type: 'view',
+          sql: 'select cast(_MAP[\'product_class_id\'] AS INTEGER) AS \"product_class_id\",\n cast(_MAP[\'product_subcategory\'] AS VARCHAR(30)) AS \"product_subcategory\",\n cast(_MAP[\'product_category\'] AS VARCHAR(30)) AS \"product_category\",\n cast(_MAP[\'product_department\'] AS VARCHAR(30)) AS \"product_department\",\n cast(_MAP[\'product_family\'] AS VARCHAR(30)) AS \"product_family\"\nfrom \"foodmart_raw\".\"product_class\"'
+        },
+        {
+          name: 'promotion',
+          type: 'view',
+          sql: 'select cast(_MAP[\'promotion_id\'] AS INTEGER) AS \"promotion_id\",\n cast(_MAP[\'promotion_district_id\'] AS INTEGER) AS \"promotion_district_id\",\n cast(_MAP[\'promotion_name\'] AS VARCHAR(30)) AS \"promotion_name\",\n cast(_MAP[\'media_type\'] AS VARCHAR(30)) AS \"media_type\",\n cast(_MAP[\'cost\'] AS DECIMAL(10,4)) AS \"cost\",\n cast(_MAP[\'start_date\'] AS TIMESTAMP) AS \"start_date\",\n cast(_MAP[\'end_date\'] AS TIMESTAMP) AS \"end_date\"\nfrom \"foodmart_raw\".\"promotion\"'
+        },
+        {
+          name: 'region',
+          type: 'view',
+          sql: 'select cast(_MAP[\'region_id\'] AS INTEGER) AS \"region_id\",\n cast(_MAP[\'sales_city\'] AS VARCHAR(30)) AS \"sales_city\",\n cast(_MAP[\'sales_state_province\'] AS VARCHAR(30)) AS \"sales_state_province\",\n cast(_MAP[\'sales_district\'] AS VARCHAR(30)) AS \"sales_district\",\n cast(_MAP[\'sales_region\'] AS VARCHAR(30)) AS \"sales_region\",\n cast(_MAP[\'sales_country\'] AS VARCHAR(30)) AS \"sales_country\",\n cast(_MAP[\'sales_district_id\'] AS INTEGER) AS \"sales_district_id\"\nfrom \"foodmart_raw\".\"region\"'
+        },
+        {
+          name: 'reserve_employee',
+          type: 'view',
+          sql: 'select cast(_MAP[\'employee_id\'] AS INTEGER) AS \"employee_id\",\n cast(_MAP[\'full_name\'] AS VARCHAR(30)) AS \"full_name\",\n cast(_MAP[\'first_name\'] AS VARCHAR(30)) AS \"first_name\",\n cast(_MAP[\'last_name\'] AS VARCHAR(30)) AS \"last_name\",\n cast(_MAP[\'position_id\'] AS INTEGER) AS \"position_id\",\n cast(_MAP[\'position_title\'] AS VARCHAR(30)) AS \"position_title\",\n cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'department_id\'] AS INTEGER) AS \"department_id\",\n cast(_MAP[\'birth_date\'] AS TIMESTAMP) AS \"birth_date\",\n cast(_MAP[\'hire_date\'] AS TIMESTAMP) AS \"hire_date\",\n cast(_MAP[\'end_date\'] AS TIMESTAMP) AS \"end_date\",\n cast(_MAP[\'salary\'] AS DECIMAL(10,4)) AS \"salary\",\n cast(_MAP[\'supervisor_id\'] AS INTEGER) AS \"supervisor_id\",\n cast(_MAP[\'education_level\'] AS VARCHAR(30)) AS \"education_level\",\n cast(_MAP[\'marital_status\'] AS VARCHAR(30)) AS \"marital_status\",\n cast(_MAP[\'gender\'] AS VARCHAR(30)) AS \"gender\"\nfrom \"foodmart_raw\".\"reserve_employee\"'
+        },
+        {
+          name: 'salary',
+          type: 'view',
+          sql: 'select cast(_MAP[\'pay_date\'] AS TIMESTAMP) AS \"pay_date\",\n cast(_MAP[\'employee_id\'] AS INTEGER) AS \"employee_id\",\n cast(_MAP[\'department_id\'] AS INTEGER) AS \"department_id\",\n cast(_MAP[\'currency_id\'] AS INTEGER) AS \"currency_id\",\n cast(_MAP[\'salary_paid\'] AS DECIMAL(10,4)) AS \"salary_paid\",\n cast(_MAP[\'overtime_paid\'] AS DECIMAL(10,4)) AS \"overtime_paid\",\n cast(_MAP[\'vacation_accrued\'] AS REAL) AS \"vacation_accrued\",\n cast(_MAP[\'vacation_used\'] AS REAL) AS \"vacation_used\"\nfrom \"foodmart_raw\".\"salary\"'
+        },
+        {
+          name: 'store',
+          type: 'view',
+          sql: 'select cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'store_type\'] AS VARCHAR(30)) AS \"store_type\",\n cast(_MAP[\'region_id\'] AS INTEGER) AS \"region_id\",\n cast(_MAP[\'store_name\'] AS VARCHAR(30)) AS \"store_name\",\n cast(_MAP[\'store_number\'] AS INTEGER) AS \"store_number\",\n cast(_MAP[\'store_street_address\'] AS VARCHAR(30)) AS \"store_street_address\",\n cast(_MAP[\'store_city\'] AS VARCHAR(30)) AS \"store_city\",\n cast(_MAP[\'store_state\'] AS VARCHAR(30)) AS \"store_state\",\n cast(_MAP[\'store_postal_code\'] AS VARCHAR(30)) AS \"store_postal_code\",\n cast(_MAP[\'store_country\'] AS VARCHAR(30)) AS \"store_country\",\n cast(_MAP[\'store_manager\'] AS VARCHAR(30)) AS \"store_manager\",\n cast(_MAP[\'store_phone\'] AS VARCHAR(30)) AS \"store_phone\",\n cast(_MAP[\'store_fax\'] AS VARCHAR(30)) AS \"store_fax\",\n cast(_MAP[\'first_opened_date\'] AS TIMESTAMP) AS \"first_opened_date\",\n cast(_MAP[\'last_remodel_date\'] AS TIMESTAMP) AS \"last_remodel_date\",\n cast(_MAP[\'store_sqft\'] AS INTEGER) AS \"store_sqft\",\n cast(_MAP[\'grocery_sqft\'] AS INTEGER) AS \"grocery_sqft\",\n cast(_MAP[\'frozen_sqft\'] AS INTEGER) AS \"frozen_sqft\",\n cast(_MAP[\'meat_sqft\'] AS INTEGER) AS \"meat_sqft\",\n cast(_MAP[\'coffee_bar\'] AS BOOLEAN) AS \"coffee_bar\",\n cast(_MAP[\'video_store\'] AS BOOLEAN) AS \"video_store\",\n cast(_MAP[\'salad_bar\'] AS BOOLEAN) AS \"salad_bar\",\n cast(_MAP[\'prepared_food\'] AS BOOLEAN) AS \"prepared_food\",\n cast(_MAP[\'florist\'] AS BOOLEAN) AS \"florist\"\nfrom \"foodmart_raw\".\"store\"'
+        },
+        {
+          name: 'store_ragged',
+          type: 'view',
+          sql: 'select cast(_MAP[\'store_id\'] AS INTEGER) AS \"store_id\",\n cast(_MAP[\'store_type\'] AS VARCHAR(30)) AS \"store_type\",\n cast(_MAP[\'region_id\'] AS INTEGER) AS \"region_id\",\n cast(_MAP[\'store_name\'] AS VARCHAR(30)) AS \"store_name\",\n cast(_MAP[\'store_number\'] AS INTEGER) AS \"store_number\",\n cast(_MAP[\'store_street_address\'] AS VARCHAR(30)) AS \"store_street_address\",\n cast(_MAP[\'store_city\'] AS VARCHAR(30)) AS \"store_city\",\n cast(_MAP[\'store_state\'] AS VARCHAR(30)) AS \"store_state\",\n cast(_MAP[\'store_postal_code\'] AS VARCHAR(30)) AS \"store_postal_code\",\n cast(_MAP[\'store_country\'] AS VARCHAR(30)) AS \"store_country\",\n cast(_MAP[\'store_manager\'] AS VARCHAR(30)) AS \"store_manager\",\n cast(_MAP[\'store_phone\'] AS VARCHAR(30)) AS \"store_phone\",\n cast(_MAP[\'store_fax\'] AS VARCHAR(30)) AS \"store_fax\",\n cast(_MAP[\'first_opened_date\'] AS TIMESTAMP) AS \"first_opened_date\",\n cast(_MAP[\'last_remodel_date\'] AS TIMESTAMP) AS \"last_remodel_date\",\n cast(_MAP[\'store_sqft\'] AS INTEGER) AS \"store_sqft\",\n cast(_MAP[\'grocery_sqft\'] AS INTEGER) AS \"grocery_sqft\",\n cast(_MAP[\'frozen_sqft\'] AS INTEGER) AS \"frozen_sqft\",\n cast(_MAP[\'meat_sqft\'] AS INTEGER) AS \"meat_sqft\",\n cast(_MAP[\'coffee_bar\'] AS BOOLEAN) AS \"coffee_bar\",\n cast(_MAP[\'video_store\'] AS BOOLEAN) AS \"video_store\",\n cast(_MAP[\'salad_bar\'] AS BOOLEAN) AS \"salad_bar\",\n cast(_MAP[\'prepared_food\'] AS BOOLEAN) AS \"prepared_food\",\n cast(_MAP[\'florist\'] AS BOOLEAN) AS \"florist\"\nfrom \"foodmart_raw\".\"store_ragged\"'
+        },
+        {
+          name: 'time_by_day',
+          type: 'view',
+          sql: 'select cast(_MAP[\'time_id\'] AS INTEGER) AS \"time_id\",\n cast(_MAP[\'the_date\'] AS TIMESTAMP) AS \"the_date\",\n cast(_MAP[\'the_day\'] AS VARCHAR(30)) AS \"the_day\",\n cast(_MAP[\'the_month\'] AS VARCHAR(30)) AS \"the_month\",\n cast(_MAP[\'the_year\'] AS SMALLINT) AS \"the_year\",\n cast(_MAP[\'day_of_month\'] AS SMALLINT) AS \"day_of_month\",\n cast(_MAP[\'week_of_year\'] AS INTEGER) AS \"week_of_year\",\n cast(_MAP[\'month_of_year\'] AS SMALLINT) AS \"month_of_year\",\n cast(_MAP[\'quarter\'] AS VARCHAR(30)) AS \"quarter\",\n cast(_MAP[\'fiscal_period\'] AS VARCHAR(30)) AS \"fiscal_period\"\nfrom \"foodmart_raw\".\"time_by_day\"'
+        },
+        {
+          name: 'warehouse',
+          type: 'view',
+          sql: 'select cast(_MAP[\'warehouse_id\'] AS INTEGER) AS \"warehouse_id\",\n cast(_MAP[\'warehouse_class_id\'] AS INTEGER) AS \"warehouse_class_id\",\n cast(_MAP[\'stores_id\'] AS INTEGER) AS \"stores_id\",\n cast(_MAP[\'warehouse_name\'] AS VARCHAR(60)) AS \"warehouse_name\",\n cast(_MAP[\'wa_address1\'] AS VARCHAR(30)) AS \"wa_address1\",\n cast(_MAP[\'wa_address2\'] AS VARCHAR(30)) AS \"wa_address2\",\n cast(_MAP[\'wa_address3\'] AS VARCHAR(30)) AS \"wa_address3\",\n cast(_MAP[\'wa_address4\'] AS VARCHAR(30)) AS \"wa_address4\",\n cast(_MAP[\'warehouse_city\'] AS VARCHAR(30)) AS \"warehouse_city\",\n cast(_MAP[\'warehouse_state_province\'] AS VARCHAR(30)) AS \"warehouse_state_province\",\n cast(_MAP[\'warehouse_postal_code\'] AS VARCHAR(30)) AS \"warehouse_postal_code\",\n cast(_MAP[\'warehouse_country\'] AS VARCHAR(30)) AS \"warehouse_country\",\n cast(_MAP[\'warehouse_owner_name\'] AS VARCHAR(30)) AS \"warehouse_owner_name\",\n cast(_MAP[\'warehouse_phone\'] AS VARCHAR(30)) AS \"warehouse_phone\",\n cast(_MAP[\'warehouse_fax\'] AS VARCHAR(30)) AS \"warehouse_fax\"\nfrom \"foodmart_raw\".\"warehouse\"'
+        },
+        {
+          name: 'warehouse_class',
+          type: 'view',
+          sql: 'select cast(_MAP[\'warehouse_class_id\'] AS INTEGER) AS \"warehouse_class_id\",\n cast(_MAP[\'description\'] AS VARCHAR(30)) AS \"description\"\nfrom \"foodmart_raw\".\"warehouse_class\"'
+        }
+      ]
+    }
+  ]
+}

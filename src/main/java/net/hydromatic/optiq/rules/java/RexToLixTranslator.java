@@ -426,28 +426,26 @@ public class RexToLixTranslator {
         case LONG:
         case FLOAT:
         case DOUBLE:
-          // Generate "SqlFunctions.parseChar(x)".
+          // Generate "SqlFunctions.toShort(x)".
           return Expressions.call(
               SqlFunctions.class,
-              "parse"
-                  + SqlFunctions.initcap(toPrimitive.primitiveName),
+              "to" + SqlFunctions.initcap(toPrimitive.primitiveName),
               operand);
         default:
           // Generate "Short.parseShort(x)".
           return Expressions.call(
               toPrimitive.boxClass,
-              "parse"
-                  + SqlFunctions.initcap(toPrimitive.primitiveName),
+              "parse" + SqlFunctions.initcap(toPrimitive.primitiveName),
               operand);
         }
       }
       if (toBox != null) {
         switch (toBox) {
         case CHAR:
-          // Generate "SqlFunctions.charValueOf(x)".
+          // Generate "SqlFunctions.toCharBoxed(x)".
           return Expressions.call(
               SqlFunctions.class,
-              toBox.primitiveName + "ValueOf",
+              "to" + SqlFunctions.initcap(toBox.primitiveName) + "Boxed",
               operand);
         default:
           // Generate "Short.valueOf(x)".
@@ -464,16 +462,17 @@ public class RexToLixTranslator {
         return Expressions.convert_(
             operand, toPrimitive.primitiveClass);
       }
-      if (fromBox == null
-          && !(fromType instanceof Class
-          && Number.class.isAssignableFrom((Class) fromType))) {
+      if (fromBox != null) {
+        // Generate "x.shortValue()".
+        return Expressions.unbox(operand, toPrimitive);
+      } else {
         // E.g. from "Object" to "short".
-        // Generate "((Short) x).shortValue()".
-        operand = Expressions.convert_(operand, toPrimitive.boxClass);
-        // fall through
+        // Generate "SqlFunctions.toShort(x)"
+        return Expressions.call(
+            SqlFunctions.class,
+            "to" + SqlFunctions.initcap(toPrimitive.primitiveName),
+            operand);
       }
-      // Generate "x.shortValue()".
-      return Expressions.unbox(operand, toPrimitive);
     } else if (fromBox != null && toBox != null) {
       // E.g. from "Short" to "Integer"
       // Generate "x == null ? null : Integer.valueOf(x.intValue())"
@@ -483,21 +482,33 @@ public class RexToLixTranslator {
           Expressions.box(
               Expressions.unbox(operand, toBox),
               toBox));
-    } else if (fromBox != null && toType == BigDecimal.class) {
-      // E.g. from "Integer" to "BigDecimal".
-      // Generate "x == null ? null : new BigDecimal(x.intValue())"
+    } else if (toType == BigDecimal.class) {
+      if (fromBox != null) {
+        // E.g. from "Integer" to "BigDecimal".
+        // Generate "x == null ? null : new BigDecimal(x.intValue())"
+        return Expressions.condition(
+            Expressions.equal(operand, RexImpTable.NULL_EXPR),
+            RexImpTable.NULL_EXPR,
+            Expressions.new_(
+                BigDecimal.class,
+                Arrays.<Expression>asList(
+                    Expressions.unbox(operand, fromBox))));
+      }
+      if (fromPrimitive != null) {
+        // E.g. from "int" to "BigDecimal".
+        // Generate "new BigDecimal(x)"
+        return Expressions.new_(
+            BigDecimal.class, Collections.singletonList(operand));
+      }
+      // E.g. from "Object" to "BigDecimal".
+      // Generate "x == null ? null : SqlFunctions.toBigDecimal(x)"
       return Expressions.condition(
           Expressions.equal(operand, RexImpTable.NULL_EXPR),
           RexImpTable.NULL_EXPR,
-          Expressions.new_(
-              BigDecimal.class,
-              Arrays.<Expression>asList(
-                  Expressions.unbox(operand, fromBox))));
-    } else if (fromPrimitive != null && toType == BigDecimal.class) {
-      // E.g. from "int" to "BigDecimal".
-      // Generate "new BigDecimal(x)"
-      return Expressions.new_(
-          BigDecimal.class, Collections.singletonList(operand));
+          Expressions.call(
+              SqlFunctions.class,
+              "toBigDecimal",
+              operand));
     } else if (toType == String.class) {
       if (fromPrimitive != null) {
         switch (fromPrimitive) {

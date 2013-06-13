@@ -17,11 +17,15 @@
 */
 package net.hydromatic.optiq.test;
 
+import net.hydromatic.linq4j.Ord;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import junit.framework.TestCase;
 
+import org.eigenbase.util.Pair;
+
 import java.sql.DriverManager;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -81,6 +85,19 @@ public class MongoAdapterTest extends TestCase {
           final Properties info = new Properties();
           info.setProperty("model",
               "target/test-classes/mongo-zips-model.json");
+          return (OptiqConnection)
+              DriverManager.getConnection("jdbc:optiq:", info);
+        }
+      };
+
+  /** Connection factory based on the "mongo-zips" model. */
+  public static final OptiqAssert.ConnectionFactory FOODMART =
+      new OptiqAssert.ConnectionFactory() {
+        public OptiqConnection createConnection() throws Exception {
+          Class.forName("net.hydromatic.optiq.jdbc.Driver");
+          final Properties info = new Properties();
+          info.setProperty("model",
+              "target/test-classes/mongo-foodmart-model.json");
           return (OptiqConnection)
               DriverManager.getConnection("jdbc:optiq:", info);
         }
@@ -204,6 +221,26 @@ public class MongoAdapterTest extends TestCase {
             "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=['CA'], expr#6=[=($t3, $t5)], STATE=[$t3], CITY=[$t0], $condition=[$t6])\n"
             + "  MongoToEnumerableConverter\n"
             + "    MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project ...}>]])");
+  }
+
+  public void _testFoodmartQueries() {
+    final List<Pair<String, String>> queries = JdbcTest.getFoodmartQueries();
+    for (Ord<Pair<String, String>> query : Ord.zip(queries)) {
+//      if (query.i != 29) continue;
+      if (query.e.left.contains("agg_")) {
+        continue;
+      }
+      final OptiqAssert.AssertQuery query1 =
+          OptiqAssert.assertThat()
+              .enable(enabled())
+              .with(FOODMART)
+              .query(query.e.left);
+      if (query.e.right != null) {
+        query1.returns(query.e.right);
+      } else {
+        query1.runs();
+      }
+    }
   }
 }
 

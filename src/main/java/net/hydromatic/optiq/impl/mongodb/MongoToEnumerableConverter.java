@@ -111,7 +111,10 @@ public class MongoToEnumerableConverter
                   table, "find",
                   Expressions.constant(filter, String.class),
                   Expressions.constant(project, String.class),
-                  fields));
+                  rowType.getFieldCount() == 1
+                  && rowType.getFieldList().get(0).getName().equals("_MAP")
+                      ? Expressions.constant(null, List.class)
+                      : fields));
     } else {
       final Expression ops =
           list.append("ops",
