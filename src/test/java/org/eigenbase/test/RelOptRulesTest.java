@@ -17,8 +17,9 @@
 */
 package org.eigenbase.test;
 
-import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
+
+import org.junit.Test;
 
 
 /**
@@ -50,8 +51,6 @@ import org.eigenbase.rel.rules.*;
  * transformation correctly, and then update the .ref.xml file again.
  * <li>Run the test one last time; this time it should pass.
  * </ol>
- *
- * @author John V. Sichi
  */
 public class RelOptRulesTest
     extends RelOptTestBase
@@ -63,29 +62,25 @@ public class RelOptRulesTest
         return DiffRepository.lookup(RelOptRulesTest.class);
     }
 
-    public void testUnionToDistinctRule()
-    {
+    @Test public void testUnionToDistinctRule() {
         checkPlanning(
             UnionToDistinctRule.instance,
             "select * from dept union select * from dept");
     }
 
-    public void testExtractJoinFilterRule()
-    {
+    @Test public void testExtractJoinFilterRule() {
         checkPlanning(
             ExtractJoinFilterRule.instance,
             "select 1 from emp inner join dept on emp.deptno=dept.deptno");
     }
 
-    public void testAddRedundantSemiJoinRule()
-    {
+    @Test public void testAddRedundantSemiJoinRule() {
         checkPlanning(
             AddRedundantSemiJoinRule.instance,
             "select 1 from emp inner join dept on emp.deptno = dept.deptno");
     }
 
-    public void testPushFilterThroughOuterJoin()
-    {
+    @Test public void testPushFilterThroughOuterJoin() {
         checkPlanning(
             PushFilterPastJoinRule.instance,
             "select 1 from sales.dept d left outer join sales.emp e"
@@ -93,40 +88,35 @@ public class RelOptRulesTest
             + " where d.name = 'Charlie'");
     }
 
-    public void testReduceAverage()
-    {
+    @Test public void testReduceAverage() {
         checkPlanning(
             ReduceAggregatesRule.instance,
             "select name, max(name), avg(deptno), min(name)"
             + " from sales.dept group by name");
     }
 
-    public void testPushProjectPastFilter()
-    {
+    @Test public void testPushProjectPastFilter() {
         checkPlanning(
             PushProjectPastFilterRule.instance,
             "select empno + deptno from emp where sal = 10 * comm "
             + "and upper(ename) = 'FOO'");
     }
 
-    public void testPushProjectPastJoin()
-    {
+    @Test public void testPushProjectPastJoin() {
         checkPlanning(
             PushProjectPastJoinRule.instance,
             "select e.sal + b.comm from emp e inner join bonus b "
             + "on e.ename = b.ename and e.deptno = 10");
     }
 
-    public void testPushProjectPastSetOp()
-    {
+    @Test public void testPushProjectPastSetOp() {
         checkPlanning(
             PushProjectPastSetOpRule.instance,
             "select sal from "
             + "(select * from emp e1 union all select * from emp e2)");
     }
 
-    public void testPushJoinThroughUnionOnLeft()
-    {
+    @Test public void testPushJoinThroughUnionOnLeft() {
         checkPlanning(
             PushJoinThroughUnionRule.instanceUnionOnLeft,
             "select r1.sal from "
@@ -134,8 +124,7 @@ public class RelOptRulesTest
             + "emp r2");
     }
 
-    public void testPushJoinThroughUnionOnRight()
-    {
+    @Test public void testPushJoinThroughUnionOnRight() {
         checkPlanning(
             PushJoinThroughUnionRule.instanceUnionOnRight,
             "select r1.sal from "

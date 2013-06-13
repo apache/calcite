@@ -35,9 +35,6 @@ import org.eigenbase.sql.*;
  * <p>Specific implementations of <code>SqlTestser</code> might evaluate the
  * queries in different ways, for example, using a C++ versus Java calculator.
  * An implementation might even ignore certain calls altogether.
- *
- * @author Wael Chatila
- * @since May 22, 2004
  */
 public interface SqlTester
 {

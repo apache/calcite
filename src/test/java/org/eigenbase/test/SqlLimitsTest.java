@@ -23,21 +23,17 @@ import java.text.*;
 
 import java.util.*;
 
-import junit.framework.*;
-
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 
+import org.junit.Test;
+
 
 /**
  * Unit test for SQL limits.
- *
- * @author jhyde
  */
-public class SqlLimitsTest
-    extends TestCase
-{
+public class SqlLimitsTest {
     //~ Static fields/initializers ---------------------------------------------
 
     private static final List<BasicSqlType> typeList =
@@ -77,9 +73,7 @@ public class SqlLimitsTest
 
     //~ Constructors -----------------------------------------------------------
 
-    public SqlLimitsTest(String name)
-    {
-        super(name);
+    public SqlLimitsTest() {
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -97,8 +91,7 @@ public class SqlLimitsTest
         return typeList;
     }
 
-    public void testPrintLimits()
-    {
+    @Test public void testPrintLimits() {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         for (BasicSqlType type : typeList) {

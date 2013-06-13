@@ -22,8 +22,6 @@ import java.nio.charset.*;
 import java.util.List;
 import java.util.regex.*;
 
-import junit.framework.*;
-
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
@@ -32,6 +30,8 @@ import org.eigenbase.sql.test.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+
+import static org.junit.Assert.*;
 
 
 /**
@@ -44,13 +44,8 @@ import org.eigenbase.util.*;
  * different implementation of the {@link Tester} object. This encapsulates the
  * differences between test environments, for example, which SQL parser or
  * validator to use.</p>
- *
- * @author Wael Chatila
- * @since Jan 12, 2004
  */
-public class SqlValidatorTestCase
-    extends TestCase
-{
+public class SqlValidatorTestCase {
     //~ Static fields/initializers ---------------------------------------------
 
     protected static final String NL = System.getProperty("line.separator");
@@ -69,17 +64,9 @@ public class SqlValidatorTestCase
     //~ Constructors -----------------------------------------------------------
 
     /**
-     * Creates a testcase.
-     *
-     * <p>If name is of the form "compatible:testCase", invokes sets the
-     * compatibility to "compatible".
-     *
-     * @param name Name; examples "Sql2003:testGroup", "testGroup"
+     * Creates a test case.
      */
-    public SqlValidatorTestCase(String name)
-    {
-        super(splitName(name));
-        SqlConformance conformance = splitConformance(name);
+    public SqlValidatorTestCase(SqlConformance conformance) {
         if (conformance == null) {
             conformance = SqlConformance.Default;
         }
@@ -87,27 +74,6 @@ public class SqlValidatorTestCase
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    private static String splitName(String name)
-    {
-        int colon = name.indexOf(':');
-        if (colon < 0) {
-            return name;
-        } else {
-            return name.substring(colon);
-        }
-    }
-
-    private static SqlConformance splitConformance(String name)
-    {
-        int colon = name.indexOf(':');
-        if (colon < 0) {
-            return null;
-        } else {
-            String conformanceName = name.substring(0, colon);
-            return SqlConformance.valueOf(conformanceName);
-        }
-    }
 
     /**
      * Returns a tester. Derived classes should override this method to run the
@@ -268,7 +234,7 @@ public class SqlValidatorTestCase
                 // No error expected, and no error happened.
                 return;
             } else {
-                throw new AssertionFailedError(
+                throw new AssertionError(
                     "Expected query to throw exception, but it did not; "
                     + "query [" + sap.sql
                     + "]; expected [" + expectedMsgPattern + "]");
@@ -372,7 +338,7 @@ public class SqlValidatorTestCase
                     || (actualEndLine <= 0))
                 {
                     if (sap.pos != null) {
-                        throw new AssertionFailedError(
+                        throw new AssertionError(
                             "Expected error to have position,"
                             + " but actual error did not: "
                             + " actual pos [line " + actualLine
@@ -390,7 +356,7 @@ public class SqlValidatorTestCase
                             actualEndLine,
                             actualEndColumn + 1);
                     if (sap.pos == null) {
-                        throw new AssertionFailedError(
+                        throw new AssertionError(
                             "Actual error had a position, but expected error"
                             + " did not. Add error position carets to sql:\n"
                             + sqlWithCarets);
@@ -627,14 +593,14 @@ public class SqlValidatorTestCase
                 String errMessage = e.getMessage();
                 if (expectedMsgPattern == null) {
                     e.printStackTrace();
-                    throw new AssertionFailedError(
+                    throw new AssertionError(
                         "Error while parsing query [" + sap.sql + "]");
                 } else if (
                     (null == errMessage)
                     || !errMessage.matches(expectedMsgPattern))
                 {
                     e.printStackTrace();
-                    throw new AssertionFailedError(
+                    throw new AssertionError(
                         "Error did not match expected ["
                         + expectedMsgPattern + "] while parsing query ["
                         + sap.sql + "]");
@@ -642,7 +608,7 @@ public class SqlValidatorTestCase
                 return;
             } catch (Throwable e) {
                 e.printStackTrace();
-                throw new AssertionFailedError(
+                throw new AssertionError(
                     "Error while parsing query [" + sap.sql + "]");
             }
 
@@ -687,7 +653,7 @@ public class SqlValidatorTestCase
                     "Error while parsing query [" + sql + "]", e);
             } catch (Throwable e) {
                 e.printStackTrace();
-                throw new AssertionFailedError(
+                throw new AssertionError(
                     "Error while parsing query [" + sql + "]");
             }
             return validator.validate(sqlNode);

@@ -21,6 +21,10 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.hep.*;
 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 
 /**
  * HepPlannerTest is a unit test for {@link HepPlanner}. See {@link
@@ -28,8 +32,6 @@ import org.eigenbase.relopt.hep.*;
  * class are targeted at exercising the planner, and use specific rules for
  * convenience only, whereas the tests in that class are targeted at exercising
  * specific rules, and use the planner for convenience only. Hence the split.
- *
- * @author John V. Sichi
  */
 public class HepPlannerTest
     extends RelOptTestBase
@@ -47,9 +49,7 @@ public class HepPlannerTest
         return DiffRepository.lookup(HepPlannerTest.class);
     }
 
-    public void testRuleClass()
-        throws Exception
-    {
+    @Test public void testRuleClass() throws Exception {
         // Verify that an entire class of rules can be applied.
 
         HepProgramBuilder programBuilder = new HepProgramBuilder();
@@ -68,9 +68,7 @@ public class HepPlannerTest
             + " intersect (select fname from customer.contact)");
     }
 
-    public void testRuleDescription()
-        throws Exception
-    {
+    @Test public void testRuleDescription() throws Exception {
         // Verify that a rule can be applied via its description.
 
         HepProgramBuilder programBuilder = new HepProgramBuilder();
@@ -87,9 +85,7 @@ public class HepPlannerTest
             "select name from sales.dept where deptno=12");
     }
 
-    public void testMatchLimitOneTopDown()
-        throws Exception
-    {
+    @Test public void testMatchLimitOneTopDown() throws Exception {
         // Verify that only the top union gets rewritten.
 
         HepProgramBuilder programBuilder = new HepProgramBuilder();
@@ -102,9 +98,7 @@ public class HepPlannerTest
             unionTree);
     }
 
-    public void testMatchLimitOneBottomUp()
-        throws Exception
-    {
+    @Test public void testMatchLimitOneBottomUp() throws Exception {
         // Verify that only the bottom union gets rewritten.
 
         HepProgramBuilder programBuilder = new HepProgramBuilder();
@@ -117,9 +111,7 @@ public class HepPlannerTest
             unionTree);
     }
 
-    public void testMatchUntilFixpoint()
-        throws Exception
-    {
+    @Test public void testMatchUntilFixpoint() throws Exception {
         // Verify that both unions get rewritten.
 
         HepProgramBuilder programBuilder = new HepProgramBuilder();
@@ -131,9 +123,7 @@ public class HepPlannerTest
             unionTree);
     }
 
-    public void testReplaceCommonSubexpression()
-        throws Exception
-    {
+    @Test public void testReplaceCommonSubexpression() throws Exception {
         // Note that here it may look like the rule is firing
         // twice, but actually it's only firing once on the
         // common subexpression.  The purpose of this test
@@ -147,9 +137,7 @@ public class HepPlannerTest
             + " (select * from dept) d2");
     }
 
-    public void testSubprogram()
-        throws Exception
-    {
+    @Test public void testSubprogram() throws Exception {
         // Verify that subprogram gets re-executed until fixpoint.
         // In this case, the first time through we limit it to generate
         // only one calc; the second time through it will generate
@@ -168,9 +156,7 @@ public class HepPlannerTest
             "select upper(ename) from (select lower(ename) as ename from emp)");
     }
 
-    public void testGroup()
-        throws Exception
-    {
+    @Test public void testGroup() throws Exception {
         // Verify simultaneous application of a group of rules.
         // Intentionally add them in the wrong order to make sure
         // that order doesn't matter within the group.

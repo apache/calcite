@@ -27,12 +27,12 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
+import org.junit.Test;
+
 
 /**
  * SqlValidatorFeatureTest verifies that features can be independently enabled
  * or disabled.
- *
- * @author John V. Sichi
  */
 public class SqlValidatorFeatureTest
     extends SqlValidatorTestCase
@@ -47,9 +47,8 @@ public class SqlValidatorFeatureTest
 
     //~ Constructors -----------------------------------------------------------
 
-    public SqlValidatorFeatureTest(String name)
-    {
-        super(name);
+    public SqlValidatorFeatureTest() {
+        super(null);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -59,15 +58,13 @@ public class SqlValidatorFeatureTest
         return new FeatureTesterImpl(conformance);
     }
 
-    public void testDistinct()
-    {
+    @Test public void testDistinct() {
         checkFeature(
             "select ^distinct^ name from dept",
             EigenbaseResource.instance().SQLFeature_E051_01);
     }
 
-    public void testOrderByDesc()
-    {
+    @Test public void testOrderByDesc() {
         checkFeature(
             "select name from dept order by ^name desc^",
             EigenbaseResource.instance().SQLConformance_OrderByDesc);
@@ -76,22 +73,19 @@ public class SqlValidatorFeatureTest
     // NOTE jvs 6-Mar-2006:  carets don't come out properly placed
     // for INTERSECT/EXCEPT, so don't bother
 
-    public void testIntersect()
-    {
+    @Test public void testIntersect() {
         checkFeature(
             "^select name from dept intersect select name from dept^",
             EigenbaseResource.instance().SQLFeature_F302);
     }
 
-    public void testExcept()
-    {
+    @Test public void testExcept() {
         checkFeature(
             "^select name from dept except select name from dept^",
             EigenbaseResource.instance().SQLFeature_E071_03);
     }
 
-    public void testMultiset()
-    {
+    @Test public void testMultiset() {
         checkFeature(
             "values ^multiset[1]^",
             EigenbaseResource.instance().SQLFeature_S271);
@@ -101,8 +95,7 @@ public class SqlValidatorFeatureTest
             EigenbaseResource.instance().SQLFeature_S271);
     }
 
-    public void testTablesample()
-    {
+    @Test public void testTablesample() {
         checkFeature(
             "select name from ^dept tablesample bernoulli(50)^",
             EigenbaseResource.instance().SQLFeature_T613);

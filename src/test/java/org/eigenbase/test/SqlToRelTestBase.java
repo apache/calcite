@@ -19,8 +19,6 @@ package org.eigenbase.test;
 
 import java.util.*;
 
-import junit.framework.*;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
@@ -35,6 +33,8 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
+import static org.junit.Assert.*;
+
 
 /**
  * SqlToRelTestBase is an abstract base for tests which involve conversion from
@@ -45,12 +45,8 @@ import net.hydromatic.optiq.prepare.Prepare;
  * schema. If you get a parser or validator error from your test SQL, look down
  * in the stack until you see "Caused by", which will usually tell you the real
  * error.
- *
- * @author jhyde
  */
-public abstract class SqlToRelTestBase
-    extends TestCase
-{
+public abstract class SqlToRelTestBase {
     //~ Static fields/initializers ---------------------------------------------
 
     protected static final String NL = System.getProperty("line.separator");
@@ -61,14 +57,8 @@ public abstract class SqlToRelTestBase
 
     //~ Methods ----------------------------------------------------------------
 
-    public SqlToRelTestBase()
-    {
+    public SqlToRelTestBase() {
         super();
-    }
-
-    public SqlToRelTestBase(String name)
-    {
-        super(name);
     }
 
     protected Tester createTester()

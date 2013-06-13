@@ -18,24 +18,20 @@
 package org.eigenbase.test;
 
 import java.util.*;
-import java.util.regex.*;
 
-import junit.framework.*;
+import org.junit.Assert;
+
+import static org.junit.Assert.*;
 
 
-public abstract class EigenbaseTestCase
-    extends TestCase
-{
+public abstract class EigenbaseTestCase {
     //~ Static fields/initializers ---------------------------------------------
 
     protected static final String nl = System.getProperty("line.separator");
 
     //~ Constructors -----------------------------------------------------------
 
-    protected EigenbaseTestCase(String s)
-        throws Exception
-    {
-        super(s);
+    protected EigenbaseTestCase() {
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -47,7 +43,7 @@ public abstract class EigenbaseTestCase
         if ((o instanceof Object []) && (o2 instanceof Object [])) {
             Object [] a = (Object []) o;
             Object [] a2 = (Object []) o2;
-            assertEquals(a.length, a2.length);
+            Assert.assertEquals(a.length, a2.length);
             for (int i = 0; i < a.length; i++) {
                 assertEqualsDeep(a[i], a2[i]);
             }
@@ -84,7 +80,7 @@ public abstract class EigenbaseTestCase
         } else {
             // will handle the case 'o instanceof int[]' ok, because
             // shallow comparison is ok for ints
-            assertEquals(o, o2);
+            Assert.assertEquals(o, o2);
         }
     }
 
@@ -152,7 +148,7 @@ public abstract class EigenbaseTestCase
     {
         assertTrue(expected.length == actual.length);
         for (int i = 0; i < expected.length; i++) {
-            assertEquals(expected[i], actual[i]);
+            Assert.assertEquals(expected[i], actual[i]);
         }
     }
 
@@ -165,38 +161,8 @@ public abstract class EigenbaseTestCase
         } else {
             // They're different. Let assertEquals(Object,Object) give the
             // error.
-            assertEquals((Object) expected, actual);
+            Assert.assertEquals(expected, actual);
         }
-    }
-
-    /**
-     * Copies all of the tests in a suite whose names match a given pattern.
-     */
-    public static TestSuite copySuite(
-        TestSuite suite,
-        Pattern testPattern)
-    {
-        TestSuite newSuite = new TestSuite();
-        Enumeration tests = suite.tests();
-        while (tests.hasMoreElements()) {
-            Test test = (Test) tests.nextElement();
-            if (test instanceof TestCase) {
-                TestCase testCase = (TestCase) test;
-                final String testName = testCase.getName();
-                if (testPattern.matcher(testName).matches()) {
-                    newSuite.addTest(test);
-                }
-            } else if (test instanceof TestSuite) {
-                TestSuite subSuite = copySuite((TestSuite) test, testPattern);
-                if (subSuite.countTestCases() > 0) {
-                    newSuite.addTest(subSuite);
-                }
-            } else {
-                // some other kind of test
-                newSuite.addTest(test);
-            }
-        }
-        return newSuite;
     }
 }
 

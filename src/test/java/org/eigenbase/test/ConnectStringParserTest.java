@@ -21,9 +21,13 @@ import java.sql.*;
 
 import java.util.*;
 
-import junit.framework.*;
-
 import org.eigenbase.util14.*;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+import static org.junit.Assert.*;
 
 
 /**
@@ -31,21 +35,14 @@ import org.eigenbase.util14.*;
  * ConnectStringParser is adapted from code in Mondrian, but most of the tests
  * below were unfortunately "reinvented" prior to having the Mondrian unit tests
  * in hand.
- *
- * @author Steve Herskovitz
- * @since Apr 3, 2006
  */
-public class ConnectStringParserTest
-    extends TestCase
-{
+public class ConnectStringParserTest {
     //~ Methods ----------------------------------------------------------------
 
     /**
      * tests simple connect string, adapted from Mondrian tests.
      */
-    public void testSimpleStrings()
-        throws Throwable
-    {
+    @Test public void testSimpleStrings() throws Throwable {
         Properties props = ConnectStringParser.parse("foo=x;bar=y;foo=z");
         assertEquals(
             "bar",
@@ -77,9 +74,7 @@ public class ConnectStringParserTest
     /**
      * tests complex connect strings, adapted directly from Mondrian tests.
      */
-    public void testComplexStrings()
-        throws Throwable
-    {
+    @Test public void testComplexStrings() throws Throwable {
         Properties props =
             ConnectStringParser.parse(
                 "normalProp=value;"
@@ -128,9 +123,7 @@ public class ConnectStringParserTest
     /**
      * tests for specific errors thrown by the parser.
      */
-    public void testConnectStringErrors()
-        throws Throwable
-    {
+    @Test public void testConnectStringErrors() throws Throwable {
         // force some parsing errors
         try {
             ConnectStringParser.parse("key='can't parse'");
@@ -155,9 +148,7 @@ public class ConnectStringParserTest
      *
      * @throws Throwable
      */
-    public void testOleDbExamples()
-        throws Throwable
-    {
+    @Test public void testOleDbExamples() throws Throwable {
         // test the parser with examples from OLE DB documentation
         String [][] quads =
         {

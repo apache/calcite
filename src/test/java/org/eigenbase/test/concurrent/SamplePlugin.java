@@ -28,11 +28,8 @@ import java.util.Arrays;
  * Sample mtsql plugin. To use add at start of script
  * "@plugin org.eigenbase.test.concurrent.SamplePlugin".  After doing a prepare
  * you can then do "@describeResultSet" to show columns returned by query.
- *
- * @author jhahn
  */
-public class SamplePlugin extends ConcurrentTestPlugin
-{
+public class SamplePlugin extends ConcurrentTestPlugin {
     private static final String DESCRIBE_RESULT_SET_CMD = "@describeResultSet";
 
     public ConcurrentTestPluginCommand getCommandFor(String name, String params)

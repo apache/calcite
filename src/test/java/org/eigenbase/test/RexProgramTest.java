@@ -20,26 +20,24 @@ package org.eigenbase.test;
 import java.math.BigDecimal;
 import java.util.*;
 
-import junit.framework.TestCase;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
+
+import org.junit.Before;
+import org.junit.Test;
+
 
 /**
  * Unit tests for {@link RexProgram} and
  * {@link org.eigenbase.rex.RexProgramBuilder}.
- *
- * @author jhyde
  */
-public class RexProgramTest
-    extends TestCase
-{
+public class RexProgramTest {
     //~ Instance fields --------------------------------------------------------
     private JavaTypeFactory typeFactory;
     private RexBuilder rexBuilder;
@@ -49,22 +47,11 @@ public class RexProgramTest
     /**
      * Creates a RexProgramTest.
      */
-    public RexProgramTest()
-    {
-        super();
+    public RexProgramTest() {
+      super();
     }
 
-    /**
-     * Creates a RexProgramTest with given name.
-     */
-    public RexProgramTest(String name)
-    {
-        super(name);
-    }
-
-    protected void setUp()
-        throws Exception
-    {
+    @Before public void setUp() {
         typeFactory = new JavaTypeFactoryImpl();
         rexBuilder = new RexBuilder(typeFactory);
     }
@@ -72,8 +59,7 @@ public class RexProgramTest
     /**
      * Tests construction of a RexProgram.
      */
-    public void testBuildProgram()
-    {
+    @Test public void testBuildProgram() {
         final RexProgramBuilder builder = createProg(0);
         final RexProgram program = builder.getProgram(false);
         final String programString = program.toString();
@@ -101,8 +87,7 @@ public class RexProgramTest
     /**
      * Tests construction and normalization of a RexProgram.
      */
-    public void testNormalize()
-    {
+    @Test public void testNormalize() {
         final RexProgramBuilder builder = createProg(0);
         final String program = builder.getProgram(true).toString();
         TestUtil.assertEqualsVerbose(
@@ -115,8 +100,7 @@ public class RexProgramTest
     /**
      * Tests construction and normalization of a RexProgram.
      */
-    public void testElimDups()
-    {
+    @Test public void testElimDups() {
         final RexProgramBuilder builder = createProg(1);
         final String unnormalizedProgram = builder.getProgram(false).toString();
         TestUtil.assertEqualsVerbose(
@@ -138,8 +122,7 @@ public class RexProgramTest
     /**
      * Tests that AND(x, x) is translated to x.
      */
-    public void testDuplicateAnd()
-    {
+    @Test public void testDuplicateAnd() {
         final RexProgramBuilder builder = createProg(2);
         final String program = builder.getProgram(true).toString();
         TestUtil.assertEqualsVerbose(

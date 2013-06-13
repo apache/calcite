@@ -21,8 +21,6 @@ import java.util.ArrayList;
 
 /**
  * Used to extend functionality of mtsql.
- *
- * @author jhahn
  */
 public abstract class ConcurrentTestPlugin
 {

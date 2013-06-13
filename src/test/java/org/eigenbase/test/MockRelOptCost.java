@@ -23,8 +23,6 @@ import org.eigenbase.relopt.*;
 /**
  * MockRelOptCost is a mock implementation of the {@link RelOptCost} interface.
  * TODO: constructors for various scenarios
- *
- * @author John V. Sichi
  */
 public class MockRelOptCost
     implements RelOptCost

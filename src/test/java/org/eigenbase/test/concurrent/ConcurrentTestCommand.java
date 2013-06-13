@@ -23,8 +23,6 @@ package org.eigenbase.test.concurrent;
  *
  * <p>ConcurrentTestCommand instances are normally instantiated by the
  * {@link ConcurrentTestCommandGenerator} class.
- *
- * @author Stephan Zuercher
  */
 public interface ConcurrentTestCommand
 {

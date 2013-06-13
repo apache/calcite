@@ -21,19 +21,18 @@ import java.sql.ResultSet;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import junit.framework.*;
-
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
+
+import org.junit.Assert;
+
+import static org.junit.Assert.*;
 
 
 /**
  * Abstract implementation of {@link SqlTester}. A derived class only needs to
  * implement {@link #check}, {@link #checkColumnType} and {@link #checkFails}.
- *
- * @author wael
- * @since May 22, 2004
  */
 public abstract class AbstractSqlTester
     implements SqlTester
@@ -68,7 +67,7 @@ public abstract class AbstractSqlTester
     public void setFor(SqlOperator operator, VmName ... unimplementedVmNames)
     {
         if ((operator != null) && (this.operator != null)) {
-            throw new AssertionFailedError("isFor() called twice");
+            throw new AssertionError("isFor() called twice");
         }
         this.operator = operator;
     }
@@ -275,7 +274,7 @@ public abstract class AbstractSqlTester
      */
     protected SqlOperator getFor()
     {
-        Assert.assertNotNull("Must call setFor()", operator);
+        assertNotNull("Must call setFor()", operator);
         return operator;
     }
 
@@ -451,7 +450,7 @@ public abstract class AbstractSqlTester
 
         public void checkType(RelDataType type)
         {
-            TestCase.assertEquals(
+            assertEquals(
                 typeName.toString(),
                 type.toString());
         }
@@ -484,7 +483,7 @@ public abstract class AbstractSqlTester
         public void checkType(RelDataType type)
         {
             String actual = getTypeString(type);
-            TestCase.assertEquals(expected, actual);
+            assertEquals(expected, actual);
         }
     }
 

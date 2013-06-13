@@ -35,8 +35,6 @@ import net.hydromatic.optiq.prepare.Prepare;
 /**
  * Mock implementation of {@link SqlValidatorCatalogReader} which returns tables
  * "EMP", "DEPT", "BONUS", "SALGRADE" (same as Oracle's SCOTT schema).
- *
- * @author jhyde
  */
 public class MockCatalogReader
     implements Prepare.CatalogReader

@@ -19,23 +19,23 @@ package org.eigenbase.relopt.volcano;
 
 import java.util.List;
 
-import junit.framework.*;
-
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.*;
 
+import org.junit.Ignore;
+import org.junit.Test;
+
+import net.hydromatic.optiq.rules.java.EnumerableConvention;
+
+import static org.junit.Assert.*;
 
 /**
  * Unit test for handling of traits by {@link VolcanoPlanner}.
  */
-public class VolcanoPlannerTraitTest
-    extends TestCase
-{
+public class VolcanoPlannerTraitTest {
     //~ Static fields/initializers ---------------------------------------------
 
     /**
@@ -72,15 +72,13 @@ public class VolcanoPlannerTraitTest
 
     //~ Constructors -----------------------------------------------------------
 
-    public VolcanoPlannerTraitTest(String name)
-    {
-        super(name);
+    public VolcanoPlannerTraitTest() {
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public void testDoubleConversion()
-    {
+    @Ignore
+    @Test public void testDoubleConversion() {
         VolcanoPlanner planner = new VolcanoPlanner();
 
         planner.addRelTraitDef(ConventionTraitDef.instance);
@@ -136,8 +134,8 @@ public class VolcanoPlannerTraitTest
         assertTrue(child instanceof PhysLeafRel);
     }
 
-    public void testTraitPropagation()
-    {
+    @Ignore
+    @Test public void testTraitPropagation() {
         VolcanoPlanner planner = new VolcanoPlanner();
 
         planner.addRelTraitDef(ConventionTraitDef.instance);

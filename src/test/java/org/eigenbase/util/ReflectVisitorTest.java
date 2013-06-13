@@ -19,23 +19,19 @@ package org.eigenbase.util;
 
 import java.math.*;
 
-import junit.framework.*;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 
 /**
  * ReflectVisitorTest tests {@link ReflectUtil#invokeVisitor} and {@link
  * ReflectiveVisitor} and provides a contrived example of how to use them.
- *
- * @author John V. Sichi
  */
-public class ReflectVisitorTest
-    extends TestCase
-{
+public class ReflectVisitorTest {
     //~ Constructors -----------------------------------------------------------
 
-    public ReflectVisitorTest(String name)
-    {
-        super(name);
+    public ReflectVisitorTest() {
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -43,8 +39,7 @@ public class ReflectVisitorTest
     /**
      * Tests CarelessNumberNegater.
      */
-    public void testCarelessNegater()
-    {
+    @Test public void testCarelessNegater() {
         NumberNegater negater = new CarelessNumberNegater();
         Number result;
 
@@ -58,8 +53,7 @@ public class ReflectVisitorTest
     /**
      * Tests CarefulNumberNegater.
      */
-    public void testCarefulNegater()
-    {
+    @Test public void testCarefulNegater() {
         NumberNegater negater = new CarefulNumberNegater();
         Number result;
 
@@ -83,8 +77,7 @@ public class ReflectVisitorTest
     /**
      * Tests CluelessNumberNegater.
      */
-    public void testCluelessNegater()
-    {
+    @Test public void testCluelessNegater() {
         NumberNegater negater = new CluelessNumberNegater();
         Number result;
 
@@ -104,8 +97,7 @@ public class ReflectVisitorTest
     /**
      * Tests for ambiguity detection in method lookup.
      */
-    public void testAmbiguity()
-    {
+    @Test public void testAmbiguity() {
         NumberNegater negater = new IndecisiveNumberNegater();
         Number result;
 
@@ -123,8 +115,7 @@ public class ReflectVisitorTest
      * Tests that ambiguity detection in method lookup does not kick in when a
      * better match is available.
      */
-    public void testNonAmbiguity()
-    {
+    @Test public void testNonAmbiguity() {
         NumberNegater negater = new SomewhatIndecisiveNumberNegater();
         Number result;
 

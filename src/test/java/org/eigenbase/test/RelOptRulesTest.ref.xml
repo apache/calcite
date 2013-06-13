@@ -6,7 +6,7 @@
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-AggregateRel(groupCount=[2])
+AggregateRel(group=[{0, 1}])
   UnionRel(all=[true])
     ProjectRel(DEPTNO=[$0], NAME=[$1])
       TableAccessRel(table=[[CATALOG, SALES, DEPT]])
@@ -98,7 +98,7 @@ ProjectRel(EXPR$0=[1])
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-AggregateRel(groupCount=[1], EXPR$1=[MAX($0)], EXPR$2=[AVG($1)], EXPR$3=[MIN($0)])
+AggregateRel(group=[{0}], EXPR$1=[MAX($0)], EXPR$2=[AVG($1)], EXPR$3=[MIN($0)])
   ProjectRel(NAME=[$1], DEPTNO=[$0])
     TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -106,7 +106,7 @@ AggregateRel(groupCount=[1], EXPR$1=[MAX($0)], EXPR$2=[AVG($1)], EXPR$3=[MIN($0)
         <Resource name="planAfter">
             <![CDATA[
 ProjectRel(NAME=[$0], EXPR$1=[$1], EXPR$2=[CAST(/($2, $3)):INTEGER], EXPR$3=[$4])
-  AggregateRel(groupCount=[1], EXPR$1=[MAX($0)], agg#1=[SUM($1)], agg#2=[COUNT($1)], EXPR$3=[MIN($0)])
+  AggregateRel(group=[{0}], EXPR$1=[MAX($0)], agg#1=[SUM($1)], agg#2=[COUNT($1)], EXPR$3=[MIN($0)])
     ProjectRel(NAME=[$1], DEPTNO=[$0])
       TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>

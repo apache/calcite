@@ -41,9 +41,9 @@ UnionRel(all=[false])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-AggregateRel(groupCount=[1])
+AggregateRel(group=[{0}])
   UnionRel(all=[true])
-    AggregateRel(groupCount=[1])
+    AggregateRel(group=[{0}])
       UnionRel(all=[true])
         ProjectRel(NAME=[$1])
           TableAccessRel(table=[[CATALOG, SALES, DEPT]])
@@ -72,7 +72,7 @@ UnionRel(all=[false])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-AggregateRel(groupCount=[1])
+AggregateRel(group=[{0}])
   UnionRel(all=[true])
     UnionRel(all=[false])
       ProjectRel(NAME=[$1])
@@ -103,7 +103,7 @@ UnionRel(all=[false])
         <Resource name="planAfter">
             <![CDATA[
 UnionRel(all=[false])
-  AggregateRel(groupCount=[1])
+  AggregateRel(group=[{0}])
     UnionRel(all=[true])
       ProjectRel(NAME=[$1])
         TableAccessRel(table=[[CATALOG, SALES, DEPT]])

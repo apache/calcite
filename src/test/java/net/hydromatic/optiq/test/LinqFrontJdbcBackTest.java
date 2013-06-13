@@ -23,15 +23,20 @@ import net.hydromatic.linq4j.function.Predicate1;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
-import junit.framework.TestCase;
-
 import org.eigenbase.util.Util;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+import static org.junit.Assert.*;
+
 
 /**
  * Tests for a linq4j front-end and JDBC back-end.
  */
-public class LinqFrontJdbcBackTest extends TestCase {
-  public void testTableWhere() {
+public class LinqFrontJdbcBackTest {
+  @Test public void testTableWhere() {
     try {
       final OptiqConnection connection =
           JdbcTest.getConnection(null, false);

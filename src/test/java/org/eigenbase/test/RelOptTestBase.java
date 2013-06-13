@@ -22,12 +22,12 @@ import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.hep.*;
 
+import static org.junit.Assert.*;
+
 
 /**
  * RelOptTestBase is an abstract base for tests which exercise a planner and/or
  * rules via {@link DiffRepository}.
- *
- * @author John V. Sichi
  */
 abstract class RelOptTestBase
     extends SqlToRelTestBase

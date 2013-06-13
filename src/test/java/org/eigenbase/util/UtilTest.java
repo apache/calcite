@@ -27,68 +27,46 @@ import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.util.*;
 
-import junit.framework.*;
-
-import junit.textui.*;
-
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.test.*;
 
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 /**
  * Unit test for {@link Util} and other classes in this package.
- *
- * @author jhyde
- * @since Jul 12, 2004
  */
-public class UtilTest
-    extends TestCase
-{
+public class UtilTest {
     //~ Constructors -----------------------------------------------------------
 
-    public UtilTest(String name)
-    {
-        super(name);
+    public UtilTest() {
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public static Test suite()
-        throws Exception
-    {
-        TestSuite suite = new TestSuite();
-        suite.addTestSuite(UtilTest.class);
-        return suite;
-    }
-
-    public void testPrintEquals()
-    {
+    @Test public void testPrintEquals() {
         assertPrintEquals("\"x\"", "x", true);
     }
 
-    public void testPrintEquals2()
-    {
+    @Test public void testPrintEquals2() {
         assertPrintEquals("\"x\"", "x", false);
     }
 
-    public void testPrintEquals3()
-    {
+    @Test public void testPrintEquals3() {
         assertPrintEquals("null", null, true);
     }
 
-    public void testPrintEquals4()
-    {
+    @Test public void testPrintEquals4() {
         assertPrintEquals("", null, false);
     }
 
-    public void testPrintEquals5()
-    {
+    @Test public void testPrintEquals5() {
         assertPrintEquals("\"\\\\\\\"\\r\\n\"", "\\\"\r\n", true);
     }
 
-    public void testScientificNotation()
-    {
+    @Test public void testScientificNotation() {
         BigDecimal bd;
 
         bd = new BigDecimal("0.001234");
@@ -139,9 +117,7 @@ public class UtilTest
             Util.toScientificNotation(bd));
     }
 
-    public void testToJavaId()
-        throws UnsupportedEncodingException
-    {
+    @Test public void testToJavaId() throws UnsupportedEncodingException {
         assertEquals(
             "ID$0$foo",
             Util.toJavaId("foo", 0));
@@ -201,7 +177,7 @@ public class UtilTest
     /**
      * Tests whether {@link EnumeratedValues} serialize correctly.
      */
-    public void testSerializeEnumeratedValues()
+    @Test public void testSerializeEnumeratedValues()
         throws IOException, ClassNotFoundException
     {
         UnserializableEnum unser =
@@ -233,8 +209,7 @@ public class UtilTest
     /**
      * Unit-test for {@link BitString}.
      */
-    public void testBitString()
-    {
+    @Test public void testBitString() {
         // Powers of two, minimal length.
         final BitString b0 = new BitString("", 0);
         final BitString b1 = new BitString("1", 1);
@@ -358,8 +333,7 @@ public class UtilTest
     /**
      * Tests {@link CastingList} and {@link Util#cast}.
      */
-    public void testCastingList()
-    {
+    @Test public void testCastingList() {
         final List<Number> numberList = new ArrayList<Number>();
         numberList.add(new Integer(1));
         numberList.add(null);
@@ -390,8 +364,7 @@ public class UtilTest
         }
     }
 
-    public void testIterableProperties()
-    {
+    @Test public void testIterableProperties() {
         Properties properties = new Properties();
         properties.put("foo", "george");
         properties.put("bar", "ringo");
@@ -424,8 +397,7 @@ public class UtilTest
     /**
      * Tests the difference engine, {@link DiffTestCase#diff}.
      */
-    public void testDiffLines()
-    {
+    @Test public void testDiffLines() {
         String [] before =
         {
             "Get a dose of her in jackboots and kilt",
@@ -464,8 +436,7 @@ public class UtilTest
     /**
      * Tests the {@link Util#toPosix(TimeZone, boolean)} method.
      */
-    public void testPosixTimeZone()
-    {
+    @Test public void testPosixTimeZone() {
         // NOTE jvs 31-July-2007:  First two tests are disabled since
         // not everyone may have patched their system yet for recent
         // DST change.
@@ -524,8 +495,7 @@ public class UtilTest
      * Tests the methods {@link Util#enumConstants(Class)} and {@link
      * Util#enumVal(Class, String)}.
      */
-    public void testEnumConstants()
-    {
+    @Test public void testEnumConstants() {
         final Map<String, MemoryType> memoryTypeMap =
             Util.enumConstants(MemoryType.class);
         assertEquals(2, memoryTypeMap.size());
@@ -546,8 +516,7 @@ public class UtilTest
     /**
      * Tests the method {@link Util#toIter(java.util.BitSet)}.
      */
-    public void testToIterBitSet()
-    {
+    @Test public void testToIterBitSet() {
         BitSet bitSet = new BitSet();
 
         assertToIterBitSet("", bitSet);
@@ -582,8 +551,7 @@ public class UtilTest
     /**
      * Tests the method {@link Util#toList(java.util.BitSet)}.
      */
-    public void testToListBitSet()
-    {
+    @Test public void testToListBitSet() {
         BitSet bitSet = new BitSet(10);
         assertEquals(Util.toList(bitSet), Collections.<Integer>emptyList());
         bitSet.set(5);
@@ -595,8 +563,7 @@ public class UtilTest
     /**
      * Tests the method {@link Util#bitSetOf(int...)}.
      */
-    public void testBitSetOf()
-    {
+    @Test public void testBitSetOf() {
         assertEquals(
             Util.toList(Util.bitSetOf(0, 4, 2)), Arrays.asList(0, 2, 4));
         assertEquals(
@@ -606,8 +573,7 @@ public class UtilTest
     /**
      * Tests the method {@link Util#bitSetBetween(int, int)}.
      */
-    public void testBitSetBetween()
-    {
+    @Test public void testBitSetBetween() {
         assertEquals(
             Util.toList(Util.bitSetBetween(0, 4)), Arrays.asList(0, 1, 2, 3));
         assertEquals(
@@ -620,8 +586,7 @@ public class UtilTest
     /**
      * Tests SQL builders.
      */
-    public void testSqlBuilder()
-    {
+    @Test public void testSqlBuilder() {
         final SqlBuilder buf = new SqlBuilder(SqlDialect.EIGENBASE);
         assertEquals(0, buf.length());
         buf.append("select ");
@@ -663,8 +628,7 @@ public class UtilTest
     /**
      * Unit test for {@link org.eigenbase.util.CompositeList}.
      */
-    public void testCompositeList()
-    {
+    @Test public void testCompositeList() {
         // Made up of zero lists
         CompositeList<String> list = new CompositeList<String>();
         assertEquals(0, list.size());
@@ -731,8 +695,7 @@ public class UtilTest
     /**
      * Unit test for {@link Template}.
      */
-    public void testTemplate()
-    {
+    @Test public void testTemplate() {
         // Regular java message format.
         assertEquals(
             "Hello, world, what a nice day.",
@@ -799,7 +762,7 @@ public class UtilTest
     /**
      * Unit test for {@link Util#parseLocale(String)} method.
      */
-    public void testParseLocale() {
+    @Test public void testParseLocale() {
         Locale[] locales = {
             Locale.CANADA,
             Locale.CANADA_FRENCH,
@@ -819,8 +782,7 @@ public class UtilTest
         }
     }
 
-    public void testStringChunker()
-    {
+    @Test public void testStringChunker() {
         String source = "0123456789AB";
         String[] chunks;
         String[] ref = new String[]{"0123456789AB"};
@@ -892,7 +854,7 @@ public class UtilTest
         }
     }
 
-    public void testSpaces() {
+    @Test public void testSpaces() {
         assertEquals("", Util.spaces(0));
         assertEquals(" ", Util.spaces(1));
         assertEquals(" ", Util.spaces(1));
@@ -902,7 +864,7 @@ public class UtilTest
     }
 
     /** Unit test for {@link Pair#zip(java.util.List, java.util.List)}. */
-    public void testPairZip() {
+    @Test public void testPairZip() {
         List<String> strings = Arrays.asList("paul", "george", "john", "ringo");
         List<Integer> integers = Arrays.asList(1942, 1943, 1940);
         List<Pair<String, Integer>> zip = Pair.zip(strings, integers);
@@ -917,7 +879,7 @@ public class UtilTest
     }
 
     /** Unit test for {@link Util#quotientList(java.util.List, int, int)}. */
-    public void testQuotientList() {
+    @Test public void testQuotientList() {
         List<String> beatles = Arrays.asList("john", "paul", "george", "ringo");
         final List list0 = Util.quotientList(beatles, 3, 0);
         assertEquals(2, list0.size());
@@ -965,7 +927,7 @@ public class UtilTest
         assertEquals(0, list5.size());
     }
 
-    public void testImmutableIntList() {
+    @Test public void testImmutableIntList() {
         ImmutableIntList list = ImmutableIntList.of();
         assertEquals(0, list.size());
         assertEquals(list, Collections.<Integer>emptyList());
@@ -983,7 +945,7 @@ public class UtilTest
 
     /** Unit test for
      * {@link Util#isSupersetOf(java.util.BitSet, java.util.BitSet)}. */
-    public void testIsSupersetOf() {
+    @Test public void testIsSupersetOf() {
         assertTrue(
             Util.isSupersetOf(
                 Util.bitSetBetween(0, 5),
@@ -1011,15 +973,6 @@ public class UtilTest
             Util.isSupersetOf(
                 Util.bitSetOf(1, 4, 7),
                 Util.bitSetOf(1, 4, 7)));
-    }
-
-    /**
-     * Runs the test suite.
-     */
-    public static void main(String [] args)
-        throws Exception
-    {
-        TestRunner.run(suite());
     }
 
     //~ Inner Classes ----------------------------------------------------------

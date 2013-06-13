@@ -33,12 +33,12 @@ public class OptiqSqlOperatorTest extends SqlOperatorBaseTest {
 
   private static SqlTester STATIC_TESTER;
 
-  public OptiqSqlOperatorTest(String testName) {
-    super(testName, false);
+  public OptiqSqlOperatorTest() {
+    super(false);
   }
 
   @Override
-  protected void setUp() throws Exception {
+  public void setUp() throws Exception {
     if (STATIC_TESTER != null) {
       return;
     }

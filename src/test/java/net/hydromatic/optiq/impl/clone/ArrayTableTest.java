@@ -17,15 +17,18 @@
 */
 package net.hydromatic.optiq.impl.clone;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import java.util.Arrays;
+
+import static org.junit.Assert.*;
+
 
 /**
  * Unit test for {@link ArrayTable} and {@link ColumnLoader}.
  */
-public class ArrayTableTest extends TestCase {
-  public void testPrimitiveArray() {
+public class ArrayTableTest {
+  @Test public void testPrimitiveArray() {
     long[] values = new long[]{0, 0};
     ArrayTable.BitSlicedPrimitiveArray.orLong(4, values, 0, 0x0F);
     assertEquals(0x0F, values[0]);
@@ -50,7 +53,7 @@ public class ArrayTableTest extends TestCase {
     }
   }
 
-  public void testNextPowerOf2() {
+  @Test public void testNextPowerOf2() {
     assertEquals(1, ColumnLoader.nextPowerOf2(1));
     assertEquals(2, ColumnLoader.nextPowerOf2(2));
     assertEquals(4, ColumnLoader.nextPowerOf2(3));
@@ -62,7 +65,7 @@ public class ArrayTableTest extends TestCase {
     assertEquals(0x80000000, ColumnLoader.nextPowerOf2(0x7ffffffe));
   }
 
-  public void testLog2() {
+  @Test public void testLog2() {
     assertEquals(0, ColumnLoader.log2(0));
     assertEquals(0, ColumnLoader.log2(1));
     assertEquals(1, ColumnLoader.log2(2));
@@ -76,7 +79,7 @@ public class ArrayTableTest extends TestCase {
     assertEquals(30, ColumnLoader.log2(0x40000000));
   }
 
-  public void testValueSetInt() {
+  @Test public void testValueSetInt() {
     ArrayTable.BitSlicedPrimitiveArray representation;
     ArrayTable.Column pair;
 
@@ -136,7 +139,7 @@ public class ArrayTableTest extends TestCase {
     assertEquals(64, representation2.getObject(pair.dataSet, 5));
   }
 
-  public void testValueSetBoolean() {
+  @Test public void testValueSetBoolean() {
     final ColumnLoader.ValueSet valueSet =
         new ColumnLoader.ValueSet(boolean.class);
     valueSet.add(0);
@@ -156,7 +159,7 @@ public class ArrayTableTest extends TestCase {
     assertEquals(0, representation.getInt(pair.dataSet, 3));
   }
 
-  public void testValueSetZero() {
+  @Test public void testValueSetZero() {
     final ColumnLoader.ValueSet valueSet =
         new ColumnLoader.ValueSet(boolean.class);
     valueSet.add(0);
@@ -169,7 +172,7 @@ public class ArrayTableTest extends TestCase {
     assertEquals(1, pair.cardinality);
   }
 
-  public void testStrings() {
+  @Test public void testStrings() {
     ArrayTable.Column pair;
 
     final ColumnLoader.ValueSet valueSet =
@@ -216,7 +219,7 @@ public class ArrayTableTest extends TestCase {
     assertEquals(2, pair.cardinality);
   }
 
-  public void testAllNull() {
+  @Test public void testAllNull() {
     ArrayTable.Column pair;
 
     final ColumnLoader.ValueSet valueSet =
@@ -241,7 +244,7 @@ public class ArrayTableTest extends TestCase {
     assertEquals(1, pair.cardinality);
   }
 
-  public void testOneValueOneNull() {
+  @Test public void testOneValueOneNull() {
     ArrayTable.Column pair;
 
     final ColumnLoader.ValueSet valueSet =

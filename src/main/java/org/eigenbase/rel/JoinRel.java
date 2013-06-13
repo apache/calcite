@@ -154,7 +154,6 @@ public final class JoinRel
             return super.explainTerms(pw);
         }
         return super.explainTerms(pw)
-            .item("joinType", joinType.name().toLowerCase())
             .item("semiJoinDone", semiJoinDone);
     }
 

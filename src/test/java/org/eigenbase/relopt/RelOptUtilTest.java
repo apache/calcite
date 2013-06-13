@@ -17,32 +17,27 @@
 */
 package org.eigenbase.relopt;
 
-import junit.framework.*;
-
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
+import org.junit.Test;
+
+import static org.junit.Assert.*;
+
 
 /**
  * Unit test for {@link RelOptUtil} and other classes in this package.
- *
- * @author jhyde
  */
-public class RelOptUtilTest
-    extends TestCase
-{
+public class RelOptUtilTest {
     //~ Constructors -----------------------------------------------------------
 
-    public RelOptUtilTest(String name)
-    {
-        super(name);
+    public RelOptUtilTest() {
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public void testTypeDump()
-    {
+    @Test public void testTypeDump() {
         RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
         RelDataType t1 =
             typeFactory.createStructType(
@@ -88,8 +83,7 @@ public class RelOptUtilTest
     /**
      * Tests the rules for how we name rules.
      */
-    public void testRuleGuessDescription()
-    {
+    @Test public void testRuleGuessDescription() {
         assertEquals("Bar", RelOptRule.guessDescription("com.foo.Bar"));
         assertEquals("Baz", RelOptRule.guessDescription("com.flatten.Bar$Baz"));
 

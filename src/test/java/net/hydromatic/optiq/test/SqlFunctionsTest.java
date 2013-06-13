@@ -20,22 +20,26 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 import net.hydromatic.optiq.runtime.Utilities;
 
-import junit.framework.TestCase;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.util.*;
 
 import static net.hydromatic.optiq.runtime.SqlFunctions.*;
+import static org.junit.Assert.*;
+
 
 /**
  * Unit test for the methods in {@link SqlFunctions} that implement SQL
  * functions.
  */
-public class SqlFunctionsTest extends TestCase {
-  public void testCharLength() {
+public class SqlFunctionsTest {
+  @Test public void testCharLength() {
     assertEquals(3, charLength("xyz"));
   }
 
-  public void testConcat() {
+  @Test public void testConcat() {
     assertEquals("a bcd", concat("a b", "cd"));
     // The code generator will ensure that nulls are never passed in. If we
     // pass in null, it is treated like the string "null", as the following
@@ -45,15 +49,15 @@ public class SqlFunctionsTest extends TestCase {
     assertEquals("nullb", concat(null, "b"));
   }
 
-  public void testLower() {
+  @Test public void testLower() {
     assertEquals("a bcd", lower("A bCd"));
   }
 
-  public void testUpper() {
+  @Test public void testUpper() {
     assertEquals("A BCD", upper("A bCd"));
   }
 
-  public void testInitcap() {
+  @Test public void testInitcap() {
     assertEquals("Aa", initcap("aA"));
     assertEquals("Zz", initcap("zz"));
     assertEquals("Az", initcap("AZ"));
@@ -63,7 +67,7 @@ public class SqlFunctionsTest extends TestCase {
     assertEquals(" B0123b", initcap(" b0123B"));
   }
 
-  public void testLesser() {
+  @Test public void testLesser() {
     assertEquals("a", lesser("a", "bc"));
     assertEquals("ac", lesser("bc", "ac"));
     try {
@@ -76,7 +80,7 @@ public class SqlFunctionsTest extends TestCase {
     assertNull(lesser((String) null, null));
   }
 
-  public void testGreater() {
+  @Test public void testGreater() {
     assertEquals("bc", greater("a", "bc"));
     assertEquals("bc", greater("bc", "ac"));
     try {
@@ -90,7 +94,7 @@ public class SqlFunctionsTest extends TestCase {
   }
 
   /** Test for {@link SqlFunctions#rtrim}. */
-  public void testRtrim() {
+  @Test public void testRtrim() {
     assertEquals("", rtrim(""));
     assertEquals("", rtrim("    "));
     assertEquals("   x", rtrim("   x  "));
@@ -101,7 +105,7 @@ public class SqlFunctionsTest extends TestCase {
   }
 
   /** Test for {@link SqlFunctions#ltrim}. */
-  public void testLtrim() {
+  @Test public void testLtrim() {
     assertEquals("", ltrim(""));
     assertEquals("", ltrim("    "));
     assertEquals("x  ", ltrim("   x  "));
@@ -112,7 +116,7 @@ public class SqlFunctionsTest extends TestCase {
   }
 
   /** Test for {@link SqlFunctions#trim}. */
-  public void testTrim() {
+  @Test public void testTrim() {
     assertEquals("", trim(""));
     assertEquals("", trim("    "));
     assertEquals("x", trim("   x  "));
@@ -122,7 +126,7 @@ public class SqlFunctionsTest extends TestCase {
     assertEquals("x", trim("x"));
   }
 
-  public void testUnixDateToString() {
+  @Test public void testUnixDateToString() {
     // Verify these using the "date" command. E.g.
     // $ date -u --date="@$(expr 10957 \* 86400)"
     // Sat Jan  1 00:00:00 UTC 2000
@@ -144,7 +148,7 @@ public class SqlFunctionsTest extends TestCase {
     assertEquals("1945-02-24", unixDateToString(-9077));
   }
 
-  public void testYmdToUnixDate() {
+  @Test public void testYmdToUnixDate() {
     assertEquals(0, ymdToUnixDate(1970, 1, 1));
     assertEquals(365, ymdToUnixDate(1971, 1, 1));
     assertEquals(-365, ymdToUnixDate(1969, 1, 1));
@@ -152,17 +156,17 @@ public class SqlFunctionsTest extends TestCase {
     assertEquals(-9077, ymdToUnixDate(1945, 2, 24));
   }
 
-  public void testDateToString() {
+  @Test public void testDateToString() {
     assertEquals("1970-01-01", unixDateToString(0));
     assertEquals("1971-02-03", unixDateToString(0 + 365 + 31 + 2));
   }
 
-  public void testTimeToString() {
+  @Test public void testTimeToString() {
     assertEquals("00:00:00", unixTimeToString(0));
     assertEquals("23:59:59", unixTimeToString(86400000 - 1));
   }
 
-  public void testTimestampToString() {
+  @Test public void testTimestampToString() {
     // ISO format would be "1970-01-01T00:00:00" but SQL format is different
     assertEquals("1970-01-01 00:00:00", unixTimestampToString(0));
     assertEquals(
@@ -172,7 +176,7 @@ public class SqlFunctionsTest extends TestCase {
 
   /** Unit test for
    * {@link Utilities#compare(java.util.List, java.util.List)}. */
-  public void testCompare() {
+  @Test public void testCompare() {
     final List<String> ac = Arrays.asList("a", "c");
     final List<String> abc = Arrays.asList("a", "b", "c");
     final List<String> a = Arrays.asList("a");
@@ -187,7 +191,7 @@ public class SqlFunctionsTest extends TestCase {
     assertEquals(0, Utilities.compare(empty, empty));
   }
 
-  public void testTruncateLong() {
+  @Test public void testTruncateLong() {
     assertEquals(12000L, SqlFunctions.truncate(12345L, 1000L));
     assertEquals(12000L, SqlFunctions.truncate(12000L, 1000L));
     assertEquals(12000L, SqlFunctions.truncate(12001L, 1000L));
@@ -199,7 +203,7 @@ public class SqlFunctionsTest extends TestCase {
     assertEquals(-12000L, SqlFunctions.truncate(-11999L, 1000L));
   }
 
-  public void testTruncateInt() {
+  @Test public void testTruncateInt() {
     assertEquals(12000, SqlFunctions.truncate(12345, 1000));
     assertEquals(12000, SqlFunctions.truncate(12000, 1000));
     assertEquals(12000, SqlFunctions.truncate(12001, 1000));

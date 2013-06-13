@@ -25,7 +25,9 @@ import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
-import junit.framework.TestCase;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.sql.Connection;
 import java.util.ArrayList;
@@ -34,15 +36,18 @@ import java.util.List;
 
 import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
 
+import static org.junit.Assert.*;
+
+
 /**
  * Tests for a JDBC front-end (with some quite complex SQL) and Linq4j back-end
  * (based on in-memory collections).
  */
-public class JdbcFrontLinqBackTest extends TestCase {
+public class JdbcFrontLinqBackTest {
   /**
    * Runs a simple query that reads from a table in an in-memory schema.
    */
-  public void testSelect() {
+  @Test public void testSelect() {
     assertThat()
         .query(
             "select *\n"
@@ -55,7 +60,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
   /**
    * Runs a simple query that joins between two in-memory schemas.
    */
-  public void testJoin() {
+  @Test public void testJoin() {
     assertThat()
         .query(
             "select *\n"
@@ -70,7 +75,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
   /**
    * Simple GROUP BY.
    */
-  public void testGroupBy() {
+  @Test public void testGroupBy() {
     assertThat()
         .query(
             "select \"deptno\", sum(\"empid\") as s, count(*) as c\n"
@@ -84,7 +89,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
   /**
    * Simple ORDER BY.
    */
-  public void testOrderBy() {
+  @Test public void testOrderBy() {
     assertThat()
         .query(
             "select upper(\"name\") as un, \"deptno\"\n"
@@ -102,7 +107,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
    * <p>Also tests a query that returns a single column. We optimize this case
    * internally, using non-array representations for rows.</p>
    */
-  public void testUnionAllOrderBy() {
+  @Test public void testUnionAllOrderBy() {
     assertThat()
         .query(
             "select \"name\"\n"
@@ -123,7 +128,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
   /**
    * Tests UNION.
    */
-  public void testUnion() {
+  @Test public void testUnion() {
     assertThat()
         .query(
             "select substring(\"name\" from 1 for 1) as x\n"
@@ -142,7 +147,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
   /**
    * Tests INTERSECT.
    */
-  public void testIntersect() {
+  @Test public void testIntersect() {
     assertThat()
         .query(
             "select substring(\"name\" from 1 for 1) as x\n"
@@ -157,7 +162,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
   /**
    * Tests EXCEPT.
    */
-  public void testExcept() {
+  @Test public void testExcept() {
     assertThat()
         .query(
             "select substring(\"name\" from 1 for 1) as x\n"
@@ -170,7 +175,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
             + "X=B\n");
   }
 
-  public void testWhereBad() {
+  @Test public void testWhereBad() {
     assertThat()
         .query(
             "select *\n"
@@ -180,7 +185,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
   }
 
   /** Test case for https://github.com/julianhyde/optiq/issues/9. */
-  public void testWhereOr() {
+  @Test public void testWhereOr() {
     assertThat()
         .query(
             "select * from \"hr\".\"emps\"\n"
@@ -189,7 +194,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
         .returns("empid=100; deptno=10; name=Bill; commission=1000\n");
   }
 
-  public void testWhereLike() {
+  @Test public void testWhereLike() {
     if (false)
       // TODO: fix current error "Operands E.name, 'B%' not comparable to
       // each other"
@@ -203,7 +208,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
               + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n");
   }
 
-  public void testInsert() {
+  @Test public void testInsert() {
     final List<JdbcTest.Employee> employees =
         new ArrayList<JdbcTest.Employee>();
     OptiqAssert.AssertThat with = mutable(employees);
@@ -267,7 +272,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
             });
   }
 
-  public void testInsert2() {
+  @Test public void testInsert2() {
     final List<JdbcTest.Employee> employees =
         new ArrayList<JdbcTest.Employee>();
     OptiqAssert.AssertThat with = mutable(employees);
@@ -286,7 +291,7 @@ public class JdbcFrontLinqBackTest extends TestCase {
   }
 
   /** Some of the rows have the wrong number of columns. */
-  public void testInsertMultipleRowMismatch() {
+  @Test public void testInsertMultipleRowMismatch() {
     final List<JdbcTest.Employee> employees =
         new ArrayList<JdbcTest.Employee>();
     OptiqAssert.AssertThat with = mutable(employees);

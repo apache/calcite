@@ -27,7 +27,7 @@ import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import java.lang.reflect.*;
 import java.sql.*;
@@ -36,10 +36,12 @@ import java.util.Date;
 
 import static net.hydromatic.optiq.test.JdbcTest.Employee;
 
+import static org.junit.Assert.*;
+
 /**
  * Unit tests for {@link ReflectiveSchema}.
  */
-public class ReflectiveSchemaTest extends TestCase {
+public class ReflectiveSchemaTest {
   public static final Method LINQ4J_AS_ENUMERABLE_METHOD =
       Types.lookupMethod(
           Linq4j.class, "asEnumerable", Object[].class);
@@ -49,7 +51,7 @@ public class ReflectiveSchemaTest extends TestCase {
    *
    * @throws Exception on error
    */
-  public void testQueryProvider() throws Exception {
+  @Test public void testQueryProvider() throws Exception {
     Connection connection = JdbcTest.getConnection("hr", "foodmart");
     QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
     ParameterExpression
@@ -105,7 +107,7 @@ public class ReflectiveSchemaTest extends TestCase {
     assertEquals("SEBASTIAN", list.get(0)[1]);
   }
 
-  public void testQueryProviderSingleColumn() throws Exception {
+  @Test public void testQueryProviderSingleColumn() throws Exception {
     Connection connection = JdbcTest.getConnection("hr", "foodmart");
     QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
     ParameterExpression e = Expressions.parameter(Employee.class, "e");
@@ -165,7 +167,7 @@ public class ReflectiveSchemaTest extends TestCase {
   /**
    * Tests a view.
    */
-  public void testView() throws SQLException, ClassNotFoundException {
+  @Test public void testView() throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:optiq:");
@@ -191,7 +193,7 @@ public class ReflectiveSchemaTest extends TestCase {
   }
 
   /** Tests column based on java.sql.Date field. */
-  public void testDateColumn() throws Exception {
+  @Test public void testDateColumn() throws Exception {
     OptiqAssert.assertThat()
         .with("s", new DateColumnSchema())
         .query("select * from \"s\".\"emps\"")
@@ -201,7 +203,7 @@ public class ReflectiveSchemaTest extends TestCase {
   }
 
   /** Tests querying an object that has no public fields. */
-  public void testNoPublicFields() throws Exception {
+  @Test public void testNoPublicFields() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.assertThat().with("s", new CatchallSchema());
     with.query("select 1 from \"s\".\"allPrivates\"")
@@ -213,7 +215,7 @@ public class ReflectiveSchemaTest extends TestCase {
   /** Tests columns based on types such as java.sql.Date and java.util.Date.
    *
    * @see CatchallSchema#everyTypes */
-  public void testColumnTypes() throws Exception {
+  @Test public void testColumnTypes() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.assertThat().with("s", new CatchallSchema());
     with.query("select \"primitiveBoolean\" from \"s\".\"everyTypes\"")
@@ -229,7 +231,7 @@ public class ReflectiveSchemaTest extends TestCase {
   /** Tests columns based on types such as java.sql.Date and java.util.Date.
    *
    * @see CatchallSchema#everyTypes */
-  public void testAggregateFunctions() throws Exception {
+  @Test public void testAggregateFunctions() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.assertThat()
             .with("s", new CatchallSchema());
@@ -250,7 +252,7 @@ public class ReflectiveSchemaTest extends TestCase {
     }
   }
 
-  public void testDivide() throws Exception {
+  @Test public void testDivide() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.assertThat().with("s", new CatchallSchema());
     with.query(
@@ -267,7 +269,7 @@ public class ReflectiveSchemaTest extends TestCase {
         .returns("C=null\n");
   }
 
-  public void testOp() throws Exception {
+  @Test public void testOp() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.assertThat()
             .with("s", new CatchallSchema());
@@ -292,7 +294,7 @@ public class ReflectiveSchemaTest extends TestCase {
     }
   }
 
-  public void testCastFromString() {
+  @Test public void testCastFromString() {
     OptiqAssert.assertThat()
         .with("s", new CatchallSchema())
         .query(
@@ -317,7 +319,7 @@ public class ReflectiveSchemaTest extends TestCase {
    * case a {@link BitSet}) then it is treated as an object.
    *
    * @see CatchallSchema#badTypes */
-  public void testTableFieldHasBadType() throws Exception {
+  @Test public void testTableFieldHasBadType() throws Exception {
     OptiqAssert.assertThat()
         .with("s", new CatchallSchema())
         .query("select * from \"s\".\"badTypes\"")
@@ -329,7 +331,7 @@ public class ReflectiveSchemaTest extends TestCase {
    *
    * @see CatchallSchema#enumerable
    * @see CatchallSchema#list */
-  public void testSchemaFieldHasBadType() throws Exception {
+  @Test public void testSchemaFieldHasBadType() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.assertThat()
             .with("s", new CatchallSchema());
@@ -353,7 +355,7 @@ public class ReflectiveSchemaTest extends TestCase {
 
   /** Test case for a bug where a Java string 'Abc' compared to a char 'Ab'
    * would be truncated to the char precision and falsely match. */
-  public void testPrefix() throws Exception {
+  @Test public void testPrefix() throws Exception {
     OptiqAssert.assertThat()
         .with("s", new CatchallSchema())
         .query(

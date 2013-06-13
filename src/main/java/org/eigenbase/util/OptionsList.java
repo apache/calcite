@@ -116,8 +116,8 @@ public class OptionsList
      */
     public OptionsList(Option [] options)
     {
-        for (int i = 0; i < options.length; i++) {
-            this.options.add(options[i]);
+        for (Option option : options) {
+            this.options.add(option);
         }
     }
 
@@ -147,8 +147,7 @@ public class OptionsList
         int minCount,
         int maxCount)
     {
-        for (int i = 0; i < options.length; i++) {
-            Option option = options[i];
+        for (Option option : options) {
             if (option.required) {
                 throw new AssertionError("!options[i].required");
             }
@@ -159,10 +158,21 @@ public class OptionsList
     public void parse(String [] args)
     {
         final Option [] options = toArray();
-        Set<Option> usedOptions = new HashSet<Option>();
+        final Set<Option> usedOptions = new HashSet<Option>();
+        for (Option option : options) {
+            option.setHandler(
+                new OptionHandler() {
+                    public void invalidValue(Option option, String value) {
+                    }
+                    public void set(
+                        Option option, Object value, boolean explicit)
+                    {
+                        usedOptions.add(option);
+                    }
+                });
+        }
         for (int i = 0; i < args.length; i++) {
-            for (int j = 0; j < options.length; j++) {
-                Option option = options[j];
+            for (Option option : options) {
                 if (usedOptions.contains(option)) {
                     // Each option can only be used once.
                     continue;
@@ -175,8 +185,7 @@ public class OptionsList
         }
 
         // Check mandatory options.
-        for (int i = 0; i < options.length; i++) {
-            Option option = options[i];
+        for (Option option : options) {
             if (!option.required) {
                 continue;
             }
@@ -188,8 +197,7 @@ public class OptionsList
         }
 
         // Check inclusivity/exclusivity.
-        for (int i = 0; i < optionGroups.size(); i++) {
-            Group group = optionGroups.get(i);
+        for (Group group : optionGroups) {
             int count = 0;
             for (int j = 0; j < options.length; j++) {
                 Option option = group.options[j];
@@ -213,8 +221,7 @@ public class OptionsList
 
         // Set options to their default value if they have a default value and
         // have not been seen while parsing.
-        for (int i = 0; i < options.length; i++) {
-            Option option = options[i];
+        for (Option option : options) {
             if (!usedOptions.contains(option)
                 && (option.defaultValue != null))
             {
@@ -306,7 +313,7 @@ public class OptionsList
          */
         private final String name;
         private final boolean required;
-        private OptionHandler handler;
+        private List<OptionHandler> handlers = new ArrayList<OptionHandler>();
 
         Option(
             String flag,
@@ -314,15 +321,13 @@ public class OptionsList
             String description,
             boolean required,
             boolean anonymous,
-            Object defaultValue,
-            OptionHandler handler)
+            Object defaultValue)
         {
             this.flag = flag;
             name = option;
             this.required = required;
             this.defaultValue = defaultValue;
             this.description = description;
-            this.handler = handler;
         }
 
         public String getDescription()
@@ -332,12 +337,12 @@ public class OptionsList
 
         public void setHandler(OptionHandler handler)
         {
-            this.handler = handler;
+            this.handlers.add(handler);
         }
 
         public String getName()
         {
-            return name;
+            return name != null ? name : flag;
         }
 
         /**
@@ -359,8 +364,8 @@ public class OptionsList
         }
 
         /**
-         * Tries to apply this option to the <tt>i</tt>th member of <tt>
-         * args</tt>.
+         * Tries to apply this option to the <tt>i</tt>th member of
+         * <tt>args</tt>.
          *
          * @param args Argument list
          * @param i Offset of argument in argument list
@@ -377,11 +382,18 @@ public class OptionsList
                 && (flag != null)
                 && arg.equals("-" + flag))
             {
-                // e.g. "-nolog"
-                // e.g. "-threads 5"
-                readArg(args[i + 1]);
-                return i + 2;
-            } else if ((name != null) && arg.startsWith(name + "=")) {
+                if (this instanceof BooleanOption) {
+                    // e.g. "-nolog"
+                    set(true, true);
+                    return i + 1;
+                }
+                if (i < args.length - 1) {
+                    // e.g. "-threads 5"
+                    readArg(args[i + 1]);
+                    return i + 2;
+                }
+            }
+            if ((name != null) && arg.startsWith(name + "=")) {
                 // e.g. "threads=5"
                 readArg(arg.substring((name + "=").length()));
                 return i + 1;
@@ -393,9 +405,8 @@ public class OptionsList
             Object value,
             boolean isExplicit)
         {
-            if (handler == null) {
-                this.value = value;
-            } else {
+            this.value = value;
+            for (OptionHandler handler : handlers) {
                 handler.set(this, value, isExplicit);
             }
         }
@@ -412,7 +423,7 @@ public class OptionsList
          * method should execute a reasonable default action like assigning to a
          * field via reflection.</p>
          *
-         * @param arg
+         * @param arg Argument
          */
         protected abstract void readArg(String arg);
 
@@ -434,7 +445,9 @@ public class OptionsList
          */
         protected void valueError(String arg)
         {
-            handler.invalidValue(this, arg);
+            for (OptionHandler handler : handlers) {
+                handler.invalidValue(this, arg);
+            }
         }
     }
 
@@ -447,8 +460,7 @@ public class OptionsList
             String description,
             boolean required,
             boolean anonymous,
-            boolean defaultValue,
-            OptionHandler handler)
+            boolean defaultValue)
         {
             super(
                 flag,
@@ -456,8 +468,7 @@ public class OptionsList
                 description,
                 required,
                 anonymous,
-                Boolean.valueOf(defaultValue),
-                handler);
+                Boolean.valueOf(defaultValue));
         }
 
         public boolean booleanValue()
@@ -489,8 +500,7 @@ public class OptionsList
             boolean required,
             boolean anonymous,
             EnumeratedValues.Value defaultValue,
-            EnumeratedValues enumeration,
-            OptionHandler handler)
+            EnumeratedValues enumeration)
         {
             super(
                 flag,
@@ -498,8 +508,7 @@ public class OptionsList
                 description,
                 required,
                 anonymous,
-                defaultValue,
-                handler);
+                defaultValue);
             this.enumeration = enumeration;
         }
 
@@ -523,8 +532,7 @@ public class OptionsList
             String description,
             boolean required,
             boolean anonymous,
-            Number defaultValue,
-            OptionHandler handler)
+            Number defaultValue)
         {
             super(
                 flag,
@@ -532,8 +540,7 @@ public class OptionsList
                 description,
                 required,
                 anonymous,
-                defaultValue,
-                handler);
+                defaultValue);
         }
 
         public double doubleValue()
@@ -575,8 +582,7 @@ public class OptionsList
             String description,
             boolean required,
             boolean anonymous,
-            String defaultValue,
-            OptionHandler handler)
+            String defaultValue)
         {
             super(
                 flag,
@@ -584,8 +590,7 @@ public class OptionsList
                 description,
                 required,
                 anonymous,
-                defaultValue,
-                handler);
+                defaultValue);
         }
 
         public String stringValue()

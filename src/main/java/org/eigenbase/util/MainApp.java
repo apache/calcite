@@ -119,8 +119,7 @@ public abstract class MainApp
                 "Prints command-line parameters",
                 false,
                 false,
-                false,
-                null));
+                false));
     }
 }
 

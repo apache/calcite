@@ -20,11 +20,14 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
-import junit.framework.TestCase;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import static org.junit.Assert.*;
 import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
 
 /**
@@ -36,8 +39,8 @@ import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
  *
  * @see JdbcFrontJdbcBackLinqMiddleTest
  */
-public class JdbcFrontJdbcBackTest extends TestCase {
-  public void testWhere2() {
+public class JdbcFrontJdbcBackTest {
+  @Test public void testWhere2() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
@@ -46,7 +49,7 @@ public class JdbcFrontJdbcBackTest extends TestCase {
             + "day=2; week_day=Monday\n");
   }
 
-  public void testTables() throws Exception {
+  @Test public void testTables() throws Exception {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .doWithConnection(
@@ -72,7 +75,7 @@ public class JdbcFrontJdbcBackTest extends TestCase {
         );
   }
 
-  public void testTablesByType() throws Exception {
+  @Test public void testTablesByType() throws Exception {
     assertThat()
         .with(OptiqAssert.Config.REGULAR_PLUS_METADATA)
         .doWithConnection(
@@ -99,7 +102,7 @@ public class JdbcFrontJdbcBackTest extends TestCase {
         );
   }
 
-  public void testColumns() throws Exception {
+  @Test public void testColumns() throws Exception {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .doWithConnection(
@@ -128,7 +131,7 @@ public class JdbcFrontJdbcBackTest extends TestCase {
   /** Tests a JDBC method known to be not implemented (as it happens,
    * {@link java.sql.DatabaseMetaData#getPrimaryKeys}) that therefore uses
    * empty result set. */
-  public void testEmpty() throws Exception {
+  @Test public void testEmpty() throws Exception {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .doWithConnection(
@@ -148,7 +151,7 @@ public class JdbcFrontJdbcBackTest extends TestCase {
         );
   }
 
-  public void testCase() {
+  @Test public void testCase() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .withSchema("foodmart")

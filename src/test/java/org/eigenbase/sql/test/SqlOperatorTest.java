@@ -24,9 +24,6 @@ import org.eigenbase.test.*;
 /**
  * Concrete subclass of {@link SqlOperatorBaseTest} which checks against
  * a {@link SqlValidator}. Tests that involve execution trivially succeed.
- *
- * @author Julian Hyde
- * @since July 7, 2005
  */
 public class SqlOperatorTest
     extends SqlOperatorBaseTest
@@ -34,14 +31,13 @@ public class SqlOperatorTest
     //~ Instance fields --------------------------------------------------------
 
     private SqlTester tester =
-        (SqlTester) new SqlValidatorTestCase("dummy").getTester(
-            SqlConformance.Default);
+        (SqlTester) new SqlValidatorTestCase(null)
+            .getTester(SqlConformance.Default);
 
     //~ Constructors -----------------------------------------------------------
 
-    public SqlOperatorTest(String testName)
-    {
-        super(testName, false);
+    public SqlOperatorTest() {
+      super(false);
     }
 
     //~ Methods ----------------------------------------------------------------

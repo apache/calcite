@@ -26,8 +26,6 @@ import org.eigenbase.relopt.*;
 /**
  * MockRelOptPlanner is a mock implementation of the {@link RelOptPlanner}
  * interface.
- *
- * @author John V. Sichi
  */
 public class MockRelOptPlanner
     extends AbstractRelOptPlanner

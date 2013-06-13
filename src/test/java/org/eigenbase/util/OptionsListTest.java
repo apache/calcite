@@ -19,28 +19,24 @@ package org.eigenbase.util;
 
 import java.io.*;
 
-import junit.framework.*;
+import org.junit.Ignore;
+import org.junit.Test;
 
+import static org.junit.Assert.*;
 
 /**
  * Unit test for {@link OptionsList}.
- *
- * @author Julian Hyde
- * @since Sep 4, 2003
  */
-public class OptionsListTest
-    extends TestCase
-{
+public class OptionsListTest {
     //~ Static fields/initializers ---------------------------------------------
 
     private static final String NL = System.getProperty("line.separator");
 
     //~ Methods ----------------------------------------------------------------
 
-    public void _testBooleanArg()
-    {
+    @Test public void testBooleanArg() {
         checkIt(
-            "flag=true",
+            "flag=true\n",
             new OptionsList.Option[] {
                 new OptionsList.BooleanOption(
                     "flag",
@@ -48,16 +44,14 @@ public class OptionsListTest
                     "xxx",
                     false,
                     false,
-                    false,
-                    null)
+                    false)
             },
             new String[] { "-flag" });
     }
 
-    public void _testBooleanArgMissing()
-    {
+    @Test public void testBooleanArgMissing() {
         checkIt(
-            "",
+            "flag=false (default)\n",
             new OptionsList.Option[] {
                 new OptionsList.BooleanOption(
                     "flag",
@@ -65,14 +59,13 @@ public class OptionsListTest
                     "xxx",
                     false,
                     false,
-                    false,
-                    null)
+                    false)
             },
             new String[] {});
     }
 
-    public void _testUnknownArg()
-    {
+    @Ignore
+    @Test public void testUnknownArg() {
         checkIt(
             "?",
             new OptionsList.Option[] {
@@ -82,14 +75,13 @@ public class OptionsListTest
                     "xxx",
                     false,
                     false,
-                    false,
-                    null)
+                    false)
             },
             new String[] { "-unknown" });
     }
 
-    public void _testUnknownArgWithEqualsSyntax()
-    {
+    @Ignore
+    @Test public void testUnknownArgWithEqualsSyntax() {
         checkIt(
             "?",
             new OptionsList.Option[] {
@@ -99,14 +91,13 @@ public class OptionsListTest
                     "xxx",
                     false,
                     false,
-                    false,
-                    null)
+                    false)
             },
             new String[] { "unknown=foo" });
     }
 
-    public void _testStringArgSameAsDefault()
-    {
+    @Ignore
+    @Test public void testStringArgSameAsDefault() {
         checkIt(
             "foo=default",
             new OptionsList.Option[] {
@@ -116,14 +107,13 @@ public class OptionsListTest
                     "xxx",
                     false,
                     false,
-                    "default",
-                    null)
+                    "default")
             },
             new String[] { "foo=default" });
     }
 
-    public void _testStringArgUsesDefaultValue()
-    {
+    @Ignore
+    @Test public void testStringArgUsesDefaultValue() {
         checkIt(
             "foo=default (default)",
             new OptionsList.Option[] {
@@ -133,14 +123,13 @@ public class OptionsListTest
                     "xxx",
                     false,
                     false,
-                    "default",
-                    null)
+                    "default")
             },
             new String[] { "" });
     }
 
-    public void _testEnumeratedArgShort()
-    {
+    @Ignore
+    @Test public void testEnumeratedArgShort() {
         checkIt(
             "color=GREEN",
             new OptionsList.Option[] {
@@ -151,14 +140,13 @@ public class OptionsListTest
                     false,
                     false,
                     Color.RED,
-                    Color.RED.getEnumeratedType(),
-                    null)
+                    Color.RED.getEnumeratedType())
             },
             new String[] { "-c GREEN" });
     }
 
-    public void _testEnumeratedArgLong()
-    {
+    @Ignore
+    @Test public void testEnumeratedArgLong() {
         checkIt(
             "color=BLUE",
             new OptionsList.Option[] {
@@ -169,14 +157,13 @@ public class OptionsListTest
                     false,
                     false,
                     Color.RED,
-                    Color.RED.getEnumeratedType(),
-                    null)
+                    Color.RED.getEnumeratedType())
             },
             new String[] { "color=BLUE" });
     }
 
-    public void _testEnumeratedArgWrong()
-    {
+    @Ignore
+    @Test public void testEnumeratedArgWrong() {
         checkIt(
             "PURPLE is not a valid value",
             new OptionsList.Option[] {
@@ -187,14 +174,13 @@ public class OptionsListTest
                     false,
                     false,
                     Color.RED,
-                    Color.RED.getEnumeratedType(),
-                    null)
+                    Color.RED.getEnumeratedType())
             },
             new String[] { "-c PURPLE" });
     }
 
-    public void _testEnumeratedArgDefault()
-    {
+    @Ignore
+    @Test public void testEnumeratedArgDefault() {
         checkIt(
             "color=RED (default)",
             new OptionsList.Option[] {
@@ -205,22 +191,20 @@ public class OptionsListTest
                     false,
                     false,
                     Color.RED,
-                    Color.RED.getEnumeratedType(),
-                    null),
+                    Color.RED.getEnumeratedType()),
                 new OptionsList.NumberOption(
                     "x",
                     "x",
                     "",
                     false,
                     false,
-                    null,
                     null)
             },
             new String[] { "-c PURPLE" });
     }
 
-    public void _testMissingMandatory()
-    {
+    @Ignore
+    @Test public void testMissingMandatory() {
         checkIt(
             "missing x",
             new OptionsList.Option[] {
@@ -230,14 +214,13 @@ public class OptionsListTest
                     "",
                     true,
                     false,
-                    null,
                     null)
             },
             new String[] {});
     }
 
-    public void _testGroupOptionsMustBeOptional()
-    {
+    @Ignore
+    @Test public void testGroupOptionsMustBeOptional() {
         final OptionsList.NumberOption optionX =
             new OptionsList.NumberOption(
                 "x",
@@ -245,10 +228,9 @@ public class OptionsListTest
                 "",
                 false,
                 false,
-                null,
                 null);
         final OptionsList.NumberOption optionY =
-            new OptionsList.NumberOption("y", "y", "", true, false, null, null);
+            new OptionsList.NumberOption("y", "y", "", true, false, null);
         OptionsList optionsList =
             new OptionsList(new OptionsList.Option[] { optionX, optionY });
         try {
@@ -264,8 +246,8 @@ public class OptionsListTest
         }
     }
 
-    public void _testGroupMissing()
-    {
+    @Ignore
+    @Test public void testGroupMissing() {
         final StringBufferOptionsHandler handler =
             new StringBufferOptionsHandler();
         final OptionsList.NumberOption optionX =
@@ -275,7 +257,6 @@ public class OptionsListTest
                 "",
                 false,
                 false,
-                null,
                 null);
         final OptionsList.NumberOption optionY =
             new OptionsList.NumberOption(
@@ -284,7 +265,6 @@ public class OptionsListTest
                 "",
                 false,
                 false,
-                null,
                 null);
         final OptionsList.NumberOption optionZ =
             new OptionsList.NumberOption(
@@ -293,7 +273,6 @@ public class OptionsListTest
                 "",
                 false,
                 false,
-                null,
                 null);
         OptionsList optionsList =
             new OptionsList(
@@ -305,12 +284,11 @@ public class OptionsListTest
         String [] args = { "-z" };
         optionsList.parse(args);
         assertEquals(
-            "foo",
-            handler.toString());
+            "foo", handler.toString());
     }
 
-    public void _testAnonymousOption()
-    {
+    @Ignore
+    @Test public void testAnonymousOption() {
         checkIt(
             "verbose=true" + NL + "file=file.txt",
             new OptionsList.Option[] {
@@ -320,22 +298,20 @@ public class OptionsListTest
                     "",
                     false,
                     false,
-                    false,
-                    null),
+                    false),
                 new OptionsList.StringOption(
                     "file",
                     "file",
                     "",
                     false,
                     true,
-                    "foo.txt",
-                    null)
+                    "foo.txt")
             },
             new String[] { "-v", "bar.txt" });
     }
 
-    public void _testRepeatingOption()
-    {
+    @Ignore
+    @Test public void testRepeatingOption() {
         checkIt(
             "verbose=true" + NL + "file=foo.txt" + NL + "file=bar.txt",
             new OptionsList.Option[] {
@@ -345,24 +321,16 @@ public class OptionsListTest
                     "",
                     false,
                     false,
-                    false,
-                    null),
+                    false),
                 new OptionsList.StringOption(
                     "file",
                     "file",
                     "",
                     false,
                     true,
-                    "foo.txt",
-                    null)
+                    "foo.txt")
             },
             new String[] { "-v", "-f", "foo.txt", "-f", "bar.txt" });
-    }
-
-    public void testAlwaysSucceeds()
-    {
-        // TODO enable the other tests, and remove this test -- it only exists
-        //   to stop junit complaining that there are no tests!
     }
 
     // -------------------------------------------------------------------------
@@ -384,9 +352,9 @@ public class OptionsListTest
         final StringBufferOptionsHandler handler =
             new StringBufferOptionsHandler();
         final OptionsList optionsList = new OptionsList();
-        for (int i = 0; i < options.length; i++) {
-            options[i].setHandler(handler);
-            optionsList.add(options[i]);
+        for (OptionsList.Option option : options) {
+            option.setHandler(handler);
+            optionsList.add(option);
         }
         optionsList.parse(args);
         assertEquals(

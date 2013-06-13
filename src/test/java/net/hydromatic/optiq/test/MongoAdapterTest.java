@@ -20,9 +20,9 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
-import junit.framework.TestCase;
-
 import org.eigenbase.util.Pair;
+
+import org.junit.Test;
 
 import java.sql.DriverManager;
 import java.util.List;
@@ -31,7 +31,7 @@ import java.util.Properties;
 /**
  * Tests for the {@link net.hydromatic.optiq.impl.mongodb} package.
  */
-public class MongoAdapterTest extends TestCase {
+public class MongoAdapterTest {
   public static final String MONGO_FOODMART_SCHEMA =
       "     {\n"
       + "       type: 'custom',\n"
@@ -109,7 +109,7 @@ public class MongoAdapterTest extends TestCase {
     return true;
   }
 
-  public void testUnionPlan() {
+  @Test public void testUnionPlan() {
     OptiqAssert.assertThat()
         .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
@@ -131,7 +131,7 @@ public class MongoAdapterTest extends TestCase {
             + "product_id=1512.0\n");
   }
 
-  public void testFilterUnionPlan() {
+  @Test public void testFilterUnionPlan() {
     OptiqAssert.assertThat()
         .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
@@ -144,7 +144,7 @@ public class MongoAdapterTest extends TestCase {
         .runs();
   }
 
-  public void testSelectWhere() {
+  @Test public void testSelectWhere() {
     OptiqAssert.assertThat()
         .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
@@ -161,7 +161,7 @@ public class MongoAdapterTest extends TestCase {
             + "warehouse_id=24.0; warehouse_state_province=CA\n");
   }
 
-  public void testInPlan() {
+  @Test public void testInPlan() {
     OptiqAssert.assertThat()
         .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
@@ -180,7 +180,7 @@ public class MongoAdapterTest extends TestCase {
   }
 
   /** Query based on the "mongo-zips" model. */
-  public void testZips() {
+  @Test public void testZips() {
     OptiqAssert.assertThat()
         .enable(enabled())
         .with(ZIPS)
@@ -193,7 +193,7 @@ public class MongoAdapterTest extends TestCase {
             + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project ...}>]])");
   }
 
-  public void testProject() {
+  @Test public void testProject() {
     OptiqAssert.assertThat()
         .enable(enabled())
         .with(ZIPS)
@@ -208,7 +208,7 @@ public class MongoAdapterTest extends TestCase {
             + "    MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project ...}>]])");
   }
 
-  public void testFilter() {
+  @Test public void testFilter() {
     OptiqAssert.assertThat()
         .enable(enabled())
         .with(ZIPS)

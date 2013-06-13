@@ -17,7 +17,7 @@
 */
 package net.hydromatic.optiq.test;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
 
@@ -26,9 +26,9 @@ import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
  * pushed down to JDBC (as in {@link JdbcFrontJdbcBackTest}) but is executed
  * in a pipeline of linq4j operators.
  */
-public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
+public class JdbcFrontJdbcBackLinqMiddleTest {
 
-  public void testTable() {
+  @Test public void testTable() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\"")
@@ -42,7 +42,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
             + "day=7; week_day=Saturday\n");
   }
 
-  public void testWhere() {
+  @Test public void testWhere() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
@@ -51,7 +51,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
             + "day=2; week_day=Monday\n");
   }
 
-  public void testWhere2() {
+  @Test public void testWhere2() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
@@ -66,7 +66,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
             + "day=7; week_day=Saturday\n");
   }
 
-  public void testCase() {
+  @Test public void testCase() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
@@ -87,7 +87,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
             + "day=7; week_day=Saturday; D=Saturday\n");
   }
 
-  public void testGroup() {
+  @Test public void testGroup() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
@@ -104,7 +104,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
             "S=M; C=1; MW=Monday");
   }
 
-  public void testGroupEmpty() {
+  @Test public void testGroupEmpty() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
@@ -117,7 +117,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
    * into input0.x = input1.x and ... input0.z = input1.z) throws a reasonably
    * civilized "cannot be implemented" exception. Of course, we'd like to be
    * able to implement it one day. */
-  public void testJoinTheta() {
+  @Test public void testJoinTheta() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
@@ -129,7 +129,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
         .throws_(" could not be implemented");
   }
 
-  public void testJoinGroupByEmpty() {
+  @Test public void testJoinGroupByEmpty() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
@@ -141,7 +141,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
         .returns("EXPR$0=86837\n");
   }
 
-  public void testJoinGroupByOrderBy() {
+  @Test public void testJoinGroupByOrderBy() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
@@ -157,7 +157,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
             + "EXPR$0=40784; state_province=WA; S=124366.0000\n");
   }
 
-  public void testCompositeGroupBy() {
+  @Test public void testCompositeGroupBy() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
@@ -181,7 +181,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
             + "C=4222; state_province=CA\n");
   }
 
-  public void testDistinctCount() {
+  @Test public void testDistinctCount() {
     // Complicating factors:
     // Composite GROUP BY key
     // Order by select item, referenced by ordinal
@@ -255,7 +255,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest extends TestCase {
             + "          }\n");
   }
 
-  public void testPlan3() {
+  @Test public void testPlan3() {
     // Plan should contain 'join'. If it doesn't, maybe int-vs-Integer
     // data type incompatibility has caused it to use a cartesian product
     // instead, and that would be wrong.

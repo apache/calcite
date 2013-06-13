@@ -29,13 +29,14 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.test.*;
 import org.eigenbase.util.*;
 
+import org.junit.Assert;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing unit tests
  * for SqlAdvisor.
- *
- * @author Tim Leung
- * @since Jan 16, 2005
  */
 public class SqlAdvisorTest
     extends SqlValidatorTestCase
@@ -92,6 +93,7 @@ public class SqlAdvisorTest
             "Keyword(-)",
             "Keyword(?)",
             "Keyword(ABS)",
+            "Keyword(ARRAY)",
             "Keyword(AVG)",
             "Keyword(CARDINALITY)",
             "Keyword(CASE)",
@@ -176,7 +178,8 @@ public class SqlAdvisorTest
         Arrays.asList(
             "Keyword(,)",
             "Keyword(ASC)",
-            "Keyword(DESC)");
+            "Keyword(DESC)",
+            "Keyword(NULLS)");
 
     private static final List<String> EMP_COLUMNS =
         Arrays.asList(
@@ -220,6 +223,7 @@ public class SqlAdvisorTest
             "Keyword(OR)",
             "Keyword(SIMILAR)",
             "Keyword(SUBMULTISET)",
+            "Keyword([)",
             "Keyword(||)");
 
     private static final List<String> WHERE_KEYWORDS =
@@ -259,15 +263,21 @@ public class SqlAdvisorTest
             "Keyword(INTERSECT)",
             "Keyword(WHERE)");
 
-    //~ Instance fields --------------------------------------------------------
+  private static final List<String> SETOPS =
+      Arrays.asList(
+          "Keyword(EXCEPT)",
+          "Keyword(INTERSECT)",
+          "Keyword(ORDER)",
+          "Keyword(UNION)");
+
+  //~ Instance fields --------------------------------------------------------
 
     public final Logger logger = Logger.getLogger(getClass().getName());
 
     //~ Constructors -----------------------------------------------------------
 
-    public SqlAdvisorTest(String name)
-    {
-        super(name);
+    public SqlAdvisorTest() {
+      super(null);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -310,7 +320,7 @@ public class SqlAdvisorTest
             }
             buf.append(token).append(TestUtil.NL);
         }
-        assertEquals(expected, buf.toString());
+        Assert.assertEquals(expected, buf.toString());
     }
 
     protected void assertHint(
@@ -347,9 +357,8 @@ public class SqlAdvisorTest
             advisor.getCompletionHints(
                 sap.sql,
                 sap.pos);
-        assertEquals(
-            expectedResults,
-            convertCompletionHints(results));
+        Assert.assertEquals(
+            expectedResults, convertCompletionHints(results));
     }
 
     /**
@@ -368,7 +377,7 @@ public class SqlAdvisorTest
 
         SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
         String actual = advisor.simplifySql(sap.sql, sap.cursor);
-        assertEquals(expected, actual);
+        Assert.assertEquals(expected, actual);
     }
 
     protected void assertComplete(
@@ -406,11 +415,10 @@ public class SqlAdvisorTest
             advisor.getCompletionHints(sap.sql, sap.cursor, replaced);
         assertNotNull(replaced[0]);
         assertNotNull(results);
-        assertEquals(
-            expectedResults,
-            convertCompletionHints(results));
+        Assert.assertEquals(
+            expectedResults, convertCompletionHints(results));
         if (expectedWord != null) {
-            assertEquals(expectedWord, replaced[0]);
+            Assert.assertEquals(expectedWord, replaced[0]);
         }
     }
 
@@ -429,7 +437,8 @@ public class SqlAdvisorTest
         {
             fail(
                 "SqlAdvisorTest: completion hints results not as salesTables:\n"
-                + uniqueResults.values() + "\nExpected:\n" + expectedList);
+                + uniqueResults.values() + "\nExpected:\n"
+                + expectedList);
         }
     }
 
@@ -482,9 +491,7 @@ public class SqlAdvisorTest
         return result;
     }
 
-    public void testFrom()
-        throws Exception
-    {
+    @Test public void testFrom() throws Exception {
         String sql;
 
         sql = "select a.empno, b.deptno from ^dummy a, sales.dummy b";
@@ -501,23 +508,19 @@ public class SqlAdvisorTest
         assertHint(sql, SCHEMAS, getSalesTables(), getFromKeywords()); // join
     }
 
-    public void testFromComplete()
-    {
+    @Test public void testFromComplete() {
         String sql = "select a.empno, b.deptno from dummy a, sales.^";
         assertComplete(sql, getSalesTables());
     }
 
-    public void testGroup()
-    {
+    @Test public void testGroup() {
         // This test is hard because the statement is not valid if you replace
         // '^' with a dummy identifier.
         String sql = "select a.empno, b.deptno from emp group ^";
         assertComplete(sql, Arrays.asList("Keyword(BY)"));
     }
 
-    public void testJoin()
-        throws Exception
-    {
+    @Test public void testJoin() throws Exception {
         String sql;
 
         // from
@@ -548,8 +551,7 @@ public class SqlAdvisorTest
         assertComplete(sql, EXPR_KEYWORDS); // join
     }
 
-    public void testJoinKeywords()
-    {
+    @Test public void testJoinKeywords() {
         // variety of keywords possible
         List<String> list = getJoinKeywords();
         String sql = "select * from dummy join sales.emp ^";
@@ -557,9 +559,7 @@ public class SqlAdvisorTest
         assertComplete(sql, list);
     }
 
-    public void testOnCondition()
-        throws Exception
-    {
+    @Test public void testOnCondition() throws Exception {
         String sql;
 
         sql =
@@ -588,9 +588,7 @@ public class SqlAdvisorTest
         assertComplete(sql, DEPT_COLUMNS); // on right
     }
 
-    public void testFromWhere()
-        throws Exception
-    {
+    @Test public void testFromWhere() throws Exception {
         String sql;
 
         sql =
@@ -625,9 +623,7 @@ public class SqlAdvisorTest
             EXPR_KEYWORDS);
     }
 
-    public void testWhereList()
-        throws Exception
-    {
+    @Test public void testWhereList() throws Exception {
         String sql;
 
         sql =
@@ -656,21 +652,20 @@ public class SqlAdvisorTest
         assertComplete(sql, PREDICATE_KEYWORDS, WHERE_KEYWORDS);
     }
 
-    public void testSelectList()
-        throws Exception
-    {
+    @Test public void testSelectList() throws Exception {
         String sql;
 
         sql =
             "select ^dummy, b.dummy from sales.emp a join sales.dept b "
             + "on a.deptno=b.deptno where empno=1";
-        assertHint(sql, getSelectKeywords(), EXPR_KEYWORDS, AB_TABLES);
+        assertHint(sql, getSelectKeywords(), EXPR_KEYWORDS, AB_TABLES, SETOPS);
 
         sql = "select ^ from (values (1))";
         assertComplete(
             sql,
             getSelectKeywords(),
             EXPR_KEYWORDS,
+            SETOPS,
             Arrays.asList("Table(EXPR$0)", "Column(EXPR$0)"));
 
         sql = "select ^ from (values (1)) as t(c)";
@@ -678,10 +673,12 @@ public class SqlAdvisorTest
             sql,
             getSelectKeywords(),
             EXPR_KEYWORDS,
+            SETOPS,
             Arrays.asList("Table(T)", "Column(C)"));
 
         sql = "select ^, b.dummy from sales.emp a join sales.dept b ";
-        assertComplete(sql, getSelectKeywords(), EXPR_KEYWORDS, AB_TABLES);
+        assertComplete(
+            sql, getSelectKeywords(), EXPR_KEYWORDS, SETOPS, AB_TABLES);
 
         sql =
             "select dummy, ^b.dummy from sales.emp a join sales.dept b "
@@ -703,15 +700,14 @@ public class SqlAdvisorTest
             getSelectKeywords(),
             EXPR_KEYWORDS,
             EMP_COLUMNS,
+            SETOPS,
             Arrays.asList("Table(EMP)"));
 
         sql = "select emp.^ from sales.emp";
         assertComplete(sql, EMP_COLUMNS, STAR_KEYWORD);
     }
 
-    public void testOrderByList()
-        throws Exception
-    {
+    @Test public void testOrderByList() throws Exception {
         String sql;
 
         sql = "select emp.empno from sales.emp where empno=1 order by ^dummy";
@@ -746,9 +742,7 @@ public class SqlAdvisorTest
         assertComplete(sql, PREDICATE_KEYWORDS, ORDER_KEYWORDS);
     }
 
-    public void testSubQuery()
-        throws Exception
-    {
+    @Test public void testSubQuery() throws Exception {
         String sql;
         final List<String> xyColumns =
             Arrays.asList(
@@ -760,9 +754,10 @@ public class SqlAdvisorTest
 
         sql =
             "select ^t.dummy from (select 1 as x, 2 as y from sales.emp) as t where t.dummy=1";
-        assertHint(sql, EXPR_KEYWORDS, getSelectKeywords(), xyColumns, tTable);
+        assertHint(
+            sql, EXPR_KEYWORDS, getSelectKeywords(), xyColumns, tTable, SETOPS);
 
-        sql = "select t.^ from (select 1 as x, 2 as y from sales.emp) as t";
+      sql = "select t.^ from (select 1 as x, 2 as y from sales.emp) as t";
         assertComplete(sql, xyColumns, STAR_KEYWORD);
 
         sql =
@@ -796,8 +791,7 @@ public class SqlAdvisorTest
         assertComplete(sql, getSalesTables());
     }
 
-    public void testSubQueryInWhere()
-    {
+    @Test public void testSubQueryInWhere() {
         String sql;
 
         // Aliases from enclosing subqueries are inherited: hence A from
@@ -820,8 +814,7 @@ public class SqlAdvisorTest
             EXPR_KEYWORDS);
     }
 
-    public void testSimpleParserTokenizer()
-    {
+    @Test public void testSimpleParserTokenizer() {
         String sql =
             "select"
             + " 12"
@@ -901,8 +894,7 @@ public class SqlAdvisorTest
         assertTokenizesTo("123", "ID(123)\n");
     }
 
-    public void testSimpleParser()
-    {
+    @Test public void testSimpleParser() {
         String sql;
         String expected;
 
@@ -1073,8 +1065,7 @@ public class SqlAdvisorTest
         assertSimplify(sql, expected);
     }
 
-    public void testSimpleParserQuotedId()
-    {
+    @Test public void testSimpleParserQuotedId() {
         String sql;
         String expected;
 
@@ -1094,8 +1085,7 @@ public class SqlAdvisorTest
         assertSimplify(sql, expected);
     }
 
-    public void testPartialIdentifier()
-    {
+    @Test public void testPartialIdentifier() {
         String sql = "select * from emp where e^ and emp.deptno = 10";
         final String expected =
             "Column(EMPNO)\n"
@@ -1144,9 +1134,7 @@ public class SqlAdvisorTest
         assertComplete(sql, EMP_COLUMNS, STAR_KEYWORD);
     }
 
-    public void testInsert()
-        throws Exception
-    {
+    @Test public void testInsert() throws Exception {
         String sql;
         sql = "insert into emp(empno, mgr) select ^ from dept a";
         assertComplete(
@@ -1154,7 +1142,8 @@ public class SqlAdvisorTest
             getSelectKeywords(),
             EXPR_KEYWORDS,
             A_TABLE,
-            DEPT_COLUMNS);
+            DEPT_COLUMNS,
+            SETOPS);
 
         sql = "insert into emp(empno, mgr) values (123, 3 + ^)";
         assertComplete(sql, EXPR_KEYWORDS);
@@ -1166,9 +1155,7 @@ public class SqlAdvisorTest
         assertComplete(sql, "", null);
     }
 
-    public void testUnion()
-        throws Exception
-    {
+    @Test public void testUnion() throws Exception {
         // we simplify set ops such as UNION by removing other queries -
         // thereby avoiding validation errors due to mismatched select lists
         String sql =

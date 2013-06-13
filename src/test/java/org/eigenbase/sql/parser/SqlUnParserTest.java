@@ -20,18 +20,13 @@ package org.eigenbase.sql.parser;
 /**
  * Extension to {@link SqlParserTest} which ensures that every expression can
  * un-parse successfully.
- *
- * @author jhyde
- * @since Oct 12, 2005
  */
 public class SqlUnParserTest
     extends SqlParserTest
 {
     //~ Constructors -----------------------------------------------------------
 
-    public SqlUnParserTest(String name)
-    {
-        super(name);
+    public SqlUnParserTest() {
     }
 
     //~ Methods ----------------------------------------------------------------

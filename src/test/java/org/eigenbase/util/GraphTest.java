@@ -19,23 +19,18 @@ package org.eigenbase.util;
 
 import java.util.Iterator;
 
-import junit.framework.TestCase;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 /**
  * Unit test for {@link Graph}.
- *
- * @author jhyde
  */
-public class GraphTest
-    extends TestCase
-{
-    public GraphTest(String name)
-    {
-        super(name);
+public class GraphTest {
+    public GraphTest() {
     }
 
-    public void test()
-    {
+    @Test public void test() {
         Graph<String> g = new Graph<String>();
         g.createArc("A", "B");
         g.createArc("B", "C");

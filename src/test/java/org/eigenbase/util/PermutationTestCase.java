@@ -17,28 +17,23 @@
 */
 package org.eigenbase.util;
 
-import junit.framework.*;
 
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 /**
  * Unit test for {@link Permutation}.
- *
- * @author Julian Hyde
  */
-public class PermutationTestCase
-    extends TestCase
-{
+public class PermutationTestCase {
     //~ Constructors -----------------------------------------------------------
 
-    public PermutationTestCase(String name)
-    {
-        super(name);
+    public PermutationTestCase() {
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public void testOne()
-    {
+    @Test public void testOne() {
         final Permutation perm = new Permutation(4);
         assertEquals(
             "[0, 1, 2, 3]",
@@ -72,8 +67,7 @@ public class PermutationTestCase
             invPerm.toString());
     }
 
-    public void testTwo()
-    {
+    @Test public void testTwo() {
         final Permutation perm = new Permutation(new int[] { 3, 2, 0, 1 });
         assertFalse(perm.isIdentity());
         assertEquals(
@@ -104,8 +98,7 @@ public class PermutationTestCase
             perm2.toString());
     }
 
-    public void testInsert()
-    {
+    @Test public void testInsert() {
         Permutation perm = new Permutation(new int[] { 3, 0, 4, 2, 1 });
         perm.insertTarget(2);
         assertEquals(
@@ -134,8 +127,7 @@ public class PermutationTestCase
             perm.toString());
     }
 
-    public void testEmpty()
-    {
+    @Test public void testEmpty() {
         final Permutation perm = new Permutation(0);
         assertTrue(perm.isIdentity());
         assertEquals(

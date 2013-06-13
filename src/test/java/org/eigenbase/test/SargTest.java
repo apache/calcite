@@ -19,27 +19,26 @@ package org.eigenbase.test;
 
 import java.math.*;
 
-import junit.framework.*;
-
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sarg.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
+
 
 /**
- * SargTest tests the {@link org.eigenbase.sarg} class library.
+ * Tests for the {@link org.eigenbase.sarg} class library.
  *
- * <p>NOTE jvs 17-Jan-2006: This class lives in org.eigenbase.test rather than
+ * <p>NOTE: This class lives in org.eigenbase.test rather than
  * org.eigenbase.sarg by design: we want to make sure we're only testing via the
  * public interface.
- *
- * @author John V. Sichi
  */
-public class SargTest
-    extends TestCase
-{
+public class SargTest {
     //~ Enums ------------------------------------------------------------------
 
     enum Zodiac
@@ -69,22 +68,15 @@ public class SargTest
     //~ Constructors -----------------------------------------------------------
 
     /**
-     * Initializes a new SargTest.
-     *
-     * @param testCaseName JUnit test case name
+     * Creates a SargTest.
      */
-    public SargTest(String testCaseName)
-        throws Exception
-    {
-        super(testCaseName);
+    public SargTest() {
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    // implement TestCase
-    public void setUp()
-    {
-        // create some reusable fixtures
+    @Before public void setUp() {
+      // create some reusable fixtures
 
         RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
         intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -108,16 +100,14 @@ public class SargTest
         sargFactory = new SargFactory(rexBuilder);
     }
 
-    public void testDefaultEndpoint()
-    {
+    @Test public void testDefaultEndpoint() {
         SargMutableEndpoint ep = sargFactory.newEndpoint(intType);
         assertEquals(
             "-infinity",
             ep.toString());
     }
 
-    public void testInfiniteEndpoint()
-    {
+    @Test public void testInfiniteEndpoint() {
         SargMutableEndpoint ep = sargFactory.newEndpoint(intType);
         ep.setInfinity(1);
         assertEquals(
@@ -129,8 +119,7 @@ public class SargTest
             ep.toString());
     }
 
-    public void testFiniteEndpoint()
-    {
+    @Test public void testFiniteEndpoint() {
         SargMutableEndpoint ep = sargFactory.newEndpoint(intType);
 
         ep.setFinite(
@@ -200,8 +189,7 @@ public class SargTest
             ep.toString());
     }
 
-    public void testNullEndpoint()
-    {
+    @Test public void testNullEndpoint() {
         SargMutableEndpoint ep = sargFactory.newEndpoint(intType);
 
         ep.setFinite(
@@ -213,8 +201,7 @@ public class SargTest
             ep.toString());
     }
 
-    public void testTouchingEndpoint()
-    {
+    @Test public void testTouchingEndpoint() {
         SargMutableEndpoint ep1 = sargFactory.newEndpoint(intType);
         SargMutableEndpoint ep2 = sargFactory.newEndpoint(intType);
 
@@ -261,16 +248,14 @@ public class SargTest
         assertTrue(ep1.compareTo(ep2) < 0);
     }
 
-    public void testDefaultIntervalExpr()
-    {
+    @Test public void testDefaultIntervalExpr() {
         SargIntervalExpr interval = sargFactory.newIntervalExpr(intType);
         assertEquals(
             "(-infinity, +infinity)",
             interval.toString());
     }
 
-    public void testPointExpr()
-    {
+    @Test public void testPointExpr() {
         SargIntervalExpr interval = sargFactory.newIntervalExpr(intType);
         interval.setPoint(intLiteral7);
         assertTrue(interval.isPoint());
@@ -284,8 +269,7 @@ public class SargTest
             interval.evaluate().toString());
     }
 
-    public void testRangeIntervalExpr()
-    {
+    @Test public void testRangeIntervalExpr() {
         SargIntervalExpr interval = sargFactory.newIntervalExpr(intType);
 
         interval.setLower(intLiteral7, SargStrictness.CLOSED);
@@ -343,8 +327,7 @@ public class SargTest
         assertFalse(interval.isEmpty());
     }
 
-    public void testNullExpr()
-    {
+    @Test public void testNullExpr() {
         SargIntervalExpr interval = sargFactory.newIntervalExpr(intType);
         interval.setNull();
         assertTrue(interval.isPoint());
@@ -358,8 +341,7 @@ public class SargTest
             interval.evaluate().toString());
     }
 
-    public void testEmptyExpr()
-    {
+    @Test public void testEmptyExpr() {
         SargIntervalExpr interval = sargFactory.newIntervalExpr(intType);
         interval.setEmpty();
         assertTrue(interval.isEmpty());
@@ -372,8 +354,7 @@ public class SargTest
             interval.evaluate().toString());
     }
 
-    public void testUnconstrainedExpr()
-    {
+    @Test public void testUnconstrainedExpr() {
         SargIntervalExpr interval = sargFactory.newIntervalExpr(intType);
         interval.setEmpty();
         assertFalse(interval.isUnconstrained());
@@ -388,8 +369,7 @@ public class SargTest
             interval.evaluate().toString());
     }
 
-    public void testSetExpr()
-    {
+    @Test public void testSetExpr() {
         SargIntervalExpr interval1 = sargFactory.newIntervalExpr(intType);
         SargIntervalExpr interval2 = sargFactory.newIntervalExpr(intType);
 
@@ -439,8 +419,7 @@ public class SargTest
             complementExpr.evaluate().toString());
     }
 
-    public void testComplement()
-    {
+    @Test public void testComplement() {
         // test
         //   complement ( union (interval1, interval2) )
         // it is evaluated as
@@ -553,8 +532,7 @@ public class SargTest
             complementExpr4.evaluate().toString());
     }
 
-    public void testUnion()
-    {
+    @Test public void testUnion() {
         exprs = new SargIntervalExpr[11];
         for (int i = 0; i < 11; ++i) {
             exprs[i] = sargFactory.newIntervalExpr(stringType);
@@ -675,8 +653,7 @@ public class SargTest
             "UNION( ['ARIES', 'GEMINI') ('GEMINI', +infinity) )");
     }
 
-    public void testIntersection()
-    {
+    @Test public void testIntersection() {
         exprs = new SargIntervalExpr[11];
         for (int i = 0; i < 11; ++i) {
             exprs[i] = sargFactory.newIntervalExpr(stringType);
@@ -809,8 +786,7 @@ public class SargTest
         return sargFactory.getRexBuilder().makeLiteral(z.toString());
     }
 
-    public void testRexAnalyzer()
-    {
+    @Test public void testRexAnalyzer() {
         SargRexAnalyzer rexAnalyzer = sargFactory.newRexAnalyzer();
         RexNode pred1, pred2, pred3;
         SargBinding binding;

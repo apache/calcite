@@ -19,29 +19,23 @@ package org.eigenbase.util;
 
 import java.util.*;
 
-import junit.framework.*;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 
 /**
  * Unit test for {@link ArrayQueue}.
- *
- * @author Stephan Zuercher
- * @since Sep 16, 2004
  */
-public class ArrayQueueTest
-    extends TestCase
-{
+public class ArrayQueueTest {
     //~ Constructors -----------------------------------------------------------
 
-    public ArrayQueueTest(String name)
-    {
-        super(name);
+    public ArrayQueueTest() {
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public void testOfferPoll()
-    {
+    @Test public void testOfferPoll() {
         ArrayQueue<String> queue = new ArrayQueue<String>();
 
         assertTrue(queue.offer("1"));
@@ -69,8 +63,7 @@ public class ArrayQueueTest
         assertTrue(queue.isEmpty());
     }
 
-    public void testRepeatedOfferPoll()
-    {
+    @Test public void testRepeatedOfferPoll() {
         ArrayQueue<String> queue = new ArrayQueue<String>();
 
         for (int i = 1; i < 1000; i++) {
@@ -97,8 +90,7 @@ public class ArrayQueueTest
         }
     }
 
-    public void testEmptyAndClear()
-    {
+    @Test public void testEmptyAndClear() {
         ArrayQueue<String> queue = new ArrayQueue<String>();
 
         assertTrue(queue.isEmpty());
@@ -124,8 +116,7 @@ public class ArrayQueueTest
             queue.size());
     }
 
-    public void testAddAddAllRemove()
-    {
+    @Test public void testAddAddAllRemove() {
         ArrayQueue<String> queue = new ArrayQueue<String>();
 
         queue.add("1");
@@ -182,8 +173,7 @@ public class ArrayQueueTest
         assertTrue(queue.isEmpty());
     }
 
-    public void testExceptions()
-    {
+    @Test public void testExceptions() {
         ArrayQueue<String> queue = new ArrayQueue<String>();
 
         try {
@@ -229,8 +219,7 @@ public class ArrayQueueTest
         }
     }
 
-    public void testPeek()
-    {
+    @Test public void testPeek() {
         ArrayQueue<String> queue = new ArrayQueue<String>();
 
         assertNull(queue.peek());
@@ -270,8 +259,7 @@ public class ArrayQueueTest
         assertNull(queue.peek());
     }
 
-    public void testIterator()
-    {
+    @Test public void testIterator() {
         ArrayQueue<String> queue = new ArrayQueue<String>();
 
         assertTrue(queue.offer("1"));
@@ -316,8 +304,7 @@ public class ArrayQueueTest
         assertTrue(!i.hasNext());
     }
 
-    public void testConstructors()
-    {
+    @Test public void testConstructors() {
         try {
             new ArrayQueue<Integer>(0);
             fail("expected exception");
@@ -333,8 +320,7 @@ public class ArrayQueueTest
         }
     }
 
-    public void testEquals()
-    {
+    @Test public void testEquals() {
         ArrayQueue<String> queue1 = new ArrayQueue<String>();
         queue1.add("1");
         queue1.add("2");
@@ -356,8 +342,7 @@ public class ArrayQueueTest
         assertTrue(!queue1.equals(queue3));
     }
 
-    public void testToString()
-    {
+    @Test public void testToString() {
         ArrayQueue<String> queue = new ArrayQueue<String>();
         queue.add("1");
         queue.add("2");
@@ -368,8 +353,7 @@ public class ArrayQueueTest
             queue.toString());
     }
 
-    public void testToArray()
-    {
+    @Test public void testToArray() {
         ArrayQueue<String> queue = new ArrayQueue<String>();
         queue.add("1");
         queue.add("2");
@@ -389,8 +373,7 @@ public class ArrayQueueTest
             Arrays.asList(queue2.toArray(new String[3])));
     }
 
-    public void testOfferNull()
-    {
+    @Test public void testOfferNull() {
         ArrayQueue<String> queue = new ArrayQueue<String>();
         assertTrue(!queue.offer(null));
         assertEquals(

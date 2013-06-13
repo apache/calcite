@@ -22,23 +22,25 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.*;
 
-import junit.framework.*;
-
 import org.eigenbase.util.*;
 
 import org.incava.util.diff.*;
+
+import org.junit.*;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+import static org.junit.Assert.*;
 
 
 /**
  * DiffTestCase is an abstract base for JUnit tests which produce multi-line
  * output to be verified by diffing against a pre-existing reference file.
- *
- * @author John V. Sichi
  */
-public abstract class DiffTestCase
-    extends TestCase
-{
+public abstract class DiffTestCase {
     //~ Instance fields --------------------------------------------------------
+
+    private final String testCaseName;
 
     /**
      * Name of current .log file.
@@ -76,13 +78,10 @@ public abstract class DiffTestCase
     /**
      * Initializes a new DiffTestCase.
      *
-     * @param testCaseName JUnit test case name
+     * @param testCaseName Test case name
      */
-    protected DiffTestCase(String testCaseName)
-        throws Exception
-    {
-        super(testCaseName);
-
+    protected DiffTestCase(String testCaseName) throws Exception {
+        this.testCaseName = testCaseName;
         // diffMasks = new ArrayList();
         diffMasks = "";
         ignorePatterns = "";
@@ -98,12 +97,7 @@ public abstract class DiffTestCase
 
     //~ Methods ----------------------------------------------------------------
 
-    // implement TestCase
-    protected void setUp()
-        throws Exception
-    {
-        super.setUp();
-
+    @Before protected void setUp() {
         // diffMasks.clear();
         diffMasks = "";
         ignorePatterns = "";
@@ -112,17 +106,10 @@ public abstract class DiffTestCase
         gcInterval = 0;
     }
 
-    // implement TestCase
-    protected void tearDown()
-        throws Exception
-    {
-        try {
-            if (logOutputStream != null) {
-                logOutputStream.close();
-                logOutputStream = null;
-            }
-        } finally {
-            super.tearDown();
+    @After protected void tearDown() throws IOException {
+        if (logOutputStream != null) {
+            logOutputStream.close();
+            logOutputStream = null;
         }
     }
 
@@ -149,7 +136,7 @@ public abstract class DiffTestCase
         File testLogFile =
             new File(
                 testClassDir,
-                getName());
+                testCaseName);
         return new OutputStreamWriter(openTestLogOutputStream(testLogFile));
     }
 

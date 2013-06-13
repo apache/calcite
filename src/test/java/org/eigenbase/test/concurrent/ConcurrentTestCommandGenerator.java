@@ -47,11 +47,8 @@ import net.hydromatic.optiq.jdbc.SqlTimeoutException;
  * within a thread, and may be a sparse set.
  *
  * <p>There are no restrictions on the order of command creation.
- *
- * @author Stephan Zuercher
  */
-public class ConcurrentTestCommandGenerator
-{
+public class ConcurrentTestCommandGenerator {
     //~ Static fields/initializers ---------------------------------------------
 
     private static final char APOS = '\'';

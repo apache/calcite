@@ -26,6 +26,10 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
+import org.junit.Ignore;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing lots of unit
@@ -34,9 +38,6 @@ import org.eigenbase.util.*;
  * <p>If you want to run these same tests in a different environment, create a
  * derived class whose {@link #getTester} returns a different implementation of
  * {@link org.eigenbase.test.SqlValidatorTestCase.Tester}.
- *
- * @author Wael Chatila
- * @since Jan 14, 2004
  */
 public class SqlValidatorTest
     extends SqlValidatorTestCase
@@ -63,26 +64,22 @@ public class SqlValidatorTest
 
     //~ Constructors -----------------------------------------------------------
 
-    public SqlValidatorTest(String name)
-    {
-        super(name);
+    public SqlValidatorTest() {
+      super(null);
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public void testMultipleSameAsPass()
-    {
+    @Test public void testMultipleSameAsPass() {
         check(
             "select 1 as again,2 as \"again\", 3 as AGAiN from (values (true))");
     }
 
-    public void testMultipleDifferentAs()
-    {
+    @Test public void testMultipleDifferentAs() {
         check("select 1 as c1,2 as c2 from (values(true))");
     }
 
-    public void testTypeOfAs()
-    {
+    @Test public void testTypeOfAs() {
         checkColumnType(
             "select 1 as c1 from (values (true))",
             "INTEGER NOT NULL");
@@ -97,8 +94,7 @@ public class SqlValidatorTest
             "BOOLEAN");
     }
 
-    public void testTypesLiterals()
-    {
+    @Test public void testTypesLiterals() {
         checkExpType("'abc'", "CHAR(3) NOT NULL");
         checkExpType("n'abc'", "CHAR(3) NOT NULL");
         checkExpType("_UTF16'abc'", "CHAR(3) NOT NULL");
@@ -127,8 +123,7 @@ public class SqlValidatorTest
         checkExpType("unknown", "BOOLEAN");
     }
 
-    public void testBooleans()
-    {
+    @Test public void testBooleans() {
         check("select TRUE OR unknowN from (values(true))");
         check("select false AND unknown from (values(true))");
         check("select not UNKNOWn from (values(true))");
@@ -136,8 +131,7 @@ public class SqlValidatorTest
         check("select not false from (values(true))");
     }
 
-    public void testAndOrIllegalTypesFails()
-    {
+    @Test public void testAndOrIllegalTypesFails() {
         // TODO need col+line number
         checkWholeExpFails(
             "'abc' AND FaLsE",
@@ -160,8 +154,7 @@ public class SqlValidatorTest
         }
     }
 
-    public void testNotIllegalTypeFails()
-    {
+    @Test public void testNotIllegalTypeFails() {
         assertExceptionIsThrown(
             "select ^NOT 3.141^ from (values(true))",
             "(?s).*Cannot apply 'NOT' to arguments of type 'NOT<DECIMAL.4, 3.>'.*");
@@ -175,8 +168,7 @@ public class SqlValidatorTest
             ANY);
     }
 
-    public void testIs()
-    {
+    @Test public void testIs() {
         check("select TRUE IS FALSE FROM (values(true))");
         check("select false IS NULL FROM (values(true))");
         check("select UNKNOWN IS NULL FROM (values(true))");
@@ -193,8 +185,7 @@ public class SqlValidatorTest
         checkExpFails("^'abc' IS NOT UNKNOWN^", "(?s).*Cannot apply.*");
     }
 
-    public void testIsFails()
-    {
+    @Test public void testIsFails() {
         assertExceptionIsThrown(
             "select ^1 IS TRUE^ FROM (values(true))",
             "(?s).*'<INTEGER> IS TRUE'.*");
@@ -212,8 +203,7 @@ public class SqlValidatorTest
             ANY);
     }
 
-    public void testScalars()
-    {
+    @Test public void testScalars() {
         check("select 1  + 1 from (values(true))");
         check("select 1  + 2.3 from (values(true))");
         check("select 1.2+3 from (values(true))");
@@ -235,20 +225,17 @@ public class SqlValidatorTest
         check("select 1.2/3.4 from (values(true))");
     }
 
-    public void testScalarsFails()
-    {
+    @Test public void testScalarsFails() {
         assertExceptionIsThrown(
             "select ^1+TRUE^ from (values(true))",
             "(?s).*Cannot apply '\\+' to arguments of type '<INTEGER> \\+ <BOOLEAN>'\\. Supported form\\(s\\):.*");
     }
 
-    public void testNumbers()
-    {
+    @Test public void testNumbers() {
         check("select 1+-2.*-3.e-1/-4>+5 AND true from (values(true))");
     }
 
-    public void testPrefix()
-    {
+    @Test public void testPrefix() {
         checkExpType("+interval '1' second", "INTERVAL SECOND NOT NULL");
         checkExpType("-interval '1' month", "INTERVAL MONTH NOT NULL");
         checkFails(
@@ -259,8 +246,7 @@ public class SqlValidatorTest
             "(?s).*Cannot apply '\\+' to arguments of type '\\+<CHAR.3.>'.*");
     }
 
-    public void testEqualNotEqual()
-    {
+    @Test public void testEqualNotEqual() {
         checkExp("''=''");
         checkExp("'abc'=n''");
         checkExp("''=_latin1''");
@@ -306,8 +292,7 @@ public class SqlValidatorTest
         checkExp("1.1e-1<>1e1");
     }
 
-    public void testEqualNotEqualFails()
-    {
+    @Test public void testEqualNotEqualFails() {
         checkExpFails(
             "^''<>1^",
             "(?s).*Cannot apply '<>' to arguments of type '<CHAR.0.> <> <INTEGER>'.*");
@@ -340,14 +325,12 @@ public class SqlValidatorTest
             "(?s).*Cannot apply '<>' to arguments of type '<BINARY.2.> <> <INTEGER>'.*");
     }
 
-    public void testBinaryString()
-    {
+    @Test public void testBinaryString() {
         check("select x'face'=X'' from (values(true))");
         check("select x'ff'=X'' from (values(true))");
     }
 
-    public void testBinaryStringFails()
-    {
+    @Test public void testBinaryStringFails() {
         assertExceptionIsThrown(
             "select ^x'ffee'='abc'^ from (values(true))",
             "(?s).*Cannot apply '=' to arguments of type '<BINARY.2.> = <CHAR.3.>'.*");
@@ -362,14 +345,12 @@ public class SqlValidatorTest
             "(?s).*Cannot apply '<>' to arguments of type '<BINARY.0.> <> <DECIMAL.2, 1.>'.*");
     }
 
-    public void testStringLiteral()
-    {
+    @Test public void testStringLiteral() {
         check("select n''=_iso-8859-1'abc' from (values(true))");
         check("select N'f'<>'''' from (values(true))");
     }
 
-    public void testStringLiteralBroken()
-    {
+    @Test public void testStringLiteralBroken() {
         check("select 'foo'" + NL + "'bar' from (values(true))");
         check("select 'foo'\r'bar' from (values(true))");
         check("select 'foo'\n\r'bar' from (values(true))");
@@ -384,8 +365,7 @@ public class SqlValidatorTest
             "String literal continued on same line");
     }
 
-    public void testArithmeticOperators()
-    {
+    @Test public void testArithmeticOperators() {
         checkExp("power(2,3)");
         checkExp("aBs(-2.3e-2)");
         checkExp("MOD(5             ,\t\f\r\n2)");
@@ -397,8 +377,7 @@ public class SqlValidatorTest
         checkExp("exp(3.67)");
     }
 
-    public void testArithmeticOperatorsFails()
-    {
+    @Test public void testArithmeticOperatorsFails() {
         checkExpFails(
             "^power(2,'abc')^",
             "(?s).*Cannot apply 'POWER' to arguments of type 'POWER.<INTEGER>, <CHAR.3.>.*");
@@ -425,8 +404,7 @@ public class SqlValidatorTest
             "(?s).*Cannot apply 'EXP' to arguments of type 'EXP.<CHAR.3.>.*");
     }
 
-    public void testCaseExpression()
-    {
+    @Test public void testCaseExpression() {
         checkExp("case 1 when 1 then 'one' end");
         checkExp("case 1 when 1 then 'one' else null end");
         checkExp("case 1 when 1 then 'one' else 'more' end");
@@ -443,8 +421,7 @@ public class SqlValidatorTest
             "CASE 1 WHEN 1 THEN cast(null as integer) WHEN 2 THEN cast(cast(null as tinyint) as integer) END");
     }
 
-    public void testCaseExpressionTypes()
-    {
+    @Test public void testCaseExpressionTypes() {
         checkExpType(
             "case 1 when 1 then 'one' else 'not one' end",
             "CHAR(7) NOT NULL");
@@ -473,8 +450,7 @@ public class SqlValidatorTest
             "INTEGER");
     }
 
-    public void testCaseExpressionFails()
-    {
+    @Test public void testCaseExpressionFails() {
         // varchar not comparable with bit string
         checkWholeExpFails(
             "case 'string' when x'01' then 'zero one' else 'something' end",
@@ -497,8 +473,7 @@ public class SqlValidatorTest
             "Illegal mixing of types in CASE or COALESCE statement");
     }
 
-    public void testNullIf()
-    {
+    @Test public void testNullIf() {
         checkExp("nullif(1,2)");
         checkExpType("nullif(1,2)", "INTEGER");
         checkExpType("nullif('a','b')", "CHAR(1)");
@@ -509,14 +484,12 @@ public class SqlValidatorTest
             "Invalid number of arguments to function 'NULLIF'. Was expecting 2 arguments");
     }
 
-    public void testCoalesce()
-    {
+    @Test public void testCoalesce() {
         checkExp("coalesce('a','b')");
         checkExpType("coalesce('a','b','c')", "CHAR(1) NOT NULL");
     }
 
-    public void testCoalesceFails()
-    {
+    @Test public void testCoalesceFails() {
         checkWholeExpFails(
             "coalesce('a',1)",
             "Illegal mixing of types in CASE or COALESCE statement");
@@ -525,8 +498,7 @@ public class SqlValidatorTest
             "Illegal mixing of types in CASE or COALESCE statement");
     }
 
-    public void testStringCompare()
-    {
+    @Test public void testStringCompare() {
         checkExp("'a' = 'b'");
         checkExp("'a' <> 'b'");
         checkExp("'a' > 'b'");
@@ -542,8 +514,7 @@ public class SqlValidatorTest
         checkExp("cast('' as varchar(1))<>cast('' as char(1))");
     }
 
-    public void testStringCompareType()
-    {
+    @Test public void testStringCompareType() {
         checkExpType("'a' = 'b'", "BOOLEAN NOT NULL");
         checkExpType("'a' <> 'b'", "BOOLEAN NOT NULL");
         checkExpType("'a' > 'b'", "BOOLEAN NOT NULL");
@@ -553,8 +524,7 @@ public class SqlValidatorTest
         checkExpType("CAST(NULL AS VARCHAR(33)) > 'foo'", "BOOLEAN");
     }
 
-    public void testConcat()
-    {
+    @Test public void testConcat() {
         checkExp("'a'||'b'");
         checkExp("x'12'||x'34'");
         checkExpType("'a'||'b'", "CHAR(2) NOT NULL");
@@ -570,23 +540,20 @@ public class SqlValidatorTest
         checkExp("_UTF16'a'||_UTF16'b'||_UTF16'c'");
     }
 
-    public void testConcatWithCharset()
-    {
+    @Test public void testConcatWithCharset() {
         checkCharset(
             "_UTF16'a'||_UTF16'b'||_UTF16'c'",
             Charset.forName("UTF-16LE"));
     }
 
-    public void testConcatFails()
-    {
+    @Test public void testConcatFails() {
         checkWholeExpFails(
             "'a'||x'ff'",
             "(?s).*Cannot apply '\\|\\|' to arguments of type '<CHAR.1.> \\|\\| <BINARY.1.>'"
             + ".*Supported form.s.: '<STRING> \\|\\| <STRING>.*'");
     }
 
-    public void testBetween()
-    {
+    @Test public void testBetween() {
         checkExp("1 between 2 and 3");
         checkExp("'a' between 'b' and 'c'");
         checkWholeExpFails(
@@ -594,8 +561,7 @@ public class SqlValidatorTest
             "(?s).*Cannot apply 'BETWEEN' to arguments of type.*");
     }
 
-    public void testCharsetMismatch()
-    {
+    @Test public void testCharsetMismatch() {
         checkWholeExpFails(
             "''=_UTF16''",
             "Cannot apply .* to the two different charsets ISO-8859-1 and UTF-16LE");
@@ -677,8 +643,7 @@ public class SqlValidatorTest
             SqlCollation.Coercibility.Explicit);
     }
 
-    public void testCharLength()
-    {
+    @Test public void testCharLength() {
         checkExp("char_length('string')");
         checkExp("char_length(_UTF16'string')");
         checkExp("character_length('string')");
@@ -686,8 +651,7 @@ public class SqlValidatorTest
         checkExpType("character_length('string')", "INTEGER NOT NULL");
     }
 
-    public void testUpperLower()
-    {
+    @Test public void testUpperLower() {
         checkExp("upper(_UTF16'sadf')");
         checkExp("lower(n'sadf')");
         checkExpType("lower('sadf')", "CHAR(4) NOT NULL");
@@ -696,8 +660,7 @@ public class SqlValidatorTest
             "(?s).*Cannot apply 'UPPER' to arguments of type 'UPPER.<INTEGER>.'.*");
     }
 
-    public void testPosition()
-    {
+    @Test public void testPosition() {
         checkExp("position('mouse' in 'house')");
         checkExp("position(x'11' in x'100110')");
         checkExp("position(x'abcd' in x'')");
@@ -707,8 +670,7 @@ public class SqlValidatorTest
             "Parameters must be of the same type");
     }
 
-    public void testTrim()
-    {
+    @Test public void testTrim() {
         checkExp("trim('mustache' FROM 'beard')");
         checkExp("trim(both 'mustache' FROM 'beard')");
         checkExp("trim(leading 'mustache' FROM 'beard')");
@@ -728,8 +690,7 @@ public class SqlValidatorTest
         }
     }
 
-    public void testTrimFails()
-    {
+    @Test public void testTrimFails() {
         checkWholeExpFails(
             "trim(123 FROM 'beard')",
             "(?s).*Cannot apply 'TRIM' to arguments of type.*");
@@ -747,8 +708,7 @@ public class SqlValidatorTest
         checkExp("translate('abc' using translation)");
     }
 
-    public void testOverlay()
-    {
+    @Test public void testOverlay() {
         checkExp("overlay('ABCdef' placing 'abc' from 1)");
         checkExp("overlay('ABCdef' placing 'abc' from 1 for 3)");
         checkWholeExpFails(
@@ -772,8 +732,7 @@ public class SqlValidatorTest
         }
     }
 
-    public void testSubstring()
-    {
+    @Test public void testSubstring() {
         checkExp("substring('a' FROM 1)");
         checkExp("substring('a' FROM 1 FOR 3)");
         checkExp("substring('a' FROM 'reg' FOR '\\')");
@@ -799,8 +758,7 @@ public class SqlValidatorTest
             Charset.forName("UTF-16LE"));
     }
 
-    public void testSubstringFails()
-    {
+    @Test public void testSubstringFails() {
         checkWholeExpFails(
             "substring('a' from 1 for 'b')",
             "(?s).*Cannot apply 'SUBSTRING' to arguments of type.*");
@@ -815,8 +773,7 @@ public class SqlValidatorTest
             "(?s).* not comparable to each other.*");
     }
 
-    public void testLikeAndSimilar()
-    {
+    @Test public void testLikeAndSimilar() {
         checkExp("'a' like 'b'");
         checkExp("'a' like 'b'");
         checkExp("'a' similar to 'b'");
@@ -837,8 +794,7 @@ public class SqlValidatorTest
             "(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary, _ISO-8859-1.b. COLLATE SHIFT_JIS.jp.primary.*");
     }
 
-    public void testNull()
-    {
+    @Test public void testNull() {
         checkFails("values 1.0 + ^NULL^", "(?s).*Illegal use of .NULL.*");
         checkExpFails("1.0 + ^NULL^", "(?s).*Illegal use of .NULL.*");
 
@@ -853,8 +809,7 @@ public class SqlValidatorTest
             "Values passed to IN operator must have compatible types");
     }
 
-    public void testNullCast()
-    {
+    @Test public void testNullCast() {
         checkExpType("cast(null as tinyint)", "TINYINT");
         checkExpType("cast(null as smallint)", "SMALLINT");
         checkExpType("cast(null as integer)", "INTEGER");
@@ -875,8 +830,7 @@ public class SqlValidatorTest
         checkExp("cast(null as integer), cast(null as char(1))");
     }
 
-    public void testCastTypeToType()
-    {
+    @Test public void testCastTypeToType() {
         checkExpType("cast(123 as char)", "CHAR(1) NOT NULL");
         checkExpType("cast(123 as varchar)", "VARCHAR(1) NOT NULL");
         checkExpType("cast(x'1234' as binary)", "BINARY(1) NOT NULL");
@@ -916,8 +870,7 @@ public class SqlValidatorTest
             "INTEGER NOT NULL MULTISET NOT NULL");
     }
 
-    public void testCastFails()
-    {
+    @Test public void testCastFails() {
         checkExpFails(
             "cast('foo' as ^bar^)",
             "(?s).*Unknown datatype name 'BAR'");
@@ -949,15 +902,13 @@ public class SqlValidatorTest
         checkExp("cast(true as char(3))");
     }
 
-    public void testCastBinaryLiteral()
-    {
+    @Test public void testCastBinaryLiteral() {
         checkExpFails(
             "cast(^x'0dd'^ as binary(5))",
             "Binary literal string must contain an even number of hexits");
     }
 
-    public void testDateTime()
-    {
+    @Test public void testDateTime() {
         // LOCAL_TIME
         checkExp("LOCALTIME(3)");
         checkExp("LOCALTIME"); //    fix sqlcontext later.
@@ -1093,8 +1044,7 @@ public class SqlValidatorTest
     /**
      * Tests casting to/from date/time types.
      */
-    public void testDateTimeCast()
-    {
+    @Test public void testDateTimeCast() {
         checkWholeExpFails(
             "CAST(1 as DATE)",
             "Cast function cannot convert value of type INTEGER to type DATE");
@@ -1106,8 +1056,7 @@ public class SqlValidatorTest
         checkExp("CAST( '2004-12-21 10:12:21' AS TIMESTAMP)");
     }
 
-    public void testInvalidFunction()
-    {
+    @Test public void testInvalidFunction() {
         checkWholeExpFails(
             "foo()",
             "No match found for function signature FOO..");
@@ -1116,8 +1065,7 @@ public class SqlValidatorTest
             "Invalid number of arguments to function 'MOD'. Was expecting 2 arguments");
     }
 
-    public void testJdbcFunctionCall()
-    {
+    @Test public void testJdbcFunctionCall() {
         checkExp("{fn log10(1)}");
         checkExp("{fn locate('','')}");
         checkExp("{fn insert('',1,2,'')}");
@@ -1150,8 +1098,7 @@ public class SqlValidatorTest
             "(?s).*Function '.fn HAHAHA.' is not defined.*");
     }
 
-    public void testQuotedFunction()
-    {
+    @Test public void testQuotedFunction() {
         if (false) {
             // REVIEW jvs 2-Feb-2005:  I am disabling this test because I
             // removed the corresponding support from the parser.  Where in the
@@ -1180,8 +1127,7 @@ public class SqlValidatorTest
         }
     }
 
-    public void testRowtype()
-    {
+    @Test public void testRowtype() {
         check("values (1),(2),(1)");
         checkResultType(
             "values (1),(2),(1)",
@@ -1201,8 +1147,7 @@ public class SqlValidatorTest
         }
     }
 
-    public void testRow()
-    {
+    @Test public void testRow() {
         // double-nested rows can confuse validator namespace resolution
         checkColumnType(
             "select t.r.\"EXPR$1\".\"EXPR$2\" \n"
@@ -1210,8 +1155,7 @@ public class SqlValidatorTest
             "INTEGER NOT NULL");
     }
 
-    public void testMultiset()
-    {
+    @Test public void testMultiset() {
         checkExpType("multiset[1]", "INTEGER NOT NULL MULTISET NOT NULL");
         checkExpType(
             "multiset[1, CAST(null AS DOUBLE)]",
@@ -1250,8 +1194,7 @@ public class SqlValidatorTest
             + " BOOLEAN NOT NULL SLACKER) NOT NULL MULTISET NOT NULL");
     }
 
-    public void testMultisetSetOperators()
-    {
+    @Test public void testMultisetSetOperators() {
         checkExp("multiset[1] multiset union multiset[1,2.3]");
         checkExpType(
             "multiset[324.2] multiset union multiset[23.2,2.32]",
@@ -1276,8 +1219,7 @@ public class SqlValidatorTest
         }
     }
 
-    public void testSubMultisetOf()
-    {
+    @Test public void testSubMultisetOf() {
         checkExpType(
             "multiset[1] submultiset of multiset[1,2.3]",
             "BOOLEAN NOT NULL");
@@ -1291,8 +1233,7 @@ public class SqlValidatorTest
         checkExp("multiset[ROW(1,2)] submultiset of multiset[row(3,4)]");
     }
 
-    public void testElement()
-    {
+    @Test public void testElement() {
         checkExpType("element(multiset[1])", "INTEGER NOT NULL");
         checkExpType("1.0+element(multiset[1])", "DECIMAL(12, 1) NOT NULL");
         checkExpType("element(multiset['1'])", "CHAR(1) NOT NULL");
@@ -1302,23 +1243,20 @@ public class SqlValidatorTest
             "TINYINT MULTISET NOT NULL");
     }
 
-    public void testMemberOf()
-    {
+    @Test public void testMemberOf() {
         checkExpType("1 member of multiset[1]", "BOOLEAN NOT NULL");
         checkWholeExpFails(
             "1 member of multiset['1']",
             "Cannot compare values of types 'INTEGER', 'CHAR\\(1\\)'");
     }
 
-    public void testIsASet()
-    {
+    @Test public void testIsASet() {
         checkExp("multiset[1] is a set");
         checkExp("multiset['1'] is a set");
         checkWholeExpFails("'a' is a set", ".*Cannot apply 'IS A SET' to.*");
     }
 
-    public void testCardinality()
-    {
+    @Test public void testCardinality() {
         checkExpType("cardinality(multiset[1])", "INTEGER NOT NULL");
         checkExpType("cardinality(multiset['1'])", "INTEGER NOT NULL");
         checkWholeExpFails(
@@ -1328,8 +1266,7 @@ public class SqlValidatorTest
             + "'CARDINALITY\\(<MAP>\\)'");
     }
 
-    public void testIntervalTimeUnitEnumeration()
-    {
+    @Test public void testIntervalTimeUnitEnumeration() {
         // Since there is validation code relaying on the fact that the
         // enumerated time unit ordinals in SqlIntervalQualifier starts with 0
         // and ends with 5, this test is here to make sure that if someone
@@ -1367,16 +1304,14 @@ public class SqlValidatorTest
         assertTrue(b);
     }
 
-    public void testIntervalMonthsConversion()
-    {
+    @Test public void testIntervalMonthsConversion() {
         checkIntervalConv("INTERVAL '1' YEAR", "12");
         checkIntervalConv("INTERVAL '5' MONTH", "5");
         checkIntervalConv("INTERVAL '3-2' YEAR TO MONTH", "38");
         checkIntervalConv("INTERVAL '-5-4' YEAR TO MONTH", "-64");
     }
 
-    public void testIntervalMillisConversion()
-    {
+    @Test public void testIntervalMillisConversion() {
         checkIntervalConv("INTERVAL '1' DAY", "86400000");
         checkIntervalConv("INTERVAL '1' HOUR", "3600000");
         checkIntervalConv("INTERVAL '1' MINUTE", "60000");
@@ -3543,8 +3478,7 @@ public class SqlValidatorTest
             + " INTERVAL SECOND\\(1, 0\\)");
     }
 
-    public void testIntervalLiterals()
-    {
+    @Test public void testIntervalLiterals() {
         // First check that min, max, and defaults are what we expect
         // (values used in subtests depend on these being true to
         // accurately test bounds)
@@ -3618,8 +3552,7 @@ public class SqlValidatorTest
             "INTERVAL MONTH(3) NOT NULL");
     }
 
-    public void testIntervalOperators()
-    {
+    @Test public void testIntervalOperators() {
         checkExpType("interval '1' hour + TIME '8:8:8'", "TIME(0) NOT NULL");
         checkExpType("TIME '8:8:8' - interval '1' hour", "TIME(0) NOT NULL");
         checkExpType("TIME '8:8:8' + interval '1' hour", "TIME(0) NOT NULL");
@@ -3702,8 +3635,7 @@ public class SqlValidatorTest
             "(?s).*Cannot apply '/' to arguments of type '<DECIMAL.4, 3.> / <INTERVAL DAY TO SECOND>'.*");
     }
 
-    public void testNumericOperators()
-    {
+    @Test public void testNumericOperators() {
         // unary operator
         checkExpType("- cast(1 as TINYINT)", "TINYINT NOT NULL");
         checkExpType("+ cast(1 as INT)", "INTEGER NOT NULL");
@@ -3899,8 +3831,7 @@ public class SqlValidatorTest
             "DECIMAL(19, 0) NOT NULL");
     }
 
-    public void testFloorCeil()
-    {
+    @Test public void testFloorCeil() {
         checkExpType("floor(cast(null as tinyint))", "TINYINT");
         checkExpType("floor(1.2)", "DECIMAL(2, 0) NOT NULL");
         checkExpType("floor(1)", "INTEGER NOT NULL");
@@ -3949,8 +3880,7 @@ public class SqlValidatorTest
         // Test specified collation, window clause syntax rule 4,5.
     }
 
-    public void testWindowFunctions()
-    {
+    @Test public void testWindowFunctions() {
         // SQL 03 Section 6.10
 
         // Window functions may only appear in the <select list> of a
@@ -3994,7 +3924,10 @@ public class SqlValidatorTest
         // rule 4,
         // valid window functions
         checkWinFuncExpWithWinClause("sum(sal)", null);
+    }
 
+    @Ignore
+    @Test public void testWindowFunctions2() {
         if (Bug.Dt1446Fixed) {
             // row_number function
             checkWinFuncExpWithWinClause(
@@ -4117,8 +4050,7 @@ public class SqlValidatorTest
             "Referenced window cannot have framing declarations");
     }
 
-    public void testInlineWinDef()
-    {
+    @Test public void testInlineWinDef() {
         // the <window specification> used by windowed agg functions is
         // fully defined in SQL 03 Std. section 7.1 <window clause>
         check(
@@ -4245,8 +4177,7 @@ public class SqlValidatorTest
             "Window 'W1' not found");
     }
 
-    public void testPartitionByExpr()
-    {
+    @Test public void testPartitionByExpr() {
         checkWinFuncExp(
             "sum(sal) over (partition by empno + deptno order by empno range 5 preceding)",
             null);
@@ -4256,8 +4187,7 @@ public class SqlValidatorTest
             "(?s)Cannot apply '\\+' to arguments of type '<INTEGER> \\+ <VARCHAR\\(20\\)>'.*");
     }
 
-    public void testWindowClause()
-    {
+    @Test public void testWindowClause() {
         // -----------------------------------
         // --   positive testings           --
         // -----------------------------------
@@ -4429,8 +4359,7 @@ public class SqlValidatorTest
             "Column 'NON_EXIST_COL' not found in any table");
     }
 
-    public void testWindowClause2()
-    {
+    @Test public void testWindowClause2() {
         // 7.10 syntax rule 2 <new window name> NWN1 shall not be contained in
         // the scope of another <new window name> NWN2 such that NWN1 and NWN2
         // are equivalent.
@@ -4441,8 +4370,7 @@ public class SqlValidatorTest
             "Duplicate window specification not allowed in the same window clause");
     }
 
-    public void testWindowClauseWithSubquery()
-    {
+    @Test public void testWindowClauseWithSubquery() {
         check(
             "select * from \n"
             + "( select sum(empno) over w, sum(deptno) over w from emp \n"
@@ -4460,8 +4388,7 @@ public class SqlValidatorTest
             "Column 'HIREDATE' not found in any table");
     }
 
-    public void testWindowNegative()
-    {
+    @Test public void testWindowNegative() {
         final String negSize = "Window has negative size";
         checkNegWindow("rows between 2 preceding and 4 preceding", negSize);
         checkNegWindow("rows between 2 preceding and 3 preceding", negSize);
@@ -4497,8 +4424,7 @@ public class SqlValidatorTest
             msg);
     }
 
-    public void testWindowPartial()
-    {
+    @Test public void testWindowPartial() {
         check(
             "select sum(deptno) over (\n"
             + "order by deptno, empno rows 2 preceding disallow partial)\n"
@@ -4515,15 +4441,13 @@ public class SqlValidatorTest
             "Cannot use DISALLOW PARTIAL with window based on RANGE");
     }
 
-    public void testOneWinFunc()
-    {
+    @Test public void testOneWinFunc() {
         checkWinClauseExp(
             "window w as (partition by sal order by deptno rows 2 preceding)",
             null);
     }
 
-    public void testNameResolutionInValuesClause()
-    {
+    @Test public void testNameResolutionInValuesClause() {
         final String emps =
             "(select 1 as empno, 'x' as name, 10 as deptno, 'M' as gender, 'San Francisco' as city, 30 as empid, 25 as age from (values (1)))";
         final String depts =
@@ -4581,8 +4505,7 @@ public class SqlValidatorTest
             "Table 'E' not found");
     }
 
-    public void testNestedFrom()
-    {
+    @Test public void testNestedFrom() {
         checkColumnType("values (true)", "BOOLEAN NOT NULL");
         checkColumnType("select * from (values(true))", "BOOLEAN NOT NULL");
         checkColumnType(
@@ -4602,8 +4525,7 @@ public class SqlValidatorTest
             "BOOLEAN NOT NULL");
     }
 
-    public void testAmbiguousColumn()
-    {
+    @Test public void testAmbiguousColumn() {
         checkFails(
             "select * from emp join dept" + NL
             + " on emp.deptno = ^deptno^",
@@ -4660,8 +4582,7 @@ public class SqlValidatorTest
             "Table 'E' not found");
     }
 
-    public void testExpandStar()
-    {
+    @Test public void testExpandStar() {
         // dtbug 282 -- "select r.* from sales.depts" gives NPE.
         // dtbug 318 -- error location should be ^r^ not ^r.*^.
         checkFails(
@@ -4677,8 +4598,7 @@ public class SqlValidatorTest
             "Unknown identifier 'EMPNO'");
     }
 
-    public void testAsColumnList()
-    {
+    @Test public void testAsColumnList() {
         check("select d.a, b from dept as d(a, b)");
         checkFails(
             "select d.^deptno^ from dept as d(a, b)",
@@ -4712,8 +4632,7 @@ public class SqlValidatorTest
             + "  select e.deptno from (values(true)))");
     }
 
-    public void testInList()
-    {
+    @Test public void testInList() {
         check("select * from emp where empno in (10,20)");
 
         // "select * from emp where empno in ()" is invalid -- see parser test
@@ -4758,8 +4677,7 @@ public class SqlValidatorTest
             ERR_IN_OPERANDS_INCOMPATIBLE);
     }
 
-    public void testInSubquery()
-    {
+    @Test public void testInSubquery() {
         check("select * from emp where deptno in (select deptno from dept)");
         check(
             "select * from emp where (empno,deptno)"
@@ -4774,21 +4692,18 @@ public class SqlValidatorTest
             "Values passed to IN operator must have compatible types");
     }
 
-    public void testDoubleNoAlias()
-    {
+    @Test public void testDoubleNoAlias() {
         check("select * from emp join dept on true");
         check("select * from emp, dept");
         check("select * from emp cross join dept");
     }
 
-    public void testDuplicateColumnAliasIsOK()
-    {
+    @Test public void testDuplicateColumnAliasIsOK() {
         // duplicate column aliases are daft, but SQL:2003 allows them
         check("select 1 as a, 2 as b, 3 as a from emp");
     }
 
-    public void testDuplicateTableAliasFails()
-    {
+    @Test public void testDuplicateTableAliasFails() {
         // implicit alias clashes with implicit alias
         checkFails(
             "select 1 from emp, ^emp^",
@@ -4841,20 +4756,17 @@ public class SqlValidatorTest
             + "  select 1 from emp where emp.empno = emp.deptno)");
     }
 
-    public void testInvalidGroupBy()
-    {
+    @Test public void testInvalidGroupBy() {
         checkFails(
             "select ^empno^, deptno from emp group by deptno",
             "Expression 'EMPNO' is not being grouped");
     }
 
-    public void testSingleNoAlias()
-    {
+    @Test public void testSingleNoAlias() {
         check("select * from emp");
     }
 
-    public void testObscuredAliasFails()
-    {
+    @Test public void testObscuredAliasFails() {
         // It is an error to refer to a table which has been given another
         // alias.
         checkFails(
@@ -4863,8 +4775,7 @@ public class SqlValidatorTest
             "Table 'EMP' not found");
     }
 
-    public void testFromReferenceFails()
-    {
+    @Test public void testFromReferenceFails() {
         // You cannot refer to a table ('e2') in the parent scope of a query in
         // the from clause.
         checkFails(
@@ -4874,8 +4785,7 @@ public class SqlValidatorTest
             "Table 'E2' not found");
     }
 
-    public void testWhereReference()
-    {
+    @Test public void testWhereReference() {
         // You can refer to a table ('e1') in the parent scope of a query in
         // the from clause.
         //
@@ -4886,8 +4796,7 @@ public class SqlValidatorTest
             + "    (select * from dept where dept.deptno = e1.deptno))");
     }
 
-    public void testUnionNameResolution()
-    {
+    @Test public void testUnionNameResolution() {
         checkFails(
             "select * from emp as e1 where exists (" + NL
             + "  select * from emp as e2, " + NL
@@ -4903,8 +4812,7 @@ public class SqlValidatorTest
             "Column 'EMPNO' not found in any table");
     }
 
-    public void testUnionCountMismatchFails()
-    {
+    @Test public void testUnionCountMismatchFails() {
         checkFails(
             "select 1,2 from emp" + NL
             + "union" + NL
@@ -4912,8 +4820,7 @@ public class SqlValidatorTest
             "Column count mismatch in UNION");
     }
 
-    public void testUnionCountMismatcWithValuesFails()
-    {
+    @Test public void testUnionCountMismatcWithValuesFails() {
         checkFails(
             "select * from ( values (1))" + NL
             + "union" + NL
@@ -4933,8 +4840,7 @@ public class SqlValidatorTest
             "Column count mismatch in UNION");
     }
 
-    public void testUnionTypeMismatchFails()
-    {
+    @Test public void testUnionTypeMismatchFails() {
         checkFails(
             "select 1, ^2^ from emp union select deptno, name from dept",
             "Type mismatch in column 2 of UNION");
@@ -4944,8 +4850,7 @@ public class SqlValidatorTest
             "Type mismatch in column 1 of UNION");
     }
 
-    public void testUnionTypeMismatchWithStarFails()
-    {
+    @Test public void testUnionTypeMismatchWithStarFails() {
         checkFails(
             "select ^*^ from dept union select 1, 2 from emp",
             "Type mismatch in column 2 of UNION");
@@ -4955,8 +4860,7 @@ public class SqlValidatorTest
             "Type mismatch in column 2 of UNION");
     }
 
-    public void testUnionTypeMismatchWithValuesFails()
-    {
+    @Test public void testUnionTypeMismatchWithValuesFails() {
         checkFails(
             "values (1, ^2^, 3), (3, 4, 5), (6, 7, 8) union " + NL
             + "select deptno, name, deptno from dept",
@@ -4973,29 +4877,25 @@ public class SqlValidatorTest
             "Type mismatch in column 1 of UNION");
     }
 
-    public void testValuesTypeMismatchFails()
-    {
+    @Test public void testValuesTypeMismatchFails() {
         checkFails(
             "^values (1), ('a')^",
             "Values passed to VALUES operator must have compatible types");
     }
 
-    public void testNaturalCrossJoinFails()
-    {
+    @Test public void testNaturalCrossJoinFails() {
         checkFails(
             "select * from emp natural cross ^join^ dept",
             "Cannot specify condition \\(NATURAL keyword, or ON or USING clause\\) following CROSS JOIN");
     }
 
-    public void testCrossJoinUsingFails()
-    {
+    @Test public void testCrossJoinUsingFails() {
         checkFails(
             "select * from emp cross join dept ^using (deptno)^",
             "Cannot specify condition \\(NATURAL keyword, or ON or USING clause\\) following CROSS JOIN");
     }
 
-    public void testJoinUsing()
-    {
+    @Test public void testJoinUsing() {
         check("select * from emp join dept using (deptno)");
 
         // fail: comm exists on one side not the other
@@ -5022,38 +4922,33 @@ public class SqlValidatorTest
             "Column 'DEPTNO' not found in any table");
     }
 
-    public void testCrossJoinOnFails()
-    {
+    @Test public void testCrossJoinOnFails() {
         checkFails(
             "select * from emp cross join dept" + NL
             + " ^on emp.deptno = dept.deptno^",
             "Cannot specify condition \\(NATURAL keyword, or ON or USING clause\\) following CROSS JOIN");
     }
 
-    public void testInnerJoinWithoutUsingOrOnFails()
-    {
+    @Test public void testInnerJoinWithoutUsingOrOnFails() {
         checkFails(
             "select * from emp inner ^join^ dept " + NL
             + "where emp.deptno = dept.deptno",
             "INNER, LEFT, RIGHT or FULL join requires a condition \\(NATURAL keyword or ON or USING clause\\)");
     }
 
-    public void testNaturalJoinWithOnFails()
-    {
+    @Test public void testNaturalJoinWithOnFails() {
         checkFails(
             "select * from emp natural join dept on ^emp.deptno = dept.deptno^",
             "Cannot specify NATURAL keyword with ON or USING clause");
     }
 
-    public void testNaturalJoinWithUsing()
-    {
+    @Test public void testNaturalJoinWithUsing() {
         checkFails(
             "select * from emp natural join dept ^using (deptno)^",
             "Cannot specify NATURAL keyword with ON or USING clause");
     }
 
-    public void testNaturalJoinIncompatibleDatatype()
-    {
+    @Test public void testNaturalJoinIncompatibleDatatype() {
         checkFails(
             "select * from emp natural ^join^\n"
             + "(select deptno, name as sal from dept)",
@@ -5066,30 +4961,26 @@ public class SqlValidatorTest
             + " (select deptno, name as sal, 'foo' as sal from dept)");
     }
 
-    public void testJoinUsingIncompatibleDatatype()
-    {
+    @Test public void testJoinUsingIncompatibleDatatype() {
         checkFails(
             "select * from emp join (select deptno, name as sal from dept) using (deptno, ^sal^)",
             "Column 'SAL' matched using NATURAL keyword or USING clause has incompatible types: cannot compare 'INTEGER' to 'VARCHAR\\(10\\)'");
     }
 
-    public void testJoinUsingInvalidColsFails()
-    {
+    @Test public void testJoinUsingInvalidColsFails() {
         // todo: Improve error msg
         checkFails(
             "select * from emp left join dept using (^gender^)",
             "Column 'GENDER' not found in any table");
     }
 
-    public void testJoinUsingDupColsFails()
-    {
+    @Test public void testJoinUsingDupColsFails() {
         checkFails(
             "select * from emp left join (select deptno, name as deptno from dept) using (^deptno^)",
             "Column name 'DEPTNO' in USING clause is not unique on one side of join");
     }
 
-    public void testJoinRowType()
-    {
+    @Test public void testJoinRowType() {
         checkResultType(
             "select * from emp left join dept on emp.deptno = dept.deptno",
             "RecordType(INTEGER NOT NULL EMPNO,"
@@ -5159,22 +5050,19 @@ public class SqlValidatorTest
             "ambig");
     }
 
-    public void testWhere()
-    {
+    @Test public void testWhere() {
         checkFails(
             "select * from emp where ^sal^",
             "WHERE clause must be a condition");
     }
 
-    public void testOn()
-    {
+    @Test public void testOn() {
         checkFails(
             "select * from emp e1 left outer join emp e2 on ^e1.sal^",
             "ON clause must be a condition");
     }
 
-    public void testHaving()
-    {
+    @Test public void testHaving() {
         checkFails(
             "select * from emp having ^sum(sal)^",
             "HAVING clause must be a condition");
@@ -5189,8 +5077,7 @@ public class SqlValidatorTest
             "Expression 'SAL' is not being grouped");
     }
 
-    public void testHavingBetween()
-    {
+    @Test public void testHavingBetween() {
         // FRG-115: having clause with between not working
         check(
             "select deptno from emp group by deptno having deptno between 10 and 12");
@@ -5203,8 +5090,7 @@ public class SqlValidatorTest
      * Tests a large scalar expression, which will expose any O(n^2) algorithms
      * lurking in the validation process.
      */
-    public void testLarge()
-    {
+    @Test public void testLarge() {
         int x = 1000;
         if (System.getProperty("os.name").startsWith("Windows")) {
             // NOTE jvs 1-Nov-2006:  Default thread stack size
@@ -5249,8 +5135,7 @@ public class SqlValidatorTest
         return buf.toString();
     }
 
-    public void testOrder()
-    {
+    @Test public void testOrder() {
         final SqlConformance conformance = tester.getConformance();
         check("select empno as x from emp order by empno");
 
@@ -5364,8 +5249,7 @@ public class SqlValidatorTest
             "(?s)Cannot apply '\\+' to arguments of type '<CHAR\\(3\\)> \\+ <INTEGER>'\\..*");
     }
 
-    public void testOrderUnion()
-    {
+    @Test public void testOrderUnion() {
         check(
             "select empno, sal from emp "
             + "union all "
@@ -5431,8 +5315,7 @@ public class SqlValidatorTest
     /**
      * Tests validation of the ORDER BY clause when GROUP BY is present.
      */
-    public void testOrderGroup()
-    {
+    @Test public void testOrderGroup() {
         // Group by
         checkFails(
             "select 1 from emp group by deptno order by ^empno^",
@@ -5548,8 +5431,7 @@ public class SqlValidatorTest
             : "Column 'ENO' not found in any table");
     }
 
-    public void testGroup()
-    {
+    @Test public void testGroup() {
         checkFails(
             "select empno from emp where ^sum(sal)^ > 50",
             "Aggregate expression is illegal in WHERE clause");
@@ -5599,8 +5481,7 @@ public class SqlValidatorTest
         check("select localtime, deptno + 3 from emp group by deptno");
     }
 
-    public void testGroupByCorrelatedColumnFails()
-    {
+    @Test public void testGroupByCorrelatedColumnFails() {
         // -- this is not sql 2003 standard
         // -- see sql2003 part2,  7.9
         checkFails(
@@ -5610,8 +5491,7 @@ public class SqlValidatorTest
             "Table 'EMP' not found");
     }
 
-    public void testGroupExpressionEquivalence()
-    {
+    @Test public void testGroupExpressionEquivalence() {
         // operator equivalence
         check("select empno + 1 from emp group by empno + 1");
         checkFails(
@@ -5626,8 +5506,7 @@ public class SqlValidatorTest
             "Expression 'EMPNO' is not being grouped");
     }
 
-    public void testGroupExpressionEquivalenceId()
-    {
+    @Test public void testGroupExpressionEquivalenceId() {
         // identifier equivalence
         check(
             "select case empno when 10 then deptno else null end from emp "
@@ -5672,8 +5551,7 @@ public class SqlValidatorTest
         check("select cast(? as integer) from emp group by cast(? as integer)");
     }
 
-    public void testGroupExpressionEquivalenceLiteral()
-    {
+    @Test public void testGroupExpressionEquivalenceLiteral() {
         // The purpose of this test is to see whether the validator
         // regards a pair of constants as equivalent. If we just used the raw
         // constants the validator wouldn't care ('SELECT 1 FROM emp GROUP BY
@@ -5711,8 +5589,7 @@ public class SqlValidatorTest
             + "group by case empno when 10 then timestamp '1969-04-29 12:34:56' else null end");
     }
 
-    public void testGroupExpressionEquivalenceStringLiteral()
-    {
+    @Test public void testGroupExpressionEquivalenceStringLiteral() {
         check(
             "select case empno when 10 then 'foo bar' else null end from emp "
             + "group by case empno when 10 then 'foo bar' else null end");
@@ -5736,14 +5613,12 @@ public class SqlValidatorTest
         }
     }
 
-    public void testGroupAgg()
-    {
+    @Test public void testGroupAgg() {
         // alias in GROUP BY query has been known to cause problems
         check("select deptno as d, count(*) as c from emp group by deptno");
     }
 
-    public void testNestedAggFails()
-    {
+    @Test public void testNestedAggFails() {
         String ERR_NESTED_AGG = "Aggregate expressions cannot be nested";
 
         // simple case
@@ -5784,8 +5659,7 @@ public class SqlValidatorTest
             ERR_NESTED_AGG);
     }
 
-    public void testAggregateInGroupByFails()
-    {
+    @Test public void testAggregateInGroupByFails() {
         String ERR_AGG_IN_GROUP_BY =
             "Aggregate expression is illegal in GROUP BY clause";
 
@@ -5794,8 +5668,7 @@ public class SqlValidatorTest
             ERR_AGG_IN_GROUP_BY);
     }
 
-    public void testAggregateInOrderByFails()
-    {
+    @Test public void testAggregateInOrderByFails() {
         String ERR_AGG_IN_ORDER_BY =
             "Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT";
 
@@ -5810,8 +5683,7 @@ public class SqlValidatorTest
         check("select sum(empno) from emp order by sum(empno)");
     }
 
-    public void testCorrelatingVariables()
-    {
+    @Test public void testCorrelatingVariables() {
         // reference to unqualified correlating column
         check(
             "select * from emp where exists (" + NL
@@ -5823,8 +5695,7 @@ public class SqlValidatorTest
             + "select * from dept where deptno = emp.sal)");
     }
 
-    public void testIntervalCompare()
-    {
+    @Test public void testIntervalCompare() {
         checkExpType(
             "interval '1' hour = interval '1' day",
             "BOOLEAN NOT NULL");
@@ -5864,8 +5735,7 @@ public class SqlValidatorTest
             "(?s).*Cannot apply '=' to arguments of type '<INTERVAL MONTH> = <INTERVAL DAY>'.*");
     }
 
-    public void testOverlaps()
-    {
+    @Test public void testOverlaps() {
         checkExpType(
             "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', date '1-2-3')",
             "BOOLEAN NOT NULL");
@@ -5887,8 +5757,7 @@ public class SqlValidatorTest
             "(?s).*Cannot apply 'OVERLAPS' to arguments of type '.<TIME.0.>, <TIME.0.>. OVERLAPS .<TIME.0.>, <DATE>.'.*");
     }
 
-    public void testExtract()
-    {
+    @Test public void testExtract() {
         // TODO: Need to have extract return decimal type for seconds
         // so we can have seconds fractions
         checkExpType(
@@ -5904,8 +5773,7 @@ public class SqlValidatorTest
             "(?s).*Cannot apply.*");
     }
 
-    public void testCastToInterval()
-    {
+    @Test public void testCastToInterval() {
         checkExpType(
             "cast(interval '1' hour as varchar(20))",
             "VARCHAR(20) NOT NULL");
@@ -5933,8 +5801,7 @@ public class SqlValidatorTest
             "Cast function cannot convert value of type INTERVAL YEAR TO MONTH to type INTERVAL SECOND");
     }
 
-    public void testMinusDateOperator()
-    {
+    @Test public void testMinusDateOperator() {
         checkExpType(
             "(CURRENT_DATE - CURRENT_DATE) HOUR",
             "INTERVAL HOUR NOT NULL");
@@ -5946,8 +5813,7 @@ public class SqlValidatorTest
             "(?s).*Parameters must be of the same type.*");
     }
 
-    public void testBind()
-    {
+    @Test public void testBind() {
         check("select * from emp where deptno = ?");
         check("select * from emp where deptno = ? and sal < 100000");
         if (todoTypeInference) {
@@ -5964,8 +5830,7 @@ public class SqlValidatorTest
         check("select 1 from emp having sum(sal) < ?");
     }
 
-    public void testUnnest()
-    {
+    @Test public void testUnnest() {
         checkColumnType("select*from unnest(multiset[1])", "INTEGER NOT NULL");
         checkColumnType(
             "select*from unnest(multiset[1, 2])",
@@ -5994,8 +5859,7 @@ public class SqlValidatorTest
         check("select*from unnest(multiset(select*from dept))");
     }
 
-    public void testCorrelationJoin()
-    {
+    @Test public void testCorrelationJoin() {
         check(
             "select *,"
             + "         multiset(select * from emp where deptno=dept.deptno) "
@@ -6005,8 +5869,7 @@ public class SqlValidatorTest
         check("select*from unnest(select multiset[deptno] from dept)");
     }
 
-    public void testStructuredTypes()
-    {
+    @Test public void testStructuredTypes() {
         checkColumnType(
             "values new address()",
             "ObjectSqlType(ADDRESS) NOT NULL");
@@ -6021,8 +5884,7 @@ public class SqlValidatorTest
             "VARCHAR(20) NOT NULL");
     }
 
-    public void testLateral()
-    {
+    @Test public void testLateral() {
         checkFails(
             "select * from emp, (select * from dept where ^emp^.deptno=dept.deptno)",
             "Table 'EMP' not found");
@@ -6035,8 +5897,7 @@ public class SqlValidatorTest
             "select * from emp, LATERAL (select * from dept where emp.deptno=dept.deptno) ldt");
     }
 
-    public void testCollect()
-    {
+    @Test public void testCollect() {
         check("select collect(deptno) from emp");
         check("select collect(multiset[3]) from emp");
         // todo. COLLECT is an aggregate function. test that validator only can
@@ -6044,8 +5905,7 @@ public class SqlValidatorTest
         // complete
     }
 
-    public void testFusion()
-    {
+    @Test public void testFusion() {
         checkFails(
             "select ^fusion(deptno)^ from emp",
             "(?s).*Cannot apply 'FUSION' to arguments of type 'FUSION.<INTEGER>.'.*");
@@ -6055,8 +5915,7 @@ public class SqlValidatorTest
         // complete
     }
 
-    public void testCountFunction()
-    {
+    @Test public void testCountFunction() {
         check("select count(*) from emp");
         check("select count(ename) from emp");
         check("select count(sal) from emp");
@@ -6066,8 +5925,7 @@ public class SqlValidatorTest
             "Invalid number of arguments to function 'COUNT'. Was expecting 1 arguments");
     }
 
-    public void testLastFunction()
-    {
+    @Test public void testLastFunction() {
         check("select LAST_VALUE(sal) over (order by empno) from emp");
         check("select LAST_VALUE(ename) over (order by empno) from emp");
 
@@ -6075,8 +5933,7 @@ public class SqlValidatorTest
         check("select FIRST_VALUE(ename) over (order by empno) from emp");
     }
 
-    public void testMinMaxFunctions()
-    {
+    @Test public void testMinMaxFunctions() {
         check("SELECT MIN(true) from emp");
         check("SELECT MAX(false) from emp");
 
@@ -6086,16 +5943,14 @@ public class SqlValidatorTest
         check("SELECT MAX(5) FROM emp");
     }
 
-    public void testFunctionalDistinct()
-    {
+    @Test public void testFunctionalDistinct() {
         check("select count(distinct sal) from emp");
         checkFails(
             "select COALESCE(^distinct^ sal) from emp",
             "DISTINCT/ALL not allowed with COALESCE function");
     }
 
-    public void testSelectDistinct()
-    {
+    @Test public void testSelectDistinct() {
         check("SELECT DISTINCT deptno FROM emp");
         check("SELECT DISTINCT deptno, sal FROM emp");
         check("SELECT DISTINCT deptno FROM emp GROUP BY deptno");
@@ -6146,8 +6001,7 @@ public class SqlValidatorTest
         check("SELECT DISTINCT 5, 10+5, 'string' from emp");
     }
 
-    public void testExplicitTable()
-    {
+    @Test public void testExplicitTable() {
         final String empRecordType =
             "RecordType(INTEGER NOT NULL EMPNO,"
             + " VARCHAR(20) NOT NULL ENAME,"
@@ -6165,8 +6019,7 @@ public class SqlValidatorTest
             "Table 'NONEXISTENT' not found");
     }
 
-    public void testCollectionTable()
-    {
+    @Test public void testCollectionTable() {
         checkResultType(
             "select * from table(ramp(3))",
             "RecordType(INTEGER NOT NULL I) NOT NULL");
@@ -6180,8 +6033,7 @@ public class SqlValidatorTest
             "No match found for function signature NONEXISTENTRAMP\\(<CHARACTER>\\)");
     }
 
-    public void testCollectionTableWithCursorParam()
-    {
+    @Test public void testCollectionTableWithCursorParam() {
         checkResultType(
             "select * from table(dedup(cursor(select * from emp),'ename'))",
             "RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");
@@ -6190,8 +6042,7 @@ public class SqlValidatorTest
             "Table 'BLOOP' not found");
     }
 
-    public void testScalarSubQuery()
-    {
+    @Test public void testScalarSubQuery() {
         check("SELECT  ename,(select name from dept where deptno=1) FROM emp");
         checkFails(
             "SELECT ename,(^select losal, hisal from salgrade where grade=1^) FROM emp",
@@ -6227,8 +6078,7 @@ public class SqlValidatorTest
             + "select min(deptno) from dept as depts2)");
     }
 
-    public void testRecordType()
-    {
+    @Test public void testRecordType() {
         // Have to qualify columns with table name.
         checkFails(
             "SELECT ^coord^.x, coord.y FROM customer.contact",
@@ -6246,8 +6096,7 @@ public class SqlValidatorTest
         }
     }
 
-    public void testSample()
-    {
+    @Test public void testSample() {
         // applied to table
         check("SELECT * FROM emp TABLESAMPLE SUBSTITUTE('foo')");
         check("SELECT * FROM emp TABLESAMPLE BERNOULLI(50)");
@@ -6318,8 +6167,7 @@ public class SqlValidatorTest
             + ") tablesample system(10)");
     }
 
-    public void testRewriteWithoutIdentifierExpansion()
-    {
+    @Test public void testRewriteWithoutIdentifierExpansion() {
         SqlValidator validator = tester.getValidator();
         validator.setIdentifierExpansion(false);
         tester.checkRewrite(
@@ -6328,8 +6176,7 @@ public class SqlValidatorTest
             "SELECT *" + NL + "FROM `DEPT`");
     }
 
-    public void testRewriteWithIdentifierExpansion()
-    {
+    @Test public void testRewriteWithIdentifierExpansion() {
         SqlValidator validator = tester.getValidator();
         validator.setIdentifierExpansion(true);
         tester.checkRewrite(
@@ -6340,8 +6187,7 @@ public class SqlValidatorTest
             + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`");
     }
 
-    public void testRewriteWithColumnReferenceExpansion()
-    {
+    @Test public void testRewriteWithColumnReferenceExpansion() {
         // NOTE jvs 9-Apr-2007:  This tests illustrates that
         // ORDER BY is still a special case.  Update expected
         // output if that gets fixed in the future.
@@ -6362,8 +6208,7 @@ public class SqlValidatorTest
                 + "ORDER BY `NAME`"));
     }
 
-    public void testRewriteWithColumnReferenceExpansionAndFromAlias()
-    {
+    @Test public void testRewriteWithColumnReferenceExpansionAndFromAlias() {
         // NOTE jvs 9-Apr-2007:  This tests illustrates that
         // ORDER BY is still a special case.  Update expected
         // output if that gets fixed in the future.
@@ -6386,8 +6231,7 @@ public class SqlValidatorTest
                 + "ORDER BY `NAME`"));
     }
 
-    public void testCoalesceWithoutRewrite()
-    {
+    @Test public void testCoalesceWithoutRewrite() {
         SqlValidator validator = tester.getValidator();
         validator.setCallRewrite(false);
         if (validator.shouldExpandIdentifiers()) {
@@ -6407,8 +6251,7 @@ public class SqlValidatorTest
         }
     }
 
-    public void testCoalesceWithRewrite()
-    {
+    @Test public void testCoalesceWithRewrite() {
         SqlValidator validator = tester.getValidator();
         validator.setCallRewrite(true);
         if (validator.shouldExpandIdentifiers()) {
@@ -6436,8 +6279,7 @@ public class SqlValidatorTest
             "Call to xxx is invalid\\. Direct calls to aggregate functions not allowed in ROW definitions\\.");
     }
 
-    public void testFieldOrigin()
-    {
+    @Test public void testFieldOrigin() {
         tester.checkFieldOrigin(
             "select * from emp join dept on true",
             "{CATALOG.SALES.EMP.EMPNO,"
@@ -6462,8 +6304,7 @@ public class SqlValidatorTest
             + " null}");
     }
 
-    public void testNew()
-    {
+    @Test public void testNew() {
         // (To debug invidual statements, paste them into this method.)
         //            1         2         3         4         5         6
         //   12345678901234567890123456789012345678901234567890123456789012345

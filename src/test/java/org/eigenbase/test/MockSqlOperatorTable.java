@@ -28,8 +28,6 @@ import org.eigenbase.sql.util.*;
 /**
  * Mock operator table for testing purposes. Contains the standard SQL operator
  * table, plus a list of operators.
- *
- * @author jhyde
  */
 public class MockSqlOperatorTable
     extends ChainedSqlOperatorTable

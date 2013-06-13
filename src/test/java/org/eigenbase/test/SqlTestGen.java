@@ -33,12 +33,8 @@ import org.eigenbase.util.*;
 
 /**
  * Utility to generate a SQL script from validator test.
- *
- * @author jhyde
- * @since Nov 10, 2004
  */
-public class SqlTestGen
-{
+public class SqlTestGen {
     //~ Methods ----------------------------------------------------------------
 
     public static void main(String [] args)
@@ -55,16 +51,9 @@ public class SqlTestGen
             fos = new FileOutputStream(file);
             pw = new PrintWriter(fos);
             Method [] methods = getJunitMethods(SqlValidatorSpooler.class);
-            for (int i = 0; i < methods.length; i++) {
-                Method method = methods[i];
-                final SqlValidatorSpooler test =
-                    new SqlValidatorSpooler(
-                        method.getName(),
-                        pw);
-                final Object result =
-                    method.invoke(
-                        test,
-                        new Object[0]);
+            for (Method method : methods) {
+                final SqlValidatorSpooler test = new SqlValidatorSpooler(pw);
+                final Object result = method.invoke(test);
                 assert result == null;
             }
         } catch (IOException e) {
@@ -112,18 +101,15 @@ public class SqlTestGen
     //~ Inner Classes ----------------------------------------------------------
 
     /**
-     * Subversive subclass, which spools restuls to a writer rather than running
-     * tests. It is not a valid JUnit test because it does not have a public
-     * constructor.
+     * Subversive subclass, which spools results to a writer rather than running
+     * tests.
      */
     private static class SqlValidatorSpooler
         extends SqlValidatorTest
     {
         private final PrintWriter pw;
 
-        private SqlValidatorSpooler(String testName, PrintWriter pw)
-        {
-            super(testName);
+        private SqlValidatorSpooler(PrintWriter pw) {
             this.pw = pw;
         }
 
@@ -144,7 +130,7 @@ public class SqlTestGen
                         // This SQL statement is supposed to succeed.
                         // Generate it to the file, so we can see what
                         // output it produces.
-                        pw.println("-- " + getName());
+                        pw.println("-- " /* + getName() */);
                         pw.println(sql);
                         pw.println(";");
                     } else {

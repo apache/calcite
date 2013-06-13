@@ -17,24 +17,21 @@
 */
 package org.eigenbase.test;
 
-import junit.framework.*;
-
-import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 
+import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 /**
  * Tests transformations on rex nodes.
- *
- * @author wael
- * @since Mar 9, 2004
  */
-public class RexTransformerTest
-    extends TestCase
-{
+public class RexTransformerTest {
     //~ Instance fields --------------------------------------------------------
 
     RexBuilder rexBuilder = null;
@@ -48,9 +45,7 @@ public class RexTransformerTest
 
     //~ Methods ----------------------------------------------------------------
 
-    protected void setUp()
-        throws Exception
-    {
+    @Before public void setUp() {
         typeFactory = new JavaTypeFactoryImpl();
         rexBuilder = new RexBuilder(typeFactory);
         boolRelDataType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
@@ -81,7 +76,8 @@ public class RexTransformerTest
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.isTrueOperator,
                     node);
-        } else { //if (encapsulateType.equals(Boolean.FALSE))
+        } else {
+            // encapsulateType.equals(Boolean.FALSE)
             root =
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.isFalseOperator,
@@ -98,9 +94,8 @@ public class RexTransformerTest
         }
     }
 
-    public void testPreTests()
-    {
-        //can make variable nullable?
+    @Test public void testPreTests() {
+        // can make variable nullable?
         RexNode node =
             new RexInputRef(
                 0,
@@ -109,7 +104,7 @@ public class RexTransformerTest
                     true));
         assertTrue(node.getType().isNullable());
 
-        //can make variable not nullable?
+        // can make variable not nullable?
         node =
             new RexInputRef(
                 0,
@@ -119,8 +114,7 @@ public class RexTransformerTest
         assertFalse(node.getType().isNullable());
     }
 
-    public void testNonBooleans()
-    {
+    @Test public void testNonBooleans() {
         RexNode node =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.plusOperator,
@@ -138,8 +132,7 @@ public class RexTransformerTest
      * like (x ISNOTNULL) AND (y ISNOTNULL) AND (x OR y) an incorrect result
      * could be produced
      */
-    public void testOrUnchanged()
-    {
+    @Test public void testOrUnchanged() {
         RexNode node =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.orOperator,
@@ -151,8 +144,7 @@ public class RexTransformerTest
         check(null, node, expected);
     }
 
-    public void testSimpleAnd()
-    {
+    @Test public void testSimpleAnd() {
         RexNode node =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.andOperator,
@@ -164,8 +156,7 @@ public class RexTransformerTest
             "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), AND($0, $1))");
     }
 
-    public void testSimpleEquals()
-    {
+    @Test public void testSimpleEquals() {
         RexNode node =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.equalsOperator,
@@ -177,8 +168,7 @@ public class RexTransformerTest
             "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), =($0, $1))");
     }
 
-    public void testSimpleNotEquals()
-    {
+    @Test public void testSimpleNotEquals() {
         RexNode node =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.notEqualsOperator,
@@ -190,8 +180,7 @@ public class RexTransformerTest
             "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), <>($0, $1))");
     }
 
-    public void testSimpleGreaterThan()
-    {
+    @Test public void testSimpleGreaterThan() {
         RexNode node =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.greaterThanOperator,
@@ -203,8 +192,7 @@ public class RexTransformerTest
             "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), >($0, $1))");
     }
 
-    public void testSimpleGreaterEquals()
-    {
+    @Test public void testSimpleGreaterEquals() {
         RexNode node =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.greaterThanOrEqualOperator,
@@ -216,8 +204,7 @@ public class RexTransformerTest
             "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), >=($0, $1))");
     }
 
-    public void testSimpleLessThan()
-    {
+    @Test public void testSimpleLessThan() {
         RexNode node =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.lessThanOperator,
@@ -229,8 +216,7 @@ public class RexTransformerTest
             "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), <($0, $1))");
     }
 
-    public void testSimpleLessEqual()
-    {
+    @Test public void testSimpleLessEqual() {
         RexNode node =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.lessThanOrEqualOperator,
@@ -242,8 +228,7 @@ public class RexTransformerTest
             "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), <=($0, $1))");
     }
 
-    public void testOptimizeNonNullLiterals()
-    {
+    @Test public void testOptimizeNonNullLiterals() {
         RexNode node =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.lessThanOrEqualOperator,
@@ -258,15 +243,13 @@ public class RexTransformerTest
         check(Boolean.FALSE, node, "AND(IS NOT NULL($0), <=(true, $0))");
     }
 
-    public void testSimpleIdentifier()
-    {
+    @Test public void testSimpleIdentifier() {
         RexNode node = rexBuilder.makeInputRef(boolRelDataType, 0);
         check(Boolean.TRUE, node, "=(IS TRUE($0), true)");
     }
 
-    public void testMixed1()
-    {
-        //x=true AND y
+    @Test public void testMixed1() {
+        // x=true AND y
         RexNode op1 =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.equalsOperator,
@@ -283,9 +266,8 @@ public class RexTransformerTest
             "AND(IS NOT NULL($1), AND(AND(IS NOT NULL($0), =($0, true)), $1))");
     }
 
-    public void testMixed2()
-    {
-        //x!=true AND y>z
+    @Test public void testMixed2() {
+        // x!=true AND y>z
         RexNode op1 =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.notEqualsOperator,
@@ -307,9 +289,8 @@ public class RexTransformerTest
             "AND(AND(IS NOT NULL($0), <>($0, true)), AND(AND(IS NOT NULL($1), IS NOT NULL($2)), >($1, $2)))");
     }
 
-    public void testMixed3()
-    {
-        //x=y AND false>z
+    @Test public void testMixed3() {
+        // x=y AND false>z
         RexNode op1 =
             rexBuilder.makeCall(
                 SqlStdOperatorTable.equalsOperator,

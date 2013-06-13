@@ -19,13 +19,11 @@ package org.eigenbase.util;
 
 import java.util.regex.*;
 
-import junit.framework.*;
+import org.junit.ComparisonFailure;
 
 
 /**
  * Static utilities for JUnit tests.
- *
- * @author John V. Sichi
  */
 public abstract class TestUtil
 {
@@ -175,14 +173,18 @@ public abstract class TestUtil
      */
     public static String quotePattern(String s)
     {
-        return s.replaceAll("\\\\", "\\\\").replaceAll("\\.", "\\\\.")
-            .replaceAll(
-                "\\+",
-                "\\\\+").replaceAll("\\{", "\\\\{").replaceAll("\\}", "\\\\}")
-            .replaceAll("\\|", "\\\\||").replaceAll("[$]", "\\\\\\$")
-            .replaceAll("\\?", "\\\\?").replaceAll("\\*", "\\\\*").replaceAll(
-                "\\(",
-                "\\\\(").replaceAll("\\)", "\\\\)").replaceAll("\\[", "\\\\[")
+        return s.replaceAll("\\\\", "\\\\")
+            .replaceAll("\\.", "\\\\.")
+            .replaceAll("\\+", "\\\\+")
+            .replaceAll("\\{", "\\\\{")
+            .replaceAll("\\}", "\\\\}")
+            .replaceAll("\\|", "\\\\||")
+            .replaceAll("[$]", "\\\\\\$")
+            .replaceAll("\\?", "\\\\?")
+            .replaceAll("\\*", "\\\\*")
+            .replaceAll("\\(", "\\\\(")
+            .replaceAll("\\)", "\\\\)")
+            .replaceAll("\\[", "\\\\[")
             .replaceAll("\\]", "\\\\]");
     }
 }

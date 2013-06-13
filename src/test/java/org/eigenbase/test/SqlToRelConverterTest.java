@@ -24,25 +24,19 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
+import org.junit.Test;
+
 
 /**
  * Unit test for {@link org.eigenbase.sql2rel.SqlToRelConverter}.
- *
- * @author jhyde
  */
 public class SqlToRelConverterTest
     extends SqlToRelTestBase
 {
     //~ Methods ----------------------------------------------------------------
 
-    public SqlToRelConverterTest()
-    {
+    public SqlToRelConverterTest() {
         super();
-    }
-
-    public SqlToRelConverterTest(String name)
-    {
-        super(name);
     }
 
     protected DiffRepository getDiffRepos()
@@ -57,15 +51,13 @@ public class SqlToRelConverterTest
         tester.assertConvertsTo(sql, plan);
     }
 
-    public void testIntegerLiteral()
-    {
+    @Test public void testIntegerLiteral() {
         check(
             "select 1 from emp",
             "${plan}");
     }
 
-    public void testAliasList()
-    {
+    @Test public void testAliasList() {
         check(
             "select a + b from (\n"
             + "  select deptno, 1 as one, name from dept\n"
@@ -74,8 +66,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testAliasList2()
-    {
+    @Test public void testAliasList2() {
         check(
             "select * from (\n"
             + "  select a, b, c from (values (1, 2, 3)) as t (c, b, a)\n"
@@ -84,28 +75,24 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testJoinOn()
-    {
+    @Test public void testJoinOn() {
         check(
             "SELECT * FROM emp JOIN dept on emp.deptno = dept.deptno",
             "${plan}");
     }
 
-    public void testJoinOnIn()
-    {
+    @Test public void testJoinOnIn() {
         check(
             "select * from emp join dept\n"
             + " on emp.deptno = dept.deptno and emp.empno in (1, 3)",
             "${plan}");
     }
 
-    public void testJoinUsing()
-    {
+    @Test public void testJoinUsing() {
         check("SELECT * FROM emp JOIN dept USING (deptno)", "${plan}");
     }
 
-    public void testJoinUsingCompound()
-    {
+    @Test public void testJoinUsingCompound() {
         check(
             "SELECT * FROM emp LEFT JOIN ("
             + "SELECT *, deptno * 5 as empno FROM dept) "
@@ -113,29 +100,25 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testJoinNatural()
-    {
+    @Test public void testJoinNatural() {
         check(
             "SELECT * FROM emp NATURAL JOIN dept",
             "${plan}");
     }
 
-    public void testJoinNaturalNoCommonColumn()
-    {
+    @Test public void testJoinNaturalNoCommonColumn() {
         check(
             "SELECT * FROM emp NATURAL JOIN (SELECT deptno AS foo, name FROM dept) AS d",
             "${plan}");
     }
 
-    public void testJoinNaturalMultipleCommonColumn()
-    {
+    @Test public void testJoinNaturalMultipleCommonColumn() {
         check(
             "SELECT * FROM emp NATURAL JOIN (SELECT deptno, name AS ename FROM dept) AS d",
             "${plan}");
     }
 
-    public void testJoinWithUnion()
-    {
+    @Test public void testJoinWithUnion() {
         check(
             "select grade from "
             + "(select empno from emp union select deptno from dept), "
@@ -143,23 +126,20 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testGroup()
-    {
+    @Test public void testGroup() {
         check(
             "select deptno from emp group by deptno",
             "${plan}");
     }
 
-    public void testGroupJustOneAgg()
-    {
+    @Test public void testGroupJustOneAgg() {
         // just one agg
         check(
             "select deptno, sum(sal) as sum_sal from emp group by deptno",
             "${plan}");
     }
 
-    public void testGroupExpressionsInsideAndOut()
-    {
+    @Test public void testGroupExpressionsInsideAndOut() {
         // Expressions inside and outside aggs. Common sub-expressions should be
         // eliminated: 'sal' always translates to expression #2.
         check(
@@ -167,16 +147,14 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testHaving()
-    {
+    @Test public void testHaving() {
         // empty group-by clause, having
         check(
             "select sum(sal + sal) from emp having sum(sal) > 10",
             "${plan}");
     }
 
-    public void testGroupBug281()
-    {
+    @Test public void testGroupBug281() {
         // Dtbug 281 gives:
         //   Internal error:
         //   Type 'RecordType(VARCHAR(128) $f0)' has no field 'NAME'
@@ -185,8 +163,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testGroupBug281b()
-    {
+    @Test public void testGroupBug281b() {
         // Try to confuse it with spurious columns.
         check(
             "select name, foo from ("
@@ -196,8 +173,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testAggDistinct()
-    {
+    @Test public void testAggDistinct() {
         check(
             "select deptno, sum(sal), sum(distinct sal), count(*) "
             + "from emp "
@@ -205,15 +181,13 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testSelectDistinct()
-    {
+    @Test public void testSelectDistinct() {
         check(
             "select distinct sal + 5 from emp",
             "${plan}");
     }
 
-    public void testSelectDistinctGroup()
-    {
+    @Test public void testSelectDistinctGroup() {
         check(
             "select distinct sum(sal) from emp group by deptno",
             "${plan}");
@@ -223,29 +197,25 @@ public class SqlToRelConverterTest
      * Tests that if the clause of SELECT DISTINCT contains duplicate
      * expressions, they are only aggregated once.
      */
-    public void testSelectDistinctDup()
-    {
+    @Test public void testSelectDistinctDup() {
         check(
             "select distinct sal + 5, deptno, sal + 5 from emp where deptno < 10",
             "${plan}");
     }
 
-    public void testOrder()
-    {
+    @Test public void testOrder() {
         check(
             "select empno from emp order by empno",
             "${plan}");
     }
 
-    public void testOrderDescNullsLast()
-    {
+    @Test public void testOrderDescNullsLast() {
         check(
             "select empno from emp order by empno desc nulls last",
             "${plan}");
     }
 
-    public void testOrderByOrdinalDesc()
-    {
+    @Test public void testOrderByOrdinalDesc() {
         // FRG-98
         if (!tester.getConformance().isSortByOrdinal()) {
             return;
@@ -261,8 +231,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOrderDistinct()
-    {
+    @Test public void testOrderDistinct() {
         // The relexp aggregates by 3 expressions - the 2 select expressions
         // plus the one to sort on. A little inefficient, but acceptable.
         check(
@@ -270,8 +239,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOrderByNegativeOrdinal()
-    {
+    @Test public void testOrderByNegativeOrdinal() {
         // Regardless of whether sort-by-ordinals is enabled, negative ordinals
         // are treated like ordinary numbers.
         check(
@@ -279,8 +247,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOrderByOrdinalInExpr()
-    {
+    @Test public void testOrderByOrdinalInExpr() {
         // Regardless of whether sort-by-ordinals is enabled, ordinals
         // inside expressions are treated like integers.
         check(
@@ -288,8 +255,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOrderByIdenticalExpr()
-    {
+    @Test public void testOrderByIdenticalExpr() {
         // Expression in ORDER BY clause is identical to expression in SELECT
         // clause, so plan should not need an extra project.
         check(
@@ -297,22 +263,19 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOrderByAlias()
-    {
+    @Test public void testOrderByAlias() {
         check(
             "select empno + 1 as x, empno - 2 as y from emp order by y",
             "${plan}");
     }
 
-    public void testOrderByAliasInExpr()
-    {
+    @Test public void testOrderByAliasInExpr() {
         check(
             "select empno + 1 as x, empno - 2 as y from emp order by y + 3",
             "${plan}");
     }
 
-    public void testOrderByAliasOverrides()
-    {
+    @Test public void testOrderByAliasOverrides() {
         if (!tester.getConformance().isSortByAlias()) {
             return;
         }
@@ -323,8 +286,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOrderByAliasDoesNotOverride()
-    {
+    @Test public void testOrderByAliasDoesNotOverride() {
         if (tester.getConformance().isSortByAlias()) {
             return;
         }
@@ -335,15 +297,13 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOrderBySameExpr()
-    {
+    @Test public void testOrderBySameExpr() {
         check(
             "select empno from emp, dept order by sal + empno desc, sal * empno, sal + empno",
             "${plan}");
     }
 
-    public void testOrderUnion()
-    {
+    @Test public void testOrderUnion() {
         check(
             "select empno, sal from emp "
             + "union all "
@@ -352,8 +312,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOrderUnionOrdinal()
-    {
+    @Test public void testOrderUnionOrdinal() {
         if (!tester.getConformance().isSortByOrdinal()) {
             return;
         }
@@ -365,8 +324,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOrderUnionExprs()
-    {
+    @Test public void testOrderUnionExprs() {
         check(
             "select empno, sal from emp "
             + "union all "
@@ -375,8 +333,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOrderGroup()
-    {
+    @Test public void testOrderGroup() {
         check(
             "select deptno, count(*) "
             + "from emp "
@@ -385,8 +342,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testCountNoGroup()
-    {
+    @Test public void testCountNoGroup() {
         check(
             "select count(*), sum(sal)\n"
             + "from emp\n"
@@ -394,29 +350,25 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testExplicitTable()
-    {
+    @Test public void testExplicitTable() {
         check(
             "table emp",
             "${plan}");
     }
 
-    public void testCollectionTable()
-    {
+    @Test public void testCollectionTable() {
         check(
             "select * from table(ramp(3))",
             "${plan}");
     }
 
-    public void testSample()
-    {
+    @Test public void testSample() {
         check(
             "select * from emp tablesample substitute('DATASET1') where empno > 5",
             "${plan}");
     }
 
-    public void testSampleQuery()
-    {
+    @Test public void testSampleQuery() {
         check(
             "select * from (\n"
             + " select * from emp as e tablesample substitute('DATASET1')\n"
@@ -426,15 +378,13 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testSampleBernoulli()
-    {
+    @Test public void testSampleBernoulli() {
         check(
             "select * from emp tablesample bernoulli(50) where empno > 5",
             "${plan}");
     }
 
-    public void testSampleBernoulliQuery()
-    {
+    @Test public void testSampleBernoulliQuery() {
         check(
             "select * from (\n"
             + " select * from emp as e tablesample bernoulli(10) repeatable(1)\n"
@@ -444,15 +394,13 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testSampleSystem()
-    {
+    @Test public void testSampleSystem() {
         check(
             "select * from emp tablesample system(50) where empno > 5",
             "${plan}");
     }
 
-    public void testSampleSystemQuery()
-    {
+    @Test public void testSampleSystemQuery() {
         check(
             "select * from (\n"
             + " select * from emp as e tablesample system(10) repeatable(1)\n"
@@ -462,8 +410,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testCollectionTableWithCursorParam()
-    {
+    @Test public void testCollectionTableWithCursorParam() {
         check(
             "select * from table(dedup("
             + "cursor(select ename from emp),"
@@ -471,43 +418,37 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testUnnest()
-    {
+    @Test public void testUnnest() {
         check(
             "select*from unnest(multiset[1,2])",
             "${plan}");
     }
 
-    public void testUnnestSubquery()
-    {
+    @Test public void testUnnestSubquery() {
         check(
             "select*from unnest(multiset(select*from dept))",
             "${plan}");
     }
 
-    public void testMultisetSubquery()
-    {
+    @Test public void testMultisetSubquery() {
         check(
             "select multiset(select deptno from dept) from (values(true))",
             "${plan}");
     }
 
-    public void testMultiset()
-    {
+    @Test public void testMultiset() {
         check(
             "select 'a',multiset[10] from dept",
             "${plan}");
     }
 
-    public void testMultisetOfColumns()
-    {
+    @Test public void testMultisetOfColumns() {
         check(
             "select 'abc',multiset[deptno,sal] from emp",
             "${plan}");
     }
 
-    public void testCorrelationJoin()
-    {
+    @Test public void testCorrelationJoin() {
         check(
             "select *,"
             + "         multiset(select * from emp where deptno=dept.deptno) "
@@ -516,27 +457,23 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testExists()
-    {
+    @Test public void testExists() {
         check(
             "select*from emp where exists (select 1 from dept where deptno=55)",
             "${plan}");
     }
 
-    public void testExistsCorrelated()
-    {
+    @Test public void testExistsCorrelated() {
         check(
             "select*from emp where exists (select 1 from dept where emp.deptno=dept.deptno)",
             "${plan}");
     }
 
-    public void testInValueListShort()
-    {
+    @Test public void testInValueListShort() {
         check("select empno from emp where deptno in (10, 20)", "${plan}");
     }
 
-    public void testInValueListLong()
-    {
+    @Test public void testInValueListLong() {
         // Go over the default threshold of 20 to force a subquery.
         check(
             "select empno from emp where deptno in"
@@ -546,60 +483,52 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testInUncorrelatedSubquery()
-    {
+    @Test public void testInUncorrelatedSubquery() {
         check(
             "select empno from emp where deptno in"
             + " (select deptno from dept)",
             "${plan}");
     }
 
-    public void testUnnestSelect()
-    {
+    @Test public void testUnnestSelect() {
         check(
             "select*from unnest(select multiset[deptno] from dept)",
             "${plan}");
     }
 
-    public void testLateral()
-    {
+    @Test public void testLateral() {
         check(
             "select * from emp, LATERAL (select * from dept where emp.deptno=dept.deptno)",
             "${plan}");
     }
 
-    public void testElement()
-    {
+    @Test public void testElement() {
         check(
             "select element(multiset[5]) from emp",
             "${plan}");
     }
 
-    public void testElementInValues()
-    {
+    @Test public void testElementInValues() {
         check(
             "values element(multiset[5])",
             "${plan}");
     }
 
-    public void testUnionAll()
-    {
+    @Test public void testUnionAll() {
         // union all
         check(
             "select empno from emp union all select deptno from dept",
             "${plan}");
     }
 
-    public void testUnion()
-    {
+    @Test public void testUnion() {
         // union without all
         check(
             "select empno from emp union select deptno from dept",
             "${plan}");
     }
 
-    public void testUnionValues()
-    {
+    @Test public void testUnionValues() {
         // union with values
         check(
             "values (10), (20)\n"
@@ -609,8 +538,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testUnionSubquery()
-    {
+    @Test public void testUnionSubquery() {
         // union of subquery, inside from list, also values
         check(
             "select deptno from emp as emp0 cross join\n"
@@ -620,30 +548,26 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testIsDistinctFrom()
-    {
+    @Test public void testIsDistinctFrom() {
         check(
             "select 1 is distinct from 2 from (values(true))",
             "${plan}");
     }
 
-    public void testIsNotDistinctFrom()
-    {
+    @Test public void testIsNotDistinctFrom() {
         check(
             "select 1 is not distinct from 2 from (values(true))",
             "${plan}");
     }
 
-    public void testNotLike()
-    {
+    @Test public void testNotLike() {
         // note that 'x not like y' becomes 'not(x like y)'
         check(
             "values ('a' not like 'b' escape 'c')",
             "${plan}");
     }
 
-    public void testOverMultiple()
-    {
+    @Test public void testOverMultiple() {
         check(
             "select sum(sal) over w1,\n"
             + "  sum(deptno) over w1,\n"
@@ -661,8 +585,7 @@ public class SqlToRelConverterTest
      * the operator (in this case, {@link
      * org.eigenbase.sql.fun.SqlCaseOperator}).
      */
-    public void testCase()
-    {
+    @Test public void testCase() {
         check(
             "values (case 'a' when 'a' then 1 end)",
             "${plan}");
@@ -673,16 +596,14 @@ public class SqlToRelConverterTest
      * of the operator (in this case, {@link
      * org.eigenbase.sql.fun.SqlStdOperatorTable#characterLengthFunc}).
      */
-    public void testCharLength()
-    {
+    @Test public void testCharLength() {
         // Note that CHARACTER_LENGTH becomes CHAR_LENGTH.
         check(
             "values (character_length('foo'))",
             "${plan}");
     }
 
-    public void testOverAvg()
-    {
+    @Test public void testOverAvg() {
         // AVG(x) gets translated to SUM(x)/COUNT(x).  Because COUNT controls
         // the return type there usually needs to be a final CAST to get the
         // result back to match the type of x.
@@ -694,8 +615,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOverAvg2()
-    {
+    @Test public void testOverAvg2() {
         // Check to see if extra CAST is present.  Because CAST is nested
         // inside AVG it passed to both SUM and COUNT so the outer final CAST
         // isn't needed.
@@ -707,8 +627,7 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testOverCountStar()
-    {
+    @Test public void testOverCountStar() {
         check(
             "select count(sal) over w1,\n"
             + "  count(*) over w1\n"
@@ -721,8 +640,7 @@ public class SqlToRelConverterTest
     /**
      * Tests that a window containing only ORDER BY is implicitly CURRENT ROW.
      */
-    public void testOverOrderWindow()
-    {
+    @Test public void testOverOrderWindow() {
         check(
             "select last_value(deptno) over w\n"
             + "from emp\n"
@@ -740,8 +658,7 @@ public class SqlToRelConverterTest
      * Tests that a window with a FOLLOWING bound becomes BETWEEN CURRENT ROW
      * AND FOLLOWING.
      */
-    public void testOverOrderFollowingWindow()
-    {
+    @Test public void testOverOrderFollowingWindow() {
         // Window contains only ORDER BY (implicitly CURRENT ROW).
         check(
             "select last_value(deptno) over w\n"
@@ -756,9 +673,8 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
-    public void testInterval() // temporarily disabled per DTbug 1212
-
-    {
+    @Test public void testInterval() {
+        // temporarily disabled per DTbug 1212
         if (Bug.Dt785Fixed) {
             check(
                 "values(cast(interval '1' hour as interval hour to second))",
@@ -766,8 +682,7 @@ public class SqlToRelConverterTest
         }
     }
 
-    public void testExplainAsXml()
-    {
+    @Test public void testExplainAsXml() {
         String sql = "select 1 + 2, 3 from (values (true))";
         final RelNode rel = tester.convertSqlToRel(sql);
         StringWriter sw = new StringWriter();

@@ -25,12 +25,6 @@ import net.hydromatic.optiq.impl.jdbc.JdbcQueryProvider;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.Hook;
 
-import junit.framework.Assert;
-import junit.framework.TestSuite;
-
-import org.eigenbase.sql.parser.SqlParserTest;
-import org.eigenbase.sql.test.SqlOperatorTest;
-import org.eigenbase.test.*;
 import org.eigenbase.util.Util;
 
 import java.io.PrintWriter;
@@ -40,6 +34,9 @@ import java.sql.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+import static org.junit.Assert.*;
+
 
 /**
  * Fluid DSL for testing Optiq connections and queries.
@@ -162,41 +159,18 @@ public class OptiqAssert {
     return new AssertThat(Config.REGULAR);
   }
 
-  /** Returns a {@link TestSuite junit suite} of all Optiq tests. */
-  public static TestSuite suite() {
-    TestSuite testSuite = new TestSuite();
-    testSuite.addTestSuite(ReflectiveSchemaTest.class);
-    testSuite.addTestSuite(LinqFrontJdbcBackTest.class);
-    testSuite.addTestSuite(JdbcFrontLinqBackTest.class);
-    testSuite.addTestSuite(JdbcFrontJdbcBackLinqMiddleTest.class);
-    testSuite.addTestSuite(JdbcFrontJdbcBackTest.class);
-    testSuite.addTestSuite(SqlToRelConverterTest.class);
-    testSuite.addTestSuite(SqlFunctionsTest.class);
-    testSuite.addTestSuite(SqlOperatorTest.class);
-    testSuite.addTestSuite(OptiqSqlOperatorTest.class);
-    testSuite.addTestSuite(SqlParserTest.class);
-    testSuite.addTestSuite(ModelTest.class);
-    testSuite.addTestSuite(RexProgramTest.class);
-    testSuite.addTestSuite(RexTransformerTest.class);
-    testSuite.addTestSuite(JdbcAdapterTest.class);
-    testSuite.addTestSuite(MongoAdapterTest.class);
-    testSuite.addTestSuite(JdbcTest.class);
-    //testSuite.addTestSuite(VolcanoPlannerTraitTest.class);
-    return testSuite;
-  }
-
   static Function1<Throwable, Void> checkException(
       final String expected) {
     return new Function1<Throwable, Void>() {
       public Void apply(Throwable p0) {
-        Assert.assertNotNull(
+        assertNotNull(
             "expected exception but none was thrown", p0);
         StringWriter stringWriter = new StringWriter();
         PrintWriter printWriter = new PrintWriter(stringWriter);
         p0.printStackTrace(printWriter);
         printWriter.flush();
         String stack = stringWriter.toString();
-        Assert.assertTrue(stack, stack.contains(expected));
+        assertTrue(stack, stack.contains(expected));
         return null;
       }
     };
@@ -207,7 +181,7 @@ public class OptiqAssert {
       public Void apply(ResultSet resultSet) {
         try {
           final String resultString = OptiqAssert.toString(resultSet);
-          Assert.assertEquals(expected, resultString);
+          assertEquals(expected, resultString);
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -225,7 +199,7 @@ public class OptiqAssert {
           OptiqAssert.toStringList(resultSet, actualSet);
           final TreeSet<String> expectedSet =
               new TreeSet<String>(Arrays.asList(lines));
-          Assert.assertEquals(expectedSet, actualSet);
+          assertEquals(expectedSet, actualSet);
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -240,7 +214,7 @@ public class OptiqAssert {
       public Void apply(ResultSet s) {
         try {
           final String actual = OptiqAssert.toString(s);
-          Assert.assertTrue(actual, actual.contains(expected));
+          assertTrue(actual, actual.contains(expected));
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -575,7 +549,7 @@ public class OptiqAssert {
               public Void apply(ResultSet s) {
                 try {
                   final String actual = OptiqAssert.toString(s);
-                  Assert.assertTrue(actual, actual.contains(expected));
+                  assertTrue(actual, actual.contains(expected));
                   return null;
                 } catch (SQLException e) {
                   throw new RuntimeException(e);
@@ -591,7 +565,7 @@ public class OptiqAssert {
 
     public AssertQuery planContains(String expected) {
       ensurePlan();
-      Assert.assertTrue(
+      assertTrue(
           "Plan [" + plan + "] contains [" + expected + "]",
           plan.contains(expected));
       return this;
@@ -616,7 +590,7 @@ public class OptiqAssert {
           });
       try {
         assertQuery(createConnection(), sql, limit, null, null);
-        Assert.assertNotNull(plan);
+        assertNotNull(plan);
       } catch (Exception e) {
         throw new RuntimeException(
             "exception while executing [" + sql + "]", e);

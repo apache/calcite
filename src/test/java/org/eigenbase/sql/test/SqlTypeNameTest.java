@@ -19,17 +19,18 @@ package org.eigenbase.sql.test;
 
 import java.sql.Types;
 
-import junit.framework.TestCase;
-
 import org.eigenbase.sql.type.*;
 
+import org.junit.Test;
+
+import static org.junit.Assert.*;
+
+
 /**
- * Tests types supported by SqlTypeName.java.
+ * Tests types supported by {@link SqlTypeName}.
  */
-public class SqlTypeNameTest
-     extends TestCase
-{
-    public void testBit() {
+public class SqlTypeNameTest {
+    @Test public void testBit() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.BIT);
         assertEquals(
@@ -38,7 +39,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testTinyint() {
+    @Test public void testTinyint() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.TINYINT);
         assertEquals(
@@ -47,7 +48,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testSmallint() {
+    @Test public void testSmallint() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.SMALLINT);
         assertEquals(
@@ -56,7 +57,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testInteger() {
+    @Test public void testInteger() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.INTEGER);
         assertEquals(
@@ -65,7 +66,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testBigint() {
+    @Test public void testBigint() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.BIGINT);
         assertEquals(
@@ -74,7 +75,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testFloat() {
+    @Test public void testFloat() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.FLOAT);
         assertEquals(
@@ -83,7 +84,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testReal() {
+    @Test public void testReal() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.REAL);
         assertEquals(
@@ -92,7 +93,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testDouble() {
+    @Test public void testDouble() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.DOUBLE);
         assertEquals(
@@ -101,7 +102,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testNumeric() {
+    @Test public void testNumeric() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.NUMERIC);
         assertEquals(
@@ -110,7 +111,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testDecimal() {
+    @Test public void testDecimal() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.DECIMAL);
         assertEquals(
@@ -119,7 +120,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testChar() {
+    @Test public void testChar() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.CHAR);
         assertEquals(
@@ -128,7 +129,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testVarchar() {
+    @Test public void testVarchar() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.VARCHAR);
         assertEquals(
@@ -137,7 +138,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testLongvarchar() {
+    @Test public void testLongvarchar() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.LONGVARCHAR);
         assertEquals(
@@ -146,7 +147,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testDate() {
+    @Test public void testDate() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.DATE);
         assertEquals(
@@ -155,7 +156,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testTime() {
+    @Test public void testTime() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.TIME);
         assertEquals(
@@ -164,7 +165,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testTimestamp() {
+    @Test public void testTimestamp() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.TIMESTAMP);
         assertEquals(
@@ -173,7 +174,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testBinary() {
+    @Test public void testBinary() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.BINARY);
         assertEquals(
@@ -182,7 +183,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testVarbinary() {
+    @Test public void testVarbinary() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.VARBINARY);
         assertEquals(
@@ -191,7 +192,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testLongvarbinary() {
+    @Test public void testLongvarbinary() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.LONGVARBINARY);
         assertEquals(
@@ -200,7 +201,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testNull() {
+    @Test public void testNull() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.NULL);
         assertEquals(
@@ -209,7 +210,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testOther() {
+    @Test public void testOther() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.OTHER);
         assertEquals(
@@ -218,7 +219,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testJavaobject() {
+    @Test public void testJavaobject() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.JAVA_OBJECT);
         assertEquals(
@@ -227,7 +228,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testDistinct() {
+    @Test public void testDistinct() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.DISTINCT);
         assertEquals(
@@ -236,7 +237,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testStruct() {
+    @Test public void testStruct() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.STRUCT);
         assertEquals(
@@ -245,7 +246,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testArray() {
+    @Test public void testArray() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.ARRAY);
         assertEquals(
@@ -254,7 +255,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testBlob() {
+    @Test public void testBlob() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.BLOB);
         assertEquals(
@@ -263,7 +264,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testClob() {
+    @Test public void testClob() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.CLOB);
         assertEquals(
@@ -272,7 +273,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testRef() {
+    @Test public void testRef() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.REF);
         assertEquals(
@@ -281,7 +282,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testDatalink() {
+    @Test public void testDatalink() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.DATALINK);
         assertEquals(
@@ -290,7 +291,7 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testBoolean() {
+    @Test public void testBoolean() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(Types.BOOLEAN);
         assertEquals(
@@ -299,66 +300,66 @@ public class SqlTypeNameTest
             tn);
     }
 
-    public void testRowid() {
+    @Test public void testRowid() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(ExtraSqlTypes.ROWID);
 
-        //ROWID not supported yet
+        // ROWID not supported yet
         assertEquals(
             "ROWID maps to non-null type",
             null,
             tn);
     }
 
-    public void testNchar() {
+    @Test public void testNchar() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(ExtraSqlTypes.NCHAR);
 
-        //NCHAR not supported yet, currently maps to CHAR
+        // NCHAR not supported yet, currently maps to CHAR
         assertEquals(
             "NCHAR did not map to CHAR",
             SqlTypeName.CHAR,
             tn);
     }
 
-    public void testNvarchar() {
+    @Test public void testNvarchar() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(ExtraSqlTypes.NVARCHAR);
 
-        //NVARCHAR not supported yet, currently maps to VARCHAR
+        // NVARCHAR not supported yet, currently maps to VARCHAR
         assertEquals(
             "NVARCHAR did not map to VARCHAR",
             SqlTypeName.VARCHAR,
             tn);
     }
 
-    public void testLongnvarchar() {
+    @Test public void testLongnvarchar() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(ExtraSqlTypes.LONGNVARCHAR);
 
-        //LONGNVARCHAR not supported yet
+        // LONGNVARCHAR not supported yet
         assertEquals(
             "LONGNVARCHAR maps to non-null type",
             null,
             tn);
     }
 
-    public void testNclob() {
+    @Test public void testNclob() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(ExtraSqlTypes.NCLOB);
 
-        //NCLOB not supported yet
+        // NCLOB not supported yet
         assertEquals(
             "NCLOB maps to non-null type",
             null,
             tn);
     }
 
-    public void testSqlxml() {
+    @Test public void testSqlxml() {
         SqlTypeName tn =
             SqlTypeName.getNameForJdbcType(ExtraSqlTypes.SQLXML);
 
-        //SQLXML not supported yet
+        // SQLXML not supported yet
         assertEquals(
             "SQLXML maps to non-null type",
             null,

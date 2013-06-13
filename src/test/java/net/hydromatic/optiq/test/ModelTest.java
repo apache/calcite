@@ -19,7 +19,9 @@ package net.hydromatic.optiq.test;
 
 import net.hydromatic.optiq.model.*;
 
-import junit.framework.TestCase;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,10 +29,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.*;
 
+import static org.junit.Assert.*;
+
+
 /**
  * Unit test for data models.
  */
-public class ModelTest extends TestCase {
+public class ModelTest {
   private ObjectMapper mapper() {
     final ObjectMapper mapper = new ObjectMapper();
     mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
@@ -39,7 +44,7 @@ public class ModelTest extends TestCase {
   }
 
   /** Reads a simple schema from a string into objects. */
-  public void testRead() throws IOException {
+  @Test public void testRead() throws IOException {
     final ObjectMapper mapper = mapper();
     JsonRoot root = mapper.readValue(
         "{\n"
@@ -84,7 +89,7 @@ public class ModelTest extends TestCase {
   }
 
   /** Reads a simple schema containing JdbcSchema, a sub-type of Schema. */
-  public void testSubtype() throws IOException {
+  @Test public void testSubtype() throws IOException {
     final ObjectMapper mapper = mapper();
     JsonRoot root = mapper.readValue(
         "{\n"
@@ -109,7 +114,7 @@ public class ModelTest extends TestCase {
   }
 
   /** Reads a custom schema. */
-  public void testCustomSchema() throws IOException {
+  @Test public void testCustomSchema() throws IOException {
     final ObjectMapper mapper = mapper();
     JsonRoot root = mapper.readValue(
         "{\n"

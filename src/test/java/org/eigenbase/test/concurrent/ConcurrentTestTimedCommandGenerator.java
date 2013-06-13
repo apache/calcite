@@ -29,8 +29,6 @@ import java.util.*;
  * has been exceeded. Therefore, the time limit can only be considered the
  * minimum length of time that the test will run and not a guarantee of how long
  * the test will take.
- *
- * @author Stephan Zuercher
  */
 public class ConcurrentTestTimedCommandGenerator
     extends ConcurrentTestCommandGenerator

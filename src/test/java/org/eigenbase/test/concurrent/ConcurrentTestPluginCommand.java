@@ -23,8 +23,6 @@ import java.sql.Statement;
 
 /**
  * Used to extend functionality of mtsql.
- *
- * @author jhahn
  */
 public interface ConcurrentTestPluginCommand {
 

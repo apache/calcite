@@ -19,25 +19,21 @@ package org.eigenbase.test;
 
 import java.util.*;
 
-import junit.framework.*;
-
 import org.eigenbase.resource.*;
+
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 
 /**
  * Tests generated package org.eigenbase.resource (mostly a sanity check for
  * resgen infrastructure).
- *
- * @author John V. Sichi
  */
-public class EigenbaseResourceTest
-    extends TestCase
-{
+public class EigenbaseResourceTest {
     //~ Constructors -----------------------------------------------------------
 
-    public EigenbaseResourceTest(String name)
-    {
-        super(name);
+    public EigenbaseResourceTest() {
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -46,8 +42,7 @@ public class EigenbaseResourceTest
      * Verifies that resource properties such as SQLSTATE are available at
      * runtime.
      */
-    public void testSqlstateProperty()
-    {
+    @Test public void testSqlstateProperty() {
         Properties props =
             EigenbaseResource.instance().IllegalIntervalLiteral.getProperties();
         assertEquals(

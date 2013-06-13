@@ -46,8 +46,6 @@ import net.hydromatic.optiq.jdbc.SqlTimeoutException;
  * within a thread, and may be a sparse set.
  * See {@link ConcurrentTestCommandGenerator#synchronizeCommandSets} for other
  * considerations.
- *
- * @author Stephan Zuercher
  */
 public class ConcurrentTestCommandScript
     extends ConcurrentTestCommandGenerator

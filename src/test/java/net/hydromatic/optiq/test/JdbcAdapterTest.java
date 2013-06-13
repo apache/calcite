@@ -17,13 +17,13 @@
 */
 package net.hydromatic.optiq.test;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 /**
  * Tests for the {@link net.hydromatic.optiq.impl.jdbc} package.
  */
-public class JdbcAdapterTest extends TestCase {
-  public void testUnionPlan() {
+public class JdbcAdapterTest {
+  @Test public void testUnionPlan() {
     OptiqAssert.assertThat()
         .withModel(JdbcTest.FOODMART_MODEL)
         .query(
@@ -44,7 +44,7 @@ public class JdbcAdapterTest extends TestCase {
         .runs();
   }
 
-  public void testFilterUnionPlan() {
+  @Test public void testFilterUnionPlan() {
     OptiqAssert.assertThat()
         .withModel(JdbcTest.FOODMART_MODEL)
         .query(
@@ -64,7 +64,7 @@ public class JdbcAdapterTest extends TestCase {
         .runs();
   }
 
-  public void testInPlan() {
+  @Test public void testInPlan() {
     OptiqAssert.assertThat()
         .withModel(JdbcTest.FOODMART_MODEL)
         .query(

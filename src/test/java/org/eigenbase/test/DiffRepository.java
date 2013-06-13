@@ -23,14 +23,18 @@ import java.util.*;
 
 import javax.xml.parsers.*;
 
-import junit.framework.*;
-
 import org.eigenbase.util.*;
 import org.eigenbase.xom.*;
+
+import org.junit.*;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import org.w3c.dom.*;
 
 import org.xml.sax.*;
+
+import static org.junit.Assert.*;
 
 
 /**
@@ -54,11 +58,11 @@ import org.xml.sax.*;
  *         return DiffRepository.lookup(MyTest.class);
  *     }
  *
- *     public void testToUpper() {
+ *     @Test public void testToUpper() {
  *          getDiffRepos().assertEquals("${result}", "${string}");
  *     }
 
- *     public void testToLower() {
+ *     @Test public void testToLower() {
  *          getDiffRepos().assertEquals("Multi-line\nstring", "${string}");
  *     }
  * }</pre>
@@ -102,11 +106,8 @@ import org.xml.sax.*;
  * instance of the repository. This is important more than one one test case
  * fails. The shared instance ensures that the generated <code>.log.xml</code>
  * file contains the actual for <em>both</em> test cases.
- *
- * @author jhyde
  */
-public class DiffRepository
-{
+public class DiffRepository {
     //~ Static fields/initializers ---------------------------------------------
 
 /*
@@ -485,7 +486,7 @@ public class DiffRepository
         String expected2 = expand(tag, expected);
         if (expected2 == null) {
             update(testCaseName, expected, actual);
-            throw new AssertionFailedError(
+            throw new AssertionError(
                 "reference file does not contain resource '" + expected
                 + "' for testcase '" + testCaseName
                 + "'");
@@ -535,7 +536,7 @@ public class DiffRepository
         assert expecteds.length == count;
         assert actuals.length == count;
 
-        AssertionFailedError e0 = null;
+        AssertionError e0 = null;
         final String testCaseName = getCurrentTestCaseName(true);
         for (int i = 0; i < count; i++) {
             String tag = tags[i];
@@ -550,8 +551,8 @@ public class DiffRepository
             String expected2 = expand(tag, expected);
             if (expected2 == null) {
                 update(testCaseName, expected, actual);
-                AssertionFailedError e =
-                    new AssertionFailedError(
+                AssertionError e =
+                    new AssertionError(
                         "reference file does not contain resource '" + expected
                         + "' for testcase '" + testCaseName
                         + "'");
