@@ -975,7 +975,35 @@ public class UtilTest {
                 Util.bitSetOf(1, 4, 7)));
     }
 
-    //~ Inner Classes ----------------------------------------------------------
+    /** Unit test for {@link IntegerIntervalSet}. */
+    @Test public void testIntegerIntervalSet() {
+        checkIntegerIntervalSet("1,5", 1, 5);
+
+        // empty
+        checkIntegerIntervalSet("");
+
+        // empty due to exclusions
+        checkIntegerIntervalSet("2,4,-1-5");
+
+        // open range
+        checkIntegerIntervalSet("1-6,-3-5,4,9", 1, 2, 4, 6, 9);
+
+        // repeats
+        checkIntegerIntervalSet("1,3,1,2-4,-2,-4", 1, 3);
+    }
+
+    private List<Integer> checkIntegerIntervalSet(String s, int... ints) {
+        List<Integer> list = new ArrayList<Integer>();
+        final Set<Integer> set = IntegerIntervalSet.of(s);
+        assertEquals(set.size(), ints.length);
+        for (Integer integer : set) {
+            list.add(integer);
+        }
+        assertEquals(new HashSet<Integer>(IntList.asList(ints)), set);
+        return list;
+    }
+
+  //~ Inner Classes ----------------------------------------------------------
 
     /**
      * Enumeration which extends BasicValue does NOT serialize correctly.
