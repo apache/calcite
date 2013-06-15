@@ -96,7 +96,9 @@ public class JdbcToEnumerableConverter
   }
 
   private String generateSql(SqlDialect dialect) {
-    final JdbcImplementor jdbcImplementor = new JdbcImplementor(dialect);
+    final JdbcImplementor jdbcImplementor =
+        new JdbcImplementor(dialect,
+            (JavaTypeFactory) getCluster().getTypeFactory());
     final JdbcImplementor.Result result =
         jdbcImplementor.visitChild(0, getChild());
     return result.asQuery().toSqlString(dialect).getSql();

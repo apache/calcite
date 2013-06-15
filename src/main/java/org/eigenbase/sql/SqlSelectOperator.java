@@ -161,19 +161,22 @@ public class SqlSelectOperator
         unparseListClause(writer, selectClause);
         writer.endList(selectListFrame);
 
-        writer.sep("FROM");
         SqlNode fromClause = operands[SqlSelect.FROM_OPERAND];
+        if (fromClause != null) {
+            // Optiq SQL requires FROM but MySQL does not.
+            writer.sep("FROM");
 
-        // for FROM clause, use precedence just below join operator to make
-        // sure that an unjoined nested select will be properly
-        // parenthesized
-        final SqlWriter.Frame fromFrame =
-            writer.startList(SqlWriter.FrameTypeEnum.FromList);
-        fromClause.unparse(
-            writer,
-            SqlStdOperatorTable.joinOperator.getLeftPrec() - 1,
-            SqlStdOperatorTable.joinOperator.getRightPrec() - 1);
-        writer.endList(fromFrame);
+            // for FROM clause, use precedence just below join operator to make
+            // sure that an un-joined nested select will be properly
+            // parenthesized
+            final SqlWriter.Frame fromFrame =
+                writer.startList(SqlWriter.FrameTypeEnum.FromList);
+            fromClause.unparse(
+                writer,
+                SqlStdOperatorTable.joinOperator.getLeftPrec() - 1,
+                SqlStdOperatorTable.joinOperator.getRightPrec() - 1);
+            writer.endList(fromFrame);
+        }
 
         SqlNode whereClause = operands[SqlSelect.WHERE_OPERAND];
 
@@ -186,7 +189,7 @@ public class SqlSelectOperator
                 // decide whether to split on ORs or ANDs
                 SqlKind whereSepKind = SqlKind.AND;
                 if ((node instanceof SqlCall)
-                    && ((SqlCall) node).getKind() == SqlKind.OR)
+                    && node.getKind() == SqlKind.OR)
                 {
                     whereSepKind = SqlKind.OR;
                 }
@@ -195,7 +198,7 @@ public class SqlSelectOperator
                 ArrayList<SqlNode> list = new ArrayList<SqlNode>(0);
                 while (
                     (node instanceof SqlCall)
-                    && (((SqlCall) node).getKind() == whereSepKind))
+                    && (node.getKind() == whereSepKind))
                 {
                     list.add(0, ((SqlCall) node).getOperands()[1]);
                     node = ((SqlCall) node).getOperands()[0];

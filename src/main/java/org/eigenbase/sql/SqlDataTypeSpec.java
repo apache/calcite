@@ -212,6 +212,11 @@ public class SqlDataTypeSpec
             if (collectionsTypeName != null) {
                 writer.keyword(collectionsTypeName.getSimple());
             }
+        } else if (name.startsWith("_")) {
+            // We're generating a type for an alien system. For example,
+            // UNSIGNED is a built-in type in MySQL.
+            // (Need a more elegant way than '_' of flagging this.)
+            writer.keyword(name.substring(1));
         } else {
             // else we have a user defined type
             typeName.unparse(writer, leftPrec, rightPrec);

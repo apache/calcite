@@ -32,6 +32,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParserPos;
+import org.eigenbase.sql.type.SqlTypeStrategies;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
 
@@ -470,12 +471,28 @@ public class JdbcRules {
           x.builder(this, JdbcImplementor.Clause.ORDER_BY);
       List<SqlNode> orderByList = Expressions.list();
       for (RelFieldCollation collation : collations) {
+        if (collation.nullDirection
+            != RelFieldCollation.NullDirection.UNSPECIFIED
+            && implementor.dialect.getDatabaseProduct()
+               == SqlDialect.DatabaseProduct.MYSQL) {
+          orderByList.add(
+              ISNULL_FUNCTION.createCall(POS,
+                  builder.context.field(collation.getFieldIndex())));
+          collation = new RelFieldCollation(collation.getFieldIndex(),
+              collation.getDirection());
+        }
         orderByList.add(builder.context.toSql(collation));
       }
       builder.setOrderBy(new SqlNodeList(orderByList, POS));
       return builder.result();
     }
   }
+
+  /** MySQL specific function. */
+  private static SqlFunction ISNULL_FUNCTION =
+      new SqlFunction("ISNULL", SqlKind.OTHER_FUNCTION,
+          SqlTypeStrategies.rtiBoolean, SqlTypeStrategies.otiFirstKnown,
+          SqlTypeStrategies.otcAny, SqlFunctionCategory.System);
 
   /**
    * Rule to convert an {@link org.eigenbase.rel.UnionRel} to a
@@ -565,8 +582,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      return setOpToSql(
-          implementor,
+      return setOpToSql(implementor,
           all
               ? SqlStdOperatorTable.intersectAllOperator
               : SqlStdOperatorTable.intersectOperator,
@@ -617,8 +633,7 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      return setOpToSql(
-          implementor,
+      return setOpToSql(implementor,
           all
               ? SqlStdOperatorTable.exceptAllOperator
               : SqlStdOperatorTable.exceptOperator,
@@ -741,7 +756,29 @@ public class JdbcRules {
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
-      throw new AssertionError(); // TODO:
+      final List<String> fields = getRowType().getFieldNames();
+      final List<JdbcImplementor.Clause> clauses = Collections.singletonList(
+          JdbcImplementor.Clause.SELECT);
+      final JdbcImplementor.Builder builder =
+          implementor.new Builder(this, clauses, null, null);
+      final JdbcImplementor.Context context =
+          implementor.new AliasContext(
+              Collections.<Pair<String, RelDataType>>emptyList(), false);
+      final List<SqlNode> selectList = new ArrayList<SqlNode>();
+      for (List<RexLiteral> tuple : tuples) {
+        for (Pair<RexLiteral, String> literal : Pair.zip(tuple, fields)) {
+          selectList.add(
+              SqlStdOperatorTable.asOperator.createCall(
+                  POS,
+                  context.toSql(null, literal.left),
+                  new SqlIdentifier(literal.right, POS)));
+        }
+      }
+      return implementor.result(
+          SqlStdOperatorTable.selectOperator.createCall(SqlNodeList.Empty,
+              new SqlNodeList(selectList, POS), null, null, null,
+              null, null, null, POS), clauses,
+          this);
     }
   }
 }

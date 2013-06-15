@@ -704,6 +704,13 @@ public class JdbcTest {
             + "EXPR$0=2\n");
   }
 
+  @Test public void testValuesAlias() {
+    OptiqAssert.assertThat()
+        .query(
+            "select \"desc\" from (VALUES ROW(1, 'SameName')) AS \"t\" (\"id\", \"desc\")")
+        .returns("desc=SameName\n");
+  }
+
   @Test public void testValuesMinus() {
     OptiqAssert.assertThat()
         .query("values (-2-1)")

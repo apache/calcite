@@ -19,6 +19,8 @@ package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.expressions.Expressions;
 
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+
 import org.eigenbase.rel.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
@@ -27,6 +29,7 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParserPos;
 import org.eigenbase.sql.type.BasicSqlType;
+import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.Pair;
 
@@ -39,10 +42,12 @@ public class JdbcImplementor {
   public static final SqlParserPos POS = SqlParserPos.ZERO;
 
   final SqlDialect dialect;
-  private final Set<String> aliasSet = new LinkedHashSet<String>();
+    private final JavaTypeFactory typeFactory;
+    private final Set<String> aliasSet = new LinkedHashSet<String>();
 
-  public JdbcImplementor(SqlDialect dialect) {
+  public JdbcImplementor(SqlDialect dialect, JavaTypeFactory typeFactory) {
     this.dialect = dialect;
+      this.typeFactory = typeFactory;
   }
 
   /** Creates a result based on a single relational expression. */
@@ -132,7 +137,17 @@ public class JdbcImplementor {
         final SqlOperator op = call.getOperator();
         final List<SqlNode> nodeList = toSql(program, call.getOperandList());
         if (op == SqlStdOperatorTable.castFunc) {
-          nodeList.add(toSql(call.getType()));
+          RelDataType type = call.getType();
+          if (type.getSqlTypeName() == SqlTypeName.VARCHAR
+              && dialect.getDatabaseProduct()
+                 == SqlDialect.DatabaseProduct.MYSQL) {
+            // MySQL doesn't have a VARCHAR type, only CHAR.
+            nodeList.add(
+                new SqlDataTypeSpec(new SqlIdentifier("CHAR", POS),
+                    type.getPrecision(), -1, null, null, POS));
+          } else {
+            nodeList.add(toSql(type));
+          }
         }
         if (op == SqlStdOperatorTable.caseOperator) {
           final SqlNode valueNode;
@@ -166,6 +181,18 @@ public class JdbcImplementor {
     }
 
     private SqlNode toSql(RelDataType type) {
+      if (dialect.getDatabaseProduct() == SqlDialect.DatabaseProduct.MYSQL) {
+        final SqlTypeName sqlTypeName = type.getSqlTypeName();
+        switch (sqlTypeName) {
+        case VARCHAR:
+          // MySQL doesn't have a VARCHAR type, only CHAR.
+          return new SqlDataTypeSpec(new SqlIdentifier("CHAR", POS),
+              type.getPrecision(), -1, null, null, POS);
+        case INTEGER:
+          return new SqlDataTypeSpec(new SqlIdentifier("_UNSIGNED", POS),
+              type.getPrecision(), -1, null, null, POS);
+        }
+      }
       if (type instanceof BasicSqlType) {
         return new SqlDataTypeSpec(
             new SqlIdentifier(type.getSqlTypeName().name(), POS),
@@ -226,14 +253,15 @@ public class JdbcImplementor {
         node = SqlStdOperatorTable.nullsFirstOperator.createCall(POS, node);
         break;
       case LAST:
-        node = SqlStdOperatorTable.notLikeOperator.createCall(POS, node);
+        node = SqlStdOperatorTable.nullsLastOperator.createCall(POS, node);
         break;
       }
       return node;
     }
   }
 
-  private static int computeFieldCount(List<Pair<String, RelDataType>> aliases) {
+  private static int computeFieldCount(
+      List<Pair<String, RelDataType>> aliases) {
     int x = 0;
     for (Pair<String, RelDataType> alias : aliases) {
       x += alias.right.getFieldCount();
@@ -241,6 +269,8 @@ public class JdbcImplementor {
     return x;
   }
 
+  /** Implementation of Context that precedes field references with their
+   * "table alias" based on the current sub-query's FROM clause. */
   public class AliasContext extends Context {
     private final boolean qualified;
     private final List<Pair<String, RelDataType>> aliases;
@@ -251,7 +281,6 @@ public class JdbcImplementor {
       this.aliases = aliases;
       this.qualified = qualified;
     }
-
 
     public SqlNode field(int ordinal) {
       for (Pair<String, RelDataType> alias : aliases) {
@@ -417,17 +446,17 @@ public class JdbcImplementor {
 
     public void setWhere(SqlNode node) {
       assert clauses.contains(Clause.WHERE);
-      this.select.operands[SqlSelect.WHERE_OPERAND] = node;
+      select.operands[SqlSelect.WHERE_OPERAND] = node;
     }
 
     public void setGroupBy(SqlNodeList nodeList) {
       assert clauses.contains(Clause.GROUP_BY);
-      this.select.operands[SqlSelect.GROUP_OPERAND] = nodeList;
+      select.operands[SqlSelect.GROUP_OPERAND] = nodeList;
     }
 
     public void setOrderBy(SqlNodeList nodeList) {
       assert clauses.contains(Clause.ORDER_BY);
-      this.select.operands[SqlSelect.ORDER_OPERAND] = nodeList;
+      select.operands[SqlSelect.ORDER_OPERAND] = nodeList;
     }
 
     public Result result() {
