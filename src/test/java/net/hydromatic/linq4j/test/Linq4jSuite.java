@@ -19,21 +19,21 @@ package net.hydromatic.linq4j.test;
 
 import net.hydromatic.linq4j.expressions.TypeTest;
 
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+
 
 /**
  * Suite of all Linq4j tests.
  */
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+    PrimitiveTest.class,
+    Linq4jTest.class,
+    ExpressionTest.class,
+    TypeTest.class
+})
 public class Linq4jSuite {
-  /** Returns a {@link TestSuite junit suite} of all Linq4j tests. */
-  public static TestSuite suite() {
-    TestSuite testSuite = new TestSuite();
-    testSuite.addTestSuite(PrimitiveTest.class);
-    testSuite.addTestSuite(Linq4jTest.class);
-    testSuite.addTestSuite(ExpressionTest.class);
-    testSuite.addTestSuite(TypeTest.class);
-    return testSuite;
-  }
 }
 
 // End Linq4jSuite.java

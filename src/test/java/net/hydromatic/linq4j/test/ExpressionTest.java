@@ -20,19 +20,22 @@ package net.hydromatic.linq4j.test;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.Function1;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
 
+import static org.junit.Assert.*;
+
+
 /**
  * Unit test for {@link net.hydromatic.linq4j.expressions.Expression}
  * and subclasses.
  */
-public class ExpressionTest extends TestCase {
-  public void testLambdaCallsBinaryOp() {
+public class ExpressionTest {
+  @Test public void testLambdaCallsBinaryOp() {
     // A parameter for the lambda expression.
     ParameterExpression paramExpr =
         Expressions.parameter(Double.TYPE, "arg");
@@ -71,10 +74,10 @@ public class ExpressionTest extends TestCase {
     //
     // arg => (arg +2)
     // 3
-    assertEquals(3.5D, n);
+    assertEquals(3.5D, n, 0d);
   }
 
-  public void testLambdaPrimitiveTwoArgs() {
+  @Test public void testLambdaPrimitiveTwoArgs() {
     // Parameters for the lambda expression.
     ParameterExpression paramExpr =
         Expressions.parameter(int.class, "key");
@@ -108,7 +111,7 @@ public class ExpressionTest extends TestCase {
         s);
   }
 
-  public void testLambdaCallsTwoArgMethod() throws NoSuchMethodException {
+  @Test public void testLambdaCallsTwoArgMethod() throws NoSuchMethodException {
     // A parameter for the lambda expression.
     ParameterExpression paramS =
         Expressions.parameter(String.class, "s");
@@ -135,7 +138,7 @@ public class ExpressionTest extends TestCase {
     assertEquals("lo w", s);
   }
 
-  public void testFoldAnd() {
+  @Test public void testFoldAnd() {
     // empty list yields true
     final List<Expression> list0 = Collections.emptyList();
     assertEquals(
@@ -194,7 +197,7 @@ public class ExpressionTest extends TestCase {
             Expressions.foldOr(list3)));
   }
 
-  public void testWrite() {
+  @Test public void testWrite() {
     assertEquals(
         "1 + 2.0F + 3L + Long.valueOf(4L)",
         Expressions.toString(
@@ -371,7 +374,7 @@ public class ExpressionTest extends TestCase {
                         String.class)))));
   }
 
-  public void testWriteConstant() {
+  @Test public void testWriteConstant() {
     // array of primitives
     assertEquals(
         "new int[] {\n"
@@ -507,7 +510,7 @@ public class ExpressionTest extends TestCase {
             Expressions.constant(Linq4jTest.emps)));
   }
 
-  public void testWriteArray() {
+  @Test public void testWriteArray() {
     assertEquals(
         "1 + integers[2 + index]",
         Expressions.toString(
@@ -520,7 +523,7 @@ public class ExpressionTest extends TestCase {
                         Expressions.variable(int.class, "index"))))));
   }
 
-  public void testWriteAnonymousClass() {
+  @Test public void testWriteAnonymousClass() {
     // final List<String> baz = Arrays.asList("foo", "bar");
     // new AbstractList<String>() {
     //     public int size() {
@@ -605,7 +608,7 @@ public class ExpressionTest extends TestCase {
         Expressions.toString(e));
   }
 
-  public void testWriteWhile() {
+  @Test public void testWriteWhile() {
     DeclarationExpression xDecl, yDecl;
     Node node =
         Expressions.block(
@@ -634,7 +637,7 @@ public class ExpressionTest extends TestCase {
         Expressions.toString(node));
   }
 
-  public void testType() {
+  @Test public void testType() {
     // Type of ternary operator is the gcd of its arguments.
     assertEquals(
         long.class,
@@ -664,7 +667,7 @@ public class ExpressionTest extends TestCase {
             Expressions.constant(null)).getType());
   }
 
-  public void testCompile() throws NoSuchMethodException {
+  @Test public void testCompile() throws NoSuchMethodException {
     // Creating a parameter for the expression tree.
     ParameterExpression param = Expressions.parameter(String.class);
 
@@ -687,7 +690,7 @@ public class ExpressionTest extends TestCase {
     assertEquals(1234, x);
   }
 
-  public void testBlockBuilder() {
+  @Test public void testBlockBuilder() {
     checkBlockBuilder(
         false,
         "{\n"
@@ -734,7 +737,7 @@ public class ExpressionTest extends TestCase {
     assertEquals(expected, Expressions.toString(statements.toBlock()));
   }
 
-  public void testBlockBuilder2() {
+  @Test public void testBlockBuilder2() {
     BlockBuilder statements = new BlockBuilder();
     Expression element =
         statements.append(
@@ -764,7 +767,7 @@ public class ExpressionTest extends TestCase {
         Expressions.toString(statements.toBlock()));
   }
 
-  public void testClassDecl() {
+  @Test public void testClassDecl() {
     final NewExpression newExpression =
         Expressions.new_(
             Object.class,
@@ -799,7 +802,7 @@ public class ExpressionTest extends TestCase {
         Expressions.toString(newExpression));
   }
 
-  public void testReturn() {
+  @Test public void testReturn() {
     assertEquals(
         "if (true) {\n"
         + "  return;\n"
@@ -811,7 +814,7 @@ public class ExpressionTest extends TestCase {
   }
 
   /** Test for common sub-expression elimination. */
-  public void testSubExpressionElimination() {
+  @Test public void testSubExpressionElimination() {
     final BlockBuilder builder = new BlockBuilder(true);
     ParameterExpression x = Expressions.parameter(Object.class, "p");
     Expression current4 = builder.append(

@@ -17,13 +17,16 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import junit.framework.TestCase;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
+
 
 /**
  * Test for {@link Types#gcd}.
  */
-public class TypeTest extends TestCase {
-  public void testGcd() {
+public class TypeTest {
+  @Test public void testGcd() {
     int i = 0;
     char c = 0;
     byte b = 0;

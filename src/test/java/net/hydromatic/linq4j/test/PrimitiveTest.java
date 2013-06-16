@@ -19,17 +19,19 @@ package net.hydromatic.linq4j.test;
 
 import net.hydromatic.linq4j.expressions.Primitive;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.junit.Assert.*;
 
 
 /**
  * Unit test for {@link Primitive}.
  */
-public class PrimitiveTest extends TestCase {
-  public void testIsAssignableFrom() {
+public class PrimitiveTest {
+  @Test public void testIsAssignableFrom() {
     assertTrue(Primitive.INT.assignableFrom(Primitive.BYTE));
     assertTrue(Primitive.INT.assignableFrom(Primitive.SHORT));
     assertTrue(Primitive.INT.assignableFrom(Primitive.CHAR));
@@ -63,21 +65,21 @@ public class PrimitiveTest extends TestCase {
     assertFalse(Primitive.INT.assignableFrom(Primitive.BOOLEAN));
   }
 
-  public void testBox() {
+  @Test public void testBox() {
     assertEquals(String.class, Primitive.box(String.class));
     assertEquals(Integer.class, Primitive.box(int.class));
     assertEquals(Integer.class, Primitive.box(Integer.class));
     assertEquals(boolean[].class, Primitive.box(boolean[].class));
   }
 
-  public void testOfBox() {
+  @Test public void testOfBox() {
     assertEquals(Primitive.INT, Primitive.ofBox(Integer.class));
     assertNull(Primitive.ofBox(int.class));
     assertNull(Primitive.ofBox(String.class));
     assertNull(Primitive.ofBox(Integer[].class));
   }
 
-  public void testOfBoxOr() {
+  @Test public void testOfBoxOr() {
     assertEquals(Primitive.INT, Primitive.ofBox(Integer.class));
     assertNull(Primitive.ofBox(int.class));
     assertNull(Primitive.ofBox(String.class));
@@ -85,14 +87,14 @@ public class PrimitiveTest extends TestCase {
   }
 
   /** Tests the {@link Primitive#number(Number)} method. */
-  public void testNumber() {
+  @Test public void testNumber() {
     Number number = Primitive.SHORT.number(Integer.valueOf(2));
     assertTrue(number instanceof Short);
     assertEquals(2, number.shortValue());
 
     number = Primitive.FLOAT.number(Integer.valueOf(2));
     assertTrue(number instanceof Float);
-    assertEquals(2.0d, number.doubleValue());
+    assertEquals(2.0d, number.doubleValue(), 0d);
 
     try {
       number = Primitive.INT.number(null);
@@ -119,7 +121,7 @@ public class PrimitiveTest extends TestCase {
   }
 
   /** Test for {@link Primitive#send(net.hydromatic.linq4j.expressions.Primitive.Source, net.hydromatic.linq4j.expressions.Primitive.Sink)}. */
-  public void testSendSource() {
+  @Test public void testSendSource() {
     final List<Object> list = new ArrayList<Object>();
     for (Primitive primitive : Primitive.values()) {
       primitive.send(
@@ -231,7 +233,7 @@ public class PrimitiveTest extends TestCase {
   }
 
   /** Test for {@link Primitive#permute(Object, int[])}. */
-  public void testPermute() {
+  @Test public void testPermute() {
     char[] chars = {'a', 'b', 'c', 'd', 'e', 'f', 'g'};
     int[] sources = {1, 2, 3, 4, 5, 6, 0};
     final Object permute = Primitive.CHAR.permute(chars, sources);
