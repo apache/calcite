@@ -574,7 +574,7 @@ public class OptiqAssert {
     public AssertQuery planHasSql(String expected) {
       return planContains(
           "getDataSource(), \"" + expected.replaceAll("\n", "\\\\n")
-              + "\")");
+              + "\"");
     }
 
     private void ensurePlan() {

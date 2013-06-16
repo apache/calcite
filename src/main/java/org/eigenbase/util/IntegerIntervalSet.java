@@ -123,6 +123,10 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
             public void reset() {
                 i = bounds[0] - 1;
             }
+
+            public void close() {
+                // no resources
+            }
         };
     }
 

@@ -39,6 +39,12 @@ public class FoodmartTest {
   private static final Map<Integer, FoodmartQuery> queries =
       new LinkedHashMap<Integer, FoodmartQuery>();
 
+  private static final String DISABLED_IDS =
+      ","
+      + "-58," //  "Unknown column 't0.desc' in 'field list'" related to VALUES
+      + "-83," // "java.lang.OutOfMemoryError: Java heap space"
+      + "-368"; // multi VALUES
+
   private final FoodmartQuery query;
 
   @Parameterized.Parameters(name = "{index}: foodmart({0})={1}")
@@ -55,12 +61,15 @@ public class FoodmartTest {
       queries.put(query.id, query);
     }
     if (idList != null) {
-      for (Integer id : IntegerIntervalSet.of(idList)) {
-        list.add(new Object[] {id, queries.get(id).sql});
+      for (Integer id : IntegerIntervalSet.of(idList /* + DISABLED_IDS */)) {
+        final FoodmartQuery query1 = queries.get(id);
+        if (query1 != null) {
+          list.add(new Object[] {id, query1.sql});
+        }
       }
     } else {
-      for (Integer id : queries.keySet()) {
-        list.add(new Object[]{id, queries.get(id).sql});
+      for (FoodmartQuery query1 : queries.values()) {
+        list.add(new Object[]{query1.id, query1.sql});
       }
     }
     return list;
@@ -71,11 +80,12 @@ public class FoodmartTest {
     assert query.id == id : id + ":" + query.id;
   }
 
-  @Test
+  @Test(timeout = 60000)
   public void test() {
     try {
       OptiqAssert.assertThat()
-          .with(OptiqAssert.Config.FOODMART_CLONE)
+          .withModel(JdbcTest.FOODMART_MODEL)
+          // .with(OptiqAssert.Config.FOODMART_CLONE)
           .withSchema("foodmart")
           .query(query.sql)
           .runs();

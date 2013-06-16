@@ -107,6 +107,9 @@ class ArrayTable<T>
       public void reset() {
         i = -1;
       }
+
+      public void close() {
+      }
     };
   }
 

@@ -759,13 +759,12 @@ public class JdbcRules {
       final List<String> fields = getRowType().getFieldNames();
       final List<JdbcImplementor.Clause> clauses = Collections.singletonList(
           JdbcImplementor.Clause.SELECT);
-      final JdbcImplementor.Builder builder =
-          implementor.new Builder(this, clauses, null, null);
       final JdbcImplementor.Context context =
           implementor.new AliasContext(
               Collections.<Pair<String, RelDataType>>emptyList(), false);
-      final List<SqlNode> selectList = new ArrayList<SqlNode>();
+      final List<SqlSelect> selects = new ArrayList<SqlSelect>();
       for (List<RexLiteral> tuple : tuples) {
+        final List<SqlNode> selectList = new ArrayList<SqlNode>();
         for (Pair<RexLiteral, String> literal : Pair.zip(tuple, fields)) {
           selectList.add(
               SqlStdOperatorTable.asOperator.createCall(
@@ -773,12 +772,21 @@ public class JdbcRules {
                   context.toSql(null, literal.left),
                   new SqlIdentifier(literal.right, POS)));
         }
+        selects.add(
+            SqlStdOperatorTable.selectOperator.createCall(SqlNodeList.Empty,
+                new SqlNodeList(selectList, POS), null, null, null,
+                null, null, null, POS));
       }
-      return implementor.result(
-          SqlStdOperatorTable.selectOperator.createCall(SqlNodeList.Empty,
-              new SqlNodeList(selectList, POS), null, null, null,
-              null, null, null, POS), clauses,
-          this);
+      SqlNode query = null;
+      for (SqlSelect select : selects) {
+        if (query == null) {
+          query = select;
+        } else {
+          query = SqlStdOperatorTable.unionAllOperator.createCall(POS, query,
+              select);
+        }
+      }
+      return implementor.result(query, clauses, this);
     }
   }
 }

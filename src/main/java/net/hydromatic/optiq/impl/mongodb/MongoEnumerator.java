@@ -64,6 +64,14 @@ class MongoEnumerator implements Enumerator<Object> {
     throw new UnsupportedOperationException();
   }
 
+  public void close() {
+    if (cursor instanceof DBCursor) {
+      ((DBCursor) cursor).close();
+    }
+    // AggregationOutput implements Iterator but not DBCursor. There is no
+    // available close() method -- apparently there is no open resource.
+  }
+
   static Function1<DBObject, Map> mapGetter() {
     return new Function1<DBObject, Map>() {
       public Map apply(DBObject a0) {

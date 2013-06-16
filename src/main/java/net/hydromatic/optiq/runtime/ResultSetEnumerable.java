@@ -20,13 +20,11 @@ package net.hydromatic.optiq.runtime;
 import net.hydromatic.linq4j.AbstractEnumerable;
 import net.hydromatic.linq4j.Enumerable;
 import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.function.Function0;
 import net.hydromatic.linq4j.function.Function1;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import javax.sql.DataSource;
@@ -43,9 +41,11 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       AUTO_ROW_BUILDER_FACTORY =
       new Function1<ResultSet, Function0<Object>>() {
         public Function0<Object> apply(final ResultSet resultSet) {
+          final ResultSetMetaData metaData;
           final int columnCount;
           try {
-            columnCount = resultSet.getMetaData().getColumnCount();
+            metaData = resultSet.getMetaData();
+            columnCount = metaData.getColumnCount();
           } catch (SQLException e) {
             throw new RuntimeException(e);
           }
@@ -66,7 +66,16 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
                 try {
                   final List<Object> list = new ArrayList<Object>();
                   for (int i = 0; i < columnCount; i++) {
+                    if (metaData.getColumnType(i + 1) == Types.TIMESTAMP) {
+                     long v = resultSet.getLong(i + 1);
+                      if (v == 0 && resultSet.wasNull()) {
+                        list.add(null);
+                      } else {
+                        list.add(v);
+                      }
+                    } else {
                     list.add(resultSet.getObject(i + 1));
+                    }
                   }
                   return list.toArray();
                 } catch (SQLException e) {
@@ -90,6 +99,13 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   /** Creates an ResultSetEnumerable. */
   public static Enumerable<Object> of(DataSource dataSource, String sql) {
     return of(dataSource, sql, AUTO_ROW_BUILDER_FACTORY);
+  }
+
+  /** Creates an ResultSetEnumerable that retrieves columns as specific
+   * Java types. */
+  public static Enumerable<Object> of(DataSource dataSource, String sql,
+      Primitive[] primitives) {
+    return of(dataSource, sql, primitiveRowBuilderFactory(primitives));
   }
 
   /** Executes a SQL query and returns the results as an enumerator, using a
@@ -176,6 +192,48 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
         }
       }
     }
+  }
+
+  private static Function1<ResultSet, Function0<Object>>
+  primitiveRowBuilderFactory(final Primitive[] primitives) {
+    return new Function1<ResultSet, Function0<Object>>() {
+      public Function0<Object> apply(final ResultSet resultSet) {
+        final ResultSetMetaData metaData;
+        final int columnCount;
+        try {
+          metaData = resultSet.getMetaData();
+          columnCount = metaData.getColumnCount();
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        assert columnCount == primitives.length;
+        if (columnCount == 1) {
+          return new Function0<Object>() {
+            public Object apply() {
+              try {
+                return resultSet.getObject(1);
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          };
+        }
+        //noinspection unchecked
+        return (Function0) new Function0<Object[]>() {
+          public Object[] apply() {
+            try {
+              final List<Object> list = new ArrayList<Object>();
+              for (int i = 0; i < columnCount; i++) {
+                list.add(primitives[i].jdbcGet(resultSet, i + 1));
+              }
+              return list.toArray();
+            } catch (SQLException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        };
+      }
+    };
   }
 }
 

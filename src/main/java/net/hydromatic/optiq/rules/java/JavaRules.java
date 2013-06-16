@@ -647,6 +647,10 @@ public class JavaRules {
                       BuiltinMethod.ENUMERATOR_MOVE_NEXT.method,
                       NO_PARAMS,
                       moveNextBody),
+                  EnumUtil.overridingMethodDecl(
+                      BuiltinMethod.ENUMERATOR_CLOSE.method,
+                      NO_PARAMS,
+                      Expressions.block()),
                   Expressions.methodDecl(
                       Modifier.PUBLIC,
                       BRIDGE_METHODS

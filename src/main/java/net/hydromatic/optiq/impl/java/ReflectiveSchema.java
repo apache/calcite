@@ -22,7 +22,6 @@ import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.eigenbase.reltype.RelDataType;
 

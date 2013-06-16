@@ -161,6 +161,9 @@ public class JdbcTest {
           public void reset() {
             i = -1;
           }
+
+          public void close() {
+          }
         };
       }
     };

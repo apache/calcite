@@ -28,6 +28,7 @@ import org.eigenbase.rel.convert.ConverterRelImpl;
 import org.eigenbase.relopt.*;
 import org.eigenbase.sql.SqlDialect;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -77,8 +78,17 @@ public class JdbcToEnumerableConverter
     if (OptiqPrepareImpl.DEBUG) {
       System.out.println("[" + sql + "]");
     }
-    final Expression constant =
+    final Expression sqlLiteral =
         list.append("sql", Expressions.constant(sql));
+    final List<Primitive> primitives = new ArrayList<Primitive>();
+    for (int i = 0; i < getRowType().getFieldCount(); i++) {
+      final Primitive primitive = Primitive.ofBoxOr(physType.fieldClass(i));
+      primitives.add(primitive != null ? primitive : Primitive.OTHER);
+    }
+    final Expression primitivesLiteral =
+        list.append("primitives",
+            Expressions.constant(
+                primitives.toArray(new Primitive[primitives.size()])));
     final Expression enumerable =
         list.append(
             "enumerable",
@@ -89,7 +99,8 @@ public class JdbcToEnumerableConverter
                         jdbcConvention.jdbcSchema.getExpression(),
                         JdbcSchema.class),
                     BuiltinMethod.JDBC_SCHEMA_DATA_SOURCE.method),
-                constant));
+                sqlLiteral,
+                primitivesLiteral));
     list.add(
         Expressions.return_(null, enumerable));
     return list.toBlock();

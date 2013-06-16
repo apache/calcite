@@ -84,6 +84,9 @@ public class RangeTable extends AbstractTable<Integer> {
       public void reset() {
         current = start - 1;
       }
+
+      public void close() {
+      }
     };
   }
 
