@@ -114,6 +114,11 @@ public class ConstantExpression extends Expression {
       write(writer, value, primitive2.primitiveClass);
       return writer.append(")");
     }
+    if (value instanceof Enum) {
+      return writer.append(((Enum) value).getDeclaringClass())
+          .append('.')
+          .append(((Enum) value).name());
+    }
     if (value instanceof BigDecimal) {
       BigDecimal bigDecimal = ((BigDecimal) value).stripTrailingZeros();
       try {

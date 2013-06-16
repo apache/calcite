@@ -525,6 +525,12 @@ public class Expressions {
   /**
    * Creates a ConstantExpression that has the Value property set
    * to the specified value.
+   *
+   * <p>Does the right thing for null, String, primitive values (e.g. int 12,
+   * short 12, double 3.14 and boolean false), boxed primitives
+   * (e.g. Integer.valueOf(12)), enums, classes, BigDecimal, BigInteger,
+   * classes that have a constructor with a parameter for each field, and
+   * arrays.</p>
    */
   public static ConstantExpression constant(Object value) {
     Class type;
@@ -1445,22 +1451,19 @@ public class Expressions {
     if (type0 == double.class
         || type0 == Double.class
         || type1 == double.class
-        || type1 == Double.class)
-    {
+        || type1 == Double.class) {
       return double.class;
     }
     if (type0 == float.class
         || type0 == Float.class
         || type1 == float.class
-        || type1 == Float.class)
-    {
+        || type1 == Float.class) {
       return float.class;
     }
     if (type0 == long.class
         || type0 == Long.class
         || type1 == long.class
-        || type1 == Long.class)
-    {
+        || type1 == Long.class) {
       return long.class;
     }
     return int.class;
