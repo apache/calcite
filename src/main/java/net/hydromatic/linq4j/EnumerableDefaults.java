@@ -25,7 +25,7 @@ import java.util.*;
 import static net.hydromatic.linq4j.function.Functions.adapt;
 
 /**
- * @author jhyde
+ * Default implementations of methods in the {@link Enumerable} interface.
  */
 public abstract class EnumerableDefaults {
 
@@ -648,6 +648,9 @@ public abstract class EnumerableDefaults {
           public void reset() {
             entries.reset();
           }
+
+          public void close() {
+          }
         };
       }
     };
@@ -785,6 +788,7 @@ public abstract class EnumerableDefaults {
                   || !outerEnumerable.any()) {
                 productEnumerator = Linq4j.emptyEnumerator();
               } else {
+                //noinspection unchecked
                 productEnumerator = Linq4j.product(
                     Arrays.asList(
                         (Enumerator<Object>) (Enumerator)
@@ -797,6 +801,9 @@ public abstract class EnumerableDefaults {
 
           public void reset() {
             entries.reset();
+          }
+
+          public void close() {
           }
         };
       }
@@ -1227,6 +1234,10 @@ public abstract class EnumerableDefaults {
           public void reset() {
             enumerator.reset();
           }
+
+          public void close() {
+            enumerator.close();
+          }
         };
       }
     };
@@ -1260,6 +1271,10 @@ public abstract class EnumerableDefaults {
 
           public void reset() {
             enumerator.reset();
+          }
+
+          public void close() {
+            enumerator.close();
           }
         };
       }
@@ -1300,6 +1315,11 @@ public abstract class EnumerableDefaults {
           public void reset() {
             sourceEnumerator.reset();
             resultEnumerator = Linq4j.emptyEnumerator();
+          }
+
+          public void close() {
+            sourceEnumerator.close();
+            resultEnumerator.close();
           }
         };
       }
@@ -1853,6 +1873,10 @@ public abstract class EnumerableDefaults {
           public void reset() {
             enumerator.reset();
           }
+
+          public void close() {
+            enumerator.close();
+          }
         };
       }
     };
@@ -1889,6 +1913,10 @@ public abstract class EnumerableDefaults {
           public void reset() {
             enumerator.reset();
             n = -1;
+          }
+
+          public void close() {
+            enumerator.close();
           }
         };
       }
@@ -1958,6 +1986,10 @@ public abstract class EnumerableDefaults {
       done = false;
       n = -1;
     }
+
+    public void close() {
+      enumerator.close();
+    }
   }
 
   static class SkipWhileEnumerator<TSource> implements Enumerator<TSource> {
@@ -1997,6 +2029,10 @@ public abstract class EnumerableDefaults {
       started = false;
       n = -1;
     }
+
+    public void close() {
+      enumerator.close();
+    }
   }
 
   static class CastingEnumerator<T> implements Enumerator<T> {
@@ -2018,6 +2054,10 @@ public abstract class EnumerableDefaults {
 
     public void reset() {
       enumerator.reset();
+    }
+
+    public void close() {
+      enumerator.close();
     }
   }
 

@@ -47,6 +47,9 @@ public class Linq4j {
 
         public void reset() {
         }
+
+        public void close() {
+        }
       };
 
   public static final Enumerable<?> EMPTY_ENUMERABLE =
@@ -372,6 +375,20 @@ public class Linq4j {
       iterator = iterable.iterator();
       current = (T) DUMMY;
     }
+
+    public void close() {
+      final Iterator<T> iterator = this.iterator;
+      this.iterator = null;
+      if (iterator instanceof AutoCloseable) {
+        try {
+          ((AutoCloseable) iterator).close();
+        } catch (RuntimeException e) {
+          throw e;
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
   }
 
   static class CompositeEnumerable<E> extends AbstractEnumerable<E> {
@@ -383,6 +400,7 @@ public class Linq4j {
 
     public Enumerator<E> enumerator() {
       return new Enumerator<E>() {
+        // Never null.
         Enumerator<E> current = emptyEnumerator();
 
         public E current() {
@@ -394,7 +412,9 @@ public class Linq4j {
             if (current.moveNext()) {
               return true;
             }
+            current.close();
             if (!enumerableEnumerator.moveNext()) {
+              current = emptyEnumerator();
               return false;
             }
             current = enumerableEnumerator.current().enumerator();
@@ -403,6 +423,11 @@ public class Linq4j {
 
         public void reset() {
           enumerableEnumerator.reset();
+          current = emptyEnumerator();
+        }
+
+        public void close() {
+          current.close();
           current = emptyEnumerator();
         }
       };

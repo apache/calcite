@@ -55,6 +55,10 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
       public void reset() {
         enumerator.reset();
       }
+
+      public void close() {
+        enumerator.close();
+      }
     };
   }
 
@@ -182,6 +186,10 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
           public void reset() {
             groupingEnumerator.reset();
           }
+
+          public void close() {
+            groupingEnumerator.close();
+          }
         };
       }
     };
@@ -208,7 +216,9 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
               if (enumerator.moveNext()) {
                 return true;
               }
+              enumerator.close();
               if (!listEnumerator.moveNext()) {
+                enumerator = Linq4j.emptyEnumerator();
                 return false;
               }
               enumerator = listEnumerator.current().enumerator();
@@ -218,6 +228,10 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
           public void reset() {
             listEnumerator.reset();
             enumerator = Linq4j.emptyEnumerator();
+          }
+
+          public void close() {
+            enumerator.close();
           }
         };
       }

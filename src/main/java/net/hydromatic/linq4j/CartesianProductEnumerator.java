@@ -80,6 +80,26 @@ class CartesianProductEnumerator<T> implements Enumerator<List<T>> {
   public void reset() {
     first = true;
   }
+
+  public void close() {
+    // If there is one or more exceptions, carry on and close all enumerators,
+    // then throw the first.
+    Throwable rte = null;
+    for (Enumerator<T> enumerator : enumerators) {
+      try {
+        enumerator.close();
+      } catch (Throwable e) {
+        rte = e;
+      }
+    }
+    if (rte != null) {
+      if (rte instanceof Error) {
+        throw (Error) rte;
+      } else {
+        throw (RuntimeException) rte;
+      }
+    }
+  }
 }
 
 // End CartesianProductEnumerator.java

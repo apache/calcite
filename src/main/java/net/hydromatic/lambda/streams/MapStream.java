@@ -146,6 +146,10 @@ public interface MapStream<K, V> extends Iterable<BiValue<K, V>> {
                 public void reset() {
                   enumerator.reset();
                 }
+
+                public void close() {
+                  enumerator.close();
+                }
               };
           return new Iterable<BiValue<K, V>>() {
             public Iterator<BiValue<K, V>> iterator() {

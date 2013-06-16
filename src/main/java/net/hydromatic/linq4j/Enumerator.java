@@ -27,7 +27,7 @@ package net.hydromatic.linq4j;
  *
  * @param <T> element type
  */
-public interface Enumerator<T> {
+public interface Enumerator<T> extends AutoCloseable {
   /**
    * Gets the current element in the collection.
    *
@@ -117,6 +117,14 @@ public interface Enumerator<T> {
    * {@link #current()}.</p>
    */
   void reset();
+
+  /**
+   * Closes this enumerable and releases resources.
+   *
+   * <p>This method is idempotent. Calling it multiple times has the same effect
+   * as calling it once.</p>
+   */
+  void close();
 }
 
 // End Enumerator.java
