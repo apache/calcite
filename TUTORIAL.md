@@ -481,7 +481,7 @@ public class CsvPushProjectOntoTableRule extends RelOptRule {
 ```
 
 The constructor declares the pattern of relational expressions that will cause
-the rule to file.
+the rule to fire.
 
 The <code>onMatch</code> method generates a new relational expression and calls
 <code><a href="http://www.hydromatic.net/optiq/apidocs/org/eigenbase/relopt/RelOptRuleCall.html#transformTo(org.eigenbase.rel.RelNode)">RelOptRuleCall.transformTo()</a></code>
