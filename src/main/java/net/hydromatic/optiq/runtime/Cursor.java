@@ -17,8 +17,7 @@
 */
 package net.hydromatic.optiq.runtime;
 
-import java.io.InputStream;
-import java.io.Reader;
+import java.io.*;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
@@ -30,7 +29,7 @@ import java.util.Map;
  * Interface to an iteration that is similar to, and can easily support,
  * a JDBC {@link ResultSet}, but is simpler to implement.
  */
-public interface Cursor {
+public interface Cursor extends Closeable {
   /**
    * Creates a list of accessors, one per column.
    *
@@ -45,6 +44,11 @@ public interface Cursor {
    * @return Whether moved
    */
   boolean next();
+
+  /**
+   * Closes this cursor and releases resources.
+   */
+  void close();
 
   /**
    * Accessor of a column value.

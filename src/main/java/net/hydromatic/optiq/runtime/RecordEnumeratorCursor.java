@@ -44,14 +44,16 @@ public class RecordEnumeratorCursor<E> extends AbstractCursor {
     this.clazz = clazz;
   }
 
-  @Override
   protected Getter createGetter(int ordinal) {
     return new RecordEnumeratorGetter(clazz.getFields()[ordinal]);
   }
 
-  @Override
   public boolean next() {
     return enumerator.moveNext();
+  }
+
+  public void close() {
+    enumerator.close();
   }
 
   class RecordEnumeratorGetter implements Getter {

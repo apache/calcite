@@ -36,14 +36,16 @@ public class ArrayEnumeratorCursor extends AbstractCursor {
     this.enumerator = enumerator;
   }
 
-  @Override
   protected Getter createGetter(int ordinal) {
     return new ArrayEnumeratorGetter(ordinal);
   }
 
-  @Override
   public boolean next() {
     return enumerator.moveNext();
+  }
+
+  public void close() {
+    enumerator.close();
   }
 
   class ArrayEnumeratorGetter implements Getter {

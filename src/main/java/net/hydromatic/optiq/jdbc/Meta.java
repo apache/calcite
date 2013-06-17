@@ -525,6 +525,10 @@ public class Meta {
         public boolean next() {
           return enumerator.moveNext();
         }
+
+        public void close() {
+          enumerator.close();
+        }
       };
     }
   }

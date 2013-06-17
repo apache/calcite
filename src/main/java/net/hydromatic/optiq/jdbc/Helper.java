@@ -76,6 +76,10 @@ public class Helper {
                 public boolean next() {
                   return false;
                 }
+
+                public void close() {
+                  // no resources to release
+                }
               };
             }
           }).execute();

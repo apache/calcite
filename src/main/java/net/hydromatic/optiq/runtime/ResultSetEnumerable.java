@@ -123,6 +123,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     try {
       connection = dataSource.getConnection();
       statement = connection.createStatement();
+      statement.setQueryTimeout(10);
       final ResultSet resultSet = statement.executeQuery(sql);
       statement = null;
       connection = null;
@@ -178,15 +179,20 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       }
     }
 
-    // TODO: use this
     public void close() {
-      if (resultSet != null) {
+      ResultSet savedResultSet = resultSet;
+      if (savedResultSet != null) {
         try {
-          ResultSet savedResultSet = resultSet;
           resultSet = null;
+          final Statement statement = savedResultSet.getStatement();
           savedResultSet.close();
-          savedResultSet.getStatement().close();
-          savedResultSet.getStatement().getConnection().close();
+          if (statement != null) {
+            final Connection connection = statement.getConnection();
+            statement.close();
+            if (connection != null) {
+              connection.close();
+            }
+          }
         } catch (SQLException e) {
           // ignore
         }
