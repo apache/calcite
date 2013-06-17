@@ -17,6 +17,8 @@
 */
 package net.hydromatic.linq4j;
 
+import java.io.Closeable;
+
 /**
  * Supports a simple iteration over a collection.
  *
@@ -27,7 +29,7 @@ package net.hydromatic.linq4j;
  *
  * @param <T> element type
  */
-public interface Enumerator<T> extends AutoCloseable {
+public interface Enumerator<T> extends Closeable {
   /**
    * Gets the current element in the collection.
    *
