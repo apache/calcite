@@ -134,29 +134,6 @@ public class RexUtil
     }
 
     /**
-     * Casts an expression to desired type, or returns the expression unchanged
-     * if it is already the correct type.
-     *
-     * @param rexBuilder Rex builder
-     * @param lhsType Desired type
-     * @param expr Expression
-     *
-     * @return Expression cast to desired type
-     */
-    public static RexNode maybeCast(
-        RexBuilder rexBuilder,
-        RelDataType lhsType,
-        RexNode expr)
-    {
-        final RelDataType rhsType = expr.getType();
-        if (lhsType.equals(rhsType)) {
-            return expr;
-        } else {
-            return rexBuilder.makeCast(lhsType, expr);
-        }
-    }
-
-    /**
      * Returns whether a node represents the NULL value.
      *
      * <p>Examples:

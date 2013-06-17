@@ -304,6 +304,8 @@ public class RexBuilder
                 lowerBound,
                 upperBound,
                 physical);
+        // Windowed aggregates are nullable, because the window might be empty.
+        type = typeFactory.createTypeWithNullability(type, true);
         final RexOver over = new RexOver(type, operator, exprs, window);
         RexNode result = over;
 

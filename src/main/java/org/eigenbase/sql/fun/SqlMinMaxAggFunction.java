@@ -71,7 +71,7 @@ public class SqlMinMaxAggFunction
         super(
             isMin ? "MIN" : "MAX",
             SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiFirstArgTypeForceNullable,
+            SqlTypeStrategies.rtiFirstArgType,
             null,
             SqlTypeStrategies.otcComparableOrdered,
             SqlFunctionCategory.System);

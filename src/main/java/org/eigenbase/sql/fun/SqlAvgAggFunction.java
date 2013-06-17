@@ -55,7 +55,7 @@ public class SqlAvgAggFunction
         super(
             subtype.name(),
             SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiFirstArgTypeForceNullable,
+            SqlTypeStrategies.rtiFirstArgType,
             null,
             SqlTypeStrategies.otcNumeric,
             SqlFunctionCategory.Numeric);

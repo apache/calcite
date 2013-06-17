@@ -68,7 +68,7 @@ public class FoodmartTest {
       6254, 6256, 6257, 6259, 6260, 6262, 6263, 6265, 6266, 6268, 6269,
 
       // failed
-      5618, 5619, 5677, 5681,
+      5677, 5681,
 
       // 2nd run
       6271, 6272, 6274, 6275, 6277, 6278, 6280, 6281, 6283, 6284, 6286, 6287,
@@ -83,7 +83,6 @@ public class FoodmartTest {
   };
 
   // Interesting tests. (We need to fix and remove from the disabled list.)
-  // 5618, 5619 only: data type mismatch (in AVG?)
   // 5677, 5681 only: assert into Context.toSql
   // 2452, 2453, 2454, 2457 only: RTRIM
   // 2436-2453,2455: agg_
@@ -113,21 +112,22 @@ public class FoodmartTest {
       for (int disabledId : DISABLED_IDS) {
         buf.append(",-").append(disabledId);
       }
+      buf.setLength(0); // disable disable
       for (Integer id : IntegerIntervalSet.of(idList + buf)) {
         final FoodmartQuery query1 = queries.get(id);
         if (query1 != null) {
-          list.add(new Object[] {id, query1.sql});
+          list.add(new Object[] {id /*, query1.sql */});
         }
       }
     } else {
       for (FoodmartQuery query1 : queries.values()) {
-        list.add(new Object[]{query1.id, query1.sql});
+        list.add(new Object[]{query1.id /*, query1.sql */});
       }
     }
     return list;
   }
 
-  public FoodmartTest(int id, String sql) {
+  public FoodmartTest(int id) {
     this.query = queries.get(id);
     assert query.id == id : id + ":" + query.id;
   }
@@ -142,14 +142,17 @@ public class FoodmartTest {
           .query(query.sql)
           .runs();
     } catch (Throwable e) {
-      throw new RuntimeException("Test failed, id=" + query.id, e);
+      throw new RuntimeException("Test failed, id=" + query.id + ", sql="
+          + query.sql, e);
     }
   }
 
+  // JSON class
   public static class FoodmartRoot {
     public final List<FoodmartQuery> queries = new ArrayList<FoodmartQuery>();
   }
 
+  // JSON class
   public static class FoodmartQuery {
     public int id;
     public String sql;
@@ -157,11 +160,11 @@ public class FoodmartTest {
     public final List<List> rows = new ArrayList<List>();
   }
 
+  // JSON class
   public static class FoodmartColumn {
     public String name;
     public String type;
   }
-
 }
 
 // End FoodmartTest.java

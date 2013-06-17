@@ -1677,6 +1677,9 @@ public class SqlToRelConverter
             orderKeys[i] = bb.convertExpression(orderList.get(i));
         }
         RexNode rexAgg = exprConverter.convertCall(bb, aggCall);
+        rexAgg =
+            rexBuilder.ensureType(
+                validator.getValidatedNodeType(call), rexAgg, false);
 
         // Walk over the tree and apply 'over' to all agg functions. This is
         // necessary because the returned expression is not necessarily a call
@@ -3532,23 +3535,6 @@ public class SqlToRelConverter
         // REVIEW jvs 22-Jan-2004:  should I add
         // mapScopeToLux.put(validator.getScope(values),bb.root);
         // ?
-    }
-
-    public RexNode convertField(
-        RelDataType inputRowType,
-        RelDataTypeField field)
-    {
-        final RelDataTypeField inputField =
-            inputRowType.getField(field.getName());
-        if (inputField == null) {
-            throw Util.newInternal("field not found: " + field);
-        }
-        return RexUtil.maybeCast(
-            rexBuilder,
-            field.getType(),
-            rexBuilder.makeInputRef(
-                inputField.getType(),
-                inputField.getIndex()));
     }
 
     private String createCorrel()

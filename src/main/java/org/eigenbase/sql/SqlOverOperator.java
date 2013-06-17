@@ -52,7 +52,7 @@ public class SqlOverOperator
             SqlKind.OVER,
             20,
             true,
-            SqlTypeStrategies.rtiFirstArgType,
+            SqlTypeStrategies.rtiFirstArgTypeForceNullable,
             null,
             SqlTypeStrategies.otcAnyX2);
     }
@@ -88,10 +88,10 @@ public class SqlOverOperator
         return validateOperands(validator, scope, call);
     }
 
-    /*
+    /**
      * Accepts a {@link SqlVisitor}, and tells it to visit each child.
      *
-     * @param visitor Visitor.
+     * @param visitor Visitor
      */
     public <R> void acceptCall(
         SqlVisitor<R> visitor,

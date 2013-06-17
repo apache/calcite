@@ -985,7 +985,7 @@ public class StandardConvertletTable
             RelDataType type =
                 cx.getValidator().getValidatedNodeType(call);
             RexNode rex = cx.convertExpression(expr);
-            return RexUtil.maybeCast(cx.getRexBuilder(), type, rex);
+            return cx.getRexBuilder().ensureType(type, rex, true);
         }
 
         private SqlNode expandAvg(
