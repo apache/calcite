@@ -17,6 +17,7 @@
 */
 package net.hydromatic.linq4j;
 
+import java.io.Closeable;
 import java.util.*;
 
 /**
@@ -379,9 +380,9 @@ public class Linq4j {
     public void close() {
       final Iterator<T> iterator = this.iterator;
       this.iterator = null;
-      if (iterator instanceof AutoCloseable) {
+      if (iterator instanceof Closeable) {
         try {
-          ((AutoCloseable) iterator).close();
+          ((Closeable) iterator).close();
         } catch (RuntimeException e) {
           throw e;
         } catch (Exception e) {
