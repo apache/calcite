@@ -18,6 +18,9 @@
 package net.hydromatic.linq4j;
 
 import java.io.Closeable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.sql.ResultSet;
 import java.util.*;
 
 /**
@@ -25,6 +28,20 @@ import java.util.*;
  */
 public class Linq4j {
   private static final Object DUMMY = new Object();
+
+  private static final Method AUTO_CLOSEABLE_CLOSE_METHOD =
+      getMethod("java.lang.AutoCloseable", "close");
+
+  private static Method getMethod(String className, String methodName,
+      Class... parameterTypes) {
+    try {
+      return Class.forName(className).getMethod(methodName, parameterTypes);
+    } catch (NoSuchMethodException e) {
+      return null;
+    } catch (ClassNotFoundException e) {
+      return null;
+    }
+  }
 
   /**
    * Query provider that simply executes a {@link Queryable} by calling its
@@ -380,13 +397,39 @@ public class Linq4j {
     public void close() {
       final Iterator<T> iterator = this.iterator;
       this.iterator = null;
-      if (iterator instanceof Closeable) {
-        try {
-          ((Closeable) iterator).close();
-        } catch (RuntimeException e) {
-          throw e;
-        } catch (Exception e) {
-          throw new RuntimeException(e);
+      if (AUTO_CLOSEABLE_CLOSE_METHOD != null) {
+        // JDK 1.7 or later
+        if (AUTO_CLOSEABLE_CLOSE_METHOD.getDeclaringClass()
+            .isInstance(iterator)) {
+          try {
+            AUTO_CLOSEABLE_CLOSE_METHOD.invoke(iterator);
+          } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+          } catch (InvocationTargetException e) {
+            throw new RuntimeException(e.getCause());
+          }
+        }
+      } else {
+        // JDK 1.5 or 1.6. No AutoCloseable. Cover the two most common cases
+        // with a close().
+        if (iterator instanceof Closeable) {
+          try {
+            ((Closeable) iterator).close();
+            return;
+          } catch (RuntimeException e) {
+            throw e;
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }
+        if (iterator instanceof ResultSet) {
+          try {
+            ((ResultSet) iterator).close();
+          } catch (RuntimeException e) {
+            throw e;
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
         }
       }
     }
