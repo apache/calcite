@@ -33,6 +33,7 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParserPos;
 import org.eigenbase.sql.type.SqlTypeStrategies;
+import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
 
@@ -66,7 +67,7 @@ public class JdbcRules {
   private static void addSelect(
       List<SqlNode> selectList, SqlNode node, RelDataType rowType) {
     String name = rowType.getFieldNames().get(selectList.size());
-    String alias = JdbcImplementor.simpleAlias(node);
+    String alias = SqlValidatorUtil.getAlias(node, -1);
     if (alias == null || !alias.equals(name)) {
       node = SqlStdOperatorTable.asOperator.createCall(
           POS, node, new SqlIdentifier(name, POS));

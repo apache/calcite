@@ -32,6 +32,7 @@ import org.eigenbase.sql.type.BasicSqlType;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import java.util.*;
 
@@ -42,17 +43,16 @@ public class JdbcImplementor {
   public static final SqlParserPos POS = SqlParserPos.ZERO;
 
   final SqlDialect dialect;
-    private final JavaTypeFactory typeFactory;
-    private final Set<String> aliasSet = new LinkedHashSet<String>();
+  private final Set<String> aliasSet = new LinkedHashSet<String>();
 
   public JdbcImplementor(SqlDialect dialect, JavaTypeFactory typeFactory) {
     this.dialect = dialect;
-      this.typeFactory = typeFactory;
+    Util.discard(typeFactory);
   }
 
   /** Creates a result based on a single relational expression. */
   public Result result(SqlNode node, Collection<Clause> clauses, RelNode rel) {
-    final String alias2 = simpleAlias(node);
+    final String alias2 = SqlValidatorUtil.getAlias(node, -1);
     final String alias3 = alias2 != null ? alias2 : "t";
     final String alias4 = SqlValidatorUtil.uniquify(alias3, aliasSet);
     final String alias5 = alias2 == null || !alias2.equals(alias4) ? alias4
@@ -69,12 +69,6 @@ public class JdbcImplementor {
     list.addAll(leftResult.aliases);
     list.addAll(rightResult.aliases);
     return new Result(join, Expressions.list(Clause.FROM), null, list);
-  }
-
-  public static String simpleAlias(SqlNode node) {
-    return node instanceof SqlIdentifier
-        ? ((SqlIdentifier) node).names[((SqlIdentifier) node).names.length - 1]
-        : null;
   }
 
   /** Wraps a node in a SELECT statement that has no clauses:
