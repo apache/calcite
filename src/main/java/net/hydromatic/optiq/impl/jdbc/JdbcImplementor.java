@@ -123,6 +123,12 @@ public class JdbcImplementor {
               literal.getValue().toString(), POS);
         case BOOLEAN:
           return SqlLiteral.createBoolean((Boolean) literal.getValue(), POS);
+        case ANY:
+          switch (literal.getTypeName()) {
+          case NULL:
+            return SqlLiteral.createNull(POS);
+          // fall through
+          }
         default:
           throw new AssertionError(literal);
         }

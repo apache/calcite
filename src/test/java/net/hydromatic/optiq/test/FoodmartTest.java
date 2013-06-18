@@ -17,7 +17,7 @@
 */
 package net.hydromatic.optiq.test;
 
-import mondrian.test.data.FoodMartData;
+import mondrian.test.data.FoodMartQuery;
 
 import org.eigenbase.util.IntegerIntervalSet;
 
@@ -83,7 +83,6 @@ public class FoodmartTest {
   };
 
   // Interesting tests. (We need to fix and remove from the disabled list.)
-  // 5677, 5681 only: assert into Context.toSql
   // 2452, 2453, 2454, 2457 only: RTRIM
   // 2436-2453,2455: agg_
   // 2518, 5960 only: "every derived table must have its own alias"
@@ -100,7 +99,7 @@ public class FoodmartTest {
     mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
     mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
 
-    final InputStream inputStream = new FoodMartData().getQueries();
+    final InputStream inputStream = new FoodMartQuery().getQueries();
     FoodmartRoot root = mapper.readValue(inputStream, FoodmartRoot.class);
     final List<Object[]> list = new ArrayList<Object[]>();
       final String idList = System.getProperty("optiq.ids");
