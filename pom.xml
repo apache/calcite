@@ -151,7 +151,7 @@
     <dependency>
       <groupId>pentaho</groupId>
       <artifactId>mondrian-data-foodmart-queries</artifactId>
-      <version>0.2</version>
+      <version>0.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
