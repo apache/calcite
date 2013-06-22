@@ -28,23 +28,13 @@ import org.eigenbase.test.*;
 public class SqlOperatorTest
     extends SqlOperatorBaseTest
 {
-    //~ Instance fields --------------------------------------------------------
+  private static final SqlTester DEFAULT_TESTER =
+      (SqlTester) new SqlValidatorTestCase(null)
+          .getTester(SqlConformance.Default);
 
-    private SqlTester tester =
-        (SqlTester) new SqlValidatorTestCase(null)
-            .getTester(SqlConformance.Default);
-
-    //~ Constructors -----------------------------------------------------------
-
+    /** Creates a SqlOperatorTest. */
     public SqlOperatorTest() {
-      super(false);
-    }
-
-    //~ Methods ----------------------------------------------------------------
-
-    protected SqlTester getTester()
-    {
-        return tester;
+        super(false, DEFAULT_TESTER);
     }
 }
 

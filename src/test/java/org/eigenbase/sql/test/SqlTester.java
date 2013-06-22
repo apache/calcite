@@ -17,6 +17,7 @@
 */
 package org.eigenbase.sql.test;
 
+import java.io.Closeable;
 import java.sql.ResultSet;
 
 import org.eigenbase.reltype.*;
@@ -36,8 +37,7 @@ import org.eigenbase.sql.*;
  * queries in different ways, for example, using a C++ versus Java calculator.
  * An implementation might even ignore certain calls altogether.
  */
-public interface SqlTester
-{
+public interface SqlTester extends Closeable {
     //~ Enums ------------------------------------------------------------------
 
     /**

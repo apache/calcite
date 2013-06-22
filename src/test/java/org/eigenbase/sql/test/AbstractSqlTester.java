@@ -39,7 +39,6 @@ public abstract class AbstractSqlTester
 {
     //~ Static fields/initializers ---------------------------------------------
 
-    // ~ Constants ------------------------------------------------------------
     public static final TypeChecker IntegerTypeChecker =
         new SqlTypeChecker(SqlTypeName.INTEGER);
 
@@ -58,11 +57,18 @@ public abstract class AbstractSqlTester
 
     //~ Instance fields --------------------------------------------------------
 
-    // ~ Members --------------------------------------------------------------
-
     private SqlOperator operator;
 
     //~ Methods ----------------------------------------------------------------
+
+
+    /** {@inheritDoc}
+     *
+     * This default implementation does nothing.
+     */
+    public void close() {
+        // no resources to release
+    }
 
     public void setFor(SqlOperator operator, VmName ... unimplementedVmNames)
     {

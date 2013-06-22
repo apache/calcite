@@ -557,6 +557,14 @@ public class SqlValidatorTestCase {
             this.opTab = createOperatorTable();
         }
 
+        /** {@inheritDoc}
+         *
+         * This default implementation does nothing.
+         */
+        public void close() {
+            // no resources to release
+        }
+
         public SqlConformance getConformance()
         {
             return conformance;
