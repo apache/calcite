@@ -19,6 +19,7 @@ package net.hydromatic.linq4j.function;
 
 import net.hydromatic.linq4j.Linq4j;
 
+import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
@@ -370,7 +371,7 @@ public class Functions {
     }
   }
 
-  private static class NullsFirstComparator implements Comparator<Comparable> {
+  private static class NullsFirstComparator implements Comparator<Comparable>, Serializable {
     public int compare(Comparable o1, Comparable o2) {
       if (o1 == o2) {
         return 0;
@@ -386,7 +387,7 @@ public class Functions {
     }
   }
 
-  private static class NullsLastComparator implements Comparator<Comparable> {
+  private static class NullsLastComparator implements Comparator<Comparable>, Serializable  {
     public int compare(Comparable o1, Comparable o2) {
       if (o1 == o2) {
         return 0;
@@ -403,7 +404,7 @@ public class Functions {
   }
 
   private static class NullsFirstReverseComparator
-      implements Comparator<Comparable> {
+      implements Comparator<Comparable>, Serializable  {
     public int compare(Comparable o1, Comparable o2) {
       if (o1 == o2) {
         return 0;
@@ -420,7 +421,7 @@ public class Functions {
   }
 
   private static class NullsLastReverseComparator
-      implements Comparator<Comparable> {
+      implements Comparator<Comparable>, Serializable  {
     public int compare(Comparable o1, Comparable o2) {
       if (o1 == o2) {
         return 0;
