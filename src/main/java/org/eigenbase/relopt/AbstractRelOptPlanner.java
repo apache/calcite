@@ -201,6 +201,10 @@ public abstract class AbstractRelOptPlanner
         }
     }
 
+    public RelTraitSet emptyTraitSet() {
+        return RelTraitSet.createEmpty();
+    }
+
     // implement RelOptPlanner
     public RelOptCost makeCost(
         double dRows,

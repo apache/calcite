@@ -32,6 +32,7 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
+import org.eigenbase.util.mapping.Mappings;
 
 
 /**
@@ -272,25 +273,22 @@ public class RelDecorrelator
 
         Map<Integer, Integer> childMapOldToNewOutputPos =
             mapNewRelToMapOldToNewOutputPos.get(newChildRel);
-        assert (childMapOldToNewOutputPos != null);
+        assert childMapOldToNewOutputPos != null;
+        Mappings.TargetMapping mapping =
+            Mappings.target(
+                childMapOldToNewOutputPos,
+                oldChildRel.getRowType().getFieldCount(),
+                newChildRel.getRowType().getFieldCount());
 
-        List<RelFieldCollation> oldCollations = rel.getCollations();
-        List<RelFieldCollation> newCollations =
-            new ArrayList<RelFieldCollation>(oldCollations.size());
-
-        for (RelFieldCollation oldCollation : oldCollations) {
-            newCollations.add(
-                oldCollation.copy(
-                    childMapOldToNewOutputPos.get(
-                        oldCollation.getFieldIndex())));
-        }
+        RelCollation oldCollation = rel.getCollation();
+        RelCollation newCollation = RexUtil.apply(mapping, oldCollation);
 
         SortRel newRel =
             new SortRel(
                 rel.getCluster(),
                 rel.getCluster().traitSetOf(Convention.NONE),
                 newChildRel,
-                newCollations);
+                newCollation);
 
         mapOldToNewRel.put(rel, newRel);
 

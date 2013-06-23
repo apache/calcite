@@ -102,14 +102,16 @@ public class RelOptQuery
      *
      * @param typeFactory Type factory
      * @param rexBuilder Expression builder
-     *
+     * @param emptyTraitSet Empty trait set. The prototype for other trait sets
      * @return New cluster
      */
     public RelOptCluster createCluster(
         RelDataTypeFactory typeFactory,
-        RexBuilder rexBuilder)
+        RexBuilder rexBuilder,
+        RelTraitSet emptyTraitSet)
     {
-        return new RelOptCluster(this, planner, typeFactory, rexBuilder);
+        return new RelOptCluster(
+            this, planner, typeFactory, rexBuilder, emptyTraitSet);
     }
 
     /**

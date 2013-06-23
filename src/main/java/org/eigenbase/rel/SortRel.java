@@ -17,11 +17,13 @@
 */
 package org.eigenbase.rel;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.Bug;
 
 import net.hydromatic.linq4j.Ord;
 
@@ -35,8 +37,8 @@ public class SortRel
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected final List<RelFieldCollation> collations;
-    protected final RexNode [] fieldExps;
+    protected final RelCollation collation;
+    protected final List<RexNode> fieldExps = new ArrayList<RexNode>();
 
     //~ Constructors -----------------------------------------------------------
 
@@ -46,68 +48,78 @@ public class SortRel
      * @param cluster Cluster this relational expression belongs to
      * @param traits Traits
      * @param child input relational expression
-     * @param collations array of sort specifications
+     * @param collation array of sort specifications
      */
     public SortRel(
         RelOptCluster cluster,
         RelTraitSet traits,
         RelNode child,
-        List<RelFieldCollation> collations)
+        RelCollation collation)
     {
         super(cluster, traits, child);
-        this.collations = collations;
+        this.collation = collation;
 
-        fieldExps = new RexNode[collations.size()];
+        if (Bug.TodoFixed)
+        assert traits.getTrait(RelCollationTraitDef.INSTANCE).equals(collation);
         final RelDataTypeField [] fields = getRowType().getFields();
-        for (int i = 0; i < collations.size(); ++i) {
-            int iField = collations.get(i).getFieldIndex();
-            fieldExps[i] =
+        for (RelFieldCollation field : collation.getFieldCollations()) {
+            int iField = field.getFieldIndex();
+            fieldExps.add(
                 cluster.getRexBuilder().makeInputRef(
-                    fields[iField].getType(),
-                    iField);
+                    fields[iField].getType(), iField));
         }
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public SortRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return copy(traitSet, sole(inputs), collations);
+        return copy(traitSet, sole(inputs), collation);
     }
 
     public SortRel copy(
         RelTraitSet traitSet,
         RelNode newInput,
-        List<RelFieldCollation> newCollations)
+        RelCollation newCollation)
     {
         assert traitSet.comprises(Convention.NONE);
         return new SortRel(
             getCluster(),
             getCluster().traitSetOf(Convention.NONE),
             newInput,
-            newCollations);
+            newCollation);
     }
 
     public RexNode [] getChildExps()
     {
-        return fieldExps;
+        return fieldExps.toArray(new RexNode[fieldExps.size()]);
     }
 
     /**
-     * @return array of RelFieldCollations, from most significant to least
-     * significant
+     * Returns the array of {@link RelFieldCollation}s asked for by the sort
+     * specification, from most significant to least significant.
+     *
+     * <p>See also {@link #getCollationList()}, inherited from {@link RelNode},
+     * which lists all known collations. For example,
+     * <code>ORDER BY time_id</code> might also be sorted by
+     * <code>the_year, the_month</code> because of a known monotonicity
+     * constraint among the columns. {@code getCollations} would return
+     * <code>[time_id]</code> and {@code getCollationList} would return
+     * <code>[ [time_id], [the_year, the_month] ]</code>.</p>
      */
-    public List<RelFieldCollation> getCollations()
+    public RelCollation getCollation()
     {
-        return collations;
+        return collation;
     }
 
     public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
         super.explainTerms(pw);
-        assert fieldExps.length == collations.size();
+        assert fieldExps.size() == collation.getFieldCollations().size();
         for (Ord<RexNode> ord : Ord.zip(fieldExps)) {
             pw.item("sort" + ord.i, ord.e);
         }
-        for (Ord<RelFieldCollation> ord : Ord.zip(collations)) {
+        for (Ord<RelFieldCollation> ord
+            : Ord.zip(collation.getFieldCollations()))
+        {
             pw.item("dir" + ord.i, ord.e.shortString());
         }
         return pw;

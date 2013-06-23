@@ -69,13 +69,23 @@ public abstract class RelTraitDef<T extends RelTrait>
     //~ Methods ----------------------------------------------------------------
 
     /**
+     * Whether a relational expression may possess more than one instance of
+     * this trait simultaneously.
+     *
+     * <p>A subset has only one instance of a trait.</p>
+     */
+    public boolean multiple() {
+        return false;
+    }
+
+    /**
      * @return the specific RelTrait type associated with this RelTraitDef.
      */
     public abstract Class<T> getTraitClass();
 
     /**
-     * @return a simple name for this RelTraitDef (for use in {@link
-     * org.eigenbase.rel.RelNode#explainTerms(RelOptPlanWriter)}).
+     * @return a simple name for this RelTraitDef (for use in
+     * {@link org.eigenbase.rel.RelNode#explain(RelOptPlanWriter)}).
      */
     public abstract String getSimpleName();
 

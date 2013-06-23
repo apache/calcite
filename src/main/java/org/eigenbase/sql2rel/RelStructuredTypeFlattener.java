@@ -27,6 +27,10 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
+import org.eigenbase.util.mapping.Mappings;
+
+import net.hydromatic.linq4j.Linq4j;
+import net.hydromatic.linq4j.function.IntegerFunction1;
 
 
 // TODO jvs 10-Feb-2005:  factor out generic rewrite helper, with the
@@ -244,16 +248,15 @@ public class RelStructuredTypeFlattener
 
         // determine which input rel oldOrdinal references, and adjust
         // oldOrdinal to be relative to that input rel
-        List<RelNode> oldInputs = currentRel.getInputs();
         RelNode oldInput = null;
-        for (int i = 0; i < oldInputs.size(); ++i) {
-            RelDataType oldInputType = oldInputs.get(i).getRowType();
+        for (RelNode oldInput1 : currentRel.getInputs()) {
+            RelDataType oldInputType = oldInput1.getRowType();
             int n = oldInputType.getFieldCount();
             if (oldOrdinal < n) {
-                oldInput = oldInputs.get(i);
+                oldInput = oldInput1;
                 break;
             }
-            RelNode newInput = getNewForOldRel(oldInputs.get(i));
+            RelNode newInput = getNewForOldRel(oldInput1);
             newOrdinal += newInput.getRowType().getFieldCount();
             oldOrdinal -= n;
         }
@@ -262,6 +265,24 @@ public class RelStructuredTypeFlattener
         RelDataType oldInputType = oldInput.getRowType();
         newOrdinal += calculateFlattenedOffset(oldInputType, oldOrdinal);
         return newOrdinal;
+    }
+
+    /**
+     * Returns a mapping between old and new fields.
+     *
+     * @param oldRel Old relational expression
+     * @return Mapping between fields of old and new
+     */
+    private Mappings.TargetMapping getNewForOldInputMapping(RelNode oldRel) {
+        final RelNode newRel = getNewForOldRel(oldRel);
+        return Mappings.target(
+            new Util.Function1<Integer, Integer>() {
+                public Integer apply(Integer oldInput) {
+                    return getNewForOldInput(oldInput);
+                }
+            },
+            oldRel.getRowType().getFieldCount(),
+            newRel.getRowType().getFieldCount());
     }
 
     private int calculateFlattenedOffset(RelDataType rowType, int ordinal)
@@ -326,27 +347,29 @@ public class RelStructuredTypeFlattener
 
     public void rewriteRel(SortRel rel)
     {
-        List<RelFieldCollation> oldCollations = rel.getCollations();
-        List<RelFieldCollation> newCollations =
-            new ArrayList<RelFieldCollation>(oldCollations.size());
-        for (RelFieldCollation oldCollation : oldCollations) {
-            int oldInput = oldCollation.getFieldIndex();
+        RelCollation oldCollation = rel.getCollation();
+        final RelNode oldChild = rel.getChild();
+        final RelNode newChild = getNewForOldRel(oldChild);
+        final Mappings.TargetMapping mapping =
+            getNewForOldInputMapping(oldChild);
+
+        // validate
+        for (RelFieldCollation field : oldCollation.getFieldCollations()) {
+            int oldInput = field.getFieldIndex();
             RelDataType sortFieldType =
-                rel.getChild().getRowType().getFields()[oldInput].getType();
+                oldChild.getRowType().getFields()[oldInput].getType();
             if (sortFieldType.isStruct()) {
                 // TODO jvs 10-Feb-2005
                 throw Util.needToImplement("sorting on structured types");
             }
-            newCollations.add(
-                oldCollation.copy(
-                    getNewForOldInput(oldInput)));
         }
+
         SortRel newRel =
             new SortRel(
                 rel.getCluster(),
                 rel.getCluster().traitSetOf(Convention.NONE),
-                getNewForOldRel(rel.getChild()),
-                newCollations);
+                newChild,
+                RexUtil.apply(mapping, oldCollation));
         setNewForOldRel(rel, newRel);
     }
 

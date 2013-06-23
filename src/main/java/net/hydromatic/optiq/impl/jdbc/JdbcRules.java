@@ -443,7 +443,7 @@ public class JdbcRules {
       final SortRel sort = (SortRel) rel;
       final RelTraitSet traitSet = sort.getTraitSet().replace(out);
       return new JdbcSortRel(rel.getCluster(), traitSet,
-          convert(sort.getChild(), traitSet), sort.getCollations());
+          convert(sort.getChild(), traitSet), sort.getCollation());
     }
   }
 
@@ -454,16 +454,16 @@ public class JdbcRules {
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode child,
-        List<RelFieldCollation> collations) {
-      super(cluster, traitSet, child, collations);
+        RelCollation collation) {
+      super(cluster, traitSet, child, collation);
       assert getConvention() instanceof JdbcConvention;
       assert getConvention() == child.getConvention();
     }
 
     @Override
     public JdbcSortRel copy(RelTraitSet traitSet, RelNode newInput,
-        List<RelFieldCollation> newCollations) {
-      return new JdbcSortRel(getCluster(), traitSet, newInput, newCollations);
+        RelCollation newCollation) {
+      return new JdbcSortRel(getCluster(), traitSet, newInput, newCollation);
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
@@ -471,18 +471,18 @@ public class JdbcRules {
       final JdbcImplementor.Builder builder =
           x.builder(this, JdbcImplementor.Clause.ORDER_BY);
       List<SqlNode> orderByList = Expressions.list();
-      for (RelFieldCollation collation : collations) {
-        if (collation.nullDirection
+      for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+        if (fieldCollation.nullDirection
             != RelFieldCollation.NullDirection.UNSPECIFIED
             && implementor.dialect.getDatabaseProduct()
                == SqlDialect.DatabaseProduct.MYSQL) {
           orderByList.add(
               ISNULL_FUNCTION.createCall(POS,
-                  builder.context.field(collation.getFieldIndex())));
-          collation = new RelFieldCollation(collation.getFieldIndex(),
-              collation.getDirection());
+                  builder.context.field(fieldCollation.getFieldIndex())));
+          fieldCollation = new RelFieldCollation(fieldCollation.getFieldIndex(),
+              fieldCollation.getDirection());
         }
-        orderByList.add(builder.context.toSql(collation));
+        orderByList.add(builder.context.toSql(fieldCollation));
       }
       builder.setOrderBy(new SqlNodeList(orderByList, POS));
       return builder.result();

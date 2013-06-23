@@ -430,14 +430,14 @@ public class RelFieldTrimmer
     {
         final RelDataType rowType = sort.getRowType();
         final int fieldCount = rowType.getFieldCount();
-        final List<RelFieldCollation> collations = sort.getCollations();
+        final RelCollation collation = sort.getCollation();
         final RelNode input = sort.getChild();
 
         // We use the fields used by the consumer, plus any fields used as sort
         // keys.
         BitSet inputFieldsUsed = (BitSet) fieldsUsed.clone();
-        for (RelFieldCollation collation : collations) {
-            inputFieldsUsed.set(collation.getFieldIndex());
+        for (RelFieldCollation field : collation.getFieldCollations()) {
+            inputFieldsUsed.set(field.getFieldIndex());
         }
 
         // Create input with trimmed columns.
@@ -462,7 +462,7 @@ public class RelFieldTrimmer
             sort.copy(
                 sort.getTraitSet(),
                 newInput,
-                RexUtil.apply(inputMapping, collations));
+                RexUtil.apply(inputMapping, collation));
         assert newSort.getClass() == sort.getClass();
 
         // The result has the same mapping as the input gave us. Sometimes we

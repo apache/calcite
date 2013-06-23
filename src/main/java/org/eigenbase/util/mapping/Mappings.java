@@ -268,6 +268,38 @@ public abstract class Mappings
         };
     }
 
+    /** Converts a {@link Map} of integers to a {@link TargetMapping}. */
+    public static TargetMapping target(
+        Map<Integer, Integer> map,
+        int sourceCount,
+        int targetCount)
+    {
+        final PartialFunctionImpl mapping =
+            new PartialFunctionImpl(
+                sourceCount, targetCount, MappingType.Function);
+        for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
+            mapping.set(entry.getKey(), entry.getValue());
+        }
+        return mapping;
+    }
+
+    public static TargetMapping target(
+        Util.Function1<Integer, Integer> function,
+        int sourceCount,
+        int targetCount)
+    {
+        final PartialFunctionImpl mapping =
+            new PartialFunctionImpl(
+                sourceCount, targetCount, MappingType.Function);
+        for (int source = 0; source < sourceCount; source++) {
+            Integer target = function.apply(source);
+            if (target != null) {
+                mapping.set(source, target);
+            }
+        }
+        return mapping;
+    }
+
     //~ Inner Interfaces -------------------------------------------------------
 
     /**

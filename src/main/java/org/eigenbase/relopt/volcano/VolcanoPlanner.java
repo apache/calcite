@@ -250,6 +250,18 @@ public class VolcanoPlanner
         return !traitDefs.contains(relTraitDef) && traitDefs.add(relTraitDef);
     }
 
+    @Override
+    public RelTraitSet emptyTraitSet() {
+        RelTraitSet traitSet = super.emptyTraitSet();
+        for (RelTraitDef traitDef : traitDefs) {
+            if (traitDef.multiple()) {
+                // TODO: restructure RelTraitSet to allow a list of entries
+                //  for any given trait
+            }
+        }
+        return traitSet;
+    }
+
     public boolean addRule(RelOptRule rule)
     {
         if (locked) {
@@ -661,6 +673,8 @@ SUBSET_LOOP:
         addRule(UnionToDistinctRule.instance);
         addRule(RemoveTrivialProjectRule.instance);
         addRule(RemoveTrivialCalcRule.instance);
+        if (Bug.TodoFixed)
+        addRule(RemoveSortRule.INSTANCE);
 
         // todo: rule which makes Project({OrdinalRef}) disappear
     }

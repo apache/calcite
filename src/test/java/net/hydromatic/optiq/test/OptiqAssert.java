@@ -541,25 +541,16 @@ public class OptiqAssert {
       }
     }
 
-    public AssertQuery explainContains(final String expected) {
+    public AssertQuery explainContains(String expected) {
+      String explainSql = "explain plan for " + sql;
       try {
         assertQuery(
-            createConnection(),
-            "explain plan for " + sql, limit, new Function1<ResultSet, Void>() {
-              public Void apply(ResultSet s) {
-                try {
-                  final String actual = OptiqAssert.toString(s);
-                  assertTrue(actual, actual.contains(expected));
-                  return null;
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            }, null);
+            createConnection(), explainSql, limit,
+            checkResultContains(expected), null);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
-            "exception while explaining [" + sql + "]", e);
+            "exception while executing [" + explainSql + "]", e);
       }
     }
 

@@ -914,6 +914,36 @@ public class JdbcTest {
             + "store_id=0; grocery_sqft=null\n");
   }
 
+  /** Tests sorting by a column that is already sorted. */
+  public void testOrderByOnSortedTable() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select * from \"time_by_day\"\n"
+            + "order by \"time_id\"")
+        .explainContains(
+            "PLAN=EnumerableSortRel(sort0=[$0], dir0=[Ascending])\n"
+            + "  EnumerableTableAccessRel(table=[[foodmart2, time_by_day]])\n\n");
+  }
+
+  /** Tests sorting by a column that is already sorted. */
+  public void testOrderByOnSortedTable2() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select \"time_id\", \"the_date\" from \"time_by_day\"\n"
+            + "where \"time_id\" < 370\n"
+            + "order by \"time_id\"")
+        .returns(
+            "time_id=367; the_date=1997-01-01 00:00:00.0\n"
+            + "time_id=368; the_date=1997-01-02 00:00:00.0\n"
+            + "time_id=369; the_date=1997-01-03 00:00:00.0\n")
+        .explainContains(
+            "PLAN=EnumerableSortRel(sort0=[$0], dir0=[Ascending])\n"
+            + "  EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[370], expr#11=[<($t0, $t10)], proj#0..1=[{exprs}], $condition=[$t11])\n"
+            + "    EnumerableTableAccessRel(table=[[foodmart2, time_by_day]])\n\n");
+  }
+
   /** Tests WHERE comparing a nullable integer with an integer literal. */
   @Test public void testWhereNullable() {
     OptiqAssert.assertThat()
