@@ -503,7 +503,7 @@ public class VolcanoPlanner
                         visitedSubsets.add(subset);
 
                         depth++;
-                        for (RelNode rel : subset.rels) {
+                        for (RelNode rel : subset.getRels()) {
                             visit(rel, -1, subset);
                         }
                         depth--;
@@ -526,7 +526,7 @@ public class VolcanoPlanner
 
 SUBSET_LOOP:
         for (RelSubset subset : ruleQueue.subsetImportances.keySet()) {
-            for (RelNode rel : subset.rels) {
+            for (RelNode rel : subset.getRels()) {
                 if (rel.getConvention() != Convention.NONE) {
                     continue SUBSET_LOOP;
                 }
@@ -639,23 +639,7 @@ SUBSET_LOOP:
                         "subset [" + subset.getDescription()
                         + "] is in wrong set [" + set + "]");
                 }
-                for (RelNode rel : subset.rels) {
-                    final RelSubset subset2 = getSubset(rel);
-                    if ((subset2 != subset) && false) {
-                        throw new AssertionError(
-                            "rel [" + rel.getDescription()
-                            + "] is in wrong subset [" + subset2 + "]");
-                    }
-                    for (RelNode inputRel : rel.getInputs()) {
-                        final RelSubset inputSubset = getSubset(inputRel);
-                        if (!inputSubset.parents.contains(rel)) {
-                            throw new AssertionError(
-                                "rel [" + rel.getDescription()
-                                + "] is a parent of ["
-                                + inputRel.getDescription()
-                                + "] but is not registered as such");
-                        }
-                    }
+                for (RelNode rel : subset.getRels()) {
                     RelOptCost relCost = getCost(rel);
                     if (relCost.isLt(subset.bestCost)) {
                         throw new AssertionError(
@@ -892,7 +876,7 @@ SUBSET_LOOP:
                     assert !set.subsets.get(k).getTraitSet().equals(
                         subset.getTraitSet());
                 }
-                for (RelNode rel : subset.rels) {
+                for (RelNode rel : subset.getRels()) {
                     // "\t\trel#34:JavaProject(rel#32:JavaFilter(...), ...)"
                     pw.print("\t\t" + rel.getDescription());
                     for (RelNode input : rel.getInputs()) {
@@ -902,8 +886,10 @@ SUBSET_LOOP:
                                 input.getTraitSet());
                         RelSet inputSet = inputSubset.set;
                         if (input instanceof RelSubset) {
-                            assert inputSubset.rels.size() > 0;
-                            input = inputSubset.rels.get(0);
+                            final Iterator<RelNode> rels =
+                                inputSubset.getRels().iterator();
+                            assert rels.hasNext();
+                            input = rels.next();
                             assert inputSubset.getTraitSet().equals(
                                 input.getTraitSet());
                             assert inputSet.rels.contains(input);
@@ -936,7 +922,7 @@ SUBSET_LOOP:
     void rename(RelNode rel)
     {
         final String oldDigest = rel.getDigest();
-        if (fixupInputs(rel)) {
+        if (fixUpInputs(rel)) {
             assert mapDigestToRel.remove(oldDigest) == rel;
             final String newDigest = rel.recomputeDigest();
             tracer.finer(
@@ -958,9 +944,9 @@ SUBSET_LOOP:
                 RelSubset equivRelSubset = getSubset(equivRel);
                 ruleQueue.recompute(equivRelSubset, true);
 
-                // Remove backlinks from children.
+                // Remove back-links from children.
                 for (RelNode input : rel.getInputs()) {
-                    ((RelSubset) input).parents.remove(rel);
+                    ((RelSubset) input).set.parents.remove(rel);
                 }
 
                 // Remove rel from its subset. (This may leave the subset
@@ -968,9 +954,9 @@ SUBSET_LOOP:
                 // get merged.)
                 final RelSubset subset = mapRel2Subset.put(rel, equivRelSubset);
                 assert subset != null;
-                boolean existed = subset.rels.remove(rel);
-                assert existed : "rel was not known to its subset";
-                existed = subset.set.rels.remove(rel);
+                //boolean existed = subset.rels.remove(rel);
+                //assert existed : "rel was not known to its subset";
+                boolean existed = subset.set.rels.remove(rel);
                 assert existed : "rel was not known to its set";
                 final RelSubset equivSubset = getSubset(equivRel);
                 if (equivSubset != subset) {
@@ -1061,10 +1047,8 @@ SUBSET_LOOP:
         }
     }
 
-    private boolean fixupInputs(RelNode rel)
-    {
+    private boolean fixUpInputs(RelNode rel) {
         List<RelNode> inputs = rel.getInputs();
-        List<RelNode> newInputs = new ArrayList<RelNode>();
         int i = -1;
         int changeCount = 0;
         for (RelNode input : inputs) {
@@ -1074,8 +1058,10 @@ SUBSET_LOOP:
                 RelSubset newSubset = canonize(subset);
                 if (newSubset != subset) {
                     rel.replaceInput(i, newSubset);
-                    subset.parents.remove(rel);
-                    newSubset.parents.add(rel);
+                    if (subset.set != newSubset.set) {
+                        subset.set.parents.remove(rel);
+                        newSubset.set.parents.add(rel);
+                    }
                     changeCount++;
                 }
             }
@@ -1236,7 +1222,7 @@ SUBSET_LOOP:
                 // we're not registered yet, we won't have been informed. So
                 // check whether we are now equivalent to an existing
                 // expression.
-                if (fixupInputs(rel)) {
+                if (fixUpInputs(rel)) {
                     digest = rel.recomputeDigest();
                     RelNode equivRel = mapDigestToRel.get(digest);
                     if ((equivRel != rel) && (equivRel != null)) {
@@ -1298,7 +1284,7 @@ SUBSET_LOOP:
         }
         for (RelNode input : rel.getInputs()) {
             RelSubset childSubset = (RelSubset) input;
-            childSubset.parents.add(rel);
+            childSubset.set.parents.add(rel);
 
             // Child subset is more important now a new parent uses it.
             ruleQueue.recompute(childSubset);

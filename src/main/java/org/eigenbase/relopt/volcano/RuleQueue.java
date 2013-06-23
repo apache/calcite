@@ -86,7 +86,7 @@ class RuleQueue
     private final Comparator<RelSubset> relImportanceComparator =
         new RelImportanceComparator();
 
-    /*
+    /**
      * Maps a {@link VolcanoPlannerPhase} to a set of rule names.  Named rules
      * may be invoked in their corresponding phase.
      */
@@ -253,7 +253,7 @@ class RuleQueue
                 private int countChildren(RelSubset subset)
                 {
                     int count = 0;
-                    for (RelNode rel : subset.rels) {
+                    for (RelNode rel : subset.getRels()) {
                         count += rel.getInputs().size();
                     }
                     return count;
@@ -399,7 +399,7 @@ class RuleQueue
             // The importance of a subset is the max of its importance to its
             // parents
             importance = 0.0;
-            for (RelSubset parent : subset.getParentSubsets()) {
+            for (RelSubset parent : subset.getParentSubsets(planner)) {
                 final double childImportance =
                     computeImportanceOfChild(subset, parent);
                 importance = Math.max(importance, childImportance);

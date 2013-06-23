@@ -19,6 +19,8 @@ package org.eigenbase.rel;
 
 import java.util.*;
 
+import org.eigenbase.relopt.RelTrait;
+
 
 /**
  * Description of the physical ordering of a relational expression.
@@ -30,7 +32,7 @@ import java.util.*;
  * @version $Id$
  * @since March 6, 2006
  */
-public interface RelCollation
+public interface RelCollation extends RelTrait
 {
     //~ Methods ----------------------------------------------------------------
 

@@ -19,6 +19,7 @@ package org.eigenbase.rel;
 
 import java.util.*;
 
+import org.eigenbase.relopt.RelTraitDef;
 import org.eigenbase.reltype.*;
 
 
@@ -51,6 +52,10 @@ public class RelCollationImpl
     }
 
     //~ Methods ----------------------------------------------------------------
+
+    public RelTraitDef getTraitDef() {
+        return RelCollationTraitDef.INSTANCE;
+    }
 
     public List<RelFieldCollation> getFieldCollations()
     {

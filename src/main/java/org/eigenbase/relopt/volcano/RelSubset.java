@@ -28,6 +28,9 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.linq4j.Linq4j;
+import net.hydromatic.linq4j.function.Predicate1;
+
 
 /**
  * A <code>RelSubset</code> is set of expressions in a set which have the same
@@ -46,16 +49,6 @@ public class RelSubset
     private static final Logger tracer = EigenbaseTrace.getPlannerTracer();
 
     //~ Instance fields --------------------------------------------------------
-
-    /**
-     * List of the relational expressions for which this subset is an input.
-     */
-    final List<RelNode> parents;
-
-    /**
-     * The relational expressions in this subset.
-     */
-    final List<RelNode> rels;
 
     /**
      * cost of best known plan (it may have improved since)
@@ -97,8 +90,6 @@ public class RelSubset
     {
         super(cluster, traits);
         this.set = set;
-        this.rels = new ArrayList<RelNode>();
-        this.parents = new ArrayList<RelNode>();
         this.bestCost = VolcanoCost.INFINITY;
         this.boosted = false;
         recomputeDigest();
@@ -144,7 +135,8 @@ public class RelSubset
         // values to be printed later. We actually do the work.
         String s = getDescription();
         pw.item("subset", s);
-        final AbstractRelNode input = (AbstractRelNode) rels.get(0);
+        final AbstractRelNode input =
+            (AbstractRelNode) getRels().iterator().next();
         input.explainTerms(pw);
         pw.done(input);
     }
@@ -186,15 +178,26 @@ public class RelSubset
         return false;
     }
 
-    Collection<RelSubset> getParentSubsets()
-    {
-        List<RelSubset> list = new ArrayList<RelSubset>(parents.size());
+    /** Returns the collection of RelNodes one of whose inputs is in this
+     * subset. */
+    Set<RelNode> getParents() {
+        final Set<RelNode> list = new LinkedHashSet<RelNode>();
+        for (RelNode parent : set.getParentRels()) {
+            for (RelSubset rel : (List<RelSubset>) (List) parent.getInputs()) {
+                if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
+                    list.add(parent);
+                }
+            }
+        }
+        return list;
+    }
 
-        for (RelNode rel : parents) {
-            final RelSubset subset =
-                ((VolcanoPlanner) getCluster().getPlanner()).getSubset(rel);
-            assert (subset != null) : rel.toString() + " has no subset";
-            list.add(subset);
+    /** Returns the collection of distinct subsets that contain a RelNode one
+     * of whose inputs is in this subset. */
+    Set<RelSubset> getParentSubsets(VolcanoPlanner planner) {
+        final Set<RelSubset> list = new LinkedHashSet<RelSubset>();
+        for (RelNode parent : getParents()) {
+            list.add(planner.getSubset(parent));
         }
         return list;
     }
@@ -209,7 +212,7 @@ public class RelSubset
      */
     void add(RelNode rel)
     {
-        if (rels.contains(rel)) {
+        if (set.rels.contains(rel)) {
             return;
         }
 
@@ -233,7 +236,6 @@ public class RelSubset
                 "rowtype of set",
                 getRowType(),
                 true);
-        rels.add(rel);
         set.addInternal(rel);
         Set<String> variablesSet = RelOptUtil.getVariablesSet(rel);
         Set<String> variablesStopped = rel.getVariablesStopped();
@@ -302,7 +304,7 @@ public class RelSubset
                 // Lower cost means lower importance. Other nodes will change
                 // too, but we'll get to them later.
                 planner.ruleQueue.recompute(this);
-                for (RelNode parent : parents) {
+                for (RelNode parent : getParents()) {
                     final RelSubset parentSubset = planner.getSubset(parent);
                     parentSubset.propagateCostImprovements(
                         planner, parent, activeSet);
@@ -321,7 +323,7 @@ public class RelSubset
         if (boosted) {
             boosted = false;
 
-            for (RelNode parent : parents) {
+            for (RelNode parent : getParents()) {
                 final RelSubset parentSubset = planner.getSubset(parent);
                 parentSubset.propagateBoostRemoval(planner);
             }
@@ -343,8 +345,19 @@ public class RelSubset
      * traits and are logically equivalent.
      * @return all the rels in the subset
      */
-    public List<RelNode> getRels() {
-        return rels;
+    public Iterable<RelNode> getRels() {
+        return new Iterable<RelNode>() {
+            public Iterator<RelNode> iterator() {
+                return Linq4j.asEnumerable(set.rels)
+                    .where(
+                        new Predicate1<RelNode>() {
+                            public boolean apply(RelNode v1) {
+                                return v1.getTraitSet().equals(traitSet);
+                            }
+                        })
+                    .iterator();
+            }
+        };
     }
 
     //~ Inner Classes ----------------------------------------------------------

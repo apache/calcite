@@ -46,6 +46,7 @@ class RelSet
     //~ Instance fields --------------------------------------------------------
 
     final List<RelNode> rels = new ArrayList<RelNode>();
+    final List<RelNode> parents = new ArrayList<RelNode>();
     final List<RelSubset> subsets = new ArrayList<RelSubset>();
 
     /**
@@ -99,10 +100,6 @@ class RelSet
      */
     public List<RelNode> getParentRels()
     {
-        List<RelNode> parents = new ArrayList<RelNode>();
-        for (RelSubset subset : subsets) {
-            parents.addAll(subset.parents);
-        }
         return parents;
     }
 
@@ -125,14 +122,10 @@ class RelSet
         return null;
     }
 
-    // removes all references to a specific relnode in both the subsets
-    // and their parent relationships
-    void obliterateRelNode(RelNode rel)
-    {
-        for (RelSubset subset : subsets) {
-            subset.parents.remove(rel);
-            subset.rels.remove(rel);
-        }
+    /** Removes all references to a specific {@link RelNode} in both the subsets
+     * and their parent relationships. */
+    void obliterateRelNode(RelNode rel) {
+        parents.remove(rel);
     }
 
     /**
@@ -280,7 +273,7 @@ class RelSet
                 subset.bestCost = otherSubset.bestCost;
                 subset.best = otherSubset.best;
             }
-            for (RelNode otherRel : otherSubset.rels) {
+            for (RelNode otherRel : otherSubset.getRels()) {
                 planner.reregister(this, otherRel);
             }
         }
@@ -290,7 +283,11 @@ class RelSet
 
         // Update all rels which have a child in the other set, to reflect the
         // fact that the child has been renamed.
-        for (RelNode parentRel : otherSet.getParentRels()) {
+        //
+        // Copy array to prevent ConcurrentModificationException.
+        final List<RelNode> previousParents =
+            new ArrayList<RelNode>(otherSet.getParentRels());
+        for (RelNode parentRel : previousParents) {
             planner.rename(parentRel);
         }
 
@@ -303,15 +300,12 @@ class RelSet
 
         // Make sure the cost changes as a result of merging are propagated.
         Set<RelSubset> activeSet = new HashSet<RelSubset>();
-        for (RelSubset relSubset : subsets) {
-            for (RelSubset parentSubset : relSubset.getParentSubsets()) {
-                for (RelNode parentRel : parentSubset.rels) {
-                    parentSubset.propagateCostImprovements(
-                        planner,
-                        parentRel,
-                        activeSet);
-                }
-            }
+        for (RelNode parentRel : getParentRels()) {
+            final RelSubset parentSubset = planner.getSubset(parentRel);
+            parentSubset.propagateCostImprovements(
+                planner,
+                parentRel,
+                activeSet);
         }
         assert activeSet.isEmpty();
         assert equivalentSet == null;
