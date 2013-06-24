@@ -40,6 +40,13 @@ public class RelCollationImpl
      */
     public static final List<RelCollation> Singleton0 = createSingleton(0);
 
+    /**
+     * A collation indicating that a relation is not sorted. Ordering by no
+     * columns.
+     */
+    public static final RelCollation EMPTY =
+        new RelCollationImpl(Collections.<RelFieldCollation>emptyList());
+
     //~ Instance fields --------------------------------------------------------
 
     private final List<RelFieldCollation> fieldCollations;

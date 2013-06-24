@@ -148,7 +148,7 @@ public abstract class RelTraitDef<T extends RelTrait>
     public abstract RelNode convert(
         RelOptPlanner planner,
         RelNode rel,
-        RelTrait toTrait,
+        T toTrait,
         boolean allowInfiniteCostConverters);
 
     /**
@@ -162,8 +162,8 @@ public abstract class RelTraitDef<T extends RelTrait>
      */
     public abstract boolean canConvert(
         RelOptPlanner planner,
-        RelTrait fromTrait,
-        RelTrait toTrait);
+        T fromTrait,
+        T toTrait);
 
     /**
      * Provides notification of the registration of a particular {@link
@@ -192,6 +192,11 @@ public abstract class RelTraitDef<T extends RelTrait>
         ConverterRule converterRule)
     {
     }
+
+    /**
+     * Returns the default member of this trait.
+     */
+    public abstract T getDefault();
 }
 
 // End RelTraitDef.java

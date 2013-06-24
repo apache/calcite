@@ -101,7 +101,7 @@ public final class ProjectRel
     //~ Methods ----------------------------------------------------------------
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(Convention.NONE);
+        assert traitSet.contains(Convention.NONE);
         return new ProjectRel(
             getCluster(),
             sole(inputs),

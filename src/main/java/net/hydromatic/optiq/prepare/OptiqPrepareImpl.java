@@ -357,7 +357,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       init(runtimeContextClass);
 
       final RelOptQuery query = new RelOptQuery(planner);
-      final RelTraitSet emptyTraitSet = RelTraitSet.createEmpty();
+      final RelTraitSet emptyTraitSet = planner.emptyTraitSet();
       final RelOptCluster cluster =
           query.createCluster(
               rexBuilder.getTypeFactory(), rexBuilder, emptyTraitSet);

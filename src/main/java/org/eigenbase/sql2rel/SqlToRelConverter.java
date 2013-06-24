@@ -702,7 +702,7 @@ public class SqlToRelConverter
         bb.setRoot(
             new SortRel(
                 cluster,
-                cluster.traitSetOf(Convention.NONE),
+                cluster.traitSetOf(Convention.NONE).plus(collation),
                 bb.root,
                 collation),
             false);

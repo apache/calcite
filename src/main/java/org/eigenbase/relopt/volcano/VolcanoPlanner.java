@@ -258,6 +258,7 @@ public class VolcanoPlanner
                 // TODO: restructure RelTraitSet to allow a list of entries
                 //  for any given trait
             }
+            traitSet = traitSet.plus(traitDef.getDefault());
         }
         return traitSet;
     }

@@ -75,6 +75,10 @@ public class ConventionTraitDef
         return "convention";
     }
 
+    public Convention getDefault() {
+        return Convention.NONE;
+    }
+
     public void registerConverterRule(
         RelOptPlanner planner,
         ConverterRule converterRule)
@@ -122,7 +126,7 @@ public class ConventionTraitDef
     public RelNode convert(
         RelOptPlanner planner,
         RelNode rel,
-        RelTrait toTrait,
+        Convention toConvention,
         boolean allowInfiniteCostConverters)
     {
         final ConversionData conversionData = getConversionData(planner);
@@ -132,7 +136,6 @@ public class ConventionTraitDef
             conversionData.mapArcToConverterRule;
 
         final Convention fromConvention = rel.getConvention();
-        final Convention toConvention = (Convention) toTrait;
 
         Iterator<Graph.Arc<Convention>[]> conversionPaths =
             conversionGraph.getPaths(fromConvention, toConvention);
@@ -192,14 +195,10 @@ loop:
 
     public boolean canConvert(
         RelOptPlanner planner,
-        RelTrait fromTrait,
-        RelTrait toTrait)
+        Convention fromConvention,
+        Convention toConvention)
     {
         ConversionData conversionData = getConversionData(planner);
-
-        Convention fromConvention = (Convention) fromTrait;
-        Convention toConvention = (Convention) toTrait;
-
         return conversionData.conversionGraph.getShortestPath(
             fromConvention,
             toConvention) != null;

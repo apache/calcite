@@ -263,10 +263,14 @@ public class VolcanoPlannerTraitTest {
             return "alt_phys";
         }
 
+        public AltTrait getDefault() {
+            return ALT_TRAIT;
+        }
+
         public RelNode convert(
             RelOptPlanner planner,
             RelNode rel,
-            RelTrait toTrait,
+            AltTrait toTrait,
             boolean allowInfiniteCostConverters)
         {
             RelTrait fromTrait = rel.getTraitSet().getTrait(this);
@@ -296,8 +300,8 @@ public class VolcanoPlannerTraitTest {
 
         public boolean canConvert(
             RelOptPlanner planner,
-            RelTrait fromTrait,
-            RelTrait toTrait)
+            AltTrait fromTrait,
+            AltTrait toTrait)
         {
             if (conversionMap.containsKey(fromTrait)) {
                 for (

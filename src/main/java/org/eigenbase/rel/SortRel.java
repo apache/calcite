@@ -81,10 +81,10 @@ public class SortRel
         RelNode newInput,
         RelCollation newCollation)
     {
-        assert traitSet.comprises(Convention.NONE);
+        assert traitSet.contains(Convention.NONE);
         return new SortRel(
             getCluster(),
-            getCluster().traitSetOf(Convention.NONE),
+            traitSet,
             newInput,
             newCollation);
     }
