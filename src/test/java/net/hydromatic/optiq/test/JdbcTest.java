@@ -597,6 +597,21 @@ public class JdbcTest {
       + "c0=$90K - $110K; c1=Partial High School\n",
       "select \"time_by_day\".\"the_year\" as \"c0\", \"product_class\".\"product_family\" as \"c1\", \"customer\".\"state_province\" as \"c2\", \"customer\".\"city\" as \"c3\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\", \"customer\" as \"customer\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" and \"product_class\".\"product_family\" = 'Drink' and \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\" and \"customer\".\"state_province\" = 'WA' and \"customer\".\"city\" in ('Anacortes', 'Ballard', 'Bellingham', 'Bremerton', 'Burien', 'Edmonds', 'Everett', 'Issaquah', 'Kirkland', 'Lynnwood', 'Marysville', 'Olympia', 'Port Orchard', 'Puyallup', 'Redmond', 'Renton', 'Seattle', 'Sedro Woolley', 'Spokane', 'Tacoma', 'Walla Walla', 'Yakima') group by \"time_by_day\".\"the_year\", \"product_class\".\"product_family\", \"customer\".\"state_province\", \"customer\".\"city\"",
       "c0=1997; c1=Drink; c2=WA; c3=Sedro Woolley; m0=58.0000\n",
+      "select \"store\".\"store_country\" as \"c0\",\n"
+      + " \"time_by_day\".\"the_year\" as \"c1\",\n"
+      + " sum(\"sales_fact_1997\".\"store_cost\") as \"m0\",\n"
+      + " count(\"sales_fact_1997\".\"product_id\") as \"m1\",\n"
+      + " count(distinct \"sales_fact_1997\".\"customer_id\") as \"m2\",\n"
+      + " sum((case when \"sales_fact_1997\".\"promotion_id\" = 0 then 0\n"
+      + "     else \"sales_fact_1997\".\"store_sales\" end)) as \"m3\"\n"
+      + "from \"store\" as \"store\",\n"
+      + " \"sales_fact_1997\" as \"sales_fact_1997\",\n"
+      + " \"time_by_day\" as \"time_by_day\"\n"
+      + "where \"sales_fact_1997\".\"store_id\" = \"store\".\"store_id\"\n"
+      + "and \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\"\n"
+      + "and \"time_by_day\".\"the_year\" = 1997\n"
+      + "group by \"store\".\"store_country\", \"time_by_day\".\"the_year\"",
+      "c0=USA; c1=1997; m0=225627.2336; m1=86837; m2=5581; m3=151211.2100\n",
   };
 
   /** Test case for
@@ -674,7 +689,7 @@ public class JdbcTest {
     for (Ord<Pair<String, String>> query : Ord.zip(queries)) {
       try {
         // uncomment to run specific queries:
-//      if (i != queries.size() - 1) continue;
+//      if (query.i != queries.size() - 1) continue;
         final String sql = query.e.left;
         final String expected = query.e.right;
         final OptiqAssert.AssertQuery query1 = with.query(sql);
@@ -687,6 +702,28 @@ public class JdbcTest {
         throw new RuntimeException("while running query #" + query.i, e);
       }
     }
+  }
+
+  @Test public void testFoo() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select \"store\".\"store_country\" as \"c0\",\n"
+            + " \"time_by_day\".\"the_year\" as \"c1\",\n"
+            + " sum(\"sales_fact_1997\".\"store_cost\") as \"m0\",\n"
+            + " count(\"sales_fact_1997\".\"product_id\") as \"m1\",\n"
+            + " count(distinct \"sales_fact_1997\".\"customer_id\") as \"m2\",\n"
+            + " sum((case when \"sales_fact_1997\".\"promotion_id\" = 0 then 0\n"
+            + "     else \"sales_fact_1997\".\"store_sales\" end)) as \"m3\"\n"
+            + "from \"store\" as \"store\",\n"
+            + " \"sales_fact_1997\" as \"sales_fact_1997\",\n"
+            + " \"time_by_day\" as \"time_by_day\"\n"
+            + "where \"sales_fact_1997\".\"store_id\" = \"store\".\"store_id\"\n"
+            + "and \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\"\n"
+            + "and \"time_by_day\".\"the_year\" = 1997\n"
+            + "group by \"store\".\"store_country\", \"time_by_day\".\"the_year\"")
+//        .explainContains("xxx")
+        .runs();
   }
 
   /** There was a bug representing a nullable timestamp using a {@link Long}

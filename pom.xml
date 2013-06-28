@@ -100,7 +100,7 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>linq4j</artifactId>
-      <version>0.1.5</version>
+      <version>0.1.6</version>
     </dependency>
     <dependency>
       <groupId>org.jgrapht</groupId>
