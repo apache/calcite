@@ -24,8 +24,6 @@ import java.util.*;
  * Builder for {@link BlockExpression}.
  *
  * <p>Has methods that help ensure that variable names are unique.</p>
- *
- * @author jhyde
  */
 public class BlockBuilder {
   final List<Statement> statements = new ArrayList<Statement>();
@@ -86,8 +84,7 @@ public class BlockBuilder {
       }
     }
     Expression result = null;
-    Map<ParameterExpression, Expression>
-        replacements =
+    final Map<ParameterExpression, Expression> replacements =
         new HashMap<ParameterExpression, Expression>();
     final Visitor visitor = new SubstituteVariableVisitor(replacements);
     for (int i = 0; i < block.statements.size(); i++) {
@@ -99,13 +96,12 @@ public class BlockBuilder {
       if (statement instanceof DeclarationExpression) {
         DeclarationExpression declaration = (DeclarationExpression) statement;
         if (variables.contains(declaration.parameter.name)) {
-          append(newName(declaration.parameter.name, optimize),
+          Expression x = append(
+              newName(declaration.parameter.name, optimize),
               declaration.initializer);
-          statement = statements.get(statements.size() - 1);
-          ParameterExpression
-              parameter2 =
-              ((DeclarationExpression) statement).parameter;
-          replacements.put(declaration.parameter, parameter2);
+          statement = null;
+          result = x;
+          replacements.put(declaration.parameter, x);
         } else {
           add(statement);
         }
@@ -330,10 +326,9 @@ public class BlockBuilder {
         try {
           final Boolean put = actives.put(parameterExpression, true);
           if (put != null) {
-            throw new AssertionError("recursive expansion of "
-                                     + parameterExpression
-                                     + " in "
-                                     + actives.keySet());
+            throw new AssertionError(
+                "recursive expansion of " + parameterExpression + " in "
+                + actives.keySet());
           }
           // recursively substitute
           return e.accept(this);

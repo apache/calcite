@@ -767,6 +767,52 @@ public class ExpressionTest {
         Expressions.toString(statements.toBlock()));
   }
 
+  @Test public void testBlockBuilder3() {
+/*
+    int a = 1;
+    int b = a + 2;
+    int c = a + 3;
+    int d = a + 4;
+    int e = {
+      int b = a + 3;
+      foo(b);
+    }
+    bar(a, b, c, d, e);
+*/
+    BlockBuilder builder0 = new BlockBuilder();
+    final Expression a = builder0.append("_a", Expressions.constant(1));
+    final Expression b =
+        builder0.append("_b", Expressions.add(a, Expressions.constant(2)));
+    final Expression c =
+        builder0.append("_c", Expressions.add(a, Expressions.constant(3)));
+    final Expression d =
+        builder0.append("_d", Expressions.add(a, Expressions.constant(4)));
+
+    BlockBuilder builder1 = new BlockBuilder();
+    final Expression b1 =
+        builder1.append("_b", Expressions.add(a, Expressions.constant(3)));
+    builder1.add(
+        Expressions.statement(
+            Expressions.call(ExpressionTest.class, "foo", b1)));
+    final Expression e = builder0.append("e", builder1.toBlock());
+    builder0.add(
+        Expressions.statement(
+            Expressions.call(ExpressionTest.class, "bar", a, b, c, d, e)));
+    // With the bug in BlockBuilder.append(String, BlockExpression),
+    //    bar(1, _b, _c, _d, foo(_d));
+    // Correct result is
+    //    bar(1, _b, _c, _d, foo(_c));
+    // because _c has the same expression (a + 3) as inner b.
+    assertEquals(
+        "{\n"
+        + "  final int _b = 1 + 2;\n"
+        + "  final int _c = 1 + 3;\n"
+        + "  final int _d = 1 + 4;\n"
+        + "  net.hydromatic.linq4j.test.ExpressionTest.bar(1, _b, _c, _d, net.hydromatic.linq4j.test.ExpressionTest.foo(_c));\n"
+        + "}\n",
+        Expressions.toString(builder0.toBlock()));
+  }
+
   @Test public void testClassDecl() {
     final NewExpression newExpression =
         Expressions.new_(
@@ -870,6 +916,14 @@ public class ExpressionTest {
         return "YYY";
       }
     }
+  }
+
+  public static int foo(int x) {
+    return 0;
+  }
+
+  public static int bar(int v, int w, int x, int y, int z) {
+    return 0;
   }
 }
 
