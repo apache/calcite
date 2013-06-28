@@ -594,8 +594,8 @@ class RuleQueue
             int c = Double.compare(imp1, imp2);
             if (c == 0) {
                 c = compareRels(
-                    match1.getRels(),
-                    match2.getRels());
+                    match1.rels,
+                    match2.rels);
             }
             return -c;
         }

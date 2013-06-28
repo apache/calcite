@@ -35,7 +35,13 @@ public class RemoveSortRule extends RelOptRule {
 
     @Override
     public void onMatch(RelOptRuleCall call) {
-        final SortRel sort = (SortRel) call.getRels()[0];
+        if (!call.getPlanner().getRelTraitDefs()
+            .contains(RelCollationTraitDef.INSTANCE))
+        {
+            // Collation is not an active trait.
+            return;
+        }
+        final SortRel sort = call.rel(0);
         final RelCollation collation = sort.getCollation();
         final RelTraitSet traits = sort.getTraitSet().replace(collation);
         call.transformTo(convert(sort.getChild(), traits));

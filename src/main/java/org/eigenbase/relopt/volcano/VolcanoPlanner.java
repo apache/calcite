@@ -30,6 +30,8 @@ import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.linq4j.expressions.Expressions;
+
 
 /**
  * VolcanoPlanner optimizes queries by transforming expressions selectively
@@ -245,9 +247,15 @@ public class VolcanoPlanner
         return null;
     }
 
+    @Override
     public boolean addRelTraitDef(RelTraitDef relTraitDef)
     {
         return !traitDefs.contains(relTraitDef) && traitDefs.add(relTraitDef);
+    }
+
+    @Override
+    public List<RelTraitDef> getRelTraitDefs() {
+        return traitDefs;
     }
 
     @Override
@@ -674,7 +682,6 @@ SUBSET_LOOP:
         addRule(UnionToDistinctRule.instance);
         addRule(RemoveTrivialProjectRule.instance);
         addRule(RemoveTrivialCalcRule.instance);
-        if (Bug.TodoFixed)
         addRule(RemoveSortRule.INSTANCE);
 
         // todo: rule which makes Project({OrdinalRef}) disappear
@@ -777,27 +784,34 @@ SUBSET_LOOP:
         RelNode converted = rel;
         for (int i = 0; (converted != null) && (i < toTraits.size()); i++) {
             RelTrait fromTrait = fromTraits.getTrait(i);
+            final RelTraitDef traitDef = fromTrait.getTraitDef();
             RelTrait toTrait = toTraits.getTrait(i);
 
             if (toTrait == null) {
                 continue;
             }
 
-            assert (fromTrait.getTraitDef() == toTrait.getTraitDef());
-
+            assert traitDef == toTrait.getTraitDef();
             if (fromTrait == toTrait) {
-                // No need to convert, it's already correct.
+                // No need to convert; it's already correct.
                 continue;
             }
 
             rel =
-                fromTrait.getTraitDef().convert(
+                traitDef.convert(
                     this,
                     converted,
                     toTrait,
                     allowInfiniteCostConverters);
             if (rel != null) {
-                register(rel, converted);
+                assert rel.getTraitSet().contains(toTrait);
+                rel =
+                    completeConversion(
+                        rel, allowInfiniteCostConverters, toTraits,
+                        Expressions.list(traitDef));
+                if (rel != null) {
+                    register(rel, converted);
+                }
             }
 
             if ((rel == null) && allowAbstractConverters) {
@@ -811,6 +825,60 @@ SUBSET_LOOP:
         }
 
         return converted;
+    }
+
+    /** Converts traits using well-founded induction. We don't require that
+     * each conversion preserves all traits that have previously been converted,
+     * but if it changes "locked in" traits we'll try some other conversion.
+     *
+     * @param rel Relational expression
+     * @param allowInfiniteCostConverters Whether to allow infinite converters
+     * @param toTraits Target trait set
+     * @param usedTraits Traits that have been locked in
+     * @return Converted relational expression
+     */
+    private RelNode completeConversion(
+        RelNode rel,
+        boolean allowInfiniteCostConverters,
+        RelTraitSet toTraits,
+        Expressions.FluentList<RelTraitDef> usedTraits)
+    {
+        if (true) {
+            return rel;
+        }
+        for (RelTrait trait : rel.getTraitSet()) {
+            if (toTraits.contains(trait)) {
+                // We're already a match on this trait type.
+                continue;
+            }
+            final RelTraitDef traitDef = trait.getTraitDef();
+            RelNode rel2 =
+                traitDef.convert(
+                    this,
+                    rel,
+                    toTraits.getTrait(traitDef),
+                    allowInfiniteCostConverters);
+
+            // if any of the used traits have been knocked out, we could be
+            // heading for a cycle.
+            for (RelTraitDef usedTrait : usedTraits) {
+                if (!rel2.getTraitSet().contains(usedTrait)) {
+                    continue;
+                }
+            }
+            // recursive call, to convert one more trait
+            rel =
+                completeConversion(
+                    rel2,
+                    allowInfiniteCostConverters,
+                    toTraits,
+                    usedTraits.append(traitDef));
+            if (rel != null) {
+                return rel;
+            }
+        }
+        assert rel.getTraitSet().equals(toTraits);
+        return rel;
     }
 
     RelNode changeTraitsUsingConverters(

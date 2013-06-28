@@ -126,7 +126,7 @@ public class RelOptCluster
 
     public RelTraitSet traitSetOf(RelTrait... traits)
     {
-        return emptyTraitSet.plusAll(traits);
+        return planner.emptyTraitSet().plusAll(traits);
     }
 }
 

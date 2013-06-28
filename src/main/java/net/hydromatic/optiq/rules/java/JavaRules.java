@@ -1092,10 +1092,12 @@ public class JavaRules {
       final SortRel sort = (SortRel) rel;
       final RelTraitSet traitSet =
           sort.getTraitSet().replace(EnumerableConvention.ARRAY);
+      final RelNode input = sort.getChild();
       return new EnumerableSortRel(
           rel.getCluster(),
           traitSet,
-          convert(sort.getChild(), traitSet),
+          convert(
+              input, input.getTraitSet().replace(EnumerableConvention.ARRAY)),
           sort.getCollation());
     }
   }

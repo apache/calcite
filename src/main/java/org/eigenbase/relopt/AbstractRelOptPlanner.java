@@ -264,6 +264,10 @@ public abstract class AbstractRelOptPlanner
         return false;
     }
 
+    public List<RelTraitDef> getRelTraitDefs() {
+        return Collections.emptyList();
+    }
+
     /**
      * Fires a rule, taking care of tracing and listener notification.
      *
@@ -289,14 +293,14 @@ public abstract class AbstractRelOptPlanner
         if (tracer.isLoggable(Level.FINE)) {
             tracer.fine(
                 "Apply rule [" + ruleCall.getRule() + "] to ["
-                + RelOptUtil.toString(ruleCall.getRels()) + "]");
+                + RelOptUtil.toString(ruleCall.rels) + "]");
         }
 
         if (listener != null) {
             RelOptListener.RuleAttemptedEvent event =
                 new RelOptListener.RuleAttemptedEvent(
                     this,
-                    ruleCall.getRels()[0],
+                    ruleCall.rel(0),
                     ruleCall,
                     true);
             listener.ruleAttempted(event);
@@ -308,7 +312,7 @@ public abstract class AbstractRelOptPlanner
             RelOptListener.RuleAttemptedEvent event =
                 new RelOptListener.RuleAttemptedEvent(
                     this,
-                    ruleCall.getRels()[0],
+                    ruleCall.rel(0),
                     ruleCall,
                     false);
             listener.ruleAttempted(event);
@@ -331,7 +335,7 @@ public abstract class AbstractRelOptPlanner
         if (before && tracer.isLoggable(Level.FINE)) {
             tracer.fine(
                 "Rule " + ruleCall.getRule() + " arguments "
-                + RelOptUtil.toString(ruleCall.getRels()) + " produced "
+                + RelOptUtil.toString(ruleCall.rels) + " produced "
                 + newRel);
         }
 

@@ -64,11 +64,21 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation>
         RelCollation toCollation,
         boolean allowInfiniteCostConverters)
     {
-        return new SortRel(
-            rel.getCluster(),
-            rel.getTraitSet().plus(toCollation),
-            rel,
-            toCollation);
+        // Create a logical sort, then ask the planner to convert its remaining
+        // traits (e.g. convert it to an EnumerableSortRel if rel is enumerable
+        // convention)
+        final SortRel sort =
+            new SortRel(
+                rel.getCluster(),
+                rel.getCluster().traitSetOf(Convention.NONE).plus(toCollation),
+                rel,
+                toCollation);
+        RelNode newRel = sort;
+        if (!newRel.getTraitSet().equals(rel.getTraitSet().plus(toCollation))) {
+            newRel =
+                planner.changeTraits(sort, rel.getTraitSet().plus(toCollation));
+        }
+        return newRel;
     }
 
     public boolean canConvert(

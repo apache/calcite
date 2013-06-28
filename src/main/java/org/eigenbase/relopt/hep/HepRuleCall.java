@@ -57,11 +57,8 @@ public class HepRuleCall
     // implement RelOptRuleCall
     public void transformTo(RelNode rel)
     {
-        RelOptUtil.verifyTypeEquivalence(
-            getRels()[0],
-            rel,
-            getRels()[0]);
-
+        final RelNode rel0 = rels[0];
+        RelOptUtil.verifyTypeEquivalence(rel0, rel, rel0);
         results.add(rel);
     }
 

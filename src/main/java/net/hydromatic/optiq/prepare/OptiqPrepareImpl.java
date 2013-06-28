@@ -43,7 +43,6 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
-import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
 
 import org.codehaus.janino.*;
@@ -65,6 +64,12 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
   public static final boolean DEBUG =
       "true".equals(System.getProperties().getProperty("optiq.debug"));
+
+  /** Whether to enable the collation trait. Some extra optimizations are
+   * possible if enabled, but queries should work either way. At some point
+   * this will become a preference, or we will run multiple phases: first
+   * disabled, then enabled. */
+  private static final boolean ENABLE_COLLATION_TRAIT = true;
 
   public ParseResult parse(
       Context context, String sql) {
@@ -116,10 +121,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   protected RelOptPlanner createPlanner() {
     final VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.instance);
-    if (Bug.TodoFixed)
-    planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
-    if (Bug.TodoFixed)
-    planner.registerAbstractRelationalRules();
+    if (ENABLE_COLLATION_TRAIT) {
+      planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+      planner.registerAbstractRelationalRules();
+    }
     RelOptUtil.registerAbstractRels(planner);
     planner.addRule(JavaRules.ENUMERABLE_JOIN_RULE);
     planner.addRule(JavaRules.ENUMERABLE_CALC_RULE);

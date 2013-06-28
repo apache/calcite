@@ -18,6 +18,7 @@
 package org.eigenbase.rel;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.eigenbase.relopt.*;
@@ -59,7 +60,6 @@ public class SortRel
         super(cluster, traits, child);
         this.collation = collation;
 
-        if (Bug.TodoFixed)
         assert traits.getTrait(RelCollationTraitDef.INSTANCE).equals(collation);
         final RelDataTypeField [] fields = getRowType().getFields();
         for (RelFieldCollation field : collation.getFieldCollations()) {
@@ -109,6 +109,12 @@ public class SortRel
     public RelCollation getCollation()
     {
         return collation;
+    }
+
+    @Override
+    public List<RelCollation> getCollationList() {
+        // TODO: include each prefix of the collation, e.g [[x, y], [x], []]
+        return Collections.singletonList(getCollation());
     }
 
     public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {

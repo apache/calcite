@@ -17,6 +17,7 @@
 */
 package org.eigenbase.relopt;
 
+import java.util.List;
 import java.util.logging.*;
 import java.util.regex.*;
 
@@ -61,6 +62,11 @@ public interface RelOptPlanner
      * java.util.Collection#add}
      */
     public boolean addRelTraitDef(RelTraitDef relTraitDef);
+
+    /**
+     * Returns the list of active trait types.
+     */
+    public List<RelTraitDef> getRelTraitDefs();
 
     /**
      * Registers a rule. If the rule has already been registered, does nothing.
