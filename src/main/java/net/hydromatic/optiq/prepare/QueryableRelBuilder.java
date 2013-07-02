@@ -488,7 +488,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
         new ProjectRel(
             translator.cluster,
             child,
-            nodes.toArray(new RexNode[nodes.size()]),
+            nodes,
             null,
             ProjectRelBase.Flags.Boxed));
     return null;

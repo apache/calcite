@@ -63,8 +63,7 @@ public class VolcanoPlannerTest {
         RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
         return query.createCluster(
             typeFactory,
-            new RexBuilder(typeFactory),
-            RelTraitSet.createEmpty());
+            new RexBuilder(typeFactory));
     }
 
     /**

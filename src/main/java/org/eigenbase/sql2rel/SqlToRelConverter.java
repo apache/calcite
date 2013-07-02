@@ -154,9 +154,7 @@ public class SqlToRelConverter
         this.rexBuilder = rexBuilder;
         this.typeFactory = rexBuilder.getTypeFactory();
         RelOptQuery query = new RelOptQuery(planner);
-        final RelTraitSet emptyTraitSet = planner.emptyTraitSet();
-        this.cluster =
-            query.createCluster(typeFactory, rexBuilder, emptyTraitSet);
+        this.cluster = query.createCluster(typeFactory, rexBuilder);
         this.shouldConvertTableAccess = true;
         this.exprConverter =
             new SqlNodeToRexConverterImpl(new StandardConvertletTable());
@@ -287,7 +285,7 @@ public class SqlToRelConverter
     /**
      * Controls whether table access references are converted to physical rels
      * immediately. The optimizer doesn't like leaf rels to have
-     * {@ling Convention#NONE}. However, if we are doing further conversion
+     * {@link Convention#NONE}. However, if we are doing further conversion
      * passes (e.g. {@link RelStructuredTypeFlattener}), then we may need to
      * defer conversion. To have any effect, this must be called before any
      * convert method.
@@ -598,27 +596,23 @@ public class SqlToRelConverter
 
             Map<Integer, Integer> squished = new HashMap<Integer, Integer>();
             final RelDataTypeField [] fields = rel.getRowType().getFields();
-            int fieldCount = fields.length - dupCount;
-            RexNode [] newProjectExprs = new RexNode[fieldCount];
-            String [] newFieldNames = new String[fieldCount];
-            int k = 0; // number of non-dup exprs seen so far
+            List<Pair<RexNode, String>> newProjects =
+                new ArrayList<Pair<RexNode, String>>();
             for (int i = 0; i < fields.length; i++) {
-                if (origins.get(i).intValue() == i) {
-                    newProjectExprs[k] =
-                        new RexInputRef(
-                            i,
-                            fields[i].getType());
-                    newFieldNames[k] = fields[i].getName();
-                    squished.put(i, k);
-                    ++k;
+                if (origins.get(i) == i) {
+                    squished.put(i, newProjects.size());
+                    newProjects.add(
+                        Pair.of(
+                            (RexNode) new RexInputRef(i, fields[i].getType()),
+                            fields[i].getName()));
                 }
             }
             rel =
                 new ProjectRel(
                     cluster,
                     rel,
-                    newProjectExprs,
-                    newFieldNames,
+                    Pair.left(newProjects),
+                    Pair.right(newProjects),
                     ProjectRel.Flags.Boxed);
 
             bb.root = rel;
@@ -627,23 +621,24 @@ public class SqlToRelConverter
 
             // Create the expressions to reverse the mapping.
             // Project($0, $1, $0, $2).
-            RexNode [] undoProjectExprs = new RexNode[fields.length];
-            String [] undoFieldNames = new String[fields.length];
+            List<Pair<RexNode, String>> undoProjects =
+                new ArrayList<Pair<RexNode, String>>();
             for (int i = 0; i < fields.length; i++) {
                 final Integer origin = origins.get(i);
-                undoProjectExprs[i] =
-                    new RexInputRef(
-                        squished.get(origin),
-                        fields[i].getType());
-                undoFieldNames[i] = fields[i].getName();
+                undoProjects.add(
+                    Pair.of(
+                        (RexNode) new RexInputRef(
+                            squished.get(origin),
+                            fields[i].getType()),
+                        fields[i].getName()));
             }
 
             rel =
                 new ProjectRel(
                     cluster,
                     rel,
-                    undoProjectExprs,
-                    undoFieldNames,
+                    Pair.left(undoProjects),
+                    Pair.right(undoProjects),
                     ProjectRel.Flags.Boxed);
 
             bb.setRoot(
@@ -702,7 +697,7 @@ public class SqlToRelConverter
         bb.setRoot(
             new SortRel(
                 cluster,
-                cluster.traitSetOf(Convention.NONE).plus(collation),
+                cluster.traitSetOf(Convention.NONE, collation),
                 bb.root,
                 collation),
             false);
@@ -711,15 +706,21 @@ public class SqlToRelConverter
         // add another project to remove them.
         if (orderExprList.size() > 0) {
             List<RexNode> exprs = new ArrayList<RexNode>();
-            List<String> names = new ArrayList<String>();
             final RelDataType rowType = bb.root.getRowType();
-            int fieldCount = rowType.getFieldCount() - orderExprList.size();
+            final int fieldCount =
+                rowType.getFieldCount() - orderExprList.size();
             for (int i = 0; i < fieldCount; i++) {
                 exprs.add(RelOptUtil.createInputRef(bb.root, i));
-                names.add(rowType.getFields()[i].getName());
             }
             bb.setRoot(
-                CalcRel.createProject(bb.root, exprs, names),
+                new ProjectRel(
+                    cluster,
+                    bb.root,
+                    exprs,
+                    cluster.getTypeFactory().createStructType(
+                        rowType.getFieldList().subList(0, fieldCount)),
+                    ProjectRelBase.Flags.Boxed,
+                    Collections.singletonList(RelCollationImpl.PRESERVE)),
                 false);
         }
     }

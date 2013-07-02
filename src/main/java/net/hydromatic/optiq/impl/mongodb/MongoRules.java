@@ -84,8 +84,7 @@ public class MongoRules {
           new MongoTableScan(cluster, table.getTraitSet(), table.getTable(),
               table.mongoTable, rowType, ops);
       final ProjectRel newProject =
-          new ProjectRel(cluster, newTable,
-              newProjects.toArray(new RexNode[newProjects.size()]),
+          new ProjectRel(cluster, newTable, newProjects,
               project.getRowType(), ProjectRel.Flags.Boxed,
               Collections.<RelCollation>emptyList());
       call.transformTo(newProject);

@@ -125,7 +125,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
         "unknown expression type " + expression.getNodeType());
   }
 
-  private RexNode[] toRex(
+  private List<RexNode> toRex(
       RelNode child, FunctionExpression expression) {
     List<RexNode> list = new ArrayList<RexNode>();
     RexBuilder rexBuilder = cluster.getRexBuilder();
@@ -141,7 +141,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
     for (Expression expression1 : fieldExpressions(simple)) {
       rexList.add(translator.toRex(expression1));
     }
-    return rexList.toArray(new RexNode[rexList.size()]);
+    return rexList;
   }
 
   List<Expression> fieldExpressions(Expression expression) {

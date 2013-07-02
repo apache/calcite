@@ -19,8 +19,6 @@ package org.eigenbase.relopt;
 
 import java.util.*;
 
-import org.eigenbase.util.*;
-
 
 /**
  * RelTraitSet represents an ordered set of {@link RelTrait}s.
@@ -29,7 +27,7 @@ import org.eigenbase.util.*;
  * @version $Id$
  */
 public final class RelTraitSet extends AbstractList<RelTrait> {
-    public static final RelTrait[] EMPTY_TRAITS = new RelTrait[0];
+    private static final RelTrait[] EMPTY_TRAITS = new RelTrait[0];
 
     //~ Instance fields --------------------------------------------------------
 
@@ -58,6 +56,9 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
 
     /**
      * Creates an empty trait set.
+     *
+     * <p>It has a new cache, which will be shared by any trait set created from
+     * it. Thus each empty trait set is the start of a new ancestral line.
      */
     public static RelTraitSet createEmpty()
     {
@@ -126,7 +127,9 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
 
     /**
      * Returns a trait set consisting of the current set plus a new trait.
-     * This set must already contain a trait of the same {@link RelTraitDef}.
+     *
+     * <p>If the set does not contain a trait of the same {@link RelTraitDef},
+     * the trait is ignored, and this trait set is returned.
      *
      * @param trait the new trait
      * @return New set
@@ -136,17 +139,12 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     public RelTraitSet replace(
         RelTrait trait)
     {
-        return replace(trait.getTraitDef(), trait);
-    }
-
-    public RelTraitSet replace(
-        RelTraitDef traitDef,
-        RelTrait trait)
-    {
-        assert trait.getTraitDef() == traitDef;
-
+        final RelTraitDef traitDef = trait.getTraitDef();
         int index = findIndex(traitDef);
-        Util.permAssert(index >= 0, "Could not find RelTraitDef");
+        if (index < 0) {
+            // Trait is not present. Ignore it.
+            return this;
+        }
 
         return replace(index, trait);
     }

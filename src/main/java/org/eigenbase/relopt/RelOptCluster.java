@@ -55,8 +55,7 @@ public class RelOptCluster
         RelOptQuery query,
         RelOptPlanner planner,
         RelDataTypeFactory typeFactory,
-        RexBuilder rexBuilder,
-        RelTraitSet emptyTraitSet)
+        RexBuilder rexBuilder)
     {
         assert planner != null;
         assert typeFactory != null;
@@ -69,7 +68,7 @@ public class RelOptCluster
         // set up a default rel metadata provider,
         // giving the planner first crack at everything
         metadataProvider = new DefaultRelMetadataProvider();
-        this.emptyTraitSet = emptyTraitSet;
+        this.emptyTraitSet = planner.emptyTraitSet();
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -119,14 +118,14 @@ public class RelOptCluster
         this.metadataProvider = metadataProvider;
     }
 
-    public RelTraitSet getEmptyTraitSet()
-    {
-        return emptyTraitSet;
-    }
-
     public RelTraitSet traitSetOf(RelTrait... traits)
     {
-        return planner.emptyTraitSet().plusAll(traits);
+        RelTraitSet traitSet = emptyTraitSet;
+        assert traitSet.size() == planner.getRelTraitDefs().size();
+        for (RelTrait trait : traits) {
+            traitSet = traitSet.replace(trait);
+        }
+        return traitSet;
     }
 }
 

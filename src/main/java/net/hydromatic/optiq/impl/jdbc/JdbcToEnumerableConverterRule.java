@@ -40,9 +40,7 @@ public class JdbcToEnumerableConverterRule extends ConverterRule {
 
   @Override
   public RelNode convert(RelNode rel) {
-    RelTraitSet newTraitSet =
-        rel.getTraitSet().replace(
-            ConventionTraitDef.instance, getOutTrait());
+    RelTraitSet newTraitSet = rel.getTraitSet().replace(getOutTrait());
     return new JdbcToEnumerableConverter(
         rel.getCluster(), newTraitSet, rel);
   }

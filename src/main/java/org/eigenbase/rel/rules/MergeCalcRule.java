@@ -74,7 +74,7 @@ public class MergeCalcRule
                 bottomCalc.getChild(),
                 topCalc.getRowType(),
                 mergedProgram,
-                Collections.<RelCollation>emptyList());
+                topCalc.getCollationList());
 
         if (newCalc.getDigest().equals(bottomCalc.getDigest())) {
             // newCalc is equivalent to bottomCalc, which means that topCalc

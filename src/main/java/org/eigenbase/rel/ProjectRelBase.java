@@ -48,7 +48,7 @@ public abstract class ProjectRelBase
      */
     protected int flags;
 
-    private final List<RelCollation> collationList;
+    protected final List<RelCollation> collationList;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -58,7 +58,7 @@ public abstract class ProjectRelBase
      * @param cluster Cluster this relational expression belongs to
      * @param traits traits of this rel
      * @param child input relational expression
-     * @param exps set of expressions for the input columns
+     * @param exps List of expressions for the input columns
      * @param rowType output row type
      * @param flags values as in {@link Flags}
      * @param collationList List of sort keys
@@ -67,7 +67,7 @@ public abstract class ProjectRelBase
         RelOptCluster cluster,
         RelTraitSet traits,
         RelNode child,
-        RexNode [] exps,
+        List<RexNode> exps,
         RelDataType rowType,
         int flags,
         final List<RelCollation> collationList)
@@ -75,7 +75,7 @@ public abstract class ProjectRelBase
         super(cluster, traits, child);
         assert rowType != null;
         assert collationList != null;
-        this.exps = exps;
+        this.exps = exps.toArray(new RexNode[exps.size()]);
         this.rowType = rowType;
         this.flags = flags;
         this.collationList =

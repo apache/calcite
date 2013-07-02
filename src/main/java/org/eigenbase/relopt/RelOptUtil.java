@@ -2372,7 +2372,7 @@ public abstract class RelOptUtil
     {
         //noinspection unchecked
         return (T) rel.copy(
-            rel.getTraitSet().plus(trait),
+            rel.getTraitSet().replace(trait),
             (List) rel.getInputs());
     }
 

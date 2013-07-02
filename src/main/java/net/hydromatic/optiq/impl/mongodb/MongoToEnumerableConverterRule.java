@@ -40,9 +40,7 @@ public class MongoToEnumerableConverterRule extends ConverterRule {
 
   @Override
   public RelNode convert(RelNode rel) {
-    RelTraitSet newTraitSet =
-        rel.getTraitSet().replace(
-            ConventionTraitDef.instance, getOutConvention());
+    RelTraitSet newTraitSet = rel.getTraitSet().replace(getOutConvention());
     return new MongoToEnumerableConverter(rel.getCluster(), newTraitSet, rel);
   }
 }

@@ -461,8 +461,7 @@ public class RelDecorrelator
             // Note aggregator does not change input ordering, so the child
             // output position mapping can be used to derive the new positions
             // for the argument.
-            for (int k = 0; k < oldAggArgs.size(); k++) {
-                int oldPos = oldAggArgs.get(k);
+            for (int oldPos : oldAggArgs) {
                 aggArgs.add(combinedMap.get(oldPos));
             }
 
@@ -1114,14 +1113,14 @@ public class RelDecorrelator
         List<RelNode> oldInputRels = currentRel.getInputs();
         RelNode oldInputRel = null;
 
-        for (int i = 0; i < oldInputRels.size(); ++i) {
-            RelDataType oldInputType = oldInputRels.get(i).getRowType();
+        for (RelNode oldInputRel0 : oldInputRels) {
+            RelDataType oldInputType = oldInputRel0.getRowType();
             int n = oldInputType.getFieldCount();
             if (oldOrdinal < n) {
-                oldInputRel = oldInputRels.get(i);
+                oldInputRel = oldInputRel0;
                 break;
             }
-            RelNode newInput = mapOldToNewRel.get(oldInputRels.get(i));
+            RelNode newInput = mapOldToNewRel.get(oldInputRel0);
             newOrdinal += newInput.getRowType().getFieldCount();
             oldOrdinal -= n;
         }
@@ -2507,8 +2506,8 @@ public class RelDecorrelator
                     new ProjectRel(
                         corRel.getCluster(),
                         aggRel,
-                        exprList.toArray(new RexNode[exprList.size()]),
-                        fieldNameList.toArray(new String[fieldNameList.size()]),
+                        exprList,
+                        fieldNameList,
                         ProjectRel.Flags.Boxed);
             }
             onMatch2(call, corRel, leftInputRel, aggOutputProjRel, aggRel);

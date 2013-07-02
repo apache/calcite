@@ -17,6 +17,8 @@
 */
 package org.eigenbase.rel.rules;
 
+import java.util.List;
+
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
@@ -61,7 +63,7 @@ public class RemoveTrivialProjectRule
             return;
         }
         if (!isIdentity(
-                project.getProjectExps(),
+                project.getProjectExpList(),
                 project.getRowType(),
                 childRowType))
         {
@@ -75,18 +77,18 @@ public class RemoveTrivialProjectRule
     }
 
     public static boolean isIdentity(
-        RexNode [] exps,
+        List<RexNode> exps,
         RelDataType rowType,
         RelDataType childRowType)
     {
         RelDataTypeField [] fields = rowType.getFields();
         RelDataTypeField [] childFields = childRowType.getFields();
         int fieldCount = childFields.length;
-        if (exps.length != fieldCount) {
+        if (exps.size() != fieldCount) {
             return false;
         }
-        for (int i = 0; i < exps.length; i++) {
-            RexNode exp = exps[i];
+        for (int i = 0; i < exps.size(); i++) {
+            RexNode exp = exps.get(i);
             if (exp instanceof RexInputRef) {
                 RexInputRef var = (RexInputRef) exp;
                 if (var.getIndex() != i) {

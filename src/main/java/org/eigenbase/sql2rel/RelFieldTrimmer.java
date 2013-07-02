@@ -302,7 +302,7 @@ public class RelFieldTrimmer
             ProjectRel newProject = new ProjectRel(
                 project.getCluster(),
                 newInput,
-                new RexNode[]{expr},
+                Collections.<RexNode>singletonList(expr),
                 newRowType,
                 project.getFlags(),
                 Collections.<RelCollation>emptyList());
@@ -341,7 +341,7 @@ public class RelFieldTrimmer
 
         final RelNode newProject;
         if (RemoveTrivialProjectRule.isIdentity(
-                newProjectExprs,
+                newProjectExprList,
                 newRowType,
                 newInput.getRowType()))
         {
@@ -352,7 +352,7 @@ public class RelFieldTrimmer
             newProject = new ProjectRel(
                 project.getCluster(),
                 newInput,
-                newProjectExprs,
+                newProjectExprList,
                 newRowType,
                 project.getFlags(),
                 newCollations);

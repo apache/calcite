@@ -151,8 +151,8 @@ public abstract class TableAccessRelBase
         return new ProjectRel(
             getCluster(),
             this,
-            exprList.toArray(new RexNode[exprList.size()]),
-            nameList.toArray(new String[nameList.size()]),
+            exprList,
+            nameList,
             ProjectRel.Flags.Boxed);
     }
 }

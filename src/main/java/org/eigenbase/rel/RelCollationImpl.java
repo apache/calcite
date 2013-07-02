@@ -36,16 +36,24 @@ public class RelCollationImpl
     //~ Static fields/initializers ---------------------------------------------
 
     /**
-     * An ordering by the zeroth column.
-     */
-    public static final List<RelCollation> Singleton0 = createSingleton(0);
-
-    /**
      * A collation indicating that a relation is not sorted. Ordering by no
      * columns.
      */
     public static final RelCollation EMPTY =
         new RelCollationImpl(Collections.<RelFieldCollation>emptyList());
+
+    /**
+     * A collation that cannot be replicated by applying a sort. The only
+     * implementation choice is to apply operations that preserve order.
+     */
+    public static final RelCollation PRESERVE =
+        new RelCollationImpl(
+            Collections.singletonList(new RelFieldCollation(-1)))
+        {
+            public String toString() {
+                return "PRESERVE";
+            }
+        };
 
     //~ Instance fields --------------------------------------------------------
 

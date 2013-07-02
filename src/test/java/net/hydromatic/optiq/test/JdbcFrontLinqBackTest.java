@@ -26,8 +26,6 @@ import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import java.sql.Connection;
 import java.util.ArrayList;
@@ -35,8 +33,6 @@ import java.util.Collection;
 import java.util.List;
 
 import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
-
-import static org.junit.Assert.*;
 
 
 /**
@@ -195,17 +191,14 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test public void testWhereLike() {
-    if (false)
-      // TODO: fix current error "Operands E.name, 'B%' not comparable to
-      // each other"
-      assertThat()
-          .query(
-              "select *\n"
-              + "from \"hr\".\"emps\" as e\n"
-              + "where e.\"empid\" > 120 and e.\"name\" like 'B%'")
-          .returns(
-              "cust_id=100; prod_id=10; empid=100; name=Bill\n"
-              + "cust_id=150; prod_id=20; empid=150; name=Sebastian\n");
+    assertThat()
+        .query(
+            "select *\n"
+            + "from \"hr\".\"emps\" as e\n"
+            + "where e.\"empid\" < 120 or e.\"name\" like 'S%'")
+        .returns(
+            "empid=100; deptno=10; name=Bill; commission=1000\n"
+            + "empid=150; deptno=10; name=Sebastian; commission=null\n");
   }
 
   @Test public void testInsert() {

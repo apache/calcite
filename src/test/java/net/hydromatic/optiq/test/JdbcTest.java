@@ -396,15 +396,15 @@ public class JdbcTest {
             "explain plan for select \"time_by_day\".\"the_year\" as \"c0\", \"time_by_day\".\"quarter\" as \"c1\", \"product_class\".\"product_family\" as \"c2\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" group by \"time_by_day\".\"the_year\", \"time_by_day\".\"quarter\", \"product_class\".\"product_family\"")
         .returns(
             "PLAN=EnumerableAggregateRel(group=[{0, 1, 2}], m0=[SUM($3)])\n"
-            + "  EnumerableCalcRel(expr#0..37=[{inputs}], c0=[$t4], c1=[$t8], c2=[$t22], unit_sales=[$t17])\n"
-            + "    EnumerableJoinRel(condition=[AND(=($10, $24), =($23, $18))], joinType=[inner])\n"
+            + "  EnumerableCalcRel(expr#0..37=[{inputs}], c0=[$t19], c1=[$t23], c2=[$t37], unit_sales=[$t32])\n"
+            + "    EnumerableJoinRel(condition=[AND(=($25, $1), =($0, $33))], joinType=[inner])\n"
+            + "      EnumerableTableAccessRel(table=[[foodmart2, product]])\n"
             + "      EnumerableJoinRel(condition=[true], joinType=[inner])\n"
             + "        EnumerableJoinRel(condition=[=($11, $0)], joinType=[inner])\n"
             + "          EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], proj#0..9=[{exprs}], $condition=[$t12])\n"
             + "            EnumerableTableAccessRel(table=[[foodmart2, time_by_day]])\n"
             + "          EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])\n"
             + "        EnumerableTableAccessRel(table=[[foodmart2, product_class]])\n"
-            + "      EnumerableTableAccessRel(table=[[foodmart2, product]])\n"
             + "\n");
   }
 
@@ -694,7 +694,11 @@ public class JdbcTest {
         final String expected = query.e.right;
         final OptiqAssert.AssertQuery query1 = with.query(sql);
         if (expected != null) {
-          query1.returns(expected);
+          if (sql.contains("order by")) {
+            query1.returns(expected);
+          } else {
+            query1.returnsUnordered(expected.split("\n"));
+          }
         } else {
           query1.runs();
         }

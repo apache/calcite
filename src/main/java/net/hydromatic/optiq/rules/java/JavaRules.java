@@ -389,11 +389,11 @@ public class JavaRules {
 
       return new EnumerableCalcRel(
           rel.getCluster(),
-          rel.getTraitSet().replace(
-              EnumerableConvention.ARRAY),
+          rel.getTraitSet().replace(EnumerableConvention.ARRAY),
           convert(
               calc.getChild(),
-              calc.getTraitSet().replace(EnumerableConvention.ARRAY)),
+              calc.getChild().getTraitSet()
+                  .replace(EnumerableConvention.ARRAY)),
           calc.getProgram(),
           ProjectRelBase.Flags.Boxed);
     }
@@ -458,9 +458,7 @@ public class JavaRules {
         // The physical row type of a table access is baked in.
         return null;
       }
-      RelTraitSet newTraitSet =
-          rel.getTraitSet().replace(
-              ConventionTraitDef.instance, getOutTrait());
+      RelTraitSet newTraitSet = rel.getTraitSet().replace(getOutTrait());
       if (rel instanceof EnumerableSortRel) {
         // The physical row type of a sort must be the same as its
         // input.
@@ -1636,7 +1634,7 @@ public class JavaRules {
           valuesRel.getCluster(),
           valuesRel.getRowType(),
           valuesRel.getTuples(),
-          valuesRel.getTraitSet().plus(EnumerableConvention.ARRAY));
+          valuesRel.getTraitSet().replace(EnumerableConvention.ARRAY));
     }
   }
 
@@ -1669,7 +1667,7 @@ public class JavaRules {
           valuesRel.getCluster(),
           valuesRel.getRowType(),
           valuesRel.getTuples(),
-          valuesRel.getTraitSet().plus(EnumerableConvention.ARRAY));
+          valuesRel.getTraitSet().replace(EnumerableConvention.ARRAY));
     }
   }
 

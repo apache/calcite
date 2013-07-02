@@ -168,7 +168,7 @@ public final class CalcRel
      *
      * <p>The result may not be a {@link ProjectRel}. If the projection is
      * trivial, <code>child</code> is returned directly; and future versions may
-     * return other forumlations of expressions, such as {@link CalcRel}.
+     * return other formulations of expressions, such as {@link CalcRel}.
      *
      * @param child input relational expression
      * @param exprs set of expressions for the input columns
@@ -184,7 +184,8 @@ public final class CalcRel
     {
         assert (fieldNames == null)
             || (fieldNames.length == exprs.length)
-            : "fieldNames=" + fieldNames + ", exprs=" + exprs;
+            : "fieldNames=" + Arrays.toString(fieldNames)
+            + ", exprs=" + Arrays.toString(exprs);
         final RelOptCluster cluster = child.getCluster();
         RexProgramBuilder builder =
             new RexProgramBuilder(
@@ -212,26 +213,24 @@ public final class CalcRel
             final RelDataType rowType =
                 RexUtil.createStructType(
                     child.getCluster().getTypeFactory(),
-                    exprs,
-                    fieldNames);
+                    Arrays.asList(exprs),
+                    fieldNames == null ? null : Arrays.asList(fieldNames));
             if (optimize
                 && RemoveTrivialProjectRule.isIdentity(
-                    exprs,
+                    Arrays.asList(exprs),
                     rowType,
                     child.getRowType()))
             {
                 return child;
             }
-            final ProjectRel project =
+            return
                 new ProjectRel(
                     child.getCluster(),
                     child,
-                    exprs,
+                    Arrays.asList(exprs),
                     rowType,
                     ProjectRelBase.Flags.Boxed,
                     collationList);
-
-            return project;
         }
     }
 

@@ -733,7 +733,7 @@ public class JdbcRules {
           valuesRel.getCluster(),
           valuesRel.getRowType(),
           valuesRel.getTuples(),
-          valuesRel.getTraitSet().plus(out));
+          valuesRel.getTraitSet().replace(out));
     }
   }
 

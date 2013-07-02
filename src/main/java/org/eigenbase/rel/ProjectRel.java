@@ -54,8 +54,8 @@ public final class ProjectRel
     public ProjectRel(
         RelOptCluster cluster,
         RelNode child,
-        RexNode [] exps,
-        String [] fieldNames,
+        List<RexNode> exps,
+        List<String> fieldNames,
         int flags)
     {
         this(
@@ -75,7 +75,7 @@ public final class ProjectRel
      *
      * @param cluster Cluster this relational expression belongs to
      * @param child input relational expression
-     * @param exps set of expressions for the input columns
+     * @param exps List of expressions for the input columns
      * @param rowType output row type
      * @param flags values as in {@link ProjectRelBase.Flags}
      * @param collationList List of sort keys
@@ -83,14 +83,17 @@ public final class ProjectRel
     public ProjectRel(
         RelOptCluster cluster,
         RelNode child,
-        RexNode [] exps,
+        List<RexNode> exps,
         RelDataType rowType,
         int flags,
         final List<RelCollation> collationList)
     {
         super(
             cluster,
-            cluster.traitSetOf(Convention.NONE),
+            cluster.traitSetOf(
+                collationList.isEmpty()
+                    ? RelCollationImpl.EMPTY
+                    : collationList.get(0)),
             child,
             exps,
             rowType,
@@ -105,10 +108,10 @@ public final class ProjectRel
         return new ProjectRel(
             getCluster(),
             sole(inputs),
-            exps,
+            getProjectExpList(),
             rowType,
             getFlags(),
-            Collections.<RelCollation>emptyList());
+            collationList);
     }
 
     /**
