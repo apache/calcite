@@ -9,7 +9,7 @@
 
   <!-- Version number. The version number committed to github should be
        TRUNK-SNAPSHOT except, briefly, when making a release. Next: 0.4.6. -->
-  <version>0.4.5</version>
+  <version>TRUNK-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>optiq</name>
@@ -215,8 +215,8 @@
       </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-          <version>2.3.2</version>
-          <configuration>
+        <version>2.3.2</version>
+        <configuration>
           <source>1.5</source>
           <target>1.5</target>
         </configuration>
