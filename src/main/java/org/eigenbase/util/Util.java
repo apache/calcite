@@ -195,6 +195,13 @@ public class Util
     }
 
     /**
+     * Returns a sub-list from a given position to the end.
+     */
+    public static <E> List<E> subList(List<E> list, int fromIndex) {
+        return list.subList(fromIndex, list.size());
+    }
+
+    /**
      * Returns whether two lists are equal to each other using shallow
      * comparisons.
      *
@@ -203,7 +210,7 @@ public class Util
      * @return Whether lists are same length and all of their elements are
      *   equal using {@code ==} (may be null).
      */
-    public static final <T> boolean equalShallow(
+    public static <T> boolean equalShallow(
         List<? extends T> list0, List<? extends T> list1)
     {
         if (list0.size() != list1.size()) {

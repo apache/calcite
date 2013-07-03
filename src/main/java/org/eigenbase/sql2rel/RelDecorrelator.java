@@ -1361,53 +1361,32 @@ public class RelDecorrelator
      * Project all childRel output fields plus the additional expressions.
      *
      * @param childRel Child relational expression
-     * @param additionalExprs Additional expressions
-     * @param additionalExprNames Names of additional expressions
+     * @param additionalExprs Additional expressions and names
      *
      * @return the new ProjectRel
      */
     private RelNode createProjectWithAdditionalExprs(
         RelNode childRel,
-        RexNode [] additionalExprs,
-        String [] additionalExprNames)
+        List<Pair<RexNode, String>> additionalExprs)
     {
-        boolean useNewNames = false;
-
-        if (additionalExprNames != null) {
-            useNewNames = true;
-        }
-
         RelDataType childFieldType = childRel.getRowType();
         int childFieldCount = childFieldType.getFieldCount();
 
-        RexNode [] exprs =
-            new RexNode[childFieldCount + additionalExprs.length];
-
-        int i = 0;
-        for (; i < childFieldCount; i++) {
-            exprs[i] =
+        List<RexNode> exprs = new ArrayList<RexNode>();
+        for (int i = 0; i < childFieldCount; i++) {
+            exprs.add(
                 rexBuilder.makeInputRef(
                     childFieldType.getFields()[i].getType(),
-                    i);
+                    i));
         }
+        exprs.addAll(Pair.left(additionalExprs));
 
-        for (; i < exprs.length; i++) {
-            exprs[i] = additionalExprs[i - childFieldCount];
+        List<String> exprNames = new ArrayList<String>();
+        for (int i = 0; i < childFieldCount; i++) {
+            exprNames.add(childFieldType.getFields()[i].getName());
         }
+        exprNames.addAll(Pair.right(additionalExprs));
 
-        String [] exprNames = null;
-
-        if (useNewNames) {
-            exprNames = new String[childFieldCount + additionalExprs.length];
-            i = 0;
-            for (; i < childFieldCount; i++) {
-                exprNames[i] = childFieldType.getFields()[i].getName();
-            }
-
-            for (; i < exprs.length; i++) {
-                exprNames[i] = additionalExprNames[i - childFieldCount];
-            }
-        }
         return CalcRel.createProject(childRel, exprs, exprNames);
     }
 
@@ -1803,18 +1782,16 @@ public class RelDecorrelator
 
             // singleAggRel produces a nullable type, so create the new
             // projection that casts proj expr to a nullable type.
-            RexNode [] newProjExprs = new RexNode[1];
-
-            newProjExprs[0] =
-                rexBuilder.makeCast(
-                    projRel.getCluster().getTypeFactory()
-                           .createTypeWithNullability(
-                               projExprs[0].getType(),
-                               true),
-                    projExprs[0]);
-
             RelNode newProjRel =
-                CalcRel.createProject(aggRel, newProjExprs, null);
+                CalcRel.createProject(
+                    aggRel,
+                    Collections.singletonList(
+                        rexBuilder.makeCast(
+                            projRel.getCluster().getTypeFactory()
+                                .createTypeWithNullability(
+                                    projExprs[0].getType(), true),
+                            projExprs[0])),
+                    null);
             call.transformTo(newProjRel);
         }
     }
@@ -1999,8 +1976,10 @@ public class RelDecorrelator
                 rightInputRel =
                     createProjectWithAdditionalExprs(
                         rightInputRel,
-                        new RexNode[] { rexBuilder.makeLiteral(true) },
-                        new String[] { "nullIndicator" });
+                        Collections.singletonList(
+                            Pair.of(
+                                (RexNode) rexBuilder.makeLiteral(true),
+                                "nullIndicator")));
 
                 // make the new aggRel
                 rightInputRel =
@@ -2321,8 +2300,10 @@ public class RelDecorrelator
             rightInputRel =
                 createProjectWithAdditionalExprs(
                     rightInputRel,
-                    new RexNode[] { rexBuilder.makeLiteral(true) },
-                    new String[] { "nullIndicator" });
+                    Collections.singletonList(
+                        Pair.of(
+                            (RexNode) rexBuilder.makeLiteral(true),
+                            "nullIndicator")));
 
             final Set<String> variablesStopped = Collections.emptySet();
             JoinRel joinRel =
@@ -2346,31 +2327,30 @@ public class RelDecorrelator
                         .getType(),
                         true));
 
-            // first project all the groupby keys plus the transformed agg input
-            RexNode [] joinOutputProjExprs =
-                new RexNode[joinOutputProjExprCount];
+            // first project all group-by keys plus the transformed agg input
+            List<RexNode> joinOutputProjExprs =
+                new ArrayList<RexNode>();
 
             // LOJ Join preserves LHS types
             for (int i = 0; i < leftInputFieldCount; i++) {
-                joinOutputProjExprs[i] =
+                joinOutputProjExprs.add(
                     rexBuilder.makeInputRef(
-                        leftInputFieldType.getFields()[i].getType(),
-                        i);
+                        leftInputFieldType.getFields()[i].getType(), i));
             }
 
-            for (int i = 0; i < aggInputProjExprs.length; i++) {
-                joinOutputProjExprs[i + leftInputFieldCount] =
+            for (RexNode aggInputProjExpr : aggInputProjExprs) {
+                joinOutputProjExprs.add(
                     removeCorrelationExpr(
-                        aggInputProjExprs[i],
+                        aggInputProjExpr,
                         joinType.generatesNullsOnRight(),
-                        nullIndicator);
+                        nullIndicator));
             }
 
-            joinOutputProjExprs[joinOutputProjExprCount - 1] =
+            joinOutputProjExprs.add(
                 rexBuilder.makeInputRef(
                     joinRel.getRowType().getFields()[nullIndicatorPos]
-                    .getType(),
-                    nullIndicatorPos);
+                        .getType(),
+                    nullIndicatorPos));
 
             RelNode joinOutputProjRel =
                 CalcRel.createProject(

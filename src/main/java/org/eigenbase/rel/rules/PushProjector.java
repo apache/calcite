@@ -24,6 +24,9 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
+import org.eigenbase.util.Pair;
+
+import net.hydromatic.linq4j.Ord;
 
 
 /**
@@ -415,21 +418,20 @@ public class PushProjector
             offset = nSysFields;
         }
         int refIdx = offset - 1;
-        int projLength = nInputRefs + preserveExprs.size();
-        RexNode [] newProjExprs = new RexNode[projLength];
-        String [] fieldNames = new String[projLength];
+        List<Pair<RexNode, String>> newProjects =
+            new ArrayList<Pair<RexNode, String>>();
         RelDataTypeField [] destFields = projChild.getRowType().getFields();
-        int i;
 
         // add on the input references
-        for (i = 0; i < nInputRefs; i++) {
+        for (int i = 0; i < nInputRefs; i++) {
             refIdx = projRefs.nextSetBit(refIdx + 1);
             assert (refIdx >= 0);
-            newProjExprs[i] =
-                rexBuilder.makeInputRef(
-                    destFields[refIdx - offset].getType(),
-                    refIdx - offset);
-            fieldNames[i] = destFields[refIdx - offset].getName();
+            newProjects.add(
+                Pair.of(
+                    (RexNode) rexBuilder.makeInputRef(
+                        destFields[refIdx - offset].getType(),
+                        refIdx - offset),
+                    destFields[refIdx - offset].getName()));
         }
 
         // add on the expressions that need to be preserved, converting the
@@ -454,16 +456,16 @@ public class PushProjector
             } else {
                 newExpr = projExpr;
             }
-            newProjExprs[i] = newExpr;
-            RexCall call = (RexCall) projExpr;
-            fieldNames[i] = call.getOperator().getName();
-            i++;
+            newProjects.add(
+                Pair.of(
+                    newExpr,
+                    ((RexCall) projExpr).getOperator().getName()));
         }
 
         return (ProjectRel) CalcRel.createProject(
             projChild,
-            newProjExprs,
-            fieldNames);
+            Pair.left(newProjects),
+            Pair.right(newProjects));
     }
 
     /**
@@ -534,45 +536,34 @@ public class PushProjector
      */
     public ProjectRel createNewProject(RelNode projChild, int [] adjustments)
     {
-        RexNode [] projExprs;
-        String [] fieldNames;
-        RexNode [] origProjExprs = null;
-        int origProjLength;
-        if (origProj == null) {
-            origProjLength = childFields.length;
-        } else {
-            origProjExprs = origProj.getChildExps();
-            origProjLength = origProjExprs.length;
-        }
-        projExprs = new RexNode[origProjLength];
-        fieldNames = new String[origProjLength];
+        List<Pair<RexNode, String>> projects =
+            new ArrayList<Pair<RexNode, String>>();
 
         if (origProj != null) {
-            for (int i = 0; i < origProjLength; i++) {
-                projExprs[i] =
-                    convertRefsAndExprs(
-                        origProjExprs[i],
-                        projChild.getRowType().getFields(),
-                        adjustments);
-                fieldNames[i] = origProj.getRowType().getFields()[i].getName();
+            List<RexNode> exprs = origProj.getProjectExpList();
+            final List<RelDataTypeField> fields =
+                origProj.getRowType().getFieldList();
+            for (Pair<RexNode, RelDataTypeField> p : Pair.zip(exprs, fields)) {
+                projects.add(
+                    Pair.of(
+                        convertRefsAndExprs(
+                            p.left,
+                            projChild.getRowType().getFields(),
+                            adjustments),
+                        p.right.getName()));
             }
         } else {
-            for (int i = 0; i < origProjLength; i++) {
-                projExprs[i] =
-                    rexBuilder.makeInputRef(
-                        childFields[i].getType(),
-                        i);
-                fieldNames[i] = childFields[i].getName();
+            for (Ord<RelDataTypeField> field : Ord.zip(childFields)) {
+                projects.add(
+                    Pair.of(
+                        (RexNode) rexBuilder.makeInputRef(
+                            field.e.getType(), field.i), field.e.getName()));
             }
         }
-
-        ProjectRel projRel =
-            (ProjectRel) CalcRel.createProject(
-                projChild,
-                projExprs,
-                fieldNames);
-
-        return projRel;
+        return (ProjectRel) CalcRel.createProject(
+            projChild,
+            Pair.left(projects),
+            Pair.right(projects));
     }
 
     //~ Inner Classes ----------------------------------------------------------

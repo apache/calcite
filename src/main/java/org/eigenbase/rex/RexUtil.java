@@ -84,7 +84,7 @@ public class RexUtil
      *
      * @return cast expressions
      */
-    public static RexNode [] generateCastExpressions(
+    public static List<RexNode> generateCastExpressions(
         RexBuilder rexBuilder,
         RelDataType lhsRowType,
         RelDataType rhsRowType)
@@ -99,7 +99,8 @@ public class RexUtil
                     rhsRowType.getFields()[i].getType(),
                     i);
         }
-        return generateCastExpressions(rexBuilder, lhsRowType, rhsExps);
+        return Arrays.asList(
+            generateCastExpressions(rexBuilder, lhsRowType, rhsExps));
     }
 
     /**

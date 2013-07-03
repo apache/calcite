@@ -189,8 +189,8 @@ public class VolcanoPlannerTest {
         RelNode projectRel =
             CalcRel.createProject(
                 leafRel,
-                new RexNode[] { inputRef },
-                new String[] { "this" });
+                Collections.<RexNode>singletonList(inputRef),
+                Collections.singletonList("this"));
         NoneSingleRel singleRel =
             new NoneSingleRel(
                 cluster,

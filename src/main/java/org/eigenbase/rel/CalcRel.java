@@ -99,104 +99,60 @@ public final class CalcRel
         return createProject(child, exprList, fieldNameList, false);
     }
 
-    /**
-     * Creates a relational expression which projects an array of expressions,
-     * and optionally optimizes.
-     *
-     * @param child input relational expression
-     * @param exprList list of expressions for the input columns
-     * @param fieldNameList aliases of the expressions, or null to generate
-     * @param optimize Whether to return <code>child</code> unchanged if the
-     * projections are trivial.
-     */
     public static RelNode createProject(
-        RelNode child,
-        List<RexNode> exprList,
-        List<String> fieldNameList,
-        boolean optimize)
+        final RelNode child,
+        final List<Integer> posList)
     {
-        RexNode [] exprs = exprList.toArray(new RexNode[exprList.size()]);
-        String [] fieldNames =
-            (fieldNameList == null) ? null
-            : fieldNameList.toArray(new String[fieldNameList.size()]);
-        return createProject(
-            child,
-            exprs,
-            fieldNames,
-            optimize);
-    }
-
-    /**
-     * Creates a relational expression which projects a set of expressions.
-     *
-     * @param child input relational expression
-     * @param exprs set of expressions for the input columns
-     * @param fieldNames aliases of the expressions, or null to generate
-     */
-    public static ProjectRel createProject(
-        RelNode child,
-        RexNode [] exprs,
-        String [] fieldNames)
-    {
-        return (ProjectRel) createProject(child, exprs, fieldNames, false);
-    }
-
-    public static RelNode createProject(
-        RelNode child,
-        List<Integer> posList)
-    {
-        RexNode [] exprList = new RexNode[posList.size()];
-
-        final RelOptCluster cluster = child.getCluster();
-        RexBuilder rexBuilder = cluster.getRexBuilder();
-
-        for (int i = 0; i < posList.size(); i++) {
-            exprList[i] =
-                rexBuilder.makeInputRef(
-                    (child.getRowType().getFields()[posList.get(i)]).getType(),
-                    posList.get(i));
-        }
-
         return CalcRel.createProject(
             child,
-            exprList,
+            new AbstractList<RexNode>() {
+                public int size() {
+                    return posList.size();
+                }
+                public RexNode get(int index) {
+                    final int pos = posList.get(index);
+                    return child.getCluster().getRexBuilder().makeInputRef(
+                        child.getRowType().getFieldList().get(pos).getType(),
+                        pos);
+                }
+            },
             null);
     }
 
     /**
-     * Creates a relational expression which projects a set of expressions.
+     * Creates a relational expression which projects an array of expressions,
+     * and optionally optimizes.
      *
      * <p>The result may not be a {@link ProjectRel}. If the projection is
      * trivial, <code>child</code> is returned directly; and future versions may
      * return other formulations of expressions, such as {@link CalcRel}.
      *
      * @param child input relational expression
-     * @param exprs set of expressions for the input columns
+     * @param exprs list of expressions for the input columns
      * @param fieldNames aliases of the expressions, or null to generate
      * @param optimize Whether to return <code>child</code> unchanged if the
      * projections are trivial.
      */
     public static RelNode createProject(
         RelNode child,
-        RexNode [] exprs,
-        String [] fieldNames,
+        List<RexNode> exprs,
+        List<String> fieldNames,
         boolean optimize)
     {
-        assert (fieldNames == null)
-            || (fieldNames.length == exprs.length)
-            : "fieldNames=" + Arrays.toString(fieldNames)
-            + ", exprs=" + Arrays.toString(exprs);
+        if (fieldNames == null) {
+            fieldNames = Collections.nCopies(exprs.size(), null);
+        } else {
+            assert (fieldNames.size() == exprs.size())
+                : "fieldNames=" + fieldNames
+                + ", exprs=" + exprs;
+        }
         final RelOptCluster cluster = child.getCluster();
         RexProgramBuilder builder =
             new RexProgramBuilder(
                 child.getRowType(),
                 cluster.getRexBuilder());
-        int i = -1;
-        for (RexNode expr : exprs) {
-            ++i;
-            final String fieldName =
-                (fieldNames == null) ? null : fieldNames[i];
-            builder.addProject(expr, fieldName);
+        for (Pair<RexNode, String> pair : Pair.zip(exprs, fieldNames)) {
+            builder.addProject(pair.left, pair.right);
         }
         final RexProgram program = builder.getProgram();
         final List<RelCollation> collationList =
@@ -213,11 +169,11 @@ public final class CalcRel
             final RelDataType rowType =
                 RexUtil.createStructType(
                     child.getCluster().getTypeFactory(),
-                    Arrays.asList(exprs),
-                    fieldNames == null ? null : Arrays.asList(fieldNames));
+                    exprs,
+                    fieldNames);
             if (optimize
                 && RemoveTrivialProjectRule.isIdentity(
-                    Arrays.asList(exprs),
+                    exprs,
                     rowType,
                     child.getRowType()))
             {
@@ -227,7 +183,7 @@ public final class CalcRel
                 new ProjectRel(
                     child.getCluster(),
                     child,
-                    Arrays.asList(exprs),
+                    exprs,
                     rowType,
                     ProjectRelBase.Flags.Boxed,
                     collationList);
@@ -282,17 +238,19 @@ public final class CalcRel
      */
     public static RelNode createRename(
         RelNode rel,
-        String [] fieldNames)
+        List<String> fieldNames)
     {
-        final RelDataTypeField [] fields = rel.getRowType().getFields();
-        assert fieldNames.length == fields.length;
-        final RexInputRef [] refs = new RexInputRef[fieldNames.length];
-        for (int i = 0; i < refs.length; i++) {
-            refs[i] =
-                new RexInputRef(
-                    i,
-                    fields[i].getType());
-        }
+        final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
+        assert fieldNames.size() == fields.size();
+        final List<RexNode> refs = new AbstractList<RexNode>() {
+            public int size() {
+                return fields.size();
+            }
+
+            public RexInputRef get(int index) {
+                return new RexInputRef(index, fields.get(index).getType());
+            }
+        };
         return createProject(rel, refs, fieldNames, true);
     }
 

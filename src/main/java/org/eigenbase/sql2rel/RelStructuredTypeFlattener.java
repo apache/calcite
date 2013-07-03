@@ -484,16 +484,11 @@ public class RelStructuredTypeFlattener
             "",
             flattenedExpList,
             flattenedFieldNameList);
-        final RexNode [] flattenedExps =
-            (RexNode []) flattenedExpList.toArray(RexNode.EMPTY_ARRAY);
-        final String [] flattenedFieldNames =
-            (String []) flattenedFieldNameList.toArray(
-                new String[flattenedFieldNameList.size()]);
         RelNode newRel =
             CalcRel.createProject(
                 getNewForOldRel(rel.getChild()),
-                flattenedExps,
-                flattenedFieldNames);
+                flattenedExpList,
+                flattenedFieldNameList);
         setNewForOldRel(rel, newRel);
     }
 

@@ -339,10 +339,9 @@ public abstract class RelOptUtil
             // agg does not like no agg functions so just pretend it is
             // doing a min(TRUE)
 
-            RexNode [] exprs = new RexNode[1];
-            exprs[0] = extraExpr;
-
-            ret = CalcRel.createProject(ret, exprs, null);
+            ret =
+                CalcRel.createProject(
+                    ret, Collections.<RexNode>singletonList(extraExpr), null);
             RelDataType [] argTypes = new RelDataType[1];
             argTypes[0] = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 
@@ -401,15 +400,14 @@ public abstract class RelOptUtil
                 outputFieldCount = 1;
             }
 
-            RexNode [] exprs = new RexNode[outputFieldCount];
+            List<RexNode> exprs = new ArrayList<RexNode>();
 
             // for IN/NOT IN , it needs to output the fields
             if (isIn) {
                 for (int i = 0; i < inputFieldType.getFieldCount(); i++) {
-                    exprs[i] =
+                    exprs.add(
                         rexBuilder.makeInputRef(
-                            inputFieldType.getFields()[i].getType(),
-                            i);
+                            inputFieldType.getFields()[i].getType(), i));
                 }
             }
 
@@ -418,7 +416,7 @@ public abstract class RelOptUtil
                 // agg does not like no agg functions so just pretend it is
                 // doing a min(TRUE)
                 RexNode trueExp = rexBuilder.makeLiteral(true);
-                exprs[outputFieldCount - 1] = trueExp;
+                exprs.add(trueExp);
 
                 ret = CalcRel.createProject(ret, exprs, null);
 
@@ -487,20 +485,23 @@ public abstract class RelOptUtil
             + inputType
             + ", out" + outputType;
 
-        RexNode [] renameExps = new RexNode[n];
-        String [] renameNames = new String[n];
-
-        final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
-        for (int i = 0; i < n; ++i) {
-            assert (inputFields[i].getType().equals(outputFields[i].getType()));
-            renameNames[i] = outputFields[i].getName();
-            renameExps[i] =
-                rexBuilder.makeInputRef(
-                    inputFields[i].getType(),
-                    inputFields[i].getIndex());
+        List<Pair<RexNode, String>> renames =
+            new ArrayList<Pair<RexNode, String>>();
+        for (Pair<RelDataTypeField, RelDataTypeField> pair
+            : Pair.zip(inputFields, outputFields))
+        {
+            final RelDataTypeField inputField = pair.left;
+            final RelDataTypeField outputField = pair.right;
+            assert inputField.getType().equals(outputField.getType());
+            renames.add(
+                Pair.of(
+                    (RexNode) rel.getCluster().getRexBuilder().makeInputRef(
+                        inputField.getType(),
+                        inputField.getIndex()),
+                    outputField.getName()));
         }
-
-        return CalcRel.createProject(rel, renameExps, renameNames);
+        return CalcRel.createProject(
+            rel, Pair.left(renames), Pair.right(renames));
     }
 
     /**
@@ -579,23 +580,21 @@ public abstract class RelOptUtil
             // nothing to do
             return rel;
         }
-        RexNode [] castExps =
+        List<RexNode> castExps =
             RexUtil.generateCastExpressions(
-                rel.getCluster().getRexBuilder(),
-                castRowType,
-                rowType);
+                rel.getCluster().getRexBuilder(), castRowType, rowType);
         if (rename) {
             // Use names and types from castRowType.
             return CalcRel.createProject(
                 rel,
                 castExps,
-                getFieldNames(castRowType));
+                castRowType.getFieldNames());
         } else {
             // Use names from rowType, types from castRowType.
             return CalcRel.createProject(
                 rel,
                 castExps,
-                getFieldNames(rowType));
+                rowType.getFieldNames());
         }
     }
 
@@ -1482,31 +1481,22 @@ public abstract class RelOptUtil
         if ((newProjectOutputSize > 0)
             && (newProjectOutputSize < joinOutputFields.length))
         {
-            RexNode [] newProjectOutputFields =
-                new RexNode[newProjectOutputSize];
-            String [] newProjectOutputNames = new String[newProjectOutputSize];
-
-            // Create the individual projection expressions
+            List<Pair<RexNode, String>> newProjects =
+                new ArrayList<Pair<RexNode, String>>();
             RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
-            for (int i = 0; i < newProjectOutputSize; i++) {
-                int fieldIndex = outputProj.get(i);
-
-                newProjectOutputFields[i] =
-                    rexBuilder.makeInputRef(
-                        joinOutputFields[fieldIndex].getType(),
-                        fieldIndex);
-                newProjectOutputNames[i] =
-                    joinOutputFields[fieldIndex].getName();
+            for (int fieldIndex : outputProj) {
+                newProjects.add(
+                    Pair.of(
+                        (RexNode) rexBuilder.makeInputRef(
+                            joinOutputFields[fieldIndex].getType(), fieldIndex),
+                        joinOutputFields[fieldIndex].getName()));
             }
 
             // Create a project rel on the output of the join.
-            RelNode projectOutputRel =
-                CalcRel.createProject(
-                    joinRel,
-                    newProjectOutputFields,
-                    newProjectOutputNames);
-
-            return projectOutputRel;
+            return CalcRel.createProject(
+                joinRel,
+                Pair.left(newProjects),
+                Pair.right(newProjects));
         }
 
         return joinRel;
@@ -1816,7 +1806,7 @@ public abstract class RelOptUtil
         rel =
             CalcRel.createRename(
                 rel,
-                getFieldNames(desiredRowType));
+                desiredRowType.getFieldNames());
         return rel;
     }
 

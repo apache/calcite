@@ -34,8 +34,6 @@ import org.eigenbase.rex.*;
 public class PullUpProjectsAboveJoinRule
     extends RelOptRule
 {
-    // ~ Static fields/initializers --------------------------------------------
-
     //~ Static fields/initializers ---------------------------------------------
 
     public static final PullUpProjectsAboveJoinRule instanceTwoProjectChildren =
@@ -102,7 +100,7 @@ public class PullUpProjectsAboveJoinRule
         // right projects that feed into the join.  The top program contains
         // the join condition.
 
-        // Create a row type representing a concatentation of the inputs
+        // Create a row type representing a concatenation of the inputs
         // underneath the projects that feed into the join.  This is the input
         // into the bottom RexProgram.  Note that the join type is an inner
         // join because the inputs haven't actually been joined yet.
@@ -195,17 +193,15 @@ public class PullUpProjectsAboveJoinRule
 
         // expand out the new projection expressions; if the join is an
         // outer join, modify the expressions to reference the join output
-        RexNode [] newProjExprs = new RexNode[nProjExprs];
+        List<RexNode> newProjExprs = new ArrayList<RexNode>();
         List<RexLocalRef> projList = mergedProgram.getProjectList();
         RelDataTypeField [] newJoinFields = newJoinRel.getRowType().getFields();
         int nJoinFields = newJoinFields.length;
         int [] adjustments = new int[nJoinFields];
         for (int i = 0; i < nProjExprs; i++) {
             RexNode newExpr = mergedProgram.expandLocalRef(projList.get(i));
-            if (joinType == JoinRelType.INNER) {
-                newProjExprs[i] = newExpr;
-            } else {
-                newProjExprs[i] =
+            if (joinType != JoinRelType.INNER) {
+                newExpr =
                     newExpr.accept(
                         new RelOptUtil.RexInputConverter(
                             rexBuilder,
@@ -213,6 +209,7 @@ public class PullUpProjectsAboveJoinRule
                             newJoinFields,
                             adjustments));
             }
+            newProjExprs.add(newExpr);
         }
 
         // finally, create the projection on top of the join
@@ -220,7 +217,7 @@ public class PullUpProjectsAboveJoinRule
             CalcRel.createProject(
                 newJoinRel,
                 newProjExprs,
-                fieldNames);
+                Arrays.asList(fieldNames));
 
         call.transformTo(newProjRel);
     }
@@ -282,7 +279,7 @@ public class PullUpProjectsAboveJoinRule
      * projection); otherwise, this is the join input
      * @param adjustmentAmount the amount the expressions need to be shifted by
      * @param rexBuilder rex builder
-     * @param joinChildrenFields concatentation of the fields from the left and
+     * @param joinChildrenFields concatenation of the fields from the left and
      * right join inputs (once the projections have been removed)
      * @param projExprs array of projection expressions to be created
      * @param fieldNames array of the names of the projection fields
