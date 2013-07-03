@@ -52,7 +52,7 @@ public final class IntersectRel extends IntersectRelBase {
     public IntersectRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {
-        assert traitSet.comprises(Convention.NONE);
+        assert traitSet.containsIfApplicable(Convention.NONE);
         return new IntersectRel(
             getCluster(),
             inputs,

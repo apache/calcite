@@ -70,7 +70,7 @@ public final class AggregateRel
 
     @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(Convention.NONE);
+        assert traitSet.containsIfApplicable(Convention.NONE);
         return new AggregateRel(
             getCluster(),
             sole(inputs),

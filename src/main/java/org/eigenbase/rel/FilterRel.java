@@ -58,7 +58,7 @@ public final class FilterRel
 
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.contains(Convention.NONE);
+        assert traitSet.containsIfApplicable(Convention.NONE);
         return new FilterRel(
             getCluster(),
             sole(inputs),

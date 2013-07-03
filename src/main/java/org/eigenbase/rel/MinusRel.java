@@ -53,7 +53,7 @@ public final class MinusRel extends MinusRelBase {
     public MinusRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {
-        assert traitSet.comprises(Convention.NONE);
+        assert traitSet.containsIfApplicable(Convention.NONE);
         return new MinusRel(
             getCluster(),
             inputs,

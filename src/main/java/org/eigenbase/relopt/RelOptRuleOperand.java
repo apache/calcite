@@ -133,7 +133,7 @@ public class RelOptRuleOperand
             break;
         default:
             this.matchAnyChildren = false;
-            assert children.length == 1;
+            assert children.length > 0;
         }
         this.clazz = clazz;
         this.trait = trait;

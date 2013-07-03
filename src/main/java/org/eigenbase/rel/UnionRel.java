@@ -52,7 +52,7 @@ public final class UnionRel
     public UnionRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {
-        assert traitSet.comprises(Convention.NONE);
+        assert traitSet.containsIfApplicable(Convention.NONE);
         return new UnionRel(
             getCluster(),
             inputs,

@@ -168,13 +168,13 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
      *
      * @return Trait in canonical form
      */
-    private RelTrait canonize(RelTrait trait)
+    public <T extends RelTrait> T canonize(T trait)
     {
         if (trait == null) {
             return null;
         }
 
-        return trait.getTraitDef().canonize(trait);
+        return (T) trait.getTraitDef().canonize(trait);
     }
 
     /**
@@ -243,6 +243,21 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
             }
         }
         return false;
+    }
+
+    /**
+     * Returns whether this trait set contains the given trait, or whether the
+     * trait is not present because its {@link RelTraitDef} is not enabled.
+     * Returns false if another trait of the same {@code RelTraitDef} is
+     * present.
+     *
+     * @param trait Trait
+     * @return Whether trait is present, or is absent because disabled
+     */
+    public boolean containsIfApplicable(RelTrait trait) {
+        // Note that '==' is sufficient, because trait should be canonized.
+        final RelTrait trait1 = getTrait(trait.getTraitDef());
+        return trait1 == null || trait1 == trait;
     }
 
     /**

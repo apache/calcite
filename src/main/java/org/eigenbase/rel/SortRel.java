@@ -24,7 +24,6 @@ import java.util.List;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
-import org.eigenbase.util.Bug;
 
 import net.hydromatic.linq4j.Ord;
 
@@ -60,13 +59,14 @@ public class SortRel
         super(cluster, traits, child);
         this.collation = collation;
 
-        assert traits.getTrait(RelCollationTraitDef.INSTANCE).equals(collation);
-        final RelDataTypeField [] fields = getRowType().getFields();
+        assert traits.containsIfApplicable(collation)
+            : "traits=" + traits + ", collation=" + collation;
+        final List<RelDataTypeField> fields = getRowType().getFieldList();
         for (RelFieldCollation field : collation.getFieldCollations()) {
             int iField = field.getFieldIndex();
             fieldExps.add(
                 cluster.getRexBuilder().makeInputRef(
-                    fields[iField].getType(), iField));
+                    fields.get(iField).getType(), iField));
         }
     }
 

@@ -85,7 +85,7 @@ public enum JavaRowFormat {
     }
   },
 
-  EMPTY_LIST() {
+  EMPTY_LIST {
     Type javaRowClass(
         JavaTypeFactory typeFactory,
         RelDataType type) {

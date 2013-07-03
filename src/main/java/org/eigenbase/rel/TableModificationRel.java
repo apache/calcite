@@ -62,7 +62,7 @@ public final class TableModificationRel
     @Override
     public TableModificationRel copy(RelTraitSet traitSet, List<RelNode> inputs)
     {
-        assert traitSet.comprises(Convention.NONE);
+        assert traitSet.containsIfApplicable(Convention.NONE);
         return new TableModificationRel(
             getCluster(),
             table,

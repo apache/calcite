@@ -134,7 +134,7 @@ public final class JoinRel
         RelNode left,
         RelNode right)
     {
-        assert traitSet.comprises(Convention.NONE);
+        assert traitSet.containsIfApplicable(Convention.NONE);
         return new JoinRel(
             getCluster(),
             left,
