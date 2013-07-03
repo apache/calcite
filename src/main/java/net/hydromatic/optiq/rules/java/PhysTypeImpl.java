@@ -38,7 +38,7 @@ public class PhysTypeImpl implements PhysType {
   private final RelDataType rowType;
   private final Type javaRowClass;
   private final List<Class> fieldClasses = new ArrayList<Class>();
-  private final JavaRowFormat format;
+  final JavaRowFormat format;
 
   /** Creates a PhysTypeImpl. */
   PhysTypeImpl(
@@ -54,13 +54,6 @@ public class PhysTypeImpl implements PhysType {
       fieldClasses.add(
           JavaRules.EnumUtil.javaRowClass(typeFactory, field.getType()));
     }
-  }
-
-  public static PhysType of(
-      JavaTypeFactory typeFactory,
-      RelDataType rowType,
-      EnumerableConvention convention) {
-    return of(typeFactory, rowType, convention.format);
   }
 
   public static PhysType of(

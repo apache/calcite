@@ -46,26 +46,16 @@ public interface RelImplementor
         int ordinal,
         RelNode child);
 
-    /**
-     * Called from {@link #visitChild} after the frame has been set up. Specific
-     * implementors should override this method.
-     *
-     * @param child Child relational expression
-     *
-     * @return Interpretation of the return value is left to the implementor
-     */
-    Object visitChildInternal(RelNode child);
-
-    /**
+  /**
      * Called from {@link #visitChild} after the frame has been set up. Specific
      * implementors should override this method.
      *
      * @param child Child relational expression
      * @param ordinal Ordinal of child within its parent
-     *
+     * @param arg Additional parameter; type depends on implementor
      * @return Interpretation of the return value is left to the implementor
      */
-    Object visitChildInternal(RelNode child, int ordinal);
+    Object visitChildInternal(RelNode child, int ordinal, Object arg);
 }
 
 // End RelImplementor.java

@@ -22,7 +22,6 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
 import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.rules.java.*;
 
 import org.eigenbase.rel.RelNode;
@@ -39,18 +38,11 @@ public class MongoToEnumerableConverter
     extends ConverterRelImpl
     implements EnumerableRel
 {
-  private final PhysType physType;
-
   protected MongoToEnumerableConverter(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode input) {
     super(cluster, ConventionTraitDef.instance, traits, input);
-    this.physType =
-        PhysTypeImpl.of(
-            (JavaTypeFactory) cluster.getTypeFactory(),
-            getRowType(),
-            (EnumerableConvention) getConvention());
   }
 
   @Override
@@ -59,16 +51,12 @@ public class MongoToEnumerableConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  public PhysType getPhysType() {
-    return physType;
-  }
-
   @Override
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
     return super.computeSelfCost(planner).multiplyBy(.1);
   }
 
-  public BlockExpression implement(EnumerableRelImplementor implementor) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Generates a call to "find" or "aggregate", depending upon whether
     // an aggregate is present.
     //
@@ -126,7 +114,12 @@ public class MongoToEnumerableConverter
     }
     list.add(
         Expressions.return_(null, enumerable));
-    return list.toBlock();
+    final PhysType physType =
+        PhysTypeImpl.of(
+            implementor.getTypeFactory(),
+            getRowType(),
+            pref.prefer(JavaRowFormat.ARRAY));
+    return implementor.result(physType, list.toBlock());
   }
 
   /** E.g. {@code constantArrayList("x", "y")} returns

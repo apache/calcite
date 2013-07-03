@@ -74,7 +74,7 @@ public class RelImplementorImpl implements RelImplementor {
             assert child == parent.getInputs().get(ordinal);
         }
         createFrame(parent, ordinal, child);
-        return visitChildInternal(child, ordinal);
+        return visitChildInternal(child, ordinal, null);
     }
 
     protected void createFrame(RelNode parent, int ordinal, RelNode child)
@@ -96,12 +96,7 @@ public class RelImplementorImpl implements RelImplementor {
         }
     }
 
-    public Object visitChildInternal(RelNode child)
-    {
-        return visitChildInternal(child, 0);
-    }
-
-    public Object visitChildInternal(RelNode child, int ordinal)
+    public Object visitChildInternal(RelNode child, int ordinal, Object arg)
     {
         throw new UnsupportedOperationException();
     }

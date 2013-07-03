@@ -35,16 +35,72 @@ public interface EnumerableRel
   /**
    * Creates a plan for this expression according to a calling convention.
    *
-   * @param implementor implementor
+   * @param implementor Implementor
+   * @param pref Preferred representation for rows in result expression
    */
-  BlockExpression implement(EnumerableRelImplementor implementor);
+  Result implement(EnumerableRelImplementor implementor, Prefer pref);
 
-  /**
-   * Describes the Java type returned by this relational expression, and the
-   * mapping between it and the fields of the logical row type.
-   */
-  PhysType getPhysType();
+  /** Preferred physical type. */
+  enum Prefer {
+    /** Records must be represented as arrays. */
+    ARRAY,
+    /** Consumer would prefer that records are represented as arrays, but can
+     * accommodate records represented as objects. */
+    ARRAY_NICE,
+    /** Records must be represented as objects. */
+    CUSTOM,
+    /** Consumer would prefer that records are represented as objects, but can
+     * accommodate records represented as arrays. */
+    CUSTOM_NICE,
+    /** Consumer has no preferred representation. */
+    ANY,;
 
+    public JavaRowFormat preferCustom() {
+      return prefer(JavaRowFormat.CUSTOM);
+    }
+
+    public JavaRowFormat preferArray() {
+      return prefer(JavaRowFormat.ARRAY);
+    }
+
+    public JavaRowFormat prefer(JavaRowFormat format) {
+      switch (this) {
+      case CUSTOM:
+        return JavaRowFormat.CUSTOM;
+      case ARRAY:
+        return JavaRowFormat.ARRAY;
+      default:
+        return format;
+      }
+    }
+
+    public Prefer of(JavaRowFormat format) {
+      switch (format) {
+      case ARRAY:
+        return ARRAY;
+      default:
+        return CUSTOM;
+      }
+    }
+  }
+
+  class Result {
+    public final BlockExpression expression;
+
+    /**
+     * Describes the Java type returned by this relational expression, and the
+     * mapping between it and the fields of the logical row type.
+     */
+    public final PhysType physType;
+    public final JavaRowFormat format;
+
+    public Result(BlockExpression expression, PhysType physType,
+        JavaRowFormat format) {
+      this.expression = expression;
+      this.physType = physType;
+      this.format = format;
+    }
+  }
 }
 
 // End EnumerableRel.java

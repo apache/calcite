@@ -28,13 +28,13 @@ import net.hydromatic.optiq.runtime.Executable;
 import net.hydromatic.optiq.runtime.Utilities;
 
 import org.eigenbase.rel.RelImplementorImpl;
-import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelImplementor;
 import org.eigenbase.rex.RexBuilder;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.*;
+
 
 /**
  * Subclass of {@link RelImplementor} for relational operators
@@ -48,22 +48,29 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
     super(rexBuilder);
   }
 
-  public BlockExpression visitChild(
-      EnumerableRel parent,
-      int ordinal,
-      EnumerableRel child) {
-    return (BlockExpression) super.visitChild(parent, ordinal, child);
+  @Override
+  public JavaTypeFactoryImpl getTypeFactory() {
+    return (JavaTypeFactoryImpl) super.getTypeFactory();
   }
 
-  public BlockExpression visitChildInternal(RelNode child, int ordinal) {
-    return ((EnumerableRel) child).implement(this);
+  public EnumerableRel.Result visitChild(
+      EnumerableRel parent,
+      int ordinal,
+      EnumerableRel child,
+      EnumerableRel.Prefer prefer) {
+    if (parent != null) {
+      assert child == parent.getInputs().get(ordinal);
+    }
+    createFrame(parent, ordinal, child);
+    return child.implement(this, prefer);
   }
 
   public ClassDeclaration implementRoot(EnumerableRel rootRel) {
-    final BlockExpression implement = rootRel.implement(this);
+    final EnumerableRel.Result implement =
+        rootRel.implement(this, EnumerableRel.Prefer.ANY);
     List<MemberDeclaration> memberDeclarations =
         new ArrayList<MemberDeclaration>();
-    declareSyntheticClasses(implement, memberDeclarations);
+    declareSyntheticClasses(implement.expression, memberDeclarations);
 
     ParameterExpression root =
         Expressions.parameter(Modifier.FINAL, DataContext.class, "root");
@@ -73,7 +80,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
             Enumerable.class,
             BuiltinMethod.EXECUTABLE_EXECUTE.method.getName(),
             Expressions.list(root),
-            implement));
+            implement.expression));
     memberDeclarations.add(
         Expressions.methodDecl(
             Modifier.PUBLIC,
@@ -84,7 +91,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
                 Expressions.return_(
                     null,
                     Expressions.constant(
-                        rootRel.getPhysType().getJavaRowType())))));
+                        implement.physType.getJavaRowType())))));
     return Expressions.classDecl(
         Modifier.PUBLIC,
         "Baz",
@@ -330,6 +337,12 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
     String name = "v" + map.size();
     map.put(name, queryable);
     return Expressions.variable(queryable.getClass(), name);
+  }
+
+  public EnumerableRel.Result result(PhysType physType,
+      BlockExpression expression) {
+    return new EnumerableRel.Result(
+        expression, physType, ((PhysTypeImpl) physType).format);
   }
 
   private static class TypeFinder extends Visitor {

@@ -38,18 +38,11 @@ public class JdbcToEnumerableConverter
     extends ConverterRelImpl
     implements EnumerableRel
 {
-  private final PhysType physType;
-
   protected JdbcToEnumerableConverter(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode input) {
     super(cluster, ConventionTraitDef.instance, traits, input);
-    this.physType =
-        PhysTypeImpl.of(
-            (JavaTypeFactory) cluster.getTypeFactory(),
-            getRowType(),
-            (EnumerableConvention) getConvention());
   }
 
   @Override
@@ -58,20 +51,20 @@ public class JdbcToEnumerableConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  public PhysType getPhysType() {
-    return physType;
-  }
-
   @Override
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
     return super.computeSelfCost(planner).multiplyBy(.1);
   }
 
-  public BlockExpression implement(EnumerableRelImplementor implementor) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Generate:
     //   ResultSetEnumerable.of(schema.getDataSource(), "select ...")
     final BlockBuilder list = new BlockBuilder();
     final JdbcRel child = (JdbcRel) getChild();
+    final PhysType physType =
+        PhysTypeImpl.of(
+            implementor.getTypeFactory(), getRowType(),
+            pref.prefer(JavaRowFormat.CUSTOM));
     final JdbcConvention jdbcConvention =
         (JdbcConvention) child.getConvention();
     String sql = generateSql(jdbcConvention.jdbcSchema.dialect);
@@ -103,7 +96,7 @@ public class JdbcToEnumerableConverter
                 primitivesLiteral));
     list.add(
         Expressions.return_(null, enumerable));
-    return list.toBlock();
+    return implementor.result(physType, list.toBlock());
   }
 
   private String generateSql(SqlDialect dialect) {
