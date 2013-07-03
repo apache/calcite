@@ -66,8 +66,7 @@ public class AggregateCall
         assert type != null;
         this.aggregation = aggregation;
 
-        int[] args = IntList.toArray(argList);
-        this.argList = Collections.unmodifiableList(IntList.asList(args));
+        this.argList = ImmutableIntList.of(argList);
         this.distinct = distinct;
     }
 

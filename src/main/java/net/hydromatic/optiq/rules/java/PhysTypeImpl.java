@@ -362,6 +362,8 @@ public class PhysTypeImpl implements PhysType {
         return Expressions.lambda(
             Function1.class,
             Expressions.call(
+                List.class,
+                null,
                 BuiltinMethod.LIST2.method,
                 list),
             v1);
@@ -369,6 +371,8 @@ public class PhysTypeImpl implements PhysType {
         return Expressions.lambda(
             Function1.class,
             Expressions.call(
+                List.class,
+                null,
                 BuiltinMethod.LIST3.method,
                 list),
             v1);

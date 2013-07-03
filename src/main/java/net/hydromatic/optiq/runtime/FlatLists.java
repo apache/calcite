@@ -27,12 +27,12 @@ public class FlatLists {
       new ComparableEmptyList();
 
   /** Creates a flat list with 2 elements. */
-  public static <T> List of(T t0, T t1) {
+  public static <T> List<T> of(T t0, T t1) {
     return new Flat2List<T>(t0, t1);
   }
 
   /** Creates a flat list with 3 elements. */
-  public static <T> List of(T t0, T t1, T t2) {
+  public static <T> List<T> of(T t0, T t1, T t2) {
     return new Flat3List<T>(t0, t1, t2);
   }
 
