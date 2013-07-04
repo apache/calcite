@@ -21,6 +21,8 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * A <code>RelOptRule</code> transforms an expression into another. It has a
@@ -313,7 +315,7 @@ public abstract class RelOptRule
      */
     public List<RelOptRuleOperand> getOperands()
     {
-        return Collections.unmodifiableList(Arrays.asList(operands));
+        return ImmutableList.copyOf(operands);
     }
 
     public int hashCode()

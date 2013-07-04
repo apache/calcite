@@ -163,12 +163,12 @@ public class RexChecker
         assert refType.isStruct();
         final RelDataTypeField field = fieldAccess.getField();
         final int index = field.getIndex();
-        if ((index < 0) || (index > refType.getFields().length)) {
+        if ((index < 0) || (index > refType.getFieldList().size())) {
             assert !fail;
             ++failCount;
             return false;
         }
-        final RelDataTypeField typeField = refType.getFields()[index];
+        final RelDataTypeField typeField = refType.getFieldList().get(index);
         if (!RelOptUtil.eq(
                 "type1",
                 typeField.getType(),

@@ -17,6 +17,8 @@
 */
 package org.eigenbase.sql.type;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
@@ -166,9 +168,10 @@ public abstract class SqlTypeTransforms
                 SqlOperatorBinding opBinding,
                 RelDataType typeToTransform)
             {
-                final RelDataTypeField [] fields = typeToTransform.getFields();
-                assert fields.length == 1;
-                return fields[0].getType();
+                final List<RelDataTypeField> fields =
+                    typeToTransform.getFieldList();
+                assert fields.size() == 1;
+                return fields.get(0).getType();
             }
         };
 }

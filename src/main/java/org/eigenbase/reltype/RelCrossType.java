@@ -79,7 +79,7 @@ public class RelCrossType
             "not applicable to a join type");
     }
 
-    public RelDataTypeField [] getFields()
+    public List<RelDataTypeField> getFieldList()
     {
         throw new UnsupportedOperationException(
             "not applicable to a join type");

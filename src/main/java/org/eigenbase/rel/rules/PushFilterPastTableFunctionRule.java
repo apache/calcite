@@ -89,17 +89,17 @@ public class PushFilterPastTableFunctionRule
         // create filters on top of each func input, modifying the filter
         // condition to reference the child instead
         RexBuilder rexBuilder = filterRel.getCluster().getRexBuilder();
-        RelDataTypeField [] origFields = funcRel.getRowType().getFields();
+        List<RelDataTypeField> origFields = funcRel.getRowType().getFieldList();
         // TODO:  these need to be non-zero once we
         // support arbitrary mappings
-        int [] adjustments = new int[origFields.length];
+        int [] adjustments = new int[origFields.size()];
         for (RelNode funcInput : funcInputs) {
             RexNode newCondition =
                 condition.accept(
                     new RelOptUtil.RexInputConverter(
                         rexBuilder,
                         origFields,
-                        funcInput.getRowType().getFields(),
+                        funcInput.getRowType().getFieldList(),
                         adjustments));
             newFuncInputs.add(
                 new FilterRel(cluster, funcInput, newCondition));

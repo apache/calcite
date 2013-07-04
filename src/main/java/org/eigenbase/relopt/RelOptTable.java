@@ -43,7 +43,7 @@ public interface RelOptTable
      *
      * @return qualified name
      */
-    String [] getQualifiedName();
+    List<String> getQualifiedName();
 
     /**
      * Returns an estimate of the number of rows in the table.

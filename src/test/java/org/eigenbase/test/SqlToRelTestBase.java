@@ -33,6 +33,9 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+
 import static org.junit.Assert.*;
 
 
@@ -188,20 +191,19 @@ public abstract class SqlToRelTestBase {
             this.typeFactory = typeFactory;
         }
 
-        public RelOptTable getTableForMember(String [] names)
+        public RelOptTable getTableForMember(List<String> names)
         {
             final SqlValidatorTable table = catalogReader.getTable(names);
             final RelDataType rowType = table.getRowType();
-            final List<RelCollation> collationList =
-                deduceMonotonicity(table);
-            if (names.length < 3) {
-                String [] newNames = { "CATALOG", "SALES", "" };
-                System.arraycopy(
-                    names,
-                    0,
-                    newNames,
-                    newNames.length - names.length,
-                    names.length);
+            final List<RelCollation> collationList = deduceMonotonicity(table);
+            if (names.size() < 3) {
+                String [] newNames2 = { "CATALOG", "SALES", "" };
+                List<String> newNames = new ArrayList<String>();
+                int i = 0;
+                while (newNames.size() < newNames2.length) {
+                    newNames.add(i, newNames2[i]);
+                    ++i;
+                }
                 names = newNames;
             }
             return createColumnSet(table, names, rowType, collationList);
@@ -214,7 +216,7 @@ public abstract class SqlToRelTestBase {
 
             // Deduce which fields the table is sorted on.
             int i = -1;
-            for (RelDataTypeField field : rowType.getFields()) {
+            for (RelDataTypeField field : rowType.getFieldList()) {
                 ++i;
                 final SqlMonotonicity monotonicity =
                     table.getMonotonicity(field.getName());
@@ -237,7 +239,7 @@ public abstract class SqlToRelTestBase {
         }
 
         public RelOptTable getTableForMember(
-            String [] names,
+            List<String> names,
             final String datasetName,
             boolean [] usedDataset)
         {
@@ -247,13 +249,14 @@ public abstract class SqlToRelTestBase {
             // assume there's a table called "<table>:<sample>".
             RelOptTable datasetTable =
                 new DelegatingRelOptTable(table) {
-                    public String [] getQualifiedName()
+                    public List<String> getQualifiedName()
                     {
-                        final String [] qualifiedName =
-                            super.getQualifiedName().clone();
-                        qualifiedName[qualifiedName.length - 1] +=
-                            ":" + datasetName;
-                        return qualifiedName;
+                        final List<String> list =
+                            new ArrayList<String>(super.getQualifiedName());
+                        list.set(
+                            list.size() - 1,
+                            list.get(list.size() - 1) + ":" + datasetName);
+                      return ImmutableList.copyOf(list);
                     }
                 };
             if (usedDataset != null) {
@@ -265,7 +268,7 @@ public abstract class SqlToRelTestBase {
 
         protected MockColumnSet createColumnSet(
             SqlValidatorTable table,
-            String [] names,
+            List<String> names,
             final RelDataType rowType,
             final List<RelCollation> collationList)
         {
@@ -285,16 +288,16 @@ public abstract class SqlToRelTestBase {
         protected class MockColumnSet
             implements RelOptTable
         {
-            private final String [] names;
+            private final List<String> names;
             private final RelDataType rowType;
             private final List<RelCollation> collationList;
 
             protected MockColumnSet(
-                String [] names,
+                List<String> names,
                 RelDataType rowType,
                 final List<RelCollation> collationList)
             {
-                this.names = names;
+                this.names = ImmutableList.copyOf(names);
                 this.rowType = rowType;
                 this.collationList = collationList;
             }
@@ -306,7 +309,7 @@ public abstract class SqlToRelTestBase {
                 return null;
             }
 
-            public String [] getQualifiedName()
+            public List<String> getQualifiedName()
             {
                 return names;
             }
@@ -316,7 +319,7 @@ public abstract class SqlToRelTestBase {
                 // use something other than 0 to give costing tests
                 // some room, and make emps bigger than depts for
                 // join asymmetry
-                if (names[names.length - 1].equals("EMP")) {
+              if (Iterables.getLast(names).equals("EMP")) {
                     return 1000;
                 } else {
                     return 100;
@@ -367,7 +370,7 @@ public abstract class SqlToRelTestBase {
             return parent.unwrap(clazz);
         }
 
-        public String [] getQualifiedName()
+        public List<String> getQualifiedName()
         {
             return parent.getQualifiedName();
         }

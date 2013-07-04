@@ -62,8 +62,9 @@ public class PushFilterPastSetOpRule
         // create filters on top of each setop child, modifying the filter
         // condition to reference each setop child
         RexBuilder rexBuilder = filterRel.getCluster().getRexBuilder();
-        RelDataTypeField [] origFields = setOpRel.getRowType().getFields();
-        int [] adjustments = new int[origFields.length];
+        List<RelDataTypeField> origFields =
+            setOpRel.getRowType().getFieldList();
+        int [] adjustments = new int[origFields.size()];
         List<RelNode> newSetOpInputs = new ArrayList<RelNode>();
         for (RelNode input : setOpRel.getInputs()) {
             RexNode newCondition =
@@ -71,7 +72,7 @@ public class PushFilterPastSetOpRule
                     new RelOptUtil.RexInputConverter(
                         rexBuilder,
                         origFields,
-                        input.getRowType().getFields(),
+                        input.getRowType().getFieldList(),
                         adjustments));
             newSetOpInputs.add(
                 new FilterRel(cluster, input, newCondition));

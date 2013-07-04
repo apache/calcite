@@ -89,7 +89,7 @@ public class PushProjectPastFilterRule
 
         if ((origProj != null)
             && RexOver.containsOver(
-                origProj.getProjectExps(),
+                origProj.getProjects(),
                 null))
         {
             // Cannot push project through filter if project contains a windowed

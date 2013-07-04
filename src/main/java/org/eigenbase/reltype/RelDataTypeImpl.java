@@ -18,14 +18,15 @@
 package org.eigenbase.reltype;
 
 import java.io.*;
-
 import java.nio.charset.*;
-
 import java.util.*;
 
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 
 /**
@@ -44,8 +45,7 @@ public abstract class RelDataTypeImpl
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected RelDataTypeField [] fields;
-    protected List<RelDataTypeField> fieldList;
+    protected final List<RelDataTypeField> fieldList;
     protected String digest;
 
     //~ Constructors -----------------------------------------------------------
@@ -59,13 +59,9 @@ public abstract class RelDataTypeImpl
     {
         if (fieldList != null) {
             // Create a defensive copy of the list.
-            this.fields =
-                fieldList.toArray(new RelDataTypeField[fieldList.size()]);
-            this.fieldList =
-                Collections.unmodifiableList(Arrays.asList(fields));
+            this.fieldList = ImmutableList.copyOf(fieldList);
         } else {
             this.fieldList = null;
-            this.fields = null;
         }
     }
 
@@ -87,19 +83,18 @@ public abstract class RelDataTypeImpl
     // implement RelDataType
     public RelDataTypeField getField(String fieldName)
     {
-        for (RelDataTypeField field : fields) {
+        for (RelDataTypeField field : fieldList) {
             if (field.getName().equals(fieldName)) {
                 return field;
             }
         }
         // Extra field
-        if (fields.length > 0
-            && fields[fields.length - 1].getName().equals("_extra"))
-        {
-            return new RelDataTypeFieldImpl(
-                fieldName,
-                -1,
-                fields[fields.length - 1].getType());
+        if (fieldList.size() > 0) {
+            final RelDataTypeField lastField = Iterables.getLast(fieldList);
+            if (lastField.getName().equals("_extra")) {
+                return new RelDataTypeFieldImpl(
+                    fieldName, -1, lastField.getType());
+            }
         }
         return null;
     }
@@ -107,8 +102,8 @@ public abstract class RelDataTypeImpl
     // implement RelDataType
     public int getFieldOrdinal(String fieldName)
     {
-        for (int i = 0; i < fields.length; i++) {
-            RelDataTypeField field = fields[i];
+        for (int i = 0; i < fieldList.size(); i++) {
+            RelDataTypeField field = fieldList.get(i);
             if (field.getName().equals(fieldName)) {
                 return i;
             }
@@ -138,17 +133,10 @@ public abstract class RelDataTypeImpl
     }
 
     // implement RelDataType
-    public RelDataTypeField [] getFields()
-    {
-        assert isStruct() : this;
-        return fields;
-    }
-
-    // implement RelDataType
     public int getFieldCount()
     {
         assert isStruct() : this;
-        return fields.length;
+        return fieldList.size();
     }
 
     // implement RelDataType
@@ -171,7 +159,7 @@ public abstract class RelDataTypeImpl
     // implement RelDataType
     public boolean isStruct()
     {
-        return fields != null;
+        return fieldList != null;
     }
 
     // implement RelDataType

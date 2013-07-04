@@ -23,7 +23,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
-import org.eigenbase.util.*;
 
 
 /**
@@ -59,7 +58,7 @@ public abstract class DelegatingScope
     DelegatingScope(SqlValidatorScope parent)
     {
         super();
-        Util.pre(parent != null, "parent != null");
+        assert parent != null;
         this.validator = (SqlValidatorImpl) parent.getValidator();
         this.parent = parent;
     }
@@ -93,9 +92,7 @@ public abstract class DelegatingScope
             return;
         }
 
-        final RelDataTypeField [] fields = rowType.getFields();
-        for (int i = 0; i < fields.length; i++) {
-            RelDataTypeField field = fields[i];
+        for (RelDataTypeField field : rowType.getFieldList()) {
             colNames.add(
                 new SqlMonikerImpl(
                     field.getName(),
@@ -158,7 +155,7 @@ public abstract class DelegatingScope
             tableName =
                 findQualifyingTableName(columnName, identifier);
 
-            //todo: do implicit collation here
+            // todo: do implicit collation here
             final SqlParserPos pos = identifier.getParserPosition();
             SqlIdentifier expanded =
                 new SqlIdentifier(

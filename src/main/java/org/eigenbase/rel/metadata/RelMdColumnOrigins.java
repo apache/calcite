@@ -135,7 +135,7 @@ public class RelMdColumnOrigins
         int iOutputColumn)
     {
         final RelNode child = rel.getChild();
-        RexNode rexNode = rel.getProjectExps()[iOutputColumn];
+        RexNode rexNode = rel.getProjects().get(iOutputColumn);
 
         if (rexNode instanceof RexInputRef) {
             // Direct reference:  no derivation added.

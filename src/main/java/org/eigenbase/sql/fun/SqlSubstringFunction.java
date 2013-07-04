@@ -18,13 +18,14 @@
 package org.eigenbase.sql.fun;
 
 import java.math.*;
-
 import java.util.*;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+
+import net.hydromatic.linq4j.Ord;
 
 
 /**
@@ -62,20 +63,20 @@ public class SqlSubstringFunction
             return "{0}({1} FROM {2})";
         case 3:
             return "{0}({1} FROM {2} FOR {3})";
+        default:
+            throw new AssertionError();
         }
-        assert (false);
-        return null;
     }
 
     public String getAllowedSignatures(String opName)
     {
         StringBuilder ret = new StringBuilder();
-        for (int i = 0; i < SqlTypeName.stringTypes.length; i++) {
-            if (i > 0) {
+        for (Ord<SqlTypeName> typeName : Ord.zip(SqlTypeName.stringTypes)) {
+            if (typeName.i > 0) {
                 ret.append(NL);
             }
             ArrayList<SqlTypeName> list = new ArrayList<SqlTypeName>();
-            list.add(SqlTypeName.stringTypes[i]);
+            list.add(typeName.e);
             list.add(SqlTypeName.INTEGER);
             ret.append(SqlUtil.getAliasedSignature(this, opName, list));
             ret.append(NL);

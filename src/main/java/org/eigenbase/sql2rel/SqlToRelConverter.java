@@ -42,6 +42,8 @@ import net.hydromatic.optiq.prepare.Prepare;
 
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * Converts a SQL parse tree (consisting of {@link org.eigenbase.sql.SqlNode}
@@ -580,11 +582,11 @@ public class SqlToRelConverter
         RelNode rel = bb.root;
         if (checkForDupExprs && (rel instanceof ProjectRel)) {
             ProjectRel project = (ProjectRel) rel;
-            final RexNode [] projectExprs = project.getProjectExps();
+            final List<RexNode> projectExprs = project.getProjects();
             List<Integer> origins = new ArrayList<Integer>();
             int dupCount = 0;
-            for (int i = 0; i < projectExprs.length; i++) {
-                int x = findExpr(projectExprs[i], projectExprs, i);
+            for (int i = 0; i < projectExprs.size(); i++) {
+                int x = findExpr(projectExprs.get(i), projectExprs, i);
                 if (x >= 0) {
                     origins.add(x);
                     ++dupCount;
@@ -598,16 +600,14 @@ public class SqlToRelConverter
             }
 
             Map<Integer, Integer> squished = new HashMap<Integer, Integer>();
-            final RelDataTypeField [] fields = rel.getRowType().getFields();
+            final List<RelDataTypeField> fields =
+                rel.getRowType().getFieldList();
             List<Pair<RexNode, String>> newProjects =
                 new ArrayList<Pair<RexNode, String>>();
-            for (int i = 0; i < fields.length; i++) {
+            for (int i = 0; i < fields.size(); i++) {
                 if (origins.get(i) == i) {
                     squished.put(i, newProjects.size());
-                    newProjects.add(
-                        Pair.of(
-                            (RexNode) new RexInputRef(i, fields[i].getType()),
-                            fields[i].getName()));
+                    newProjects.add(RexInputRef.of2(i, fields));
                 }
             }
             rel =
@@ -626,14 +626,14 @@ public class SqlToRelConverter
             // Project($0, $1, $0, $2).
             List<Pair<RexNode, String>> undoProjects =
                 new ArrayList<Pair<RexNode, String>>();
-            for (int i = 0; i < fields.length; i++) {
-                final Integer origin = origins.get(i);
+            for (int i = 0; i < fields.size(); i++) {
+                final int origin = origins.get(i);
+                RelDataTypeField field = fields.get(i);
                 undoProjects.add(
                     Pair.of(
                         (RexNode) new RexInputRef(
-                            squished.get(origin),
-                            fields[i].getType()),
-                        fields[i].getName()));
+                            squished.get(origin), field.getType()),
+                        field.getName()));
             }
 
             rel =
@@ -665,10 +665,10 @@ public class SqlToRelConverter
             false);
     }
 
-    private int findExpr(RexNode seek, RexNode [] exprs, int count)
+    private int findExpr(RexNode seek, List<RexNode> exprs, int count)
     {
         for (int i = 0; i < count; i++) {
-            RexNode expr = exprs[i];
+            RexNode expr = exprs.get(i);
             if (expr.toString().equals(seek.toString())) {
                 return i;
             }
@@ -1266,8 +1266,9 @@ public class SqlToRelConverter
         // right fields appear after the LHS fields.
         int rightInputOffset = bb.root.getRowType().getFieldCount();
 
-        RelDataTypeField [] rightTypeFields = rightRel.getRowType().getFields();
-        assert leftKeys.size() <= rightTypeFields.length;
+        List<RelDataTypeField> rightTypeFields =
+            rightRel.getRowType().getFieldList();
+        assert leftKeys.size() <= rightTypeFields.size();
 
         for (Ord<RexNode> key : Ord.zip(leftKeys)) {
             joinConditions.add(
@@ -1275,7 +1276,7 @@ public class SqlToRelConverter
                     SqlStdOperatorTable.equalsOperator,
                     key.e,
                     rexBuilder.makeInputRef(
-                        rightTypeFields[key.i].getType(),
+                        rightTypeFields.get(key.i).getType(),
                         rightInputOffset + key.i)));
         }
 
@@ -3021,8 +3022,8 @@ public class SqlToRelConverter
         // values expressions
         SqlInsert insertCall = call.getInsertCall();
         int nLevel1Exprs = 0;
-        RexNode [] level1InsertExprs = null;
-        RexNode [] level2InsertExprs = null;
+        List<RexNode> level1InsertExprs = null;
+        List<RexNode> level2InsertExprs = null;
         if (insertCall != null) {
             RelNode insertRel = convertInsert(insertCall);
 
@@ -3034,13 +3035,13 @@ public class SqlToRelConverter
             // the column; or if the expressions directly map to the source
             // table
             level1InsertExprs =
-                ((ProjectRel) insertRel.getInput(0)).getProjectExps();
+                ((ProjectRel) insertRel.getInput(0)).getProjects();
             if (insertRel.getInput(0).getInput(0) instanceof ProjectRel) {
                 level2InsertExprs =
                     ((ProjectRel) insertRel.getInput(0).getInput(0))
-                    .getProjectExps();
+                    .getProjects();
             }
-            nLevel1Exprs = level1InsertExprs.length;
+            nLevel1Exprs = level1InsertExprs.size();
         }
 
         JoinRel joinRel = (JoinRel) mergeSourceRel.getInput(0);
@@ -3048,19 +3049,19 @@ public class SqlToRelConverter
         List<RexNode> projects = new ArrayList<RexNode>();
         for (int level1Idx = 0; level1Idx < nLevel1Exprs; level1Idx++) {
             if ((level2InsertExprs != null)
-                && (level1InsertExprs[level1Idx] instanceof RexInputRef))
+                && (level1InsertExprs.get(level1Idx) instanceof RexInputRef))
             {
                 int level2Idx =
-                    ((RexInputRef) level1InsertExprs[level1Idx]).getIndex();
-                projects.add(level2InsertExprs[level2Idx]);
+                    ((RexInputRef) level1InsertExprs.get(level1Idx)).getIndex();
+                projects.add(level2InsertExprs.get(level2Idx));
             } else {
-                projects.add(level1InsertExprs[level1Idx]);
+                projects.add(level1InsertExprs.get(level1Idx));
             }
         }
         if (updateCall != null) {
             final ProjectRel project = (ProjectRel) mergeSourceRel;
             projects.addAll(
-                Util.subList(project.getProjectExpList(), nSourceFields));
+                Util.subList(project.getProjects(), nSourceFields));
         }
 
         RelNode massagedRel =
@@ -3565,13 +3566,14 @@ public class SqlToRelConverter
             this.upperCase = upperCase;
         }
 
-        public SqlValidatorTable getTable(String [] names)
+        public SqlValidatorTable getTable(List<String> names)
         {
-            if (names.length != 1) {
+            if (names.size() != 1) {
                 return null;
             }
             final RelOptTable table =
-                schema.getTableForMember(new String[] { maybeUpper(names[0]) });
+                schema.getTableForMember(
+                    ImmutableList.of(maybeUpper(names.get(0))));
             if (table != null) {
                 return new SqlValidatorTable() {
                     public RelDataType getRowType()
@@ -3579,7 +3581,7 @@ public class SqlToRelConverter
                         return table.getRowType();
                     }
 
-                    public String [] getQualifiedName()
+                    public List<String> getQualifiedName()
                     {
                         return null;
                     }
@@ -3738,7 +3740,8 @@ public class SqlToRelConverter
                     for (int i = 0; i < origLeftInputCount; i++) {
                         newLeftInputExpr.add(
                             rexBuilder.makeInputRef(
-                                root.getRowType().getFields()[i].getType(),
+                                root.getRowType().getFieldList().get(i)
+                                    .getType(),
                                 i));
                     }
 
@@ -3768,7 +3771,7 @@ public class SqlToRelConverter
                         final int x = origLeftInputCount + i;
                         newLeftJoinKeysForIn.add(
                             rexBuilder.makeInputRef(
-                                newLeftInput.getProjectExps()[x].getType(),
+                                newLeftInput.getProjects().get(x).getType(),
                                 x));
                     }
 
@@ -3804,8 +3807,8 @@ public class SqlToRelConverter
                                 public Map.Entry<String, RelDataType> get(
                                     int index)
                                 {
-                                    return join.getRowType().getFields()[
-                                            origLeftInputCount + index];
+                                    return join.getRowType().getFieldList()
+                                        .get(origLeftInputCount + index);
                                 }
 
                                 public int size() {
@@ -3956,7 +3959,7 @@ public class SqlToRelConverter
                     return null;
                 }
                 if (fieldOffset < rowType.getFieldCount()) {
-                    return rowType.getFields()[fieldOffset];
+                    return rowType.getFieldList().get(fieldOffset);
                 }
                 fieldOffset -= rowType.getFieldCount();
             }
@@ -4236,10 +4239,6 @@ public class SqlToRelConverter
             if (agg != null) {
                 final SqlOperator op = call.getOperator();
                 if (op.isAggregator()) {
-                    if (agg == null) {
-                        throw new AssertionError(
-                            "aggregate fun must occur in aggregation mode");
-                    }
                     return agg.lookupAggregates(call);
                 }
             }
@@ -4518,7 +4517,7 @@ public class SqlToRelConverter
             convertedInputExprs.add(expr);
             if ((name == null) && (expr instanceof RexInputRef)) {
                 final int i = ((RexInputRef) expr).getIndex();
-                name = bb.root.getRowType().getFields()[i].getName();
+                name = bb.root.getRowType().getFieldList().get(i).getName();
             }
             if (convertedInputExprNames.contains(name)) {
                 // In case like 'SELECT ... GROUP BY x, y, x', don't add

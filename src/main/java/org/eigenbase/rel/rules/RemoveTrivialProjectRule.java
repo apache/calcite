@@ -63,7 +63,7 @@ public class RemoveTrivialProjectRule
             return;
         }
         if (!isIdentity(
-                project.getProjectExpList(),
+                project.getProjects(),
                 project.getRowType(),
                 childRowType))
         {
@@ -81,23 +81,22 @@ public class RemoveTrivialProjectRule
         RelDataType rowType,
         RelDataType childRowType)
     {
-        RelDataTypeField [] fields = rowType.getFields();
-        RelDataTypeField [] childFields = childRowType.getFields();
-        int fieldCount = childFields.length;
+        List<RelDataTypeField> fields = rowType.getFieldList();
+        List<RelDataTypeField> childFields = childRowType.getFieldList();
+        int fieldCount = childFields.size();
         if (exps.size() != fieldCount) {
             return false;
         }
         for (int i = 0; i < exps.size(); i++) {
             RexNode exp = exps.get(i);
-            if (exp instanceof RexInputRef) {
-                RexInputRef var = (RexInputRef) exp;
-                if (var.getIndex() != i) {
-                    return false;
-                }
-                if (!fields[i].getName().equals(childFields[i].getName())) {
-                    return false;
-                }
-            } else {
+            if (!(exp instanceof RexInputRef)) {
+                return false;
+            }
+            RexInputRef var = (RexInputRef) exp;
+            if (var.getIndex() != i) {
+                return false;
+            }
+            if (!fields.get(i).getName().equals(childFields.get(i).getName())) {
                 return false;
             }
         }

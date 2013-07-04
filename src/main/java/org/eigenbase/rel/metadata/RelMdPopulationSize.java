@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.Util;
 
 
 /**
@@ -109,7 +110,7 @@ public class RelMdPopulationSize
     {
         BitSet baseCols = new BitSet();
         BitSet projCols = new BitSet();
-        RexNode [] projExprs = rel.getChildExps();
+        List<RexNode> projExprs = rel.getProjects();
         RelMdUtil.splitCols(projExprs, groupKey, baseCols, projCols);
 
         Double population =
@@ -126,12 +127,9 @@ public class RelMdPopulationSize
             return population;
         }
 
-        for (
-            int bit = projCols.nextSetBit(0);
-            bit >= 0;
-            bit = projCols.nextSetBit(bit + 1))
-        {
-            Double subRowCount = RelMdUtil.cardOfProjExpr(rel, projExprs[bit]);
+        for (int bit : Util.toIter(projCols)) {
+            Double subRowCount =
+                RelMdUtil.cardOfProjExpr(rel, projExprs.get(bit));
             if (subRowCount == null) {
                 return null;
             }

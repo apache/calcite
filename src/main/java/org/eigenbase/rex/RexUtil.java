@@ -96,7 +96,7 @@ public class RexUtil
         for (int i = 0; i < n; ++i) {
             rhsExps[i] =
                 rexBuilder.makeInputRef(
-                    rhsRowType.getFields()[i].getType(),
+                    rhsRowType.getFieldList().get(i).getType(),
                     i);
         }
         return Arrays.asList(
@@ -117,12 +117,12 @@ public class RexUtil
         RelDataType lhsRowType,
         RexNode [] rhsExps)
     {
-        RelDataTypeField [] lhsFields = lhsRowType.getFields();
-        final int fieldCount = lhsFields.length;
+        List<RelDataTypeField> lhsFields = lhsRowType.getFieldList();
+        final int fieldCount = lhsFields.size();
         RexNode [] castExps = new RexNode[fieldCount];
         assert fieldCount == rhsExps.length;
         for (int i = 0; i < fieldCount; ++i) {
-            RelDataTypeField lhsField = lhsFields[i];
+            RelDataTypeField lhsField = lhsFields.get(i);
             RelDataType lhsType = lhsField.getType();
             RelDataType rhsType = rhsExps[i].getType();
             if (lhsType.equals(rhsType)) {
@@ -247,9 +247,7 @@ public class RexUtil
      *
      * @param node a RexNode tree
      */
-    public static boolean containsFieldAccess(
-        RexNode node)
-    {
+    public static boolean containsFieldAccess(RexNode node) {
         try {
             RexVisitor<Void> visitor =
                 new RexVisitorImpl<Void>(true) {
@@ -264,93 +262,6 @@ public class RexUtil
             Util.swallow(e, null);
             return true;
         }
-    }
-
-    /**
-     * Creates an array of {@link RexInputRef}, one for each field of a given
-     * rowtype.
-     */
-    public static RexInputRef [] toInputRefs(RelDataType rowType)
-    {
-        final RelDataTypeField [] fields = rowType.getFields();
-        final RexInputRef [] rexNodes = new RexInputRef[fields.length];
-        for (int i = 0; i < rexNodes.length; i++) {
-            rexNodes[i] =
-                new RexInputRef(
-                    i,
-                    fields[i].getType());
-        }
-        return rexNodes;
-    }
-
-    /**
-     * Creates an array of {@link RexLocalRef} objects, one for each field of a
-     * given rowtype.
-     */
-    public static RexLocalRef [] toLocalRefs(RelDataType rowType)
-    {
-        final RelDataTypeField [] fields = rowType.getFields();
-        final RexLocalRef [] refs = new RexLocalRef[fields.length];
-        for (int i = 0; i < refs.length; i++) {
-            refs[i] =
-                new RexLocalRef(
-                    i,
-                    fields[i].getType());
-        }
-        return refs;
-    }
-
-    /**
-     * Creates an array of {@link RexInputRef} objects, one for each field of a
-     * given rowtype, according to a permutation.
-     *
-     * @param args Permutation
-     * @param rowType Input row type
-     *
-     * @return Array of input refs
-     */
-    public static RexInputRef [] toInputRefs(int [] args, RelDataType rowType)
-    {
-        final RelDataTypeField [] fields = rowType.getFields();
-        final RexInputRef [] rexNodes = new RexInputRef[args.length];
-        for (int i = 0; i < args.length; i++) {
-            int fieldOrdinal = args[i];
-            rexNodes[i] =
-                new RexInputRef(
-                    fieldOrdinal,
-                    fields[fieldOrdinal].getType());
-        }
-        return rexNodes;
-    }
-
-    /**
-     * Converts an array of {@link RexNode} to an array of {@link Integer}.
-     * Every node must be a {@link RexLocalRef}.
-     */
-    public static Integer [] toOrdinalArray(RexNode [] rexNodes)
-    {
-        Integer [] orderKeys = new Integer[rexNodes.length];
-        for (int i = 0; i < orderKeys.length; i++) {
-            RexLocalRef inputRef = (RexLocalRef) rexNodes[i];
-            orderKeys[i] = inputRef.getIndex();
-        }
-        return orderKeys;
-    }
-
-    /**
-     * Collects the types of an array of row expressions.
-     *
-     * @param exprs array of row expressions
-     *
-     * @return array of types
-     */
-    public static RelDataType [] collectTypes(RexNode [] exprs)
-    {
-        RelDataType [] types = new RelDataType[exprs.length];
-        for (int i = 0; i < types.length; i++) {
-            types[i] = exprs[i].getType();
-        }
-        return types;
     }
 
     /**
@@ -462,26 +373,6 @@ public class RexUtil
     {
         assert (call.isA(RexKind.Reinterpret)) : "call is not a reinterpret";
         return call.operands.length > 1;
-    }
-
-    /**
-     * Creates an array of {@link RexInputRef} objects referencing fields {0 ..
-     * N} and having types {exprs[0].getType() .. exprs[N].getType()}.
-     *
-     * @param exprs Expressions whose types to mimic
-     *
-     * @return An array of input refs of the same length and types as exprs.
-     */
-    public static RexInputRef [] createIdentityArray(RexNode [] exprs)
-    {
-        final RexInputRef [] refs = new RexInputRef[exprs.length];
-        for (int i = 0; i < refs.length; i++) {
-            refs[i] =
-                new RexInputRef(
-                    i,
-                    exprs[i].getType());
-        }
-        return refs;
     }
 
     /**
@@ -682,6 +573,7 @@ public class RexUtil
      * Returns whether the type of an array of expressions is compatible with a
      * struct type.
      *
+     *
      * @param exprs Array of expressions
      * @param type Type
      * @param fail Whether to fail if there is a mismatch
@@ -692,18 +584,18 @@ public class RexUtil
      * @see RelOptUtil#eq(String, RelDataType, String, RelDataType, boolean)
      */
     public static boolean compatibleTypes(
-        RexNode [] exprs,
+        List<RexNode> exprs,
         RelDataType type,
         boolean fail)
     {
-        final RelDataTypeField [] fields = type.getFields();
-        if (exprs.length != fields.length) {
+        final List<RelDataTypeField> fields = type.getFieldList();
+        if (exprs.size() != fields.size()) {
             assert !fail : "rowtype mismatches expressions";
             return false;
         }
-        for (int i = 0; i < fields.length; i++) {
-            final RelDataType exprType = exprs[i].getType();
-            final RelDataType fieldType = fields[i].getType();
+        for (int i = 0; i < fields.size(); i++) {
+            final RelDataType exprType = exprs.get(i).getType();
+            final RelDataType fieldType = fields.get(i).getType();
             if (!RelOptUtil.eq("type1", exprType, "type2", fieldType, fail)) {
                 return false;
             }
@@ -739,12 +631,12 @@ public class RexUtil
         RelDataType rowType,
         boolean fail)
     {
-        final RelDataTypeField [] fields = rowType.getFields();
-        if (exprs.length < fields.length) {
+        final List<RelDataTypeField> fields = rowType.getFieldList();
+        if (exprs.length < fields.size()) {
             assert !fail : "exprs/rowType length mismatch";
             return false;
         }
-        for (int i = 0; i < fields.length; i++) {
+        for (int i = 0; i < fields.size(); i++) {
             if (!(exprs[i] instanceof RexInputRef)) {
                 assert !fail : "expr[" + i + "] is not a RexInputRef";
                 return false;
@@ -759,7 +651,7 @@ public class RexUtil
                     "type1",
                     exprs[i].getType(),
                     "type2",
-                    fields[i].getType(),
+                    fields.get(i).getType(),
                     fail))
             {
                 return false;

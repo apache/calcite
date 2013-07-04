@@ -18,7 +18,6 @@
 package org.eigenbase.reltype;
 
 import java.io.*;
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.sql.type.*;
@@ -34,7 +33,7 @@ import net.hydromatic.linq4j.Ord;
  */
 public class RelRecordType
     extends RelDataTypeImpl
-    implements Serializable /* , Type, Types.RecordType */
+    implements Serializable
 {
     //~ Constructors -----------------------------------------------------------
 
@@ -98,7 +97,7 @@ public class RelRecordType
      */
     private Object writeReplace()
     {
-        return new SerializableRelRecordType(fields);
+        return new SerializableRelRecordType(fieldList);
     }
 
     //~ Inner Classes ----------------------------------------------------------
@@ -111,9 +110,9 @@ public class RelRecordType
     private static class SerializableRelRecordType
         implements Serializable
     {
-        private RelDataTypeField [] fields;
+        private List<RelDataTypeField> fields;
 
-        private SerializableRelRecordType(RelDataTypeField [] fields)
+        private SerializableRelRecordType(List<RelDataTypeField> fields)
         {
             this.fields = fields;
         }
@@ -124,7 +123,7 @@ public class RelRecordType
          */
         private Object readResolve()
         {
-            return new RelRecordType(Arrays.asList(fields));
+            return new RelRecordType(fields);
         }
     }
 }

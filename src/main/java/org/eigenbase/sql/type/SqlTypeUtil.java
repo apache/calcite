@@ -518,12 +518,12 @@ public abstract class SqlTypeUtil
             if (t1.getFieldCount() != t2.getFieldCount()) {
                 return false;
             }
-            RelDataTypeField [] fields1 = t1.getFields();
-            RelDataTypeField [] fields2 = t2.getFields();
-            for (int i = 0; i < fields1.length; ++i) {
+            List<RelDataTypeField> fields1 = t1.getFieldList();
+            List<RelDataTypeField> fields2 = t2.getFieldList();
+            for (int i = 0; i < fields1.size(); ++i) {
                 if (!sameNamedType(
-                        fields1[i].getType(),
-                        fields2[i].getType()))
+                        fields1.get(i).getType(),
+                        fields2.get(i).getType()))
                 {
                     return false;
                 }
@@ -806,14 +806,10 @@ public abstract class SqlTypeUtil
                     return false;
                 }
                 return canCastFrom(
-                    toType.getFields()[0].getType(),
-                    fromType,
-                    coerce);
+                    toType.getFieldList().get(0).getType(), fromType, coerce);
             } else if (fromTypeName == SqlTypeName.DISTINCT) {
                 return canCastFrom(
-                    toType,
-                    fromType.getFields()[0].getType(),
-                    coerce);
+                    toType, fromType.getFieldList().get(0).getType(), coerce);
             } else if (toTypeName == SqlTypeName.ROW) {
                 if (fromTypeName != SqlTypeName.ROW) {
                     return false;
@@ -823,8 +819,8 @@ public abstract class SqlTypeUtil
                     return false;
                 }
                 for (int i = 0; i < n; ++i) {
-                    RelDataTypeField toField = toType.getFields()[i];
-                    RelDataTypeField fromField = fromType.getFields()[i];
+                    RelDataTypeField toField = toType.getFieldList().get(i);
+                    RelDataTypeField fromField = fromType.getFieldList().get(i);
                     if (!canCastFrom(
                             toField.getType(),
                             fromField.getType(),
@@ -884,32 +880,6 @@ public abstract class SqlTypeUtil
 
         SqlTypeAssignmentRules rules = SqlTypeAssignmentRules.instance();
         return rules.canCastFrom(tn1, tn2, coerce);
-    }
-
-    /**
-     * @return the field names of a struct type
-     */
-    public static String [] getFieldNames(RelDataType type)
-    {
-        RelDataTypeField [] fields = type.getFields();
-        String [] ret = new String[fields.length];
-        for (int i = 0; i < fields.length; i++) {
-            ret[i] = fields[i].getName();
-        }
-        return ret;
-    }
-
-    /**
-     * @return the field types of a struct type
-     */
-    public static RelDataType [] getFieldTypes(RelDataType type)
-    {
-        RelDataTypeField [] fields = type.getFields();
-        RelDataType [] ret = new RelDataType[fields.length];
-        for (int i = 0; i < fields.length; i++) {
-            ret[i] = fields[i].getType();
-        }
-        return ret;
     }
 
     /**

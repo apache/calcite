@@ -34,6 +34,8 @@ import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.Mappings;
 
+import net.hydromatic.linq4j.Ord;
+
 
 /**
  * RelDecorrelator replaces all correlated expressions(corExp) in a relational
@@ -334,27 +336,18 @@ public class RelDecorrelator
 
         // ProjectRel projects the original expressions,
         // plus any correlated variables the child wants to pass along.
-        List<RexNode> exprs = new ArrayList<RexNode>();
-        List<String> exprNames = new ArrayList<String>();
+        final List<Pair<RexNode, String>> projects =
+            new ArrayList<Pair<RexNode, String>>();
 
-        RelDataTypeField [] newChildOutput =
-            newChildRel.getRowType().getFields();
+        List<RelDataTypeField> newChildOutput =
+            newChildRel.getRowType().getFieldList();
 
-        RelDataType fieldType;
-        RexInputRef newInput;
-
-        int newChildPos;
         int newPos;
 
         // oldChildRel has the original group by keys in the front.
         for (newPos = 0; newPos < oldGroupKeyCount; newPos++) {
-            newChildPos = childMapOldToNewOutputPos.get(newPos);
-
-            fieldType = newChildOutput[newChildPos].getType();
-            newInput = new RexInputRef(newChildPos, fieldType);
-            exprs.add(newInput);
-            exprNames.add(newChildOutput[newChildPos].getName());
-
+            int newChildPos = childMapOldToNewOutputPos.get(newPos);
+            projects.add(RexInputRef.of2(newChildPos, newChildOutput));
             mapNewChildToProjOutputPos.put(newChildPos, newPos);
         }
 
@@ -373,16 +366,11 @@ public class RelDecorrelator
 
             // Now add the corVars from the child, starting from
             // position oldGroupKeyCount.
-            for (
-                CorrelatorRel.Correlation corVar
+            for (CorrelatorRel.Correlation corVar
                 : childMapCorVarToOutputPos.keySet())
             {
-                newChildPos = childMapCorVarToOutputPos.get(corVar);
-
-                fieldType = newChildOutput[newChildPos].getType();
-                newInput = new RexInputRef(newChildPos, fieldType);
-                exprs.add(newInput);
-                exprNames.add(newChildOutput[newChildPos].getName());
+                int newChildPos = childMapCorVarToOutputPos.get(corVar);
+                projects.add(RexInputRef.of2(newChildPos, newChildOutput));
 
                 mapCorVarToOutputPos.put(corVar, newPos);
                 mapNewChildToProjOutputPos.put(newChildPos, newPos);
@@ -392,24 +380,20 @@ public class RelDecorrelator
 
         // add the remaining fields
         final int newGroupKeyCount = newPos;
-        for (int i = 0; i < newChildOutput.length; i++) {
+        for (int i = 0; i < newChildOutput.size(); i++) {
             if (!mapNewChildToProjOutputPos.containsKey(i)) {
-                fieldType = newChildOutput[i].getType();
-                newInput = new RexInputRef(i, fieldType);
-                exprs.add(newInput);
-                exprNames.add(newChildOutput[i].getName());
-
+                projects.add(RexInputRef.of2(i, newChildOutput));
                 mapNewChildToProjOutputPos.put(i, newPos);
                 newPos++;
             }
         }
 
-        assert (newPos == newChildOutput.length);
+        assert newPos == newChildOutput.size();
 
         // This ProjectRel will be what the old child maps to,
         // replacing any previous mapping from old child).
         RelNode newProjectRel =
-            CalcRel.createProject(newChildRel, exprs, exprNames);
+            CalcRel.createProject(newChildRel, projects, false);
 
         // update mappings:
         // oldChildRel ----> newChildRel
@@ -520,8 +504,8 @@ public class RelDecorrelator
             // If child has not been rewritten, do not rewrite this rel.
             return;
         }
-        RexNode [] oldProj = rel.getProjectExps();
-        RelDataTypeField [] relOutput = rel.getRowType().getFields();
+        List<RexNode> oldProj = rel.getProjects();
+        List<RelDataTypeField> relOutput = rel.getRowType().getFieldList();
 
         Map<Integer, Integer> childMapOldToNewOutputPos =
             mapNewRelToMapOldToNewOutputPos.get(newChildRel);
@@ -535,8 +519,8 @@ public class RelDecorrelator
 
         // ProjectRel projects the original expressions,
         // plus any correlated variables the child wants to pass along.
-        List<RexNode> exprs = new ArrayList<RexNode>();
-        List<String> exprNames = new ArrayList<String>();
+        final List<Pair<RexNode, String>> projects =
+            new ArrayList<Pair<RexNode, String>>();
 
         // If this ProjectRel has correlated reference, create value generator
         // and produce the correlated variables in the new output.
@@ -551,9 +535,12 @@ public class RelDecorrelator
 
         // ProjectRel projects the original expressions
         int newPos;
-        for (newPos = 0; newPos < oldProj.length; newPos++) {
-            exprs.add(newPos, decorrelateExpr(oldProj[newPos]));
-            exprNames.add(newPos, relOutput[newPos].getName());
+        for (newPos = 0; newPos < oldProj.size(); newPos++) {
+            projects.add(
+                newPos,
+                Pair.of(
+                    decorrelateExpr(oldProj.get(newPos)),
+                    relOutput.get(newPos).getName()));
             mapOldToNewOutputPos.put(newPos, newPos);
         }
 
@@ -567,27 +554,20 @@ public class RelDecorrelator
                 mapNewRelToMapCorVarToOutputPos.get(newChildRel);
 
             // propagate cor vars from the new child
-            int corVarPos;
-            RelDataType fieldType;
-            RexInputRef newInput;
-            RelDataTypeField [] newChildOutput =
-                newChildRel.getRowType().getFields();
-            for (
-                CorrelatorRel.Correlation corVar
+            List<RelDataTypeField> newChildOutput =
+                newChildRel.getRowType().getFieldList();
+            for (CorrelatorRel.Correlation corVar
                 : childMapCorVarToOutputPos.keySet())
             {
-                corVarPos = childMapCorVarToOutputPos.get(corVar);
-                fieldType = newChildOutput[corVarPos].getType();
-                newInput = new RexInputRef(corVarPos, fieldType);
-                exprs.add(newInput);
-                exprNames.add(newChildOutput[corVarPos].getName());
+                int corVarPos = childMapCorVarToOutputPos.get(corVar);
+                projects.add(RexInputRef.of2(corVarPos, newChildOutput));
                 mapCorVarToOutputPos.put(corVar, newPos);
                 newPos++;
             }
         }
 
         RelNode newProjectRel =
-            CalcRel.createProject(newChildRel, exprs, exprNames);
+            CalcRel.createProject(newChildRel, projects, false);
 
         mapOldToNewRel.put(rel, newProjectRel);
         mapNewRelToMapOldToNewOutputPos.put(
@@ -917,12 +897,12 @@ public class RelDecorrelator
         // Join all the correlated variables produced by this correlator rel
         // with the values generated and propagated from the right input
         RexNode condition = rel.getCondition();
-        final RelDataTypeField [] newLeftOutput =
-            newLeftRel.getRowType().getFields();
-        int newLeftFieldCount = newLeftOutput.length;
+        final List<RelDataTypeField> newLeftOutput =
+            newLeftRel.getRowType().getFieldList();
+        int newLeftFieldCount = newLeftOutput.size();
 
-        final RelDataTypeField [] newRightOutput =
-            newRightRel.getRowType().getFields();
+        final List<RelDataTypeField> newRightOutput =
+            newRightRel.getRowType().getFieldList();
 
         int newLeftPos, newRightPos;
         for (CorrelatorRel.Correlation corVar : rel.getCorrelations()) {
@@ -931,12 +911,10 @@ public class RelDecorrelator
             RexNode equi =
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.equalsOperator,
-                    new RexInputRef(
-                        newLeftPos,
-                        newLeftOutput[newLeftPos].getType()),
+                    RexInputRef.of(newLeftPos, newLeftOutput),
                     new RexInputRef(
                         newLeftFieldCount + newRightPos,
-                        newRightOutput[newRightPos].getType()));
+                        newRightOutput.get(newRightPos).getType()));
             if (condition == rexBuilder.makeLiteral(true)) {
                 condition = equi;
             } else {
@@ -1147,7 +1125,8 @@ public class RelDecorrelator
 
         return new RexInputRef(
             newOrdinal,
-            newInputRel.getRowType().getFields()[newLocalOrdinal].getType());
+            newInputRel.getRowType().getFieldList().get(newLocalOrdinal)
+                .getType());
     }
 
     /**
@@ -1173,23 +1152,21 @@ public class RelDecorrelator
             new RexInputRef(
                 nullIndicatorPos,
                 typeFactory.createTypeWithNullability(
-                    (joinRel.getRowType().getFields()[nullIndicatorPos])
-                    .getType(),
+                    joinRel.getRowType().getFieldList().get(nullIndicatorPos)
+                        .getType(),
                     true));
 
         // now create the new project
-        List<String> newFieldNames = new ArrayList<String>();
-        List<RexNode> newProjExprs = new ArrayList<RexNode>();
+        List<Pair<RexNode, String>> newProjExprs =
+            new ArrayList<Pair<RexNode, String>>();
 
         // project everything from the LHS and then those from the original
         // projRel
-        RelDataTypeField [] leftInputFields =
-            leftInputRel.getRowType().getFields();
+        List<RelDataTypeField> leftInputFields =
+            leftInputRel.getRowType().getFieldList();
 
-        for (int i = 0; i < leftInputFields.length; i++) {
-            RelDataType newType = leftInputFields[i].getType();
-            newProjExprs.add(new RexInputRef(i, newType));
-            newFieldNames.add(leftInputFields[i].getName());
+        for (int i = 0; i < leftInputFields.size(); i++) {
+            newProjExprs.add(RexInputRef.of2(i, leftInputFields));
         }
 
         // Marked where the projected expr is coming from so that the types will
@@ -1198,21 +1175,18 @@ public class RelDecorrelator
         boolean projectPulledAboveLeftCorrelator =
             joinType.generatesNullsOnRight();
 
-        RexNode [] projExprs = projRel.getProjectExps();
-        for (int i = 0; i < projExprs.length; i++) {
-            RexNode projExpr = projExprs[i];
+        for (Pair<RexNode, String> pair : projRel.getNamedProjects()) {
             RexNode newProjExpr =
                 removeCorrelationExpr(
-                    projExpr,
+                    pair.left,
                     projectPulledAboveLeftCorrelator,
                     nullIndicator);
 
-            newProjExprs.add(newProjExpr);
-            newFieldNames.add((projRel.getRowType().getFields()[i]).getName());
+            newProjExprs.add(Pair.of(newProjExpr, pair.right));
         }
 
         RelNode newProjRel =
-            CalcRel.createProject(joinRel, newProjExprs, newFieldNames);
+            CalcRel.createProject(joinRel, newProjExprs, false);
 
         return newProjRel;
     }
@@ -1237,18 +1211,16 @@ public class RelDecorrelator
         JoinRelType joinType = corRel.getJoinType();
 
         // now create the new project
-        List<String> newFieldNames = new ArrayList<String>();
-        List<RexNode> newProjExprs = new ArrayList<RexNode>();
+        List<Pair<RexNode, String>> newProjects =
+            new ArrayList<Pair<RexNode, String>>();
 
         // project everything from the LHS and then those from the original
         // projRel
-        RelDataTypeField [] leftInputFields =
-            leftInputRel.getRowType().getFields();
+        List<RelDataTypeField> leftInputFields =
+            leftInputRel.getRowType().getFieldList();
 
-        for (int i = 0; i < leftInputFields.length; i++) {
-            RelDataType newType = leftInputFields[i].getType();
-            newProjExprs.add(new RexInputRef(i, newType));
-            newFieldNames.add(leftInputFields[i].getName());
+        for (int i = 0; i < leftInputFields.size(); i++) {
+            newProjects.add(RexInputRef.of2(i, leftInputFields));
         }
 
         // Marked where the projected expr is coming from so that the types will
@@ -1257,23 +1229,16 @@ public class RelDecorrelator
         boolean projectPulledAboveLeftCorrelator =
             joinType.generatesNullsOnRight();
 
-        RexNode [] projExprs = projRel.getProjectExps();
-        for (int i = 0; i < projExprs.length; i++) {
-            RexNode projExpr = projExprs[i];
+        for (Pair<RexNode, String> pair : projRel.getNamedProjects()) {
             RexNode newProjExpr =
                 removeCorrelationExpr(
-                    projExpr,
+                    pair.left,
                     projectPulledAboveLeftCorrelator,
                     isCount);
-
-            newProjExprs.add(newProjExpr);
-            newFieldNames.add((projRel.getRowType().getFields()[i]).getName());
+            newProjects.add(Pair.of(newProjExpr, pair.right));
         }
 
-        RelNode newProjRel =
-            CalcRel.createProject(corRel, newProjExprs, newFieldNames);
-
-        return newProjRel;
+        return CalcRel.createProject(corRel, newProjects, false);
     }
 
     /**
@@ -1369,25 +1334,19 @@ public class RelDecorrelator
         RelNode childRel,
         List<Pair<RexNode, String>> additionalExprs)
     {
-        RelDataType childFieldType = childRel.getRowType();
-        int childFieldCount = childFieldType.getFieldCount();
-
-        List<RexNode> exprs = new ArrayList<RexNode>();
-        for (int i = 0; i < childFieldCount; i++) {
-            exprs.add(
-                rexBuilder.makeInputRef(
-                    childFieldType.getFields()[i].getType(),
-                    i));
+        final List<RelDataTypeField> fieldList =
+            childRel.getRowType().getFieldList();
+        List<Pair<RexNode, String>> projects =
+            new ArrayList<Pair<RexNode, String>>();
+        for (Ord<RelDataTypeField> field : Ord.zip(fieldList)) {
+            projects.add(
+                Pair.of(
+                    (RexNode) rexBuilder.makeInputRef(
+                        field.e.getType(), field.i),
+                    field.e.getName()));
         }
-        exprs.addAll(Pair.left(additionalExprs));
-
-        List<String> exprNames = new ArrayList<String>();
-        for (int i = 0; i < childFieldCount; i++) {
-            exprNames.add(childFieldType.getFields()[i].getName());
-        }
-        exprNames.addAll(Pair.right(additionalExprs));
-
-        return CalcRel.createProject(childRel, exprs, exprNames);
+        projects.addAll(additionalExprs);
+        return CalcRel.createProject(childRel, projects, false);
     }
 
     //~ Inner Classes ----------------------------------------------------------
@@ -1770,8 +1729,8 @@ public class RelDecorrelator
             // check projRel only projects one expression
             // check this project only projects one expression, i.e. scalar
             // subqueries.
-            RexNode [] projExprs = projRel.getProjectExps();
-            if (projExprs.length != 1) {
+            List<RexNode> projExprs = projRel.getProjects();
+            if (projExprs.size() != 1) {
                 return;
             }
 
@@ -1789,8 +1748,8 @@ public class RelDecorrelator
                         rexBuilder.makeCast(
                             projRel.getCluster().getTypeFactory()
                                 .createTypeWithNullability(
-                                    projExprs[0].getType(), true),
-                            projExprs[0])),
+                                    projExprs.get(0).getType(), true),
+                            projExprs.get(0))),
                     null);
             call.transformTo(newProjRel);
         }
@@ -1852,7 +1811,7 @@ public class RelDecorrelator
 
             // check this project only projects one expression, i.e. scalar
             // subqueries.
-            if (projRel.getProjectExps().length != 1) {
+            if (projRel.getProjects().size() != 1) {
                 return;
             }
 
@@ -2060,8 +2019,8 @@ public class RelDecorrelator
             //         rightInputRel
 
             // check aggOutputProj projects only one expression
-            RexNode [] aggOutputProjExprs = aggOutputProjRel.getProjectExps();
-            if (aggOutputProjExprs.length != 1) {
+            List<RexNode> aggOutputProjExprs = aggOutputProjRel.getProjects();
+            if (aggOutputProjExprs.size() != 1) {
                 return;
             }
 
@@ -2078,7 +2037,7 @@ public class RelDecorrelator
                 return;
             }
 
-            RexNode [] aggInputProjExprs = aggInputProjRel.getProjectExps();
+            List<RexNode> aggInputProjExprs = aggInputProjRel.getProjects();
 
             List<AggregateCall> aggCalls = aggRel.getAggCallList();
             Set<Integer> isCountStar = new HashSet<Integer>();
@@ -2295,7 +2254,7 @@ public class RelDecorrelator
             RelDataType leftInputFieldType = leftInputRel.getRowType();
             int leftInputFieldCount = leftInputFieldType.getFieldCount();
             int joinOutputProjExprCount =
-                leftInputFieldCount + aggInputProjExprs.length + 1;
+                leftInputFieldCount + aggInputProjExprs.size() + 1;
 
             rightInputRel =
                 createProjectWithAdditionalExprs(
@@ -2323,8 +2282,8 @@ public class RelDecorrelator
                 new RexInputRef(
                     nullIndicatorPos,
                     cluster.getTypeFactory().createTypeWithNullability(
-                        (joinRel.getRowType().getFields()[nullIndicatorPos])
-                        .getType(),
+                        joinRel.getRowType().getFieldList()
+                            .get(nullIndicatorPos).getType(),
                         true));
 
             // first project all group-by keys plus the transformed agg input
@@ -2335,7 +2294,7 @@ public class RelDecorrelator
             for (int i = 0; i < leftInputFieldCount; i++) {
                 joinOutputProjExprs.add(
                     rexBuilder.makeInputRef(
-                        leftInputFieldType.getFields()[i].getType(), i));
+                        leftInputFieldType.getFieldList().get(i).getType(), i));
             }
 
             for (RexNode aggInputProjExpr : aggInputProjExprs) {
@@ -2348,7 +2307,7 @@ public class RelDecorrelator
 
             joinOutputProjExprs.add(
                 rexBuilder.makeInputRef(
-                    joinRel.getRowType().getFields()[nullIndicatorPos]
+                    joinRel.getRowType().getFieldList().get(nullIndicatorPos)
                         .getType(),
                     nullIndicatorPos));
 
@@ -2405,12 +2364,12 @@ public class RelDecorrelator
             for (int i : Util.toIter(groupSet)) {
                 newAggOutputProjExprList.add(
                     rexBuilder.makeInputRef(
-                        newAggRel.getRowType().getFields()[i].getType(),
+                        newAggRel.getRowType().getFieldList().get(i).getType(),
                         i));
             }
 
             RexNode newAggOutputProjExpr =
-                removeCorrelationExpr(aggOutputProjExprs[0], false);
+                removeCorrelationExpr(aggOutputProjExprs.get(0), false);
             newAggOutputProjExprList.add(
                 rexBuilder.makeCast(
                     cluster.getTypeFactory().createTypeWithNullability(
@@ -2473,22 +2432,18 @@ public class RelDecorrelator
                 aggRel = call.rel(2);
 
                 // Create identity projection
-                List<RexNode> exprList = new ArrayList<RexNode>();
-                List<String> fieldNameList = new ArrayList<String>();
-                for (
-                    RelDataTypeField field : aggRel.getRowType().getFieldList())
-                {
-                    exprList.add(
-                        new RexInputRef(exprList.size(), field.getType()));
-                    fieldNameList.add(field.getName());
+                List<Pair<RexNode, String>> projects =
+                    new ArrayList<Pair<RexNode, String>>();
+                final List<RelDataTypeField> fields =
+                    aggRel.getRowType().getFieldList();
+                for (int i = 0; i < fields.size(); i++) {
+                    projects.add(RexInputRef.of2(projects.size(), fields));
                 }
                 aggOutputProjRel =
-                    new ProjectRel(
-                        corRel.getCluster(),
+                    (ProjectRel) CalcRel.createProject(
                         aggRel,
-                        exprList,
-                        fieldNameList,
-                        ProjectRel.Flags.Boxed);
+                        projects,
+                        false);
             }
             onMatch2(call, corRel, leftInputRel, aggOutputProjRel, aggRel);
         }
@@ -2520,8 +2475,8 @@ public class RelDecorrelator
             //     AggregateRel (groupby (0), agg0(), agg1()...)
 
             // check aggOutputProj projects only one expression
-            RexNode [] aggOutputProjExprs = aggOutputProjRel.getProjectExps();
-            if (aggOutputProjExprs.length != 1) {
+            List<RexNode> aggOutputProjExprs = aggOutputProjRel.getProjects();
+            if (aggOutputProjExprs.size() != 1) {
                 return;
             }
 

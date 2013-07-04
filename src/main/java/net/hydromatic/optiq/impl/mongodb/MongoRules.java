@@ -61,7 +61,7 @@ public class MongoRules {
 
       final ItemFinder itemFinder = new ItemFinder();
       final List<RexNode> newProjects = new ArrayList<RexNode>();
-      for (RexNode rex : project.getProjectExps()) {
+      for (RexNode rex : project.getProjects()) {
         final RexNode rex2 = rex.accept(itemFinder);
         final RexNode rex3 =
             cluster.getRexBuilder().ensureType(rex.getType(), rex2, true);

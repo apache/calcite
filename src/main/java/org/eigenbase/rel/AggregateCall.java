@@ -66,7 +66,7 @@ public class AggregateCall
         assert type != null;
         this.aggregation = aggregation;
 
-        this.argList = ImmutableIntList.of(argList);
+        this.argList = ImmutableIntList.copyOf(argList);
         this.distinct = distinct;
     }
 

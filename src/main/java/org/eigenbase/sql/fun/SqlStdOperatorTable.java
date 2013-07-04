@@ -22,6 +22,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * Implementation of {@link org.eigenbase.sql.SqlOperatorTable} containing the
@@ -607,7 +609,7 @@ public class SqlStdOperatorTable
      */
     public static final SqlAggFunction minOperator =
         new SqlMinMaxAggFunction(
-            new RelDataType[0],
+            ImmutableList.<RelDataType>of(),
             true,
             SqlMinMaxAggFunction.MINMAX_COMPARABLE);
 
@@ -616,7 +618,7 @@ public class SqlStdOperatorTable
      */
     public static final SqlAggFunction maxOperator =
         new SqlMinMaxAggFunction(
-            new RelDataType[0],
+            ImmutableList.<RelDataType>of(),
             false,
             SqlMinMaxAggFunction.MINMAX_COMPARABLE);
 

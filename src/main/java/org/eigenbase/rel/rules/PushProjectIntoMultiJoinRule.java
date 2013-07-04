@@ -71,7 +71,7 @@ public class PushProjectIntoMultiJoinRule
         ProjectRel newProject =
             (ProjectRel) CalcRel.createProject(
                 newMultiJoin,
-                project.getProjectExpList(),
+                project.getProjects(),
                 project.getRowType().getFieldNames());
 
         call.transformTo(newProject);

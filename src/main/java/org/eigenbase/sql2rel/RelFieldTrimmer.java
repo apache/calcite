@@ -29,6 +29,9 @@ import org.eigenbase.sql.validate.SqlValidator;
 import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.*;
 
+import net.hydromatic.linq4j.Ord;
+
+
 /**
  * Transformer that walks over a tree of relational expressions, replacing each
  * {@link RelNode} with a 'slimmed down' relational expression that projects
@@ -251,7 +254,6 @@ public class RelFieldTrimmer
     {
         final RelDataType rowType = project.getRowType();
         final int fieldCount = rowType.getFieldCount();
-        final RexNode[] projectExprs = project.getProjectExps();
         final RelNode input = project.getChild();
         final RelDataType inputRowType = input.getRowType();
 
@@ -261,10 +263,9 @@ public class RelFieldTrimmer
             new LinkedHashSet<RelDataTypeField>(extraFields);
         RelOptUtil.InputFinder inputFinder =
             new RelOptUtil.InputFinder(inputFieldsUsed, inputExtraFields);
-        for (int i = 0; i < projectExprs.length; i++) {
-            final RexNode projectExpr = projectExprs[i];
-            if (fieldsUsed.get(i)) {
-                projectExpr.accept(inputFinder);
+        for (Ord<RexNode> ord : Ord.zip(project.getProjects())) {
+            if (fieldsUsed.get(ord.i)) {
+                ord.e.accept(inputFinder);
             }
         }
 
@@ -320,18 +321,14 @@ public class RelFieldTrimmer
                 MappingType.InverseSurjection,
                 fieldCount,
                 fieldsUsed.cardinality());
-        for (int i = 0; i < projectExprs.length; i++) {
-            final RexNode projectExpr = projectExprs[i];
-            if (fieldsUsed.get(i)) {
-                mapping.set(i, newProjectExprList.size());
-                RexNode newProjectExpr =
-                    projectExpr.accept(shuttle);
+        for (Ord<RexNode> ord : Ord.zip(project.getProjects())) {
+            if (fieldsUsed.get(ord.i)) {
+                mapping.set(ord.i, newProjectExprList.size());
+                RexNode newProjectExpr = ord.e.accept(shuttle);
                 newProjectExprList.add(newProjectExpr);
             }
         }
 
-        final RexNode[] newProjectExprs =
-            newProjectExprList.toArray(new RexNode[newProjectExprList.size()]);
         final RelDataType newRowType =
             project.getCluster().getTypeFactory().createStructType(
                 Mappings.apply3(mapping, rowType.getFieldList()));

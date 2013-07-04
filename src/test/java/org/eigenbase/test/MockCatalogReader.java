@@ -31,6 +31,8 @@ import org.eigenbase.util.Pair;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * Mock implementation of {@link SqlValidatorCatalogReader} which returns tables
@@ -184,8 +186,7 @@ public class MockCatalogReader
 
     //~ Methods ----------------------------------------------------------------
 
-
-    public Prepare.PreparingTable getTableForMember(String[] names) {
+    public Prepare.PreparingTable getTableForMember(List<String> names) {
         return getTable(names);
     }
 
@@ -199,9 +200,7 @@ public class MockCatalogReader
     protected void registerTable(MockTable table)
     {
         table.onRegister(typeFactory);
-        tables.put(
-            Arrays.asList(table.getQualifiedName()),
-            table);
+        tables.put(table.getQualifiedName(), table);
     }
 
     protected void registerSchema(MockSchema schema)
@@ -209,20 +208,20 @@ public class MockCatalogReader
         schemas.put(schema.name, schema);
     }
 
-    public Prepare.PreparingTable getTable(final String[] names)
+    public Prepare.PreparingTable getTable(final List<String> names)
     {
-        switch (names.length) {
+        switch (names.size()) {
         case 1:
             // assume table in SALES schema (the original default)
             // if it's not supplied, because SqlValidatorTest is effectively
             // using SALES as its default schema.
             return tables.get(
-                Arrays.asList(defaultCatalog, defaultSchema, names[0]));
+                ImmutableList.of(defaultCatalog, defaultSchema, names.get(0)));
         case 2:
             return tables.get(
-                Arrays.asList(defaultCatalog, names[0], names[1]));
+                ImmutableList.of(defaultCatalog, names.get(0), names.get(1)));
         case 3:
-            return tables.get(Arrays.asList(names));
+            return tables.get(names);
         default:
             return null;
         }
@@ -284,7 +283,7 @@ public class MockCatalogReader
 
         // Deduce which fields the table is sorted on.
         int i = -1;
-        for (RelDataTypeField field : table.getRowType().getFields()) {
+        for (RelDataTypeField field : table.getRowType().getFieldList()) {
             ++i;
             final SqlMonotonicity monotonicity =
                 table.getMonotonicity(field.getName());
@@ -340,7 +339,7 @@ public class MockCatalogReader
             new ArrayList<Pair<String, RelDataType>>();
         private RelDataType rowType;
         private List<RelCollation> collationList;
-        private final String [] names;
+        private final List<String> names;
 
         public MockTable(
             MockCatalogReader catalogReader,
@@ -349,9 +348,7 @@ public class MockCatalogReader
         {
             this.catalogReader = catalogReader;
             this.names =
-                new String[] {
-                    schema.getCatalogName(), schema.name, name
-                };
+                ImmutableList.of(schema.getCatalogName(), schema.name, name);
             schema.addTable(name);
         }
 
@@ -393,7 +390,7 @@ public class MockCatalogReader
             collationList = deduceMonotonicity(this);
         }
 
-        public String [] getQualifiedName()
+        public List<String> getQualifiedName()
         {
             return names;
         }

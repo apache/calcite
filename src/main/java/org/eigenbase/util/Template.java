@@ -20,6 +20,8 @@ package org.eigenbase.util;
 import java.text.MessageFormat;
 import java.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * String template.
@@ -65,7 +67,7 @@ import java.util.*;
  */
 public class Template extends MessageFormat
 {
-    private final List<String> parameterNames = new ArrayList<String>();
+    private final List<String> parameterNames;
 
     /**
      * Creates a Template for the default locale and the
@@ -74,9 +76,9 @@ public class Template extends MessageFormat
      * @param pattern the pattern for this message format
      * @exception IllegalArgumentException if the pattern is invalid
      */
-    public Template(String pattern)
+    public static Template of(String pattern)
     {
-        this(pattern, Locale.getDefault());
+        return of(pattern, Locale.getDefault());
     }
 
     /**
@@ -87,11 +89,18 @@ public class Template extends MessageFormat
      * @param locale the locale for this message format
      * @exception IllegalArgumentException if the pattern is invalid
      */
-    public Template(String pattern, Locale locale)
+    public static Template of(String pattern, Locale locale)
     {
-        super(process(pattern, new ArrayList<String>()), locale);
+        final List<String> parameterNames = new ArrayList<String>();
         final String processedPattern = process(pattern, parameterNames);
-        Util.discard(processedPattern);
+        return new Template(processedPattern, parameterNames, locale);
+    }
+
+    private Template(
+        String pattern, List<String> parameterNames, Locale locale)
+    {
+        super(pattern, locale);
+        this.parameterNames = ImmutableList.copyOf(parameterNames);
     }
 
     /**
@@ -254,7 +263,7 @@ public class Template extends MessageFormat
      * Creates a Template with the given pattern and uses it
      * to format the given arguments. This is equivalent to
      * <blockquote>
-     *     <code>new {@link #Template(String) Template}(pattern).{@link #format}(args)</code>
+     *     <code>{@link #of(String) Template}(pattern).{@link #format}(args)</code>
      * </blockquote>
      *
      * @exception IllegalArgumentException if the pattern is invalid,
@@ -266,7 +275,7 @@ public class Template extends MessageFormat
         String pattern,
         Map<Object, Object> argMap)
     {
-        return new Template(pattern).format(argMap);
+        return Template.of(pattern).format(argMap);
     }
 
     /**
@@ -277,7 +286,7 @@ public class Template extends MessageFormat
      */
     public List<String> getParameterNames()
     {
-        return Collections.unmodifiableList(parameterNames);
+        return parameterNames;
     }
 }
 

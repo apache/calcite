@@ -633,9 +633,9 @@ public class SqlValidatorTestCase {
         public RelDataType getColumnType(String sql)
         {
             RelDataType rowType = getResultType(sql);
-            final RelDataTypeField [] fields = rowType.getFields();
-            assertEquals("expected query to return 1 field", 1, fields.length);
-            RelDataType actualType = fields[0].getType();
+            final List<RelDataTypeField> fields = rowType.getFieldList();
+            assertEquals("expected query to return 1 field", 1, fields.size());
+            RelDataType actualType = fields.get(0).getType();
             return actualType;
         }
 

@@ -304,9 +304,9 @@ public abstract class Prepare {
 
   public interface CatalogReader
       extends RelOptSchema, SqlValidatorCatalogReader {
-    PreparingTable getTableForMember(String[] names);
+    PreparingTable getTableForMember(List<String> names);
 
-    PreparingTable getTable(String[] names);
+    PreparingTable getTable(List<String> names);
   }
 
   public interface PreparingTable

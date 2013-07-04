@@ -83,7 +83,7 @@ public class RexPermuteInputsShuttle
                 (String) ((RexLiteral) call.getOperands()[1]).getValue2();
             final int i = lookup(fields, name);
             if (i >= 0) {
-                return new RexInputRef(i, fields.get(i).getType());
+                return RexInputRef.of(i, fields);
             }
         }
         return super.visitCall(call);

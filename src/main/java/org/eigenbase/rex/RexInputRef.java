@@ -20,6 +20,7 @@ package org.eigenbase.rex;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
+import org.eigenbase.util.Pair;
 
 /**
  * Variable which references a field of an input relational expression.
@@ -64,9 +65,6 @@ public class RexInputRef
      *
      * @param index Index of the field in the underlying rowtype
      * @param type Type of the column
-     *
-     * @pre type != null
-     * @pre index >= 0
      */
     public RexInputRef(
         int index,
@@ -80,9 +78,31 @@ public class RexInputRef
 
     //~ Methods ----------------------------------------------------------------
 
+    /** Creates a reference to a given field in a row type. */
+    public static RexInputRef of(int index, RelDataType rowType) {
+        return of(index, rowType.getFieldList());
+    }
+
+    /** Creates a reference to a given field in a list of fields. */
+    public static RexInputRef of(int index, List<RelDataTypeField> fields) {
+        return new RexInputRef(index, fields.get(index).getType());
+    }
+
+    /** Creates a reference to a given field in a list of fields. */
+    public static Pair<RexNode, String> of2(
+        int index,
+        List<RelDataTypeField> fields)
+    {
+        final RelDataTypeField field = fields.get(index);
+        return Pair.of(
+            (RexNode) new RexInputRef(index, field.getType()),
+            field.getName());
+    }
+
     public RexInputRef clone()
     {
-        return new RexInputRef(index, type);
+        // All fields are immutable, so there's no point in creating a copy.
+        return this;
     }
 
     public <R> R accept(RexVisitor<R> visitor)

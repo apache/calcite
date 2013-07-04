@@ -172,11 +172,12 @@ public class PullConstantsThroughAggregatesRule
         }
 
         // Create a projection back again.
-        List<RexNode> exprList = new ArrayList<RexNode>();
-        List<String> nameList = new ArrayList<String>();
-        final RelDataType aggregateRowType = aggregate.getRowType();
-        for (int i = 0, source = 0; i < aggregateRowType.getFieldCount(); ++i) {
+        List<Pair<RexNode, String>> projects =
+            new ArrayList<Pair<RexNode, String>>();
+        int source = 0;
+        for (RelDataTypeField field : aggregate.getRowType().getFieldList()) {
             RexNode expr;
+            final int i = field.getIndex();
             if (i >= groupCount) {
                 // Aggregate expressions' names and positions are unchanged.
                 expr =
@@ -192,11 +193,10 @@ public class PullConstantsThroughAggregatesRule
                 expr = RelOptUtil.createInputRef(newAggregate, source);
                 ++source;
             }
-            exprList.add(expr);
-            nameList.add(aggregateRowType.getFields()[i].getName());
+            projects.add(Pair.of(expr, field.getName()));
         }
         final RelNode inverseProject =
-            CalcRel.createProject(newAggregate, exprList, nameList);
+            CalcRel.createProject(newAggregate, projects, false);
 
         call.transformTo(inverseProject);
     }
@@ -222,15 +222,16 @@ public class PullConstantsThroughAggregatesRule
         assert mapping.getMappingType().isA(MappingType.InverseSurjection);
         final RelDataType childRowType = child.getRowType();
         assert mapping.getSourceCount() == childRowType.getFieldCount();
-        final int targetCount = mapping.getTargetCount();
-        List<RexNode> exprList = new ArrayList<RexNode>(targetCount);
-        List<String> nameList = new ArrayList<String>(targetCount);
-        for (int target = 0; target < targetCount; ++target) {
+        List<Pair<RexNode, String>> projects =
+            new ArrayList<Pair<RexNode, String>>();
+        for (int target = 0; target < mapping.getTargetCount(); ++target) {
             int source = mapping.getSource(target);
-            exprList.add(RelOptUtil.createInputRef(child, source));
-            nameList.add(childRowType.getFields()[source].getName());
+            projects.add(
+                Pair.of(
+                    RelOptUtil.createInputRef(child, source),
+                    childRowType.getFieldList().get(source).getName()));
         }
-        return CalcRel.createProject(child, exprList, nameList);
+        return CalcRel.createProject(child, projects, false);
     }
 }
 

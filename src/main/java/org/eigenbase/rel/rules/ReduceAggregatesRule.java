@@ -316,7 +316,7 @@ public class ReduceAggregatesRule
             new AggregateCall(
                 new SqlSumAggFunction(sumType),
                 oldCall.isDistinct(),
-                Arrays.asList(argSquaredOrdinal),
+                ImmutableIntList.of(argSquaredOrdinal),
                 sumType,
                 null);
         final RexNode sumArgSquared =
@@ -330,7 +330,7 @@ public class ReduceAggregatesRule
             new AggregateCall(
                 new SqlSumAggFunction(sumType),
                 oldCall.isDistinct(),
-                Arrays.asList(argOrdinal),
+                ImmutableIntList.of(argOrdinal),
                 sumType,
                 null);
         final RexNode sumArg =
@@ -449,7 +449,8 @@ public class ReduceAggregatesRule
 
     private RelDataType getFieldType(RelNode relNode, int i)
     {
-        final RelDataTypeField inputField = relNode.getRowType().getFields()[i];
+        final RelDataTypeField inputField =
+            relNode.getRowType().getFieldList().get(i);
         return inputField.getType();
     }
 }

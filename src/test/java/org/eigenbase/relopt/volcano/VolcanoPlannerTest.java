@@ -182,10 +182,7 @@ public class VolcanoPlannerTest {
             new PhysLeafRel(
                 cluster,
                 "a");
-        RexInputRef inputRef =
-            new RexInputRef(
-                0,
-                leafRel.getRowType().getFields()[0].getType());
+        RexInputRef inputRef = RexInputRef.of(0, leafRel.getRowType());
         RelNode projectRel =
             CalcRel.createProject(
                 leafRel,

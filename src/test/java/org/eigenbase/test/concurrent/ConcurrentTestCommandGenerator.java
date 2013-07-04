@@ -27,6 +27,8 @@ import org.eigenbase.util.Util;
 
 import net.hydromatic.optiq.jdbc.SqlTimeoutException;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * ConcurrentTestCommandGenerator creates instances of {@link
@@ -499,9 +501,8 @@ public class ConcurrentTestCommandGenerator {
     /** @return the list of failed threads (unmodifiable) */
     public List<FailedThread> getFailedThreads()
     {
-        return Collections.unmodifiableList(failedThreads);
+        return ImmutableList.copyOf(failedThreads);
     }
-
 
     /**
      * Insures that the number of commands is the same for each thread, fills

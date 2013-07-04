@@ -75,7 +75,7 @@ public class RelMdSelectivity
                     new RelOptUtil.RexInputConverter(
                         rexBuilder,
                         null,
-                        input.getRowType().getFields(),
+                        input.getRowType().getFieldList(),
                         adjustments));
             double sel = RelMetadataQuery.getSelectivity(input, modifiedPred);
 

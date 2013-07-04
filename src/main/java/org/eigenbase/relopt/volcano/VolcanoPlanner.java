@@ -286,7 +286,7 @@ public class VolcanoPlanner
         mapRuleDescription(rule);
 
         // Each of this rule's operands is an 'entry point' for a rule call.
-        allOperands.addAll(Arrays.asList(rule.operands));
+        allOperands.addAll(rule.getOperands());
 
         // If this is a converter rule, check that it operates on one of the
         // kinds of trait we are interested in, and if so, register the rule

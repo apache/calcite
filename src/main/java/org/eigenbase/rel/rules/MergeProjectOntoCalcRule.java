@@ -21,8 +21,8 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.Pair;
 
 
 /**
@@ -64,7 +64,7 @@ public class MergeProjectOntoCalcRule
         RexProgram program =
             RexProgram.create(
                 calc.getRowType(),
-                project.getProjectExps(),
+                project.getProjects(),
                 null,
                 project.getRowType(),
                 project.getCluster().getRexBuilder());
@@ -87,11 +87,8 @@ public class MergeProjectOntoCalcRule
             new RexProgramBuilder(
                 calc.getRowType(),
                 rexBuilder);
-        final RelDataTypeField [] fields = project.getRowType().getFields();
-        for (int i = 0; i < project.getProjectExps().length; i++) {
-            progBuilder.addProject(
-                project.getProjectExps()[i],
-                fields[i].getName());
+        for (Pair<RexNode, String> field : project.getNamedProjects()) {
+            progBuilder.addProject(field.left, field.right);
         }
         RexProgram topProgram = progBuilder.getProgram();
         RexProgram bottomProgram = calc.getProgram();

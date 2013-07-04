@@ -43,11 +43,11 @@ public interface SqlValidatorCatalogReader
     /**
      * Finds a table with the given name, possibly qualified.
      *
-     * @param names Name of table
+     * @param names Qualified name of table
      *
      * @return named table, or null if not found
      */
-    SqlValidatorTable getTable(String [] names);
+    SqlValidatorTable getTable(List<String> names);
 
     /**
      * Finds a user-defined type with the given name, possibly qualified.

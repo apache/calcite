@@ -177,7 +177,7 @@ public class TableAccessMap
      */
     public List<String> getQualifiedName(RelOptTable table)
     {
-        return Arrays.asList(table.getQualifiedName());
+        return table.getQualifiedName();
     }
 
     //~ Inner Classes ----------------------------------------------------------

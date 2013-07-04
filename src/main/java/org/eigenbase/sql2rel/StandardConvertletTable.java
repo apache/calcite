@@ -20,6 +20,7 @@ package org.eigenbase.sql2rel;
 import java.math.*;
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.eigenbase.relopt.*;
@@ -287,7 +288,7 @@ public class StandardConvertletTable
             cx.getValidator().getValidatedNodeType(call);
         RexRangeRef rr = cx.getSubqueryExpr(call);
         assert rr != null;
-        RelDataType msType = rr.getType().getFields()[0].getType();
+        RelDataType msType = rr.getType().getFieldList().get(0).getType();
         RexNode expr =
             cx.getRexBuilder().makeInputRef(
                 msType,
@@ -331,7 +332,7 @@ public class StandardConvertletTable
             cx.getValidator().getValidatedNodeType(call);
         RexRangeRef rr = cx.getSubqueryExpr(call);
         assert rr != null;
-        RelDataType msType = rr.getType().getFields()[0].getType();
+        RelDataType msType = rr.getType().getFieldList().get(0).getType();
         RexNode expr =
             cx.getRexBuilder().makeInputRef(
                 msType,
@@ -401,10 +402,11 @@ public class StandardConvertletTable
             {
                 RelDataType tt =
                     typeFactory.createStructType(
-                        new RelDataType[] { componentType },
-                        new String[] {
-                            argComponentType.getFields()[0].getName()
-                        });
+                        Collections.singletonList(
+                            Pair.of(
+                                argComponentType.getFieldList().get(0)
+                                    .getName(),
+                                componentType)));
                 tt = typeFactory.createTypeWithNullability(
                     tt,
                     componentType.isNullable());

@@ -18,14 +18,14 @@
 package org.eigenbase.sql.parser;
 
 import java.io.*;
-
 import java.lang.reflect.*;
-
 import java.util.*;
 
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.util.*;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -506,8 +506,7 @@ public abstract class SqlAbstractParserImpl
             initList(sqlParser, reservedFunctionNames, "ReservedFunctionName");
             initList(sqlParser, contextVariableNames, "ContextVariable");
             initList(sqlParser, nonReservedKeyWordSet, "NonReservedKeyWord");
-            tokenList =
-                Collections.unmodifiableList(new ArrayList<String>(tokenSet));
+            tokenList = ImmutableList.copyOf(tokenSet);
             sql92ReservedWords = constructSql92ReservedWordList();
             Set<String> reservedWordSet = new TreeSet<String>();
             reservedWordSet.addAll(tokenSet);

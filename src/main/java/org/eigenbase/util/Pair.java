@@ -153,10 +153,9 @@ public class Pair<T1, T2>
     }
 
     /**
-     * Converts two lists into a list of {@link Pair}s.
-     *
-     * <p>The length of the combined list is the lesser of the lengths of the
-     * source lists. But typically the source lists will be the same length.</p>
+     * Converts two lists into a list of {@link org.eigenbase.util.Pair}s,
+     * whose length is the lesser of the lengths of the
+     * source lists.</p>
      *
      * @param ks Left list
      * @param vs Right list
@@ -164,17 +163,44 @@ public class Pair<T1, T2>
      *
      * @see net.hydromatic.linq4j.Ord#zip(java.util.List)
      */
+    public static <K, V> List<Pair<K, V>> zip(List<K> ks, List<V> vs) {
+        return zip(ks, vs, false);
+    }
+
+    /**
+     * Converts two lists into a list of {@link Pair}s.
+     *
+     * <p>The length of the combined list is the lesser of the lengths of the
+     * source lists. But typically the source lists will be the same length.</p>
+     *
+     * @param ks Left list
+     * @param vs Right list
+     * @param strict Whether to fail if lists have different size
+     * @return List of pairs
+     *
+     * @see net.hydromatic.linq4j.Ord#zip(java.util.List)
+     */
     public static <K, V> List<Pair<K, V>> zip(
         final List<K> ks,
-        final List<V> vs)
+        final List<V> vs,
+        boolean strict)
     {
+        final int size;
+        if (strict) {
+            if (ks.size() != vs.size()) {
+                throw new AssertionError();
+            }
+            size = ks.size();
+        } else {
+            size = Math.min(ks.size(), vs.size());
+        }
         return new AbstractList<Pair<K, V>>() {
             public Pair<K, V> get(int index) {
                 return Pair.of(ks.get(index), vs.get(index));
             }
 
             public int size() {
-                return Math.min(ks.size(), vs.size());
+                return size;
             }
         };
     }

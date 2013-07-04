@@ -17,10 +17,14 @@
 */
 package org.eigenbase.sql.fun;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -56,9 +60,9 @@ public class SqlCountAggFunction
 
     //~ Methods ----------------------------------------------------------------
 
-    public RelDataType [] getParameterTypes(RelDataTypeFactory typeFactory)
+    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
     {
-        return new RelDataType[] { type };
+        return ImmutableList.of(type);
     }
 
     public RelDataType getReturnType(RelDataTypeFactory typeFactory)

@@ -55,12 +55,10 @@ public class ProjectToCalcRule
         final ProjectRel project = call.rel(0);
         final RelNode child = project.getChild();
         final RelDataType rowType = project.getRowType();
-        final RexNode [] projectExprs =
-            RexUtil.clone(project.getProjectExps());
         final RexProgram program =
             RexProgram.create(
                 child.getRowType(),
-                projectExprs,
+                project.getProjects(),
                 null,
                 project.getRowType(),
                 project.getCluster().getRexBuilder());

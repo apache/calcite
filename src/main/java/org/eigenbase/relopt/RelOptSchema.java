@@ -17,6 +17,8 @@
 */
 package org.eigenbase.relopt;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 
 
@@ -36,8 +38,10 @@ public interface RelOptSchema
      *
      * <p>Note that name.length is only greater than 1 for queries originating
      * from JDBC.</p>
+     *
+     * @param names Qualified name
      */
-    RelOptTable getTableForMember(String [] names);
+    RelOptTable getTableForMember(List<String> names);
 
     /**
      * Returns the {@link RelDataTypeFactory type factory} used to generate

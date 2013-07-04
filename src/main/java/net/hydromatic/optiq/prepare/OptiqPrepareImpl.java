@@ -48,6 +48,8 @@ import org.eigenbase.util.Pair;
 import org.codehaus.janino.*;
 import org.codehaus.janino.Scanner;
 
+import com.google.common.collect.ImmutableList;
+
 import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -265,7 +267,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         new ArrayList<ColumnMetaData>();
     RelDataType jdbcType = makeStruct(typeFactory, x);
     final List<List<String>> originList = preparedResult.getFieldOrigins();
-    for (Ord<RelDataTypeField> pair : Ord.zip(jdbcType.getFields())) {
+    for (Ord<RelDataTypeField> pair : Ord.zip(jdbcType.getFieldList())) {
       final RelDataTypeField field = pair.e;
       RelDataType type = field.getType();
       List<String> origins = originList.get(pair.i);
@@ -574,7 +576,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   static class RelOptTableImpl implements Prepare.PreparingTable {
     private final RelOptSchema schema;
     private final RelDataType rowType;
-    private final String[] names;
+    private final List<String> names;
     private final Table table;
     private final Expression expression;
 
@@ -602,7 +604,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         Expression expression) {
       this.schema = schema;
       this.rowType = rowType;
-      this.names = names;
+      this.names = ImmutableList.copyOf(names);
       this.table = table;
       this.expression = expression;
       assert expression != null : "table may be null; expr may not";
@@ -665,7 +667,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       return rowType;
     }
 
-    public String[] getQualifiedName() {
+    public List<String> getQualifiedName() {
       return names;
     }
 
@@ -695,7 +697,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       this.typeFactory = typeFactory;
     }
 
-    public RelOptTableImpl getTable(final String[] names) {
+    public RelOptTableImpl getTable(final List<String> names) {
       // First look in the default schema, if any.
       if (defaultSchema != null) {
         RelOptTableImpl table = getTableFrom(names, defaultSchema);
@@ -708,7 +710,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
 
     private RelOptTableImpl getTableFrom(
-        String[] names,
+        List<String> names,
         List<String> schemaNames) {
       List<Pair<String, Object>> pairs =
           new ArrayList<Pair<String, Object>>();
@@ -720,8 +722,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         }
         pairs.add(Pair.<String, Object>of(schemaName, schema));
       }
-      for (int i = 0; i < names.length; i++) {
-        final String name = names[i];
+      for (int i = 0; i < names.size(); i++) {
+        final String name = names.get(i);
         Schema subSchema = schema.getSubSchema(name);
         if (subSchema != null) {
           pairs.add(Pair.<String, Object>of(name, subSchema));
@@ -731,7 +733,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         final Table table = schema.getTable(name, Object.class);
         if (table != null) {
           pairs.add(Pair.<String, Object>of(name, table));
-          if (i != names.length - 1) {
+          if (i != names.size() - 1) {
             // not enough objects to match all names
             return null;
           }
@@ -758,7 +760,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       return null;
     }
 
-    public RelOptTableImpl getTableForMember(String[] names) {
+    public RelOptTableImpl getTableForMember(List<String> names) {
       return getTable(names);
     }
 

@@ -108,7 +108,7 @@ public final class ProjectRel
         return new ProjectRel(
             getCluster(),
             sole(inputs),
-            getProjectExpList(),
+            getProjects(),
             rowType,
             getFlags(),
             collationList);
@@ -120,14 +120,15 @@ public final class ProjectRel
      */
     public Permutation getPermutation()
     {
-        final int fieldCount = rowType.getFields().length;
-        if (fieldCount != getChild().getRowType().getFields().length) {
+        final int fieldCount = rowType.getFieldList().size();
+        if (fieldCount != getChild().getRowType().getFieldList().size()) {
             return null;
         }
         Permutation permutation = new Permutation(fieldCount);
         for (int i = 0; i < fieldCount; ++i) {
-            if (exps[i] instanceof RexInputRef) {
-                permutation.set(i, ((RexInputRef) exps[i]).getIndex());
+            final RexNode exp = exps.get(i);
+            if (exp instanceof RexInputRef) {
+                permutation.set(i, ((RexInputRef) exp).getIndex());
             } else {
                 return null;
             }

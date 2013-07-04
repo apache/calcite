@@ -27,6 +27,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * Enumeration of the type names which can be used to construct a SQL type.
@@ -86,8 +88,6 @@ public enum SqlTypeName
     CURSOR(PrecScale.NoNo, false, Types.OTHER + 1),
     COLUMN_LIST(PrecScale.NoNo, false, Types.OTHER + 2);
 
-    public static final SqlTypeName [] EMPTY_ARRAY = new SqlTypeName[0];
-
     private static SqlTypeName [] jdbcTypeToName;
 
     // Basing type name mapping on these constants is fragile, since newer
@@ -124,55 +124,49 @@ public enum SqlTypeName
     // you probably want to use JDK 1.5 support for treating enumeration
     // as collection instead; this is only here to support
     // SqlTypeFamily.ANY
-    public static final SqlTypeName [] allTypes =
-        new SqlTypeName[] {
+    public static final List<SqlTypeName> allTypes =
+        ImmutableList.of(
             BOOLEAN, INTEGER, VARCHAR, DATE, TIME, TIMESTAMP, NULL, DECIMAL,
             ANY, CHAR, BINARY, VARBINARY, TINYINT, SMALLINT, BIGINT, REAL,
             DOUBLE, SYMBOL, INTERVAL_YEAR_MONTH, INTERVAL_DAY_TIME,
-            FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST
-        };
+            FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST);
 
-    public static final SqlTypeName [] booleanTypes = {
-        BOOLEAN
-    };
+    public static final List<SqlTypeName> booleanTypes =
+        ImmutableList.of(BOOLEAN);
 
-    public static final SqlTypeName [] binaryTypes = {
-        BINARY, VARBINARY
-    };
+    public static final List<SqlTypeName> binaryTypes =
+        ImmutableList.of(BINARY, VARBINARY);
 
-    public static final SqlTypeName [] intTypes = {
-        TINYINT, SMALLINT, INTEGER, BIGINT
-    };
+    public static final List<SqlTypeName> intTypes =
+        ImmutableList.of(TINYINT, SMALLINT, INTEGER, BIGINT);
 
-    public static final SqlTypeName [] exactTypes =
+    public static final List<SqlTypeName> exactTypes =
         combine(
             intTypes,
-            new SqlTypeName[] { DECIMAL });
+            ImmutableList.of(DECIMAL));
 
-    public static final SqlTypeName [] approxTypes = {
-        FLOAT, REAL, DOUBLE
-    };
+    public static final List<SqlTypeName> approxTypes =
+        ImmutableList.of(FLOAT, REAL, DOUBLE);
 
-    public static final SqlTypeName [] numericTypes =
+    public static final List<SqlTypeName> numericTypes =
         combine(exactTypes, approxTypes);
 
-    public static final SqlTypeName [] fractionalTypes =
-        combine(
-            approxTypes,
-            new SqlTypeName[] { DECIMAL });
+    public static final List<SqlTypeName> fractionalTypes =
+        combine(approxTypes, ImmutableList.of(DECIMAL));
 
-    public static final SqlTypeName [] charTypes = {
-        CHAR, VARCHAR
-    };
+    public static final List<SqlTypeName> charTypes =
+        ImmutableList.of(CHAR, VARCHAR);
 
-    public static final SqlTypeName [] stringTypes =
+    public static final List<SqlTypeName> stringTypes =
         combine(charTypes, binaryTypes);
 
-    public static final SqlTypeName [] datetimeTypes = {
-        DATE, TIME, TIMESTAMP
-    };
+    public static final List<SqlTypeName> datetimeTypes =
+        ImmutableList.of(DATE, TIME, TIMESTAMP);
 
-  static {
+    public static final List<SqlTypeName> intervalTypes =
+        ImmutableList.of(INTERVAL_DAY_TIME, INTERVAL_YEAR_MONTH);
+
+    static {
         // This squanders some memory since MAX_JDBC_TYPE == 2006!
         jdbcTypeToName = new SqlTypeName[(1 + MAX_JDBC_TYPE) - MIN_JDBC_TYPE];
 
@@ -320,14 +314,14 @@ public enum SqlTypeName
         return jdbcOrdinal;
     }
 
-    private static SqlTypeName [] combine(
-        SqlTypeName [] array0,
-        SqlTypeName [] array1)
+    private static List<SqlTypeName> combine(
+        List<SqlTypeName> array0,
+        List<SqlTypeName> array1)
     {
-        SqlTypeName [] ret = new SqlTypeName[array0.length + array1.length];
-        System.arraycopy(array0, 0, ret, 0, array0.length);
-        System.arraycopy(array1, 0, ret, array0.length, array1.length);
-        return ret;
+        return ImmutableList.<SqlTypeName>builder()
+            .addAll(array0)
+            .addAll(array1)
+            .build();
     }
 
     /**

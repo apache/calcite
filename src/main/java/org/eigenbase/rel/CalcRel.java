@@ -99,6 +99,22 @@ public final class CalcRel
         return createProject(child, exprList, fieldNameList, false);
     }
 
+    /**
+     * Creates a relational expression which projects an array of expressions.
+     *
+     * @param child input relational expression
+     * @param projectList list of (expression, name) pairs
+     * @param optimize Whether to optimize
+     */
+    public static RelNode createProject(
+        RelNode child,
+        List<Pair<RexNode, String>> projectList,
+        boolean optimize)
+    {
+        return createProject(
+            child, Pair.left(projectList), Pair.right(projectList), optimize);
+    }
+
     public static RelNode createProject(
         final RelNode child,
         final List<Integer> posList)
@@ -242,16 +258,17 @@ public final class CalcRel
     {
         final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
         assert fieldNames.size() == fields.size();
-        final List<RexNode> refs = new AbstractList<RexNode>() {
-            public int size() {
-                return fields.size();
-            }
+        final List<Pair<RexNode, String>> refs =
+            new AbstractList<Pair<RexNode, String>>() {
+                public int size() {
+                    return fields.size();
+                }
 
-            public RexInputRef get(int index) {
-                return new RexInputRef(index, fields.get(index).getType());
-            }
-        };
-        return createProject(rel, refs, fieldNames, true);
+                public Pair<RexNode, String> get(int index) {
+                    return RexInputRef.of2(index, fields);
+                }
+            };
+        return createProject(rel, refs, true);
     }
 
     public void collectVariablesUsed(Set<String> variableSet)
@@ -316,10 +333,10 @@ public final class CalcRel
         final List<String> outputNameList = new ArrayList<String>();
         final List<RexNode> exprList = new ArrayList<RexNode>();
         final List<RexLocalRef> projectRefList = new ArrayList<RexLocalRef>();
-        final RelDataTypeField [] fields = rel.getRowType().getFields();
+        final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
         for (int i = 0; i < permutation.getTargetCount(); i++) {
             int target = permutation.getTarget(i);
-            final RelDataTypeField targetField = fields[target];
+            final RelDataTypeField targetField = fields.get(target);
             outputTypeList.add(targetField.getType());
             outputNameList.add(
                 ((fieldNames == null)
@@ -328,13 +345,13 @@ public final class CalcRel
                 : fieldNames.get(i));
             exprList.add(
                 rel.getCluster().getRexBuilder().makeInputRef(
-                    fields[i].getType(),
+                    fields.get(i).getType(),
                     i));
             final int source = permutation.getSource(i);
             projectRefList.add(
                 new RexLocalRef(
                     source,
-                    fields[source].getType()));
+                    fields.get(source).getType()));
         }
         final RexProgram program =
             new RexProgram(
@@ -390,9 +407,9 @@ public final class CalcRel
         final List<String> outputNameList = new ArrayList<String>();
         final List<RexNode> exprList = new ArrayList<RexNode>();
         final List<RexLocalRef> projectRefList = new ArrayList<RexLocalRef>();
-        final RelDataTypeField [] fields = rel.getRowType().getFields();
-        for (int i = 0; i < fields.length; i++) {
-            final RelDataTypeField field = fields[i];
+        final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
+        for (int i = 0; i < fields.size(); i++) {
+            final RelDataTypeField field = fields.get(i);
             exprList.add(
                 rel.getCluster().getRexBuilder().makeInputRef(
                     field.getType(),
@@ -400,7 +417,7 @@ public final class CalcRel
         }
         for (int i = 0; i < mapping.getTargetCount(); i++) {
             int source = mapping.getSource(i);
-            final RelDataTypeField sourceField = fields[source];
+            final RelDataTypeField sourceField = fields.get(source);
             outputTypeList.add(sourceField.getType());
             outputNameList.add(
                 ((fieldNames == null)

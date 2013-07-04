@@ -37,6 +37,8 @@ import org.eigenbase.sql.validate.*;
 
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.collect.Iterables;
+
 
 /**
  * Miscellaneous utility functions.
@@ -2157,13 +2159,7 @@ public class Util
         return true;
     }
 
-    /** Returns the last element of a list. Throws if the list is empty or
-     * null. */
-    public static <T> T last(List<T> list) {
-        return list.get(list.size() - 1);
-    }
-
-    //~ Inner Classes ----------------------------------------------------------
+  //~ Inner Classes ----------------------------------------------------------
 
     /**
      * Exception used to interrupt a tree walk of any kind.

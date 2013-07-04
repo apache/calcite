@@ -713,7 +713,7 @@ public class UtilTest {
 
         // String and an integer.
         final Template template =
-            new Template("Happy {age,number,#.00}th birthday, {person}!");
+            Template.of("Happy {age,number,#.00}th birthday, {person}!");
         map.clear();
         map.put("person", "Ringo");
         map.put("age", 64.5);
@@ -748,7 +748,7 @@ public class UtilTest {
 
         // No parameters; doubled single quotes; quoted braces.
         final Template template2 =
-            new Template("Don''t expand 'this {brace}'.");
+            Template.of("Don''t expand 'this {brace}'.");
         assertEquals(
             Collections.<String>emptyList(), template2.getParameterNames());
         assertEquals(

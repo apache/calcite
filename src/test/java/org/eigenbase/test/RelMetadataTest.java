@@ -26,6 +26,8 @@ import org.eigenbase.relopt.*;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
+
 import static org.junit.Assert.*;
 
 /**
@@ -188,13 +190,13 @@ public class RelMetadataTest
         boolean expectedDerived)
     {
         RelOptTable actualTable = rco.getOriginTable();
-        String [] actualTableName = actualTable.getQualifiedName();
+        List<String> actualTableName = actualTable.getQualifiedName();
         assertEquals(
-            actualTableName[actualTableName.length - 1],
+            Iterables.getLast(actualTableName),
             expectedTableName);
         assertEquals(
-            actualTable.getRowType().getFields()[rco.getOriginColumnOrdinal()]
-            .getName(),
+            actualTable.getRowType().getFieldList()
+                .get(rco.getOriginColumnOrdinal()).getName(),
             expectedColumnName);
         assertEquals(
             rco.isDerived(),
@@ -236,9 +238,8 @@ public class RelMetadataTest
             result.size());
         for (RelColumnOrigin rco : result) {
             RelOptTable actualTable = rco.getOriginTable();
-            String [] actualTableName = actualTable.getQualifiedName();
-            String actualUnqualifiedName =
-                actualTableName[actualTableName.length - 1];
+            List<String> actualTableName = actualTable.getQualifiedName();
+            String actualUnqualifiedName = Iterables.getLast(actualTableName);
             if (actualUnqualifiedName.equals(expectedTableName1)) {
                 checkColumnOrigin(
                     rco,

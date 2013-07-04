@@ -92,8 +92,7 @@ public class RelColumnOrigin
             return false;
         }
         RelColumnOrigin other = (RelColumnOrigin) obj;
-        return Arrays.equals(
-            originTable.getQualifiedName(),
+        return originTable.getQualifiedName().equals(
             other.originTable.getQualifiedName())
             && (iOriginColumn == other.iOriginColumn)
             && (isDerived == other.isDerived);
@@ -102,7 +101,7 @@ public class RelColumnOrigin
     // override Object
     public int hashCode()
     {
-        return Arrays.hashCode(originTable.getQualifiedName())
+        return originTable.getQualifiedName().hashCode()
             + iOriginColumn + (isDerived ? 313 : 0);
     }
 }

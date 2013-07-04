@@ -349,7 +349,7 @@ public class SqlValidatorImpl
                     final SqlValidatorNamespace fromNs = getNamespace(from);
                     assert fromNs != null;
                     final RelDataType rowType = fromNs.getRowType();
-                    for (RelDataTypeField field : rowType.getFields()) {
+                    for (RelDataTypeField field : rowType.getFieldList()) {
                         String columnName = field.getName();
 
                         // TODO: do real implicit collation here
@@ -385,7 +385,7 @@ public class SqlValidatorImpl
                 final SqlValidatorNamespace fromNs = getNamespace(from);
                 assert fromNs != null;
                 final RelDataType rowType = fromNs.getRowType();
-                for (RelDataTypeField field : rowType.getFields()) {
+                for (RelDataTypeField field : rowType.getFieldList()) {
                     String columnName = field.getName();
 
                     // TODO: do real implicit collation here
@@ -1646,7 +1646,7 @@ public class SqlValidatorImpl
             for (SqlNode child : nodeList) {
                 RelDataType type;
                 if (inferredType.isStruct()) {
-                    type = inferredType.getFields()[i].getType();
+                    type = inferredType.getFieldList().get(i).getType();
                     ++i;
                 } else {
                     type = inferredType;
@@ -2935,11 +2935,7 @@ public class SqlValidatorImpl
             final RelDataType rowType = namespace.getRowType();
             final RelDataTypeField field = rowType.getField(name);
             if (field != null) {
-                if (SqlValidatorUtil.countOccurrences(
-                        name,
-                        SqlTypeUtil.getFieldNames(rowType))
-                    > 1)
-                {
+                if (Collections.frequency(rowType.getFieldNames(), name) > 1) {
                     throw newValidationError(
                         id,
                         EigenbaseResource.instance().ColumnInUsingNotUnique.ex(
@@ -3396,7 +3392,7 @@ public class SqlValidatorImpl
         assert type instanceof RelRecordType;
         RelRecordType rec = (RelRecordType) type;
 
-        RelDataType nodeType = rec.getFields()[0].getType();
+        RelDataType nodeType = rec.getFieldList().get(0).getType();
         nodeType = typeFactory.createTypeWithNullability(nodeType, true);
         fieldList.add(Pair.of(alias, nodeType));
     }
@@ -3420,7 +3416,7 @@ public class SqlValidatorImpl
         if (targetColumnList == null) {
             return baseRowType;
         }
-        RelDataTypeField [] targetFields = baseRowType.getFields();
+        List<RelDataTypeField> targetFields = baseRowType.getFieldList();
         int targetColumnCount = targetColumnList.size();
         if (append) {
             targetColumnCount += baseRowType.getFieldCount();
@@ -3431,7 +3427,7 @@ public class SqlValidatorImpl
         if (append) {
             iTarget += baseRowType.getFieldCount();
             for (int i = 0; i < iTarget; ++i) {
-                types[i] = targetFields[i].getType();
+                types[i] = targetFields.get(i).getType();
                 fieldNames[i] = SqlUtil.deriveAliasFromOrdinal(i);
             }
         }
@@ -3451,8 +3447,9 @@ public class SqlValidatorImpl
                     EigenbaseResource.instance().UnknownTargetColumn.ex(
                         id.getSimple()));
             }
-            fieldNames[iTarget] = targetFields[iColumn].getName();
-            types[iTarget] = targetFields[iColumn].getType();
+            final RelDataTypeField targetField = targetFields.get(iColumn);
+            fieldNames[iTarget] = targetField.getName();
+            types[iTarget] = targetField.getType();
             ++iTarget;
         }
         return typeFactory.createStructType(types, fieldNames);
@@ -3539,12 +3536,12 @@ public class SqlValidatorImpl
         // NOTE jvs 23-Feb-2006: subclasses may allow for extra targets
         // representing system-maintained columns, so stop after all sources
         // matched
-        RelDataTypeField [] sourceFields = sourceRowType.getFields();
-        RelDataTypeField [] targetFields = targetRowType.getFields();
-        final int sourceCount = sourceFields.length;
+        List<RelDataTypeField> sourceFields = sourceRowType.getFieldList();
+        List<RelDataTypeField> targetFields = targetRowType.getFieldList();
+        final int sourceCount = sourceFields.size();
         for (int i = 0; i < sourceCount; ++i) {
-            RelDataType sourceType = sourceFields[i].getType();
-            RelDataType targetType = targetFields[i].getType();
+            RelDataType sourceType = sourceFields.get(i).getType();
+            RelDataType targetType = targetFields.get(i).getType();
             if (!SqlTypeUtil.canAssignFrom(targetType, sourceType)) {
                 // FRG-255:  account for UPDATE rewrite; there's
                 // probably a better way to do this.
@@ -3552,8 +3549,8 @@ public class SqlValidatorImpl
                 if (query instanceof SqlUpdate) {
                     int nUpdateColumns =
                         ((SqlUpdate) query).getTargetColumnList().size();
-                    assert (sourceFields.length >= nUpdateColumns);
-                    iAdjusted -= (sourceFields.length - nUpdateColumns);
+                    assert (sourceFields.size() >= nUpdateColumns);
+                    iAdjusted -= (sourceFields.size() - nUpdateColumns);
                 }
                 SqlNode node = getNthExpr(query, iAdjusted, sourceCount);
                 String targetTypeString;
@@ -3571,9 +3568,9 @@ public class SqlValidatorImpl
                 throw newValidationError(
                     node,
                     EigenbaseResource.instance().TypeNotAssignable.ex(
-                        targetFields[i].getName(),
+                        targetFields.get(i).getName(),
                         targetTypeString,
-                        sourceFields[i].getName(),
+                        sourceFields.get(i).getName(),
                         sourceTypeString));
             }
         }
@@ -3726,7 +3723,7 @@ public class SqlValidatorImpl
                     node,
                     EigenbaseResource.instance().AccessNotAllowed.ex(
                         requiredAccess.name(),
-                        Arrays.asList(table.getQualifiedName()).toString()));
+                        table.getQualifiedName().toString()));
             }
         }
     }
@@ -3829,7 +3826,7 @@ public class SqlValidatorImpl
         SqlNode node,
         SqlValidatorException e)
     {
-        Util.pre(node != null, "node != null");
+        assert node != null;
         final SqlParserPos pos = node.getParserPosition();
         return SqlUtil.newContextException(pos, e);
     }
@@ -4060,8 +4057,7 @@ public class SqlValidatorImpl
                         namespace = scope.resolve(name, null, null);
                         final SqlValidatorTable table = namespace.getTable();
                         if (table != null) {
-                            origin.addAll(
-                                Arrays.asList(table.getQualifiedName()));
+                            origin.addAll(table.getQualifiedName());
                         } else {
                             return null;
                         }

@@ -73,7 +73,7 @@ public class IdentifierNamespace
 
     public RelDataType validateImpl()
     {
-        table = validator.catalogReader.getTable(id.names);
+        table = validator.catalogReader.getTable(Arrays.asList(id.names));
         if (table == null) {
             throw validator.newValidationError(
                 id,
@@ -82,16 +82,16 @@ public class IdentifierNamespace
         }
         if (validator.shouldExpandIdentifiers()) {
             // TODO:  expand qualifiers for column references also
-            String [] qualifiedNames = table.getQualifiedName();
+            List<String> qualifiedNames = table.getQualifiedName();
             if (qualifiedNames != null) {
                 // Assign positions to the components of the fully-qualified
                 // identifier, as best we can. We assume that qualification
                 // adds names to the front, e.g. FOO.BAR becomes BAZ.FOO.BAR.
-                SqlParserPos [] poses = new SqlParserPos[qualifiedNames.length];
+                SqlParserPos [] poses = new SqlParserPos[qualifiedNames.size()];
                 Arrays.fill(
                     poses,
                     id.getParserPosition());
-                int offset = qualifiedNames.length - id.names.length;
+                int offset = qualifiedNames.size() - id.names.length;
 
                 // Test offset in case catalog supports fewer
                 // qualifiers than catalog reader.
@@ -100,16 +100,18 @@ public class IdentifierNamespace
                         poses[i + offset] = id.getComponentParserPosition(i);
                     }
                 }
-                id.setNames(qualifiedNames, poses);
+              final String[] names =
+                  qualifiedNames.toArray(new String[qualifiedNames.size()]);
+              id.setNames(names, poses);
             }
         }
 
         // Build a list of monotonic expressions.
         monotonicExprs = new ArrayList<Pair<SqlNode, SqlMonotonicity>>();
         RelDataType rowType = table.getRowType();
-        RelDataTypeField [] fields = rowType.getFields();
-        for (int i = 0; i < fields.length; i++) {
-            final String fieldName = fields[i].getName();
+        List<RelDataTypeField> fields = rowType.getFieldList();
+        for (int i = 0; i < fields.size(); i++) {
+            final String fieldName = fields.get(i).getName();
             final SqlMonotonicity monotonicity =
                 table.getMonotonicity(fieldName);
             if (monotonicity != SqlMonotonicity.NotMonotonic) {

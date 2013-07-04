@@ -18,10 +18,11 @@
 package org.eigenbase.sql.type;
 
 import java.sql.*;
-
 import java.util.*;
 
 import org.eigenbase.reltype.*;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -76,8 +77,7 @@ public enum SqlTypeFamily
 
     DATETIME(SqlTypeName.datetimeTypes),
 
-    DATETIME_INTERVAL(
-        SqlTypeName.INTERVAL_DAY_TIME, SqlTypeName.INTERVAL_YEAR_MONTH),
+    DATETIME_INTERVAL(SqlTypeName.intervalTypes),
 
     MULTISET(SqlTypeName.MULTISET),
 
@@ -172,11 +172,14 @@ public enum SqlTypeFamily
      */
     private List<SqlTypeName> typeNames;
 
-    private SqlTypeFamily(SqlTypeName... typeNames)
+    private SqlTypeFamily(SqlTypeName typeName)
     {
-        this.typeNames =
-            Collections.unmodifiableList(
-                Arrays.asList(typeNames));
+        this(ImmutableList.of(typeName));
+    }
+
+    private SqlTypeFamily(List<SqlTypeName> typeNames)
+    {
+        this.typeNames = ImmutableList.copyOf(typeNames);
     }
 
     private static void setFamilyForJdbcType(

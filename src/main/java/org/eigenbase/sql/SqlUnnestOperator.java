@@ -51,7 +51,7 @@ public class SqlUnnestOperator
     {
         RelDataType type = opBinding.getOperandType(0);
         if (type.isStruct()) {
-            type = type.getFields()[0].getType();
+            type = type.getFieldList().get(0).getType();
         }
         MultisetSqlType t = (MultisetSqlType) type;
         return t.getComponentType();

@@ -24,6 +24,7 @@ import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.ImmutableIntList;
 
 
 /**
@@ -39,8 +40,8 @@ public final class SemiJoinRel
 {
     //~ Instance fields --------------------------------------------------------
 
-    private List<Integer> leftKeys;
-    private List<Integer> rightKeys;
+    private final ImmutableIntList leftKeys;
+    private final ImmutableIntList rightKeys;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -68,8 +69,8 @@ public final class SemiJoinRel
             condition,
             JoinRelType.INNER,
             Collections.<String>emptySet());
-        this.leftKeys = leftKeys;
-        this.rightKeys = rightKeys;
+        this.leftKeys = ImmutableIntList.copyOf(leftKeys);
+        this.rightKeys = ImmutableIntList.copyOf(rightKeys);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -86,8 +87,8 @@ public final class SemiJoinRel
             left,
             right,
             conditionExpr,
-            new ArrayList<Integer>(getLeftKeys()),
-            new ArrayList<Integer>(getRightKeys()));
+            getLeftKeys(),
+            getRightKeys());
     }
 
     // implement RelNode

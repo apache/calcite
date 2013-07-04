@@ -30,6 +30,8 @@ import net.hydromatic.optiq.runtime.Spacer;
 
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * Callback for an expression to dump itself to.
@@ -196,7 +198,7 @@ public class RelOptPlanWriter {
             ++i;
         }
         final List<Pair<String, Object>> valuesCopy =
-            new ArrayList<Pair<String, Object>>(values);
+            ImmutableList.copyOf(values);
         values.clear();
         explain_(node, valuesCopy);
         pw.flush();

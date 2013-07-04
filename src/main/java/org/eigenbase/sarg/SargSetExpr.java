@@ -23,6 +23,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * SargSetExpr represents the application of a {@link SargSetOperator set
@@ -68,7 +70,7 @@ public class SargSetExpr
      */
     public List<SargExpr> getChildren()
     {
-        return Collections.unmodifiableList(children);
+        return ImmutableList.copyOf(children);
     }
 
     /**

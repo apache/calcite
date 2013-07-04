@@ -115,13 +115,10 @@ public class PushProjectPastJoinRule
                 leftProjRel.getRowType().getFieldList());
             projJoinFieldList.addAll(
                 rightProjRel.getRowType().getFieldList());
-            RelDataTypeField [] projJoinFields =
-                projJoinFieldList.toArray(
-                    new RelDataTypeField[projJoinFieldList.size()]);
             newJoinFilter =
                 pushProject.convertRefsAndExprs(
                     joinRel.getCondition(),
-                    projJoinFields,
+                    projJoinFieldList,
                     adjustments);
         }
 

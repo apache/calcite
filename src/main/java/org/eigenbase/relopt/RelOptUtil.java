@@ -18,7 +18,6 @@
 package org.eigenbase.relopt;
 
 import java.io.*;
-
 import java.util.*;
 
 import org.eigenbase.rel.*;
@@ -29,6 +28,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -144,41 +145,6 @@ public abstract class RelOptUtil
     }
 
     /**
-     * Returns a list of the names of the fields in a given struct type. The
-     * list is immutable.
-     *
-     * @param type Struct type
-     *
-     * @return List of field names
-     *
-     * @see #getFieldTypeList(RelDataType)
-     * @see #getFieldNames(RelDataType)
-     */
-    public static List<String> getFieldNameList(final RelDataType type)
-    {
-        return type.getFieldNames();
-    }
-
-    /**
-     * Returns an array of the names of the fields in a given struct type.
-     *
-     * @param type Struct type
-     *
-     * @return Array of field names
-     *
-     * @see #getFieldNameList(RelDataType)
-     */
-    public static String [] getFieldNames(RelDataType type)
-    {
-        RelDataTypeField [] fields = type.getFields();
-        String [] names = new String[fields.length];
-        for (int i = 0; i < fields.length; ++i) {
-            names[i] = fields[i].getName();
-        }
-        return names;
-    }
-
-    /**
      * Returns a list of the types of the fields in a given struct type. The
      * list is immutable.
      *
@@ -186,7 +152,7 @@ public abstract class RelOptUtil
      *
      * @return List of field types
      *
-     * @see #getFieldNameList(RelDataType)
+     * @see org.eigenbase.reltype.RelDataType#getFieldNames()
      */
     public static List<RelDataType> getFieldTypeList(final RelDataType type)
     {
@@ -223,7 +189,7 @@ public abstract class RelOptUtil
                 public RelDataType getFieldType(int index)
                 {
                     int iField = type.getFieldOrdinal(getFieldName(index));
-                    return type.getFields()[iField].getType();
+                    return type.getFieldList().get(iField).getType();
                 }
             });
     }
@@ -245,10 +211,10 @@ public abstract class RelOptUtil
         if (rowType2.getFieldCount() != n) {
             return false;
         }
-        RelDataTypeField [] f1 = rowType1.getFields();
-        RelDataTypeField [] f2 = rowType2.getFields();
+        List<RelDataTypeField> f1 = rowType1.getFieldList();
+        List<RelDataTypeField> f2 = rowType2.getFieldList();
         for (int i = 0; i < n; ++i) {
-            if (!f1[i].getType().equals(f2[i].getType())) {
+            if (!f1.get(i).getType().equals(f2.get(i).getType())) {
                 return false;
             }
         }
@@ -313,17 +279,17 @@ public abstract class RelOptUtil
     public static RelNode createExistsPlan(
         RelOptCluster cluster,
         RelNode seekRel,
-        RexNode [] conditions,
+        List<RexNode> conditions,
         RexLiteral extraExpr,
         String extraName)
     {
         RelNode ret = seekRel;
 
-        if ((conditions != null) && (conditions.length > 0)) {
+        if ((conditions != null) && (conditions.size() > 0)) {
             RexNode conditionExp =
                 RexUtil.andRexNodeList(
                     cluster.getRexBuilder(),
-                    Arrays.asList(conditions));
+                    conditions);
 
             ret = CalcRel.createFilter(ret, conditionExp);
         }
@@ -342,8 +308,9 @@ public abstract class RelOptUtil
             ret =
                 CalcRel.createProject(
                     ret, Collections.<RexNode>singletonList(extraExpr), null);
-            RelDataType [] argTypes = new RelDataType[1];
-            argTypes[0] = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+            List<RelDataType> argTypes =
+                ImmutableList.of(
+                    typeFactory.createSqlType(SqlTypeName.BOOLEAN));
 
             SqlAggFunction minFunction =
                 new SqlMinMaxAggFunction(
@@ -407,7 +374,7 @@ public abstract class RelOptUtil
                 for (int i = 0; i < inputFieldType.getFieldCount(); i++) {
                     exprs.add(
                         rexBuilder.makeInputRef(
-                            inputFieldType.getFields()[i].getType(), i));
+                            inputFieldType.getFieldList().get(i).getType(), i));
                 }
             }
 
@@ -420,8 +387,9 @@ public abstract class RelOptUtil
 
                 ret = CalcRel.createProject(ret, exprs, null);
 
-                RelDataType [] argTypes = new RelDataType[1];
-                argTypes[0] = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+                List<RelDataType> argTypes =
+                    ImmutableList.of(
+                        typeFactory.createSqlType(SqlTypeName.BOOLEAN));
 
                 SqlAggFunction minFunction =
                     new SqlMinMaxAggFunction(
@@ -477,11 +445,11 @@ public abstract class RelOptUtil
         RelNode rel)
     {
         RelDataType inputType = rel.getRowType();
-        RelDataTypeField [] inputFields = inputType.getFields();
-        int n = inputFields.length;
+        List<RelDataTypeField> inputFields = inputType.getFieldList();
+        int n = inputFields.size();
 
-        RelDataTypeField [] outputFields = outputType.getFields();
-        assert outputFields.length == n : "rename: field count mismatch: in="
+        List<RelDataTypeField> outputFields = outputType.getFieldList();
+        assert outputFields.size() == n : "rename: field count mismatch: in="
             + inputType
             + ", out" + outputType;
 
@@ -526,7 +494,7 @@ public abstract class RelOptUtil
         } else {
             n = rowType.getFieldCount();
         }
-        RelDataTypeField [] fields = rowType.getFields();
+        List<RelDataTypeField> fields = rowType.getFieldList();
         for (int i = 0; i < n; ++i) {
             int iField;
             if (fieldOrdinals != null) {
@@ -534,7 +502,7 @@ public abstract class RelOptUtil
             } else {
                 iField = i;
             }
-            RelDataType type = fields[iField].getType();
+            RelDataType type = fields.get(iField).getType();
             if (!type.isNullable()) {
                 continue;
             }
@@ -618,9 +586,8 @@ public abstract class RelOptUtil
             RelDataType returnType =
                 SqlStdOperatorTable.singleValueOperator.inferReturnType(
                     cluster.getRexBuilder().getTypeFactory(),
-                    new RelDataType[] {
-                        rel.getRowType().getFields()[i].getType()
-                    });
+                    ImmutableList.of(
+                        rel.getRowType().getFieldList().get(i).getType()));
 
             aggCalls.add(
                 new AggregateCall(
@@ -910,10 +877,10 @@ public abstract class RelOptUtil
         final int firstRightField = sysFieldCount + leftFieldCount;
         final int totalFieldCount = firstRightField + rightFieldCount;
 
-        final RelDataTypeField [] leftFields =
-            leftRel.getRowType().getFields();
-        final RelDataTypeField [] rightFields =
-            rightRel.getRowType().getFields();
+        final List<RelDataTypeField> leftFields =
+            leftRel.getRowType().getFieldList();
+        final List<RelDataTypeField> rightFields =
+            rightRel.getRowType().getFieldList();
 
         RexBuilder rexBuilder = leftRel.getCluster().getRexBuilder();
         RelDataTypeFactory typeFactory = leftRel.getCluster().getTypeFactory();
@@ -1014,9 +981,9 @@ public abstract class RelOptUtil
                         // perform casting
                         RelDataType targetKeyType =
                             typeFactory.leastRestrictive(
-                                Arrays.asList(leftKeyType, rightKeyType));
+                                ImmutableList.of(leftKeyType, rightKeyType));
 
-                        if (targetKeyType == null) {
+                      if (targetKeyType == null) {
                             throw Util.newInternal(
                                 "Cannot find common type for join keys "
                                 + leftKey + " (type " + leftKeyType + ") and "
@@ -1384,12 +1351,10 @@ public abstract class RelOptUtil
         }
 
         for (i = 0; i < origLeftInputSize; i++) {
-            newLeftFields.add(
-                rexBuilder.makeInputRef(
-                    leftRel.getRowType().getFields()[i].getType(),
-                    i));
-            newLeftFieldNames.add(
-                leftRel.getRowType().getFields()[i].getName());
+            final RelDataTypeField field =
+                leftRel.getRowType().getFieldList().get(i);
+            newLeftFields.add(rexBuilder.makeInputRef(field.getType(), i));
+            newLeftFieldNames.add(field.getName());
             outputProj.add(systemColCount + i);
         }
 
@@ -1411,12 +1376,10 @@ public abstract class RelOptUtil
 
         int leftFieldCount = origLeftInputSize + newLeftKeyCount;
         for (i = 0; i < origRightInputSize; i++) {
-            newRightFields.add(
-                rexBuilder.makeInputRef(
-                    rightRel.getRowType().getFields()[i].getType(),
-                    i));
-            newRightFieldNames.add(
-                rightRel.getRowType().getFields()[i].getName());
+            final RelDataTypeField field =
+                rightRel.getRowType().getFieldList().get(i);
+            newRightFields.add(rexBuilder.makeInputRef(field.getType(), i));
+            newRightFieldNames.add(field.getName());
             outputProj.add(systemColCount + leftFieldCount + i);
         }
 
@@ -1473,23 +1436,25 @@ public abstract class RelOptUtil
         RelNode joinRel)
     {
         int newProjectOutputSize = outputProj.size();
-        RelDataTypeField [] joinOutputFields = joinRel.getRowType().getFields();
+        List<RelDataTypeField> joinOutputFields =
+            joinRel.getRowType().getFieldList();
 
         // If no projection was passed in, or the number of desired projection
         // columns is the same as the number of columns returned from the
         // join, then no need to create a projection
         if ((newProjectOutputSize > 0)
-            && (newProjectOutputSize < joinOutputFields.length))
+            && (newProjectOutputSize < joinOutputFields.size()))
         {
             List<Pair<RexNode, String>> newProjects =
                 new ArrayList<Pair<RexNode, String>>();
             RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
             for (int fieldIndex : outputProj) {
+                final RelDataTypeField field = joinOutputFields.get(fieldIndex);
                 newProjects.add(
                     Pair.of(
                         (RexNode) rexBuilder.makeInputRef(
-                            joinOutputFields[fieldIndex].getType(), fieldIndex),
-                        joinOutputFields[fieldIndex].getName()));
+                            field.getType(), fieldIndex),
+                        field.getName()));
             }
 
             // Create a project rel on the output of the join.
@@ -1601,12 +1566,12 @@ public abstract class RelOptUtil
         RelNode rel,
         int i)
     {
-        final RelDataTypeField [] fields = rel.getRowType().getFields();
+        final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
         if (i < 0) {
-            i = fields.length + i;
+            i = fields.size() + i;
         }
         return rel.getCluster().getRexBuilder().makeInputRef(
-            fields[i].getType(),
+            fields.get(i).getType(),
             i);
     }
 
@@ -1685,12 +1650,14 @@ public abstract class RelOptUtil
         RexNode ret = null;
         if (x.getType().isStruct()) {
             assert (y.getType().isStruct());
-            RelDataTypeField [] xFields = x.getType().getFields();
-            RelDataTypeField [] yFields = x.getType().getFields();
-            assert (xFields.length == yFields.length);
-            for (int i = 0; i < xFields.length; i++) {
-                RelDataTypeField xField = xFields[i];
-                RelDataTypeField yField = yFields[i];
+            List<RelDataTypeField> xFields = x.getType().getFieldList();
+            List<RelDataTypeField> yFields = y.getType().getFieldList();
+            assert xFields.size() == yFields.size();
+            for (Pair<RelDataTypeField, RelDataTypeField> pair
+                : Pair.zip(xFields, yFields))
+            {
+                RelDataTypeField xField = pair.left;
+                RelDataTypeField yField = pair.right;
                 RexNode newX =
                     rexBuilder.makeFieldAccess(
                         x,
@@ -1701,16 +1668,14 @@ public abstract class RelOptUtil
                         yField.getIndex());
                 RexNode newCall =
                     isDistinctFromInternal(rexBuilder, newX, newY, neg);
-                if (i > 0) {
-                    assert (null != ret);
+                if (ret == null) {
+                    ret = newCall;
+                } else {
                     ret =
                         rexBuilder.makeCall(
                             SqlStdOperatorTable.andOperator,
                             ret,
                             newCall);
-                } else {
-                    assert (null == ret);
-                    ret = newCall;
                 }
             }
         } else {
@@ -1816,7 +1781,7 @@ public abstract class RelOptUtil
         final PrintWriter pw = new PrintWriter(sw);
         final TypeDumper typeDumper = new TypeDumper(pw);
         if (type.isStruct()) {
-            typeDumper.acceptFields(type.getFields());
+            typeDumper.acceptFields(type.getFieldList());
         } else {
             typeDumper.accept(type);
         }
@@ -1995,8 +1960,8 @@ public abstract class RelOptUtil
     {
         RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
         boolean filterPushed = false;
-        RelDataTypeField [] joinFields = joinRel.getRowType().getFields();
-        int nTotalFields = joinFields.length;
+        List<RelDataTypeField> joinFields = joinRel.getRowType().getFieldList();
+        int nTotalFields = joinFields.size();
 
         int nFieldsLeft =
             joinRel.getInputs().get(0).getRowType().getFieldCount();
@@ -2008,8 +1973,8 @@ public abstract class RelOptUtil
         RelOptUtil.setRexInputBitmap(rightBitmap, nFieldsLeft, nTotalFields);
 
         ListIterator<RexNode> filterIter = filters.listIterator();
-        RelDataTypeField [] rightFields =
-            joinRel.getInputs().get(1).getRowType().getFields();
+        List<RelDataTypeField> rightFields =
+            joinRel.getInputs().get(1).getRowType().getFieldList();
         while (filterIter.hasNext()) {
             RexNode filter = filterIter.next();
 
@@ -2146,10 +2111,11 @@ public abstract class RelOptUtil
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.equalsOperator,
                     rexBuilder.makeInputRef(
-                        left.getRowType().getFields()[leftKey].getType(),
+                        left.getRowType().getFieldList().get(leftKey).getType(),
                         leftKey),
                     rexBuilder.makeInputRef(
-                        right.getRowType().getFields()[rightKey].getType(),
+                        right.getRowType().getFieldList().get(rightKey)
+                            .getType(),
                         rightKey + offset));
             if (i == 0) {
                 equiCondition = equi;
@@ -2185,16 +2151,16 @@ public abstract class RelOptUtil
             return false;
         }
 
-        int n = project.getProjectExps().length;
+        int n = project.getProjects().size();
         RelDataType inputType = project.getChild().getRowType();
         if (inputType.getFieldList().size() != n) {
             return false;
         }
-        RelDataTypeField [] projFields = project.getRowType().getFields();
-        RelDataTypeField [] inputFields = inputType.getFields();
+        List<RelDataTypeField> projFields = project.getRowType().getFieldList();
+        List<RelDataTypeField> inputFields = inputType.getFieldList();
         boolean namesDifferent = false;
         for (int i = 0; i < n; ++i) {
-            RexNode exp = project.getProjectExps()[i];
+            RexNode exp = project.getProjects().get(i);
             if (!(exp instanceof RexInputRef)) {
                 return false;
             }
@@ -2204,8 +2170,8 @@ public abstract class RelOptUtil
                 return false;
             }
             if (checkNames) {
-                String inputFieldName = inputFields[i].getName();
-                String projFieldName = projFields[i].getName();
+                String inputFieldName = inputFields.get(i).getName();
+                String projFieldName = projFields.get(i).getName();
                 if (!projFieldName.equals(inputFieldName)) {
                     namesDifferent = true;
                 }
@@ -2234,17 +2200,17 @@ public abstract class RelOptUtil
         JoinRel origJoin,
         boolean origOrder)
     {
-        final RelDataTypeField [] newJoinFields =
-            newJoin.getRowType().getFields();
+        final List<RelDataTypeField> newJoinFields =
+            newJoin.getRowType().getFieldList();
         final RexBuilder rexBuilder = newJoin.getCluster().getRexBuilder();
         final List<RexNode> exps = new ArrayList<RexNode>();
         final int nFields =
             origOrder ? origJoin.getRight().getRowType().getFieldCount()
             : origJoin.getLeft().getRowType().getFieldCount();
-        for (int i = 0; i < newJoinFields.length; i++) {
-            final int source = (i + nFields) % newJoinFields.length;
+        for (int i = 0; i < newJoinFields.size(); i++) {
+            final int source = (i + nFields) % newJoinFields.size();
             RelDataTypeField field =
-                origOrder ? newJoinFields[source] : newJoinFields[i];
+                origOrder ? newJoinFields.get(source) : newJoinFields.get(i);
             exps.add(rexBuilder.makeInputRef(field.getType(), source));
         }
         return exps;
@@ -2270,7 +2236,7 @@ public abstract class RelOptUtil
         RexProgram bottomProgram =
             RexProgram.create(
                 projRel.getChild().getRowType(),
-                projRel.getProjectExps(),
+                projRel.getProjects(),
                 null,
                 projRel.getRowType(),
                 rexBuilder);
@@ -2311,7 +2277,7 @@ public abstract class RelOptUtil
         // between the ProjectRel and the MultiJoinRel, the projection needs
         // to include those filter references.
         BitSet inputRefs = InputFinder.bits(
-            project.getProjectExps(),
+            project.getProjects(),
             multiJoin.getPostJoinFilter());
 
         // create new copies of the bitmaps
@@ -2428,7 +2394,7 @@ public abstract class RelOptUtil
         void accept(RelDataType type)
         {
             if (type.isStruct()) {
-                final RelDataTypeField [] fields = type.getFields();
+                final List<RelDataTypeField> fields = type.getFieldList();
 
                 // RECORD (
                 //   I INTEGER NOT NULL,
@@ -2456,10 +2422,10 @@ public abstract class RelOptUtil
             }
         }
 
-        private void acceptFields(final RelDataTypeField [] fields)
+        private void acceptFields(final List<RelDataTypeField> fields)
         {
-            for (int i = 0; i < fields.length; i++) {
-                RelDataTypeField field = fields[i];
+            for (int i = 0; i < fields.size(); i++) {
+                RelDataTypeField field = fields.get(i);
                 if (i > 0) {
                     pw.println(",");
                 }
@@ -2502,7 +2468,7 @@ public abstract class RelOptUtil
 
         /** Returns a bit set describing the inputs used by a collection of
          * project expressions and an optional condition. */
-        public static BitSet bits(RexNode [] exprs, RexNode expr) {
+        public static BitSet bits(List<RexNode> exprs, RexNode expr) {
             final BitSet inputBitSet = new BitSet();
             RexProgram.apply(new InputFinder(inputBitSet), exprs, expr);
             return inputBitSet;
@@ -2536,8 +2502,8 @@ public abstract class RelOptUtil
         extends RexShuttle
     {
         protected final RexBuilder rexBuilder;
-        private final RelDataTypeField [] srcFields;
-        protected final RelDataTypeField [] destFields;
+        private final List<RelDataTypeField> srcFields;
+        protected final List<RelDataTypeField> destFields;
         private final RelDataTypeField [] leftDestFields;
         private final RelDataTypeField [] rightDestFields;
         private final int nLeftDestFields;
@@ -2559,8 +2525,8 @@ public abstract class RelOptUtil
          */
         private RexInputConverter(
             RexBuilder rexBuilder,
-            RelDataTypeField [] srcFields,
-            RelDataTypeField [] destFields,
+            List<RelDataTypeField> srcFields,
+            List<RelDataTypeField> destFields,
             RelDataTypeField [] leftDestFields,
             RelDataTypeField [] rightDestFields,
             int [] adjustments)
@@ -2581,7 +2547,7 @@ public abstract class RelOptUtil
 
         public RexInputConverter(
             RexBuilder rexBuilder,
-            RelDataTypeField [] srcFields,
+            List<RelDataTypeField> srcFields,
             RelDataTypeField [] leftDestFields,
             RelDataTypeField [] rightDestFields,
             int [] adjustments)
@@ -2597,8 +2563,8 @@ public abstract class RelOptUtil
 
         public RexInputConverter(
             RexBuilder rexBuilder,
-            RelDataTypeField [] srcFields,
-            RelDataTypeField [] destFields,
+            List<RelDataTypeField> srcFields,
+            List<RelDataTypeField> destFields,
             int [] adjustments)
         {
             this(rexBuilder, srcFields, destFields, null, null, adjustments);
@@ -2606,7 +2572,7 @@ public abstract class RelOptUtil
 
         public RexInputConverter(
             RexBuilder rexBuilder,
-            RelDataTypeField [] srcFields,
+            List<RelDataTypeField> srcFields,
             int [] adjustments)
         {
             this(rexBuilder, srcFields, null, null, null, adjustments);
@@ -2619,7 +2585,7 @@ public abstract class RelOptUtil
 
             RelDataType type;
             if (destFields != null) {
-                type = destFields[destIndex].getType();
+                type = destFields.get(destIndex).getType();
             } else if (leftDestFields != null) {
                 if (destIndex < nLeftDestFields) {
                     type = leftDestFields[destIndex].getType();
@@ -2628,11 +2594,11 @@ public abstract class RelOptUtil
                         rightDestFields[destIndex - nLeftDestFields].getType();
                 }
             } else {
-                type = srcFields[srcIndex].getType();
+                type = srcFields.get(srcIndex).getType();
             }
             if ((adjustments[srcIndex] != 0)
                 || (srcFields == null)
-                || (type != srcFields[srcIndex].getType()))
+                || (type != srcFields.get(srcIndex).getType()))
             {
                 return rexBuilder.makeInputRef(type, destIndex);
             } else {

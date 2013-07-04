@@ -246,7 +246,7 @@ public class VolcanoRuleCall
             throw Util.newInternal(
                 e,
                 "Error while applying rule "
-                + getRule() + ", args " + Arrays.asList(rels));
+                + getRule() + ", args " + Arrays.toString(rels));
         }
     }
 

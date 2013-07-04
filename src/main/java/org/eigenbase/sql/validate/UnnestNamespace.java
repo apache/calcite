@@ -81,7 +81,7 @@ class UnnestNamespace
         // If sub-query, pick out first column.
         // TODO: Handle this using usual sub-select validation.
         if (type.isStruct()) {
-            type = type.getFields()[0].getType();
+            type = type.getFieldList().get(0).getType();
         }
         MultisetSqlType t = (MultisetSqlType) type;
         return t.getComponentType();

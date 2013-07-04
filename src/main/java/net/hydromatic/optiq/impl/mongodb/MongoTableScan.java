@@ -23,6 +23,8 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Pair;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.*;
 
 /**
@@ -52,8 +54,7 @@ public class MongoTableScan extends TableAccessRelBase implements MongoRel {
     super(cluster, traitSet, table);
     this.mongoTable = mongoTable;
     this.projectRowType = projectRowType;
-    this.ops =
-        Collections.unmodifiableList(new ArrayList<Pair<String, String>>(ops));
+    this.ops = ImmutableList.copyOf(ops);
 
     assert mongoTable != null;
     assert getConvention() == MongoRel.CONVENTION;

@@ -23,6 +23,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.Pair;
 
 
 /**
@@ -119,8 +120,8 @@ public class PullUpProjectsAboveJoinRule
         // the LHS.  If the join input was not a projection, simply create
         // references to the inputs.
         int nProjExprs = joinRel.getRowType().getFieldCount();
-        RexNode [] projExprs = new RexNode[nProjExprs];
-        String [] fieldNames = new String[nProjExprs];
+        List<Pair<RexNode, String>> projects =
+            new ArrayList<Pair<RexNode, String>>();
         RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
 
         createProjectExprs(
@@ -128,38 +129,34 @@ public class PullUpProjectsAboveJoinRule
             leftJoinChild,
             0,
             rexBuilder,
-            joinChildrenRowType.getFields(),
-            projExprs,
-            fieldNames,
-            0);
+            joinChildrenRowType.getFieldList(),
+            projects);
 
-        RelDataTypeField [] leftFields = leftJoinChild.getRowType().getFields();
-        int nFieldsLeft = leftFields.length;
+        List<RelDataTypeField> leftFields =
+            leftJoinChild.getRowType().getFieldList();
+        int nFieldsLeft = leftFields.size();
         createProjectExprs(
             rightProj,
             rightJoinChild,
             nFieldsLeft,
             rexBuilder,
-            joinChildrenRowType.getFields(),
-            projExprs,
-            fieldNames,
-            ((leftProj == null) ? nFieldsLeft
-                : leftProj.getProjectExps().length));
+            joinChildrenRowType.getFieldList(),
+            projects);
 
-        RelDataType [] projTypes = new RelDataType[nProjExprs];
+        List<RelDataType> projTypes = new ArrayList<RelDataType>();
         for (int i = 0; i < nProjExprs; i++) {
-            projTypes[i] = projExprs[i].getType();
+            projTypes.add(projects.get(i).left.getType());
         }
         RelDataType projRowType =
             rexBuilder.getTypeFactory().createStructType(
                 projTypes,
-                fieldNames);
+                Pair.right(projects));
 
         // create the RexPrograms and merge them
         RexProgram bottomProgram =
             RexProgram.create(
                 joinChildrenRowType,
-                projExprs,
+                Pair.left(projects),
                 null,
                 projRowType,
                 rexBuilder);
@@ -195,8 +192,9 @@ public class PullUpProjectsAboveJoinRule
         // outer join, modify the expressions to reference the join output
         List<RexNode> newProjExprs = new ArrayList<RexNode>();
         List<RexLocalRef> projList = mergedProgram.getProjectList();
-        RelDataTypeField [] newJoinFields = newJoinRel.getRowType().getFields();
-        int nJoinFields = newJoinFields.length;
+        List<RelDataTypeField> newJoinFields =
+            newJoinRel.getRowType().getFieldList();
+        int nJoinFields = newJoinFields.size();
         int [] adjustments = new int[nJoinFields];
         for (int i = 0; i < nProjExprs; i++) {
             RexNode newExpr = mergedProgram.expandLocalRef(projList.get(i));
@@ -205,7 +203,7 @@ public class PullUpProjectsAboveJoinRule
                     newExpr.accept(
                         new RelOptUtil.RexInputConverter(
                             rexBuilder,
-                            joinChildrenRowType.getFields(),
+                            joinChildrenRowType.getFieldList(),
                             newJoinFields,
                             adjustments));
             }
@@ -217,7 +215,7 @@ public class PullUpProjectsAboveJoinRule
             CalcRel.createProject(
                 newJoinRel,
                 newProjExprs,
-                Arrays.asList(fieldNames));
+                Pair.right(projects));
 
         call.transformTo(newProjRel);
     }
@@ -281,53 +279,49 @@ public class PullUpProjectsAboveJoinRule
      * @param rexBuilder rex builder
      * @param joinChildrenFields concatenation of the fields from the left and
      * right join inputs (once the projections have been removed)
-     * @param projExprs array of projection expressions to be created
-     * @param fieldNames array of the names of the projection fields
-     * @param offset starting index in the arrays to be filled in
+     * @param projects Projection expressions & names to be created
      */
     private void createProjectExprs(
         ProjectRel projRel,
         RelNode joinChild,
         int adjustmentAmount,
         RexBuilder rexBuilder,
-        RelDataTypeField [] joinChildrenFields,
-        RexNode [] projExprs,
-        String [] fieldNames,
-        int offset)
+        List<RelDataTypeField> joinChildrenFields,
+        List<Pair<RexNode, String>> projects)
     {
-        RelDataTypeField [] childFields = joinChild.getRowType().getFields();
+        List<RelDataTypeField> childFields =
+            joinChild.getRowType().getFieldList();
         if (projRel != null) {
-            RexNode [] origProjExprs = projRel.getProjectExps();
-            RelDataTypeField [] projFields = projRel.getRowType().getFields();
-            int nChildFields = childFields.length;
+            List<Pair<RexNode, String>> namedProjects =
+                projRel.getNamedProjects();
+            int nChildFields = childFields.size();
             int [] adjustments = new int[nChildFields];
             for (int i = 0; i < nChildFields; i++) {
                 adjustments[i] = adjustmentAmount;
             }
-            for (int i = 0; i < origProjExprs.length; i++) {
-                if (adjustmentAmount == 0) {
-                    projExprs[i + offset] = origProjExprs[i];
-                } else {
+            for (Pair<RexNode, String> pair : namedProjects) {
+                RexNode e = pair.left;
+                if (adjustmentAmount != 0) {
                     // shift the references by the adjustment amount
-                    RexNode newProjExpr =
-                        origProjExprs[i].accept(
-                            new RelOptUtil.RexInputConverter(
-                                rexBuilder,
-                                childFields,
-                                joinChildrenFields,
-                                adjustments));
-                    projExprs[i + offset] = newProjExpr;
+                    e = e.accept(
+                        new RelOptUtil.RexInputConverter(
+                            rexBuilder,
+                            childFields,
+                            joinChildrenFields,
+                            adjustments));
                 }
-                fieldNames[i + offset] = projFields[i].getName();
+                projects.add(Pair.of(e, pair.right));
             }
         } else {
             // no projection; just create references to the inputs
-            for (int i = 0; i < childFields.length; i++) {
-                projExprs[i + offset] =
-                    rexBuilder.makeInputRef(
-                        childFields[i].getType(),
-                        i + adjustmentAmount);
-                fieldNames[i + offset] = childFields[i].getName();
+            for (int i = 0; i < childFields.size(); i++) {
+                final RelDataTypeField field = childFields.get(i);
+                projects.add(
+                    Pair.of(
+                        (RexNode) rexBuilder.makeInputRef(
+                            field.getType(),
+                            i + adjustmentAmount),
+                        field.getName()));
             }
         }
     }

@@ -17,6 +17,8 @@
 */
 package org.eigenbase.util;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.*;
 
 
@@ -172,8 +174,8 @@ public class Graph<T>
             while (true) {
                 // Take a copy of the map's keys to avoid
                 // ConcurrentModificationExceptions.
-                ArrayList<Arc> previous =
-                    new ArrayList<Arc>(shortestPath.keySet());
+                final List<Arc<T>> previous =
+                    ImmutableList.copyOf(shortestPath.keySet());
                 int changeCount = 0;
                 for (Arc<T> arc : arcs) {
                     for (Arc<T> arc2 : previous) {

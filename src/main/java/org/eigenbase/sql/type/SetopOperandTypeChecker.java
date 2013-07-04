@@ -59,13 +59,13 @@ public class SetopOperandTypeChecker
                 "setop arg must be a struct");
 
             // Each operand must have the same number of columns.
-            final RelDataTypeField [] fields = argType.getFields();
+            final List<RelDataTypeField> fields = argType.getFieldList();
             if (i == 0) {
-                colCount = fields.length;
+                colCount = fields.size();
                 continue;
             }
 
-            if (fields.length != colCount) {
+            if (fields.size() != colCount) {
                 if (throwOnFailure) {
                     SqlNode node = callBinding.getCall().getOperands()[i];
                     if (node instanceof SqlSelect) {
@@ -91,7 +91,8 @@ public class SetopOperandTypeChecker
                 callBinding.getTypeFactory().leastRestrictive(
                     new AbstractList<RelDataType>() {
                         public RelDataType get(int index) {
-                            return argTypes[index].getFields()[i2].getType();
+                            return argTypes[index].getFieldList().get(i2)
+                                .getType();
                         }
                         public int size() {
                             return argTypes.length;

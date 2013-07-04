@@ -23,6 +23,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * An expression formed by a call to an operator with zero or more expressions
@@ -238,7 +240,7 @@ public class RexCall
 
     public List<RexNode> getOperandList()
     {
-        return Collections.unmodifiableList(Arrays.asList(operands));
+        return ImmutableList.copyOf(operands);
     }
 
     public SqlOperator getOperator()

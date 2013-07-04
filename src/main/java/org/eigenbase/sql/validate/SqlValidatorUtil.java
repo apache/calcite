@@ -63,7 +63,8 @@ public class SqlValidatorUtil
         if (namespace.isWrapperFor(IdentifierNamespace.class)) {
             IdentifierNamespace identifierNamespace =
                 namespace.unwrap(IdentifierNamespace.class);
-            final String [] names = identifierNamespace.getId().names;
+            final List<String> names =
+                Arrays.asList(identifierNamespace.getId().names);
             if ((datasetName != null)
                 && (catalogReader instanceof RelOptSchemaWithSampling))
             {
@@ -94,9 +95,9 @@ public class SqlValidatorUtil
         final RelDataType rowType,
         String columnName)
     {
-        final RelDataTypeField [] fields = rowType.getFields();
-        for (int i = 0; i < fields.length; i++) {
-            RelDataTypeField field = fields[i];
+        final List<RelDataTypeField> fields = rowType.getFieldList();
+        for (int i = 0; i < fields.size(); i++) {
+            RelDataTypeField field = fields.get(i);
             if (field.getName().equals(columnName)) {
                 return field.getType();
             }
@@ -122,9 +123,9 @@ public class SqlValidatorUtil
         final RelDataType rowType,
         String columnName)
     {
-        final RelDataTypeField [] fields = rowType.getFields();
-        for (int i = 0; i < fields.length; i++) {
-            RelDataTypeField field = fields[i];
+        final List<RelDataTypeField> fields = rowType.getFieldList();
+        for (int i = 0; i < fields.size(); i++) {
+            RelDataTypeField field = fields.get(i);
             if (field.getName().equals(columnName)) {
                 return field;
             }
@@ -367,27 +368,16 @@ public class SqlValidatorUtil
         RelDataType rightRowType)
     {
         List<String> naturalColumnNames = new ArrayList<String>();
-        final String [] leftNames = SqlTypeUtil.getFieldNames(leftRowType);
-        final String [] rightNames = SqlTypeUtil.getFieldNames(rightRowType);
+        final List<String> leftNames = leftRowType.getFieldNames();
+        final List<String> rightNames = rightRowType.getFieldNames();
         for (String name : leftNames) {
-            if ((countOccurrences(name, leftNames) == 1)
-                && (countOccurrences(name, rightNames) == 1))
+            if ((Collections.frequency(leftNames, name) == 1)
+                && (Collections.frequency(rightNames, name) == 1))
             {
                 naturalColumnNames.add(name);
             }
         }
         return naturalColumnNames;
-    }
-
-    static int countOccurrences(String name, String [] names)
-    {
-        int count = 0;
-        for (String s : names) {
-            if (s.equals(name)) {
-                ++count;
-            }
-        }
-        return count;
     }
 
     //~ Inner Classes ----------------------------------------------------------

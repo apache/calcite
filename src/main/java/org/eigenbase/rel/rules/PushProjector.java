@@ -25,8 +25,11 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import net.hydromatic.linq4j.Ord;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -58,12 +61,12 @@ public class PushProjector
     /**
      * Original projection expressions
      */
-    final RexNode [] origProjExprs;
+    final List<RexNode> origProjExprs;
 
     /**
      * Fields from the RelNode that the projection is being pushed past
      */
-    final RelDataTypeField [] childFields;
+    final List<RelDataTypeField> childFields;
 
     /**
      * Number of fields in the RelNode that the projection is being pushed past
@@ -187,23 +190,23 @@ public class PushProjector
         this.preserveExprCondition = preserveExprCondition;
 
         if (origProj == null) {
-            origProjExprs = new RexNode[] {};
+            origProjExprs = ImmutableList.of();
         } else {
-            origProjExprs = origProj.getChildExps();
+            origProjExprs = origProj.getProjects();
         }
 
-        childFields = childRel.getRowType().getFields();
-        nChildFields = childFields.length;
+        childFields = childRel.getRowType().getFieldList();
+        nChildFields = childFields.size();
 
         projRefs = new BitSet(nChildFields);
         if (childRel instanceof JoinRelBase) {
             JoinRelBase joinRel = (JoinRelBase) childRel;
-            RelDataTypeField [] leftFields =
-                joinRel.getLeft().getRowType().getFields();
-            RelDataTypeField [] rightFields =
-                joinRel.getRight().getRowType().getFields();
-            nFields = leftFields.length;
-            nFieldsRight = rightFields.length;
+            List<RelDataTypeField> leftFields =
+                joinRel.getLeft().getRowType().getFieldList();
+            List<RelDataTypeField> rightFields =
+                joinRel.getRight().getRowType().getFieldList();
+            nFields = leftFields.size();
+            nFieldsRight = rightFields.size();
             childBitmap = new BitSet(nFields);
             rightBitmap = new BitSet(nFieldsRight);
             nSysFields = joinRel.getSystemFieldList().size();
@@ -300,7 +303,7 @@ public class PushProjector
             RexNode newFilter =
                 convertRefsAndExprs(
                     origFilter,
-                    newProject.getRowType().getFields(),
+                    newProject.getRowType().getFieldList(),
                     adjustments);
             projChild = CalcRel.createFilter(newProject, newFilter);
         } else {
@@ -337,11 +340,7 @@ public class PushProjector
         nSystemProject = 0;
         nProject = 0;
         nRightProject = 0;
-        for (
-            int bit = projRefs.nextSetBit(0);
-            bit >= 0;
-            bit = projRefs.nextSetBit(bit + 1))
-        {
+        for (int bit : Util.toIter(projRefs)) {
             if (bit < nSysFields) {
                 nSystemProject++;
             } else if (bit < nSysFields + nFields) {
@@ -420,26 +419,27 @@ public class PushProjector
         int refIdx = offset - 1;
         List<Pair<RexNode, String>> newProjects =
             new ArrayList<Pair<RexNode, String>>();
-        RelDataTypeField [] destFields = projChild.getRowType().getFields();
+        List<RelDataTypeField> destFields =
+            projChild.getRowType().getFieldList();
 
         // add on the input references
         for (int i = 0; i < nInputRefs; i++) {
             refIdx = projRefs.nextSetBit(refIdx + 1);
             assert (refIdx >= 0);
+            final RelDataTypeField destField = destFields.get(refIdx - offset);
             newProjects.add(
                 Pair.of(
                     (RexNode) rexBuilder.makeInputRef(
-                        destFields[refIdx - offset].getType(),
-                        refIdx - offset),
-                    destFields[refIdx - offset].getName()));
+                        destField.getType(), refIdx - offset),
+                    destField.getName()));
         }
 
         // add on the expressions that need to be preserved, converting the
         // arguments to reference the projected columns (if necessary)
         int [] adjustments = {};
         if ((preserveExprs.size() > 0) && adjust) {
-            adjustments = new int[childFields.length];
-            for (int idx = offset; idx < childFields.length; idx++) {
+            adjustments = new int[childFields.size()];
+            for (int idx = offset; idx < childFields.size(); idx++) {
                 adjustments[idx] = -offset;
             }
         }
@@ -498,6 +498,7 @@ public class PushProjector
      * RexInputRef index by some amount, and converting expressions that need to
      * be preserved to field references.
      *
+     *
      * @param rex the expression
      * @param destFields fields that the new expressions will be referencing
      * @param adjustments the amount each input reference index needs to be
@@ -507,7 +508,7 @@ public class PushProjector
      */
     public RexNode convertRefsAndExprs(
         RexNode rex,
-        RelDataTypeField [] destFields,
+        List<RelDataTypeField> destFields,
         int [] adjustments)
     {
         return rex.accept(
@@ -540,17 +541,14 @@ public class PushProjector
             new ArrayList<Pair<RexNode, String>>();
 
         if (origProj != null) {
-            List<RexNode> exprs = origProj.getProjectExpList();
-            final List<RelDataTypeField> fields =
-                origProj.getRowType().getFieldList();
-            for (Pair<RexNode, RelDataTypeField> p : Pair.zip(exprs, fields)) {
+            for (Pair<RexNode, String> p : origProj.getNamedProjects()) {
                 projects.add(
                     Pair.of(
                         convertRefsAndExprs(
                             p.left,
-                            projChild.getRowType().getFields(),
+                            projChild.getRowType().getFieldList(),
                             adjustments),
-                        p.right.getName()));
+                        p.right));
             }
         } else {
             for (Ord<RelDataTypeField> field : Ord.zip(childFields)) {
@@ -614,10 +612,6 @@ public class PushProjector
                 // if the arguments of the expression only reference the
                 // left hand side, preserve it on the left; similarly, if
                 // it only references expressions on the right
-                int totalFields = leftFields.size();
-                if (rightFields != null) {
-                    totalFields += rightFields.size();
-                }
                 final BitSet exprArgs = RelOptUtil.InputFinder.bits(call);
                 if (exprArgs.cardinality() > 0) {
                     if (RelOptUtil.contains(leftFields, exprArgs)) {
@@ -647,7 +641,7 @@ public class PushProjector
          * Applies this visitor to an array of expressions and an optional
          * single expression.
          */
-        public void apply(RexNode [] exprs, RexNode expr)
+        public void apply(List<RexNode> exprs, RexNode expr)
         {
             RexProgram.apply(this, exprs, expr);
         }
@@ -685,8 +679,8 @@ public class PushProjector
 
         public RefAndExprConverter(
             RexBuilder rexBuilder,
-            RelDataTypeField [] srcFields,
-            RelDataTypeField [] destFields,
+            List<RelDataTypeField> srcFields,
+            List<RelDataTypeField> destFields,
             int [] adjustments,
             List<RexNode> preserveLeft,
             int firstLeftRef,
@@ -714,7 +708,7 @@ public class PushProjector
                     firstRightRef);
             if (match >= 0) {
                 return rexBuilder.makeInputRef(
-                    destFields[match].getType(),
+                    destFields.get(match).getType(),
                     match);
             }
             return super.visitCall(call);

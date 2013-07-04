@@ -24,6 +24,8 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.trace.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * A <code>RelSet</code> is an equivalence-set of expressions; that is, a set of
@@ -286,7 +288,7 @@ class RelSet
         //
         // Copy array to prevent ConcurrentModificationException.
         final List<RelNode> previousParents =
-            new ArrayList<RelNode>(otherSet.getParentRels());
+            ImmutableList.copyOf(otherSet.getParentRels());
         for (RelNode parentRel : previousParents) {
             planner.rename(parentRel);
         }

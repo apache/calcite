@@ -17,6 +17,8 @@
 */
 package org.eigenbase.sql.fun;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
@@ -57,14 +59,14 @@ public class SqlMinMaxAggFunction
 
     //~ Instance fields --------------------------------------------------------
 
-    public final RelDataType [] argTypes;
+    public final List<RelDataType> argTypes;
     private final boolean isMin;
     private final int kind;
 
     //~ Constructors -----------------------------------------------------------
 
     public SqlMinMaxAggFunction(
-        RelDataType [] argTypes,
+        List<RelDataType> argTypes,
         boolean isMin,
         int kind)
     {
@@ -92,14 +94,14 @@ public class SqlMinMaxAggFunction
         return kind;
     }
 
-    public RelDataType [] getParameterTypes(RelDataTypeFactory typeFactory)
+    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
     {
         switch (kind) {
         case MINMAX_PRIMITIVE:
         case MINMAX_COMPARABLE:
             return argTypes;
         case MINMAX_COMPARATOR:
-            return new RelDataType[] { argTypes[1] };
+            return argTypes.subList(1, 2);
         default:
             throw Util.newInternal("bad kind: " + kind);
         }
@@ -110,9 +112,9 @@ public class SqlMinMaxAggFunction
         switch (kind) {
         case MINMAX_PRIMITIVE:
         case MINMAX_COMPARABLE:
-            return argTypes[0];
+            return argTypes.get(0);
         case MINMAX_COMPARATOR:
-            return argTypes[1];
+            return argTypes.get(1);
         default:
             throw Util.newInternal("bad kind: " + kind);
         }

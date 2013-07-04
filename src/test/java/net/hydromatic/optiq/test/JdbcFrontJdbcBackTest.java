@@ -21,8 +21,6 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

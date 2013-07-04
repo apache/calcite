@@ -435,7 +435,7 @@ public abstract class SqlTypeStrategies
                     validationError = true;
                 } else {
                     SqlTypeName typeName =
-                        type.getFields()[0].getType().getSqlTypeName();
+                        type.getFieldList().get(0).getType().getSqlTypeName();
                     if (typeName != SqlTypeName.MULTISET) {
                         validationError = true;
                     }
@@ -1157,9 +1157,10 @@ public abstract class SqlTypeStrategies
                     recordMultisetType.getComponentType();
                 assert multisetType != null : "expected a multiset type: "
                     + recordMultisetType;
-                final RelDataTypeField [] fields = multisetType.getFields();
-                assert fields.length > 0;
-                final RelDataType firstColType = fields[0].getType();
+                final List<RelDataTypeField> fields =
+                    multisetType.getFieldList();
+                assert fields.size() > 0;
+                final RelDataType firstColType = fields.get(0).getType();
                 return opBinding.getTypeFactory().createMultisetType(
                     firstColType,
                     -1);
@@ -1298,11 +1299,10 @@ public abstract class SqlTypeStrategies
                 RelDataType [] operandTypes)
             {
                 for (int i = 0; i < operandTypes.length; ++i) {
-                    if (returnType.isStruct()) {
-                        operandTypes[i] = returnType.getFields()[i].getType();
-                    } else {
-                        operandTypes[i] = returnType;
-                    }
+                    operandTypes[i] =
+                        returnType.isStruct()
+                            ? returnType.getFieldList().get(i).getType()
+                            : returnType;
                 }
             }
         };

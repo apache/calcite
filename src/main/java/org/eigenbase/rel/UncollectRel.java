@@ -22,6 +22,9 @@ import java.util.List;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
+import org.eigenbase.util.Pair;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -84,17 +87,17 @@ public final class UncollectRel
     {
         RelDataType inputType = rel.getRowType();
         assert inputType.isStruct() : inputType + " is not a struct";
-        final RelDataTypeField [] fields = inputType.getFields();
-        assert 1 == fields.length : "expected 1 field";
-        RelDataType ret = fields[0].getType().getComponentType();
+        final List<RelDataTypeField> fields = inputType.getFieldList();
+        assert 1 == fields.size() : "expected 1 field";
+        RelDataType ret = fields.get(0).getType().getComponentType();
         assert null != ret;
         if (!ret.isStruct()) {
             // Element type is not a record. It may be a scalar type, say
             // "INTEGER". Wrap it in a struct type.
             ret =
                 rel.getCluster().getTypeFactory().createStructType(
-                    new RelDataType[] { ret },
-                    new String[] { SqlUtil.deriveAliasFromOrdinal(0) });
+                    ImmutableList.of(
+                        Pair.of(SqlUtil.deriveAliasFromOrdinal(0), ret)));
         }
         return ret;
     }

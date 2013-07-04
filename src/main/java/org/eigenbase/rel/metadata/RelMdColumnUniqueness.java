@@ -25,6 +25,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
+import org.eigenbase.util.Util;
 
 
 /**
@@ -104,14 +105,10 @@ public class RelMdColumnUniqueness
         // Also need to map the input column set to the corresponding child
         // references
 
-        RexNode [] projExprs = rel.getProjectExps();
+        List<RexNode> projExprs = rel.getProjects();
         BitSet childColumns = new BitSet();
-        for (
-            int bit = columns.nextSetBit(0);
-            bit >= 0;
-            bit = columns.nextSetBit(bit + 1))
-        {
-            RexNode projExpr = projExprs[bit];
+        for (int bit : Util.toIter(columns)) {
+            RexNode projExpr = projExprs.get(bit);
             if (projExpr instanceof RexInputRef) {
                 childColumns.set(((RexInputRef) projExpr).getIndex());
             } else if (projExpr instanceof RexCall && ignoreNulls) {
@@ -174,11 +171,7 @@ public class RelMdColumnUniqueness
         BitSet leftColumns = new BitSet();
         BitSet rightColumns = new BitSet();
         int nLeftColumns = left.getRowType().getFieldCount();
-        for (
-            int bit = columns.nextSetBit(0);
-            bit >= 0;
-            bit = columns.nextSetBit(bit + 1))
-        {
+        for (int bit : Util.toIter(columns)) {
             if (bit < nLeftColumns) {
                 leftColumns.set(bit);
             } else {
@@ -246,8 +239,7 @@ public class RelMdColumnUniqueness
             return (leftJoinColsUnique && rightUnique);
         }
 
-        assert (false);
-        return null;
+        throw new AssertionError();
     }
 
     public Boolean areColumnsUnique(

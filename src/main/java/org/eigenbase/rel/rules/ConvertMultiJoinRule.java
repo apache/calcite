@@ -284,8 +284,8 @@ public class ConvertMultiJoinRule
                     joinTypes,
                     1,
                     left.getRowType().getFieldCount(),
-                    right.getRowType().getFields(),
-                    joinRel.getRowType().getFields());
+                    right.getRowType().getFieldList(),
+                    joinRel.getRowType().getFieldList());
             } else {
                 joinTypes[nCombinedInputs - 1] = JoinRelType.INNER;
             }
@@ -314,8 +314,8 @@ public class ConvertMultiJoinRule
                     joinTypes,
                     nInputsLeft,
                     left.getRowType().getFieldCount(),
-                    right.getRowType().getFields(),
-                    joinRel.getRowType().getFields());
+                    right.getRowType().getFieldList(),
+                    joinRel.getRowType().getFieldList());
             } else {
                 joinTypes[nInputsLeft] = JoinRelType.INNER;
             }
@@ -334,11 +334,10 @@ public class ConvertMultiJoinRule
      * @param destJoinTypes the array where the join types will be copied
      * @param destPos starting position in the array where the copying starts
      * @param adjustmentAmount if > 0, the amount the RexInputRefs in the join
-     * conditions need to be adjusted by
+* conditions need to be adjusted by
      * @param srcFields the source fields that the original join conditions are
-     * referencing
+* referencing
      * @param destFields the destination fields that the new join conditions
-     * will be referencing
      */
     private void copyOuterJoinInfo(
         MultiJoinRel multiJoinRel,
@@ -346,8 +345,8 @@ public class ConvertMultiJoinRule
         JoinRelType [] destJoinTypes,
         int destPos,
         int adjustmentAmount,
-        RelDataTypeField [] srcFields,
-        RelDataTypeField [] destFields)
+        List<RelDataTypeField> srcFields,
+        List<RelDataTypeField> destFields)
     {
         RexNode [] srcConds = multiJoinRel.getOuterJoinConditions();
         JoinRelType [] srcJoinTypes = multiJoinRel.getJoinTypes();
@@ -359,7 +358,7 @@ public class ConvertMultiJoinRule
         if (adjustmentAmount == 0) {
             System.arraycopy(srcConds, 0, destConds, 0, len);
         } else {
-            int nFields = srcFields.length;
+            int nFields = srcFields.size();
             int [] adjustments = new int[nFields];
             for (int idx = 0; idx < nFields; idx++) {
                 adjustments[idx] = adjustmentAmount;
@@ -470,8 +469,8 @@ public class ConvertMultiJoinRule
             return null;
         }
 
-        int nFieldsOnLeft = left.getRowType().getFields().length;
-        int nFieldsOnRight = right.getRowType().getFields().length;
+        int nFieldsOnLeft = left.getRowType().getFieldList().size();
+        int nFieldsOnRight = right.getRowType().getFieldList().size();
         int [] adjustments = new int[nFieldsOnRight];
         for (int i = 0; i < nFieldsOnRight; i++) {
             adjustments[i] = nFieldsOnLeft;
@@ -480,8 +479,8 @@ public class ConvertMultiJoinRule
             rightFilter.accept(
                 new RelOptUtil.RexInputConverter(
                     joinRel.getCluster().getRexBuilder(),
-                    right.getRowType().getFields(),
-                    joinRel.getRowType().getFields(),
+                    right.getRowType().getFieldList(),
+                    joinRel.getRowType().getFieldList(),
                     adjustments));
         return rightFilter;
     }

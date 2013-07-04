@@ -542,13 +542,13 @@ public abstract class SqlOperator
      */
     public final RelDataType inferReturnType(
         RelDataTypeFactory typeFactory,
-        RelDataType [] operandTypes)
+        List<RelDataType> operandTypes)
     {
         return inferReturnType(
             new ExplicitOperatorBinding(
                 typeFactory,
                 this,
-                Arrays.asList(operandTypes)));
+                operandTypes));
     }
 
     /**

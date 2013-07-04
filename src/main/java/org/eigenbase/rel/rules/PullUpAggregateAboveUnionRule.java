@@ -17,11 +17,12 @@
 */
 package org.eigenbase.rel.rules;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -78,12 +79,12 @@ public class PullUpAggregateAboveUnionRule
         List<RelNode> unionInputs;
         if (call.rel(3) instanceof AggregateRel) {
             bottomAggRel = call.rel(3);
-            unionInputs = Arrays.asList(
+            unionInputs = ImmutableList.of(
                 call.rel(2),
                 call.rel(3).getInput(0));
         } else if (call.rel(2) instanceof AggregateRel) {
             bottomAggRel = call.rel(2);
-            unionInputs = Arrays.asList(
+            unionInputs = ImmutableList.of(
                 call.rel(2).getInput(0),
                 call.rel(3));
         } else {

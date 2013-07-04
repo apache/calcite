@@ -26,6 +26,8 @@ import net.hydromatic.optiq.runtime.FlatLists;
 
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * <code>SetOpRel</code> is an abstract base for relational set operators such
@@ -51,7 +53,7 @@ public abstract class SetOpRel
         boolean all)
     {
         super(cluster, traits);
-        this.inputs = inputs;
+        this.inputs = ImmutableList.copyOf(inputs);
         this.all = all;
     }
 

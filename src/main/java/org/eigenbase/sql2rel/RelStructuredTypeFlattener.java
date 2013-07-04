@@ -29,9 +29,6 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.Mappings;
 
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.function.IntegerFunction1;
-
 
 // TODO jvs 10-Feb-2005:  factor out generic rewrite helper, with the
 // ability to map between old and new rels and field ordinals.  Also,
@@ -182,10 +179,8 @@ public class RelStructuredTypeFlattener
     {
         // Access null indicator for entire structure.
         RexInputRef nullIndicator =
-            new RexInputRef(
-                iRestructureInput,
-                flattenedRootType.getFields()[iRestructureInput].getType());
-        ++iRestructureInput;
+            RexInputRef.of(
+                iRestructureInput++, flattenedRootType.getFieldList());
 
         // Use NEW to put flattened data back together into a structure.
         List<RexNode> inputExprs = restructureFields(structuredType);
@@ -292,9 +287,9 @@ public class RelStructuredTypeFlattener
             // skip null indicator
             ++offset;
         }
-        RelDataTypeField [] oldFields = rowType.getFields();
+        List<RelDataTypeField> oldFields = rowType.getFieldList();
         for (int i = 0; i < ordinal; ++i) {
-            RelDataType oldFieldType = oldFields[i].getType();
+            RelDataType oldFieldType = oldFields.get(i).getType();
             if (oldFieldType.isStruct()) {
                 // TODO jvs 10-Feb-2005:  this isn't terribly efficient;
                 // keep a mapping somewhere
@@ -303,8 +298,8 @@ public class RelStructuredTypeFlattener
                         rexBuilder.getTypeFactory(),
                         oldFieldType,
                         null);
-                final RelDataTypeField [] fields = flattened.getFields();
-                offset += fields.length;
+                final List<RelDataTypeField> fields = flattened.getFieldList();
+                offset += fields.size();
             } else {
                 ++offset;
             }
@@ -357,7 +352,7 @@ public class RelStructuredTypeFlattener
         for (RelFieldCollation field : oldCollation.getFieldCollations()) {
             int oldInput = field.getFieldIndex();
             RelDataType sortFieldType =
-                oldChild.getRowType().getFields()[oldInput].getType();
+                oldChild.getRowType().getFieldList().get(oldInput).getType();
             if (sortFieldType.isStruct()) {
                 // TODO jvs 10-Feb-2005
                 throw Util.needToImplement("sorting on structured types");
@@ -404,7 +399,8 @@ public class RelStructuredTypeFlattener
             CorrelatorRel.Correlation c =
                 (CorrelatorRel.Correlation) oldCorrelations.next();
             RelDataType corrFieldType =
-                rel.getLeft().getRowType().getFields()[c.getOffset()].getType();
+                rel.getLeft().getRowType().getFieldList().get(c.getOffset())
+                    .getType();
             if (corrFieldType.isStruct()) {
                 throw Util.needToImplement("correlation on structured type");
             }
@@ -479,7 +475,7 @@ public class RelStructuredTypeFlattener
         final List<String> flattenedFieldNameList = new ArrayList<String>();
         List<String> fieldNames = rel.getRowType().getFieldNames();
         flattenProjections(
-            rel.getProjectExpList(),
+            rel.getProjects(),
             fieldNames,
             "",
             flattenedExpList,
@@ -784,7 +780,7 @@ public class RelStructuredTypeFlattener
             if (type.getSqlTypeName() != SqlTypeName.DISTINCT) {
                 return type;
             }
-            return type.getFields()[0].getType();
+            return type.getFieldList().get(0).getType();
         }
 
         // override RexShuttle

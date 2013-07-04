@@ -94,7 +94,7 @@ public abstract class TableAccessRelBase
 
     public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
         return super.explainTerms(pw)
-            .item("table", Arrays.asList(table.getQualifiedName()));
+            .item("table", table.getQualifiedName());
     }
 
     /**

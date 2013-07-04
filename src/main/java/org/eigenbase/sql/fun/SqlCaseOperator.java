@@ -26,7 +26,8 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+
+import com.google.common.collect.Iterables;
 
 
 /**
@@ -285,7 +286,7 @@ public class SqlCaseOperator
             thenTypes.add(argTypes.get(j));
         }
 
-        thenTypes.add(Util.last(argTypes));
+        thenTypes.add(Iterables.getLast(argTypes));
         return typeFactory.leastRestrictive(thenTypes);
     }
 

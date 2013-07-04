@@ -17,9 +17,13 @@
 */
 package org.eigenbase.sql.fun;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -50,9 +54,9 @@ public class SqlSingleValueAggFunction
 
     //~ Methods ----------------------------------------------------------------
 
-    public RelDataType [] getParameterTypes(RelDataTypeFactory typeFactory)
+    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
     {
-        return new RelDataType[] { type };
+        return ImmutableList.of(type);
     }
 
     public RelDataType getReturnType(RelDataTypeFactory typeFactory)
@@ -64,7 +68,6 @@ public class SqlSingleValueAggFunction
     {
         return type;
     }
-
 }
 
 // End SqlSingleValueAggFunction.java

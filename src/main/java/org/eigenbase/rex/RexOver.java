@@ -17,6 +17,8 @@
 */
 package org.eigenbase.rex;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
@@ -133,10 +135,10 @@ public class RexOver
      *
      * @deprecated
      */
-    public static boolean containsOver(RexNode [] exprs, RexNode expr)
+    public static boolean containsOver(List<RexNode> exprs, RexNode expr)
     {
-        for (int i = 0; i < exprs.length; i++) {
-            if (Finder.instance.containsOver(exprs[i])) {
+        for (int i = 0; i < exprs.size(); i++) {
+            if (Finder.instance.containsOver(exprs.get(i))) {
                 return true;
             }
         }

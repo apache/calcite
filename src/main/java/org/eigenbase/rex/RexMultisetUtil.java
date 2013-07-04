@@ -23,6 +23,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * Utility class for various methods related to multisets.
@@ -46,8 +48,7 @@ public class RexMultisetUtil
 
     private static final Set createMultisetOperatorSet()
     {
-        SqlOperator [] operators =
-        {
+        List<SqlOperator> operators = ImmutableList.of(
             SqlStdOperatorTable.cardinalityFunc,
             SqlStdOperatorTable.castFunc,
             SqlStdOperatorTable.elementFunc,
@@ -60,9 +61,8 @@ public class RexMultisetUtil
             SqlStdOperatorTable.multisetUnionOperator,
             SqlStdOperatorTable.isASetOperator,
             SqlStdOperatorTable.memberOfOperator,
-            SqlStdOperatorTable.submultisetOfOperator
-        };
-        return new HashSet(Arrays.asList(operators));
+            SqlStdOperatorTable.submultisetOfOperator);
+        return new HashSet<SqlOperator>(operators);
     }
 
     /**

@@ -87,13 +87,13 @@ public class MergeProjectRule
         RexProgram bottomProgram =
             RexProgram.create(
                 bottomProject.getChild().getRowType(),
-                bottomProject.getProjectExps(),
+                bottomProject.getProjects(),
                 null,
                 bottomProject.getRowType(),
                 rexBuilder);
 
         // create a RexProgram for the topmost project
-        RexNode [] projExprs = topProject.getProjectExps();
+        List<RexNode> projExprs = topProject.getProjects();
         RexProgram topProgram =
             RexProgram.create(
                 bottomProject.getRowType(),
@@ -111,7 +111,7 @@ public class MergeProjectRule
 
         // re-expand the topmost projection expressions, now that they
         // reference the children of the bottom-most project
-        int nProjExprs = projExprs.length;
+        int nProjExprs = projExprs.size();
         List<RexNode> newProjExprs = new ArrayList<RexNode>();
         List<RexLocalRef> projList = mergedProgram.getProjectList();
         for (int i = 0; i < nProjExprs; i++) {

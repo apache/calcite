@@ -21,7 +21,6 @@ import java.util.AbstractList;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eigenbase.reltype.*;
-import org.eigenbase.util.*;
 
 
 /**
@@ -45,9 +44,6 @@ public abstract class RexSlot
      *
      * @param index Index of the field in the underlying rowtype
      * @param type Type of the column
-     *
-     * @pre type != null
-     * @pre index >= 0
      */
     protected RexSlot(
         String name,
@@ -55,8 +51,7 @@ public abstract class RexSlot
         RelDataType type)
     {
         super(name, type);
-        Util.pre(type != null, "type != null");
-        Util.pre(index >= 0, "index >= 0");
+        assert index >= 0;
         this.index = index;
     }
 

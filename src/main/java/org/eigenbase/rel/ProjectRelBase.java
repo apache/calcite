@@ -24,8 +24,11 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
+import org.eigenbase.util.Pair;
 
 import net.hydromatic.linq4j.Ord;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -41,7 +44,7 @@ public abstract class ProjectRelBase
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected RexNode [] exps;
+    protected List<RexNode> exps;
 
     /**
      * Values defined in {@link Flags}.
@@ -75,7 +78,7 @@ public abstract class ProjectRelBase
         super(cluster, traits, child);
         assert rowType != null;
         assert collationList != null;
-        this.exps = exps.toArray(new RexNode[exps.size()]);
+        this.exps = ImmutableList.copyOf(exps);
         this.rowType = rowType;
         this.flags = flags;
         this.collationList =
@@ -99,19 +102,20 @@ public abstract class ProjectRelBase
     // override AbstractRelNode
     public RexNode [] getChildExps()
     {
-        return getProjectExps();
+        return exps.toArray(new RexNode[exps.size()]);
     }
 
     /**
      * Returns the project expressions.
      */
-    public RexNode [] getProjectExps()
-    {
+    public List<RexNode> getProjects() {
         return exps;
     }
 
-    public List<RexNode> getProjectExpList() {
-        return Arrays.asList(exps);
+    /** Returns a list of (expression, name) pairs. Convenient for various
+     * transformations. */
+    public final List<Pair<RexNode, String>> getNamedProjects() {
+        return Pair.zip(getProjects(), getRowType().getFieldNames());
     }
 
     public int getFlags()
@@ -144,7 +148,7 @@ public abstract class ProjectRelBase
             return false;
         }
         if (!isBoxed()) {
-            if (exps.length != 1) {
+            if (exps.size() != 1) {
                 assert !fail;
                 return false;
             }
@@ -159,19 +163,19 @@ public abstract class ProjectRelBase
     public RelOptCost computeSelfCost(RelOptPlanner planner)
     {
         double dRows = RelMetadataQuery.getRowCount(getChild());
-        double dCpu = dRows * exps.length;
+        double dCpu = dRows * exps.size();
         double dIo = 0;
         return planner.makeCost(dRows, dCpu, dIo);
     }
 
     public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
         super.explainTerms(pw);
-        for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFields())) {
+        for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFieldList())) {
             String fieldName = field.e.getName();
             if (fieldName == null) {
                 fieldName = "field#" + field.i;
             }
-            pw.item(fieldName, exps[field.i]);
+            pw.item(fieldName, exps.get(field.i));
         }
 
         // If we're generating a digest, include the rowtype. If two projects
@@ -231,18 +235,17 @@ public abstract class ProjectRelBase
         public Boolean visitInputRef(RexInputRef inputRef)
         {
             final int index = inputRef.getIndex();
-            final RelDataTypeField [] fields = inputRowType.getFields();
-            if ((index < 0) || (index >= fields.length)) {
+            final List<RelDataTypeField> fields = inputRowType.getFieldList();
+            if ((index < 0) || (index >= fields.size())) {
                 assert !fail;
                 ++failCount;
                 return false;
             }
-            if (!RelOptUtil.eq(
-                    "inputRef",
-                    inputRef.getType(),
-                    "underlying field",
-                    fields[index].getType(),
-                    fail))
+            if (!RelOptUtil.eq("inputRef",
+                inputRef.getType(),
+                "underlying field",
+                fields.get(index).getType(),
+                fail))
             {
                 assert !fail;
                 ++failCount;
@@ -266,12 +269,13 @@ public abstract class ProjectRelBase
             assert refType.isStruct();
             final RelDataTypeField field = fieldAccess.getField();
             final int index = field.getIndex();
-            if ((index < 0) || (index > refType.getFields().length)) {
+            if ((index < 0) || (index > refType.getFieldList().size())) {
                 assert !fail;
                 ++failCount;
                 return false;
             }
-            final RelDataTypeField typeField = refType.getFields()[index];
+            final RelDataTypeField typeField =
+                refType.getFieldList().get(index);
             if (!RelOptUtil.eq(
                     "type1",
                     typeField.getType(),

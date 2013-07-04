@@ -23,6 +23,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.Pair;
 
 
 /**
@@ -63,7 +64,7 @@ public class PushSemiJoinPastProjectRule
         // otherwise, we wouldn't have created this semijoin
         List<Integer> newLeftKeys = new ArrayList<Integer>();
         List<Integer> leftKeys = semiJoin.getLeftKeys();
-        List<RexNode> projExprs = project.getProjectExpList();
+        List<RexNode> projExprs = project.getProjects();
         for (int leftKey : leftKeys) {
             RexInputRef inputRef = (RexInputRef) projExprs.get(leftKey);
             newLeftKeys.add(inputRef.getIndex());
@@ -128,22 +129,19 @@ public class PushSemiJoinPastProjectRule
 
         // add the project expressions, then add input references for the RHS
         // of the semijoin
-        RexNode [] projExprs = project.getProjectExps();
-        RelDataTypeField [] projFields = project.getRowType().getFields();
-        for (int i = 0; i < projExprs.length; i++) {
-            bottomProgramBuilder.addProject(
-                projExprs[i],
-                projFields[i].getName());
+        for (Pair<RexNode, String> pair : project.getNamedProjects()) {
+            bottomProgramBuilder.addProject(pair.left, pair.right);
         }
         int nLeftFields = project.getChild().getRowType().getFieldCount();
-        RelDataTypeField [] rightFields = rightChild.getRowType().getFields();
-        int nRightFields = rightFields.length;
+        List<RelDataTypeField> rightFields =
+            rightChild.getRowType().getFieldList();
+        int nRightFields = rightFields.size();
         for (int i = 0; i < nRightFields; i++) {
+            final RelDataTypeField field = rightFields.get(i);
             RexNode inputRef =
                 rexBuilder.makeInputRef(
-                    rightFields[i].getType(),
-                    i + nLeftFields);
-            bottomProgramBuilder.addProject(inputRef, rightFields[i].getName());
+                    field.getType(), i + nLeftFields);
+            bottomProgramBuilder.addProject(inputRef, field.getName());
         }
         RexProgram bottomProgram = bottomProgramBuilder.getProgram();
 

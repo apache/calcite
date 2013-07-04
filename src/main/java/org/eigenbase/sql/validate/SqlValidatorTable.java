@@ -17,6 +17,8 @@
 */
 package org.eigenbase.sql.validate;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
@@ -35,7 +37,7 @@ public interface SqlValidatorTable
 
     RelDataType getRowType();
 
-    String [] getQualifiedName();
+    List<String> getQualifiedName();
 
     /**
      * Returns whether a given column is monotonic.

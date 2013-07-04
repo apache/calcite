@@ -17,6 +17,8 @@
 */
 package org.eigenbase.rel;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 
 
@@ -41,7 +43,7 @@ public interface Aggregation
      *
      * @return Array of parameter types
      */
-    RelDataType [] getParameterTypes(RelDataTypeFactory typeFactory);
+    List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory);
 
     /**
      * Returns the type of the result yielded by this Aggregation.

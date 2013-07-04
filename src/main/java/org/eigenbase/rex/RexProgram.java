@@ -29,6 +29,8 @@ import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * A collection of expressions which read inputs, compute output expressions,
@@ -107,11 +109,9 @@ public class RexProgram
     {
         this.inputRowType = inputRowType;
         this.exprs = exprs.clone();
-        this.exprReadOnlyList =
-            Collections.unmodifiableList(Arrays.asList(exprs));
+        this.exprReadOnlyList = ImmutableList.copyOf(exprs);
         this.projects = projects.clone();
-        this.projectReadOnlyList =
-            Collections.unmodifiableList(Arrays.asList(projects));
+        this.projectReadOnlyList = ImmutableList.copyOf(projects);
         this.condition = condition;
         this.outputRowType = outputRowType;
         assert isValid(true);
@@ -133,16 +133,15 @@ public class RexProgram
      */
     public RexProgram(
         RelDataType inputRowType,
-        List<RexNode> exprList,
+        List<? extends RexNode> exprList,
         List<RexLocalRef> projectRefList,
         RexLocalRef condition,
         RelDataType outputRowType)
     {
         this(
             inputRowType,
-            (RexNode []) exprList.toArray(new RexNode[exprList.size()]),
-            (RexLocalRef []) projectRefList.toArray(
-                new RexLocalRef[projectRefList.size()]),
+            exprList.toArray(new RexNode[exprList.size()]),
+            projectRefList.toArray(new RexLocalRef[projectRefList.size()]),
             condition,
             outputRowType);
     }
@@ -190,6 +189,7 @@ public class RexProgram
      * Creates a program which calculates projections and filters rows based
      * upon a condition. Does not attempt to eliminate common sub-expressions.
      *
+     *
      * @param projectExprs Project expressions
      * @param conditionExpr Condition on which to filter rows, or null if rows
      * are not to be filtered
@@ -200,18 +200,18 @@ public class RexProgram
      */
     public static RexProgram create(
         RelDataType inputRowType,
-        RexNode [] projectExprs,
+        List<RexNode> projectExprs,
         RexNode conditionExpr,
         RelDataType outputRowType,
         RexBuilder rexBuilder)
     {
         final RexProgramBuilder programBuilder =
             new RexProgramBuilder(inputRowType, rexBuilder);
-        final RelDataTypeField [] fields = outputRowType.getFields();
-        for (int i = 0; i < projectExprs.length; i++) {
+        final List<RelDataTypeField> fields = outputRowType.getFieldList();
+        for (int i = 0; i < projectExprs.size(); i++) {
             programBuilder.addProject(
-                projectExprs[i],
-                fields[i].getName());
+                projectExprs.get(i),
+                fields.get(i).getName());
         }
         if (conditionExpr != null) {
             programBuilder.addCondition(conditionExpr);
@@ -233,7 +233,7 @@ public class RexProgram
         if (condition != null) {
             list.add(condition);
         }
-        return (RexNode []) list.toArray(new RexNode[list.size()]);
+        return list.toArray(new RexNode[list.size()]);
     }
 
     // description of this calc, chiefly intended for debugging
@@ -279,15 +279,16 @@ public class RexProgram
         RelOptPlanWriter pw,
         SqlExplainLevel level)
     {
-        final RelDataTypeField [] inFields = inputRowType.getFields();
-        final RelDataTypeField [] outFields = outputRowType.getFields();
-        assert outFields.length == projects.length : "outFields.length="
-            + outFields.length
+        final List<RelDataTypeField> inFields = inputRowType.getFieldList();
+        final List<RelDataTypeField> outFields = outputRowType.getFieldList();
+        assert outFields.size() == projects.length : "outFields.length="
+            + outFields.size()
             + ", projects.length=" + projects.length;
         pw.item(
-            prefix + "expr#0" + ((inFields.length > 1) ? (".." + (
-                inFields.length - 1)) : ""), "{inputs}");
-        for (int i = inFields.length; i < exprs.length; i++) {
+            prefix + "expr#0"
+            + ((inFields.size() > 1) ? (".." + (inFields.size() - 1)) : ""),
+            "{inputs}");
+        for (int i = inFields.size(); i < exprs.length; i++) {
             pw.item(prefix + "expr#" + i, exprs[i]);
         }
 
@@ -315,7 +316,7 @@ public class RexProgram
         // Print the non-trivial fields with their names as they appear in the
         // output row type.
         for (int i = trivialCount; i < projects.length; i++) {
-            pw.item(prefix + outFields[i].getName(), projects[i]);
+            pw.item(prefix + outFields.get(i).getName(), projects[i]);
         }
         if (condition != null) {
             pw.item(prefix + "$condition", condition);
@@ -366,13 +367,13 @@ public class RexProgram
      */
     public static RexProgram createIdentity(RelDataType rowType)
     {
-        final RelDataTypeField [] fields = rowType.getFields();
-        final RexLocalRef [] projectRefs = new RexLocalRef[fields.length];
-        final RexInputRef [] refs = new RexInputRef[fields.length];
-        for (int i = 0; i < refs.length; i++) {
-            final RelDataType type = fields[i].getType();
-            refs[i] = new RexInputRef(i, type);
-            projectRefs[i] = new RexLocalRef(i, type);
+        final List<RelDataTypeField> fields = rowType.getFieldList();
+        final List<RexLocalRef> projectRefs = new ArrayList<RexLocalRef>();
+        final List<RexInputRef> refs = new ArrayList<RexInputRef>();
+        for (int i = 0; i < fields.size(); i++) {
+            final RexInputRef ref = RexInputRef.of(i, fields);
+            refs.add(ref);
+            projectRefs.add(new RexLocalRef(i, ref.getType()));
         }
         return new RexProgram(rowType, refs, projectRefs, null, rowType);
     }
@@ -688,7 +689,7 @@ loop:
         }
         refCounts = new int[exprs.length];
         ReferenceCounter refCounter = new ReferenceCounter();
-        apply(refCounter, exprs, null);
+        apply(refCounter, Arrays.asList(exprs), null);
         if (condition != null) {
             refCounter.visitLocalRef(condition);
         }
@@ -708,11 +709,11 @@ loop:
      */
     public static void apply(
         RexVisitor<Void> visitor,
-        RexNode [] exprs,
+        List<RexNode> exprs,
         RexNode expr)
     {
-        for (int i = 0; i < exprs.length; i++) {
-            exprs[i].accept(visitor);
+        for (RexNode expr0 : exprs) {
+            expr0.accept(visitor);
         }
         if (expr != null) {
             expr.accept(visitor);
@@ -765,7 +766,7 @@ loop:
      */
     public boolean isPermutation()
     {
-        if (projects.length != inputRowType.getFields().length) {
+        if (projects.length != inputRowType.getFieldList().size()) {
             return false;
         }
         for (int i = 0; i < projects.length; ++i) {
@@ -782,7 +783,7 @@ loop:
     public Permutation getPermutation()
     {
         Permutation permutation = new Permutation(projects.length);
-        if (projects.length != inputRowType.getFields().length) {
+        if (projects.length != inputRowType.getFieldList().size()) {
             return null;
         }
         for (int i = 0; i < projects.length; ++i) {
@@ -812,7 +813,7 @@ loop:
                     return null;
                 }
             },
-            exprs,
+            Arrays.asList(exprs),
             null);
         return paramIdSet;
     }

@@ -23,6 +23,8 @@ import java.util.logging.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.trace.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * A <code>RelOptRuleCall</code> is an invocation of a {@link RelOptRule} with a
@@ -123,7 +125,7 @@ public abstract class RelOptRuleCall
      */
     public List<RelNode> getRelList()
     {
-        return Collections.unmodifiableList(Arrays.asList(rels));
+        return ImmutableList.copyOf(rels);
     }
 
     /**

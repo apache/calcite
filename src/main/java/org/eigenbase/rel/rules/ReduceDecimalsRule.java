@@ -147,7 +147,7 @@ public class ReduceDecimalsRule
             }
 
             // permanently updates a call in place
-            apply(Arrays.asList(call.operands));
+            apply(call.getOperandList());
 
             RexNode newCall = call;
             RexNode rewrite = rewriteCall(call);

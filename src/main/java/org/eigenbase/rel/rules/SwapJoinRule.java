@@ -181,8 +181,8 @@ public class SwapJoinRule
     private static class VariableReplacer
     {
         private final RexBuilder rexBuilder;
-        private final RelDataTypeField [] leftFields;
-        private final RelDataTypeField [] rightFields;
+        private final List<RelDataTypeField> leftFields;
+        private final List<RelDataTypeField> rightFields;
 
         VariableReplacer(
             RexBuilder rexBuilder,
@@ -190,8 +190,8 @@ public class SwapJoinRule
             RelDataType rightType)
         {
             this.rexBuilder = rexBuilder;
-            this.leftFields = leftType.getFields();
-            this.rightFields = rightType.getFields();
+            this.leftFields = leftType.getFieldList();
+            this.rightFields = rightType.getFieldList();
         }
 
         public RexNode go(RexNode rex)
@@ -206,24 +206,24 @@ public class SwapJoinRule
             } else if (rex instanceof RexInputRef) {
                 RexInputRef var = (RexInputRef) rex;
                 int index = var.getIndex();
-                if (index < leftFields.length) {
+                if (index < leftFields.size()) {
                     // Field came from left side of join. Move it to the right.
                     return rexBuilder.makeInputRef(
-                        leftFields[index].getType(),
-                        rightFields.length + index);
+                        leftFields.get(index).getType(),
+                        rightFields.size() + index);
                 }
-                index -= leftFields.length;
-                if (index < rightFields.length) {
+                index -= leftFields.size();
+                if (index < rightFields.size()) {
                     // Field came from right side of join. Move it to the left.
                     return rexBuilder.makeInputRef(
-                        rightFields[index].getType(),
+                        rightFields.get(index).getType(),
                         index);
                 }
                 throw Util.newInternal(
                     "Bad field offset: index="
                     + var.getIndex()
-                    + ", leftFieldCount=" + leftFields.length
-                    + ", rightFieldCount=" + rightFields.length);
+                    + ", leftFieldCount=" + leftFields.size()
+                    + ", rightFieldCount=" + rightFields.size());
             } else {
                 return rex;
             }

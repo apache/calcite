@@ -178,7 +178,7 @@ public abstract class RelDataTypeFactoryImpl
         for (int j = 0; j < nFields; ++j) {
             // REVIEW jvs 22-Jan-2004:  Always use the field name from the
             // first type?
-            fieldNames[j] = type0.getFields()[j].getName();
+            fieldNames[j] = type0.getFieldList().get(j).getName();
             final int k = j;
             outputTypes[j] = leastRestrictive(
                 new AbstractList<RelDataType>() {
@@ -240,13 +240,13 @@ public abstract class RelDataTypeFactoryImpl
 
                 public String getFieldName(int index)
                 {
-                    return type.getFields()[index].getName();
+                    return type.getFieldList().get(index).getName();
                 }
 
                 public RelDataType getFieldType(int index)
                 {
-                    RelDataType fieldType = type.getFields()[index].getType();
-
+                    RelDataType fieldType =
+                        type.getFieldList().get(index).getType();
                     if (ignoreNullable) {
                         return copyType(fieldType);
                     } else {
@@ -358,9 +358,9 @@ public abstract class RelDataTypeFactoryImpl
                 addFields(crossType.types[i], fieldList);
             }
         } else {
-            RelDataTypeField [] fields = type.getFields();
-            for (int j = 0; j < fields.length; j++) {
-                RelDataTypeField field = fields[j];
+            List<RelDataTypeField> fields = type.getFieldList();
+            for (int j = 0; j < fields.size(); j++) {
+                RelDataTypeField field = fields.get(j);
                 fieldList.add(field);
             }
         }

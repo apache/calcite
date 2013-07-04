@@ -142,8 +142,8 @@ public class JavaRules {
         throw new InvalidRelException(
             "EnumerableJoinRel only supports equi-join");
       }
-      this.leftKeys = ImmutableIntList.of(leftKeys);
-      this.rightKeys = ImmutableIntList.of(rightKeys);
+      this.leftKeys = ImmutableIntList.copyOf(leftKeys);
+      this.rightKeys = ImmutableIntList.copyOf(rightKeys);
     }
 
     @Override

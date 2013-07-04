@@ -42,7 +42,10 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     }
 
     /** Creates an ImmutableIntList from an array of {@code int}. */
-    public static ImmutableIntList of(Collection<? extends Number> list) {
+    public static ImmutableIntList copyOf(Collection<? extends Number> list) {
+        if (list instanceof ImmutableIntList) {
+            return (ImmutableIntList) list;
+        }
         if (list.isEmpty()) {
             return EMPTY;
         }

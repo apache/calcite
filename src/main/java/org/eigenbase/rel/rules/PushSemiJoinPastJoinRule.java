@@ -64,22 +64,23 @@ public class PushSemiJoinPastJoinRule
         // X is the left child of the join below the semijoin
         // Y is the right child of the join below the semijoin
         // Z is the right child of the semijoin
-        int nFieldsX = joinRel.getLeft().getRowType().getFields().length;
-        int nFieldsY = joinRel.getRight().getRowType().getFields().length;
-        int nFieldsZ = semiJoin.getRight().getRowType().getFields().length;
+        int nFieldsX = joinRel.getLeft().getRowType().getFieldList().size();
+        int nFieldsY = joinRel.getRight().getRowType().getFieldList().size();
+        int nFieldsZ = semiJoin.getRight().getRowType().getFieldList().size();
         int nTotalFields = nFieldsX + nFieldsY + nFieldsZ;
-        RelDataTypeField [] fields = new RelDataTypeField[nTotalFields];
+        List<RelDataTypeField> fields = new ArrayList<RelDataTypeField>();
 
         // create a list of fields for the full join result; note that
         // we can't simply use the fields from the semijoin because the
         // rowtype of a semijoin only includes the left hand side fields
-        RelDataTypeField [] joinFields = semiJoin.getRowType().getFields();
+        List<RelDataTypeField> joinFields =
+            semiJoin.getRowType().getFieldList();
         for (int i = 0; i < (nFieldsX + nFieldsY); i++) {
-            fields[i] = joinFields[i];
+            fields.add(joinFields.get(i));
         }
-        joinFields = semiJoin.getRight().getRowType().getFields();
+        joinFields = semiJoin.getRight().getRowType().getFieldList();
         for (int i = 0; i < nFieldsZ; i++) {
-            fields[i + nFieldsX + nFieldsY] = joinFields[i];
+            fields.add(joinFields.get(i));
         }
 
         // determine which operands below the semijoin are the actual

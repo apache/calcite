@@ -19,6 +19,8 @@ package org.eigenbase.sarg;
 
 import java.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * SargIntervalSequence represents the union of a set of disjoint {@link
@@ -74,7 +76,7 @@ public class SargIntervalSequence
      */
     public List<SargInterval> getList()
     {
-        return Collections.unmodifiableList(list);
+        return ImmutableList.copyOf(list);
     }
 
     void addInterval(SargInterval interval)

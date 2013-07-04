@@ -22,6 +22,8 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * A <code>RelOptAbstractTable</code> is a partial implementation of {@link
@@ -59,9 +61,9 @@ public abstract class RelOptAbstractTable
         return name;
     }
 
-    public String [] getQualifiedName()
+    public List<String> getQualifiedName()
     {
-        return new String[] { name };
+        return ImmutableList.of(name);
     }
 
     public double getRowCount()

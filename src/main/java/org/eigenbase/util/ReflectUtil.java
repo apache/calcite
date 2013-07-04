@@ -23,6 +23,8 @@ import java.nio.*;
 
 import java.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * Static utilities for Java reflection.
@@ -548,9 +550,7 @@ public abstract class ReflectUtil
         final Class... otherArgClasses)
     {
         final List<Class> otherArgClassList =
-            Collections.unmodifiableList(
-                Arrays.<Class>asList(
-                    otherArgClasses));
+            ImmutableList.copyOf(otherArgClasses);
         @SuppressWarnings({"unchecked"})
         final ReflectiveVisitDispatcher<ReflectiveVisitor, E>
             dispatcher =
@@ -597,40 +597,6 @@ public abstract class ReflectUtil
                 return method;
             }
         };
-    }
-
-    /**
-     * Looks up a class by name. This is like Class.forName, except that it
-     * handles primitive type names.
-     *
-     * @param name fully-qualified name of class to look up
-     *
-     * @return class
-     */
-    public static Class<?> getClassForName(String name)
-        throws Exception
-    {
-        if (name.equals("boolean")) {
-            return boolean.class;
-        } else if (name.equals("byte")) {
-            return byte.class;
-        } else if (name.equals("char")) {
-            return char.class;
-        } else if (name.equals("double")) {
-            return double.class;
-        } else if (name.equals("float")) {
-            return float.class;
-        } else if (name.equals("int")) {
-            return int.class;
-        } else if (name.equals("long")) {
-            return long.class;
-        } else if (name.equals("short")) {
-            return short.class;
-        } else if (name.equals("void")) {
-            return void.class;
-        } else {
-            return Class.forName(name);
-        }
     }
 
     //~ Inner Classes ----------------------------------------------------------

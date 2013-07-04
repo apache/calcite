@@ -17,6 +17,8 @@
 */
 package org.eigenbase.sql.validate;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
@@ -48,7 +50,7 @@ public abstract class DelegatingSqlValidatorTable implements SqlValidatorTable
         return table.getRowType();
     }
 
-    public String[] getQualifiedName()
+    public List<String> getQualifiedName()
     {
         return table.getQualifiedName();
     }

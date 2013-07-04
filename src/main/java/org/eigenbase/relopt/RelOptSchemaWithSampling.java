@@ -17,6 +17,8 @@
 */
 package org.eigenbase.relopt;
 
+import java.util.List;
+
 /**
  * Extension to {@link RelOptSchema} with support for sample data-sets.
  *
@@ -41,7 +43,7 @@ public interface RelOptSchemaWithSampling
      * @return Table, or null if not found
      */
     RelOptTable getTableForMember(
-        String [] names,
+        List<String> names,
         String datasetName,
         boolean [] usedDataset);
 }

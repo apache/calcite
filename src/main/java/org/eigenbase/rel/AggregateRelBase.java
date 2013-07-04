@@ -29,6 +29,8 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * <code>AggregateRelBase</code> is an abstract base class for implementations
@@ -65,7 +67,7 @@ public abstract class AggregateRelBase
     {
         super(cluster, traits, child);
         Util.pre(aggCalls != null, "aggCalls != null");
-        this.aggCalls = aggCalls;
+        this.aggCalls = ImmutableList.copyOf(aggCalls);
         this.groupSet = groupSet;
         assert groupSet != null;
         assert groupSet.isEmpty() == (groupSet.cardinality() == 0)
@@ -275,7 +277,7 @@ public abstract class AggregateRelBase
         {
             final RelDataType childType = aggregateRel.getChild().getRowType();
             int operand = operands.get(ordinal);
-            return childType.getFields()[operand].getType();
+            return childType.getFieldList().get(operand).getType();
         }
 
         public EigenbaseException newError(

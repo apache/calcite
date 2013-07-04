@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.Util;
 
 
 /**
@@ -77,13 +78,13 @@ public class RelMdUniqueKeys
         // to be mapped to match the output of the project.
         Map<Integer, Integer> mapInToOutPos = new HashMap<Integer, Integer>();
 
-        RexNode [] projExprs = rel.getProjectExps();
+        List<RexNode> projExprs = rel.getProjects();
 
         Set<BitSet> projUniqueKeySet = new HashSet<BitSet>();
 
         // Build an input to output position map.
-        for (int i = 0; i < projExprs.length; i++) {
-            RexNode projExpr = projExprs[i];
+        for (int i = 0; i < projExprs.size(); i++) {
+            RexNode projExpr = projExprs.get(i);
             if (projExpr instanceof RexInputRef) {
                 mapInToOutPos.put(((RexInputRef) projExpr).getIndex(), i);
             } else {
@@ -109,11 +110,7 @@ public class RelMdUniqueKeys
                 BitSet colMask = itChild.next();
                 BitSet tmpMask = new BitSet();
                 boolean completeKeyProjected = true;
-                for (
-                    int bit = colMask.nextSetBit(0);
-                    bit >= 0;
-                    bit = colMask.nextSetBit(bit + 1))
-                {
+                for (int bit : Util.toIter(colMask)) {
                     if (mapInToOutPos.containsKey(bit)) {
                         tmpMask.set(mapInToOutPos.get(bit));
                     } else {
@@ -160,11 +157,7 @@ public class RelMdUniqueKeys
             while (itRight.hasNext()) {
                 BitSet colMask = itRight.next();
                 BitSet tmpMask = new BitSet();
-                for (
-                    int bit = colMask.nextSetBit(0);
-                    bit >= 0;
-                    bit = colMask.nextSetBit(bit + 1))
-                {
+                for (int bit : Util.toIter(colMask)) {
                     tmpMask.set(bit + nFieldsOnLeft);
                 }
                 rightSet.add(tmpMask);
