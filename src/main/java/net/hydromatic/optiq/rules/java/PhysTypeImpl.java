@@ -92,6 +92,10 @@ public class PhysTypeImpl implements PhysType {
         typeFactory, rowType, javaRowClass, JavaRowFormat.CUSTOM);
   }
 
+  public JavaRowFormat getFormat() {
+    return format;
+  }
+
   public PhysType project(
       final List<Integer> integers,
       JavaRowFormat format) {
@@ -110,7 +114,7 @@ public class PhysTypeImpl implements PhysType {
     return of(
         typeFactory,
         projectedRowType,
-        this.format.optimize(projectedRowType));
+        format.optimize(projectedRowType));
   }
 
   public Expression generateSelector(
@@ -119,15 +123,14 @@ public class PhysTypeImpl implements PhysType {
     return generateSelector(parameter, fields, format);
   }
 
-  /** Generates a selector for the given fields from an expression. */
-  protected Expression generateSelector(
+  public Expression generateSelector(
       ParameterExpression parameter,
       List<Integer> fields,
       JavaRowFormat targetFormat) {
     // Optimize target format
     switch (fields.size()) {
     case 0:
-      targetFormat = JavaRowFormat.EMPTY_LIST;
+      targetFormat = JavaRowFormat.LIST;
       break;
     case 1:
       targetFormat = JavaRowFormat.SCALAR;

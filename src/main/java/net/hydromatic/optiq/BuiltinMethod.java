@@ -87,6 +87,7 @@ public enum BuiltinMethod {
   MAP_PUT(Map.class, "put", Object.class, Object.class),
   MAP_GET(Map.class, "get", Object.class),
   LIST_ADD(List.class, "add", Object.class),
+  LIST_GET(List.class, "get", int.class),
   ARRAY_ITEM(SqlFunctions.class, "arrayItem", List.class, int.class),
   MAP_ITEM(SqlFunctions.class, "mapItem", Map.class, Object.class),
   ANY_ITEM(SqlFunctions.class, "item", Object.class, Object.class),

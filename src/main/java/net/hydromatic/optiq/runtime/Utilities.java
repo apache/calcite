@@ -157,7 +157,7 @@ public class Utilities {
     return v0 == v1 ? 0
         : v0 == null ? 1
             : v1 == null ? -1
-                : FlatLists.ComparableList.compare(v0, v1);
+                : FlatLists.ComparableListImpl.compare(v0, v1);
   }
 }
 

@@ -141,13 +141,16 @@ public class RelFieldCollation
         }
         RelFieldCollation other = (RelFieldCollation) obj;
         return (fieldIndex == other.fieldIndex)
-            && (direction == other.direction);
+            && (direction == other.direction)
+            && (nullDirection == other.nullDirection);
     }
 
     // implement Object
     public int hashCode()
     {
-        return (this.direction.ordinal() << 4) | this.fieldIndex;
+      return this.fieldIndex
+             | (this.direction.ordinal() << 4)
+             | (this.nullDirection.ordinal() << 8);
     }
 
     public int getFieldIndex()

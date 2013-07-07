@@ -65,9 +65,9 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
     return child.implement(this, prefer);
   }
 
-  public ClassDeclaration implementRoot(EnumerableRel rootRel) {
-    final EnumerableRel.Result implement =
-        rootRel.implement(this, EnumerableRel.Prefer.ANY);
+  public ClassDeclaration implementRoot(EnumerableRel rootRel,
+      EnumerableRel.Prefer prefer) {
+    final EnumerableRel.Result implement = rootRel.implement(this, prefer);
     List<MemberDeclaration> memberDeclarations =
         new ArrayList<MemberDeclaration>();
     declareSyntheticClasses(implement.expression, memberDeclarations);

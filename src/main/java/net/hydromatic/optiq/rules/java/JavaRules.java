@@ -213,7 +213,7 @@ public class JavaRules {
               pref.preferArray());
       final PhysType keyPhysType =
           leftResult.physType.project(
-              leftKeys, JavaRowFormat.CUSTOM);
+              leftKeys, JavaRowFormat.LIST);
       return implementor.result(
           physType,
           list.append(
@@ -530,7 +530,7 @@ public class JavaRules {
 
       final PhysType physType =
           PhysTypeImpl.of(
-              typeFactory, getRowType(), result.format);
+              typeFactory, getRowType(), pref.prefer(result.format));
 
       // final Enumerable<Employee> inputEnumerable = <<child impl>>;
       // return new Enumerable<IntString>() {
@@ -767,7 +767,7 @@ public class JavaRules {
           PhysTypeImpl.of(
               typeFactory,
               getRowType(),
-              result.format);
+              pref.preferCustom());
 
       // final Enumerable<Employee> child = <<child impl>>;
       // Function1<Employee, Integer> keySelector =
@@ -819,7 +819,7 @@ public class JavaRules {
       PhysType keyPhysType =
           inputPhysType.project(
               Util.toList(groupSet),
-              JavaRowFormat.CUSTOM);
+              JavaRowFormat.LIST);
       final int keyArity = groupSet.cardinality();
       for (int groupKey : Util.toIter(groupSet)) {
         keyExpressions.add(
@@ -829,7 +829,7 @@ public class JavaRules {
           statements.append(
               "keySelector",
               inputPhysType.generateSelector(
-                  parameter, Util.toList(groupSet)));
+                  parameter, Util.toList(groupSet), keyPhysType.getFormat()));
 
       final List<RexImpTable.AggImplementor2> implementors =
           new ArrayList<RexImpTable.AggImplementor2>();

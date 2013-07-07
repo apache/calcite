@@ -29,6 +29,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.sql.SQLException;
+
 import static org.junit.Assert.*;
 
 
@@ -36,29 +38,26 @@ import static org.junit.Assert.*;
  * Tests for a linq4j front-end and JDBC back-end.
  */
 public class LinqFrontJdbcBackTest {
-  @Test public void testTableWhere() {
-    try {
-      final OptiqConnection connection =
-          JdbcTest.getConnection(null, false);
-      Schema schema =
-          connection.getRootSchema().getSubSchema("foodmart");
-      ParameterExpression c =
-          Expressions.parameter(
-              JdbcTest.Customer.class, "c");
-      String s =
-          schema.getTable("customer", JdbcTest.Customer.class)
-              .where(
-                  Expressions.<Predicate1<JdbcTest.Customer>>lambda(
-                      Expressions.lessThan(
-                          Expressions.field(c, "customer_id"),
-                          Expressions.constant(5)),
-                      c))
-              .toList()
-              .toString();
-      Util.discard(s);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+  @Test public void testTableWhere() throws SQLException,
+      ClassNotFoundException {
+    final OptiqConnection connection =
+        JdbcTest.getConnection(null, false);
+    Schema schema =
+        connection.getRootSchema().getSubSchema("foodmart");
+    ParameterExpression c =
+        Expressions.parameter(
+            JdbcTest.Customer.class, "c");
+    String s =
+        schema.getTable("customer", JdbcTest.Customer.class)
+            .where(
+                Expressions.<Predicate1<JdbcTest.Customer>>lambda(
+                    Expressions.lessThan(
+                        Expressions.field(c, "customer_id"),
+                        Expressions.constant(5)),
+                    c))
+            .toList()
+            .toString();
+    Util.discard(s);
   }
 }
 

@@ -82,9 +82,9 @@ public class FlatLists {
       //   write our own implementation and reduce creation overhead a
       //   bit.
       if (copy) {
-        return new ComparableList(Arrays.asList(t.clone()));
+        return new ComparableListImpl(Arrays.asList(t.clone()));
       } else {
-        return new ComparableList(Arrays.asList(t));
+        return new ComparableListImpl(Arrays.asList(t));
       }
     }
   }
@@ -112,7 +112,7 @@ public class FlatLists {
       //   write our own implementation and reduce creation overhead a
       //   bit.
       //noinspection unchecked
-      return new ComparableList(Arrays.asList(t.toArray()));
+      return new ComparableListImpl(Arrays.asList(t.toArray()));
     }
   }
 
@@ -213,7 +213,7 @@ public class FlatLists {
    */
   protected static class Flat2List<T>
       extends AbstractFlatList<T>
-      implements Comparable<T> {
+      implements ComparableList<T> {
     private final T t0;
     private final T t1;
 
@@ -297,7 +297,7 @@ public class FlatLists {
       return new Object[] {t0, t1};
     }
 
-    public int compareTo(T o) {
+    public int compareTo(List o) {
       //noinspection unchecked
       Flat2List<T> that = (Flat2List<T>) o;
       int c = Utilities.compare((Comparable) t0, (Comparable) that.t0);
@@ -324,7 +324,7 @@ public class FlatLists {
    */
   protected static class Flat3List<T>
       extends AbstractFlatList<T>
-      implements Comparable<T> {
+      implements ComparableList<T> {
     private final T t0;
     private final T t1;
     private final T t2;
@@ -422,7 +422,7 @@ public class FlatLists {
       return new Object[] {t0, t1, t2};
     }
 
-    public int compareTo(T o) {
+    public int compareTo(List o) {
       //noinspection unchecked
       Flat3List<T> that = (Flat3List<T>) o;
       int c = Utilities.compare((Comparable) t0, (Comparable) that.t0);
@@ -468,12 +468,23 @@ public class FlatLists {
     }
   }
 
-  static class ComparableList<T extends Comparable<T>>
+  /** List that is also comparable.
+   *
+   * <p>You can create an instance whose type
+   * parameter {@code T} does not extend {@link Comparable}, but you will get a
+   * {@link ClassCastException} at runtime when you call
+   * {@link #compareTo(Object)} if the elements of the list do not implement
+   * {@code Comparable}.
+   */
+  public interface ComparableList<T> extends List<T>, Comparable<List> {
+  }
+
+  static class ComparableListImpl<T extends Comparable<T>>
       extends AbstractList<T>
-      implements Comparable<List<T>> {
+      implements ComparableList<T> {
     private final List<T> list;
 
-    protected ComparableList(List<T> list) {
+    protected ComparableListImpl(List<T> list) {
       this.list = list;
     }
 
@@ -485,7 +496,7 @@ public class FlatLists {
       return list.size();
     }
 
-    public int compareTo(List<T> o) {
+    public int compareTo(List o) {
       return compare(list, o);
     }
 

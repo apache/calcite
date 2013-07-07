@@ -18,8 +18,10 @@
 package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.expressions.*;
+
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.runtime.FlatLists;
 
 import org.eigenbase.reltype.RelDataType;
 
@@ -85,26 +87,52 @@ public enum JavaRowFormat {
     }
   },
 
-  EMPTY_LIST {
+  /** A list that is comparable and immutable. Useful for records with 0 fields
+   * (empty list is a good singleton) but sometimes also for records with 2 or
+   * more fields that you need to be comparable, say as a key in a lookup. */
+  LIST {
     Type javaRowClass(
         JavaTypeFactory typeFactory,
         RelDataType type) {
-      assert type.getFieldCount() == 0;
-      return Collections.EMPTY_LIST.getClass();
+      return FlatLists.ComparableList.class;
     }
 
     public Expression record(
         Type javaRowClass, List<Expression> expressions) {
+      switch (expressions.size()) {
+      case 0:
       return Expressions.field(
           null,
           Collections.class,
           "EMPTY_LIST");
+      case 2:
+        return Expressions.convert_(Expressions.call(List.class,
+            null,
+            BuiltinMethod.LIST2.method,
+            expressions), List.class);
+      case 3:
+        return Expressions.convert_(Expressions.call(List.class,
+            null,
+            BuiltinMethod.LIST3.method,
+            expressions), List.class);
+      default:
+        return Expressions.convert_(Expressions.call(List.class,
+            null,
+            BuiltinMethod.ARRAYS_AS_LIST.method,
+            Collections.<Expression>singletonList(Expressions.newArrayInit(
+                Object.class,
+                expressions))), List.class);
+      }
     }
 
     @Override
     public Expression field(
         Expression expression, int field, Class fieldType) {
-      throw new UnsupportedOperationException();
+      return RexToLixTranslator.convert(
+          Expressions.call(expression,
+              BuiltinMethod.LIST_GET.method,
+              Expressions.constant(field)),
+          fieldType);
     }
   },
 
@@ -139,10 +167,13 @@ public enum JavaRowFormat {
   public JavaRowFormat optimize(RelDataType rowType) {
     switch (rowType.getFieldCount()) {
     case 0:
-      return EMPTY_LIST;
+      return LIST;
     case 1:
       return SCALAR;
     default:
+      if (this == SCALAR) {
+        return LIST;
+      }
       return this;
     }
   }

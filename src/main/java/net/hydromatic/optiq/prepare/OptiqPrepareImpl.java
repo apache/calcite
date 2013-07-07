@@ -209,18 +209,18 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       OptiqCatalogReader catalogReader,
       RelOptPlanner planner) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
-    final EnumerableConvention convention;
+    final EnumerableRel.Prefer prefer;
     if (elementType == Object[].class) {
-      convention = EnumerableConvention.ARRAY;
+      prefer = EnumerableRel.Prefer.ARRAY;
     } else {
-      convention = EnumerableConvention.CUSTOM;
+      prefer = EnumerableRel.Prefer.CUSTOM;
     }
     final OptiqPreparingStmt preparingStmt =
         new OptiqPreparingStmt(
             catalogReader,
             typeFactory,
             context.getRootSchema(),
-            convention,
+            prefer,
             planner);
 
     final RelDataType x;
@@ -339,15 +339,17 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     private final Schema schema;
     private int expansionDepth;
     private SqlValidator sqlValidator;
+    private EnumerableRel.Prefer prefer;
 
     public OptiqPreparingStmt(
         CatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
         Schema schema,
-        Convention resultConvention,
+        EnumerableRel.Prefer prefer,
         RelOptPlanner planner) {
-      super(catalogReader, resultConvention);
+      super(catalogReader, EnumerableConvention.ARRAY);
       this.schema = schema;
+      this.prefer = prefer;
       this.planner = planner;
       this.rexBuilder = new RexBuilder(typeFactory);
     }
@@ -499,7 +501,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       EnumerableRelImplementor relImplementor =
           getRelImplementor(rootRel.getCluster().getRexBuilder());
       ClassDeclaration expr =
-          relImplementor.implementRoot((EnumerableRel) rootRel);
+          relImplementor.implementRoot((EnumerableRel) rootRel, prefer);
       String s =
           Expressions.toString(expr.memberDeclarations, "\n", false);
 
