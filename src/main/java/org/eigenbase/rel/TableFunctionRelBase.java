@@ -46,9 +46,9 @@ public abstract class TableFunctionRelBase
 
     private final RelDataType rowType;
 
-    protected final List<RelNode> inputs;
+    protected final ImmutableList<RelNode> inputs;
 
-    protected final Set<RelColumnMapping> columnMappings;
+    protected final ImmutableSet<RelColumnMapping> columnMappings;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -73,7 +73,8 @@ public abstract class TableFunctionRelBase
         this.rexCall = rexCall;
         this.rowType = rowType;
         this.inputs = ImmutableList.copyOf(inputs);
-        this.columnMappings = ImmutableSet.copyOf(columnMappings);
+        this.columnMappings =
+            columnMappings == null ? null : ImmutableSet.copyOf(columnMappings);
     }
 
     //~ Methods ----------------------------------------------------------------
