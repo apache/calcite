@@ -18,9 +18,7 @@
 package org.eigenbase.rex;
 
 import java.math.*;
-
 import java.nio.*;
-
 import java.util.*;
 
 import org.eigenbase.rel.*;
@@ -33,6 +31,8 @@ import org.eigenbase.util.*;
 import org.eigenbase.util14.DateTimeUtil;
 
 import net.hydromatic.optiq.runtime.SqlFunctions;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -179,8 +179,9 @@ public class RexBuilder
                 return makeCall(
                     field.getType(),
                     GET_OPERATOR,
-                    expr,
-                    makeLiteral(field.getName()));
+                    ImmutableList.of(
+                        expr,
+                        makeLiteral(field.getName())));
             }
             return new RexInputRef(
                 range.getOffset() + field.getIndex(),
@@ -195,12 +196,9 @@ public class RexBuilder
     public RexNode makeCall(
         RelDataType returnType,
         SqlOperator op,
-        RexNode ... exprs)
+        List<RexNode> exprs)
     {
-        return new RexCall(
-            returnType,
-            op,
-            exprs);
+        return new RexCall(returnType, op, exprs);
     }
 
     /**
@@ -212,17 +210,17 @@ public class RexBuilder
      */
     public RexNode makeCall(
         SqlOperator op,
-        RexNode ... exprs)
+        List<? extends RexNode> exprs)
     {
         // TODO jvs 12-Jun-2010:  Find a better place for this;
         // it surely does not belong here.
         if (op == SqlStdOperatorTable.andOperator
-            && exprs.length == 2
-            && exprs[0].equals(exprs[1]))
+            && exprs.size() == 2
+            && exprs.get(0).equals(exprs.get(1)))
         {
             // Avoid generating 'AND(x, x)'; this can cause plan explosions if a
             // relnode is its own child and is merged with itself.
-            return exprs[0];
+            return exprs.get(0);
         }
 
         final RelDataType type = deriveReturnType(op, typeFactory, exprs);
@@ -237,9 +235,9 @@ public class RexBuilder
      */
     public final RexNode makeCall(
         SqlOperator op,
-        List<? extends RexNode> exprList)
+        RexNode ... exprs)
     {
-        return makeCall(op, exprList.toArray(new RexNode[exprList.size()]));
+        return makeCall(op, ImmutableList.copyOf(exprs));
     }
 
     /**
@@ -254,7 +252,7 @@ public class RexBuilder
     public RelDataType deriveReturnType(
         SqlOperator op,
         RelDataTypeFactory typeFactory,
-        RexNode [] exprs)
+        List<? extends RexNode> exprs)
     {
         return op.inferReturnType(new RexCallBinding(typeFactory, op, exprs));
     }
@@ -284,9 +282,9 @@ public class RexBuilder
     public RexNode makeOver(
         RelDataType type,
         SqlAggFunction operator,
-        RexNode [] exprs,
-        RexNode [] partitionKeys,
-        RexNode [] orderKeys,
+        List<RexNode> exprs,
+        List<RexNode> partitionKeys,
+        List<RexNode> orderKeys,
         SqlNode lowerBound,
         SqlNode upperBound,
         boolean physical,
@@ -343,7 +341,7 @@ public class RexBuilder
                         new RexOver(
                             bigintType,
                             SqlStdOperatorTable.countOperator,
-                            RexNode.EMPTY_ARRAY,
+                            ImmutableList.<RexNode>of(),
                             window),
                         makeLiteral(
                             new BigDecimal(2),
@@ -366,8 +364,8 @@ public class RexBuilder
      * @return window specification
      */
     public RexWindow makeWindow(
-        RexNode[] partitionKeys,
-        RexNode[] orderKeys,
+        List<RexNode> partitionKeys,
+        List<RexNode> orderKeys,
         SqlNode lowerBound,
         SqlNode upperBound,
         boolean physical)
@@ -413,7 +411,7 @@ public class RexBuilder
      */
     public RexNode makeNewInvocation(
         RelDataType type,
-        RexNode [] exprs)
+        List<RexNode> exprs)
     {
         return new RexCall(
             type,
@@ -488,8 +486,9 @@ public class RexBuilder
         return makeCall(
             toType,
             SqlStdOperatorTable.notEqualsOperator,
-            exp,
-            makeZeroLiteral(exp.getType()));
+            ImmutableList.<RexNode>of(
+                exp,
+                makeZeroLiteral(exp.getType())));
     }
 
     private RexNode makeCastBooleanToExact(RelDataType toType, RexNode exp)
@@ -505,9 +504,10 @@ public class RexBuilder
         return makeCall(
             toType,
             SqlStdOperatorTable.caseOperator,
-            makeCall(SqlStdOperatorTable.isNotNullOperator, exp),
-            casted,
-            makeNullLiteral(toType.getSqlTypeName()));
+            ImmutableList.<RexNode>of(
+                makeCall(SqlStdOperatorTable.isNotNullOperator, exp),
+                casted,
+                makeNullLiteral(toType.getSqlTypeName())));
     }
 
     private RexNode makeCastIntervalToExact(RelDataType toType, RexNode exp)
@@ -638,7 +638,7 @@ public class RexBuilder
         return new RexCall(
             type,
             SqlStdOperatorTable.castFunc,
-            new RexNode[] { exp });
+            ImmutableList.of(exp));
     }
 
     /**
@@ -655,11 +655,11 @@ public class RexBuilder
         RexNode exp,
         RexNode checkOverflow)
     {
-        RexNode [] args;
+        List<RexNode> args;
         if ((checkOverflow != null) && checkOverflow.isAlwaysTrue()) {
-            args = new RexNode[] { exp, checkOverflow };
+            args = ImmutableList.of(exp, checkOverflow);
         } else {
-            args = new RexNode[] { exp };
+            args = ImmutableList.of(exp);
         }
         return new RexCall(
             type,
@@ -683,9 +683,7 @@ public class RexBuilder
         return new RexCall(
             typeNotNull,
             SqlStdOperatorTable.castFunc,
-            new RexNode[] {
-                expr
-            });
+            ImmutableList.of(expr));
     }
 
     /**

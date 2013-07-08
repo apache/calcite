@@ -17,6 +17,8 @@
 */
 package org.eigenbase.rex;
 
+import java.util.List;
+
 /**
  * Default implementation of {@link RexVisitor}, which visits each node but does
  * nothing while it's there.
@@ -59,11 +61,11 @@ public class RexVisitorImpl<R>
             return null;
         }
         final RexWindow window = over.getWindow();
-        for (int i = 0; i < window.orderKeys.length; i++) {
-            window.orderKeys[i].accept(this);
+        for (RexNode orderKey : window.orderKeys) {
+            orderKey.accept(this);
         }
-        for (int i = 0; i < window.partitionKeys.length; i++) {
-            window.partitionKeys[i].accept(this);
+        for (RexNode partitionKey : window.partitionKeys) {
+            partitionKey.accept(this);
         }
         return r;
     }
@@ -79,10 +81,8 @@ public class RexVisitorImpl<R>
             return null;
         }
 
-        final RexNode [] operands = call.getOperands();
         R r = null;
-        for (int i = 0; i < operands.length; i++) {
-            RexNode operand = operands[i];
+        for (RexNode operand : call.operands) {
             r = operand.accept(this);
         }
         return r;
@@ -119,10 +119,9 @@ public class RexVisitorImpl<R>
      */
     public static boolean visitArrayAnd(
         RexVisitor<Boolean> visitor,
-        RexNode [] exprs)
+        List<RexNode> exprs)
     {
-        for (int i = 0; i < exprs.length; i++) {
-            RexNode expr = exprs[i];
+        for (RexNode expr : exprs) {
             final boolean b = expr.accept(visitor);
             if (!b) {
                 return false;
@@ -143,10 +142,9 @@ public class RexVisitorImpl<R>
      */
     public static boolean visitArrayOr(
         RexVisitor<Boolean> visitor,
-        RexNode [] exprs)
+        List<RexNode> exprs)
     {
-        for (int i = 0; i < exprs.length; i++) {
-            RexNode expr = exprs[i];
+        for (RexNode expr : exprs) {
             final boolean b = expr.accept(visitor);
             if (b) {
                 return true;

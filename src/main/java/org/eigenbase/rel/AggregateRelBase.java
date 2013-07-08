@@ -247,7 +247,7 @@ public abstract class AggregateRelBase
         extends SqlOperatorBinding
     {
         private final AggregateRelBase aggregateRel;
-        private final List<Integer> operands;
+        private final ImmutableList<Integer> operands;
 
         /**
          * Creates an AggCallBinding
@@ -261,7 +261,7 @@ public abstract class AggregateRelBase
             RelDataTypeFactory typeFactory,
             SqlAggFunction aggFunction,
             AggregateRelBase aggregateRel,
-            List<Integer> operands)
+            ImmutableList<Integer> operands)
         {
             super(typeFactory, aggFunction);
             this.aggregateRel = aggregateRel;

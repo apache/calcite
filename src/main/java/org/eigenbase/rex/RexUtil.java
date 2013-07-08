@@ -89,18 +89,16 @@ public class RexUtil
         RelDataType lhsRowType,
         RelDataType rhsRowType)
     {
-        int n = rhsRowType.getFieldCount();
+        final List<RelDataTypeField> fieldList = rhsRowType.getFieldList();
+        int n = fieldList.size();
         assert n == lhsRowType.getFieldCount()
             : "field count: lhs [" + lhsRowType + "] rhs [" + rhsRowType + "]";
-        RexNode [] rhsExps = new RexNode[n];
-        for (int i = 0; i < n; ++i) {
-            rhsExps[i] =
-                rexBuilder.makeInputRef(
-                    rhsRowType.getFieldList().get(i).getType(),
-                    i);
+        List<RexNode> rhsExps = new ArrayList<RexNode>();
+        for (RelDataTypeField field : fieldList) {
+            rhsExps.add(
+                rexBuilder.makeInputRef(field.getType(), field.getIndex()));
         }
-        return Arrays.asList(
-            generateCastExpressions(rexBuilder, lhsRowType, rhsExps));
+        return generateCastExpressions(rexBuilder, lhsRowType, rhsExps);
     }
 
     /**
@@ -112,23 +110,24 @@ public class RexUtil
      *
      * @return cast expressions
      */
-    public static RexNode [] generateCastExpressions(
+    public static List<RexNode> generateCastExpressions(
         RexBuilder rexBuilder,
         RelDataType lhsRowType,
-        RexNode [] rhsExps)
+        List<RexNode> rhsExps)
     {
         List<RelDataTypeField> lhsFields = lhsRowType.getFieldList();
-        final int fieldCount = lhsFields.size();
-        RexNode [] castExps = new RexNode[fieldCount];
-        assert fieldCount == rhsExps.length;
-        for (int i = 0; i < fieldCount; ++i) {
-            RelDataTypeField lhsField = lhsFields.get(i);
+        List<RexNode> castExps = new ArrayList<RexNode>();
+        for (Pair<RelDataTypeField, RexNode> pair
+            : Pair.zip(lhsFields, rhsExps, true))
+        {
+            RelDataTypeField lhsField = pair.left;
             RelDataType lhsType = lhsField.getType();
-            RelDataType rhsType = rhsExps[i].getType();
+            final RexNode rhsExp = pair.right;
+            RelDataType rhsType = rhsExp.getType();
             if (lhsType.equals(rhsType)) {
-                castExps[i] = rhsExps[i];
+                castExps.add(rhsExp);
             } else {
-                castExps[i] = rexBuilder.makeCast(lhsType, rhsExps[i]);
+                castExps.add(rexBuilder.makeCast(lhsType, rhsExp));
             }
         }
         return castExps;
@@ -165,7 +164,7 @@ public class RexUtil
         if (allowCast) {
             if (node.isA(RexKind.Cast)) {
                 RexCall call = (RexCall) node;
-                if (isNullLiteral(call.operands[0], false)) {
+                if (isNullLiteral(call.operands.get(0), false)) {
                     // node is "CAST(NULL as type)"
                     return true;
                 }
@@ -185,7 +184,7 @@ public class RexUtil
         /* Checks to see if the RexNode is null */
         return RexLiteral.isNullLiteral(node)
             || ((node.getKind() == RexKind.Cast)
-                && isNull(((RexCall) node).operands[0]));
+                && isNull(((RexCall) node).operands.get(0)));
     }
 
     /**
@@ -300,7 +299,7 @@ public class RexUtil
             break;
         case Cast:
             RelDataType lhsType = call.getType();
-            RelDataType rhsType = call.operands[0].getType();
+            RelDataType rhsType = call.operands.get(0).getType();
             if (rhsType.getSqlTypeName() == SqlTypeName.NULL) {
                 return false;
             }
@@ -325,25 +324,25 @@ public class RexUtil
                 // are integer.
                 return true;
             }
-            for (int i = 0; i < call.operands.length; i++) {
-                if (SqlTypeUtil.isDecimal(call.operands[i].getType())) {
+            for (int i = 0; i < call.operands.size(); i++) {
+                if (SqlTypeUtil.isDecimal(call.operands.get(i).getType())) {
                     return true;
                 }
             }
         }
-        return (recurse && requiresDecimalExpansion(call.operands, recurse));
+        return recurse && requiresDecimalExpansion(call.operands, recurse);
     }
 
     /**
      * Determines whether any operand of a set requires decimal expansion
      */
     public static boolean requiresDecimalExpansion(
-        RexNode [] operands,
+        List<RexNode> operands,
         boolean recurse)
     {
-        for (int i = 0; i < operands.length; i++) {
-            if (operands[i] instanceof RexCall) {
-                RexCall call = (RexCall) operands[i];
+        for (RexNode operand : operands) {
+            if (operand instanceof RexCall) {
+                RexCall call = (RexCall) operand;
                 if (requiresDecimalExpansion(call, recurse)) {
                     return true;
                 }
@@ -372,18 +371,18 @@ public class RexUtil
     public static boolean canReinterpretOverflow(RexCall call)
     {
         assert (call.isA(RexKind.Reinterpret)) : "call is not a reinterpret";
-        return call.operands.length > 1;
+        return call.operands.size() > 1;
     }
 
     /**
      * Returns whether an array of expressions has any common sub-expressions.
      */
-    public static boolean containCommonExprs(RexNode [] exprs, boolean fail)
+    public static boolean containCommonExprs(List<RexNode> exprs, boolean fail)
     {
         final ExpressionNormalizer visitor = new ExpressionNormalizer(false);
-        for (int i = 0; i < exprs.length; i++) {
+        for (RexNode expr : exprs) {
             try {
-                exprs[i].accept(visitor);
+                expr.accept(visitor);
             } catch (ExpressionNormalizer.SubExprExistsException e) {
                 Util.swallow(e, null);
                 assert !fail;
@@ -397,6 +396,7 @@ public class RexUtil
      * That is, if expression #i contains a {@link RexInputRef} referencing
      * field i or greater.
      *
+     *
      * @param exprs Array of expressions
      * @param inputRowType Input row type
      * @param fail Whether to assert if there is a forward reference
@@ -404,13 +404,13 @@ public class RexUtil
      * @return Whether there is a forward reference
      */
     public static boolean containForwardRefs(
-        RexNode [] exprs,
+        List<RexNode> exprs,
         RelDataType inputRowType,
         boolean fail)
     {
         final ForwardRefFinder visitor = new ForwardRefFinder(inputRowType);
-        for (int i = 0; i < exprs.length; i++) {
-            RexNode expr = exprs[i];
+        for (int i = 0; i < exprs.size(); i++) {
+            RexNode expr = exprs.get(i);
             visitor.setLimit(i); // field cannot refer to self or later field
             try {
                 expr.accept(visitor);
@@ -430,16 +430,13 @@ public class RexUtil
      * @param exprs Expressions
      * @param fail Whether to assert if there is such a function call
      */
-    static boolean containNonTrivialAggs(RexNode [] exprs, boolean fail)
+    static boolean containNonTrivialAggs(List<RexNode> exprs, boolean fail)
     {
-        for (int i = 0; i < exprs.length; i++) {
-            RexNode expr = exprs[i];
+        for (RexNode expr : exprs) {
             if (expr instanceof RexCall) {
                 RexCall rexCall = (RexCall) expr;
                 if (rexCall.getOperator() instanceof SqlAggFunction) {
-                    final RexNode [] operands = rexCall.getOperands();
-                    for (int j = 0; j < operands.length; j++) {
-                        RexNode operand = operands[j];
+                    for (RexNode operand : rexCall.operands) {
                         if (!(operand instanceof RexLocalRef)) {
                             assert !fail : "contains non trivial agg";
                             return true;
@@ -460,10 +457,7 @@ public class RexUtil
     {
         for (RexNode expr : exprs) {
             if (expr instanceof RexCall) {
-                RexCall rexCall = (RexCall) expr;
-                final RexNode [] operands = rexCall.getOperands();
-                for (int j = 0; j < operands.length; j++) {
-                    RexNode operand = operands[j];
+                for (RexNode operand : ((RexCall) expr).operands) {
                     if (!isAtomic(operand)) {
                         return true;
                     }
@@ -471,29 +465,6 @@ public class RexUtil
             }
         }
         return false;
-    }
-
-    /**
-     * Replaces the operands of a call. The new operands' types must match the
-     * old operands' types.
-     */
-    public static RexCall replaceOperands(RexCall call, RexNode [] operands)
-    {
-        if (call.operands == operands) {
-            return call;
-        }
-        for (int i = 0; i < operands.length; i++) {
-            RelDataType oldType = call.operands[i].getType();
-            RelDataType newType = operands[i].getType();
-            if (!oldType.isNullable() && newType.isNullable()) {
-                throw Util.newInternal("invalid nullability");
-            }
-            assert (oldType.toString().equals(newType.toString()));
-        }
-        return new RexCall(
-            call.getType(),
-            call.getOperator(),
-            operands);
     }
 
     public static boolean isAtomic(RexNode expr)
@@ -627,32 +598,31 @@ public class RexUtil
      * underlying datatype.
      */
     public static boolean containIdentity(
-        RexNode [] exprs,
+        List<RexNode> exprs,
         RelDataType rowType,
         boolean fail)
     {
         final List<RelDataTypeField> fields = rowType.getFieldList();
-        if (exprs.length < fields.size()) {
+        if (exprs.size() < fields.size()) {
             assert !fail : "exprs/rowType length mismatch";
             return false;
         }
         for (int i = 0; i < fields.size(); i++) {
-            if (!(exprs[i] instanceof RexInputRef)) {
+            if (!(exprs.get(i) instanceof RexInputRef)) {
                 assert !fail : "expr[" + i + "] is not a RexInputRef";
                 return false;
             }
-            RexInputRef inputRef = (RexInputRef) exprs[i];
+            RexInputRef inputRef = (RexInputRef) exprs.get(i);
             if (inputRef.getIndex() != i) {
                 assert !fail : "expr[" + i + "] has ordinal "
                     + inputRef.getIndex();
                 return false;
             }
-            if (!RelOptUtil.eq(
-                    "type1",
-                    exprs[i].getType(),
-                    "type2",
-                    fields.get(i).getType(),
-                    fail))
+            if (!RelOptUtil.eq("type1",
+                exprs.get(i).getType(),
+                "type2",
+                fields.get(i).getType(),
+                fail))
             {
                 return false;
             }
@@ -1056,9 +1026,7 @@ public class RexUtil
 
         public Void visitCall(RexCall call)
         {
-            final RexNode [] operands = call.getOperands();
-            for (int i = 0; i < operands.length; i++) {
-                RexNode operand = operands[i];
+            for (RexNode operand : call.operands) {
                 operand.accept(this);
             }
             return null;

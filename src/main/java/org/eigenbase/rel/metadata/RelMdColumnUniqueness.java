@@ -121,7 +121,7 @@ public class RelMdColumnUniqueness
                 if (call.getOperator() != SqlStdOperatorTable.castFunc) {
                     continue;
                 }
-                RexNode castOperand = call.getOperands()[0];
+                RexNode castOperand = call.getOperands().get(0);
                 if (!(castOperand instanceof RexInputRef)) {
                     continue;
                 }

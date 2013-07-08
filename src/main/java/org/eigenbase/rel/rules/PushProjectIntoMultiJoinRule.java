@@ -55,7 +55,7 @@ public class PushProjectIntoMultiJoinRule
         // has already been pushed into each input
         boolean allSet = true;
         for (int i = 0; i < multiJoin.getInputs().size(); i++) {
-            if (multiJoin.getProjFields()[i] == null) {
+            if (multiJoin.getProjFields().get(i) == null) {
                 allSet = false;
                 break;
             }

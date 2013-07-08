@@ -18,8 +18,11 @@
 package org.eigenbase.rex;
 
 import java.io.*;
+import java.util.List;
 
 import org.eigenbase.sql.*;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -36,8 +39,8 @@ public class RexWindow
 {
     //~ Instance fields --------------------------------------------------------
 
-    public final RexNode [] partitionKeys;
-    public final RexNode [] orderKeys;
+    public final List<RexNode> partitionKeys;
+    public final List<RexNode> orderKeys;
     private final SqlNode lowerBound;
     private final SqlNode upperBound;
     private final boolean physical;
@@ -52,22 +55,22 @@ public class RexWindow
      * RexBuilder#makeOver}.
      */
     RexWindow(
-        RexNode [] partitionKeys,
-        RexNode [] orderKeys,
+        List<RexNode> partitionKeys,
+        List<RexNode> orderKeys,
         SqlNode lowerBound,
         SqlNode upperBound,
         boolean physical)
     {
         assert partitionKeys != null;
         assert orderKeys != null;
-        this.partitionKeys = partitionKeys;
-        this.orderKeys = orderKeys;
+        this.partitionKeys = ImmutableList.copyOf(partitionKeys);
+        this.orderKeys = ImmutableList.copyOf(orderKeys);
         this.lowerBound = lowerBound;
         this.upperBound = upperBound;
         this.physical = physical;
         this.digest = computeDigest();
         if (!physical) {
-            assert orderKeys.length > 0 : "logical window requires sort key";
+            assert orderKeys.size() > 0 : "logical window requires sort key";
         }
     }
 
@@ -97,29 +100,29 @@ public class RexWindow
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         int clauseCount = 0;
-        if (partitionKeys.length > 0) {
+        if (partitionKeys.size() > 0) {
             if (clauseCount++ > 0) {
                 pw.print(' ');
             }
             pw.print("PARTITION BY ");
-            for (int i = 0; i < partitionKeys.length; i++) {
+            for (int i = 0; i < partitionKeys.size(); i++) {
                 if (i > 0) {
                     pw.print(", ");
                 }
-                RexNode partitionKey = partitionKeys[i];
+                RexNode partitionKey = partitionKeys.get(i);
                 pw.print(partitionKey.toString());
             }
         }
-        if (orderKeys.length > 0) {
+        if (orderKeys.size() > 0) {
             if (clauseCount++ > 0) {
                 pw.print(' ');
             }
             pw.print("ORDER BY ");
-            for (int i = 0; i < orderKeys.length; i++) {
+            for (int i = 0; i < orderKeys.size(); i++) {
                 if (i > 0) {
                     pw.print(", ");
                 }
-                RexNode orderKey = orderKeys[i];
+                RexNode orderKey = orderKeys.get(i);
                 pw.print(orderKey.toString());
             }
         }

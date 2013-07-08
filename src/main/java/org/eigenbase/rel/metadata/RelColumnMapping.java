@@ -18,7 +18,7 @@
 package org.eigenbase.rel.metadata;
 
 /**
- * RelColumnMapping records a mapping from an input column of a RelNode to one
+ * Mapping from an input column of a {@link org.eigenbase.rel.RelNode} to one
  * of its output columns.
  *
  * @author John V. Sichi
@@ -26,27 +26,36 @@ package org.eigenbase.rel.metadata;
  */
 public class RelColumnMapping
 {
+    public RelColumnMapping(
+        int iOutputColumn, int iInputRel, int iInputColumn, boolean derived)
+    {
+        this.iOutputColumn = iOutputColumn;
+        this.iInputRel = iInputRel;
+        this.iInputColumn = iInputColumn;
+        this.derived = derived;
+    }
+
     //~ Instance fields --------------------------------------------------------
 
     /**
      * 0-based ordinal of mapped output column.
      */
-    public int iOutputColumn;
+    public final int iOutputColumn;
 
     /**
      * 0-based ordinal of mapped input rel.
      */
-    public int iInputRel;
+    public final int iInputRel;
 
     /**
      * 0-based ordinal of mapped column within input rel.
      */
-    public int iInputColumn;
+    public final int iInputColumn;
 
     /**
      * Whether the column mapping transforms the input.
      */
-    public boolean isDerived;
+    public final boolean derived;
 }
 
 // End RelColumnMapping.java

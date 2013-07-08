@@ -24,6 +24,8 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * This class allows multiple existing {@link SqlOperandTypeChecker} rules to be
@@ -87,7 +89,7 @@ public class CompositeOperandTypeChecker
 
     //~ Instance fields --------------------------------------------------------
 
-    private final SqlSingleOperandTypeChecker [] allowedRules;
+    private final ImmutableList<SqlSingleOperandTypeChecker> allowedRules;
     private final Composition composition;
 
     //~ Constructors -----------------------------------------------------------
@@ -96,17 +98,17 @@ public class CompositeOperandTypeChecker
      * {@link SqlTypeStrategies#or}. */
     CompositeOperandTypeChecker(
         Composition composition,
-        SqlSingleOperandTypeChecker ... allowedRules)
+        ImmutableList<SqlSingleOperandTypeChecker> allowedRules)
     {
         assert null != allowedRules;
-        assert allowedRules.length > 1;
+        assert allowedRules.size() > 1;
         this.allowedRules = allowedRules;
         this.composition = composition;
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public SqlOperandTypeChecker [] getRules()
+    public ImmutableList<SqlSingleOperandTypeChecker> getRules()
     {
         return allowedRules;
     }
@@ -133,18 +135,18 @@ public class CompositeOperandTypeChecker
     {
         switch (composition) {
         case SEQUENCE:
-            return SqlOperandCountRanges.of(allowedRules.length);
+            return SqlOperandCountRanges.of(allowedRules.size());
         case AND:
         case OR:
         default:
             final List<SqlOperandCountRange> ranges =
                 new AbstractList<SqlOperandCountRange>() {
                     public SqlOperandCountRange get(int index) {
-                        return allowedRules[index].getOperandCountRange();
+                        return allowedRules.get(index).getOperandCountRange();
                     }
 
                     public int size() {
-                        return allowedRules.length;
+                        return allowedRules.size();
                     }
                 };
             final int min = minMin(ranges);
@@ -220,10 +222,10 @@ public class CompositeOperandTypeChecker
         int iFormalOperand,
         boolean throwOnFailure)
     {
-        assert allowedRules.length >= 1;
+        assert allowedRules.size() >= 1;
 
         if (composition == Composition.SEQUENCE) {
-            return allowedRules[iFormalOperand].checkSingleOperandType(
+            return allowedRules.get(iFormalOperand).checkSingleOperandType(
                 callBinding, node, 0, throwOnFailure);
         }
 
@@ -250,7 +252,7 @@ public class CompositeOperandTypeChecker
             ret = typeErrorCount == 0;
             break;
         case OR:
-            ret = (typeErrorCount < allowedRules.length);
+            ret = (typeErrorCount < allowedRules.size());
             break;
         default:
             // should never come here
@@ -316,7 +318,7 @@ public class CompositeOperandTypeChecker
             failed = typeErrorCount > 0;
             break;
         case OR:
-            failed = (typeErrorCount == allowedRules.length);
+            failed = (typeErrorCount == allowedRules.size());
             break;
         default:
             throw new AssertionError();

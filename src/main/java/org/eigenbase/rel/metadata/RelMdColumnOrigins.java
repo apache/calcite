@@ -214,7 +214,7 @@ public class RelMdColumnOrigins
             if (origins == null) {
                 return null;
             }
-            if (mapping.isDerived) {
+            if (mapping.derived) {
                 origins = createDerivedColumnOrigins(origins);
             }
             set.addAll(origins);

@@ -585,7 +585,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     RelOptTableImpl(
         RelOptSchema schema,
         RelDataType rowType,
-        String[] names,
+        List<String> names,
         Table table) {
       this(schema, rowType, names, table, table.getExpression());
     }
@@ -593,7 +593,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     RelOptTableImpl(
         RelOptSchema schema,
         RelDataType rowType,
-        String[] names,
+        List<String> names,
         Expression expression) {
       this(schema, rowType, names, null, expression);
     }
@@ -601,7 +601,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     private RelOptTableImpl(
         RelOptSchema schema,
         RelDataType rowType,
-        String[] names,
+        List<String> names,
         Table table,
         Expression expression) {
       this.schema = schema;
@@ -742,7 +742,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           return new RelOptTableImpl(
               this,
               table.getRowType(),
-              Pair.left(pairs).toArray(new String[pairs.size()]),
+              Pair.left(pairs),
               table);
         }
         return null;
@@ -973,11 +973,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           SqlKind.OTHER_FUNCTION,
           new ExplicitReturnTypeInference(
               typeFactory.createType(fun.getElementType())),
-          new ExplicitOperandTypeInference(
-              argTypes.toArray(new RelDataType[argTypes.size()])),
-          SqlTypeStrategies.family(
-              typeFamilies.toArray(
-                  new SqlTypeFamily[typeFamilies.size()])),
+          new ExplicitOperandTypeInference(argTypes),
+          SqlTypeStrategies.family(typeFamilies),
           null);
     }
 

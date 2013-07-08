@@ -119,13 +119,13 @@ public class RexTransformer
             isParentsCount++;
         }
 
-        //special case when we have a Literal, Parameter or Identifer
-        //directly as an operand to IS TRUE or IS FALSE
+        // Special case when we have a Literal, Parameter or Identifier directly
+        // as an operand to IS TRUE or IS FALSE.
         if (null != directlyUnderIs) {
             RexCall call = (RexCall) node;
             assert isParentsCount > 0 : "Stack should not be empty";
-            assert 1 == call.operands.length;
-            RexNode operand = call.operands[0];
+            assert 1 == call.operands.size();
+            RexNode operand = call.operands.get(0);
             if (((operand instanceof RexLiteral)
                     || (operand instanceof RexInputRef)
                     || (operand instanceof RexDynamicParam)))
@@ -163,41 +163,45 @@ public class RexTransformer
                 }
             }
 
-            //else continue as normal
+            // else continue as normal
         }
 
         if (node instanceof RexCall) {
             RexCall call = (RexCall) node;
 
-            //transform children (if any) before transforming node itself
-            for (int i = 0; i < call.operands.length; i++) {
-                RexNode operand = call.operands[i];
-                call.operands[i] = transformNullSemantics(operand);
+            // Transform children (if any) before transforming node itself.
+            final ArrayList<RexNode> operands = new ArrayList<RexNode>();
+            for (RexNode operand : call.operands) {
+                operands.add(transformNullSemantics(operand));
             }
 
             if (null != directlyUnderIs) {
                 isParentsCount--;
                 directlyUnderIs = null;
-                return call.operands[0];
+                return operands.get(0);
             }
 
             if (transformableOperators.contains(call.getOperator())) {
-                assert (2 == call.operands.length);
-                RexNode isNotNullOne = null;
-                RexNode isNotNullTwo = null;
+                assert 2 == operands.size();
 
-                if (isTransformable(call.operands[0])) {
+                final RexNode isNotNullOne;
+                if (isTransformable(operands.get(0))) {
                     isNotNullOne =
                         rexBuilder.makeCall(
                             SqlStdOperatorTable.isNotNullOperator,
-                            call.operands[0]);
+                            operands.get(0));
+                } else {
+                    isNotNullOne = null;
                 }
 
-                if (isTransformable(call.operands[1])) {
+                final RexNode isNotNullTwo;
+                if (isTransformable(operands.get(1))) {
                     isNotNullTwo =
                         rexBuilder.makeCall(
                             SqlStdOperatorTable.isNotNullOperator,
-                            call.operands[1]);
+                            operands.get(1));
+                } else {
+                    isNotNullTwo = null;
                 }
 
                 RexNode intoFinalAnd = null;
@@ -218,11 +222,15 @@ public class RexTransformer
                         rexBuilder.makeCall(
                             SqlStdOperatorTable.andOperator,
                             intoFinalAnd,
-                            call);
+                            call.clone(call.getType(), operands));
                     return andNullAndCheckNode;
                 }
 
-                //if come here no need to do anything
+                // if come here no need to do anything
+            }
+
+            if (!operands.equals(call.operands)) {
+                return call.clone(call.getType(), operands);
             }
         }
 

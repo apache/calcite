@@ -52,7 +52,7 @@ public class RexCall
     //~ Instance fields --------------------------------------------------------
 
     private final SqlOperator op;
-    public final RexNode [] operands;
+    public final ImmutableList<RexNode> operands;
     private final RelDataType type;
     private final RexKind kind;
 
@@ -61,14 +61,14 @@ public class RexCall
     protected RexCall(
         RelDataType type,
         SqlOperator op,
-        RexNode [] operands)
+        List<? extends RexNode> operands)
     {
         assert type != null : "precondition: type != null";
         assert op != null : "precondition: op != null";
         assert operands != null : "precondition: operands != null";
         this.type = type;
         this.op = op;
-        this.operands = operands;
+        this.operands = ImmutableList.copyOf(operands);
         this.kind = sqlKindToRexKind(op.getKind());
         assert this.kind != null : op;
         this.digest = computeDigest(true);
@@ -80,7 +80,7 @@ public class RexCall
         // example is the CAST operator, which is originally a 2-operand
         // SqlCall, but is later converted to a 1-operand RexCall.
         if (op instanceof SqlBinaryOperator) {
-            assert (operands.length == 2);
+            assert operands.size() == 2;
         }
     }
 
@@ -175,18 +175,18 @@ public class RexCall
     protected String computeDigest(boolean withType)
     {
         StringBuilder sb = new StringBuilder(op.getName());
-        if ((operands.length == 0)
+        if ((operands.size() == 0)
             && (op.getSyntax() == SqlSyntax.FunctionId))
         {
             // Don't print params for empty arg list. For example, we want
             // "SYSTEM_USER", not "SYSTEM_USER()".
         } else {
             sb.append("(");
-            for (int i = 0; i < operands.length; i++) {
+            for (int i = 0; i < operands.size(); i++) {
                 if (i > 0) {
                     sb.append(", ");
                 }
-                RexNode operand = operands[i];
+                RexNode operand = operands.get(i);
                 sb.append(operand.toString());
             }
             sb.append(")");
@@ -222,10 +222,7 @@ public class RexCall
 
     public RexCall clone()
     {
-        return new RexCall(
-            type,
-            op,
-            RexUtil.clone(operands));
+        return new RexCall(type, op, operands);
     }
 
     public RexKind getKind()
@@ -233,12 +230,7 @@ public class RexCall
         return kind;
     }
 
-    public RexNode [] getOperands()
-    {
-        return operands;
-    }
-
-    public List<RexNode> getOperandList()
+    public List<RexNode> getOperands()
     {
         return ImmutableList.copyOf(operands);
     }
@@ -258,9 +250,7 @@ public class RexCall
      */
     public RexCall clone(RelDataType type, List<RexNode> operands)
     {
-        final RexNode[] operandList =
-            operands.toArray(new RexNode[operands.size()]);
-        return new RexCall(type, op, operandList);
+        return new RexCall(type, op, operands);
     }
 }
 

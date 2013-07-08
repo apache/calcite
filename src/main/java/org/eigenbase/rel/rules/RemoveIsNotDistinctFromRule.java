@@ -101,8 +101,8 @@ public final class RemoveIsNotDistinctFromRule
                 newCall =
                     RelOptUtil.isDistinctFrom(
                         rexBuilder,
-                        tmpCall.getOperands()[0],
-                        tmpCall.getOperands()[1],
+                        tmpCall.operands.get(0),
+                        tmpCall.operands.get(1),
                         true);
             }
             return newCall;

@@ -73,8 +73,8 @@ public abstract class SetOpRel
 
     @Override
     public void replaceInput(int ordinalInParent, RelNode p) {
-        final RelNode[] newInputs = inputs.toArray(new RelNode[inputs.size()]);
-        newInputs[ordinalInParent] = p;
+        final List<RelNode> newInputs = new ArrayList<RelNode>(inputs);
+        newInputs.set(ordinalInParent, p);
         inputs = FlatLists.of(newInputs);
         recomputeDigest();
     }

@@ -88,7 +88,7 @@ public class RelMdUtil
         assert (artificialSelecFuncNode instanceof RexCall);
         RexCall call = (RexCall) artificialSelecFuncNode;
         assert (call.getOperator() == artificialSelectivityFunc);
-        RexNode operand = call.getOperands()[0];
+        RexNode operand = call.getOperands().get(0);
         BigDecimal bd = (BigDecimal) ((RexLiteral) operand).getValue();
         return bd.doubleValue();
     }
@@ -807,13 +807,14 @@ public class RelMdUtil
             Double distinctRowCount;
             Double rowCount = RelMetadataQuery.getRowCount(rel);
             if (call.isA(RexKind.MinusPrefix)) {
-                distinctRowCount = cardOfProjExpr(rel, call.getOperands()[0]);
+                distinctRowCount =
+                    cardOfProjExpr(rel, call.getOperands().get(0));
             } else if (call.isA(RexKind.Plus) || call.isA(RexKind.Minus)) {
-                Double card0 = cardOfProjExpr(rel, call.getOperands()[0]);
+                Double card0 = cardOfProjExpr(rel, call.getOperands().get(0));
                 if (card0 == null) {
                     return null;
                 }
-                Double card1 = cardOfProjExpr(rel, call.getOperands()[1]);
+                Double card1 = cardOfProjExpr(rel, call.getOperands().get(1));
                 if (card1 == null) {
                     return null;
                 }
@@ -821,18 +822,18 @@ public class RelMdUtil
             } else if (call.isA(RexKind.Times) || call.isA(RexKind.Divide)) {
                 distinctRowCount =
                     NumberUtil.multiply(
-                        cardOfProjExpr(rel, call.getOperands()[0]),
-                        cardOfProjExpr(rel, call.getOperands()[1]));
+                        cardOfProjExpr(rel, call.getOperands().get(0)),
+                        cardOfProjExpr(rel, call.getOperands().get(1)));
 
                 // TODO zfong 6/21/06 - Broadbase has code to handle date
                 // functions like year, month, day; E.g., cardinality of Month()
                 // is 12
             } else {
-                if (call.getOperands().length == 1) {
+                if (call.getOperands().size() == 1) {
                     distinctRowCount =
                         cardOfProjExpr(
                             rel,
-                            call.getOperands()[0]);
+                            call.getOperands().get(0));
                 } else {
                     distinctRowCount = rowCount / 10;
                 }

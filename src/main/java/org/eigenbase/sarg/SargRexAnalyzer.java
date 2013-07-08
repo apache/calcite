@@ -598,7 +598,7 @@ public class SargRexAnalyzer
                 return;
             }
 
-            int nOperands = call.getOperands().length;
+            int nOperands = call.getOperands().size();
             assert (exprStack.size() >= nOperands);
 
             SargSetExpr expr =

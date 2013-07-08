@@ -1472,8 +1472,8 @@ public class SqlToRelConverter
 
         if (!(literalExpr instanceof RexLiteral)) {
             assert (literalExpr.isA(RexKind.Cast));
-            RexNode child = ((RexCall) literalExpr).getOperands()[0];
-            assert (RexLiteral.isNullLiteral(child));
+            RexNode child = ((RexCall) literalExpr).getOperands().get(0);
+            assert RexLiteral.isNullLiteral(child);
 
             // NOTE jvs 22-Nov-2006:  we preserve type info
             // in ValuesRel digest, so it's OK to lose it here
@@ -1660,9 +1660,10 @@ public class SqlToRelConverter
         final SqlWindow window =
             validator.resolveWindow(windowOrRef, bb.scope, true);
         final SqlNodeList partitionList = window.getPartitionList();
-        final RexNode [] partitionKeys = new RexNode[partitionList.size()];
-        for (int i = 0; i < partitionKeys.length; i++) {
-            partitionKeys[i] = bb.convertExpression(partitionList.get(i));
+        final ImmutableList.Builder<RexNode> partitionKeys =
+            ImmutableList.builder();
+        for (SqlNode partition : partitionList) {
+            partitionKeys.add(bb.convertExpression(partition));
         }
         SqlNodeList orderList = window.getOrderList();
         if ((orderList.size() == 0) && !window.isRows()) {
@@ -1678,9 +1679,10 @@ public class SqlToRelConverter
                 throw new AssertionError("sort key must not be empty");
             }
         }
-        final RexNode [] orderKeys = new RexNode[orderList.size()];
-        for (int i = 0; i < orderKeys.length; i++) {
-            orderKeys[i] = bb.convertExpression(orderList.get(i));
+        final ImmutableList.Builder<RexNode> orderKeys =
+            ImmutableList.builder();
+        for (SqlNode order : orderList) {
+            orderKeys.add(bb.convertExpression(order));
         }
         RexNode rexAgg = exprConverter.convertCall(bb, aggCall);
         rexAgg =
@@ -1691,7 +1693,8 @@ public class SqlToRelConverter
         // necessary because the returned expression is not necessarily a call
         // to an agg function. For example, AVG(x) becomes SUM(x) / COUNT(x).
         final RexShuttle visitor =
-            new HistogramShuttle(partitionKeys, orderKeys, window);
+            new HistogramShuttle(
+                partitionKeys.build(), orderKeys.build(), window);
         return rexAgg.accept(visitor);
     }
 
@@ -1878,7 +1881,7 @@ public class SqlToRelConverter
         }
         replaceSubqueries(bb, call);
         RexNode rexCall = bb.convertExpression(call);
-        List<RelNode> inputs = Arrays.asList(bb.retrieveCursors());
+        final List<RelNode> inputs = bb.retrieveCursors();
         Set<RelColumnMapping> columnMappings =
             getColumnMappings(call.getOperator());
         TableFunctionRel callRel =
@@ -3997,12 +4000,13 @@ public class SqlToRelConverter
             subqueryList.add(node);
         }
 
-        RelNode [] retrieveCursors()
+        ImmutableList<RelNode> retrieveCursors()
         {
-            RelNode [] cursorArray =
-                cursors.toArray(new RelNode[cursors.size()]);
-            cursors.clear();
-            return cursorArray;
+            try {
+                return ImmutableList.copyOf(cursors);
+            } finally {
+                cursors.clear();
+            }
         }
 
         // implement SqlRexContext
@@ -4177,7 +4181,7 @@ public class SqlToRelConverter
             if (rex instanceof RexCall) {
                 RexCall call = (RexCall) rex;
                 if (call.getOperator() == SqlStdOperatorTable.castFunc) {
-                    RexNode operand = call.getOperands()[0];
+                    RexNode operand = call.getOperands().get(0);
                     if (operand instanceof RexLiteral) {
                         return true;
                     }
@@ -4375,7 +4379,7 @@ public class SqlToRelConverter
             RelDataType type,
             SqlFunction constructor,
             int iAttribute,
-            RexNode [] constructorArgs)
+            List<RexNode> constructorArgs)
         {
             return rexBuilder.constantNull();
         }
@@ -4774,13 +4778,13 @@ public class SqlToRelConverter
     private class HistogramShuttle
         extends RexShuttle
     {
-        private final RexNode [] partitionKeys;
-        private final RexNode [] orderKeys;
+        private final List<RexNode> partitionKeys;
+        private final List<RexNode> orderKeys;
         private final SqlWindow window;
 
         HistogramShuttle(
-            RexNode [] partitionKeys,
-            RexNode [] orderKeys,
+            List<RexNode> partitionKeys,
+            List<RexNode> orderKeys,
             SqlWindow window)
         {
             this.partitionKeys = partitionKeys;
@@ -4796,7 +4800,7 @@ public class SqlToRelConverter
             }
             final SqlAggFunction aggOp = (SqlAggFunction) op;
             final RelDataType type = call.getType();
-            RexNode [] exprs = call.getOperands();
+            List<RexNode> exprs = call.getOperands();
 
             boolean isUnboundedPreceding =
                 SqlWindowOperator.isUnboundedPreceding(window.getLowerBound());
@@ -4831,15 +4835,15 @@ public class SqlToRelConverter
                 // Replace original expression with CAST of not one
                 // of the supported types
                 if (histogramType != type) {
-                    if (reinterpretCast) {
-                        exprs[0] =
-                            rexBuilder.makeReinterpretCast(
+                    exprs = new ArrayList<RexNode>(exprs);
+                    exprs.set(
+                        0,
+                        reinterpretCast
+                            ? rexBuilder.makeReinterpretCast(
                                 histogramType,
-                                exprs[0],
-                                rexBuilder.makeLiteral(false));
-                    } else {
-                        exprs[0] = rexBuilder.makeCast(histogramType, exprs[0]);
-                    }
+                                exprs.get(0),
+                                rexBuilder.makeLiteral(false))
+                            : rexBuilder.makeCast(histogramType, exprs.get(0)));
                 }
 
                 RexCallBinding bind =
@@ -4851,7 +4855,7 @@ public class SqlToRelConverter
                 RexNode over =
                     rexBuilder.makeOver(
                         SqlStdOperatorTable.histogramAggFunction
-                        .inferReturnType(bind),
+                            .inferReturnType(bind),
                         SqlStdOperatorTable.histogramAggFunction,
                         exprs,
                         partitionKeys,
@@ -4866,7 +4870,7 @@ public class SqlToRelConverter
                     rexBuilder.makeCall(
                         histogramType,
                         histogramOp,
-                        over);
+                        ImmutableList.of(over));
 
                 // If needed, post Cast result back to original
                 // type.

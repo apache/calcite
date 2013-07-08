@@ -1641,7 +1641,7 @@ public class RelDecorrelator
             RexNode newCall;
 
             boolean [] update = { false };
-            RexNode [] clonedOperands = visitArray(call.operands, update);
+            List<RexNode> clonedOperands = visitList(call.operands, update);
             if (update[0]) {
                 SqlOperator operator = call.getOperator();
 
@@ -1649,7 +1649,7 @@ public class RelDecorrelator
                 if (operator instanceof SqlFunction) {
                     SqlFunction function = (SqlFunction) operator;
                     if (function.getKind() == SqlKind.CAST) {
-                        if (call.operands.length < 2) {
+                        if (call.operands.size() < 2) {
                             isSpecialCast = true;
                         }
                     }

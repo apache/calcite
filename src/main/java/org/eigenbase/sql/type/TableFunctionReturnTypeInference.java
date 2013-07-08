@@ -172,13 +172,12 @@ public class TableFunctionReturnTypeInference
         SqlOperatorBinding opBinding,
         RelDataTypeField cursorField)
     {
-        RelColumnMapping columnMapping = new RelColumnMapping();
-        columnMapping.iOutputColumn = expandedFieldNames.size();
-        columnMapping.iInputColumn = iInputColumn;
-        columnMapping.iInputRel = iCursor;
-
-        columnMapping.isDerived = isPassthrough ? false : true;
-        columnMappings.add(columnMapping);
+        columnMappings.add(
+            new RelColumnMapping(
+                expandedFieldNames.size(),
+                iCursor,
+                iInputColumn,
+                !isPassthrough));
 
         // As a special case, system fields are implicitly NOT NULL.
         // A badly behaved UDX can still provide NULL values, so the

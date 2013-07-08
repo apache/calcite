@@ -71,7 +71,7 @@ public abstract class RelOptRuleCall
         this.rule = operand.getRule();
         this.rels = rels;
         this.parents = parents;
-        assert (rels.length == rule.operands.length);
+        assert rels.length == rule.operands.size();
     }
 
     protected RelOptRuleCall(

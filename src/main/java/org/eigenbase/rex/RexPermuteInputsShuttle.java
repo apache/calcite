@@ -80,7 +80,7 @@ public class RexPermuteInputsShuttle
     public RexNode visitCall(RexCall call) {
         if (call.getOperator() == RexBuilder.GET_OPERATOR) {
             final String name =
-                (String) ((RexLiteral) call.getOperands()[1]).getValue2();
+                (String) ((RexLiteral) call.getOperands().get(1)).getValue2();
             final int i = lookup(fields, name);
             if (i >= 0) {
                 return RexInputRef.of(i, fields);

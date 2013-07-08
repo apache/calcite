@@ -26,6 +26,9 @@ import org.eigenbase.rex.*;
 
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 
 /**
  * A MultiJoinRel represents a join of N inputs, whereas other join relnodes
@@ -39,14 +42,14 @@ public final class MultiJoinRel
 {
     //~ Instance fields --------------------------------------------------------
 
-    private List<RelNode> inputs;
+    private ImmutableList<RelNode> inputs;
     private RexNode joinFilter;
     private RelDataType rowType;
     private boolean isFullOuterJoin;
-    private RexNode [] outerJoinConditions;
-    private JoinRelType [] joinTypes;
-    private BitSet [] projFields;
-    private Map<Integer, int[]> joinFieldRefCountsMap;
+    private ImmutableList<RexNode> outerJoinConditions;
+    private ImmutableList<JoinRelType> joinTypes;
+    private ImmutableList<BitSet> projFields;
+    private ImmutableMap<Integer, int[]> joinFieldRefCountsMap;
     private RexNode postJoinFilter;
 
     //~ Constructors -----------------------------------------------------------
@@ -78,23 +81,23 @@ public final class MultiJoinRel
         RexNode joinFilter,
         RelDataType rowType,
         boolean isFullOuterJoin,
-        RexNode [] outerJoinConditions,
-        JoinRelType [] joinTypes,
-        BitSet [] projFields,
+        List<RexNode> outerJoinConditions,
+        List<JoinRelType> joinTypes,
+        List<BitSet> projFields,
         Map<Integer, int[]> joinFieldRefCountsMap,
         RexNode postJoinFilter)
     {
         super(
             cluster,
             cluster.traitSetOf(Convention.NONE));
-        this.inputs = inputs;
+        this.inputs = ImmutableList.copyOf(inputs);
         this.joinFilter = joinFilter;
         this.rowType = rowType;
         this.isFullOuterJoin = isFullOuterJoin;
-        this.outerJoinConditions = outerJoinConditions;
-        this.joinTypes = joinTypes;
-        this.projFields = projFields;
-        this.joinFieldRefCountsMap = joinFieldRefCountsMap;
+        this.outerJoinConditions = ImmutableList.copyOf(outerJoinConditions);
+        this.joinTypes = ImmutableList.copyOf(joinTypes);
+        this.projFields = ImmutableList.copyOf(projFields);
+        this.joinFieldRefCountsMap = ImmutableMap.copyOf(joinFieldRefCountsMap);
         this.postJoinFilter = postJoinFilter;
     }
 
@@ -108,9 +111,9 @@ public final class MultiJoinRel
             joinFilter.clone(),
             rowType,
             isFullOuterJoin,
-            RexUtil.clone(outerJoinConditions),
-            joinTypes.clone(),
-            projFields.clone(),
+            outerJoinConditions,
+            joinTypes,
+            projFields,
             cloneJoinFieldRefCountsMap(),
             postJoinFilter);
     }
@@ -132,16 +135,16 @@ public final class MultiJoinRel
         List<String> outerJoinConds = new ArrayList<String>();
         List<String> projFieldObjects = new ArrayList<String>();
         for (int i = 0; i < inputs.size(); i++) {
-            joinTypeNames.add(joinTypes[i].name());
-            if (outerJoinConditions[i] == null) {
+            joinTypeNames.add(joinTypes.get(i).name());
+            if (outerJoinConditions.get(i) == null) {
                 outerJoinConds.add("NULL");
             } else {
-                outerJoinConds.add(outerJoinConditions[i].toString());
+                outerJoinConds.add(outerJoinConditions.get(i).toString());
             }
-            if (projFields[i] == null) {
+            if (projFields.get(i) == null) {
                 projFieldObjects.add("ALL");
             } else {
-                projFieldObjects.add(projFields[i].toString());
+                projFieldObjects.add(projFields.get(i).toString());
             }
         }
 
@@ -191,7 +194,7 @@ public final class MultiJoinRel
     /**
      * @return outer join conditions for null-generating inputs
      */
-    public RexNode [] getOuterJoinConditions()
+    public List<RexNode> getOuterJoinConditions()
     {
         return outerJoinConditions;
     }
@@ -199,7 +202,7 @@ public final class MultiJoinRel
     /**
      * @return join types of each input
      */
-    public JoinRelType [] getJoinTypes()
+    public List<JoinRelType> getJoinTypes()
     {
         return joinTypes;
     }
@@ -208,7 +211,7 @@ public final class MultiJoinRel
      * @return bitmaps representing the fields projected from each input; if an
      * entry is null, all fields are projected
      */
-    public BitSet [] getProjFields()
+    public List<BitSet> getProjFields()
     {
         return projFields;
     }

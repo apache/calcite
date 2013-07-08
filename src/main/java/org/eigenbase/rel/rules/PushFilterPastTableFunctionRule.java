@@ -78,7 +78,7 @@ public class PushFilterPastTableFunctionRule
             if (mapping.iInputColumn != mapping.iOutputColumn) {
                 return;
             }
-            if (mapping.isDerived) {
+            if (mapping.derived) {
                 return;
             }
         }

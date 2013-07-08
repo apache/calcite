@@ -95,11 +95,11 @@ public class MongoRules {
     if (rex instanceof RexCall) {
       final RexCall call = (RexCall) rex;
       if (call.getOperator() == SqlStdOperatorTable.itemOp
-          && call.getOperandList().size() == 2
-          && call.getOperandList().get(0) instanceof RexInputRef
-          && ((RexInputRef) call.getOperandList().get(0)).getIndex() == 0
-          && call.getOperandList().get(1) instanceof RexLiteral) {
-        RexLiteral arg = (RexLiteral) call.getOperandList().get(1);
+          && call.getOperands().size() == 2
+          && call.getOperands().get(0) instanceof RexInputRef
+          && ((RexInputRef) call.getOperands().get(0)).getIndex() == 0
+          && call.getOperands().get(1) instanceof RexLiteral) {
+        RexLiteral arg = (RexLiteral) call.getOperands().get(1);
         if (arg.getTypeName() == SqlTypeName.CHAR) {
           return (String) arg.getValue2();
         }
@@ -112,7 +112,7 @@ public class MongoRules {
     if (rex instanceof RexCall) {
       final RexCall call = (RexCall) rex;
       if (call.getOperator() == SqlStdOperatorTable.castFunc) {
-        assert call.getOperandList().size() == 1;
+        assert call.getOperands().size() == 1;
         return call.getType();
       }
     }
@@ -136,7 +136,7 @@ public class MongoRules {
       }
       RelDataType type = parseCast(call);
       if (type != null) {
-        final RexNode operand = call.getOperandList().get(0);
+        final RexNode operand = call.getOperands().get(0);
         fieldName = parseFieldAccess(operand);
         if (fieldName != null) {
           return registerField(fieldName, call.getType());
@@ -469,11 +469,11 @@ public class MongoRules {
         final RexCall call = (RexCall) rex;
         switch (call.getOperator().getSyntax()) {
         case Binary:
-          expr(buf, program, call.getOperandList().get(0));
+          expr(buf, program, call.getOperands().get(0));
           buf.append(' ')
               .append(call.getOperator().toString())
               .append(' ');
-          expr(buf, program, call.getOperandList().get(1));
+          expr(buf, program, call.getOperands().get(1));
           break;
         default:
           throw new AssertionError(call.getOperator());

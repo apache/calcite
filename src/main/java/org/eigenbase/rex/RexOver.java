@@ -64,12 +64,11 @@ public class RexOver
     RexOver(
         RelDataType type,
         SqlAggFunction op,
-        RexNode [] operands,
+        List<RexNode> operands,
         RexWindow window)
     {
         super(type, op, operands);
         assert op.isAggregator() : "precondition: op.isAggregator()";
-        assert op instanceof SqlAggFunction;
         assert window != null : "precondition: window != null";
         this.window = window;
         this.digest = computeDigest(true);

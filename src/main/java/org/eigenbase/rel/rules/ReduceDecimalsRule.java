@@ -31,6 +31,9 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.linq4j.Ord;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * ReduceDecimalsRule is a rule which reduces decimal operations (such as casts
@@ -147,7 +150,7 @@ public class ReduceDecimalsRule
             }
 
             // permanently updates a call in place
-            apply(call.getOperandList());
+            apply(call.getOperands());
 
             RexNode newCall = call;
             RexNode rewrite = rewriteCall(call);
@@ -759,14 +762,12 @@ public class ReduceDecimalsRule
         // implement RexExpander
         public RexNode expand(RexCall call)
         {
-            RexNode [] operands = call.operands;
-            Util.pre(
-                call.isA(RexKind.Cast),
-                "call.isA(RexKind.Cast)");
-            Util.pre(operands.length == 1, "operands.length == 1");
-            assert (!RexLiteral.isNullLiteral(operands[0]));
+            List<RexNode> operands = call.operands;
+            assert call.isA(RexKind.Cast);
+            assert operands.size() == 1;
+            assert !RexLiteral.isNullLiteral(operands.get(0));
 
-            RexNode operand = operands[0].clone();
+            RexNode operand = operands.get(0).clone();
             RelDataType fromType = operand.getType();
             RelDataType toType = call.getType();
             assert (SqlTypeUtil.isDecimal(fromType)
@@ -870,21 +871,26 @@ public class ReduceDecimalsRule
         // implement RexExpander
         public RexNode expand(RexCall call)
         {
-            RexNode [] operands = call.operands;
-            Util.pre(operands.length == 2, "operands.length == 2");
-            RelDataType typeA = operands[0].getType();
-            RelDataType typeB = operands[1].getType();
+            List<RexNode> operands = call.operands;
+            assert operands.size() == 2;
+            RelDataType typeA = operands.get(0).getType();
+            RelDataType typeB = operands.get(1).getType();
             assert (SqlTypeUtil.isNumeric(typeA)
                 && SqlTypeUtil.isNumeric(typeB));
 
             if (SqlTypeUtil.isApproximateNumeric(typeA)
                 || SqlTypeUtil.isApproximateNumeric(typeB))
             {
-                int castIndex = SqlTypeUtil.isApproximateNumeric(typeA) ? 1 : 0;
-                int otherIndex = (castIndex == 0) ? 1 : 0;
-                RexNode [] newOperands = new RexNode[2];
-                newOperands[castIndex] = ensureType(real8, operands[castIndex]);
-                newOperands[otherIndex] = operands[otherIndex];
+                List<RexNode> newOperands;
+                if (SqlTypeUtil.isApproximateNumeric(typeA)) {
+                    newOperands = ImmutableList.of(
+                        operands.get(0),
+                        ensureType(real8, operands.get(1)));
+                } else {
+                    newOperands = ImmutableList.of(
+                        ensureType(real8, operands.get(0)),
+                        operands.get(1));
+                }
                 return builder.makeCall(
                     call.getOperator(),
                     newOperands);
@@ -920,11 +926,11 @@ public class ReduceDecimalsRule
          * <li>both are exact numeric types
          * </ul>
          */
-        private void analyzeOperands(RexNode [] operands)
+        private void analyzeOperands(List<RexNode> operands)
         {
-            assert (operands.length == 2);
-            typeA = operands[0].getType();
-            typeB = operands[1].getType();
+            assert operands.size() == 2;
+            typeA = operands.get(0).getType();
+            typeB = operands.get(1).getType();
             assert (SqlTypeUtil.isExactNumeric(typeA)
                 && SqlTypeUtil.isExactNumeric(typeB));
 
@@ -932,7 +938,7 @@ public class ReduceDecimalsRule
             scaleB = typeB.getScale();
         }
 
-        private RexNode expandPlusMinus(RexCall call, RexNode [] operands)
+        private RexNode expandPlusMinus(RexCall call, List<RexNode> operands)
         {
             RelDataType outType = call.getType();
             int outScale = outType.getScale();
@@ -940,17 +946,17 @@ public class ReduceDecimalsRule
                 builder.makeCall(
                     call.getOperator(),
                     ensureScale(
-                        accessValue(operands[0]),
+                        accessValue(operands.get(0)),
                         scaleA,
                         outScale),
                     ensureScale(
-                        accessValue(operands[1]),
+                        accessValue(operands.get(1)),
                         scaleB,
                         outScale)),
                 outType);
         }
 
-        private RexNode expandDivide(RexCall call, RexNode [] operands)
+        private RexNode expandDivide(RexCall call, List<RexNode> operands)
         {
             RelDataType outType = call.getType();
             RexNode dividend =
@@ -958,10 +964,10 @@ public class ReduceDecimalsRule
                     call.getOperator(),
                     ensureType(
                         real8,
-                        accessValue(operands[0])),
+                        accessValue(operands.get(0))),
                     ensureType(
                         real8,
-                        accessValue(operands[1])));
+                        accessValue(operands.get(1))));
             int scaleDifference = outType.getScale() - scaleA + scaleB;
             RexNode rescale =
                 builder.makeCall(
@@ -971,7 +977,7 @@ public class ReduceDecimalsRule
             return encodeValue(rescale, outType);
         }
 
-        private RexNode expandTimes(RexCall call, RexNode [] operands)
+        private RexNode expandTimes(RexCall call, List<RexNode> operands)
         {
             // Multiplying the internal values of the two arguments leads to
             // a number with scale = scaleA + scaleB. If the result type has
@@ -988,8 +994,8 @@ public class ReduceDecimalsRule
                 RexNode division =
                     makeDivide(
                         makeMultiply(
-                            ensureType(real8, accessValue(operands[0])),
-                            ensureType(real8, accessValue(operands[1]))),
+                            ensureType(real8, accessValue(operands.get(0))),
+                            ensureType(real8, accessValue(operands.get(1)))),
                         makeApproxLiteral(BigDecimal.TEN.pow(divisor)));
                 return encodeValue(division, call.getType(), true);
             } else {
@@ -998,29 +1004,29 @@ public class ReduceDecimalsRule
                     scaleDown(
                         builder.makeCall(
                             call.getOperator(),
-                            accessValue(operands[0]),
-                            accessValue(operands[1])),
+                            accessValue(operands.get(0)),
+                            accessValue(operands.get(1))),
                         divisor),
                     call.getType());
             }
         }
 
-        private RexNode expandComparison(RexCall call, RexNode [] operands)
+        private RexNode expandComparison(RexCall call, List<RexNode> operands)
         {
             int commonScale = Math.max(scaleA, scaleB);
             return builder.makeCall(
                 call.getOperator(),
                 ensureScale(
-                    accessValue(operands[0]),
+                    accessValue(operands.get(0)),
                     scaleA,
                     commonScale),
                 ensureScale(
-                    accessValue(operands[1]),
+                    accessValue(operands.get(1)),
                     scaleB,
                     commonScale));
         }
 
-        private RexNode expandMod(RexCall call, RexNode [] operands)
+        private RexNode expandMod(RexCall call, List<RexNode> operands)
         {
             assert SqlTypeUtil.isExactNumeric(typeA);
             assert SqlTypeUtil.isExactNumeric(typeB);
@@ -1031,8 +1037,8 @@ public class ReduceDecimalsRule
             RexNode result =
                 builder.makeCall(
                     call.getOperator(),
-                    accessValue(operands[0]),
-                    accessValue(operands[1]));
+                    accessValue(operands.get(0)),
+                    accessValue(operands.get(1)));
             RelDataType retType = call.getType();
             if (SqlTypeUtil.isDecimal(retType)) {
                 return encodeValue(result, retType);
@@ -1064,7 +1070,7 @@ public class ReduceDecimalsRule
         public RexNode expand(RexCall call)
         {
             assert call.getOperator() == SqlStdOperatorTable.floorFunc;
-            RexNode decValue = call.operands[0];
+            RexNode decValue = call.operands.get(0);
             int scale = decValue.getType().getScale();
             RexNode value = decodeValue(decValue);
 
@@ -1115,7 +1121,7 @@ public class ReduceDecimalsRule
         public RexNode expand(RexCall call)
         {
             assert call.getOperator() == SqlStdOperatorTable.ceilFunc;
-            RexNode decValue = call.operands[0];
+            RexNode decValue = call.operands.get(0);
             int scale = decValue.getType().getScale();
             RexNode value = decodeValue(decValue);
 
@@ -1168,26 +1174,24 @@ public class ReduceDecimalsRule
         public RexNode expand(RexCall call)
         {
             RelDataType retType = call.getType();
-            int argCount = call.operands.length;
-            RexNode [] newOperands = new RexNode[argCount];
+            int argCount = call.operands.size();
+            ImmutableList.Builder<RexNode> opBuilder = ImmutableList.builder();
 
             for (int i = 0; i < argCount; i++) {
                 // skip case conditions
                 if (((i % 2) == 0) && (i != (argCount - 1))) {
-                    newOperands[i] = call.operands[i];
+                    opBuilder.add(call.operands.get(i));
                     continue;
                 }
-                RexNode expr = ensureType(retType, call.operands[i], false);
+                RexNode expr = ensureType(retType, call.operands.get(i), false);
                 if (SqlTypeUtil.isDecimal(retType)) {
                     expr = decodeValue(expr);
                 }
-                newOperands[i] = expr;
+                opBuilder.add(expr);
             }
 
             RexNode newCall =
-                builder.makeCall(
-                    call.getOperator(),
-                    newOperands);
+                builder.makeCall(call.getOperator(), opBuilder.build());
             if (SqlTypeUtil.isDecimal(retType)) {
                 newCall = encodeValue(newCall, retType);
             }
@@ -1215,20 +1219,18 @@ public class ReduceDecimalsRule
 
         public RexNode expand(RexCall call)
         {
-            RexNode [] operands = call.operands;
-            RexNode [] newOperands = new RexNode[operands.length];
-            for (int i = 0; i < operands.length; i++) {
-                if (SqlTypeUtil.isNumeric(operands[i].getType())) {
-                    newOperands[i] = accessValue(operands[i]);
+            List<RexNode> operands = call.operands;
+            ImmutableList.Builder<RexNode> opBuilder = ImmutableList.builder();
+            for (RexNode operand : operands) {
+                if (SqlTypeUtil.isNumeric(operand.getType())) {
+                    opBuilder.add(accessValue(operand));
                 } else {
-                    newOperands[i] = operands[i];
+                    opBuilder.add(operand);
                 }
             }
 
             RexNode newCall =
-                builder.makeCall(
-                    call.getOperator(),
-                    newOperands);
+                builder.makeCall(call.getOperator(), opBuilder.build());
             if (SqlTypeUtil.isDecimal(call.getType())) {
                 return encodeValue(
                     newCall,
@@ -1253,7 +1255,7 @@ public class ReduceDecimalsRule
         public RelDataType getArgType(RexCall call, int ordinal)
         {
             RelDataType type = real8;
-            if (call.operands[ordinal].getType().isNullable()) {
+            if (call.operands.get(ordinal).getType().isNullable()) {
                 type =
                     builder.getTypeFactory().createTypeWithNullability(
                         type,
@@ -1278,22 +1280,22 @@ public class ReduceDecimalsRule
 
         public RexNode expand(RexCall call)
         {
-            RexNode [] operands = call.operands;
-            RexNode [] newOperands = new RexNode[operands.length];
+            List<RexNode> operands = call.operands;
+            ImmutableList.Builder<RexNode> opBuilder = ImmutableList.builder();
 
-            for (int i = 0; i < operands.length; i++) {
-                RelDataType targetType = getArgType(call, i);
-                if (SqlTypeUtil.isDecimal(operands[i].getType())) {
-                    newOperands[i] = ensureType(targetType, operands[i], true);
+            for (Ord<RexNode> operand : Ord.zip(operands)) {
+                RelDataType targetType = getArgType(call, operand.i);
+                if (SqlTypeUtil.isDecimal(operand.e.getType())) {
+                    opBuilder.add(ensureType(targetType, operand.e, true));
                 } else {
-                    newOperands[i] = operands[i];
+                    opBuilder.add(operand.e);
                 }
             }
 
             RexNode ret =
                 builder.makeCall(
                     call.getOperator(),
-                    newOperands);
+                    opBuilder.build());
             ret =
                 ensureType(
                     call.getType(),
@@ -1321,14 +1323,14 @@ public class ReduceDecimalsRule
         public boolean canExpand(RexCall call)
         {
             return call.isA(RexKind.Reinterpret)
-                && call.operands[0].isA(RexKind.Reinterpret);
+                && call.operands.get(0).isA(RexKind.Reinterpret);
         }
 
         public RexNode expand(RexCall call)
         {
-            RexNode [] operands = call.operands;
-            RexCall subCall = (RexCall) operands[0];
-            RexNode innerValue = subCall.operands[0];
+            List<RexNode> operands = call.operands;
+            RexCall subCall = (RexCall) operands.get(0);
+            RexNode innerValue = subCall.operands.get(0);
             if (canSimplify(call, subCall, innerValue)) {
                 return innerValue.clone();
             }

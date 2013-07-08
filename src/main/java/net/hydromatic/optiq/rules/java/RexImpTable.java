@@ -176,8 +176,8 @@ public class RexImpTable {
       return call;
     }
     final List<RexNode> operands2 =
-        harmonize(translator, call.getOperandList());
-    if (operands2.equals(call.getOperandList())) {
+        harmonize(translator, call.getOperands());
+    if (operands2.equals(call.getOperands())) {
       return call;
     }
     return call.clone(call.getType(), operands2);
@@ -217,7 +217,7 @@ public class RexImpTable {
           final RexCall call2 = call2(false, translator, call);
           final List<Expression> expressions =
               translator.translateList(
-                  call2.getOperandList(), nullAs);
+                  call2.getOperands(), nullAs);
           return Expressions.foldAnd(expressions);
         }
       };
@@ -235,7 +235,7 @@ public class RexImpTable {
           final RexCall call2 = call2(harmonize, translator, call);
           final NullAs nullAs2 = nullAs == NullAs.TRUE ? NullAs.NULL : nullAs;
           final List<Expression> expressions =
-              translator.translateList(call2.getOperandList(), nullAs2);
+              translator.translateList(call2.getOperands(), nullAs2);
           switch (nullAs) {
           case NOT_POSSIBLE:
           case FALSE:
@@ -370,7 +370,7 @@ public class RexImpTable {
   }
 
   private static boolean nullable(RexCall call, int i) {
-    return call.getOperands()[i].getType().isNullable();
+    return call.getOperands().get(i).getType().isNullable();
   }
 
   /** Ensures that operands have identical type. */
@@ -429,7 +429,7 @@ public class RexImpTable {
       if (nullPolicy == NullPolicy.STRICT) {
         return Expressions.foldAnd(
             translator.translateList(
-                call.getOperandList(), nullAs));
+                call.getOperands(), nullAs));
       }
       break;
     case IS_NULL:
@@ -438,7 +438,7 @@ public class RexImpTable {
       if (nullPolicy == NullPolicy.STRICT) {
         return Expressions.foldOr(
             translator.translateList(
-                call.getOperandList(), nullAs));
+                call.getOperands(), nullAs));
       }
       break;
     }
@@ -508,7 +508,7 @@ public class RexImpTable {
       NotNullImplementor implementor,
       NullAs nullAs) {
     final List<Expression> translatedOperands =
-        translator.translateList(call.getOperandList());
+        translator.translateList(call.getOperands());
     switch (nullAs) {
     case NOT_POSSIBLE:
       for (Expression translatedOperand : translatedOperands) {
@@ -1037,18 +1037,19 @@ public class RexImpTable {
 
     private Expression implementRecurse(
         RexToLixTranslator translator, RexCall call, int i) {
-      RexNode[] operands = call.getOperands();
-      if (i == operands.length - 1) {
+      List<RexNode> operands = call.getOperands();
+      if (i == operands.size() - 1) {
         // the "else" clause
         return translator.translate(
             translator.builder.ensureType(
-                call.getType(), operands[i], false));
+                call.getType(), operands.get(i), false));
       } else {
         return Expressions.condition(
-            translator.translate(operands[i], NullAs.FALSE),
+            translator.translate(operands.get(i), NullAs.FALSE),
             translator.translate(
-                translator.builder.ensureType(
-                    call.getType(), operands[i + 1], false)),
+                translator.builder.ensureType(call.getType(),
+                    operands.get(i + 1),
+                    false)),
             implementRecurse(translator, call, i + 2));
       }
     }
@@ -1059,8 +1060,8 @@ public class RexImpTable {
         RexToLixTranslator translator,
         RexCall call,
         List<Expression> translatedOperands) {
-      assert call.getOperands().length == 1;
-      final RelDataType sourceType = call.getOperands()[0].getType();
+      assert call.getOperands().size() == 1;
+      final RelDataType sourceType = call.getOperands().get(0).getType();
       // It's only possible for the result to be null if both expression
       // and target type are nullable. We assume that the caller did not
       // make a mistake. If expression looks nullable, caller WILL have
@@ -1083,7 +1084,7 @@ public class RexImpTable {
         RexCall call,
         NullAs nullAs) {
       return translator.translateConstructor(
-          call.getOperandList(),
+          call.getOperands(),
           call.getOperator().getKind());
     }
   }
@@ -1096,7 +1097,7 @@ public class RexImpTable {
         NullAs nullAs) {
       final MethodImplementor implementor =
           getImplementor(
-              call.getOperandList().get(0).getType().getSqlTypeName());
+              call.getOperands().get(0).getType().getSqlTypeName());
       return implementNullSemantics0(
           translator, call, nullAs, NullPolicy.STRICT, false,
           implementor);
@@ -1134,17 +1135,17 @@ public class RexImpTable {
 
     public Expression implement(
         RexToLixTranslator translator, RexCall call, NullAs nullAs) {
-      RexNode[] operands = call.getOperands();
-      assert operands.length == 1;
+      List<RexNode> operands = call.getOperands();
+      assert operands.size() == 1;
       if (seek == null) {
         return translator.translate(
-            operands[0],
+            operands.get(0),
             negate ? NullAs.IS_NOT_NULL : NullAs.IS_NULL);
       } else {
         return maybeNegate(
             negate == seek,
             translator.translate(
-                operands[0],
+                operands.get(0),
                 seek ? NullAs.FALSE : NullAs.TRUE));
       }
     }

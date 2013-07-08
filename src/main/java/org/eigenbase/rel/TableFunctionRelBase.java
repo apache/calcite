@@ -26,6 +26,9 @@ import org.eigenbase.rex.*;
 
 import net.hydromatic.linq4j.Ord;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
 
 /**
  * <code>TableFunctionRelBase</code> is an abstract base class for
@@ -69,8 +72,8 @@ public abstract class TableFunctionRelBase
         super(cluster, traits);
         this.rexCall = rexCall;
         this.rowType = rowType;
-        this.inputs = inputs;
-        this.columnMappings = columnMappings;
+        this.inputs = ImmutableList.copyOf(inputs);
+        this.columnMappings = ImmutableSet.copyOf(columnMappings);
     }
 
     //~ Methods ----------------------------------------------------------------

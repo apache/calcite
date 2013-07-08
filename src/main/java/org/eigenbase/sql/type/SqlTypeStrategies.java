@@ -24,6 +24,8 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * SqlTypeStrategies defines singleton instances of strategy objects for operand
@@ -49,7 +51,7 @@ public abstract class SqlTypeStrategies
     public static FamilyOperandTypeChecker family(
         SqlTypeFamily... families)
     {
-        return new FamilyOperandTypeChecker(Arrays.asList(families));
+        return new FamilyOperandTypeChecker(ImmutableList.copyOf(families));
     }
 
     /** Creates a checker that passes if each operand is a member of a
@@ -65,7 +67,8 @@ public abstract class SqlTypeStrategies
         SqlSingleOperandTypeChecker... rules)
     {
         return new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.OR, rules);
+            CompositeOperandTypeChecker.Composition.OR,
+            ImmutableList.copyOf(rules));
     }
 
     /** Creates a checker that passes if any one of the rules passes. */
@@ -73,7 +76,8 @@ public abstract class SqlTypeStrategies
         SqlSingleOperandTypeChecker... rules)
     {
         return new CompositeOperandTypeChecker(
-            CompositeOperandTypeChecker.Composition.AND, rules);
+            CompositeOperandTypeChecker.Composition.AND,
+            ImmutableList.copyOf(rules));
     }
 
     // ----------------------------------------------------------------------

@@ -23,7 +23,6 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
-import org.eigenbase.util.*;
 
 
 /**
@@ -143,7 +142,7 @@ public class RexSqlStandardConvertletTable
         }
 
         final SqlOperator op = call.getOperator();
-        final RexNode [] operands = call.getOperands();
+        final List<RexNode> operands = call.getOperands();
 
         final SqlNode [] exprs = convertExpressionList(converter, operands);
         if (exprs == null) {
@@ -157,11 +156,11 @@ public class RexSqlStandardConvertletTable
 
     private SqlNode [] convertExpressionList(
         RexToSqlNodeConverter converter,
-        RexNode [] nodes)
+        List<RexNode> nodes)
     {
-        final SqlNode [] exprs = new SqlNode[nodes.length];
-        for (int i = 0; i < nodes.length; i++) {
-            RexNode node = nodes[i];
+        final SqlNode [] exprs = new SqlNode[nodes.size()];
+        for (int i = 0; i < nodes.size(); i++) {
+            RexNode node = nodes.get(i);
             exprs[i] = converter.convertNode(node);
             if (exprs[i] == null) {
                 return null;

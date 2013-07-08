@@ -633,8 +633,8 @@ public abstract class RelOptUtil
             return false;
         }
         RexCall binaryExpression = (RexCall) joinExp;
-        RexNode leftComparand = binaryExpression.operands[0];
-        RexNode rightComparand = binaryExpression.operands[1];
+        RexNode leftComparand = binaryExpression.operands.get(0);
+        RexNode rightComparand = binaryExpression.operands.get(1);
         if (!(leftComparand instanceof RexInputRef)) {
             return false;
         }
@@ -931,9 +931,9 @@ public abstract class RelOptUtil
                         || (operator
                             == SqlStdOperatorTable.lessThanOrEqualOperator))))
             {
-                final RexNode [] operands = call.getOperands();
-                RexNode op0 = operands[0];
-                RexNode op1 = operands[1];
+                final List<RexNode> operands = call.getOperands();
+                RexNode op0 = operands.get(0);
+                RexNode op1 = operands.get(1);
 
                 final BitSet projRefs0 = RelOptUtil.InputFinder.bits(op0);
                 final BitSet projRefs1 = RelOptUtil.InputFinder.bits(op1);
@@ -1141,9 +1141,9 @@ public abstract class RelOptUtil
             }
 
             if (call.getOperator() == SqlStdOperatorTable.equalsOperator) {
-                final RexNode [] operands = call.getOperands();
-                RexNode op0 = operands[0];
-                RexNode op1 = operands[1];
+                final List<RexNode> operands = call.getOperands();
+                RexNode op0 = operands.get(0);
+                RexNode op1 = operands.get(1);
 
                 if (!(RexUtil.containsInputRef(op0))
                     && (op1 instanceof RexInputRef))
@@ -1192,9 +1192,9 @@ public abstract class RelOptUtil
             }
 
             if (call.getOperator() == SqlStdOperatorTable.equalsOperator) {
-                final RexNode [] operands = call.getOperands();
-                RexNode op0 = operands[0];
-                RexNode op1 = operands[1];
+                final List<RexNode> operands = call.getOperands();
+                RexNode op0 = operands.get(0);
+                RexNode op1 = operands.get(1);
 
                 if (extractCorrelatedFieldAccess) {
                     if (!RexUtil.containsFieldAccess(op0)
@@ -1263,12 +1263,12 @@ public abstract class RelOptUtil
             if (operator == SqlStdOperatorTable.equalsOperator
                 || operator == SqlStdOperatorTable.isNotDistinctFromOperator)
             {
-                final RexNode [] operands = call.getOperands();
-                if ((operands[0] instanceof RexInputRef)
-                    && (operands[1] instanceof RexInputRef))
+                final List<RexNode> operands = call.getOperands();
+                if ((operands.get(0) instanceof RexInputRef)
+                    && (operands.get(1) instanceof RexInputRef))
                 {
-                    RexInputRef op0 = (RexInputRef) operands[0];
-                    RexInputRef op1 = (RexInputRef) operands[1];
+                    RexInputRef op0 = (RexInputRef) operands.get(0);
+                    RexInputRef op1 = (RexInputRef) operands.get(1);
 
                     RexInputRef leftField, rightField;
                     if ((op0.getIndex() < leftFieldCount)
@@ -2282,11 +2282,10 @@ public abstract class RelOptUtil
 
         // create new copies of the bitmaps
         List<RelNode> multiJoinInputs = multiJoin.getInputs();
-        int nInputs = multiJoinInputs.size();
-        BitSet [] newProjFields = new BitSet[nInputs];
-        for (int i = 0; i < nInputs; i++) {
-            newProjFields[i] =
-                new BitSet(multiJoinInputs.get(i).getRowType().getFieldCount());
+        List<BitSet> newProjFields = new ArrayList<BitSet>();
+        for (RelNode multiJoinInput : multiJoinInputs) {
+            newProjFields.add(
+                new BitSet(multiJoinInput.getRowType().getFieldCount()));
         }
 
         // set the bits found in the expressions
@@ -2301,11 +2300,11 @@ public abstract class RelOptUtil
             while (bit >= (startField + nFields)) {
                 startField += nFields;
                 currInput++;
-                assert (currInput < nInputs);
+                assert currInput < multiJoinInputs.size();
                 nFields =
                     multiJoinInputs.get(currInput).getRowType().getFieldCount();
             }
-            newProjFields[currInput].set(bit - startField);
+            newProjFields.get(currInput).set(bit - startField);
         }
 
         // create a new MultiJoinRel containing the new field bitmaps
@@ -2483,7 +2482,7 @@ public abstract class RelOptUtil
         @Override
         public Void visitCall(RexCall call) {
             if (call.getOperator() == RexBuilder.GET_OPERATOR) {
-                RexLiteral literal = (RexLiteral) call.getOperands()[1];
+                RexLiteral literal = (RexLiteral) call.getOperands().get(1);
                 extraFields.add(
                     new RelDataTypeFieldImpl(
                         (String) literal.getValue2(),

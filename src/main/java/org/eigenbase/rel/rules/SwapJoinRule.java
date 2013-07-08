@@ -25,6 +25,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * <code>SwapJoinRule</code> permutes the inputs to a join. Outer joins cannot
@@ -197,12 +199,13 @@ public class SwapJoinRule
         public RexNode go(RexNode rex)
         {
             if (rex instanceof RexCall) {
-                RexNode [] operands = ((RexCall) rex).operands;
-                for (int i = 0; i < operands.length; i++) {
-                    RexNode operand = operands[i];
-                    operands[i] = go(operand);
+                ImmutableList.Builder<RexNode> builder =
+                    ImmutableList.builder();
+                final RexCall call = (RexCall) rex;
+                for (RexNode operand : call.operands) {
+                    builder.add(go(operand));
                 }
-                return rex;
+                return call.clone(call.getType(), builder.build());
             } else if (rex instanceof RexInputRef) {
                 RexInputRef var = (RexInputRef) rex;
                 int index = var.getIndex();

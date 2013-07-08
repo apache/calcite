@@ -19,6 +19,8 @@ package org.eigenbase.rex;
 
 import java.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * Passes over a row-expression, calling a handler method for each node,
@@ -40,7 +42,7 @@ public class RexShuttle
     public RexNode visitOver(RexOver over)
     {
         boolean [] update = { false };
-        RexNode [] clonedOperands = visitArray(over.operands, update);
+        List<RexNode> clonedOperands = visitList(over.operands, update);
         RexWindow window = visitWindow(over.getWindow());
         if (update[0] || (window != over.getWindow())) {
             // REVIEW jvs 8-Mar-2005:  This doesn't take into account
@@ -61,9 +63,9 @@ public class RexShuttle
     public RexWindow visitWindow(RexWindow window)
     {
         boolean [] update = { false };
-        RexNode [] clonedOrderKeys = visitArray(window.orderKeys, update);
-        RexNode [] clonedPartitionKeys =
-            visitArray(window.partitionKeys, update);
+        List<RexNode> clonedOrderKeys = visitList(window.orderKeys, update);
+        List<RexNode> clonedPartitionKeys =
+            visitList(window.partitionKeys, update);
         if (update[0]) {
             return new RexWindow(
                 clonedPartitionKeys,
@@ -79,7 +81,7 @@ public class RexShuttle
     public RexNode visitCall(final RexCall call)
     {
         boolean [] update = { false };
-        RexNode [] clonedOperands = visitArray(call.operands, update);
+        List<RexNode> clonedOperands = visitList(call.operands, update);
         if (update[0]) {
             // REVIEW jvs 8-Mar-2005:  This doesn't take into account
             // the fact that a rewrite may have changed the result type.
@@ -117,6 +119,31 @@ public class RexShuttle
             clonedOperands[i] = clonedOperand;
         }
         return clonedOperands;
+    }
+
+    /**
+     * Visits each of a list of expressions and returns a list of the
+     * results.
+     *
+     * @param exprs List of expressions
+     * @param update If not null, sets this to true if any of the expressions
+     * was modified
+     *
+     * @return Array of visited expressions
+     */
+    protected List<RexNode> visitList(
+        List<? extends RexNode> exprs, boolean [] update)
+    {
+        ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
+        for (int i = 0; i < exprs.size(); i++) {
+            RexNode operand = exprs.get(i);
+            RexNode clonedOperand = operand.accept(this);
+            if ((clonedOperand != operand) && (update != null)) {
+                update[0] = true;
+            }
+            clonedOperands.add(clonedOperand);
+        }
+        return clonedOperands.build();
     }
 
     public RexNode visitCorrelVariable(RexCorrelVariable variable)

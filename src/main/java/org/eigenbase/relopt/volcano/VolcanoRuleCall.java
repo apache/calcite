@@ -79,7 +79,7 @@ public class VolcanoRuleCall
         this(
             planner,
             operand,
-            new RelNode[operand.getRule().operands.length]);
+            new RelNode[operand.getRule().operands.size()]);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -202,8 +202,8 @@ public class VolcanoRuleCall
 
             if (tracer.isLoggable(Level.FINE)) {
                 tracer.fine(
-                    "Apply rule [" + getRule() + "] to ["
-                    + RelOptUtil.toString(rels) + "]");
+                    "Apply rule [" + getRule() + "] to "
+                    + RelOptUtil.toString(rels));
             }
 
             if (volcanoPlanner.listener != null) {
@@ -274,7 +274,7 @@ public class VolcanoRuleCall
      */
     private void matchRecurse(int solve)
     {
-        if (solve == getRule().operands.length) {
+        if (solve == getRule().operands.size()) {
             // We have matched all operands. Now ask the rule whether it
             // matches; this gives the rule chance to apply side-conditions.
             // If the side-conditions are satisfied, we have a match.
@@ -286,8 +286,8 @@ public class VolcanoRuleCall
             int previousOperandOrdinal = getOperand0().solveOrder[solve - 1];
             boolean ascending = operandOrdinal < previousOperandOrdinal;
             RelOptRuleOperand previousOperand =
-                getRule().operands[previousOperandOrdinal];
-            RelOptRuleOperand operand = getRule().operands[operandOrdinal];
+                getRule().operands.get(previousOperandOrdinal);
+            RelOptRuleOperand operand = getRule().operands.get(operandOrdinal);
 
             List<RelNode> successors;
             if (ascending) {

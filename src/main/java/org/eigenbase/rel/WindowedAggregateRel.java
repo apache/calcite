@@ -84,8 +84,8 @@ public final class WindowedAggregateRel
             ++i;
             if (agg instanceof RexOver) {
                 RexOver over = (RexOver) agg;
-                for (int j = 0; j < over.operands.length; j++) {
-                    RexNode operand = over.operands[j];
+                for (int j = 0; j < over.operands.size(); j++) {
+                    RexNode operand = over.operands.get(j);
                     if (!(operand instanceof RexLocalRef)) {
                         assert !fail : "aggs[" + i + "].operand[" + j
                             + "] is not a RexLocalRef";

@@ -21,7 +21,8 @@ import java.util.*;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -39,7 +40,10 @@ public class AggregateCall
     private final boolean distinct;
     private final RelDataType type;
     private final String name;
-    private final List<Integer> argList;
+
+    // We considered using ImmutableIntList but we would not save much memory:
+    // since all values are small, ImmutableList uses cached Integer values.
+    private final ImmutableList<Integer> argList;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -66,7 +70,7 @@ public class AggregateCall
         assert type != null;
         this.aggregation = aggregation;
 
-        this.argList = ImmutableIntList.copyOf(argList);
+        this.argList = ImmutableList.copyOf(argList);
         this.distinct = distinct;
     }
 

@@ -17,8 +17,12 @@
 */
 package org.eigenbase.sql.type;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -33,13 +37,13 @@ public class ExplicitOperandTypeInference
 {
     //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType [] paramTypes;
+    private final ImmutableList<RelDataType> paramTypes;
 
     //~ Constructors -----------------------------------------------------------
 
-    public ExplicitOperandTypeInference(RelDataType [] paramTypes)
+    public ExplicitOperandTypeInference(List<RelDataType> paramTypes)
     {
-        this.paramTypes = paramTypes;
+        this.paramTypes = ImmutableList.copyOf(paramTypes);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -49,7 +53,8 @@ public class ExplicitOperandTypeInference
         RelDataType returnType,
         RelDataType [] operandTypes)
     {
-        System.arraycopy(paramTypes, 0, operandTypes, 0, paramTypes.length);
+        assert operandTypes.length == paramTypes.size();
+        paramTypes.toArray(operandTypes);
     }
 }
 

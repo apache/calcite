@@ -587,11 +587,11 @@ public class RexLiteral
             final RexCall call = (RexCall) node;
             final SqlOperator operator = call.getOperator();
             if (operator == SqlStdOperatorTable.castFunc) {
-                return findValue(call.getOperands()[0]);
+                return findValue(call.getOperands().get(0));
             }
             if (operator == SqlStdOperatorTable.prefixMinusOperator) {
                 final BigDecimal value =
-                    (BigDecimal) findValue(call.getOperands()[0]);
+                    (BigDecimal) findValue(call.getOperands().get(0));
                 return value.negate();
             }
         }

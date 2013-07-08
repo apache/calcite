@@ -187,7 +187,7 @@ public class RelStructuredTypeFlattener
         RexNode newInvocation =
             rexBuilder.makeNewInvocation(
                 structuredType,
-                inputExprs.toArray(new RexNode[inputExprs.size()]));
+                inputExprs);
 
         if (!structuredType.isNullable()) {
             // Optimize away the null test.
@@ -629,7 +629,7 @@ public class RelStructuredTypeFlattener
                     flattenedFieldNames.add(fieldName);
                 } else if (exp.isA(RexKind.Cast)) {
                     if (RexLiteral.isNullLiteral(
-                            ((RexCall) exp).getOperands()[0]))
+                            ((RexCall) exp).operands.get(0)))
                     {
                         // Translate CAST(NULL AS UDT) into
                         // the correct number of null fields.
@@ -641,9 +641,9 @@ public class RelStructuredTypeFlattener
                     }
                 }
                 flattenProjections(
-                    call.getOperandList(),
+                    call.getOperands(),
                     Collections.<String>nCopies(
-                        call.getOperands().length, null),
+                        call.getOperands().size(), null),
                     fieldName,
                     flattenedExps,
                     flattenedFieldNames);
@@ -810,12 +810,11 @@ public class RelStructuredTypeFlattener
                     // REVIEW jvs 27-Feb-2005:  what about a cast between
                     // different user-defined types (once supported)?
                     RexCall cast = (RexCall) refExp;
-                    refExp = cast.getOperands()[0];
+                    refExp = cast.getOperands().get(0);
                 }
                 if (refExp.isA(RexKind.NewSpecification)) {
-                    return
-                        ((RexCall) refExp).getOperands()[fieldAccess.getField()
-                            .getIndex()];
+                  return ((RexCall) refExp).operands
+                      .get(fieldAccess.getField().getIndex());
                 }
                 if (!(refExp instanceof RexFieldAccess)) {
                     throw Util.needToImplement(refExp);
@@ -828,7 +827,7 @@ public class RelStructuredTypeFlattener
         public RexNode visitCall(RexCall rexCall)
         {
             if (rexCall.isA(RexKind.Cast)) {
-                RexNode input = rexCall.getOperands()[0].accept(this);
+                RexNode input = rexCall.getOperands().get(0).accept(this);
                 RelDataType targetType = removeDistinct(rexCall.getType());
                 return rexBuilder.makeCast(
                     targetType,
@@ -837,7 +836,7 @@ public class RelStructuredTypeFlattener
             if (!rexCall.isA(RexKind.Comparison)) {
                 return super.visitCall(rexCall);
             }
-            RexNode lhs = rexCall.getOperands()[0];
+            RexNode lhs = rexCall.getOperands().get(0);
             if (!lhs.getType().isStruct()) {
                 // NOTE jvs 9-Mar-2005:  Calls like IS NULL operate
                 // on the representative null indicator.  Since it comes
@@ -850,7 +849,7 @@ public class RelStructuredTypeFlattener
             return flattenComparison(
                 rexBuilder,
                 rexCall.getOperator(),
-                rexCall.getOperandList());
+                rexCall.getOperands());
         }
 
         private RexNode flattenComparison(

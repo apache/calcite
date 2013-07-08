@@ -26,6 +26,8 @@ import net.hydromatic.optiq.TranslatableTable;
 import org.eigenbase.rel.*;
 import org.eigenbase.rex.RexNode;
 
+import com.google.common.collect.ImmutableList;
+
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
@@ -69,7 +71,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
           new OptiqPrepareImpl.RelOptTableImpl(
               null,
               ((Table) queryable).getRowType(),
-              new String[0],
+              ImmutableList.<String>of(),
               (Table) queryable);
       if (queryable instanceof TranslatableTable) {
         return ((TranslatableTable) queryable)

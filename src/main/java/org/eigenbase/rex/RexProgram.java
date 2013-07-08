@@ -57,12 +57,12 @@ public class RexProgram
      * refer to inputs (using input ordinal #0) or previous expressions in the
      * array (using input ordinal #1).
      */
-    private final RexNode [] exprs;
+    private final List<RexNode> exprs;
 
     /**
      * With {@link #condition}, the second stage of expression evaluation.
      */
-    private final RexLocalRef [] projects;
+    private final List<RexLocalRef> projects;
 
     /**
      * The optional condition. If null, the calculator does not filter rows.
@@ -76,8 +76,6 @@ public class RexProgram
      */
     private boolean aggs;
     private final RelDataType outputRowType;
-    private final List<RexLocalRef> projectReadOnlyList;
-    private final List<RexNode> exprReadOnlyList;
 
     /**
      * Reference counts for each expression, computed on demand.
@@ -102,69 +100,38 @@ public class RexProgram
      */
     public RexProgram(
         RelDataType inputRowType,
-        RexNode [] exprs,
-        RexLocalRef [] projects,
+        List<? extends RexNode> exprs,
+        List<RexLocalRef> projects,
         RexLocalRef condition,
         RelDataType outputRowType)
     {
         this.inputRowType = inputRowType;
-        this.exprs = exprs.clone();
-        this.exprReadOnlyList = ImmutableList.copyOf(exprs);
-        this.projects = projects.clone();
-        this.projectReadOnlyList = ImmutableList.copyOf(projects);
+        this.exprs = ImmutableList.copyOf(exprs);
+        this.projects = ImmutableList.copyOf(projects);
         this.condition = condition;
         this.outputRowType = outputRowType;
         assert isValid(true);
-    }
-
-    /**
-     * Creates a program from lists of expressions.
-     *
-     * @param inputRowType Input row type
-     * @param exprList List of common expressions
-     * @param projectRefList List of projection expressions
-     * @param condition Condition expression. If null, calculator does not
-     * filter rows
-     * @param outputRowType Description of the row produced by the program
-     *
-     * @pre !containCommonExprs(exprList)
-     * @pre !containForwardRefs(exprList)
-     * @pre !containNonTrivialAggs(exprList)
-     */
-    public RexProgram(
-        RelDataType inputRowType,
-        List<? extends RexNode> exprList,
-        List<RexLocalRef> projectRefList,
-        RexLocalRef condition,
-        RelDataType outputRowType)
-    {
-        this(
-            inputRowType,
-            exprList.toArray(new RexNode[exprList.size()]),
-            projectRefList.toArray(new RexLocalRef[projectRefList.size()]),
-            condition,
-            outputRowType);
     }
 
     //~ Methods ----------------------------------------------------------------
 
     // REVIEW jvs 16-Oct-2006:  The description below is confusing.  I
     // think it means "none of the entries are null, there may be none,
-    // and there is no further reduction into smaller common subexpressions
+    // and there is no further reduction into smaller common sub-expressions
     // possible"?
     /**
      * Returns the common sub-expressions of this program.
      *
      * <p>The list is never null but may be empty; each the expression in the
      * list is not null; and no further reduction into smaller common
-     * subexpressions is possible.
+     * sub-expressions is possible.
      *
      * @post return != null
      * @post !containCommonExprs(exprs)
      */
     public List<RexNode> getExprList()
     {
-        return exprReadOnlyList;
+        return exprs;
     }
 
     /**
@@ -173,7 +140,7 @@ public class RexProgram
      */
     public List<RexLocalRef> getProjectList()
     {
-        return projectReadOnlyList;
+        return projects;
     }
 
     /**
@@ -217,23 +184,6 @@ public class RexProgram
             programBuilder.addCondition(conditionExpr);
         }
         return programBuilder.getProgram();
-    }
-
-    /**
-     * Helper method for 'explain' functionality. Creates a list of all
-     * expressions (common, project, and condition)
-     *
-     * @deprecated Not used
-     */
-    public RexNode [] flatten()
-    {
-        final List<RexNode> list = new ArrayList<RexNode>();
-        list.addAll(Arrays.asList(exprs));
-        list.addAll(Arrays.asList(projects));
-        if (condition != null) {
-            list.add(condition);
-        }
-        return list.toArray(new RexNode[list.size()]);
     }
 
     // description of this calc, chiefly intended for debugging
@@ -281,15 +231,15 @@ public class RexProgram
     {
         final List<RelDataTypeField> inFields = inputRowType.getFieldList();
         final List<RelDataTypeField> outFields = outputRowType.getFieldList();
-        assert outFields.size() == projects.length : "outFields.length="
+        assert outFields.size() == projects.size() : "outFields.length="
             + outFields.size()
-            + ", projects.length=" + projects.length;
+            + ", projects.length=" + projects.size();
         pw.item(
             prefix + "expr#0"
             + ((inFields.size() > 1) ? (".." + (inFields.size() - 1)) : ""),
             "{inputs}");
-        for (int i = inFields.size(); i < exprs.length; i++) {
-            pw.item(prefix + "expr#" + i, exprs[i]);
+        for (int i = inFields.size(); i < exprs.size(); i++) {
+            pw.item(prefix + "expr#" + i, exprs.get(i));
         }
 
         // If a lot of the fields are simply projections of the underlying
@@ -315,8 +265,8 @@ public class RexProgram
 
         // Print the non-trivial fields with their names as they appear in the
         // output row type.
-        for (int i = trivialCount; i < projects.length; i++) {
-            pw.item(prefix + outFields.get(i).getName(), projects[i]);
+        for (int i = trivialCount; i < projects.size(); i++) {
+            pw.item(prefix + outFields.get(i).getName(), projects.get(i));
         }
         if (condition != null) {
             pw.item(prefix + "$condition", condition);
@@ -327,16 +277,18 @@ public class RexProgram
     /**
      * Returns the number of expressions at the front of an array which are
      * simply projections of the same field.
+     *
+     * @param refs References
      */
-    private static int countTrivial(RexLocalRef [] refs)
+    private static int countTrivial(List<RexLocalRef> refs)
     {
-        for (int i = 0; i < refs.length; i++) {
-            RexLocalRef ref = refs[i];
+        for (int i = 0; i < refs.size(); i++) {
+            RexLocalRef ref = refs.get(i);
             if (ref.getIndex() != i) {
                 return i;
             }
         }
-        return refs.length;
+        return refs.size();
     }
 
     /**
@@ -344,8 +296,8 @@ public class RexProgram
      */
     public int getExprCount()
     {
-        return exprs.length
-            + projects.length
+        return exprs.size()
+            + projects.size()
             + ((condition == null) ? 0 : 1);
     }
 
@@ -456,8 +408,8 @@ public class RexProgram
             }
 
             // None of the other fields should be inputRefs.
-            for (int i = inputRowType.getFieldCount(); i < exprs.length; i++) {
-                RexNode expr = exprs[i];
+            for (int i = inputRowType.getFieldCount(); i < exprs.size(); i++) {
+                RexNode expr = exprs.get(i);
                 if (expr instanceof RexInputRef) {
                     assert !fail;
                     return false;
@@ -484,13 +436,13 @@ public class RexProgram
                 {
                     public RelDataType get(int index)
                     {
-                        return exprs[index].getType();
+                        return exprs.get(index).getType();
                     }
 
                     @Override
                     public int size()
                     {
-                        return exprs.length;
+                        return exprs.size();
                     }
                 });
         if (condition != null) {
@@ -504,15 +456,15 @@ public class RexProgram
                 return false;
             }
         }
-        for (int i = 0; i < projects.length; i++) {
-            projects[i].accept(checker);
+        for (int i = 0; i < projects.size(); i++) {
+            projects.get(i).accept(checker);
             if (checker.failCount > 0) {
                 assert !fail;
                 return false;
             }
         }
-        for (int i = 0; i < exprs.length; i++) {
-            exprs[i].accept(checker);
+        for (int i = 0; i < exprs.size(); i++) {
+            exprs.get(i).accept(checker);
             if (checker.failCount > 0) {
                 assert !fail;
                 return false;
@@ -539,10 +491,10 @@ public class RexProgram
         }
         if (expr instanceof RexLocalRef) {
             RexLocalRef inputRef = (RexLocalRef) expr;
-            return isNull(exprs[inputRef.index]);
+            return isNull(exprs.get(inputRef.index));
         }
         if (expr.getKind() == RexKind.Cast) {
-            return isNull(((RexCall) expr).operands[0]);
+            return isNull(((RexCall) expr).operands.get(0));
         }
         return false;
     }
@@ -575,8 +527,7 @@ public class RexProgram
         List<RelCollation> outputCollations = new ArrayList<RelCollation>(1);
         deduceCollations(
             outputCollations,
-            inputRowType.getFieldCount(),
-            projectReadOnlyList,
+            inputRowType.getFieldCount(), projects,
             inputCollations);
         return outputCollations;
     }
@@ -633,14 +584,14 @@ loop:
     public boolean projectsIdentity(final boolean fail)
     {
         final int fieldCount = inputRowType.getFieldCount();
-        if (projects.length < fieldCount) {
+        if (projects.size() < fieldCount) {
             assert !fail : "program '" + toString()
                 + "' does not project identity for input row type '"
                 + inputRowType + "'";
             return false;
         }
         for (int i = 0; i < fieldCount; i++) {
-            RexLocalRef project = projects[i];
+            RexLocalRef project = projects.get(i);
             if (project.index != i) {
                 assert !fail : "program " + toString()
                     + "' does not project identity for input row type '"
@@ -661,11 +612,11 @@ loop:
         if (getCondition() != null) {
             return false;
         }
-        if (projects.length != inputRowType.getFieldCount()) {
+        if (projects.size() != inputRowType.getFieldCount()) {
             return false;
         }
-        for (int i = 0; i < projects.length; i++) {
-            RexLocalRef project = projects[i];
+        for (int i = 0; i < projects.size(); i++) {
+            RexLocalRef project = projects.get(i);
             if (project.index != i) {
                 return false;
             }
@@ -677,7 +628,7 @@ loop:
      * Gets reference counts for each expression in the program, where the
      * references are detected from later expressions in the same program, as
      * well as the project list and condition. Expressions with references
-     * counts greater than 1 are true common subexpressions.
+     * counts greater than 1 are true common sub-expressions.
      *
      * @return array of reference counts; the ith element in the returned array
      * is the number of references to getExprList()[i]
@@ -687,14 +638,14 @@ loop:
         if (refCounts != null) {
             return refCounts;
         }
-        refCounts = new int[exprs.length];
+        refCounts = new int[exprs.size()];
         ReferenceCounter refCounter = new ReferenceCounter();
-        apply(refCounter, Arrays.asList(exprs), null);
+        apply(refCounter, exprs, null);
         if (condition != null) {
             refCounter.visitLocalRef(condition);
         }
-        for (int i = 0; i < projects.length; ++i) {
-            refCounter.visitLocalRef(projects[i]);
+        for (RexLocalRef project : projects) {
+            refCounter.visitLocalRef(project);
         }
         return refCounts;
     }
@@ -739,17 +690,17 @@ loop:
      */
     public int getSourceField(int outputOrdinal)
     {
-        assert (outputOrdinal >= 0) && (outputOrdinal < this.projects.length);
-        RexLocalRef project = projects[outputOrdinal];
+        assert (outputOrdinal >= 0) && (outputOrdinal < this.projects.size());
+        RexLocalRef project = projects.get(outputOrdinal);
         int index = project.index;
         while (true) {
-            RexNode expr = exprs[index];
+            RexNode expr = exprs.get(index);
             if (expr instanceof RexCall
                 && ((RexCall) expr).getOperator()
                 == SqlStdOperatorTable.inFennelFunc)
             {
                 // drill through identity function
-                expr = ((RexCall) expr).getOperands()[0];
+                expr = ((RexCall) expr).getOperands().get(0);
             }
             if (expr instanceof RexLocalRef) {
                 index = ((RexLocalRef) expr).index;
@@ -766,10 +717,10 @@ loop:
      */
     public boolean isPermutation()
     {
-        if (projects.length != inputRowType.getFieldList().size()) {
+        if (projects.size() != inputRowType.getFieldList().size()) {
             return false;
         }
-        for (int i = 0; i < projects.length; ++i) {
+        for (int i = 0; i < projects.size(); ++i) {
             if (getSourceField(i) < 0) {
                 return false;
             }
@@ -782,11 +733,11 @@ loop:
      */
     public Permutation getPermutation()
     {
-        Permutation permutation = new Permutation(projects.length);
-        if (projects.length != inputRowType.getFieldList().size()) {
+        Permutation permutation = new Permutation(projects.size());
+        if (projects.size() != inputRowType.getFieldList().size()) {
             return null;
         }
-        for (int i = 0; i < projects.length; ++i) {
+        for (int i = 0; i < projects.size(); ++i) {
             int sourceField = getSourceField(i);
             if (sourceField < 0) {
                 return null;
@@ -813,7 +764,7 @@ loop:
                     return null;
                 }
             },
-            Arrays.asList(exprs),
+            exprs,
             null);
         return paramIdSet;
     }
@@ -927,7 +878,7 @@ loop:
 
         public Boolean visitLocalRef(RexLocalRef localRef)
         {
-            final RexNode expr = exprs[localRef.index];
+            final RexNode expr = exprs.get(localRef.index);
             return expr.accept(this);
         }
 
@@ -991,7 +942,7 @@ loop:
 
         public RexNode visitLocalRef(RexLocalRef localRef)
         {
-            final RexNode expr = exprs[localRef.index];
+            final RexNode expr = exprs.get(localRef.index);
             return expr.accept(this);
         }
 
@@ -1003,7 +954,7 @@ loop:
         public RexNode visitCall(RexCall call)
         {
             final List<RexNode> newOperands = new ArrayList<RexNode>();
-            for (RexNode operand : call.getOperandList()) {
+            for (RexNode operand : call.getOperands()) {
                 newOperands.add(operand.accept(this));
             }
             return call.clone(call.getType(), newOperands);

@@ -24,6 +24,8 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * A <code>SqlCall</code> is a call to an {@link SqlOperator operator}.
@@ -103,6 +105,11 @@ public class SqlCall
     public SqlNode [] getOperands()
     {
         return operands;
+    }
+
+    public List<SqlNode> getOperandList()
+    {
+        return ImmutableList.copyOf(operands);
     }
 
     public SqlNode clone(SqlParserPos pos)

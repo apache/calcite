@@ -23,6 +23,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * Operand type-checking strategy which checks operands for inclusion in type
@@ -36,14 +38,14 @@ public class FamilyOperandTypeChecker
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected final List<SqlTypeFamily> families;
+    protected final ImmutableList<SqlTypeFamily> families;
 
     //~ Constructors -----------------------------------------------------------
 
     /** Package private. Create using {@link SqlTypeStrategies#family}. */
     FamilyOperandTypeChecker(List<SqlTypeFamily> families)
     {
-        this.families = families;
+        this.families = ImmutableList.copyOf(families);
     }
 
     //~ Methods ----------------------------------------------------------------

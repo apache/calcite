@@ -135,7 +135,7 @@ public class JdbcImplementor {
       } else if (rex instanceof RexCall) {
         final RexCall call = (RexCall) rex;
         final SqlOperator op = call.getOperator();
-        final List<SqlNode> nodeList = toSql(program, call.getOperandList());
+        final List<SqlNode> nodeList = toSql(program, call.getOperands());
         if (op == SqlStdOperatorTable.castFunc) {
           RelDataType type = call.getType();
           if (type.getSqlTypeName() == SqlTypeName.VARCHAR

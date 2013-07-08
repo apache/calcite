@@ -17,11 +17,15 @@
 */
 package org.eigenbase.rex;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -36,17 +40,17 @@ public class RexCallBinding
 {
     //~ Instance fields --------------------------------------------------------
 
-    private final RexNode [] operands;
+    private final List<RexNode> operands;
 
     //~ Constructors -----------------------------------------------------------
 
     public RexCallBinding(
         RelDataTypeFactory typeFactory,
         SqlOperator sqlOperator,
-        RexNode [] operands)
+        List<? extends RexNode> operands)
     {
         super(typeFactory, sqlOperator);
-        this.operands = operands;
+        this.operands = ImmutableList.copyOf(operands);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -54,31 +58,31 @@ public class RexCallBinding
     // implement SqlOperatorBinding
     public String getStringLiteralOperand(int ordinal)
     {
-        return RexLiteral.stringValue(operands[ordinal]);
+        return RexLiteral.stringValue(operands.get(ordinal));
     }
 
     // implement SqlOperatorBinding
     public int getIntLiteralOperand(int ordinal)
     {
-        return RexLiteral.intValue(operands[ordinal]);
+        return RexLiteral.intValue(operands.get(ordinal));
     }
 
     // implement SqlOperatorBinding
     public boolean isOperandNull(int ordinal, boolean allowCast)
     {
-        return RexUtil.isNullLiteral(operands[ordinal], allowCast);
+        return RexUtil.isNullLiteral(operands.get(ordinal), allowCast);
     }
 
     // implement SqlOperatorBinding
     public int getOperandCount()
     {
-        return operands.length;
+        return operands.size();
     }
 
     // implement SqlOperatorBinding
     public RelDataType getOperandType(int ordinal)
     {
-        return operands[ordinal].getType();
+        return operands.get(ordinal).getType();
     }
 
     public EigenbaseException newError(

@@ -57,7 +57,7 @@ public abstract class RelOptRule
     /**
      * Flattened list of operands.
      */
-    public RelOptRuleOperand [] operands;
+    public List<RelOptRuleOperand> operands;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -229,7 +229,7 @@ public abstract class RelOptRule
      *
      * @return Flattened list of operands
      */
-    private RelOptRuleOperand [] flattenOperands(
+    private List<RelOptRuleOperand> flattenOperands(
         RelOptRuleOperand rootOperand)
     {
         List<RelOptRuleOperand> operandList =
@@ -242,7 +242,7 @@ public abstract class RelOptRule
         rootOperand.ordinalInRule = operandList.size();
         operandList.add(rootOperand);
         flattenRecurse(operandList, rootOperand);
-        return operandList.toArray(new RelOptRuleOperand[operandList.size()]);
+        return ImmutableList.copyOf(operandList);
     }
 
     /**
@@ -276,12 +276,12 @@ public abstract class RelOptRule
     private void assignSolveOrder()
     {
         for (RelOptRuleOperand operand : operands) {
-            operand.solveOrder = new int[operands.length];
+            operand.solveOrder = new int[operands.size()];
             int m = 0;
             for (RelOptRuleOperand o = operand; o != null; o = o.getParent()) {
                 operand.solveOrder[m++] = o.ordinalInRule;
             }
-            for (int k = 0; k < operands.length; k++) {
+            for (int k = 0; k < operands.size(); k++) {
                 boolean exists = false;
                 for (int n = 0; n < m; n++) {
                     if (operand.solveOrder[n] == k) {
@@ -294,7 +294,7 @@ public abstract class RelOptRule
             }
 
             // Assert: operand appears once in the sort-order.
-            assert m == operands.length;
+            assert m == operands.size();
         }
     }
 

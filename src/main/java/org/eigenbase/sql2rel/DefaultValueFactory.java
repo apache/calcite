@@ -17,6 +17,8 @@
 */
 package org.eigenbase.sql2rel;
 
+import java.util.List;
+
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
@@ -73,7 +75,7 @@ public interface DefaultValueFactory
         RelDataType type,
         SqlFunction constructor,
         int iAttribute,
-        RexNode [] constructorArgs);
+        List<RexNode> constructorArgs);
 }
 
 // End DefaultValueFactory.java
