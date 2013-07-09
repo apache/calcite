@@ -138,9 +138,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
     planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
     planner.addRule(JavaRules.ENUMERABLE_ONE_ROW_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_CUSTOM_FROM_ARRAY_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_ARRAY_FROM_CUSTOM_RULE);
-    planner.addRule(JavaRules.EnumerableCustomCalcRule.INSTANCE);
     planner.addRule(TableAccessRule.instance);
     planner.addRule(PushFilterPastProjectRule.instance);
     planner.addRule(PushFilterPastJoinRule.instance);
@@ -347,7 +344,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         Schema schema,
         EnumerableRel.Prefer prefer,
         RelOptPlanner planner) {
-      super(catalogReader, EnumerableConvention.ARRAY);
+      super(catalogReader, EnumerableConvention.INSTANCE);
       this.schema = schema;
       this.prefer = prefer;
       this.planner = planner;
@@ -642,18 +639,18 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         return ((TranslatableTable) table).toRel(context, this);
       }
       RelOptCluster cluster = context.getCluster();
-      EnumerableConvention convention = EnumerableConvention.CUSTOM;
-      Class elementType = Object[].class;
-      if (table != null && table.getElementType() instanceof Class) {
-        elementType = (Class) table.getElementType();
-        if (Object[].class.isAssignableFrom(elementType)) {
-          convention = EnumerableConvention.ARRAY;
+      Class elementType;
+      if (table != null) {
+        if (table.getElementType() instanceof Class) {
+          elementType = (Class) table.getElementType();
         } else {
-          convention = EnumerableConvention.CUSTOM;
+          elementType = Object[].class;
         }
+      } else {
+        elementType = Object.class;
       }
       return new JavaRules.EnumerableTableAccessRel(
-          cluster, cluster.traitSetOf(convention),
+          cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE),
           this, expression, elementType);
     }
 

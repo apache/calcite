@@ -72,7 +72,7 @@ public class JavaRules {
       super(
           JoinRel.class,
           Convention.NONE,
-          EnumerableConvention.CUSTOM,
+          EnumerableConvention.INSTANCE,
           "EnumerableJoinRule");
     }
 
@@ -86,14 +86,14 @@ public class JavaRules {
               convert(
                   input,
                   input.getTraitSet()
-                      .replace(EnumerableConvention.CUSTOM));
+                      .replace(EnumerableConvention.INSTANCE));
         }
         newInputs.add(input);
       }
       try {
         return new EnumerableJoinRel(
             join.getCluster(),
-            join.getTraitSet().replace(EnumerableConvention.CUSTOM),
+            join.getTraitSet().replace(EnumerableConvention.INSTANCE),
             newInputs.get(0),
             newInputs.get(1),
             join.getCondition(),
@@ -173,7 +173,41 @@ public class JavaRules {
       // We always "build" the
       double rowCount = RelMetadataQuery.getRowCount(this);
 
+      // Joins can be flipped, and for many algorithms, both versions are viable
+      // and have the same cost. To make the results stable between versions of
+      // the planner, make one of the versions slightly more expensive.
+      switch (joinType) {
+      case RIGHT:
+        rowCount = addEpsilon(rowCount);
+        break;
+      default:
+        if (left.getId() > right.getId()) {
+          rowCount = addEpsilon(rowCount);
+        }
+      }
+
       return planner.makeCost(rowCount, 0, 0);
+    }
+
+    private double addEpsilon(double d) {
+      assert d >= 0d;
+      final double d0 = d;
+      if (d < 10) {
+        // For small d, adding 1 would change the value significantly.
+        d *= 1.001d;
+        if (d != d0) {
+          return d;
+        }
+      }
+      // For medium d, add 1. Keeps integral values integral.
+      ++d;
+      if (d != d0) {
+        return d;
+      }
+      // For large d, adding 1 might not change the value. Add .1%.
+      // If d is NaN, this still will probably not change the value. That's OK.
+      d *= 1.001d;
+      return d;
     }
 
     @Override
@@ -208,9 +242,7 @@ public class JavaRules {
               "right", rightResult.expression);
       final PhysType physType =
           PhysTypeImpl.of(
-              implementor.getTypeFactory(),
-              getRowType(),
-              pref.preferArray());
+              implementor.getTypeFactory(), getRowType(), pref.preferArray());
       final PhysType keyPhysType =
           leftResult.physType.project(
               leftKeys, JavaRowFormat.LIST);
@@ -333,6 +365,14 @@ public class JavaRules {
       this.expression = expression;
     }
 
+    private JavaRowFormat format() {
+      if (Object[].class.isAssignableFrom(elementType)) {
+        return JavaRowFormat.ARRAY;
+      } else {
+        return JavaRowFormat.CUSTOM;
+      }
+    }
+
     @Override
     public RelNode copy(
         RelTraitSet traitSet, List<RelNode> inputs) {
@@ -350,7 +390,7 @@ public class JavaRules {
           PhysTypeImpl.of(
               implementor.getTypeFactory(),
               getRowType(),
-              ((EnumerableConvention) getConvention()).format);
+              format());
       return implementor.result(physType, Blocks.toBlock(expression));
     }
   }
@@ -368,7 +408,7 @@ public class JavaRules {
       super(
           CalcRel.class,
           Convention.NONE,
-          EnumerableConvention.ARRAY,
+          EnumerableConvention.INSTANCE,
           "EnumerableCalcRule");
     }
 
@@ -383,86 +423,13 @@ public class JavaRules {
 
       return new EnumerableCalcRel(
           rel.getCluster(),
-          rel.getTraitSet().replace(EnumerableConvention.ARRAY),
+          rel.getTraitSet().replace(EnumerableConvention.INSTANCE),
           convert(
               calc.getChild(),
               calc.getChild().getTraitSet()
-                  .replace(EnumerableConvention.ARRAY)),
+                  .replace(EnumerableConvention.INSTANCE)),
           calc.getProgram(),
           ProjectRelBase.Flags.Boxed);
-    }
-  }
-
-  /**
-   * Rule to convert an {@link EnumerableCalcRel} on an
-   * {@link EnumerableConvention#ARRAY} input to one on a
-   * {@link EnumerableConvention#CUSTOM} input.
-   */
-  public static class EnumerableCustomCalcRule extends RelOptRule {
-    public static final RelOptRule INSTANCE =
-        new EnumerableCustomCalcRule();
-
-    private EnumerableCustomCalcRule() {
-      super(
-          some(EnumerableCalcRel.class,
-              any(RelNode.class, EnumerableConvention.ARRAY)),
-          "EnumerableCustomCalcRule");
-    }
-
-    public void onMatch(RelOptRuleCall call) {
-      final EnumerableCalcRel calc = call.rel(0);
-      final RelTraitSet traitSet =
-          calc.getTraitSet().replace(EnumerableConvention.CUSTOM);
-      call.transformTo(
-          new EnumerableCalcRel(
-              calc.getCluster(),
-              calc.getTraitSet(),
-              convert(call.rel(1), traitSet),
-              calc.getProgram(),
-              calc.flags));
-    }
-  }
-
-  public static final ConverterRule ENUMERABLE_ARRAY_FROM_CUSTOM_RULE =
-      new EnumerableConverterRule(
-          EnumerableConvention.ARRAY,
-          EnumerableConvention.CUSTOM);
-
-  public static final ConverterRule ENUMERABLE_CUSTOM_FROM_ARRAY_RULE =
-      new EnumerableConverterRule(
-          EnumerableConvention.CUSTOM,
-          EnumerableConvention.ARRAY);
-
-  /**
-   * Rule to convert a relational expression from
-   * {@link EnumerableConvention#ARRAY} to another
-   * {@link EnumerableConvention}.
-   */
-  private static class EnumerableConverterRule extends ConverterRule {
-    private EnumerableConverterRule(
-        EnumerableConvention out, EnumerableConvention in) {
-      super(
-          RelNode.class, in, out,
-          "Enumerable-" + in.name() + "-to-" + out.name());
-    }
-
-    @Override
-    public RelNode convert(RelNode rel) {
-      if (rel instanceof EnumerableTableAccessRel) {
-        // The physical row type of a table access is baked in.
-        return null;
-      }
-      RelTraitSet newTraitSet = rel.getTraitSet().replace(getOutTrait());
-      if (rel instanceof EnumerableSortRel) {
-        // The physical row type of a sort must be the same as its
-        // input.
-        EnumerableSortRel sortRel = (EnumerableSortRel) rel;
-        return sortRel.copy(
-            newTraitSet,
-            convert(sortRel.getChild(), newTraitSet),
-            sortRel.getCollation());
-      }
-      return rel.copy(newTraitSet, rel.getInputs());
     }
   }
 
@@ -680,14 +647,14 @@ public class JavaRules {
       super(
           AggregateRel.class,
           Convention.NONE,
-          EnumerableConvention.ARRAY,
+          EnumerableConvention.INSTANCE,
           "EnumerableAggregateRule");
     }
 
     public RelNode convert(RelNode rel) {
       final AggregateRel agg = (AggregateRel) rel;
       final RelTraitSet traitSet =
-          agg.getTraitSet().replace(EnumerableConvention.ARRAY);
+          agg.getTraitSet().replace(EnumerableConvention.INSTANCE);
       try {
         return new EnumerableAggregateRel(
             rel.getCluster(),
@@ -765,9 +732,7 @@ public class JavaRules {
 
       final PhysType physType =
           PhysTypeImpl.of(
-              typeFactory,
-              getRowType(),
-              pref.preferCustom());
+              typeFactory, getRowType(), pref.preferCustom());
 
       // final Enumerable<Employee> child = <<child impl>>;
       // Function1<Employee, Integer> keySelector =
@@ -1061,20 +1026,21 @@ public class JavaRules {
       super(
           SortRel.class,
           Convention.NONE,
-          EnumerableConvention.ARRAY,
+          EnumerableConvention.INSTANCE,
           "EnumerableSortRule");
     }
 
     public RelNode convert(RelNode rel) {
       final SortRel sort = (SortRel) rel;
       final RelTraitSet traitSet =
-          sort.getTraitSet().replace(EnumerableConvention.ARRAY);
+          sort.getTraitSet().replace(EnumerableConvention.INSTANCE);
       final RelNode input = sort.getChild();
       return new EnumerableSortRel(
           rel.getCluster(),
           traitSet,
           convert(
-              input, input.getTraitSet().replace(EnumerableConvention.ARRAY)),
+              input,
+              input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
           sort.getCollation());
     }
   }
@@ -1161,7 +1127,7 @@ public class JavaRules {
       super(
           UnionRel.class,
           Convention.NONE,
-          EnumerableConvention.ARRAY,
+          EnumerableConvention.INSTANCE,
           "EnumerableUnionRule");
     }
 
@@ -1169,7 +1135,7 @@ public class JavaRules {
       final UnionRel union = (UnionRel) rel;
       final RelTraitSet traitSet =
           union.getTraitSet().replace(
-              EnumerableConvention.ARRAY);
+              EnumerableConvention.INSTANCE);
       return new EnumerableUnionRel(
           rel.getCluster(),
           traitSet,
@@ -1245,7 +1211,7 @@ public class JavaRules {
       super(
           IntersectRel.class,
           Convention.NONE,
-          EnumerableConvention.ARRAY,
+          EnumerableConvention.INSTANCE,
           "EnumerableIntersectRule");
     }
 
@@ -1256,7 +1222,7 @@ public class JavaRules {
       }
       final RelTraitSet traitSet =
           intersect.getTraitSet().replace(
-              EnumerableConvention.ARRAY);
+              EnumerableConvention.INSTANCE);
       return new EnumerableIntersectRel(
           rel.getCluster(),
           traitSet,
@@ -1337,7 +1303,7 @@ public class JavaRules {
       super(
           MinusRel.class,
           Convention.NONE,
-          EnumerableConvention.ARRAY,
+          EnumerableConvention.INSTANCE,
           "EnumerableMinusRule");
     }
 
@@ -1348,7 +1314,7 @@ public class JavaRules {
       }
       final RelTraitSet traitSet =
           rel.getTraitSet().replace(
-              EnumerableConvention.ARRAY);
+              EnumerableConvention.INSTANCE);
       return new EnumerableMinusRel(
           rel.getCluster(),
           traitSet,
@@ -1423,7 +1389,7 @@ public class JavaRules {
       super(
           TableModificationRel.class,
           Convention.NONE,
-          EnumerableConvention.ARRAY,
+          EnumerableConvention.INSTANCE,
           "EnumerableTableModificationRule");
     }
 
@@ -1438,7 +1404,7 @@ public class JavaRules {
         return null;
       }
       final RelTraitSet traitSet =
-          modify.getTraitSet().replace(EnumerableConvention.CUSTOM);
+          modify.getTraitSet().replace(EnumerableConvention.INSTANCE);
       return new EnumerableTableModificationRel(
           modify.getCluster(), traitSet,
           modify.getTable(),
@@ -1585,7 +1551,7 @@ public class JavaRules {
       super(
           ValuesRel.class,
           Convention.NONE,
-          EnumerableConvention.ARRAY,
+          EnumerableConvention.INSTANCE,
           "EnumerableValuesRule");
     }
 
@@ -1596,7 +1562,7 @@ public class JavaRules {
           valuesRel.getCluster(),
           valuesRel.getRowType(),
           valuesRel.getTuples(),
-          valuesRel.getTraitSet().replace(EnumerableConvention.ARRAY));
+          valuesRel.getTraitSet().replace(EnumerableConvention.INSTANCE));
     }
   }
 
@@ -1629,7 +1595,7 @@ public class JavaRules {
           valuesRel.getCluster(),
           valuesRel.getRowType(),
           valuesRel.getTuples(),
-          valuesRel.getTraitSet().replace(EnumerableConvention.ARRAY));
+          valuesRel.getTraitSet().replace(EnumerableConvention.INSTANCE));
     }
   }
 

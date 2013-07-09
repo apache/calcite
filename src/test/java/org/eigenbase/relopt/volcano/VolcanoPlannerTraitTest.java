@@ -107,14 +107,14 @@ public class VolcanoPlannerTraitTest {
         RelNode convertedRel =
             planner.changeTraits(
                 noneRel,
-                cluster.traitSetOf(EnumerableConvention.ARRAY, ALT_TRAIT2));
+                cluster.traitSetOf(EnumerableConvention.INSTANCE, ALT_TRAIT2));
 
         planner.setRoot(convertedRel);
         RelNode result = planner.chooseDelegate().findBestExp();
 
         assertTrue(result instanceof IterSingleRel);
         assertEquals(
-            EnumerableConvention.ARRAY,
+            EnumerableConvention.INSTANCE,
             result.getTraitSet().getTrait(ConventionTraitDef.instance));
         assertEquals(
             ALT_TRAIT2,
@@ -166,14 +166,14 @@ public class VolcanoPlannerTraitTest {
             planner.changeTraits(
                 noneRel,
                 cluster.traitSetOf(
-                    EnumerableConvention.ARRAY, ALT_TRAIT2));
+                    EnumerableConvention.INSTANCE, ALT_TRAIT2));
 
         planner.setRoot(convertedRel);
         RelNode result = planner.chooseDelegate().findBestExp();
 
         assertTrue(result instanceof IterSingleRel);
         assertEquals(
-            EnumerableConvention.ARRAY,
+            EnumerableConvention.INSTANCE,
             result.getTraitSet().getTrait(ConventionTraitDef.instance));
         assertEquals(
             ALT_TRAIT2,
@@ -182,7 +182,7 @@ public class VolcanoPlannerTraitTest {
         RelNode child = result.getInputs().get(0);
         assertTrue(child instanceof IterSingleRel);
         assertEquals(
-            EnumerableConvention.ARRAY,
+            EnumerableConvention.INSTANCE,
             child.getTraitSet().getTrait(ConventionTraitDef.instance));
         assertEquals(
             ALT_TRAIT2,
@@ -486,7 +486,7 @@ public class VolcanoPlannerTraitTest {
         {
             super(
                 cluster,
-                cluster.traitSetOf(EnumerableConvention.ARRAY),
+                cluster.traitSetOf(EnumerableConvention.INSTANCE),
                 child);
         }
 
@@ -497,7 +497,7 @@ public class VolcanoPlannerTraitTest {
         }
 
         public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-            assert traitSet.comprises(EnumerableConvention.ARRAY);
+            assert traitSet.comprises(EnumerableConvention.INSTANCE);
             return new IterSingleRel(
                 getCluster(),
                 sole(inputs));
@@ -544,7 +544,7 @@ public class VolcanoPlannerTraitTest {
         // implement RelOptRule
         public Convention getOutConvention()
         {
-            return EnumerableConvention.ARRAY;
+            return EnumerableConvention.INSTANCE;
         }
 
         public RelTrait getOutTrait()
@@ -580,7 +580,7 @@ public class VolcanoPlannerTraitTest {
         // implement RelOptRule
         public Convention getOutConvention()
         {
-            return EnumerableConvention.ARRAY;
+            return EnumerableConvention.INSTANCE;
         }
 
         public RelTrait getOutTrait()
@@ -678,7 +678,7 @@ public class VolcanoPlannerTraitTest {
             super(
                 RelNode.class,
                 PHYS_CALLING_CONVENTION,
-                EnumerableConvention.ARRAY,
+                EnumerableConvention.INSTANCE,
                 "PhysToIteratorRule");
         }
 
@@ -700,7 +700,7 @@ public class VolcanoPlannerTraitTest {
             super(
                 cluster,
                 ConventionTraitDef.instance,
-                child.getTraitSet().replace(EnumerableConvention.ARRAY),
+                child.getTraitSet().replace(EnumerableConvention.INSTANCE),
                 child);
         }
 

@@ -21,20 +21,18 @@ import net.hydromatic.optiq.rules.java.EnumerableConvention;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.convert.ConverterRule;
-import org.eigenbase.relopt.ConventionTraitDef;
 import org.eigenbase.relopt.RelTraitSet;
 
 /**
  * Rule to convert a relational expression from
- * {@link MongoRel#CONVENTION} to
- * {@link EnumerableConvention#ARRAY}.
+ * {@link MongoRel#CONVENTION} to {@link EnumerableConvention}.
  */
 public class MongoToEnumerableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
       new MongoToEnumerableConverterRule();
 
   private MongoToEnumerableConverterRule() {
-    super(RelNode.class, MongoRel.CONVENTION, EnumerableConvention.ARRAY,
+    super(RelNode.class, MongoRel.CONVENTION, EnumerableConvention.INSTANCE,
         "MongoToEnumerableConverterRule");
   }
 

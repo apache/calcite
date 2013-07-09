@@ -21,20 +21,19 @@ import net.hydromatic.optiq.rules.java.EnumerableConvention;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.convert.ConverterRule;
-import org.eigenbase.relopt.ConventionTraitDef;
 import org.eigenbase.relopt.RelTraitSet;
 
 /**
  * Rule to convert a relational expression from
  * {@link JdbcConvention} to
- * {@link EnumerableConvention#ARRAY}.
+ * {@link EnumerableConvention}.
  */
 public class JdbcToEnumerableConverterRule extends ConverterRule {
   JdbcToEnumerableConverterRule(JdbcConvention out) {
     super(
         RelNode.class,
         out,
-        EnumerableConvention.ARRAY,
+        EnumerableConvention.INSTANCE,
         "JdbcToEnumerableConverterRule");
   }
 

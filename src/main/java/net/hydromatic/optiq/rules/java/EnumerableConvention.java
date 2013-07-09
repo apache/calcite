@@ -25,30 +25,14 @@ import org.eigenbase.relopt.*;
  * {@link net.hydromatic.linq4j.Enumerable}.
  */
 public enum EnumerableConvention implements Convention {
-  /** Convention that returns result as an Enumerable, each record as an array
-   * of objects. Records of 0 and 1 fields are represented as empty lists
-   * and scalars, respectively. */
-  ARRAY(JavaRowFormat.ARRAY),
-
-  /** Convention that returns result as an Enumerable, each record as an
-   * object that has one data member for each column. Records of 0 and 1
-   * fields are represented as empty lists and scalars, respectively. */
-  CUSTOM(JavaRowFormat.CUSTOM);
-
-  private final String name;
-  public final JavaRowFormat format;
-
-  EnumerableConvention(JavaRowFormat format) {
-    this.format = format;
-    this.name = "ENUMERABLE_" + name();
-  }
+  INSTANCE;
 
   public Class getInterface() {
     return EnumerableRel.class;
   }
 
   public String getName() {
-    return name;
+    return "ENUMERABLE";
   }
 
   public RelTraitDef getTraitDef() {

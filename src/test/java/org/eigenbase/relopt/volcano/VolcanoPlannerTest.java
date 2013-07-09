@@ -166,7 +166,7 @@ public class VolcanoPlannerTest {
             new ConverterRule(
                 RelNode.class,
                 PHYS_CALLING_CONVENTION,
-                EnumerableConvention.ARRAY,
+                EnumerableConvention.INSTANCE,
                 "PhysToIteratorRule")
             {
                 public RelNode convert(RelNode rel)
@@ -195,7 +195,7 @@ public class VolcanoPlannerTest {
         RelNode convertedRel =
             planner.changeTraits(
                 singleRel,
-                cluster.traitSetOf(EnumerableConvention.ARRAY));
+                cluster.traitSetOf(EnumerableConvention.INSTANCE));
         planner.setRoot(convertedRel);
         RelNode result = planner.chooseDelegate().findBestExp();
         assertTrue(result instanceof PhysToIteratorConverter);
@@ -582,12 +582,12 @@ public class VolcanoPlannerTest {
             super(
                 cluster,
                 ConventionTraitDef.instance,
-                cluster.traitSetOf(EnumerableConvention.ARRAY),
+                cluster.traitSetOf(EnumerableConvention.INSTANCE),
                 child);
         }
 
         public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-            assert traitSet.comprises(EnumerableConvention.ARRAY);
+            assert traitSet.comprises(EnumerableConvention.INSTANCE);
             return new PhysToIteratorConverter(
                 getCluster(),
                 sole(inputs));
