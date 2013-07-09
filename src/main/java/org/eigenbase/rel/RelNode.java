@@ -72,11 +72,15 @@ public interface RelNode
     //~ Methods ----------------------------------------------------------------
 
     /**
-     * Returns an array of this relational expression's child expressions (not
-     * including the inputs returned by {@link #getInputs}. If there are no
-     * child expressions, returns an empty array, not <code>null</code>.
+     * Returns a list of this relational expression's child expressions.
+     * (These are scalar expressions, and so do not include the relational
+     * inputs that are returned by {@link #getInputs}.
+     *
+     * <p>The caller should treat the list as unmodifiable; typical
+     * implementations will return an immutable list. If there are no
+     * child expressions, returns an empty list, not <code>null</code>.
      */
-    public RexNode [] getChildExps();
+    public List<RexNode> getChildExps();
 
     /**
      * Return the CallingConvention trait from this RelNode's {@link

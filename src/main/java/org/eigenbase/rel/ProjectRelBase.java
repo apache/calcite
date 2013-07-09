@@ -99,10 +99,8 @@ public abstract class ProjectRelBase
         return (flags & Flags.Boxed) == Flags.Boxed;
     }
 
-    // override AbstractRelNode
-    public RexNode [] getChildExps()
-    {
-        return exps.toArray(new RexNode[exps.size()]);
+    @Override public List<RexNode> getChildExps() {
+        return exps;
     }
 
     /**

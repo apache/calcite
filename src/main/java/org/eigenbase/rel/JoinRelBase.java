@@ -26,6 +26,8 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * <code>JoinRelBase</code> is an abstract base class for implementations of
@@ -86,9 +88,8 @@ public abstract class JoinRelBase
 
     //~ Methods ----------------------------------------------------------------
 
-    public RexNode [] getChildExps()
-    {
-        return new RexNode[] { condition };
+    @Override public List<RexNode> getChildExps() {
+        return ImmutableList.of(condition);
     }
 
     public RexNode getCondition()

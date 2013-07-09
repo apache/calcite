@@ -44,8 +44,6 @@ public abstract class TableFunctionRelBase
 
     private final RexNode rexCall;
 
-    private final RelDataType rowType;
-
     protected final ImmutableList<RelNode> inputs;
 
     protected final ImmutableSet<RelColumnMapping> columnMappings;
@@ -79,18 +77,15 @@ public abstract class TableFunctionRelBase
 
     //~ Methods ----------------------------------------------------------------
 
-    public List<RelNode> getInputs()
-    {
+    @Override public List<RelNode> getInputs() {
         return inputs;
     }
 
-    public RexNode [] getChildExps()
-    {
-        return new RexNode[] {rexCall};
+    @Override public List<RexNode> getChildExps() {
+        return ImmutableList.of(rexCall);
     }
 
-    public double getRows()
-    {
+    @Override public double getRows() {
         // Calculate result as the sum of the input rowcount estimates,
         // assuming there are any, otherwise use the superclass default.  So
         // for a no-input UDX, behave like an AbstractRelNode; for a one-input
@@ -100,8 +95,8 @@ public abstract class TableFunctionRelBase
             return super.getRows();
         }
         double nRows = 0.0;
-        for (int i = 0; i < inputs.size(); i++) {
-            Double d = RelMetadataQuery.getRowCount(inputs.get(i));
+        for (RelNode input : inputs) {
+            Double d = RelMetadataQuery.getRowCount(input);
             if (d != null) {
                 nRows += d;
             }
@@ -132,11 +127,6 @@ public abstract class TableFunctionRelBase
     public Set<RelColumnMapping> getColumnMappings()
     {
         return columnMappings;
-    }
-
-    protected RelDataType deriveRowType()
-    {
-        return rowType;
     }
 }
 

@@ -30,6 +30,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 
 /**
  * Base class for every relational expression ({@link RelNode}).
@@ -131,9 +133,8 @@ public abstract class AbstractRelNode
         return collection.get(0);
     }
 
-    public RexNode [] getChildExps()
-    {
-        return RexUtil.emptyExpressionArray;
+    public List<RexNode> getChildExps() {
+        return ImmutableList.of();
     }
 
     public final RelOptCluster getCluster()

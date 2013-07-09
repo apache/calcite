@@ -17,9 +17,13 @@
 */
 package org.eigenbase.rel;
 
+import java.util.List;
+
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -60,9 +64,8 @@ public abstract class FilterRelBase
 
     //~ Methods ----------------------------------------------------------------
 
-    public RexNode [] getChildExps()
-    {
-        return new RexNode[] { condition };
+    @Override public List<RexNode> getChildExps() {
+        return ImmutableList.of(condition);
     }
 
     public RexNode getCondition()

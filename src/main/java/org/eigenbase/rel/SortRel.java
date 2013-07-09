@@ -17,15 +17,15 @@
 */
 package org.eigenbase.rel;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
 import net.hydromatic.linq4j.Ord;
+
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -38,7 +38,7 @@ public class SortRel
     //~ Instance fields --------------------------------------------------------
 
     protected final RelCollation collation;
-    protected final List<RexNode> fieldExps = new ArrayList<RexNode>();
+    protected final ImmutableList<RexNode> fieldExps;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -61,13 +61,14 @@ public class SortRel
 
         assert traits.containsIfApplicable(collation)
             : "traits=" + traits + ", collation=" + collation;
-        final List<RelDataTypeField> fields = getRowType().getFieldList();
+        ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
         for (RelFieldCollation field : collation.getFieldCollations()) {
-            int iField = field.getFieldIndex();
-            fieldExps.add(
+            int index = field.getFieldIndex();
+            builder.add(
                 cluster.getRexBuilder().makeInputRef(
-                    fields.get(iField).getType(), iField));
+                    getRowType().getFieldList().get(index).getType(), index));
         }
+        fieldExps = builder.build();
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -89,9 +90,8 @@ public class SortRel
             newCollation);
     }
 
-    public RexNode [] getChildExps()
-    {
-        return fieldExps.toArray(new RexNode[fieldExps.size()]);
+    @Override public List<RexNode> getChildExps() {
+        return fieldExps;
     }
 
     /**

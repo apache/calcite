@@ -124,11 +124,6 @@ public abstract class CalcRelBase
         return planner.makeCost(dRows, dCpu, dIo);
     }
 
-    public RexNode [] getChildExps()
-    {
-        return RexNode.EMPTY_ARRAY;
-    }
-
     public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
         return program.explainCalc(super.explainTerms(pw));
     }

@@ -170,9 +170,8 @@ public final class MultiJoinRel
         return inputs;
     }
 
-    public RexNode [] getChildExps()
-    {
-        return new RexNode[] { joinFilter };
+    @Override public List<RexNode> getChildExps() {
+        return ImmutableList.of(joinFilter);
     }
 
     /**

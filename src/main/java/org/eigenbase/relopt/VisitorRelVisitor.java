@@ -17,6 +17,8 @@
 */
 package org.eigenbase.relopt;
 
+import java.util.List;
+
 import org.eigenbase.rel.*;
 import org.eigenbase.rex.*;
 
@@ -34,13 +36,12 @@ public class VisitorRelVisitor
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected final RexShuttle shuttle;
+    protected final RexVisitor<?> visitor;
 
     //~ Constructors -----------------------------------------------------------
 
-    public VisitorRelVisitor(RexShuttle visitor)
-    {
-        this.shuttle = visitor;
+    public VisitorRelVisitor(RexVisitor<?> visitor) {
+        this.visitor = visitor;
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -50,10 +51,9 @@ public class VisitorRelVisitor
         int ordinal,
         RelNode parent)
     {
-        RexNode [] childExps = p.getChildExps();
-        for (int i = 0; i < childExps.length; i++) {
-            final RexNode exp = childExps[i];
-            childExps[i] = exp.accept(shuttle);
+        List<RexNode> childExps = p.getChildExps();
+        for (RexNode childExp : childExps) {
+            childExp.accept(visitor);
         }
         p.childrenAccept(this);
     }
