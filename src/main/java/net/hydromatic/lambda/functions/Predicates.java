@@ -48,7 +48,7 @@ public class Predicates {
   private static final Predicate<Object> TRUE =
       new AbstractPredicate<Object>() {
         public boolean test(Object o) {
-          return false;
+          return true;
         }
       };
 
