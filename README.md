@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/AEtherSurfer/optiq.png)](https://travis-ci.org/AEtherSurfer/optiq)
+
+[![Build Status](https://travis-ci.org/julianhyde/optiq.png)](https://travis-ci.org/julianhyde/optiq)
+
 optiq
 =====
 
