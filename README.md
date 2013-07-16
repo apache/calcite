@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/julianhyde/linq4j.png)](https://travis-ci.org/julianhyde/linq4j)
+
 linq4j
 ======
 
