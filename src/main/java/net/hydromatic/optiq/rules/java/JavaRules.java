@@ -417,7 +417,9 @@ public class JavaRules {
 
       // If there's a multiset, let FarragoMultisetSplitter work on it
       // first.
-      if (RexMultisetUtil.containsMultiset(calc.getProgram())) {
+      final RexProgram program = calc.getProgram();
+      if (RexMultisetUtil.containsMultiset(program)
+          || program.containsAggs()) {
         return null;
       }
 
@@ -428,7 +430,7 @@ public class JavaRules {
               calc.getChild(),
               calc.getChild().getTraitSet()
                   .replace(EnumerableConvention.INSTANCE)),
-          calc.getProgram(),
+          program,
           ProjectRelBase.Flags.Boxed);
     }
   }
@@ -451,6 +453,7 @@ public class JavaRules {
         int flags) {
       super(cluster, traitSet, child);
       assert getConvention() instanceof EnumerableConvention;
+      assert !program.containsAggs();
       this.flags = flags;
       this.program = program;
       this.rowType = program.getOutputRowType();
@@ -1661,6 +1664,43 @@ public class JavaRules {
       return implementor.result(physType, statements.toBlock());
     }
   }
+
+  public static final EnumerableAggregateRule ENUMERABLE_WINAGG_RULE =
+      new EnumerableAggregateRule();
+
+  /**
+   * Rule to convert an {@link org.eigenbase.rel.AggregateRel} to an
+   * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableAggregateRel}.
+   */
+  private static class EnumerableWindowRule
+      extends ConverterRule {
+    private EnumerableWindowRule() {
+      super(
+          WindowedAggregateRel.class,
+          Convention.NONE,
+          EnumerableConvention.INSTANCE,
+          "EnumerableWindowRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final WindowedAggregateRel win = (WindowedAggregateRel) rel;
+      final RelTraitSet traitSet =
+          win.getTraitSet().replace(EnumerableConvention.INSTANCE);
+      try {
+        return new EnumerableWindowRel(
+            rel.getCluster(),
+            traitSet,
+            convert(win.getChild(), traitSet),
+            win.getProgram(),
+            win.getAggCallList());
+      } catch (InvalidRelException e) {
+        tracer.warning(e.toString());
+        return null;
+      }
+    }
+  }
+
+
 }
 
 // End JavaRules.java

@@ -144,6 +144,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(RemoveDistinctAggregateRule.instance);
     planner.addRule(ReduceAggregatesRule.instance);
     planner.addRule(SwapJoinRule.instance);
+    planner.addRule(WindowedAggSplitterRule.INSTANCE);
     return planner;
   }
 

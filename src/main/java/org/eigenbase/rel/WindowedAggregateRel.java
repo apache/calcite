@@ -23,16 +23,14 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * A relational expression representing a set of window aggregates.
  *
  * <p>Rules:
  *
  * <ul>
- * <li>Created by {@code
- * net.sf.farrago.fennel.rel.WindowedAggSplitterRule}.
- * <li>Triggers {@code net.sf.farrago.fennel.rel.FennelWindowRule}.
+ * <li>Created by {@link org.eigenbase.rel.rules.WindowedAggSplitterRule}.
+ * <li>Triggers {@link net.sf.farrago.fennel.rel.FennelWindowRule}.
  */
 public final class WindowedAggregateRel
     extends SingleRel
