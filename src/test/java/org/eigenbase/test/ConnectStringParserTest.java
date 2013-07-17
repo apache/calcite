@@ -17,18 +17,14 @@
 */
 package org.eigenbase.test;
 
-import java.sql.*;
+import java.sql.SQLException;
+import java.util.Properties;
 
-import java.util.*;
-
-import org.eigenbase.util14.*;
+import org.eigenbase.util14.ConnectStringParser;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.*;
-
 
 /**
  * Unit test for JDBC connect string parser, {@link ConnectStringParser}. The

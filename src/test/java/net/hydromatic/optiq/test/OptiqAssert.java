@@ -37,7 +37,6 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 
-
 /**
  * Fluid DSL for testing Optiq connections and queries.
  */
@@ -444,6 +443,8 @@ public class OptiqAssert {
         return JdbcTest.getConnection("hr", "foodmart");
       case REGULAR_PLUS_METADATA:
         return JdbcTest.getConnection("hr", "foodmart", "metadata");
+      case LINGUAL:
+        return JdbcTest.getConnection("lingual");
       case JDBC_FOODMART2:
         return JdbcTest.getConnection(null, false);
       case JDBC_FOODMART:
@@ -604,6 +605,12 @@ public class OptiqAssert {
      * {@link net.hydromatic.optiq.test.JdbcTest.FoodmartSchema}.
      */
     REGULAR,
+
+    /**
+     * Configuration that creates a connection with an in-memory data set
+     * similar to the smoke test in Cascading Lingual.
+     */
+    LINGUAL,
 
     /**
      * Configuration that creates a connection to a MySQL server. Tables

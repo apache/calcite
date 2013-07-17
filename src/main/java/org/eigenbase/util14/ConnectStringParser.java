@@ -17,10 +17,11 @@
 */
 package org.eigenbase.util14;
 
-import java.sql.*;
+import java.sql.SQLException;
+import java.util.Map;
+import java.util.Properties;
 
-import java.util.*;
-
+import org.eigenbase.util.Util;
 
 /**
  * ConnectStringParser is a utility class that parses or creates a JDBC connect
@@ -28,11 +29,8 @@ import java.util.*;
  * href="http://msdn.microsoft.com/library/default.asp?url=/library/en-us/oledb/htm/oledbconnectionstringsyntax.asp">
  * OLE DB Connection String Syntax</a>.
  *
- * <p>This code adapted from Mondrian code at <a
- * href="http://perforce.eigenbase.org:8080/open/mondrian/src/main/mondrian/olap/Util.java">
- * Util.java</a>.
- *
- * <p>The primary differences between this and its Mondrian progenitor are:
+ * <p>This code was adapted from Mondrian's mondrian.olap.Util class.
+ * The primary differences between this and its Mondrian progenitor are:
  *
  * <ul>
  * <li>use of regular {@link Properties} for compatibility with the JDBC API
@@ -71,8 +69,8 @@ public class ConnectStringParser
     private final String s;
     private final int n;
     private int i;
-    private final StringBuffer nameBuf;
-    private final StringBuffer valueBuf;
+    private final StringBuilder nameBuf = new StringBuilder();
+    private final StringBuilder valueBuf = new StringBuilder();
 
     //~ Constructors -----------------------------------------------------------
 
@@ -89,8 +87,6 @@ public class ConnectStringParser
         this.s = s;
         this.i = 0;
         this.n = s.length();
-        this.nameBuf = new StringBuffer(64);
-        this.valueBuf = new StringBuffer(64);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -107,7 +103,7 @@ public class ConnectStringParser
     public static Properties parse(String s)
         throws SQLException
     {
-        return parse(s, null);
+      return new ConnectStringParser(s).parse_(null);
     }
 
     /**
@@ -125,10 +121,7 @@ public class ConnectStringParser
     public static Properties parse(String s, Properties props)
         throws SQLException
     {
-        if (props == null) {
-            props = new Properties();
-        }
-        return (new ConnectStringParser(s)).parse(props);
+        return new ConnectStringParser(s).parse_(props);
     }
 
     /**
@@ -144,7 +137,7 @@ public class ConnectStringParser
      *
      * @throws SQLException error parsing name-value pairs
      */
-    Properties parse(Properties props)
+    Properties parse_(Properties props)
         throws SQLException
     {
         if (props == null) {
@@ -317,11 +310,10 @@ public class ConnectStringParser
             return "";
         }
 
-        StringBuffer buf = new StringBuffer();
-        Enumeration enumer = props.propertyNames();
-        while (enumer.hasMoreElements()) {
-            String name = (String) enumer.nextElement();
-            String value = props.getProperty(name);
+        StringBuilder buf = new StringBuilder();
+        for (Map.Entry<String, String> entry : Util.toMap(props).entrySet()) {
+            final String name = entry.getKey();
+            final String value = entry.getValue();
             String quote = "";
             if (buf.length() > 0) {
                 buf.append(';');

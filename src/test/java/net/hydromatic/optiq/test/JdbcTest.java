@@ -42,6 +42,7 @@ import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
@@ -184,6 +185,10 @@ public class JdbcTest {
     if (schemaList.contains("foodmart")) {
       ReflectiveSchema.create(
           rootSchema, "foodmart", new FoodmartSchema());
+    }
+    if (schemaList.contains("lingual")) {
+      ReflectiveSchema.create(
+          rootSchema, "SALES", new LingualSchema());
     }
     if (schemaList.contains("metadata")) {
       // always present
@@ -616,7 +621,7 @@ public class JdbcTest {
 
   /** Test case for
    * <a href="https://github.com/julianhyde/optiq/issues/35">issue #35</a>. */
-  public void _testJoinJoin() {
+  @Ignore public void testJoinJoin() {
     OptiqAssert.assertThat()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
@@ -777,6 +782,15 @@ public class JdbcTest {
             "EXPR$0=1; EXPR$1=a  \n"
             + "EXPR$0=2; EXPR$1=abc\n");
   }
+
+  @Test public void testInnerJoinValues() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.LINGUAL)
+        .query("select empno, desc from sales.emps,\n"
+               + "  (SELECT * FROM (VALUES (10, 'SameName')) AS t (id, desc)) as sn\n"
+               + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
+        .returns("EMPNO=1; DESC=SameName\n");
+    }
 
   @Test public void testDistinctCount() {
     final String s =
@@ -1401,6 +1415,23 @@ public class JdbcTest {
         new SalesFact(100, 10),
         new SalesFact(150, 20),
     };
+  }
+
+  public static class LingualSchema {
+    public final LingualEmp[] EMPS = {
+        new LingualEmp(1, 10),
+        new LingualEmp(2, 30)
+    };
+  }
+
+  public static class LingualEmp {
+    public final int EMPNO;
+    public final int DEPTNO;
+
+    public LingualEmp(int EMPNO, int DEPTNO) {
+      this.EMPNO = EMPNO;
+      this.DEPTNO = DEPTNO;
+    }
   }
 
   public static class FoodmartJdbcSchema extends JdbcSchema {

@@ -24,14 +24,14 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
+import org.eigenbase.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-
 /**
- * RelDataTypeImpl is an abstract base for implementations of {@link
- * RelDataType}.
+ * RelDataTypeImpl is an abstract base for implementations of
+ * {@link RelDataType}.
  *
  * <p>Identity is based upon the {@link #digest} field, which each derived class
  * should set during construction.</p>
@@ -114,22 +114,12 @@ public abstract class RelDataTypeImpl
     // implement RelDataType
     public List<RelDataTypeField> getFieldList()
     {
-        assert (isStruct());
+        assert isStruct();
         return fieldList;
     }
 
     public List<String> getFieldNames() {
-        return new AbstractList<String>() {
-            public String get(int index)
-            {
-                return fieldList.get(index).getName();
-            }
-
-            public int size()
-            {
-                return fieldList.size();
-            }
-        };
+        return Pair.left(fieldList);
     }
 
     // implement RelDataType
