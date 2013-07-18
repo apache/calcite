@@ -25,10 +25,10 @@ import org.junit.Test;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.*;
 
 import static org.junit.Assert.*;
-
 
 /**
  * Unit test for {@link net.hydromatic.linq4j.expressions.Expression}
@@ -813,6 +813,45 @@ public class ExpressionTest {
         Expressions.toString(builder0.toBlock()));
   }
 
+  @Test public void testConstantExpression() {
+    assertEquals(
+        "new Object[] {\n"
+        + "  1,\n"
+        + "  new Object[] {\n"
+        + "    (byte)1,\n"
+        + "    (short)2,\n"
+        + "    3,\n"
+        + "    4L,\n"
+        + "    5.0F,\n"
+        + "    6.0D,\n"
+        + "    (char)7,\n"
+        + "    true,\n"
+        + "    \"string\",\n"
+        + "    null},\n"
+        + "  new net.hydromatic.linq4j.test.ExpressionTest.AllType(\n"
+        + "    true,\n"
+        + "    (byte)100,\n"
+        + "    (char)101,\n"
+        + "    (short)102,\n"
+        + "    103,\n"
+        + "    104L,\n"
+        + "    105.0F,\n"
+        + "    106.0D,\n"
+        + "    new java.math.BigDecimal(107L),\n"
+        + "    new java.math.BigInteger(\"108\"),\n"
+        + "    \"109\",\n"
+        + "    null)}",
+        Expressions.constant(
+            new Object[] {
+                1,
+                new Object[] {(byte) 1, (short) 2, (int) 3, (long) 4,
+                    (float) 5, (double) 6, (char) 7, true, "string", null},
+                new AllType(true, (byte) 100, (char) 101, (short) 102, 103,
+                    (long) 104, (float) 105, (double) 106, new BigDecimal(107),
+                    new BigInteger("108"), "109", null)
+            }).toString());
+  }
+
   @Test public void testClassDecl() {
     final NewExpression newExpression =
         Expressions.new_(
@@ -924,6 +963,37 @@ public class ExpressionTest {
 
   public static int bar(int v, int w, int x, int y, int z) {
     return 0;
+  }
+
+  public static class AllType {
+    public final boolean b;
+    public final byte y;
+    public final char c;
+    public final short s;
+    public final int i;
+    public final long l;
+    public final float f;
+    public final double d;
+    public final BigDecimal bd;
+    public final BigInteger bi;
+    public final String str;
+    public final Object o;
+
+    public AllType(boolean b, byte y, char c, short s, int i, long l, float f,
+        double d, BigDecimal bd, BigInteger bi, String str, Object o) {
+      this.b = b;
+      this.y = y;
+      this.c = c;
+      this.s = s;
+      this.i = i;
+      this.l = l;
+      this.f = f;
+      this.d = d;
+      this.bd = bd;
+      this.bi = bi;
+      this.str = str;
+      this.o = o;
+    }
   }
 }
 

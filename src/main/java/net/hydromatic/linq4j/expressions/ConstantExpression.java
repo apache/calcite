@@ -85,6 +85,12 @@ public class ConstantExpression extends Expression {
     if (value == null) {
       return writer.append("null");
     }
+    if (type == null) {
+      type = value.getClass();
+      if (Primitive.isBox(type)) {
+        type = Primitive.ofBox(type).primitiveClass;
+      }
+    }
     if (value instanceof String) {
       escapeString(writer.getBuf(), (String) value);
       return writer;
@@ -93,11 +99,12 @@ public class ConstantExpression extends Expression {
     if (primitive != null) {
       switch (primitive) {
       case BYTE:
-        return writer.append("(byte)").append(value);
+        return writer.append("(byte)").append(((Byte) value).intValue());
       case CHAR:
-        return writer.append("(char)").append(value);
+        return writer.append("(char)")
+            .append((int) ((Character) value).charValue());
       case SHORT:
-        return writer.append("(short)").append(value);
+        return writer.append("(short)").append(((Short) value).intValue());
       case LONG:
         return writer.append(value).append("L");
       case FLOAT:
