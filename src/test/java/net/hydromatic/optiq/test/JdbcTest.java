@@ -963,10 +963,442 @@ public class JdbcTest {
   }
 
   /** Tests windowed aggregation. */
-    public final float salary;
+  @Ignore
+  @Test public void testWinAgg() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select sum(\"salary\") over w, min(\"salary\") over w\n"
+            + "from \"hr\".\"emps\"\n"
+            + "window w as (partition by \"deptno\" order by \"empid\" rows 3 preceding)")
+        .returns(
+            "empid=100; deptno=10; name=Bill; commission=1000\n");
+  }
+
+  /** Tests WHERE comparing a nullable integer with an integer literal. */
+  @Test public void testWhereNullable() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from \"hr\".\"emps\"\n"
+            + "where \"commission\" > 800")
+        .returns(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
+  }
+
+  /** Tests the LIKE operator. */
+  @Test public void testLike() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from \"hr\".\"emps\"\n"
+            + "where \"name\" like '%i__'")
+        .returns(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n");
+  }
+
+  /** Tests array index. */
+  @Test public void testArray() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"deptno\", \"employees\"[1] as e from \"hr\".\"depts\"\n")
+        .returns(
+            "deptno=10; E=Employee [empid: 100, deptno: 10, name: Bill]\n"
+            + "deptno=30; E=null\n"
+            + "deptno=40; E=Employee [empid: 200, deptno: 20, name: Eric]\n");
+  }
+
+  /** Tests the NOT IN operator. Problems arose in code-generation because
+   * the column allows nulls. */
+  @Test public void testNotIn() {
+    predicate("\"name\" not in ('a', 'b') or \"name\" is null")
+        .returns(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
+
+    // And some similar combinations...
+    predicate("\"name\" in ('a', 'b') or \"name\" is null");
+    predicate("\"name\" in ('a', 'b', null) or \"name\" is null");
+    predicate("\"name\" in ('a', 'b') or \"name\" is not null");
+    predicate("\"name\" in ('a', 'b', null) or \"name\" is not null");
+    predicate("\"name\" not in ('a', 'b', null) or \"name\" is not null");
+    predicate("\"name\" not in ('a', 'b', null) and \"name\" is not null");
+  }
+
+  private OptiqAssert.AssertQuery predicate(String foo) {
+      return OptiqAssert.assertThat()
+          .with(OptiqAssert.Config.REGULAR)
+          .query(
+              "select * from \"hr\".\"emps\"\n"
+              + "where " + foo)
+          .runs();
+  }
+
+  /** Tests the TABLES table in the information schema. */
+  @Test public void testMetaTables() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR_PLUS_METADATA)
+        .query("select * from \"metadata\".TABLES")
+        .returns(
+            OptiqAssert.checkResultContains(
+                "tableSchem=metadata; tableName=COLUMNS; tableType=SYSTEM_TABLE; "));
+
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR_PLUS_METADATA)
+        .query(
+            "select count(distinct \"tableSchem\") as c\n"
+            + "from \"metadata\".TABLES")
+        .returns("C=3\n");
+  }
+
+  /** Tests that {@link java.sql.Statement#setMaxRows(int)} is honored. */
+  @Test public void testSetMaxRows() throws Exception {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .doWithConnection(
+            new Function1<OptiqConnection, Object>() {
+              public Object apply(OptiqConnection a0) {
+                try {
+                  final Statement statement = a0.createStatement();
+                  try {
+                    statement.setMaxRows(-1);
+                    fail("expected error");
+                  } catch (SQLException e) {
+                    assertEquals(
+                        e.getMessage(),
+                        "illegal maxRows value: -1");
+                  }
+                  statement.setMaxRows(2);
+                  assertEquals(2, statement.getMaxRows());
+                  final ResultSet resultSet = statement.executeQuery(
+                      "select * from \"hr\".\"emps\"");
+                  assertTrue(resultSet.next());
+                  assertTrue(resultSet.next());
+                  assertFalse(resultSet.next());
+                  resultSet.close();
+                  statement.close();
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+  }
+
+  /** Tests a JDBC connection that provides a model (a single schema based on
+   * a JDBC database). */
+  @Test public void testModel() {
+    OptiqAssert.assertThat()
+        .withModel(FOODMART_MODEL)
+        .query("select count(*) as c from \"foodmart\".\"time_by_day\"")
+        .returns("C=730\n");
+  }
+
+  /** Tests a JDBC connection that provides a model that contains custom
+   * tables. */
+  @Test public void testModelCustomTable() {
+    OptiqAssert.assertThat()
+        .withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       name: 'adhoc',\n"
+            + "       tables: [\n"
+            + "         {\n"
+            + "           name: 'EMPLOYEES',\n"
+            + "           type: 'custom',\n"
+            + "           factory: '"
+                + EmpDeptTableFactory.class.getName() + "',\n"
+                + "           operand: {'foo': 1, 'bar': [345, 357] }\n"
+                + "         }\n"
+                + "       ]\n"
+                + "     }\n"
+                + "   ]\n"
+                + "}")
+        .query("select * from \"adhoc\".EMPLOYEES where \"deptno\" = 10")
+        .returns(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
+  }
+
+  /** Tests a JDBC connection that provides a model that contains custom
+   * tables. */
+  @Test public void testModelCustomTable2() {
+    OptiqAssert.assertThat()
+        .withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       name: 'MATH',\n"
+            + "       tables: [\n"
+            + "         {\n"
+            + "           name: 'INTEGERS',\n"
+            + "           type: 'custom',\n"
+            + "           factory: '"
+                + RangeTable.Factory.class.getName() + "',\n"
+                + "           operand: {'column': 'N', 'start': 3, 'end': 7 }\n"
+                + "         }\n"
+                + "       ]\n"
+                + "     }\n"
+                + "   ]\n"
+                + "}")
+        .query("select * from math.integers")
+        .returns(
+            "N=3\n"
+            + "N=4\n"
+            + "N=5\n"
+            + "N=6\n");
+  }
+
+  /** Tests a JDBC connection that provides a model that contains a custom
+   * schema. */
+  @Test public void testModelCustomSchema() throws Exception {
+    final OptiqAssert.AssertThat that =
+        OptiqAssert.assertThat().withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "  defaultSchema: 'adhoc',\n"
+            + "  schemas: [\n"
+            + "    {\n"
+            + "      name: 'empty'\n"
+            + "    },\n"
+            + "    {\n"
+            + "      name: 'adhoc',\n"
+            + "      type: 'custom',\n"
+            + "      factory: '"
+                + MySchemaFactory.class.getName()
+                + "',\n"
+                + "      operand: {'tableName': 'ELVIS'}\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}");
+    // check that the specified 'defaultSchema' was used
+    that.doWithConnection(
+        new Function1<OptiqConnection, Object>() {
+          public Object apply(OptiqConnection connection) {
+            try {
+              assertEquals("adhoc", connection.getSchema());
+              return null;
+            } catch (SQLException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        });
+    that.query("select * from \"adhoc\".ELVIS where \"deptno\" = 10")
+        .returns(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
+    that.query("select * from \"adhoc\".EMPLOYEES")
+        .throws_("Table 'adhoc.EMPLOYEES' not found");
+  }
+
+  /** Tests that an immutable schema in a model cannot contain a view. */
+  @Test public void testModelImmutableSchemaCannotContainView()
+      throws Exception {
+    final OptiqAssert.AssertThat that =
+        OptiqAssert.assertThat().withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "  defaultSchema: 'adhoc',\n"
+            + "  schemas: [\n"
+            + "    {\n"
+            + "      name: 'empty'\n"
+            + "    },\n"
+            + "    {\n"
+            + "      name: 'adhoc',\n"
+            + "      type: 'custom',\n"
+            + "      tables: [\n"
+            + "        {\n"
+            + "          name: 'v',\n"
+            + "          type: 'view',\n"
+            + "          sql: 'values (1)'\n"
+            + "        }\n"
+            + "      ],\n"
+            + "      factory: '"
+                + MySchemaFactory.class.getName()
+                + "',\n"
+                + "      operand: {\n"
+                + "           'tableName': 'ELVIS',\n"
+                + "           'mutable': false\n"
+                + "      }\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}");
+    that.connectThrows(
+        "Cannot define view; parent schema "
+        + "DelegatingSchema(delegate=ReflectiveSchema(target=HrSchema)) is "
+        + "not mutable");
+  }
+
+  /** Tests a JDBC connection that provides a model that contains a view. */
+  @Test public void testModelView() throws Exception {
+    final OptiqAssert.AssertThat with = OptiqAssert.assertThat()
+        .withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       name: 'adhoc',\n"
+            + "       tables: [\n"
+            + "         {\n"
+            + "           name: 'EMPLOYEES',\n"
+            + "           type: 'custom',\n"
+            + "           factory: '"
+                + EmpDeptTableFactory.class.getName() + "',\n"
+                + "           operand: {'foo': true, 'bar': 345}\n"
+                + "         },\n"
+                + "         {\n"
+                + "           name: 'V',\n"
+                + "           type: 'view',\n"
+                + "           sql: 'select * from \"EMPLOYEES\" where \"deptno\" = 10'\n"
+                + "         }\n"
+                + "       ]\n"
+                + "     }\n"
+                + "   ]\n"
+                + "}");
+
+    with.query("select * from \"adhoc\".V order by \"name\" desc")
+        .returns(
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
+
+    // Make sure that views appear in metadata.
+    with.doWithConnection(
+        new Function1<OptiqConnection, Void>() {
+          public Void apply(OptiqConnection a0) {
+            try {
+              final DatabaseMetaData metaData = a0.getMetaData();
+
+              // all table types
+              assertEquals(
+                  "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=EMPLOYEES; TABLE_TYPE=TABLE; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n"
+                  + "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=V; TABLE_TYPE=VIEW; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n",
+                  JdbcTest.toString(
+                      metaData.getTables(null, "adhoc", null, null)));
+
+              // views only
+              assertEquals(
+                  "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=V; TABLE_TYPE=VIEW; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n",
+                  JdbcTest.toString(
+                      metaData.getTables(
+                          null, "adhoc", null,
+                          new String[] {
+                              Schema.TableType.VIEW.name()})));
+              return null;
+            } catch (SQLException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        }
+    );
+  }
+
+  /** Tests saving query results into temporary tables, per
+   * {@link net.hydromatic.optiq.jdbc.Handler.ResultSink}. */
+  @Test public void testAutomaticTemporaryTable() throws Exception {
+    final List<Object> objects = new ArrayList<Object>();
+    OptiqAssert.assertThat()
+        .with(
+            new OptiqAssert.ConnectionFactory() {
+              public OptiqConnection createConnection() throws Exception {
+                OptiqConnection connection = (OptiqConnection)
+                    new AutoTempDriver(objects)
+                        .connect("jdbc:optiq:", new Properties());
+                MutableSchema rootSchema = connection.getRootSchema();
+                ReflectiveSchema.create(
+                    rootSchema, "hr", new HrSchema());
+                connection.setSchema("hr");
+                return connection;
+              }
+            })
+        .doWithConnection(
+            new Function1<OptiqConnection, Object>() {
+              public Object apply(OptiqConnection a0) {
+                try {
+                  a0.createStatement()
+                      .executeQuery(
+                          "select * from \"hr\".\"emps\" "
+                          + "where \"deptno\" = 10");
+                  assertEquals(1, objects.size());
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+  }
+
+  @Test public void testExplain() {
+    final OptiqAssert.AssertThat with =
+        OptiqAssert.assertThat().with(OptiqAssert.Config.FOODMART_CLONE);
+    with.query("explain plan for values (1, 'ab')")
+        .returns("PLAN=EnumerableValuesRel(tuples=[[{ 1, 'ab' }]])\n\n");
+    with.query("explain plan with implementation for values (1, 'ab')")
+        .returns("PLAN=EnumerableValuesRel(tuples=[[{ 1, 'ab' }]])\n\n");
+    with.query("explain plan without implementation for values (1, 'ab')")
+        .returns("PLAN=ValuesRel(tuples=[[{ 1, 'ab' }]])\n\n");
+    with.query("explain plan with type for values (1, 'ab')")
+        .returns(
+            "PLAN=EXPR$0 INTEGER NOT NULL,\n"
+            + "EXPR$1 CHAR(2) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL\n");
+  }
+
+  /** Test case for bug where if two tables have different element classes
+   * but those classes have identical fields, Optiq would generate code to use
+   * the wrong element class; a {@link ClassCastException} would ensue. */
+  @Test public void testDifferentTypesSameFields() throws Exception {
+    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+    Connection connection = DriverManager.getConnection("jdbc:optiq:");
+    OptiqConnection optiqConnection =
+        connection.unwrap(OptiqConnection.class);
+    final MutableSchema rootSchema = optiqConnection.getRootSchema();
+    ReflectiveSchema.create(rootSchema, "TEST", new MySchema());
+    Statement statement = optiqConnection.createStatement();
+    ResultSet resultSet =
+        statement.executeQuery("SELECT \"myvalue\" from TEST.\"mytable2\"");
+    assertEquals("myvalue=2\n", toString(resultSet));
+    resultSet.close();
+    statement.close();
+    connection.close();
+  }
+
+  public static class HrSchema {
+    @Override
+    public String toString() {
+      return "HrSchema";
+    }
+
+    public final Employee[] emps = {
+        new Employee(100, 10, "Bill", 10000, 1000),
+        new Employee(200, 20, "Eric", 8000, 500),
+        new Employee(150, 10, "Sebastian", 7000, null),
+        new Employee(110, 10, "Theodore", 11500, 250),
+    };
+    public final Department[] depts = {
+        new Department(10, "Sales", Arrays.asList(emps[0], emps[2])),
+        new Department(30, "Marketing", Collections.<Employee>emptyList()),
+        new Department(40, "HR", Collections.singletonList(emps[1])),
+    };
+  }
+
+  public static class Employee {
+    public final int empid;
+    public final int deptno;
+    public final String name;
+    public final double salary;
     public final Integer commission;
 
-    public Employee(int empid, int deptno, String name, float salary,
+    /** @see Bug#TodoFixed change salary to "float" when have linq4j-0.1.8 */
+    public Employee(int empid, int deptno, String name, double salary,
         Integer commission) {
       this.empid = empid;
       this.deptno = deptno;
