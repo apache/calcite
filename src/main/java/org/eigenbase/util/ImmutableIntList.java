@@ -29,11 +29,18 @@ import net.hydromatic.optiq.runtime.FlatLists;
 public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     private final int[] ints;
 
-    private static final ImmutableIntList EMPTY = new ImmutableIntList();
+    private static final Object[] EMPTY_ARRAY = new Object[0];
+
+    private static final ImmutableIntList EMPTY = new EmptyImmutableIntList();
 
     // Does not copy array. Must remain private.
     private ImmutableIntList(int... ints) {
         this.ints = ints;
+    }
+
+    /** Returns an empty ImmutableIntList. */
+    public static ImmutableIntList of() {
+        return EMPTY;
     }
 
     /** Creates an ImmutableIntList from an array of {@code int}. */
@@ -41,7 +48,16 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
         return new ImmutableIntList(ints.clone());
     }
 
-    /** Creates an ImmutableIntList from an array of {@code int}. */
+    /** Creates an ImmutableIntList from an array of {@code Number}. */
+    public static ImmutableIntList copyOf(Number... numbers) {
+        final int[] ints = new int[numbers.length];
+        for (int i = 0; i < ints.length; i++) {
+          ints[i] = numbers[i].intValue();
+        }
+        return new ImmutableIntList(ints);
+    }
+
+    /** Creates an ImmutableIntList from a collection of {@link Number}. */
     public static ImmutableIntList copyOf(Collection<? extends Number> list) {
         if (list instanceof ImmutableIntList) {
             return (ImmutableIntList) list;
@@ -142,6 +158,19 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
             }
         }
         return -1;
+    }
+
+    private static class EmptyImmutableIntList extends ImmutableIntList {
+        @Override public Object[] toArray() {
+            return EMPTY_ARRAY;
+        }
+
+        @Override public <T> T[] toArray(T[] a) {
+            if (a.length > 0) {
+                a[0] = null;
+            }
+          return a;
+        }
     }
 }
 
