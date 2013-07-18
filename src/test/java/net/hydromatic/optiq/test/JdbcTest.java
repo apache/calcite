@@ -962,6 +962,19 @@ public class JdbcTest {
             + "    EnumerableTableAccessRel(table=[[foodmart2, time_by_day]])\n\n");
   }
 
+  /** Tests windowed aggregation. */
+  @Ignore
+  @Test public void testWinAgg() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select sum(\"salary\") over w, min(\"salary\") over w\n"
+            + "from \"hr\".\"emps\"\n"
+            + "window w as (partition by \"deptno\" order by \"empid\" rows 3 preceding)")
+        .returns(
+            "empid=100; deptno=10; name=Bill; commission=1000\n");
+  }
+
   /** Tests WHERE comparing a nullable integer with an integer literal. */
   @Test public void testWhereNullable() {
     OptiqAssert.assertThat()
@@ -970,7 +983,7 @@ public class JdbcTest {
             "select * from \"hr\".\"emps\"\n"
             + "where \"commission\" > 800")
         .returns(
-            "empid=100; deptno=10; name=Bill; commission=1000\n");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
   }
 
   /** Tests the LIKE operator. */
@@ -981,8 +994,8 @@ public class JdbcTest {
             "select * from \"hr\".\"emps\"\n"
             + "where \"name\" like '%i__'")
         .returns(
-            "empid=100; deptno=10; name=Bill; commission=1000\n"
-            + "empid=150; deptno=10; name=Sebastian; commission=null\n");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n");
   }
 
   /** Tests array index. */
@@ -1002,9 +1015,10 @@ public class JdbcTest {
   @Test public void testNotIn() {
     predicate("\"name\" not in ('a', 'b') or \"name\" is null")
         .returns(
-            "empid=100; deptno=10; name=Bill; commission=1000\n"
-            + "empid=200; deptno=20; name=Eric; commission=500\n"
-            + "empid=150; deptno=10; name=Sebastian; commission=null\n");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
 
     // And some similar combinations...
     predicate("\"name\" in ('a', 'b') or \"name\" is null");
@@ -1108,8 +1122,9 @@ public class JdbcTest {
                 + "}")
         .query("select * from \"adhoc\".EMPLOYEES where \"deptno\" = 10")
         .returns(
-            "empid=100; deptno=10; name=Bill; commission=1000\n"
-            + "empid=150; deptno=10; name=Sebastian; commission=null\n");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
   }
 
   /** Tests a JDBC connection that provides a model that contains custom
@@ -1178,8 +1193,9 @@ public class JdbcTest {
         });
     that.query("select * from \"adhoc\".ELVIS where \"deptno\" = 10")
         .returns(
-            "empid=100; deptno=10; name=Bill; commission=1000\n"
-            + "empid=150; deptno=10; name=Sebastian; commission=null\n");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
     that.query("select * from \"adhoc\".EMPLOYEES")
         .throws_("Table 'adhoc.EMPLOYEES' not found");
   }
@@ -1251,8 +1267,9 @@ public class JdbcTest {
 
     with.query("select * from \"adhoc\".V order by \"name\" desc")
         .returns(
-            "empid=150; deptno=10; name=Sebastian; commission=null\n"
-            + "empid=100; deptno=10; name=Bill; commission=1000\n");
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
 
     // Make sure that views appear in metadata.
     with.doWithConnection(
@@ -1361,9 +1378,10 @@ public class JdbcTest {
     }
 
     public final Employee[] emps = {
-        new Employee(100, 10, "Bill", 1000),
-        new Employee(200, 20, "Eric", 500),
-        new Employee(150, 10, "Sebastian", null),
+        new Employee(100, 10, "Bill", 10000, 1000),
+        new Employee(200, 20, "Eric", 8000, 500),
+        new Employee(150, 10, "Sebastian", 7000, null),
+        new Employee(110, 10, "Theodore", 11500, 250),
     };
     public final Department[] depts = {
         new Department(10, "Sales", Arrays.asList(emps[0], emps[2])),
@@ -1376,12 +1394,16 @@ public class JdbcTest {
     public final int empid;
     public final int deptno;
     public final String name;
+    public final double salary;
     public final Integer commission;
 
-    public Employee(int empid, int deptno, String name, Integer commission) {
+    /** @see Bug#TodoFixed change salary to "float" when have linq4j-0.1.8 */
+    public Employee(int empid, int deptno, String name, double salary,
+        Integer commission) {
       this.empid = empid;
       this.deptno = deptno;
       this.name = name;
+      this.salary = salary;
       this.commission = commission;
     }
 

@@ -54,8 +54,7 @@ public class ReflectiveSchemaTest {
   @Test public void testQueryProvider() throws Exception {
     Connection connection = JdbcTest.getConnection("hr", "foodmart");
     QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
-    ParameterExpression
-        e = Expressions.parameter(Employee.class, "e");
+    ParameterExpression e = Expressions.parameter(Employee.class, "e");
 
     // "Enumerable<T> asEnumerable(final T[] ts)"
     List<Object[]> list =
@@ -130,7 +129,7 @@ public class ReflectiveSchemaTest {
                 Expressions.field(e, "empid"),
                 Arrays.asList(e)))
             .toList();
-    assertEquals(Arrays.asList(100, 200, 150), list);
+    assertEquals(Arrays.asList(100, 200, 150, 110), list);
   }
 
   /**
@@ -188,7 +187,8 @@ public class ReflectiveSchemaTest {
         + "from \"s\".\"emps_view\"\n"
         + "where \"empid\" < 120");
     assertEquals(
-        "empid=100; deptno=10; name=Bill; commission=1000\n",
+        "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+        + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n",
         JdbcTest.toString(resultSet));
   }
 
@@ -198,8 +198,8 @@ public class ReflectiveSchemaTest {
         .with("s", new DateColumnSchema())
         .query("select * from \"s\".\"emps\"")
         .returns(
-            "hireDate=1970-01-01; empid=10; deptno=20; name=fred; commission=null\n"
-            + "hireDate=1970-01-01; empid=10; deptno=20; name=bill; commission=null\n");
+            "hireDate=1970-01-01; empid=10; deptno=20; name=fred; salary=0.0; commission=null\n"
+            + "hireDate=1970-01-01; empid=10; deptno=20; name=bill; salary=0.0; commission=null\n");
   }
 
   /** Tests querying an object that has no public fields. */
@@ -344,11 +344,13 @@ public class ReflectiveSchemaTest {
         .returns(
             "\n"
             + "\n"
+            + "\n"
             + "\n");
     // List is implicitly converted to Enumerable
     with.query("select * from \"s\".\"list\"")
         .returns(
             "\n"
+            + "\n"
             + "\n"
             + "\n");
   }
@@ -361,17 +363,17 @@ public class ReflectiveSchemaTest {
         .query(
             "select * from \"s\".\"prefixEmps\" where \"name\" in ('Ab', 'Abd')")
         .returns(
-            "empid=2; deptno=10; name=Ab; commission=null\n"
-            + "empid=4; deptno=10; name=Abd; commission=null\n");
+            "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
+            + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
   }
 
   public static class EmployeeWithHireDate extends Employee {
     public final java.sql.Date hireDate;
 
     public EmployeeWithHireDate(
-        int empid, int deptno, String name, Integer commission,
+        int empid, int deptno, String name, float salary, Integer commission,
         java.sql.Date hireDate) {
-      super(empid, deptno, name, commission);
+      super(empid, deptno, name, salary, commission);
       this.hireDate = hireDate;
     }
   }
@@ -501,19 +503,19 @@ public class ReflectiveSchemaTest {
     public final BadType[] badTypes = { new BadType() };
 
     public final Employee[] prefixEmps = {
-        new Employee(1, 10, "A", null),
-        new Employee(2, 10, "Ab", null),
-        new Employee(3, 10, "Abc", null),
-        new Employee(4, 10, "Abd", null),
+        new Employee(1, 10, "A", 0f, null),
+        new Employee(2, 10, "Ab", 0f, null),
+        new Employee(3, 10, "Abc", 0f, null),
+        new Employee(4, 10, "Abd", 0f, null),
     };
   }
 
   public static class DateColumnSchema {
     public final EmployeeWithHireDate[] emps = {
         new EmployeeWithHireDate(
-            10, 20, "fred", null, new java.sql.Date(0)),
+            10, 20, "fred", 0f, null, new java.sql.Date(0)),
         new EmployeeWithHireDate(
-            10, 20, "bill", null, new java.sql.Date(100))
+            10, 20, "bill", 0f, null, new java.sql.Date(100))
     };
   }
 }
