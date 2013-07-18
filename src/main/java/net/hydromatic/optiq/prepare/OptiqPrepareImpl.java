@@ -137,6 +137,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(JavaRules.ENUMERABLE_MINUS_RULE);
     planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
     planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
+    planner.addRule(JavaRules.ENUMERABLE_WINDOW_RULE);
     planner.addRule(JavaRules.ENUMERABLE_ONE_ROW_RULE);
     planner.addRule(TableAccessRule.instance);
     planner.addRule(PushFilterPastProjectRule.instance);

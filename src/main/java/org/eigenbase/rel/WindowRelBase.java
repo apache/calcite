@@ -39,8 +39,9 @@ import com.google.common.collect.ImmutableList;
  * and a range (logical or physical). The partitions expect the data to be
  * sorted correctly on input to the relational expression.
  *
- * <p>Each {@link org.eigenbase.rel.WindowRelBase.Window} has a set of {@link org.eigenbase.rel.WindowRelBase.Partition} objects, and each
- * {@link org.eigenbase.rel.WindowRelBase.Partition} object has a set of {@link org.eigenbase.rex.RexOver} objects.
+ * <p>Each {@link org.eigenbase.rel.WindowRelBase.Window} has a set of
+ * {@link org.eigenbase.rel.WindowRelBase.Partition} objects, and each partition
+ * has a set of {@link org.eigenbase.rex.RexOver} objects.
  *
  * <p>Created by {@link org.eigenbase.rel.rules.WindowedAggSplitterRule}.
  */
@@ -122,17 +123,17 @@ public abstract class WindowRelBase
   {
     /** The partitions which make up this window. */
     public final List<Partition> partitionList = new ArrayList<Partition>();
-    final boolean physical;
-    final SqlNode lowerBound;
-    final SqlNode upperBound;
+    public final boolean physical;
+    public final SqlNode lowerBound;
+    public final SqlNode upperBound;
     public final ImmutableIntList orderKeys;
     private String digest;
 
-    Window(
+    public Window(
         boolean physical,
         SqlNode lowerBound,
         SqlNode upperBound,
-        Integer [] ordinals)
+        ImmutableIntList ordinals)
     {
       assert ordinals != null : "precondition: ordinals != null";
       this.physical = physical;
@@ -196,10 +197,10 @@ public abstract class WindowRelBase
           && this.digest.equals(((Window) obj).digest);
     }
 
-    public Partition lookupOrCreatePartition(Integer [] partitionKeys)
+    public Partition lookupOrCreatePartition(ImmutableIntList partitionKeys)
     {
       for (Partition partition : partitionList) {
-        if (Arrays.equals(partition.partitionKeys, partitionKeys)) {
+        if (partition.partitionKeys.equals(partitionKeys)) {
           return partition;
         }
       }
@@ -228,7 +229,7 @@ public abstract class WindowRelBase
      */
     final ImmutableIntList partitionKeys;
 
-    Partition(Integer [] partitionKeys)
+    Partition(ImmutableIntList partitionKeys)
     {
       assert partitionKeys != null;
       this.partitionKeys = ImmutableIntList.copyOf(partitionKeys);
@@ -266,10 +267,10 @@ public abstract class WindowRelBase
           index = projectList.size();
           programBuilder.addProject(operand, null);
         }
-        clonedOperands[i] =
+        clonedOperands.add(
             new RexInputRef(
                 index,
-                operand.getType());
+                operand.getType()));
       }
       final RexWinAggCall aggCall =
           new RexWinAggCall(

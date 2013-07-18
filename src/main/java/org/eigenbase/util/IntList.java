@@ -19,7 +19,6 @@ package org.eigenbase.util;
 
 import java.util.*;
 
-
 /**
  * Extension to {@link ArrayList} to help build an array of <code>int</code>
  * values.
@@ -82,6 +81,10 @@ public class IntList
                 return args[index] = element;
             }
         };
+    }
+
+    public ImmutableIntList asImmutable() {
+        return ImmutableIntList.copyOf(this);
     }
 }
 
