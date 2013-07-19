@@ -963,16 +963,22 @@ public class JdbcTest {
   }
 
   /** Tests windowed aggregation. */
-  @Ignore
   @Test public void testWinAgg() {
     OptiqAssert.assertThat()
         .with(OptiqAssert.Config.REGULAR)
         .query(
-            "select sum(\"salary\") over w, min(\"salary\") over w\n"
+            "select sum(\"salary\" + \"commission\") over w,\n"
+            + " min(\"salary\") over w\n"
             + "from \"hr\".\"emps\"\n"
-            + "window w as (partition by \"deptno\" order by \"empid\" rows 3 preceding)")
+            + "window w as (partition by \"deptno\" order by \"empid\" rows 1 preceding)")
+        .explainContains(
+            "EnumerableCalcRel(expr#0..2=[{inputs}], expr#3=[0], expr#4=[>($t0, $t3)], expr#5=[null], expr#6=[CASE($t4, $t1, $t5)], expr#7=[CAST($t2):JavaType(double)], EXPR$0=[$t6], EXPR$1=[$t7])\n"
+            + "  EnumerableWindowRel(window#0=[window(order by [0] rows between 1 PRECEDING and CURRENT ROW partitions [partition(key [1] aggs [COUNT($3), $SUM0($3), MIN($2)]), partition(key [1] aggs [COUNT($3), $SUM0($3), MIN($2)]), partition(key [1] aggs [COUNT($3), $SUM0($3), MIN($2)])])])\n"
+            + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[+($t3, $t4)], proj#0..1=[{exprs}], salary=[$t3], $3=[$t5])\n"
+            + "      EnumerableTableAccessRel(table=[[hr, emps]])\n")
+/*
         .returns(
-            "empid=100; deptno=10; name=Bill; commission=1000\n");
+            "xxx\n") */;
   }
 
   /** Tests WHERE comparing a nullable integer with an integer literal. */
@@ -1068,9 +1074,7 @@ public class JdbcTest {
                     statement.setMaxRows(-1);
                     fail("expected error");
                   } catch (SQLException e) {
-                    assertEquals(
-                        e.getMessage(),
-                        "illegal maxRows value: -1");
+                    assertEquals(e.getMessage(), "illegal maxRows value: -1");
                   }
                   statement.setMaxRows(2);
                   assertEquals(2, statement.getMaxRows());
@@ -1298,8 +1302,7 @@ public class JdbcTest {
               throw new RuntimeException(e);
             }
           }
-        }
-    );
+        });
   }
 
   /** Tests saving query results into temporary tables, per

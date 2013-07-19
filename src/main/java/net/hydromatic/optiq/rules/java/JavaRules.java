@@ -1683,9 +1683,10 @@ public class JavaRules {
       final WindowRel winAgg = (WindowRel) rel;
       final RelTraitSet traitSet =
           winAgg.getTraitSet().replace(EnumerableConvention.INSTANCE);
+      final RelNode child = winAgg.getChild();
       final RelNode convertedChild =
-          convert(winAgg,
-              winAgg.getTraitSet().replace(EnumerableConvention.INSTANCE));
+          convert(child,
+              child.getTraitSet().replace(EnumerableConvention.INSTANCE));
       return new EnumerableWindowRel(rel.getCluster(), traitSet, convertedChild,
           winAgg.getRowType(), winAgg.windows);
     }

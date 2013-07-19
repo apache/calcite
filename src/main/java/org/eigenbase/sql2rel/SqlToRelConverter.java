@@ -44,7 +44,6 @@ import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Converts a SQL parse tree (consisting of {@link org.eigenbase.sql.SqlNode}
  * objects) into a relational algebra expression (consisting of {@link
@@ -4778,6 +4777,10 @@ public class SqlToRelConverter
     private class HistogramShuttle
         extends RexShuttle
     {
+        /** Whether to convert calls to MIN(x) to HISTOGRAM_MIN(HISTOGRAM(x)).
+         * Histograms allow rolling computation, but require more space. */
+        static final boolean ENABLE_HISTOGRAM_AGG = false;
+
         private final List<RexNode> partitionKeys;
         private final List<RexNode> orderKeys;
         private final SqlWindow window;
@@ -4811,7 +4814,9 @@ public class SqlToRelConverter
             // and post CAST the data.  Example with INTEGER
             // CAST(MIN(CAST(exp to BIGINT)) to INTEGER)
             SqlFunction histogramOp =
-                isUnboundedPreceding ? null : getHistogramOp(aggOp);
+                isUnboundedPreceding || !ENABLE_HISTOGRAM_AGG
+                    ? null
+                    : getHistogramOp(aggOp);
 
             // If a window contains only the current row, treat it as physical.
             // (It could be logical too, but physical is simpler to implement.)

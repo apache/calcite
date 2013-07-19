@@ -24,8 +24,13 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlNode;
 import org.eigenbase.util.ImmutableIntList;
-import org.eigenbase.util.IntList;
+import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
+
+import net.hydromatic.linq4j.Ord;
+
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * A relational expression representing a set of window aggregates.
@@ -74,29 +79,49 @@ public final class WindowRel extends WindowRelBase {
     {
         // Build a list of distinct windows, partitions and aggregate
         // functions.
-        List<WindowRel.Window> windowList =
-            new ArrayList<WindowRel.Window>();
-        final Map<RexOver, WindowRelBase.RexWinAggCall> aggMap =
-            new HashMap<RexOver, WindowRelBase.RexWinAggCall>();
-
+        Multimap<WindowKey, ImmutableIntList> windowMap =
+            LinkedListMultimap.create();
+        Multimap<Pair<WindowKey, ImmutableIntList>, RexOver> partitionMap =
+            LinkedListMultimap.create();
 
         // Build a list of windows, partitions, and aggregate functions. Each
         // aggregate function will add its arguments as outputs of the input
         // program.
-        RexProgramBuilder inputProgramBuilder = null;
         for (RexNode agg : program.getExprList()) {
             if (agg instanceof RexOver) {
-                final RexOver over = (RexOver) agg;
-                WindowRelBase.RexWinAggCall aggCall =
-                    addWindows(windowList, over, inputProgramBuilder);
-                aggMap.put(over, aggCall);
+                addWindows(windowMap, partitionMap, (RexOver) agg);
             }
         }
-        final RexProgram inputProgram = inputProgramBuilder.getProgram();
 
-        // Now the windows are complete, compute their digests.
-        for (WindowRel.Window window : windowList) {
-            window.computeDigest();
+        final Map<RexOver, WindowRelBase.RexWinAggCall> aggMap =
+            new HashMap<RexOver, WindowRelBase.RexWinAggCall>();
+        List<Window> windowList = new ArrayList<Window>();
+        for (WindowKey windowKey : windowMap.keySet()) {
+            final List<Partition> partitionList = new ArrayList<Partition>();
+            for (ImmutableIntList partitionKey : windowMap.get(windowKey)) {
+                final Pair<WindowKey, ImmutableIntList> key =
+                    Pair.of(windowKey, partitionKey);
+                final List<RexWinAggCall> calls =
+                    new ArrayList<RexWinAggCall>();
+                for (RexOver over : partitionMap.get(key)) {
+                    final RexWinAggCall call =
+                        new RexWinAggCall(
+                            over.getAggOperator(),
+                            over.getType(),
+                            toInputRefs(over.operands),
+                            partitionList.size());
+                    calls.add(call);
+                    aggMap.put(over, call);
+                }
+                partitionList.add(new Partition(partitionKey, calls));
+            }
+            windowList.add(
+                new Window(
+                    windowKey.physical,
+                    windowKey.lowerBound,
+                    windowKey.upperBound,
+                    windowKey.orderKeys,
+                    partitionList));
         }
 
         // Figure out the type of the inputs to the output program.
@@ -104,42 +129,30 @@ public final class WindowRel extends WindowRelBase {
         // each window.
         final List<WindowRelBase.RexWinAggCall> flattenedAggCallList =
             new ArrayList<WindowRelBase.RexWinAggCall>();
-        List<String> intermediateNameList =
-            new ArrayList<String>(child.getRowType().getFieldNames());
-        final List<RelDataType> intermediateTypeList =
-            new ArrayList<RelDataType>(
-                RelOptUtil.getFieldTypeList(child.getRowType()));
+        List<Map.Entry<String, RelDataType>> fieldList =
+            new ArrayList<Map.Entry<String, RelDataType>>(
+                child.getRowType().getFieldList());
 
-        int i = -1;
-        for (WindowRel.Window window : windowList) {
-            ++i;
-            int j = -1;
-            for (WindowRel.Partition p : window.partitionList) {
-                ++j;
-                int k = -1;
-                for (WindowRelBase.RexWinAggCall over : p.overList) {
-                    ++k;
-
-                    // Add the k'th over expression of the j'th partition of
-                    // the i'th window to the output of the program.
-                    intermediateNameList.add("w" + i + "$p" + j + "$o" + k);
-                    intermediateTypeList.add(over.getType());
-                    flattenedAggCallList.add(over);
+        for (Ord<Window> window : Ord.zip(windowList)) {
+            for (Ord<Partition> partition : Ord.zip(window.e.partitionList)) {
+                for (Ord<RexWinAggCall> over : Ord.zip(partition.e.overList)) {
+                    // Add the k-th over expression of the j-th partition of
+                    // the i-th window to the output of the program.
+                    fieldList.add(
+                        Pair.of(
+                            "w" + window.i + "$p" + partition.i + "$o" + over.i,
+                            over.e.getType()));
+                    flattenedAggCallList.add(over.e);
                 }
             }
         }
-        RelDataType intermediateRowType =
-            cluster.getTypeFactory().createStructType(
-                intermediateTypeList,
-                intermediateNameList);
+        final RelDataType intermediateRowType =
+            cluster.getTypeFactory().createStructType(fieldList);
+
+        final int inputFieldCount = child.getRowType().getFieldCount();
 
         // The output program is the windowed agg's program, combined with
         // the output calc (if it exists).
-        RexProgramBuilder outputProgramBuilder =
-            new RexProgramBuilder(
-                intermediateRowType,
-                cluster.getRexBuilder());
-        final int inputFieldCount = child.getRowType().getFieldCount();
         RexShuttle shuttle =
             new RexShuttle() {
                 public RexNode visitOver(RexOver over) {
@@ -166,7 +179,7 @@ public final class WindowRel extends WindowRelBase {
                         "over",
                         over.getType(),
                         "intermed",
-                        intermediateTypeList.get(index),
+                        intermediateRowType.getFieldList().get(index).getType(),
                         true);
                     return new RexInputRef(
                         index,
@@ -184,148 +197,92 @@ public final class WindowRel extends WindowRelBase {
                         localRef.getType());
                 }
             };
-        for (RexNode expr : program.getExprList()) {
-            expr = expr.accept(shuttle);
-            outputProgramBuilder.registerInput(expr);
-        }
+        // TODO: The order that the "over" calls occur in the windows and
+        // partitions may not match the order in which they occurred in the
+        // original expression. We should add a project to permute them.
 
-        final List<String> fieldNames =
-            rowType.getFieldNames();
-        i = -1;
-        for (RexLocalRef ref : program.getProjectList()) {
-            ++i;
-            int index = ref.getIndex();
-            final RexNode expr = program.getExprList().get(index);
-            RexNode expr2 = expr.accept(shuttle);
-            outputProgramBuilder.addProject(
-                outputProgramBuilder.registerInput(expr2),
-                fieldNames.get(i));
-        }
-
-        // Create the output program.
-        final RexProgram outputProgram;
-        if (null == null) {
-            outputProgram = outputProgramBuilder.getProgram();
-            assert RelOptUtil.eq(
-                "type1",
-                outputProgram.getOutputRowType(),
-                "type2",
-                rowType,
-                true);
-        } else {
-            // Merge intermediate program (from winAggRel) with output program
-            // (from outCalc).
-            RexProgram intermediateProgram = outputProgramBuilder.getProgram();
-            outputProgram =
-                RexProgramBuilder.mergePrograms(
-                    ((CalcRel) null).getProgram(),
-                    intermediateProgram,
-                    cluster.getRexBuilder());
-            assert RelOptUtil.eq(
-                "type1",
-                outputProgram.getInputRowType(),
-                "type2",
-                intermediateRowType,
-                true);
-            assert RelOptUtil.eq(
-                "type1",
-                outputProgram.getOutputRowType(),
-                "type2",
-                ((CalcRel) null).getRowType(),
-                true);
-        }
-
-        // TODO:
-        return new WindowRel(cluster, traitSet, child, rowType, null);
+        return new WindowRel(cluster, traitSet, child, rowType, windowList);
     }
 
-    private static WindowRelBase.RexWinAggCall addWindows(
-        List<WindowRelBase.Window> windowList,
-        RexOver over,
-        RexProgramBuilder programBuilder)
+    private static List<RexNode> toInputRefs(final List<RexNode> operands) {
+        return new AbstractList<RexNode>() {
+            public int size() {
+                return operands.size();
+            }
+            public RexNode get(int index) {
+                final RexNode operand = operands.get(index);
+                assert operand instanceof RexLocalRef;
+                final RexLocalRef ref = (RexLocalRef) operand;
+                return new RexInputRef(ref.getIndex(), ref.getType());
+            }
+        };
+    }
+
+    private static class WindowKey {
+        private final ImmutableIntList orderKeys;
+        private final boolean physical;
+        private final SqlNode lowerBound;
+        private final SqlNode upperBound;
+
+        public WindowKey(
+            ImmutableIntList orderKeys, boolean physical,
+            SqlNode lowerBound, SqlNode upperBound)
+        {
+            this.orderKeys = orderKeys;
+            this.physical = physical;
+            this.lowerBound = lowerBound;
+            this.upperBound = upperBound;
+        }
+
+        @Override
+        public int hashCode() {
+            return Util.hashV(orderKeys, physical, lowerBound, upperBound);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj == this
+                || obj instanceof WindowKey
+                && orderKeys.equals(((WindowKey) obj).orderKeys)
+                && Util.equal(lowerBound, ((WindowKey) obj).lowerBound)
+                && Util.equal(upperBound, ((WindowKey) obj).upperBound)
+                && physical == ((WindowKey) obj).physical;
+        }
+    }
+
+    private static void addWindows(
+        Multimap<WindowKey, ImmutableIntList> windowMap,
+        Multimap<Pair<WindowKey, ImmutableIntList>, RexOver> partitionMap,
+        RexOver over)
     {
         final RexWindow aggWindow = over.getWindow();
 
         // Look up or create a window.
-        ImmutableIntList orderKeys =
-            getProjectOrdinals(programBuilder, aggWindow.orderKeys);
-        WindowRel.Window fennelWindow =
-            lookupWindow(
-                windowList,
-                aggWindow.isRows(),
-                aggWindow.getLowerBound(),
-                aggWindow.getUpperBound(),
-                orderKeys);
-
-        // Lookup or create a partition within the window.
+        ImmutableIntList orderKeys = getProjectOrdinals(aggWindow.orderKeys);
         ImmutableIntList partitionKeys =
-            getProjectOrdinals(programBuilder, aggWindow.partitionKeys);
-        WindowRel.Partition fennelPartition =
-            fennelWindow.lookupOrCreatePartition(partitionKeys);
-        Util.discard(fennelPartition);
+            getProjectOrdinals(aggWindow.partitionKeys);
 
-        // Create a clone the 'over' expression, omitting the window (which is
-        // already part of the partition spec), and add the clone to the
-        // partition.
-        return fennelPartition.addOver(
-            over.getType(),
-            over.getAggOperator(),
-            over.getOperands(),
-            programBuilder);
+        WindowKey windowKey =
+            new WindowKey(
+                orderKeys, aggWindow.isRows(), aggWindow.getLowerBound(),
+                aggWindow.getUpperBound());
+        windowMap.put(windowKey, partitionKeys);
+        partitionMap.put(Pair.of(windowKey, partitionKeys), over);
     }
 
-    /**
-     * Converts a list of expressions into a list of ordinals that these
-     * expressions are projected from a {@link org.eigenbase.rex.RexProgramBuilder}. If an
-     * expression is not projected, adds it.
-     *
-     *
-     * @param programBuilder Program builder
-     * @param exprs List of expressions
-     *
-     * @return List of ordinals where expressions are projected
-     */
     private static ImmutableIntList getProjectOrdinals(
-        RexProgramBuilder programBuilder,
-        List<RexNode> exprs)
+        final List<RexNode> exprs)
     {
-        IntList list = new IntList();
-        for (RexNode expr : exprs) {
-            List<RexLocalRef> projectList = programBuilder.getProjectList();
-            int index = projectList.indexOf(expr);
-            if (index < 0) {
-                index = projectList.size();
-                programBuilder.addProject(expr, null);
-            }
-            list.add(index);
-        }
-        return list.asImmutable();
-    }
+        return ImmutableIntList.copyOf(
+            new AbstractList<Integer>() {
+                public Integer get(int index) {
+                    return ((RexLocalRef) exprs.get(index)).getIndex();
+                }
 
-    private static WindowRel.Window lookupWindow(
-        List<WindowRel.Window> windowList,
-        boolean physical,
-        SqlNode lowerBound,
-        SqlNode upperBound,
-        ImmutableIntList orderKeys)
-    {
-        for (WindowRel.Window window : windowList) {
-            if ((physical == window.physical)
-                && Util.equal(lowerBound, window.lowerBound)
-                && Util.equal(upperBound, window.upperBound)
-                && orderKeys.equals(window.orderKeys))
-            {
-                return window;
-            }
-        }
-        final WindowRel.Window window =
-            new WindowRel.Window(
-                physical,
-                lowerBound,
-                upperBound,
-                orderKeys);
-        windowList.add(window);
-        return window;
+                public int size() {
+                    return exprs.size();
+                }
+            });
     }
 }
 
