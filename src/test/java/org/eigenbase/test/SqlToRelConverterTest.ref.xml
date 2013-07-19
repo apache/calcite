@@ -895,7 +895,7 @@ SortRel(sort0=[$0], dir0=[Ascending])
     </TestCase>
     <TestCase name="testOrderDescNullsLast">
         <Resource name="sql">
-            <![CDATA[select empno from emp order by empno]]>
+            <![CDATA[select empno from emp order by empno desc nulls last]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1133,26 +1133,26 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
     </TestCase>
     <TestCase name="testOverOrderWindow">
         <Resource name="sql">
-            <![CDATA[select last_value(deptno) over (order by empno)
+            <![CDATA[select last_value(deptno) over w
 from emp
-]]>
+window w as (order by empno)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[CAST(CAST($HISTOGRAM_LAST_VALUE($HISTOGRAM(CAST($7):BIGINT NOT NULL) OVER (ORDER BY $0 ROWS BETWEEN CURRENT ROW AND CURRENT ROW))):INTEGER NOT NULL):INTEGER])
+ProjectRel(EXPR$0=[CAST(LAST_VALUE($7) OVER (ORDER BY $0 ROWS BETWEEN CURRENT ROW AND CURRENT ROW)):INTEGER])
   TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
     <TestCase name="testOverOrderFollowingWindow">
         <Resource name="sql">
-            <![CDATA[select last_value(deptno) over (order by empno rows 2 following)
+            <![CDATA[select last_value(deptno) over w
 from emp
-]]>
+window w as (order by empno rows 2 following)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-ProjectRel(EXPR$0=[CAST(CAST($HISTOGRAM_LAST_VALUE($HISTOGRAM(CAST($7):BIGINT NOT NULL) OVER (ORDER BY $0 ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING))):INTEGER NOT NULL):INTEGER])
+ProjectRel(EXPR$0=[CAST(LAST_VALUE($7) OVER (ORDER BY $0 ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING)):INTEGER])
   TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
