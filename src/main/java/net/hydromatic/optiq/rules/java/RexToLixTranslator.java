@@ -321,6 +321,7 @@ public class RexToLixTranslator {
     switch (literal.getType().getSqlTypeName()) {
     case DECIMAL:
       assert javaClass == BigDecimal.class;
+      Bug.remark("remove asList after upgrading linq4j");
       return Expressions.new_(
           BigDecimal.class,
           Arrays.<Expression>asList(
@@ -486,6 +487,7 @@ public class RexToLixTranslator {
       if (fromBox != null) {
         // E.g. from "Integer" to "BigDecimal".
         // Generate "x == null ? null : new BigDecimal(x.intValue())"
+        Bug.remark("remove asList after upgrading linq4j");
         return Expressions.condition(
             Expressions.equal(operand, RexImpTable.NULL_EXPR),
             RexImpTable.NULL_EXPR,
@@ -497,6 +499,7 @@ public class RexToLixTranslator {
       if (fromPrimitive != null) {
         // E.g. from "int" to "BigDecimal".
         // Generate "new BigDecimal(x)"
+        Bug.remark("remove singletonList after upgrading linq4j");
         return Expressions.new_(
             BigDecimal.class, Collections.singletonList(operand));
       }

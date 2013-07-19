@@ -20,6 +20,7 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import net.hydromatic.optiq.prepare.Prepare;
 
 import net.hydromatic.linq4j.*;
@@ -229,16 +230,16 @@ public class JavaRules {
     }
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-      BlockBuilder list = new BlockBuilder();
+      BlockBuilder builder = new BlockBuilder();
       final Result leftResult =
           implementor.visitChild(this, 0, (EnumerableRel) left, pref);
       Expression leftExpression =
-          list.append(
+          builder.append(
               "left", leftResult.expression);
       final Result rightResult =
           implementor.visitChild(this, 1, (EnumerableRel) right, pref);
       Expression rightExpression =
-          list.append(
+          builder.append(
               "right", rightResult.expression);
       final PhysType physType =
           PhysTypeImpl.of(
@@ -248,7 +249,7 @@ public class JavaRules {
               leftKeys, JavaRowFormat.LIST);
       return implementor.result(
           physType,
-          list.append(
+          builder.append(
               Expressions.call(
                   leftExpression,
                   BuiltinMethod.JOIN.method,
@@ -492,7 +493,7 @@ public class JavaRules {
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
-      final BlockBuilder statements = new BlockBuilder();
+      final BlockBuilder builder = new BlockBuilder();
       final EnumerableRel child = (EnumerableRel) getChild();
 
       final Result result =
@@ -533,16 +534,16 @@ public class JavaRules {
                     inputEnumerator,
                     BuiltinMethod.ENUMERATOR_MOVE_NEXT.method));
       } else {
-        final BlockBuilder list = new BlockBuilder();
+        final BlockBuilder builder2 = new BlockBuilder();
         Expression condition =
             RexToLixTranslator.translateCondition(
                 program,
                 typeFactory,
-                list,
+                builder2,
                 new RexToLixTranslator.InputGetterImpl(
                     Collections.singletonList(
                         Pair.of(input, result.physType))));
-        list.add(
+        builder2.add(
             Expressions.ifThen(
                 condition,
                 Expressions.return_(
@@ -553,30 +554,29 @@ public class JavaRules {
                     Expressions.call(
                         inputEnumerator,
                         BuiltinMethod.ENUMERATOR_MOVE_NEXT.method),
-                    list.toBlock()),
+                    builder2.toBlock()),
                 Expressions.return_(
                     null,
                     Expressions.constant(false)));
       }
 
-      final BlockBuilder list = new BlockBuilder();
+      final BlockBuilder builder3 = new BlockBuilder();
       List<Expression> expressions =
           RexToLixTranslator.translateProjects(
               program,
               typeFactory,
-              list,
+              builder3,
               new RexToLixTranslator.InputGetterImpl(
                   Collections.singletonList(
                       Pair.of(input, result.physType))));
-      list.add(
+      builder3.add(
           Expressions.return_(
-              null,
-              physType.record(expressions)));
+              null, physType.record(expressions)));
       BlockExpression currentBody =
-          list.toBlock();
+          builder3.toBlock();
 
       final Expression inputEnumerable =
-          statements.append(
+          builder.append(
               "inputEnumerable", result.expression, false);
       final Expression body =
           Expressions.new_(
@@ -604,7 +604,10 @@ public class JavaRules {
                   EnumUtil.overridingMethodDecl(
                       BuiltinMethod.ENUMERATOR_CLOSE.method,
                       NO_PARAMS,
-                      Expressions.block()),
+                      Blocks.toFunctionBlock(
+                          Expressions.call(
+                              inputEnumerator,
+                              BuiltinMethod.ENUMERATOR_CLOSE.method))),
                   Expressions.methodDecl(
                       Modifier.PUBLIC,
                       BRIDGE_METHODS
@@ -613,7 +616,7 @@ public class JavaRules {
                       "current",
                       NO_PARAMS,
                       currentBody)));
-      statements.add(
+      builder.add(
           Expressions.return_(
               null,
               Expressions.new_(
@@ -625,11 +628,10 @@ public class JavaRules {
                       Expressions.methodDecl(
                           Modifier.PUBLIC,
                           enumeratorType,
-                          BuiltinMethod.ENUMERABLE_ENUMERATOR
-                              .method.getName(),
+                          BuiltinMethod.ENUMERABLE_ENUMERATOR.method.getName(),
                           NO_PARAMS,
                           Blocks.toFunctionBlock(body))))));
-      return implementor.result(physType, statements.toBlock());
+      return implementor.result(physType, builder.toBlock());
     }
 
     public RexProgram getProgram() {
@@ -724,11 +726,11 @@ public class JavaRules {
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
-      final BlockBuilder statements = new BlockBuilder();
+      final BlockBuilder builder = new BlockBuilder();
       final EnumerableRel child = (EnumerableRel) getChild();
       final Result result = implementor.visitChild(this, 0, child, pref);
       Expression childExp =
-          statements.append(
+          builder.append(
               "child",
               result.expression);
       RelDataType inputRowType = getChild().getRowType();
@@ -786,15 +788,14 @@ public class JavaRules {
       final List<Expression> keyExpressions = Expressions.list();
       PhysType keyPhysType =
           inputPhysType.project(
-              Util.toList(groupSet),
-              JavaRowFormat.LIST);
+              Util.toList(groupSet), JavaRowFormat.LIST);
       final int keyArity = groupSet.cardinality();
       for (int groupKey : Util.toIter(groupSet)) {
         keyExpressions.add(
             inputPhysType.fieldReference(parameter, groupKey));
       }
       final Expression keySelector =
-          statements.append(
+          builder.append(
               "keySelector",
               inputPhysType.generateSelector(
                   parameter, Util.toList(groupSet), keyPhysType.getFormat()));
@@ -847,7 +848,7 @@ public class JavaRules {
                   }));
 
       final Expression accumulatorInitializer =
-          statements.append(
+          builder.append(
               "accumulatorInitializer",
               Expressions.lambda(
                   Function0.class,
@@ -861,7 +862,7 @@ public class JavaRules {
       //             return acc;
       //         }
       //     };
-      BlockBuilder bb2 = new BlockBuilder();
+      BlockBuilder builder2 = new BlockBuilder();
       final ParameterExpression inParameter =
           Expressions.parameter(inputPhysType.getJavaRowType(), "in");
       final ParameterExpression accParameter =
@@ -890,22 +891,22 @@ public class JavaRules {
                         accessors(
                             inputPhysType, inParameter, ord.e.left))));
         if (conditions.isEmpty()) {
-          bb2.add(assign);
+          builder2.add(assign);
         } else {
-          bb2.add(
+          builder2.add(
               Expressions.ifThen(
-                  Expressions.foldAnd(conditions),
-                  assign));
+                  Expressions.foldAnd(conditions), assign));
         }
       }
-      bb2.add(accParameter);
+      builder2.add(accParameter);
       final Expression accumulatorAdder =
-          statements.append(
+          builder.append(
               "accumulatorAdder",
               Expressions.lambda(
                   Function2.class,
-                  bb2.toBlock(),
-                  Arrays.asList(accParameter, inParameter)));
+                  builder2.toBlock(),
+                  accParameter,
+                  inParameter));
 
       // Function2<Integer, Object[], Object[]> resultSelector =
       //     new Function2<Integer, Object[], Object[]>() {
@@ -936,13 +937,13 @@ public class JavaRules {
       final PhysType resultPhysType = physType;
       if (keyArity == 0) {
         final Expression resultSelector =
-            statements.append(
+            builder.append(
                 "resultSelector",
                 Expressions.lambda(
                     Function1.class,
                     resultPhysType.record(results),
                     accParameter));
-        statements.add(
+        builder.add(
             Expressions.return_(
                 null,
                 Expressions.call(
@@ -950,22 +951,20 @@ public class JavaRules {
                     Expressions.call(
                         childExp,
                         BuiltinMethod.AGGREGATE.method,
-                        Expressions.<Expression>list()
-                            .append(
-                                Expressions.call(
-                                    accumulatorInitializer,
-                                    "apply"))
-                            .append(accumulatorAdder)
-                            .append(resultSelector)))));
+                        Expressions.call(
+                            accumulatorInitializer,
+                            "apply"),
+                        accumulatorAdder,
+                        resultSelector))));
       } else {
         final Expression resultSelector =
-            statements.append(
+            builder.append(
                 "resultSelector",
                 Expressions.lambda(
                     Function2.class,
                     resultPhysType.record(results),
                     Expressions.list(keyParameter, accParameter)));
-        statements.add(
+        builder.add(
             Expressions.return_(
                 null,
                 Expressions.call(
@@ -980,7 +979,7 @@ public class JavaRules {
                         .appendIfNotNull(
                             keyPhysType.comparer()))));
       }
-      return implementor.result(physType, statements.toBlock());
+      return implementor.result(physType, builder.toBlock());
     }
 
     private List<Type> fieldTypes(
@@ -1729,7 +1728,14 @@ public class JavaRules {
     }
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-      throw new AssertionError(); // TODO:
+      final BlockBuilder statements = new BlockBuilder();
+      final EnumerableRel child = (EnumerableRel) getChild();
+      final Result result = implementor.visitChild(this, 0, child, pref);
+      final JavaTypeFactoryImpl typeFactory = implementor.getTypeFactory();
+      final PhysType physType =
+          PhysTypeImpl.of(
+              typeFactory, getRowType(), pref.prefer(result.format));
+      return implementor.result(physType, statements.toBlock());
     }
   }
 }

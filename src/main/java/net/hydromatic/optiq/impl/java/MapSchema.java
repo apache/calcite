@@ -183,8 +183,7 @@ public class MapSchema implements MutableSchema {
         Expressions.call(
             getExpression(),
             BuiltinMethod.GET_SUB_SCHEMA.method,
-            Collections.<Expression>singletonList(
-                Expressions.constant(name)));
+            Expressions.constant(name));
     //noinspection unchecked
     if (type != null && !type.isAssignableFrom(Schema.class)) {
       return Expressions.convert_(call, type);

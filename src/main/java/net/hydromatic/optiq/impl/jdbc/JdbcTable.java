@@ -85,9 +85,8 @@ class JdbcTable extends AbstractQueryable<Object[]>
     return Expressions.call(
         schema.getExpression(),
         BuiltinMethod.DATA_CONTEXT_GET_TABLE.method,
-        Expressions.<Expression>list()
-            .append(Expressions.constant(tableName))
-            .append(Expressions.constant(getElementType())));
+        Expressions.constant(tableName),
+        Expressions.constant(getElementType()));
   }
 
   public Statistic getStatistic() {

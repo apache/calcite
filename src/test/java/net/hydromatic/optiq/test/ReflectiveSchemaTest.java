@@ -27,6 +27,8 @@ import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
+import org.eigenbase.util.Bug;
+
 import org.junit.Test;
 
 import java.lang.reflect.*;
@@ -78,14 +80,14 @@ public class ReflectiveSchemaTest {
                         Expressions.field(
                             e, "empid"),
                         Expressions.constant(160)),
-                    Arrays.asList(e)))
+                    e))
             .where(
                 Expressions.<Predicate1<Employee>>lambda(
                     Expressions.greaterThan(
                         Expressions.field(
                             e, "empid"),
                         Expressions.constant(140)),
-                    Arrays.asList(e)))
+                    e))
             .select(
                 Expressions.<Function1<Employee, Object[]>>lambda(
                     Expressions.new_(
@@ -98,8 +100,9 @@ public class ReflectiveSchemaTest {
                                     e, "name"),
                                 "toUpperCase",
                                 Collections.<Expression>emptyList()))),
-                    Arrays.asList(e)))
+                    e))
             .toList();
+    Bug.remark("use varargs versions of new_ and lambda after linq4j upgrade");
     assertEquals(1, list.size());
     assertEquals(2, list.get(0).length);
     assertEquals(150, list.get(0)[0]);
@@ -127,7 +130,7 @@ public class ReflectiveSchemaTest {
                 Collections.<Expression>emptyList()), Employee.class)
             .select(Expressions.<Function1<Employee, Integer>>lambda(
                 Expressions.field(e, "empid"),
-                Arrays.asList(e)))
+                e))
             .toList();
     assertEquals(Arrays.asList(100, 200, 150, 110), list);
   }

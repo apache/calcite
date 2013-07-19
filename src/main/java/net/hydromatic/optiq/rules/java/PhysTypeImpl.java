@@ -254,13 +254,12 @@ public class PhysTypeImpl implements PhysType {
                   Expressions.parameter(
                       Comparable.class, "this"),
                   BuiltinMethod.COMPARATOR_COMPARE.method,
-                  Arrays.<Expression>asList(
-                      Expressions.convert_(
-                          parameterO0,
-                          javaRowClass),
-                      Expressions.convert_(
-                          parameterO1,
-                          javaRowClass)))));
+                  Expressions.convert_(
+                      parameterO0,
+                      javaRowClass),
+                  Expressions.convert_(
+                      parameterO1,
+                      javaRowClass))));
       memberDeclarations.add(
           JavaRules.EnumUtil.overridingMethodDecl(
               BuiltinMethod.COMPARATOR_COMPARE.method,

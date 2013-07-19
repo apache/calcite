@@ -210,12 +210,18 @@ public abstract class Bug
     /**
      * Whether <a href="http://issues.eigenbase.org/browse/FRG-378">issue
      * FRG-378: Regular expressions in SIMILAR TO predicates
-     * potentially dont match SQL:2008 spec in a few cases.</a> is fixed.
+     * potentially don't match SQL:2008 spec in a few cases.</a> is fixed.
      */
     public static final boolean Frg378Fixed = true;
 
-    /** Temporary. */
+    /** Use this to flag temporary code. */
     public static final boolean TodoFixed = false;
+
+  /** Use this method to flag temporary code. */
+    public static boolean remark(String remark) {
+        Util.discard(remark);
+        return false;
+    }
 }
 
 // End Bug.java
