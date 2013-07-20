@@ -69,8 +69,6 @@ public class SqlToRelConverter
     protected final RexBuilder rexBuilder;
     protected final Prepare.CatalogReader catalogReader;
     protected final RelOptCluster cluster;
-    private final Map<SqlValidatorScope, LookupContext> mapScopeToLux =
-        new HashMap<SqlValidatorScope, LookupContext>();
     private DefaultValueFactory defaultValueFactory;
     private SubqueryConverter subqueryConverter;
     protected final List<RelNode> leaves = new ArrayList<RelNode>();
@@ -496,9 +494,6 @@ public class SqlToRelConverter
         final SqlValidatorScope selectScope = validator.getWhereScope(select);
         final Blackboard bb = createBlackboard(selectScope, null);
         convertSelectImpl(bb, select);
-        mapScopeToLux.put(
-            bb.scope,
-            new LookupContext(bb.root, bb.systemFieldList.size()));
         return bb.root;
     }
 
@@ -3459,8 +3454,6 @@ public class SqlToRelConverter
         assert scope != null;
         final Blackboard bb = createBlackboard(scope, null);
         convertValuesImpl(bb, values, targetRowType);
-        mapScopeToLux.put(
-            bb.scope, new LookupContext(bb.root, bb.systemFieldList.size()));
         return bb.root;
     }
 
@@ -4700,20 +4693,8 @@ public class SqlToRelConverter
      */
     private static class LookupContext
     {
-        private final List<Pair<RelNode, Integer>> relOffsetList;
-
-        /**
-         * Creates a LookupContext with a single input relational expression.
-         *
-         * @param rel Relational expression
-         * @param systemFieldCount Number of system fields
-         */
-        LookupContext(RelNode rel, int systemFieldCount)
-        {
-            relOffsetList =
-                Collections.singletonList(
-                    new Pair<RelNode, Integer>(rel, systemFieldCount));
-        }
+        private final List<Pair<RelNode, Integer>> relOffsetList =
+            new ArrayList<Pair<RelNode, Integer>>();
 
         /**
          * Creates a LookupContext with multiple input relational expressions.
@@ -4724,9 +4705,7 @@ public class SqlToRelConverter
          */
         LookupContext(Blackboard bb, List<RelNode> rels, int systemFieldCount)
         {
-            relOffsetList = new ArrayList<Pair<RelNode, Integer>>();
-            int[] start = {0};
-            bb.flatten(rels, systemFieldCount, start, relOffsetList);
+            bb.flatten(rels, systemFieldCount, new int[]{0}, relOffsetList);
         }
 
         /**

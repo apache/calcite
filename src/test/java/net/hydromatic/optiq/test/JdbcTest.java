@@ -967,18 +967,21 @@ public class JdbcTest {
     OptiqAssert.assertThat()
         .with(OptiqAssert.Config.REGULAR)
         .query(
-            "select sum(\"salary\" + \"commission\") over w,\n"
-            + " min(\"salary\") over w\n"
+            "select sum(\"salary\" + \"empid\") over w as s,\n"
+            + " 5 as five,\n"
+            + " min(\"salary\") over w as m\n"
             + "from \"hr\".\"emps\"\n"
             + "window w as (partition by \"deptno\" order by \"empid\" rows 1 preceding)")
+        .typeIs("[S DOUBLE, FIVE INTEGER NOT NULL, M DOUBLE]")
         .explainContains(
-            "EnumerableCalcRel(expr#0..2=[{inputs}], expr#3=[0], expr#4=[>($t0, $t3)], expr#5=[null], expr#6=[CASE($t4, $t1, $t5)], expr#7=[CAST($t2):JavaType(double)], EXPR$0=[$t6], EXPR$1=[$t7])\n"
+            "EnumerableCalcRel(expr#0..2=[{inputs}], expr#3=[0], expr#4=[>($t0, $t3)], expr#5=[null], expr#6=[CASE($t4, $t1, $t5)], expr#7=[CAST($t6):JavaType(class java.lang.Double)], expr#8=[5], expr#9=[CAST($t2):JavaType(class java.lang.Double)], S=[$t7], FIVE=[$t8], M=[$t9])\n"
             + "  EnumerableWindowRel(window#0=[window(order by [0] rows between 1 PRECEDING and CURRENT ROW partitions [partition(key [1] aggs [COUNT($3), $SUM0($3), MIN($2)]), partition(key [1] aggs [COUNT($3), $SUM0($3), MIN($2)]), partition(key [1] aggs [COUNT($3), $SUM0($3), MIN($2)])])])\n"
-            + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[+($t3, $t4)], proj#0..1=[{exprs}], salary=[$t3], $3=[$t5])\n"
-            + "      EnumerableTableAccessRel(table=[[hr, emps]])\n")
+            + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[+($t3, $t0)], proj#0..1=[{exprs}], salary=[$t3], $3=[$t5])\n"
+            + "      EnumerableTableAccessRel(table=[[hr, emps]])\n");
 /*
         .returns(
-            "xxx\n") */;
+            "xxx\n");
+*/
   }
 
   /** Tests WHERE comparing a nullable integer with an integer literal. */

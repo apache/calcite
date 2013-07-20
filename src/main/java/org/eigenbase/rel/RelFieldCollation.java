@@ -84,7 +84,7 @@ public class RelFieldCollation
     /**
      * Direction of sorting.
      */
-    private final Direction direction;
+    public final Direction direction;
 
     /**
      * Direction of sorting of nulls.

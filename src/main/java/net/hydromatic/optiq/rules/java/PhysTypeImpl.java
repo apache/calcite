@@ -149,6 +149,29 @@ public class PhysTypeImpl implements PhysType {
     }
   }
 
+  public Expression selector(
+      ParameterExpression parameter,
+      List<Integer> fields,
+      JavaRowFormat targetFormat) {
+    // Optimize target format
+    switch (fields.size()) {
+    case 0:
+      targetFormat = JavaRowFormat.LIST;
+      break;
+    case 1:
+      targetFormat = JavaRowFormat.SCALAR;
+      break;
+    }
+    final PhysType targetPhysType =
+        project(fields, targetFormat);
+    switch (format) {
+    case SCALAR:
+      return parameter;
+    default:
+      return targetPhysType.record(fieldReferences(parameter, fields));
+    }
+  }
+
   public Pair<Expression, Expression> generateCollationKey(
       final List<RelFieldCollation> collations) {
     final Expression selector;
@@ -272,6 +295,114 @@ public class PhysTypeImpl implements PhysType {
             Comparator.class,
             Collections.<Expression>emptyList(),
             memberDeclarations));
+  }
+
+  public Expression generateComparator(List<RelFieldCollation> collations) {
+    if (collations.size() == 1 && false) {
+      RelFieldCollation collation = collations.get(0);
+      return Expressions.call(
+          BuiltinMethod.NULLS_COMPARATOR.method,
+          Expressions.constant(
+              collation.nullDirection == RelFieldCollation.NullDirection.FIRST),
+          Expressions.constant(
+              collation.direction == RelFieldCollation.Direction.Descending));
+    }
+
+    // int c;
+    // c = Utilities.compare(v0, v1);
+    // if (c != 0) return c; // or -c if descending
+    // ...
+    // return 0;
+    BlockBuilder body = new BlockBuilder();
+    final ParameterExpression parameterV0 =
+        Expressions.parameter(javaRowClass, "v0");
+    final ParameterExpression parameterV1 =
+        Expressions.parameter(javaRowClass, "v1");
+    final ParameterExpression parameterC =
+        Expressions.parameter(int.class, "c");
+    body.add(
+        Expressions.declare(
+            0, parameterC, null));
+    for (RelFieldCollation collation : collations) {
+      final int index = collation.getFieldIndex();
+      Expression arg0 = fieldReference(parameterV0, index);
+      Expression arg1 = fieldReference(parameterV1, index);
+      switch (Primitive.flavor(fieldClass(index))) {
+      case OBJECT:
+        arg0 = Types.castIfNecessary(Comparable.class, arg0);
+        arg1 = Types.castIfNecessary(Comparable.class, arg1);
+      }
+      final boolean nullsFirst =
+          collation.nullDirection
+              == RelFieldCollation.NullDirection.FIRST;
+      final boolean descending =
+          collation.getDirection()
+              == RelFieldCollation.Direction.Descending;
+      body.add(
+          Expressions.statement(
+              Expressions.assign(
+                  parameterC,
+                  Expressions.call(
+                      Utilities.class,
+                      fieldNullable(index)
+                          ? (nullsFirst != descending
+                          ? "compareNullsFirst"
+                          : "compareNullsLast")
+                          : "compare",
+                      arg0,
+                      arg1))));
+      body.add(
+          Expressions.ifThen(
+              Expressions.notEqual(
+                  parameterC, Expressions.constant(0)),
+              Expressions.return_(
+                  null,
+                  descending
+                      ? Expressions.negate(parameterC)
+                      : parameterC)));
+    }
+    body.add(
+        Expressions.return_(null, Expressions.constant(0)));
+
+    final List<MemberDeclaration> memberDeclarations =
+        Expressions.<MemberDeclaration>list(
+            Expressions.methodDecl(
+                Modifier.PUBLIC,
+                int.class,
+                "compare",
+                Arrays.asList(
+                    parameterV0, parameterV1),
+                body.toBlock()));
+
+    if (JavaRules.BRIDGE_METHODS) {
+      final ParameterExpression parameterO0 =
+          Expressions.parameter(Object.class, "o0");
+      final ParameterExpression parameterO1 =
+          Expressions.parameter(Object.class, "o1");
+      BlockBuilder bridgeBody = new BlockBuilder();
+      bridgeBody.add(
+          Expressions.return_(
+              null,
+              Expressions.call(
+                  Expressions.parameter(
+                      Comparable.class, "this"),
+                  BuiltinMethod.COMPARATOR_COMPARE.method,
+                  Expressions.convert_(
+                      parameterO0,
+                      javaRowClass),
+                  Expressions.convert_(
+                      parameterO1,
+                      javaRowClass))));
+      memberDeclarations.add(
+          JavaRules.EnumUtil.overridingMethodDecl(
+              BuiltinMethod.COMPARATOR_COMPARE.method,
+              Arrays.asList(parameterO0, parameterO1),
+              bridgeBody.toBlock()));
+    }
+    return Expressions.new_(
+        Comparator.class,
+        Collections.<Expression>emptyList(),
+        memberDeclarations);
   }
 
   public RelDataType getRowType() {

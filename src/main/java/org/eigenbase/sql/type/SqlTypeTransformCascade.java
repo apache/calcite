@@ -19,9 +19,8 @@ package org.eigenbase.sql.type;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * Strategy to infer the type of an operator call from the type of the operands
@@ -37,63 +36,22 @@ public class SqlTypeTransformCascade
     //~ Instance fields --------------------------------------------------------
 
     private final SqlReturnTypeInference rule;
-    private final SqlTypeTransform [] transforms;
+    private final ImmutableList<SqlTypeTransform> transforms;
 
     //~ Constructors -----------------------------------------------------------
 
     /**
      * Creates a SqlTypeTransformCascade from a rule and an array of one or more
      * transforms.
-     *
-     * @pre null!=rule
-     * @pre null!=transforms
-     * @pre transforms.length > 0
-     * @pre transforms[i] != null
      */
     public SqlTypeTransformCascade(
         SqlReturnTypeInference rule,
-        SqlTypeTransform [] transforms)
+        SqlTypeTransform... transforms)
     {
-        Util.pre(null != rule, "null!=rule");
-        Util.pre(null != transforms, "null!=transforms");
-        Util.pre(transforms.length > 0, "transforms.length>0");
-        for (int i = 0; i < transforms.length; i++) {
-            Util.pre(transforms[i] != null, "transforms[i] != null");
-        }
+        assert rule != null;
+        assert transforms.length > 0;
         this.rule = rule;
-        this.transforms = transforms;
-    }
-
-    /**
-     * Creates a SqlTypeTransformCascade from a rule and a single transform.
-     *
-     * @pre null!=rule
-     * @pre null!=transform
-     */
-    public SqlTypeTransformCascade(
-        SqlReturnTypeInference rule,
-        SqlTypeTransform transform)
-    {
-        this(
-            rule,
-            new SqlTypeTransform[] { transform });
-    }
-
-    /**
-     * Creates a SqlTypeTransformCascade from a rule and two transforms.
-     *
-     * @pre null!=rule
-     * @pre null!=transform0
-     * @pre null!=transform1
-     */
-    public SqlTypeTransformCascade(
-        SqlReturnTypeInference rule,
-        SqlTypeTransform transform0,
-        SqlTypeTransform transform1)
-    {
-        this(
-            rule,
-            new SqlTypeTransform[] { transform0, transform1 });
+        this.transforms = ImmutableList.copyOf(transforms);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -102,8 +60,7 @@ public class SqlTypeTransformCascade
         SqlOperatorBinding opBinding)
     {
         RelDataType ret = rule.inferReturnType(opBinding);
-        for (int i = 0; i < transforms.length; i++) {
-            SqlTypeTransform transform = transforms[i];
+        for (SqlTypeTransform transform : transforms) {
             ret = transform.transformType(opBinding, ret);
         }
         return ret;

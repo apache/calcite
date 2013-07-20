@@ -34,7 +34,6 @@ import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Factory for row expressions.
  *
@@ -322,7 +321,7 @@ public class RexBuilder
                         exprs,
                         window),
                     makeLiteral(
-                        new BigDecimal(0),
+                        BigDecimal.ZERO,
                         bigintType,
                         SqlTypeName.DECIMAL)),
                 over,
@@ -344,7 +343,7 @@ public class RexBuilder
                             ImmutableList.<RexNode>of(),
                             window),
                         makeLiteral(
-                            new BigDecimal(2),
+                            BigDecimal.valueOf(2),
                             bigintType,
                             SqlTypeName.DECIMAL)),
                     result,
@@ -496,7 +495,7 @@ public class RexBuilder
         final RexNode casted = makeCall(
             SqlStdOperatorTable.caseOperator,
             exp,
-            makeExactLiteral(new BigDecimal(1), toType),
+            makeExactLiteral(BigDecimal.ONE, toType),
             makeZeroLiteral(toType));
         if (!exp.getType().isNullable()) {
             return casted;

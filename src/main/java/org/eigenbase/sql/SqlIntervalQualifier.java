@@ -28,7 +28,6 @@ import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Represents an INTERVAL qualifier.
  *
@@ -87,9 +86,9 @@ public class SqlIntervalQualifier
 
     private static final int USE_DEFAULT_PRECISION = -1;
     private static final BigDecimal ZERO = BigDecimal.ZERO;
-    private static final BigDecimal THOUSAND = new BigDecimal(1000);
+    private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
     private static final BigDecimal INT_MAX_VALUE_PLUS_ONE =
-        new BigDecimal(Integer.MAX_VALUE).add(BigDecimal.ONE);
+        BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE);
 
     //~ Enums ------------------------------------------------------------------
 
@@ -100,11 +99,11 @@ public class SqlIntervalQualifier
         implements SqlLiteral.SqlSymbol
     {
         YEAR(true, ' ', 12 /* months */, null),
-        MONTH(true, '-', 1 /* months */, new BigDecimal(12)),
+        MONTH(true, '-', 1 /* months */, BigDecimal.valueOf(12)),
         DAY(false, '-', 86400000 /* millis = 24 * 3600000 */, null),
-        HOUR(false, ' ', 3600000 /* millis */, new BigDecimal(24)),
-        MINUTE(false, ':', 60000 /* millis */, new BigDecimal(60)),
-        SECOND(false, ':', 1000 /* millis */, new BigDecimal(60));
+        HOUR(false, ' ', 3600000 /* millis */, BigDecimal.valueOf(24)),
+        MINUTE(false, ':', 60000 /* millis */, BigDecimal.valueOf(60)),
+        SECOND(false, ':', 1000 /* millis */, BigDecimal.valueOf(60));
 
         public final boolean yearMonth;
         public final char separator;
@@ -530,15 +529,15 @@ public class SqlIntervalQualifier
 
     private static final BigDecimal[] POWERS10 = {
         ZERO,
-        new BigDecimal(10),
-        new BigDecimal(100),
-        new BigDecimal(1000),
-        new BigDecimal(10000),
-        new BigDecimal(100000),
-        new BigDecimal(1000000),
-        new BigDecimal(10000000),
-        new BigDecimal(100000000),
-        new BigDecimal(1000000000),
+        BigDecimal.valueOf(10),
+        BigDecimal.valueOf(100),
+        BigDecimal.valueOf(1000),
+        BigDecimal.valueOf(10000),
+        BigDecimal.valueOf(100000),
+        BigDecimal.valueOf(1000000),
+        BigDecimal.valueOf(10000000),
+        BigDecimal.valueOf(100000000),
+        BigDecimal.valueOf(1000000000),
     };
 
     private boolean isFractionalSecondFieldInRange(BigDecimal field)

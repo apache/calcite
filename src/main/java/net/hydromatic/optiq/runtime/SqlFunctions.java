@@ -492,7 +492,7 @@ public class SqlFunctions {
 
   // temporary
   public static BigDecimal mod(BigDecimal b0, int b1) {
-    return mod(b0, new BigDecimal(b1));
+    return mod(b0, BigDecimal.valueOf(b1));
   }
 
   // temporary

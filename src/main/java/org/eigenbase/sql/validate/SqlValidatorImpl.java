@@ -35,7 +35,6 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.linq4j.Linq4j;
 
-
 /**
  * Default implementation of {@link SqlValidator}.
  *
@@ -4385,7 +4384,9 @@ public class SqlValidatorImpl
             ArgHandler<SqlNode> argHandler =
                 new CallCopyingArgHandler(call, false);
             call.getOperator().acceptCall(this, call, true, argHandler);
-            return argHandler.result();
+          final SqlNode result = argHandler.result();
+          validator.setOriginal(result, call);
+          return result;
         }
     }
 

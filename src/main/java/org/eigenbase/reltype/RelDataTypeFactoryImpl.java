@@ -18,15 +18,14 @@
 package org.eigenbase.reltype;
 
 import java.lang.reflect.*;
-
 import java.nio.charset.*;
-
 import java.util.*;
 
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.linq4j.expressions.Primitive;
 
 /**
  * Abstract base for implementations of {@link RelDataTypeFactory}.
@@ -209,7 +208,9 @@ public abstract class RelDataTypeFactoryImpl
                     javaType.collation);
             } else {
                 return new JavaType(
-                    javaType.clazz,
+                    nullable
+                        ? Primitive.box(javaType.clazz)
+                        : Primitive.unbox(javaType.clazz),
                     nullable);
             }
         } else {

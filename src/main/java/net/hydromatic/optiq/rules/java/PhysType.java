@@ -84,8 +84,15 @@ public interface PhysType {
       ParameterExpression parameter,
       List<Integer> fields);
 
-  /** Generates a selector for the given fields from an expression. */
+  /** Generates a lambda expression that is a selector for the given fields from
+   * an expression. */
   Expression generateSelector(
+      ParameterExpression parameter,
+      List<Integer> fields,
+      JavaRowFormat targetFormat);
+
+  /** Generates a selector for the given fields from an expression. */
+  Expression selector(
       ParameterExpression parameter,
       List<Integer> fields,
       JavaRowFormat targetFormat);
@@ -100,6 +107,12 @@ public interface PhysType {
   /** Returns a lambda to create a collation key and a comparator. The
    * comparator is sometimes null. */
   Pair<Expression, Expression> generateCollationKey(
+      List<RelFieldCollation> collations);
+
+  /** Returns a comparator. Unlike the comparator returned by
+   * {@link #generateCollationKey(java.util.List)}, this comparator acts on the
+   * whole element. */
+  Expression generateComparator(
       List<RelFieldCollation> collations);
 
   /** Returns a expression that yields a comparer, or null if this type

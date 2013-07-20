@@ -30,7 +30,6 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-
 /**
  * Tests for the {@link org.eigenbase.sarg} class library.
  *
@@ -86,11 +85,11 @@ public class SargTest {
 
         rexBuilder = new RexBuilder(typeFactory);
         intLiteral7 = rexBuilder.makeExactLiteral(
-            new BigDecimal(7),
+            BigDecimal.valueOf(7),
             intType);
         intLiteral490 =
             rexBuilder.makeExactLiteral(
-                new BigDecimal(490),
+                BigDecimal.valueOf(490),
                 intType);
         intLiteral8point5 =
             rexBuilder.makeExactLiteral(

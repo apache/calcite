@@ -634,12 +634,13 @@ public class RexToLixTranslator {
   }
 
   public RelDataType nullifyType(RelDataType type, boolean nullable) {
-    final Primitive primitive = javaPrimitive(type);
-    if (primitive != null) {
-      return typeFactory.createJavaType(primitive.primitiveClass);
-    } else {
-      return typeFactory.createTypeWithNullability(type, nullable);
+    if (!nullable) {
+      final Primitive primitive = javaPrimitive(type);
+      if (primitive != null) {
+        return typeFactory.createJavaType(primitive.primitiveClass);
+      }
     }
+    return typeFactory.createTypeWithNullability(type, nullable);
   }
 
   private Primitive javaPrimitive(RelDataType type) {

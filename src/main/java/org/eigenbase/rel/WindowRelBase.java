@@ -183,6 +183,18 @@ public abstract class WindowRelBase
                 || obj instanceof Window
                    && this.digest.equals(((Window) obj).digest);
         }
+
+        // TODO: replace orderKeys with a RelCollation
+        public List<RelFieldCollation> collation() {
+            return new AbstractList<RelFieldCollation>() {
+                public int size() {
+                    return orderKeys.size();
+                }
+                public RelFieldCollation get(int index) {
+                    return new RelFieldCollation(orderKeys.get(index));
+                }
+            };
+        }
     }
 
     /**
@@ -202,7 +214,7 @@ public abstract class WindowRelBase
          * The ordinals of the input columns which uniquely identify rows in
          * this partition. May be empty. Must not be null.
          */
-        final ImmutableIntList partitionKeys;
+        public final ImmutableIntList partitionKeys;
 
         final String digest;
 

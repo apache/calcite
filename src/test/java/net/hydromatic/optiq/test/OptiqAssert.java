@@ -224,6 +224,36 @@ public class OptiqAssert {
     };
   }
 
+  public static Function1<ResultSet, Void> checkResultType(
+      final String expected) {
+    return new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet s) {
+        try {
+          final String actual = typeString(s.getMetaData());
+          assertEquals(expected, actual);
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
+  }
+
+  private static String typeString(ResultSetMetaData metaData)
+      throws SQLException {
+    final List<String> list = new ArrayList<String>();
+    for (int i = 0; i < metaData.getColumnCount(); i++) {
+      list.add(
+          metaData.getColumnName(i + 1)
+              + " "
+              + metaData.getColumnTypeName(i + 1)
+              + (metaData.isNullable(i + 1) == ResultSetMetaData.columnNoNulls
+              ? " NOT NULL"
+              : ""));
+    }
+    return list.toString();
+  }
+
   static void assertQuery(
       Connection connection,
       String sql,
@@ -537,6 +567,18 @@ public class OptiqAssert {
     public AssertQuery runs() {
       try {
         assertQuery(createConnection(), sql, limit, null, null);
+        return this;
+      } catch (Exception e) {
+        throw new RuntimeException(
+            "exception while executing [" + sql + "]", e);
+      }
+    }
+
+    public AssertQuery typeIs(String expected) {
+      try {
+        assertQuery(
+            createConnection(), sql, limit,
+            checkResultType(expected), null);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(

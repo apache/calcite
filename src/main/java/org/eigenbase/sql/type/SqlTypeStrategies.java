@@ -26,7 +26,6 @@ import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * SqlTypeStrategies defines singleton instances of strategy objects for operand
  * type checking (member prefix <code>otc</code>), operand type inference
@@ -1082,7 +1081,7 @@ public abstract class SqlTypeStrategies
         rtiNullableDyadicStringSumPrecision =
             new SqlTypeTransformCascade(
                 rtiDyadicStringSumPrecision,
-                new SqlTypeTransform[] { SqlTypeTransforms.toNullable });
+                SqlTypeTransforms.toNullable);
 
     /**
      * Same as {@link #rtiDyadicStringSumPrecision} and using {@link
@@ -1092,9 +1091,8 @@ public abstract class SqlTypeStrategies
         rtiNullableVaryingDyadicStringSumPrecision =
             new SqlTypeTransformCascade(
                 rtiDyadicStringSumPrecision,
-                new SqlTypeTransform[] {
-                    SqlTypeTransforms.toNullable, SqlTypeTransforms.toVarying
-                });
+                SqlTypeTransforms.toNullable,
+                SqlTypeTransforms.toVarying);
 
     /**
      * Type-inference strategy where the expression is assumed to be registered
