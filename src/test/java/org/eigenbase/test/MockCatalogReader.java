@@ -33,7 +33,6 @@ import net.hydromatic.optiq.prepare.Prepare;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Mock implementation of {@link SqlValidatorCatalogReader} which returns tables
  * "EMP", "DEPT", "BONUS", "SALGRADE" (same as Oracle's SCOTT schema).
@@ -293,12 +292,11 @@ public class MockCatalogReader
                         ? RelFieldCollation.Direction.Descending
                         : RelFieldCollation.Direction.Ascending;
                 collationList.add(
-                    new RelCollationImpl(
-                        Collections.singletonList(
-                            new RelFieldCollation(
-                                i,
-                                direction,
-                                RelFieldCollation.NullDirection.UNSPECIFIED))));
+                    RelCollationImpl.of(
+                        new RelFieldCollation(
+                            i,
+                            direction,
+                            RelFieldCollation.NullDirection.UNSPECIFIED)));
             }
         }
         return collationList;

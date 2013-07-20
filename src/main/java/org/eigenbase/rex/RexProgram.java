@@ -31,7 +31,6 @@ import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * A collection of expressions which read inputs, compute output expressions,
  * and optionally use a condition to filter rows.
@@ -570,7 +569,7 @@ loop:
 
             // Success -- all of the source fields of this key are mapped
             // to the output.
-            outputCollations.add(new RelCollationImpl(fieldCollations));
+            outputCollations.add(RelCollationImpl.of(fieldCollations));
         }
     }
 

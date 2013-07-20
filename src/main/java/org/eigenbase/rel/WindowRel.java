@@ -219,13 +219,13 @@ public final class WindowRel extends WindowRelBase {
     }
 
     private static class WindowKey {
-        private final ImmutableIntList orderKeys;
+        private final RelCollation orderKeys;
         private final boolean physical;
         private final SqlNode lowerBound;
         private final SqlNode upperBound;
 
         public WindowKey(
-            ImmutableIntList orderKeys, boolean physical,
+            RelCollation orderKeys, boolean physical,
             SqlNode lowerBound, SqlNode upperBound)
         {
             this.orderKeys = orderKeys;
@@ -258,7 +258,7 @@ public final class WindowRel extends WindowRelBase {
         final RexWindow aggWindow = over.getWindow();
 
         // Look up or create a window.
-        ImmutableIntList orderKeys = getProjectOrdinals(aggWindow.orderKeys);
+        RelCollation orderKeys = getCollation(aggWindow.orderKeys);
         ImmutableIntList partitionKeys =
             getProjectOrdinals(aggWindow.partitionKeys);
 
@@ -277,6 +277,20 @@ public final class WindowRel extends WindowRelBase {
             new AbstractList<Integer>() {
                 public Integer get(int index) {
                     return ((RexLocalRef) exprs.get(index)).getIndex();
+                }
+
+                public int size() {
+                    return exprs.size();
+                }
+            });
+    }
+
+    private static RelCollation getCollation(final List<RexNode> exprs) {
+        return RelCollationImpl.of(
+            new AbstractList<RelFieldCollation>() {
+                public RelFieldCollation get(int index) {
+                    return new RelFieldCollation(
+                        ((RexLocalRef) exprs.get(index)).getIndex());
                 }
 
                 public int size() {

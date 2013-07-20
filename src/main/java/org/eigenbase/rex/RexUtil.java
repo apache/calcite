@@ -37,10 +37,6 @@ import org.eigenbase.util.mapping.*;
  */
 public class RexUtil
 {
-    //~ Static fields/initializers ---------------------------------------------
-
-    public static final RexNode [] emptyExpressionArray = new RexNode[0];
-
     //~ Methods ----------------------------------------------------------------
 
     /**
@@ -716,8 +712,8 @@ public class RexUtil
             // Truncation to collations to their leading edge creates empty
             // and duplicate collations. Ignore these.
             if (!newFieldCollationList.isEmpty()) {
-                final RelCollationImpl newCollation =
-                    new RelCollationImpl(newFieldCollationList);
+                final RelCollation newCollation =
+                    RelCollationImpl.of(newFieldCollationList);
                 if (!newCollationList.contains(newCollation)) {
                     newCollationList.add(newCollation);
                 }
@@ -746,7 +742,7 @@ public class RexUtil
             applyFields(mapping, collation.getFieldCollations());
         return fieldCollations.equals(collation.getFieldCollations())
             ? collation
-            : new RelCollationImpl(fieldCollations);
+            : RelCollationImpl.of(fieldCollations);
     }
 
     /**

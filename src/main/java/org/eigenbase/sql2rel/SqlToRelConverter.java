@@ -531,8 +531,8 @@ public class SqlToRelConverter
             select.getOrderList(),
             orderExprList,
             collationList);
-        final RelCollationImpl collation =
-            cluster.traitSetOf().canonize(new RelCollationImpl(collationList));
+        final RelCollation collation =
+            cluster.traitSetOf().canonize(RelCollationImpl.of(collationList));
 
         if (validator.isAggregate(select)) {
             convertAgg(

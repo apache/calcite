@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.relopt.RelTraitDef;
 import org.eigenbase.reltype.*;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * Simple implementation of {@link RelCollation}.
@@ -40,7 +41,7 @@ public class RelCollationImpl
      * columns.
      */
     public static final RelCollation EMPTY =
-        new RelCollationImpl(Collections.<RelFieldCollation>emptyList());
+        new RelCollationImpl(ImmutableList.<RelFieldCollation>of());
 
     /**
      * A collation that cannot be replicated by applying a sort. The only
@@ -48,7 +49,7 @@ public class RelCollationImpl
      */
     public static final RelCollation PRESERVE =
         new RelCollationImpl(
-            Collections.singletonList(new RelFieldCollation(-1)))
+            ImmutableList.<RelFieldCollation>of(new RelFieldCollation(-1)))
         {
             public String toString() {
                 return "PRESERVE";
@@ -57,13 +58,23 @@ public class RelCollationImpl
 
     //~ Instance fields --------------------------------------------------------
 
-    private final List<RelFieldCollation> fieldCollations;
+    private final ImmutableList<RelFieldCollation> fieldCollations;
 
     //~ Constructors -----------------------------------------------------------
 
-    public RelCollationImpl(List<RelFieldCollation> fieldCollations)
+    protected RelCollationImpl(ImmutableList<RelFieldCollation> fieldCollations)
     {
         this.fieldCollations = fieldCollations;
+    }
+
+    public static RelCollation of(RelFieldCollation... fieldCollations)
+    {
+        return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
+    }
+
+    public static RelCollation of(List<RelFieldCollation> fieldCollations)
+    {
+        return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -102,12 +113,11 @@ public class RelCollationImpl
     public static List<RelCollation> createSingleton(int fieldIndex)
     {
         return Collections.singletonList(
-            (RelCollation) new RelCollationImpl(
-                Collections.singletonList(
-                    new RelFieldCollation(
-                        fieldIndex,
-                        RelFieldCollation.Direction.Ascending,
-                        RelFieldCollation.NullDirection.UNSPECIFIED))));
+            of(
+                new RelFieldCollation(
+                    fieldIndex,
+                    RelFieldCollation.Direction.Ascending,
+                    RelFieldCollation.NullDirection.UNSPECIFIED)));
     }
 
     /**

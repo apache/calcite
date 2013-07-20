@@ -23,6 +23,7 @@ import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.Utilities;
 
+import org.eigenbase.rel.RelCollation;
 import org.eigenbase.rel.RelFieldCollation;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
@@ -297,15 +298,17 @@ public class PhysTypeImpl implements PhysType {
             memberDeclarations));
   }
 
-  public Expression generateComparator(List<RelFieldCollation> collations) {
-    if (collations.size() == 1 && false) {
-      RelFieldCollation collation = collations.get(0);
+  public Expression generateComparator(RelCollation collation) {
+    if (collation.getFieldCollations().size() == 1 && false) {
+      RelFieldCollation fieldCollation = collation.getFieldCollations().get(0);
       return Expressions.call(
           BuiltinMethod.NULLS_COMPARATOR.method,
           Expressions.constant(
-              collation.nullDirection == RelFieldCollation.NullDirection.FIRST),
+              fieldCollation.nullDirection
+              == RelFieldCollation.NullDirection.FIRST),
           Expressions.constant(
-              collation.direction == RelFieldCollation.Direction.Descending));
+              fieldCollation.direction
+              == RelFieldCollation.Direction.Descending));
     }
 
     // int c;
@@ -323,8 +326,8 @@ public class PhysTypeImpl implements PhysType {
     body.add(
         Expressions.declare(
             0, parameterC, null));
-    for (RelFieldCollation collation : collations) {
-      final int index = collation.getFieldIndex();
+    for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+      final int index = fieldCollation.getFieldIndex();
       Expression arg0 = fieldReference(parameterV0, index);
       Expression arg1 = fieldReference(parameterV1, index);
       switch (Primitive.flavor(fieldClass(index))) {
@@ -333,10 +336,10 @@ public class PhysTypeImpl implements PhysType {
         arg1 = Types.castIfNecessary(Comparable.class, arg1);
       }
       final boolean nullsFirst =
-          collation.nullDirection
+          fieldCollation.nullDirection
               == RelFieldCollation.NullDirection.FIRST;
       final boolean descending =
-          collation.getDirection()
+          fieldCollation.getDirection()
               == RelFieldCollation.Direction.Descending;
       body.add(
           Expressions.statement(

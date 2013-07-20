@@ -38,7 +38,6 @@ import com.google.common.collect.Iterables;
 
 import static org.junit.Assert.*;
 
-
 /**
  * SqlToRelTestBase is an abstract base for tests which involve conversion from
  * SQL to relational algebra.
@@ -226,13 +225,11 @@ public abstract class SqlToRelTestBase {
                         ? RelFieldCollation.Direction.Descending
                         : RelFieldCollation.Direction.Ascending;
                     collationList.add(
-                        new RelCollationImpl(
-                            Collections.singletonList(
-                                new RelFieldCollation(
-                                    i,
-                                    direction,
-                                    RelFieldCollation.NullDirection
-                                        .UNSPECIFIED))));
+                        RelCollationImpl.of(
+                            new RelFieldCollation(
+                                i,
+                                direction,
+                                RelFieldCollation.NullDirection.UNSPECIFIED)));
                 }
             }
             return collationList;

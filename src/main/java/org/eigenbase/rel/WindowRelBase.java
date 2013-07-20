@@ -129,21 +129,21 @@ public abstract class WindowRelBase
         public final boolean physical;
         public final SqlNode lowerBound;
         public final SqlNode upperBound;
-        public final ImmutableIntList orderKeys;
+        public final RelCollation orderKeys;
         private final String digest;
 
         public Window(
             boolean physical,
             SqlNode lowerBound,
             SqlNode upperBound,
-            ImmutableIntList orderKeys,
+            RelCollation orderKeys,
             List<Partition> partitionList)
         {
             assert orderKeys != null : "precondition: ordinals != null";
             this.physical = physical;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
-            this.orderKeys = ImmutableIntList.copyOf(orderKeys);
+            this.orderKeys = orderKeys;
             this.partitionList = ImmutableList.copyOf(partitionList);
             this.digest = computeString();
         }
@@ -184,16 +184,8 @@ public abstract class WindowRelBase
                    && this.digest.equals(((Window) obj).digest);
         }
 
-        // TODO: replace orderKeys with a RelCollation
-        public List<RelFieldCollation> collation() {
-            return new AbstractList<RelFieldCollation>() {
-                public int size() {
-                    return orderKeys.size();
-                }
-                public RelFieldCollation get(int index) {
-                    return new RelFieldCollation(orderKeys.get(index));
-                }
-            };
+        public RelCollation collation() {
+            return orderKeys;
         }
     }
 

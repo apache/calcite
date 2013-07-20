@@ -20,6 +20,7 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
 
+import org.eigenbase.rel.RelCollation;
 import org.eigenbase.rel.RelFieldCollation;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Pair;
@@ -113,7 +114,7 @@ public interface PhysType {
    * {@link #generateCollationKey(java.util.List)}, this comparator acts on the
    * whole element. */
   Expression generateComparator(
-      List<RelFieldCollation> collations);
+      RelCollation collation);
 
   /** Returns a expression that yields a comparer, or null if this type
    * is comparable. */
