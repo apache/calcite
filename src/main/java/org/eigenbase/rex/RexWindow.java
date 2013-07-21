@@ -24,7 +24,6 @@ import org.eigenbase.sql.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Specification of the window of rows over which a {@link RexOver} windowed
  * aggregate is evaluated.
@@ -43,7 +42,7 @@ public class RexWindow
     public final List<RexNode> orderKeys;
     private final SqlNode lowerBound;
     private final SqlNode upperBound;
-    private final boolean physical;
+    private final boolean isRows;
     private final String digest;
 
     //~ Constructors -----------------------------------------------------------
@@ -59,7 +58,7 @@ public class RexWindow
         List<RexNode> orderKeys,
         SqlNode lowerBound,
         SqlNode upperBound,
-        boolean physical)
+        boolean isRows)
     {
         assert partitionKeys != null;
         assert orderKeys != null;
@@ -67,9 +66,9 @@ public class RexWindow
         this.orderKeys = ImmutableList.copyOf(orderKeys);
         this.lowerBound = lowerBound;
         this.upperBound = upperBound;
-        this.physical = physical;
+        this.isRows = isRows;
         this.digest = computeDigest();
-        if (!physical) {
+        if (!isRows) {
             assert orderKeys.size() > 0 : "logical window requires sort key";
         }
     }
@@ -132,7 +131,7 @@ public class RexWindow
             if (clauseCount++ > 0) {
                 pw.print(' ');
             }
-            if (physical) {
+            if (isRows) {
                 pw.print("ROWS ");
             } else {
                 pw.print("RANGE ");
@@ -142,7 +141,7 @@ public class RexWindow
             if (clauseCount++ > 0) {
                 pw.print(' ');
             }
-            if (physical) {
+            if (isRows) {
                 pw.print("ROWS BETWEEN ");
             } else {
                 pw.print("RANGE BETWEEN ");
@@ -166,7 +165,7 @@ public class RexWindow
 
     public boolean isRows()
     {
-        return physical;
+        return isRows;
     }
 
     public SqlWindowOperator.OffsetRange getOffsetAndRange()

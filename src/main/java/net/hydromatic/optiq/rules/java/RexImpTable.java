@@ -152,6 +152,7 @@ public class RexImpTable {
 
     agg2Map.put(countOperator, new CountImplementor2());
     agg2Map.put(sumOperator, new SumImplementor2());
+    agg2Map.put(sumEmptyIsZeroOperator, new SumImplementor2());
     final MinMaxImplementor2 minMax =
         new MinMaxImplementor2();
     agg2Map.put(minOperator, minMax);

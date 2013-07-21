@@ -23,7 +23,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlNode;
-import org.eigenbase.util.ImmutableIntList;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
@@ -42,8 +41,7 @@ import com.google.common.collect.Multimap;
  * sorted correctly on input to the relational expression.
  *
  * <p>Each {@link org.eigenbase.rel.WindowRelBase.Window} has a set of
- * {@link org.eigenbase.rel.WindowRelBase.Partition} objects, and each partition
- * has a set of {@link org.eigenbase.rex.RexOver} objects.
+ * {@link org.eigenbase.rex.RexOver} objects.
  *
  * <p>Created by {@link org.eigenbase.rel.rules.WindowedAggSplitterRule}.
  */
@@ -70,18 +68,16 @@ public final class WindowRel extends WindowRelBase {
     }
 
     /** Creates a WindowRel. */
-    public static WindowRel create(
+    public static RelNode create(
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode child,
-        RexProgram program,
-        RelDataType rowType)
+        final RexProgram program,
+        RelDataType outRowType)
     {
         // Build a list of distinct windows, partitions and aggregate
         // functions.
-        Multimap<WindowKey, ImmutableIntList> windowMap =
-            LinkedListMultimap.create();
-        Multimap<Pair<WindowKey, ImmutableIntList>, RexOver> partitionMap =
+        final Multimap<WindowKey, RexOver> windowMap =
             LinkedListMultimap.create();
 
         // Build a list of windows, partitions, and aggregate functions. Each
@@ -89,39 +85,37 @@ public final class WindowRel extends WindowRelBase {
         // program.
         for (RexNode agg : program.getExprList()) {
             if (agg instanceof RexOver) {
-                addWindows(windowMap, partitionMap, (RexOver) agg);
+                addWindows(windowMap, (RexOver) agg);
             }
         }
 
         final Map<RexOver, WindowRelBase.RexWinAggCall> aggMap =
             new HashMap<RexOver, WindowRelBase.RexWinAggCall>();
         List<Window> windowList = new ArrayList<Window>();
-        for (WindowKey windowKey : windowMap.keySet()) {
-            final List<Partition> partitionList = new ArrayList<Partition>();
-            for (ImmutableIntList partitionKey : windowMap.get(windowKey)) {
-                final Pair<WindowKey, ImmutableIntList> key =
-                    Pair.of(windowKey, partitionKey);
-                final List<RexWinAggCall> calls =
-                    new ArrayList<RexWinAggCall>();
-                for (RexOver over : partitionMap.get(key)) {
-                    final RexWinAggCall call =
-                        new RexWinAggCall(
-                            over.getAggOperator(),
-                            over.getType(),
-                            toInputRefs(over.operands),
-                            partitionList.size());
-                    calls.add(call);
-                    aggMap.put(over, call);
-                }
-                partitionList.add(new Partition(partitionKey, calls));
+        for (Map.Entry<WindowKey, Collection<RexOver>> entry
+            : windowMap.asMap().entrySet())
+        {
+            final WindowKey windowKey = entry.getKey();
+            final List<RexWinAggCall> aggCalls =
+                new ArrayList<RexWinAggCall>();
+            for (RexOver over : entry.getValue()) {
+                final RexWinAggCall aggCall =
+                    new RexWinAggCall(
+                        over.getAggOperator(),
+                        over.getType(),
+                        toInputRefs(over.operands),
+                        aggMap.size());
+                aggCalls.add(aggCall);
+                aggMap.put(over, aggCall);
             }
             windowList.add(
                 new Window(
-                    windowKey.physical,
+                    windowKey.groupSet,
+                    windowKey.isRows,
                     windowKey.lowerBound,
                     windowKey.upperBound,
                     windowKey.orderKeys,
-                    partitionList));
+                    aggCalls));
         }
 
         // Figure out the type of the inputs to the output program.
@@ -132,18 +126,28 @@ public final class WindowRel extends WindowRelBase {
         List<Map.Entry<String, RelDataType>> fieldList =
             new ArrayList<Map.Entry<String, RelDataType>>(
                 child.getRowType().getFieldList());
+        final int offset = fieldList.size();
+
+        // Use better field names for agg calls that are projected.
+        Map<Integer, String> fieldNames = new HashMap<Integer, String>();
+        for (Ord<RexLocalRef> ref : Ord.zip(program.getProjectList())) {
+            final int index = ref.e.getIndex();
+            if (index >= offset) {
+                fieldNames.put(
+                    index - offset, outRowType.getFieldNames().get(ref.i));
+            }
+        }
 
         for (Ord<Window> window : Ord.zip(windowList)) {
-            for (Ord<Partition> partition : Ord.zip(window.e.partitionList)) {
-                for (Ord<RexWinAggCall> over : Ord.zip(partition.e.overList)) {
-                    // Add the k-th over expression of the j-th partition of
-                    // the i-th window to the output of the program.
-                    fieldList.add(
-                        Pair.of(
-                            "w" + window.i + "$p" + partition.i + "$o" + over.i,
-                            over.e.getType()));
-                    flattenedAggCallList.add(over.e);
+            for (Ord<RexWinAggCall> over : Ord.zip(window.e.aggCalls)) {
+                // Add the k-th over expression of
+                // the i-th window to the output of the program.
+                String name = fieldNames.get(over.i);
+                if (name == null || name.startsWith("$")) {
+                    name = "w" + window.i + "$o" + over.i;
                 }
+                fieldList.add(Pair.of(name, over.e.getType()));
+                flattenedAggCallList.add(over.e);
             }
         }
         final RelDataType intermediateRowType =
@@ -201,7 +205,23 @@ public final class WindowRel extends WindowRelBase {
         // partitions may not match the order in which they occurred in the
         // original expression. We should add a project to permute them.
 
-        return new WindowRel(cluster, traitSet, child, rowType, windowList);
+        WindowRel window =
+            new WindowRel(
+                cluster, traitSet, child, intermediateRowType, windowList);
+
+        return CalcRel.createProject(
+            window,
+            new AbstractList<RexNode>() {
+              public RexNode get(int index) {
+                  final RexLocalRef ref = program.getProjectList().get(index);
+                  return new RexInputRef(ref.getIndex(), ref.getType());
+              }
+
+              public int size() {
+                  return program.getProjectList().size();
+              }
+            },
+            outRowType.getFieldNames());
     }
 
     private static List<RexNode> toInputRefs(final List<RexNode> operands) {
@@ -219,84 +239,60 @@ public final class WindowRel extends WindowRelBase {
     }
 
     private static class WindowKey {
+        private final BitSet groupSet;
         private final RelCollation orderKeys;
-        private final boolean physical;
+        private final boolean isRows;
         private final SqlNode lowerBound;
         private final SqlNode upperBound;
 
         public WindowKey(
-            RelCollation orderKeys, boolean physical,
-            SqlNode lowerBound, SqlNode upperBound)
+            BitSet groupSet,
+            RelCollation orderKeys,
+            boolean isRows,
+            SqlNode lowerBound,
+            SqlNode upperBound)
         {
+            this.groupSet = groupSet;
             this.orderKeys = orderKeys;
-            this.physical = physical;
+            this.isRows = isRows;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
         }
 
         @Override
         public int hashCode() {
-            return Util.hashV(orderKeys, physical, lowerBound, upperBound);
+            return Util.hashV(
+                groupSet, orderKeys, isRows, lowerBound, upperBound);
         }
 
         @Override
         public boolean equals(Object obj) {
             return obj == this
                 || obj instanceof WindowKey
+                && groupSet.equals(((WindowKey) obj).groupSet)
                 && orderKeys.equals(((WindowKey) obj).orderKeys)
                 && Util.equal(lowerBound, ((WindowKey) obj).lowerBound)
                 && Util.equal(upperBound, ((WindowKey) obj).upperBound)
-                && physical == ((WindowKey) obj).physical;
+                && isRows == ((WindowKey) obj).isRows;
         }
     }
 
     private static void addWindows(
-        Multimap<WindowKey, ImmutableIntList> windowMap,
-        Multimap<Pair<WindowKey, ImmutableIntList>, RexOver> partitionMap,
+        Multimap<WindowKey, RexOver> windowMap,
         RexOver over)
     {
         final RexWindow aggWindow = over.getWindow();
 
         // Look up or create a window.
         RelCollation orderKeys = getCollation(aggWindow.orderKeys);
-        ImmutableIntList partitionKeys =
-            getProjectOrdinals(aggWindow.partitionKeys);
+        BitSet groupSet =
+            Util.bitSetOf(getProjectOrdinals(aggWindow.partitionKeys));
 
         WindowKey windowKey =
             new WindowKey(
-                orderKeys, aggWindow.isRows(), aggWindow.getLowerBound(),
-                aggWindow.getUpperBound());
-        windowMap.put(windowKey, partitionKeys);
-        partitionMap.put(Pair.of(windowKey, partitionKeys), over);
-    }
-
-    private static ImmutableIntList getProjectOrdinals(
-        final List<RexNode> exprs)
-    {
-        return ImmutableIntList.copyOf(
-            new AbstractList<Integer>() {
-                public Integer get(int index) {
-                    return ((RexLocalRef) exprs.get(index)).getIndex();
-                }
-
-                public int size() {
-                    return exprs.size();
-                }
-            });
-    }
-
-    private static RelCollation getCollation(final List<RexNode> exprs) {
-        return RelCollationImpl.of(
-            new AbstractList<RelFieldCollation>() {
-                public RelFieldCollation get(int index) {
-                    return new RelFieldCollation(
-                        ((RexLocalRef) exprs.get(index)).getIndex());
-                }
-
-                public int size() {
-                    return exprs.size();
-                }
-            });
+                groupSet, orderKeys, aggWindow.isRows(),
+                aggWindow.getLowerBound(), aggWindow.getUpperBound());
+        windowMap.put(windowKey, over);
     }
 }
 

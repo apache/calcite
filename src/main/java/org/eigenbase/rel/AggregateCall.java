@@ -24,7 +24,6 @@ import org.eigenbase.sql.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Call to an aggregation function within an {@link AggregateRel}.
  *
@@ -38,8 +37,8 @@ public class AggregateCall
     private final Aggregation aggregation;
 
     private final boolean distinct;
-    private final RelDataType type;
-    private final String name;
+    public final RelDataType type;
+    public final String name;
 
     // We considered using ImmutableIntList but we would not save much memory:
     // since all values are small, ImmutableList uses cached Integer values.

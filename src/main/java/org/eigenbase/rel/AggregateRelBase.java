@@ -31,7 +31,6 @@ import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * <code>AggregateRelBase</code> is an abstract base class for implementations
  * of {@link AggregateRel}.
@@ -124,8 +123,8 @@ public abstract class AggregateRelBase
             .item("group", groupSet);
         for (Ord<AggregateCall> ord : Ord.zip(aggCalls)) {
             final String name;
-            if (ord.e.getName() != null) {
-                name = ord.e.getName();
+            if (ord.e.name != null) {
+                name = ord.e.name;
             } else {
                 name = "agg#" + ord.i;
             }
@@ -185,14 +184,14 @@ public abstract class AggregateRelBase
                     public RelDataTypeField get(int index) {
                         final AggregateCall aggCall = aggCalls.get(index);
                         String name;
-                        if (aggCall.getName() != null) {
-                            name = aggCall.getName();
+                        if (aggCall.name != null) {
+                            name = aggCall.name;
                         } else {
                             name = "$f" + (groupSet.cardinality() + index);
                         }
                         assert typeMatchesInferred(aggCall, true);
                         return new RelDataTypeFieldImpl(
-                            name, index, aggCall.getType());
+                            name, index, aggCall.type);
                     }
                 }
             ));
@@ -214,7 +213,7 @@ public abstract class AggregateRelBase
         SqlAggFunction aggFunction = (SqlAggFunction) aggCall.getAggregation();
         AggCallBinding callBinding = aggCall.createBinding(this);
         RelDataType type = aggFunction.inferReturnType(callBinding);
-        RelDataType expectedType = aggCall.getType();
+        RelDataType expectedType = aggCall.type;
         return RelOptUtil.eq(
             "aggCall type",
             expectedType,

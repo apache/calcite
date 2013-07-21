@@ -593,7 +593,7 @@ public class RexToLixTranslator {
             Expressions.statement(
                 Expressions.call(
                     lyst,
-                    BuiltinMethod.LIST_ADD.method,
+                    BuiltinMethod.COLLECTION_ADD.method,
                     Expressions.box(translate(value)))));
       }
       return lyst;

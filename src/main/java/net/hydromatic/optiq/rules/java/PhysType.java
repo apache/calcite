@@ -131,6 +131,8 @@ public interface PhysType {
 
   /** Returns the format. */
   JavaRowFormat getFormat();
+
+  List<Expression> accessors(Expression parameter, List<Integer> argList);
 }
 
 // End PhysType.java

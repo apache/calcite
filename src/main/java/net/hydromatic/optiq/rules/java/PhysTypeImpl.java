@@ -112,10 +112,7 @@ public class PhysTypeImpl implements PhysType {
               }
             }
         );
-    return of(
-        typeFactory,
-        projectedRowType,
-        format.optimize(projectedRowType));
+    return of(typeFactory, projectedRowType, format.optimize(projectedRowType));
   }
 
   public Expression generateSelector(
@@ -143,8 +140,7 @@ public class PhysTypeImpl implements PhysType {
     case SCALAR:
       return Expressions.call(BuiltinMethod.IDENTITY_SELECTOR.method);
     default:
-      return Expressions.lambda(
-          Function1.class,
+      return Expressions.lambda(Function1.class,
           targetPhysType.record(fieldReferences(parameter, fields)),
           parameter);
     }
@@ -171,6 +167,17 @@ public class PhysTypeImpl implements PhysType {
     default:
       return targetPhysType.record(fieldReferences(parameter, fields));
     }
+  }
+
+  public List<Expression> accessors(Expression v1, List<Integer> argList) {
+    final List<Expression> expressions = new ArrayList<Expression>();
+    for (int field : argList) {
+      expressions.add(
+          Types.castIfNecessary(
+              fieldClass(field),
+              fieldReference(v1, field)));
+    }
+    return expressions;
   }
 
   public Pair<Expression, Expression> generateCollationKey(

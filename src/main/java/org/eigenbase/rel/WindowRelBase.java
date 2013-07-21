@@ -25,6 +25,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlAggFunction;
 import org.eigenbase.sql.SqlNode;
 import org.eigenbase.util.ImmutableIntList;
+import org.eigenbase.util.Util;
 
 import net.hydromatic.linq4j.Ord;
 
@@ -40,8 +41,7 @@ import com.google.common.collect.ImmutableList;
  * sorted correctly on input to the relational expression.
  *
  * <p>Each {@link org.eigenbase.rel.WindowRelBase.Window} has a set of
- * {@link org.eigenbase.rel.WindowRelBase.Partition} objects, and each partition
- * has a set of {@link org.eigenbase.rex.RexOver} objects.
+ * {@link org.eigenbase.rex.RexOver} objects.
  *
  * <p>Created by {@link org.eigenbase.rel.rules.WindowedAggSplitterRule}.
  */
@@ -76,12 +76,10 @@ public abstract class WindowRelBase
             new RexChecker(getChild().getRowType(), fail);
         int count = 0;
         for (Window window : windows) {
-            for (Partition partition : window.partitionList) {
-                for (RexWinAggCall over : partition.overList) {
-                    ++count;
-                    if (!checker.isValid(over)) {
-                        return false;
-                    }
+            for (RexWinAggCall over : window.aggCalls) {
+                ++count;
+                if (!checker.isValid(over)) {
+                    return false;
                 }
             }
         }
@@ -101,10 +99,36 @@ public abstract class WindowRelBase
         return pw;
     }
 
+    static ImmutableIntList getProjectOrdinals(final List<RexNode> exprs) {
+        return ImmutableIntList.copyOf(
+            new AbstractList<Integer>() {
+                public Integer get(int index) {
+                    return ((RexSlot) exprs.get(index)).getIndex();
+                }
+
+                public int size() {
+                    return exprs.size();
+                }
+            });
+    }
+
+    static RelCollation getCollation(final List<RexNode> exprs) {
+        return RelCollationImpl.of(
+            new AbstractList<RelFieldCollation>() {
+                public RelFieldCollation get(int index) {
+                    return new RelFieldCollation(
+                        ((RexLocalRef) exprs.get(index)).getIndex());
+                }
+
+                public int size() {
+                    return exprs.size();
+                }
+            });
+    }
+
     /**
      * A Window is a range of input rows, defined by an upper and lower bound.
-     * It also contains a list of
-     * {@link org.eigenbase.rel.WindowRelBase.Partition} objects.
+     * It also has zero or more partitioning columns.
      *
      * <p>A window is either logical or physical. A physical window is measured
      * in terms of row count. A logical window is measured in terms of rows
@@ -124,27 +148,36 @@ public abstract class WindowRelBase
      */
     public static class Window
     {
-        /** The partitions which make up this window. */
-        public final List<Partition> partitionList;
-        public final boolean physical;
+        public final BitSet groupSet;
+        public final boolean isRows;
         public final SqlNode lowerBound;
         public final SqlNode upperBound;
         public final RelCollation orderKeys;
         private final String digest;
 
+        /**
+         * List of {@link org.eigenbase.rel.WindowRelBase.RexWinAggCall}
+         * objects, each of which is a call to a
+         * {@link org.eigenbase.sql.SqlAggFunction}.
+         */
+        public final ImmutableList<RexWinAggCall> aggCalls;
+
         public Window(
-            boolean physical,
+            BitSet groupSet,
+            boolean isRows,
             SqlNode lowerBound,
             SqlNode upperBound,
             RelCollation orderKeys,
-            List<Partition> partitionList)
+            List<RexWinAggCall> aggCalls)
         {
             assert orderKeys != null : "precondition: ordinals != null";
-            this.physical = physical;
+            assert groupSet != null;
+            this.groupSet = groupSet;
+            this.isRows = isRows;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
             this.orderKeys = orderKeys;
-            this.partitionList = ImmutableList.copyOf(partitionList);
+            this.aggCalls = ImmutableList.copyOf(aggCalls);
             this.digest = computeString();
         }
 
@@ -155,24 +188,25 @@ public abstract class WindowRelBase
 
         private String computeString() {
             final StringBuilder buf = new StringBuilder();
-            buf.append("window(");
-            buf.append("order by ");
+            buf.append("window(partition ");
+            buf.append(groupSet);
+            buf.append(" order by ");
             buf.append(orderKeys);
-            buf.append(physical ? " rows " : " range ");
+            buf.append(isRows ? " rows " : " range ");
             if (lowerBound != null) {
                 if (upperBound != null) {
                     buf.append("between ");
-                    buf.append(lowerBound.toString());
+                    buf.append(lowerBound);
                     buf.append(" and ");
+                    buf.append(upperBound);
                 } else {
-                    buf.append(lowerBound.toString());
+                    buf.append(lowerBound);
                 }
+            } else if (upperBound != null) {
+                buf.append(upperBound);
             }
-            if (upperBound != null) {
-                buf.append(upperBound.toString());
-            }
-            buf.append(" partitions ");
-            buf.append(partitionList);
+            buf.append(" aggs ");
+            buf.append(aggCalls);
             buf.append(")");
             return buf.toString();
         }
@@ -187,66 +221,39 @@ public abstract class WindowRelBase
         public RelCollation collation() {
             return orderKeys;
         }
-    }
 
-    /**
-     * A Partition is a collection of windowed aggregate expressions which
-     * belong to the same {@link WindowRelBase.Window} and have the same
-     * partitioning keys.
-     */
-    public static class Partition
-    {
-        /**
-         * List of {@link org.eigenbase.rel.WindowRelBase.RexWinAggCall} objects,
-         * each of which is a call to a {@link org.eigenbase.sql.SqlAggFunction}.
-         */
-        public final ImmutableList<RexWinAggCall> overList;
-
-        /**
-         * The ordinals of the input columns which uniquely identify rows in
-         * this partition. May be empty. Must not be null.
-         */
-        public final ImmutableIntList partitionKeys;
-
-        final String digest;
-
-        Partition(
-            ImmutableIntList partitionKeys,
-            List<RexWinAggCall> overList)
-        {
-            assert partitionKeys != null;
-            this.partitionKeys = ImmutableIntList.copyOf(partitionKeys);
-            this.overList = ImmutableList.copyOf(overList);
-
-            final StringBuilder buf = new StringBuilder();
-            buf.append("partition(key ");
-            buf.append(partitionKeys);
-            buf.append(" aggs ");
-            buf.append(overList);
-            buf.append(")");
-            digest = buf.toString();
-        }
-
-        public boolean equals(Object obj)
-        {
-            return obj == this
-                   || obj instanceof Partition
-                      && partitionKeys.equals(((Partition) obj).partitionKeys);
-        }
-
-        @Override
-        public String toString() {
-            return digest;
+        /** Presents a view of the {@link RexWinAggCall} list as a list of
+         * {@link AggregateCall}. */
+        public List<AggregateCall> getAggregateCalls(WindowRelBase windowRel) {
+            final List<String> fieldNames =
+                Util.subList(
+                    windowRel.getRowType().getFieldNames(),
+                    windowRel.getChild().getRowType().getFieldCount());
+            return new AbstractList<AggregateCall>() {
+                public int size() {
+                    return aggCalls.size();
+                }
+                public AggregateCall get(int index) {
+                    final RexWinAggCall aggCall = aggCalls.get(index);
+                    return new AggregateCall(
+                        (Aggregation) aggCall.getOperator(),
+                        false,
+                        getProjectOrdinals(aggCall.getOperands()),
+                        aggCall.getType(),
+                        fieldNames.get(aggCall.ordinal));
+                }
+            };
         }
     }
 
     /**
      * A call to a windowed aggregate function.
      *
-     * <p>Belongs to a {@link org.eigenbase.rel.WindowRel.Partition}.
+     * <p>Belongs to a {@link org.eigenbase.rel.WindowRelBase.Window}.
      *
-     * <p>It's a bastard son of a {@link org.eigenbase.rex.RexCall}; similar enough that it gets
-     * visited by a {@link org.eigenbase.rex.RexVisitor}, but it also has some extra data members.
+     * <p>It's a bastard son of a {@link org.eigenbase.rex.RexCall}; similar
+     * enough that it gets visited by a {@link org.eigenbase.rex.RexVisitor},
+     * but it also has some extra data members.
      */
     public static class RexWinAggCall
         extends RexCall

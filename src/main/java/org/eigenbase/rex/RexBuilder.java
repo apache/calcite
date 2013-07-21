@@ -359,7 +359,7 @@ public class RexBuilder
      * @param orderKeys Order keys
      * @param lowerBound Lower bound
      * @param upperBound Upper bound
-     * @param physical Whether physical. True if row-based, false if range-based
+     * @param isRows Whether physical. True if row-based, false if range-based
      * @return window specification
      */
     public RexWindow makeWindow(
@@ -367,14 +367,14 @@ public class RexBuilder
         List<RexNode> orderKeys,
         SqlNode lowerBound,
         SqlNode upperBound,
-        boolean physical)
+        boolean isRows)
     {
         return new RexWindow(
             partitionKeys,
             orderKeys,
             lowerBound,
             upperBound,
-            physical);
+            isRows);
     }
 
     /**

@@ -39,7 +39,6 @@ import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.Iterables;
 
-
 /**
  * Miscellaneous utility functions.
  */
@@ -2159,7 +2158,11 @@ public class Util
         return true;
     }
 
-  //~ Inner Classes ----------------------------------------------------------
+    public static <T> T first(T t0, T t1) {
+        return t0 != null ? t0 : t1;
+    }
+
+    //~ Inner Classes ----------------------------------------------------------
 
     /**
      * Exception used to interrupt a tree walk of any kind.

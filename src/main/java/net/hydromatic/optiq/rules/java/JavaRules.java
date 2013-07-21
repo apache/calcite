@@ -36,6 +36,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
+import org.eigenbase.sql.SqlWindowOperator;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.*;
@@ -326,6 +327,41 @@ public class JavaRules {
       }
       final Type clazz = typeFactory.getJavaClass(type);
       return clazz instanceof Class ? (Class) clazz : Object[].class;
+    }
+
+    static List<Type> fieldTypes(
+        final JavaTypeFactory typeFactory,
+        final RelDataType inputRowType,
+        final List<Integer> argList) {
+      return new AbstractList<Type>() {
+        public Type get(int index) {
+          return EnumUtil.javaClass(
+              typeFactory,
+              inputRowType.getFieldList()
+                  .get(argList.get(index))
+                  .getType());
+        }
+        public int size() {
+          return argList.size();
+        }
+      };
+    }
+
+    static List<RexImpTable.AggImplementor2> getImplementors(
+        List<AggregateCall> aggCalls) {
+      final List<RexImpTable.AggImplementor2> implementors =
+          new ArrayList<RexImpTable.AggImplementor2>();
+      for (AggregateCall aggCall : aggCalls) {
+        RexImpTable.AggImplementor2 implementor2 =
+            RexImpTable.INSTANCE.get2(
+                aggCall.getAggregation());
+        if (implementor2 == null) {
+          throw new RuntimeException(
+              "cannot implement aggregate " + aggCall);
+        }
+        implementors.add(implementor2);
+      }
+      return implementors;
     }
   }
 
@@ -802,17 +838,7 @@ public class JavaRules {
                   parameter, Util.toList(groupSet), keyPhysType.getFormat()));
 
       final List<RexImpTable.AggImplementor2> implementors =
-          new ArrayList<RexImpTable.AggImplementor2>();
-      for (AggregateCall aggCall : aggCalls) {
-        RexImpTable.AggImplementor2 implementor2 =
-            RexImpTable.INSTANCE.get2(
-                aggCall.getAggregation());
-        if (implementor2 == null) {
-          throw new RuntimeException(
-              "cannot implement aggregate " + aggCall);
-        }
-        implementors.add(implementor2);
-      }
+          EnumUtil.getImplementors(aggCalls);
 
       // Function0<Object[]> accumulatorInitializer =
       //     new Function0<Object[]>() {
@@ -828,8 +854,7 @@ public class JavaRules {
             ord.e.right.implementInit(
                 ord.e.left.getAggregation(),
                 physType.fieldClass(keyArity + ord.i),
-                fieldTypes(
-                    typeFactory,
+                EnumUtil.fieldTypes(typeFactory,
                     inputRowType,
                     ord.e.left.getArgList())));
       }
@@ -889,8 +914,8 @@ public class JavaRules {
                     ord.e.right.implementAdd(
                         ord.e.left.getAggregation(),
                         Types.castIfNecessary(type, accumulator),
-                        accessors(
-                            inputPhysType, inParameter, ord.e.left))));
+                        inputPhysType.accessors(
+                            inParameter, ord.e.left.getArgList()))));
         if (conditions.isEmpty()) {
           builder2.add(assign);
         } else {
@@ -952,8 +977,7 @@ public class JavaRules {
                     Expressions.call(
                         childExp,
                         BuiltinMethod.AGGREGATE.method,
-                        Expressions.call(
-                            accumulatorInitializer, "apply"),
+                        Expressions.call(accumulatorInitializer, "apply"),
                         accumulatorAdder,
                         resultSelector))));
       } else {
@@ -980,38 +1004,6 @@ public class JavaRules {
                             keyPhysType.comparer()))));
       }
       return implementor.result(physType, builder.toBlock());
-    }
-
-    private List<Type> fieldTypes(
-        final JavaTypeFactory typeFactory,
-        final RelDataType inputRowType,
-        final List<Integer> argList) {
-      return new AbstractList<Type>() {
-        public Type get(int index) {
-          return EnumUtil.javaClass(
-              typeFactory,
-              inputRowType.getFieldList()
-                  .get(argList.get(index))
-                  .getType());
-        }
-        public int size() {
-          return argList.size();
-        }
-      };
-    }
-
-    private List<Expression> accessors(
-        PhysType physType,
-        ParameterExpression v1,
-        AggregateCall aggCall) {
-      final List<Expression> expressions = new ArrayList<Expression>();
-      for (int field : aggCall.getArgList()) {
-        expressions.add(
-            Types.castIfNecessary(
-                physType.fieldClass(field),
-                physType.fieldReference(v1, field)));
-      }
-      return expressions;
     }
   }
 
@@ -1699,7 +1691,7 @@ public class JavaRules {
 
     public RelOptCost computeSelfCost(RelOptPlanner planner) {
       // Cost is proportional to the number of rows and the number of
-      // components (windows, partitions, and aggregate functions). There is
+      // components (windows and aggregate functions). There is
       // no I/O cost.
       //
       // TODO #1. Add memory cost.
@@ -1707,22 +1699,17 @@ public class JavaRules {
       final double rowsIn = RelMetadataQuery.getRowCount(getChild());
       int count = windows.size();
       for (WindowRel.Window window : windows) {
-        count += window.partitionList.size();
-        for (WindowRel.Partition partition : window.partitionList) {
-          count += partition.overList.size();
-        }
+        count += window.aggCalls.size();
       }
       return planner.makeCost(rowsIn, rowsIn * count, 0);
     }
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-      final BlockBuilder builder = new BlockBuilder();
-      final EnumerableRel child = (EnumerableRel) getChild();
-      final Result result = implementor.visitChild(this, 0, child, pref);
       final JavaTypeFactoryImpl typeFactory = implementor.getTypeFactory();
-      final PhysType physType =
-          PhysTypeImpl.of(
-              typeFactory, getRowType(), pref.prefer(result.format));
+      final EnumerableRel child = (EnumerableRel) getChild();
+
+      final BlockBuilder builder = new BlockBuilder();
+      final Result result = implementor.visitChild(this, 0, child, pref);
       Expression source_ = builder.append("source", result.expression);
 
       PhysType inputPhysType = result.physType;
@@ -1742,153 +1729,346 @@ public class JavaRules {
                 inputPhysType.generateComparator(
                     window.collation()));
 
-        for (Partition partition : window.partitionList) {
-          // Populate map of lists, one per partition
-          //   final Map<Integer, List<Employee>> multiMap =
-          //     new HashMap<Integer, List<Employee>>();
-          //    source.foreach(
-          //      new Function1<Employee, Void>() {
-          //        public Void apply(Employee v) {
-          //          final Integer k = v.deptno;
-          //          putMulti(multiMap, k, v);
-          //          return null;
-          //        }
-          //      });
-          Expression multiMap_ =
-              builder.append(
-                  "multiMap", Expressions.new_(SortedMultiMap.class));
-          final ParameterExpression v_ =
-              Expressions.parameter(inputPhysType.getJavaRowType(), "v");
-          final BlockBuilder builder2 = new BlockBuilder();
-          final DeclarationExpression declare =
-              Expressions.declare(
-                  0, "key",
-                  inputPhysType.selector(
-                      v_, partition.partitionKeys, JavaRowFormat.CUSTOM));
-          builder2.add(declare);
-          final ParameterExpression key_ = declare.parameter;
-          builder2.add(
-              Expressions.statement(
-                  Expressions.call(
-                      multiMap_,
-                      BuiltinMethod.SORTED_MULTI_MAP_PUT_MULTI.method,
-                      key_,
-                      v_)));
-          builder2.add(
-              Expressions.return_(
-                  null, Expressions.constant(null)));
+        // Populate map of lists, one per partition
+        //   final Map<Integer, List<Employee>> multiMap =
+        //     new HashMap<Integer, List<Employee>>();
+        //    source.foreach(
+        //      new Function1<Employee, Void>() {
+        //        public Void apply(Employee v) {
+        //          final Integer k = v.deptno;
+        //          putMulti(multiMap, k, v);
+        //          return null;
+        //        }
+        //      });
+        Expression multiMap_ =
+            builder.append(
+                "multiMap", Expressions.new_(SortedMultiMap.class));
+        final ParameterExpression v_ =
+            Expressions.parameter(inputPhysType.getJavaRowType(), "v");
+        final BlockBuilder builder2 = new BlockBuilder();
+        final DeclarationExpression declare =
+            Expressions.declare(
+                0, "key",
+                inputPhysType.selector(
+                    v_, Util.toList(window.groupSet), JavaRowFormat.CUSTOM));
+        builder2.add(declare);
+        final ParameterExpression key_ = declare.parameter;
+        builder2.add(
+            Expressions.statement(
+                Expressions.call(
+                    multiMap_,
+                    BuiltinMethod.SORTED_MULTI_MAP_PUT_MULTI.method,
+                    key_,
+                    v_)));
+        builder2.add(
+            Expressions.return_(
+                null, Expressions.constant(null)));
 
-          builder.add(
-              Expressions.statement(
-                  Expressions.call(
-                      source_,
-                      BuiltinMethod.ENUMERABLE_FOREACH.method,
-                      Expressions.lambda(
-                          builder2.toBlock(), v_))));
+        builder.add(
+            Expressions.statement(
+                Expressions.call(
+                    source_,
+                    BuiltinMethod.ENUMERABLE_FOREACH.method,
+                    Expressions.lambda(
+                        builder2.toBlock(), v_))));
 
-          // For each list of rows that have the same partitioning key, evaluate
-          // all of the windowed aggregate functions.
-          //
-          //   final List<Xxx> list = new ArrayList<Xxx>(multiMap.size());
-          //   Iterator<Employee[]> iterator = multiMap.arrays(comparator);
-          //   while (iterator.hasNext()) {
-          //     Employee[] rows = iterator.next();
-          //     int i = 0;
-          //     while (i < rows.length) {
-          //       JdbcTest.Employee row = rows[i];
-          //       int sum = 0;
-          //       int count = 0;
-          //       int j = Math.max(0, i - 1);
-          //       while (j <= i) {
-          //         sum += rows[j].salary;
-          //         ++count;
-          //         ++j;
-          //       }
-          //       list.add(new Xxx(row.deptno, row.empid, sum, count));
-          //       i++;
-          //     }
-          //     multiMap.clear(); // allows gc
-          //   }
-          //   source = Linq4j.asEnumerable(list);
-
-          final Expression list =
-              builder.append(
-                  "list",
-                  Expressions.new_(
-                      ArrayList.class,
-                      Arrays.<Expression>asList(
-                          Expressions.call(
-                              multiMap_,
-                              BuiltinMethod.COLLECTION_SIZE.method))),
-                  false);
-          Bug.remark("remove asList after upgrade linq4j");
-          final Expression iterator =
-              builder.append(
-                  "iterator",
-                  Expressions.call(
-                      multiMap_,
-                      BuiltinMethod.SORTED_MULTI_MAP_ARRAYS.method,
-                      comparator_));
-
-          final BlockBuilder builder3 = new BlockBuilder();
-          Expression rows_ =
-              builder3.append(
-                  "rows",
-                  Expressions.convert_(
-                      Expressions.call(
-                          iterator, BuiltinMethod.ITERATOR_NEXT.method),
-                      Object[].class),
-                  false);
-
-          final BlockBuilder builder4 = new BlockBuilder();
-
-          final ParameterExpression i_ =
-              Expressions.parameter(int.class, "i");
-          builder3.add(
-              Expressions.declare(0, i_, Expressions.constant(0)));
-
-          // TODO: loop to compute the aggs
-
-          Bug.remark("use increment after linq4j upgrade");
-          builder4.add(
-              Expressions.statement(
-                  Expressions.assign(
-                      i_, Expressions.add(i_, Expressions.constant(1)))));
-
-          builder3.add(
-              Expressions.while_(
-                  Expressions.lessThan(
-                      i_,
-                      Expressions.call(
-                          BuiltinMethod.SORTED_MULTI_MAP_LENGTH.method, rows_)),
-                  builder4.toBlock()));
-
-          builder.add(
-              Expressions.while_(
-                  Expressions.call(
-                      iterator,
-                      BuiltinMethod.ITERATOR_HAS_NEXT.method),
-                  builder3.toBlock()));
-          builder.add(
-              Expressions.statement(
-                  Expressions.call(
-                      multiMap_,
-                      BuiltinMethod.MAP_CLEAR.method)));
-
-          // We're not assigning to "source". For each window, create a new
-          // final variable called "source" or "sourceN".
-          source_ =
-              builder.append(
-                  "source",
-                      Expressions.call(
-                          BuiltinMethod.AS_ENUMERABLE.method, list));
+        // The output from this stage is the input plus the aggregate functions.
+        final List<Map.Entry<String, RelDataType>> fieldList =
+            new ArrayList<Map.Entry<String, RelDataType>>(
+                inputPhysType.getRowType().getFieldList());
+        final int offset = fieldList.size();
+        final List<AggregateCall> aggregateCalls =
+            window.getAggregateCalls(this);
+        for (AggregateCall aggregateCall : aggregateCalls) {
+          fieldList.add(Pair.of(aggregateCall.name, aggregateCall.type));
         }
+        RelDataType outputRowType = typeFactory.createStructType(fieldList);
+        PhysType outputPhysType =
+            PhysTypeImpl.of(
+                typeFactory, outputRowType, pref.prefer(result.format));
+
+        // For each list of rows that have the same partitioning key, evaluate
+        // all of the windowed aggregate functions.
+        //
+        //   final List<Xxx> list = new ArrayList<Xxx>(multiMap.size());
+        //   Iterator<Employee[]> iterator = multiMap.arrays(comparator);
+        //   while (iterator.hasNext()) {
+        //     // <builder3>
+        //     Employee[] rows = iterator.next();
+        //     int i = 0;
+        //     while (i < rows.length) {
+        //       // <builder4>
+        //       JdbcTest.Employee row = rows[i];
+        //       int sum = 0;
+        //       int count = 0;
+        //       int j = Math.max(0, i - 1);
+        //       while (j <= i) {
+        //         // <builder5>
+        //         sum += rows[j].salary;
+        //         ++count;
+        //         ++j;
+        //       }
+        //       list.add(new Xxx(row.deptno, row.empid, sum, count));
+        //       i++;
+        //     }
+        //     multiMap.clear(); // allows gc
+        //   }
+        //   source = Linq4j.asEnumerable(list);
+
+        final Expression list_ =
+            builder.append(
+                "list",
+                Expressions.new_(
+                    ArrayList.class,
+                    Arrays.<Expression>asList(
+                        Expressions.call(
+                            multiMap_,
+                            BuiltinMethod.COLLECTION_SIZE.method))),
+                false);
+        Bug.remark("remove asList after upgrade linq4j");
+        final Expression iterator_ =
+            builder.append(
+                "iterator",
+                Expressions.call(
+                    multiMap_,
+                    BuiltinMethod.SORTED_MULTI_MAP_ARRAYS.method,
+                    comparator_));
+
+        final BlockBuilder builder3 = new BlockBuilder();
+        Expression rows_ =
+            builder3.append(
+                "rows",
+                Expressions.convert_(
+                    Expressions.call(
+                        iterator_, BuiltinMethod.ITERATOR_NEXT.method),
+                    Object[].class),
+                false);
+
+        final BlockBuilder builder4 = new BlockBuilder();
+
+        final ParameterExpression i_ =
+            Expressions.parameter(int.class, "i");
+        builder3.add(
+            Expressions.declare(0, i_, Expressions.constant(0)));
+
+        final Expression row_ =
+            builder4.append(
+                "row",
+                Expressions.convert_(
+                    Expressions.arrayIndex(rows_, i_),
+                    inputPhysType.getJavaRowType()));
+
+        final List<RexImpTable.AggImplementor2> implementors =
+            EnumUtil.getImplementors(aggregateCalls);
+        final List<ParameterExpression> variables =
+            new ArrayList<ParameterExpression>();
+        for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
+            : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
+          Bug.remark("use Builder.newParameter or newName");
+          final ParameterExpression parameter =
+              Expressions.parameter(outputPhysType.fieldClass(offset + ord.i),
+                  ord.e.left.name);
+          final Expression initExpression =
+              ord.e.right.implementInit(ord.e.left.getAggregation(),
+                  parameter.type,
+                  EnumUtil.fieldTypes(typeFactory,
+                      inputPhysType.getRowType(),
+                      ord.e.left.getArgList()));
+          variables.add(parameter);
+          builder4.add(Expressions.declare(0, parameter, initExpression));
+        }
+
+        final PhysType finalInputPhysType = inputPhysType;
+        generateWindowLoop(builder4,
+            window,
+            rows_,
+            i_,
+            row_,
+            new Function1<AggCallContext, Void>() {
+              public Void apply(AggCallContext a0) {
+                for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
+                    : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
+                  final Expression accumulator = variables.get(ord.i);
+                  final List<Expression> conditions =
+                      new ArrayList<Expression>();
+                  for (int arg : ord.e.left.getArgList()) {
+                    if (finalInputPhysType.fieldNullable(arg)) {
+                      conditions.add(
+                          Expressions.notEqual(
+                              finalInputPhysType.fieldReference(row_, arg),
+                              Expressions.constant(null)));
+                    }
+                  }
+                  final Statement assign =
+                      Expressions.statement(
+                          Expressions.assign(
+                              accumulator,
+                              ord.e.right.implementAdd(
+                                  ord.e.left.getAggregation(),
+                                  accumulator,
+                                  finalInputPhysType.accessors(
+                                      row_, ord.e.left.getArgList()))));
+                  if (conditions.isEmpty()) {
+                    a0.builder().add(assign);
+                  } else {
+                    a0.builder().add(
+                        Expressions.ifThen(
+                            Expressions.foldAnd(conditions), assign));
+                  }
+                }
+                return null;
+              }
+            });
+
+        final List<Expression> expressions = new ArrayList<Expression>();
+        for (int i = 0; i < offset; i++) {
+          expressions.add(
+              Types.castIfNecessary(
+                  inputPhysType.fieldClass(i),
+                  inputPhysType.fieldReference(row_, i)));
+        }
+        expressions.addAll(variables);
+
+        builder4.add(
+            Expressions.statement(
+                Expressions.call(
+                    list_,
+                    BuiltinMethod.COLLECTION_ADD.method,
+                    outputPhysType.record(expressions))));
+
+        Bug.remark("use increment after linq4j upgrade");
+        builder4.add(
+            Expressions.statement(
+                Expressions.assign(
+                    i_, Expressions.add(i_, Expressions.constant(1)))));
+        builder3.add(
+            Expressions.while_(
+                Expressions.lessThan(
+                    i_,
+                    Expressions.call(
+                        BuiltinMethod.SORTED_MULTI_MAP_LENGTH.method, rows_)),
+                builder4.toBlock()));
+
+        builder.add(
+            Expressions.while_(
+                Expressions.call(
+                    iterator_,
+                    BuiltinMethod.ITERATOR_HAS_NEXT.method),
+                builder3.toBlock()));
+        builder.add(
+            Expressions.statement(
+                Expressions.call(
+                    multiMap_,
+                    BuiltinMethod.MAP_CLEAR.method)));
+
+        // We're not assigning to "source". For each window, create a new
+        // final variable called "source" or "sourceN".
+        source_ =
+            builder.append(
+                "source",
+                Expressions.call(
+                    BuiltinMethod.AS_ENUMERABLE.method, list_));
+
+        inputPhysType = outputPhysType;
       }
 
       //   return Linq4j.asEnumerable(list);
       builder.add(
           Expressions.return_(null, source_));
-      return implementor.result(physType, builder.toBlock());
+      return implementor.result(inputPhysType, builder.toBlock());
+    }
+
+    /** Generates the loop that computes aggregate functions over the window.
+     * Calls a callback to increment each aggregate function's accumulator. */
+    private void generateWindowLoop(BlockBuilder builder,
+        Window window,
+        Expression rows_,
+        ParameterExpression i_,
+        Expression row_,
+        Function1<AggCallContext, Void> f3) {
+      //       int j = Math.max(0, i - 1);
+      //       while (j <= i) {
+      //         // <builder5>
+      //         Employee row2 = rows[j];
+      //         sum += rows[j].salary;
+      //         ++count;
+      //         ++j;
+      //       }
+
+      final Expression min_ = Expressions.constant(0);
+      final Expression max_ = Expressions.call(
+          BuiltinMethod.SORTED_MULTI_MAP_LENGTH.method, rows_);
+      final SqlWindowOperator.OffsetRange offsetAndRange =
+          SqlWindowOperator.getOffsetAndRange(
+              window.lowerBound, window.upperBound, window.isRows);
+      final Expression start_ =
+          builder.append("start",
+              optimizeAdd(i_,
+                  (int) offsetAndRange.offset - (int) offsetAndRange.range + 1,
+                  min_, max_),
+              false);
+      final Expression end_ =
+          builder.append("end",
+              optimizeAdd(i_, (int) offsetAndRange.offset, min_, max_),
+              false);
+      final DeclarationExpression jDecl = Expressions.declare(0, "j", start_);
+      builder.add(jDecl);
+      final ParameterExpression j_ = jDecl.parameter;
+      final Expression row2_ = builder.append("row2",
+          Expressions.convert_(
+              Expressions.arrayIndex(rows_, j_),
+              row_.getType()));
+
+      final BlockBuilder builder5 = new BlockBuilder();
+      f3.apply(
+          new AggCallContext() {
+            public BlockBuilder builder() {
+              return builder5;
+            }
+
+            public Expression index() {
+              return j_;
+            }
+
+            public Expression current() {
+              return row2_;
+            }
+
+            public Expression isFirst() {
+              return Expressions.equal(j_, start_);
+            }
+
+            public Expression isLast() {
+              return Expressions.equal(j_, end_);
+            }
+          });
+      builder5.add(
+          Expressions.statement(
+              Expressions.assign(
+                  j_, Expressions.add(j_, Expressions.constant(1)))));
+
+      builder.add(
+          Expressions.while_(Expressions.lessThanOrEqual(j_, end_),
+              builder5.toBlock()));
+    }
+
+    private Expression optimizeAdd(Expression i_,
+        int offset,
+        Expression min_,
+        Expression max_) {
+      if (offset == 0) {
+        return i_;
+      } else if (offset < 0) {
+        return Expressions.call(null,
+            BuiltinMethod.MATH_MAX.method,
+            min_,
+            Expressions.subtract(i_, Expressions.constant(-offset)));
+      } else {
+        return Expressions.call(null,
+            BuiltinMethod.MATH_MIN.method,
+            max_,
+            Expressions.add(i_, Expressions.constant(offset)));
+      }
     }
   }
 
@@ -1900,6 +2080,14 @@ public class JavaRules {
       return null;
     }
     return builder.append(name, expression);
+  }
+
+  public static interface AggCallContext {
+    BlockBuilder builder();
+    Expression index();
+    Expression current();
+    Expression isFirst();
+    Expression isLast();
   }
 }
 
