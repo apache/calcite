@@ -98,6 +98,8 @@ public class Types {
   static PseudoField getField(String fieldName, Type type) {
     if (type instanceof RecordType) {
       return getRecordField(fieldName, (RecordType) type);
+    } else if (type instanceof Class && ((Class) type).isArray()) {
+      return getSystemField(fieldName, (Class) type);
     } else {
       return field(getField(fieldName, toClass(type)));
     }
@@ -111,6 +113,36 @@ public class Types {
     }
     throw new RuntimeException(
         "Unknown field '" + fieldName + "' in type " + type);
+  }
+
+  private static RecordField getSystemField(final String fieldName,
+      final Class clazz) {
+    // The "length" field of an array does not appear in Class.getFields().
+    return new RecordField() {
+      public boolean nullable() {
+        return false;
+      }
+
+      public String getName() {
+        return fieldName;
+      }
+
+      public Type getType() {
+        return int.class;
+      }
+
+      public int getModifiers() {
+        return 0;
+      }
+
+      public Object get(Object o) throws IllegalAccessException {
+        return Array.getLength(o);
+      }
+
+      public Type getDeclaringClass() {
+        return clazz;
+      }
+    };
   }
 
   public static Class toClass(Type type) {
@@ -135,7 +167,7 @@ public class Types {
     return classes.toArray(new Class[classes.size()]);
   }
 
-  static Class[] toClassArray(Iterable<Expression> arguments) {
+  static Class[] toClassArray(Iterable<? extends Expression> arguments) {
     List<Class> classes = new ArrayList<Class>();
     for (Expression argument : arguments) {
       classes.add(toClass(argument.getType()));

@@ -26,10 +26,10 @@ import java.util.Set;
  * Represents a block that contains a sequence of expressions where variables
  * can be defined.
  */
-public class BlockExpression extends Statement {
+public class BlockStatement extends Statement {
   public final List<Statement> statements;
 
-  BlockExpression(List<Statement> statements, Type type) {
+  BlockStatement(List<Statement> statements, Type type) {
     super(ExpressionType.Block, type);
     this.statements = statements;
     assert distinctVariables(true);
@@ -38,8 +38,8 @@ public class BlockExpression extends Statement {
   private boolean distinctVariables(boolean fail) {
     Set<String> names = new HashSet<String>();
     for (Statement statement : statements) {
-      if (statement instanceof DeclarationExpression) {
-        String name = ((DeclarationExpression) statement).parameter.name;
+      if (statement instanceof DeclarationStatement) {
+        String name = ((DeclarationStatement) statement).parameter.name;
         if (!names.add(name)) {
           assert !fail : "duplicate variable " + name;
           return false;
@@ -50,7 +50,7 @@ public class BlockExpression extends Statement {
   }
 
   @Override
-  public BlockExpression accept(Visitor visitor) {
+  public BlockStatement accept(Visitor visitor) {
     List<Statement> newStatements = Expressions.acceptStatements(statements,
         visitor);
     return visitor.visit(this, newStatements);
@@ -79,4 +79,4 @@ public class BlockExpression extends Statement {
   }
 }
 
-// End BlockExpression.java
+// End BlockStatement.java

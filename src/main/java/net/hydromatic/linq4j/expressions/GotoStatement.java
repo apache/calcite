@@ -21,12 +21,12 @@ package net.hydromatic.linq4j.expressions;
  * Represents an unconditional jump. This includes return statements, break and
  * continue statements, and other jumps.
  */
-public class GotoExpression extends Statement {
+public class GotoStatement extends Statement {
   public final GotoExpressionKind kind;
   public final LabelTarget labelTarget;
   public final Expression expression;
 
-  GotoExpression(GotoExpressionKind kind, LabelTarget labelTarget,
+  GotoStatement(GotoExpressionKind kind, LabelTarget labelTarget,
       Expression expression) {
     super(ExpressionType.Goto,
         expression == null ? Void.TYPE : expression.getType());
@@ -54,8 +54,9 @@ public class GotoExpression extends Statement {
 
   @Override
   public Statement accept(Visitor visitor) {
-    Expression expression = this.expression.accept(visitor);
-    return visitor.visit(this, expression);
+    Expression expression1 =
+        expression == null ? null : expression.accept(visitor);
+    return visitor.visit(this, expression1);
   }
 
   @Override
@@ -96,4 +97,4 @@ public class GotoExpression extends Statement {
   }
 }
 
-// End GotoExpression.java
+// End GotoStatement.java

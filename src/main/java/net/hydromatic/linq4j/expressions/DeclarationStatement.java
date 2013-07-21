@@ -21,15 +21,13 @@ import java.lang.reflect.Modifier;
 
 /**
  * Expression that declares and optionally initializes a variable.
- *
- * @author jhyde
  */
-public class DeclarationExpression extends Statement {
+public class DeclarationStatement extends Statement {
   public final int modifiers;
   public final ParameterExpression parameter;
   public final Expression initializer;
 
-  public DeclarationExpression(int modifiers, ParameterExpression parameter,
+  public DeclarationStatement(int modifiers, ParameterExpression parameter,
       Expression initializer) {
     super(ExpressionType.Declaration, Void.TYPE);
     this.modifiers = modifiers;
@@ -38,7 +36,7 @@ public class DeclarationExpression extends Statement {
   }
 
   @Override
-  public Statement accept(Visitor visitor) {
+  public DeclarationStatement accept(Visitor visitor) {
     // do not visit parameter - visit may not return a ParameterExpression
     Expression initializer = this.initializer != null
         ? this.initializer.accept(visitor)
@@ -59,6 +57,22 @@ public class DeclarationExpression extends Statement {
     writer.append(';');
     writer.newlineAndIndent();
   }
+
+  public void accept2(ExpressionWriter writer, boolean withType) {
+    if (withType) {
+      final String modifiers = Modifier.toString(this.modifiers);
+      if (!modifiers.isEmpty()) {
+        writer.append(modifiers).append(' ');
+      }
+      writer.append(parameter.type).append(' ');
+    } else {
+      writer.append(", ");
+    }
+    writer.append(parameter.name);
+    if (initializer != null) {
+      writer.append(" = ").append(initializer);
+    }
+  }
 }
 
-// End DeclarationExpression.java
+// End DeclarationStatement.java

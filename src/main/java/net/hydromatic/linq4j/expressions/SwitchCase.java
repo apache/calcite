@@ -18,7 +18,7 @@
 package net.hydromatic.linq4j.expressions;
 
 /**
- * Represents one case of a {@link SwitchExpression}.
+ * Represents one case of a {@link SwitchStatement}.
  */
 public class SwitchCase {
 }

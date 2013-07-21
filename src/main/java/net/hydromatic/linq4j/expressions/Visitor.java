@@ -23,46 +23,48 @@ import java.util.List;
 
 /**
  * Node visitor.
- *
- * @author jhyde
  */
 public class Visitor {
-  public Statement visit(WhileExpression whileExpression, Expression condition,
+  public Statement visit(WhileStatement whileStatement, Expression condition,
       Statement body) {
-    return condition == whileExpression.condition
-           && body == whileExpression.body
-        ? whileExpression
+    return condition == whileStatement.condition
+           && body == whileStatement.body
+        ? whileStatement
         : Expressions.while_(condition, body);
   }
 
-  public BlockExpression visit(BlockExpression blockExpression,
+  public BlockStatement visit(BlockStatement blockStatement,
       List<Statement> statements) {
-    return statements.equals(blockExpression.statements)
-        ? blockExpression
+    return statements.equals(blockStatement.statements)
+        ? blockStatement
         : Expressions.block(statements);
   }
 
-  public Statement visit(GotoExpression gotoExpression, Expression expression) {
-    return expression == gotoExpression.expression
-        ? gotoExpression
-        : Expressions.makeGoto(gotoExpression.kind, gotoExpression.labelTarget,
+  public Statement visit(GotoStatement gotoStatement, Expression expression) {
+    return expression == gotoStatement.expression
+        ? gotoStatement
+        : Expressions.makeGoto(
+            gotoStatement.kind, gotoStatement.labelTarget,
             expression);
   }
 
-  public LabelExpression visit(LabelExpression labelExpression) {
-    return labelExpression;
+  public LabelStatement visit(LabelStatement labelStatement) {
+    return labelStatement;
   }
 
-  public LoopExpression visit(LoopExpression loopExpression) {
-    return loopExpression;
+  public ForStatement visit(ForStatement forStatement,
+      List<DeclarationStatement> declarations, Expression condition,
+      Expression post, Statement body) {
+    return forStatement;
   }
 
-  public Statement visit(DeclarationExpression declarationExpression,
+  public DeclarationStatement visit(DeclarationStatement declarationStatement,
       ParameterExpression parameter, Expression initializer) {
-    return declarationExpression.parameter == parameter
-           && declarationExpression.initializer == initializer
-        ? declarationExpression
-        : Expressions.declare(declarationExpression.modifiers, parameter,
+    return declarationStatement.parameter == parameter
+           && declarationStatement.initializer == initializer
+        ? declarationStatement
+        : Expressions.declare(
+            declarationStatement.modifiers, parameter,
             initializer);
   }
 
@@ -71,7 +73,7 @@ public class Visitor {
   }
 
   public Expression visit(FunctionExpression functionExpression,
-      BlockExpression body, List<ParameterExpression> parameterList) {
+      BlockStatement body, List<ParameterExpression> parameterList) {
     return functionExpression.body.equals(body)
            && functionExpression.parameterList.equals(parameterList)
         ? functionExpression
@@ -161,12 +163,12 @@ public class Visitor {
         : Expressions.new_(newExpression.type, arguments, memberDeclarations);
   }
 
-  public Statement visit(SwitchExpression switchExpression) {
-    return switchExpression;
+  public Statement visit(SwitchStatement switchStatement) {
+    return switchStatement;
   }
 
-  public Statement visit(TryExpression tryExpression) {
-    return tryExpression;
+  public Statement visit(TryStatement tryStatement) {
+    return tryStatement;
   }
 
   public Expression visit(MemberInitExpression memberInitExpression) {
@@ -179,7 +181,7 @@ public class Visitor {
   }
 
   public MemberDeclaration visit(MethodDeclaration methodDeclaration,
-      List<ParameterExpression> parameters, BlockExpression body) {
+      List<ParameterExpression> parameters, BlockStatement body) {
     return parameters.equals(methodDeclaration.parameters)
         && body.equals(methodDeclaration.body)
         ? methodDeclaration
@@ -211,7 +213,7 @@ public class Visitor {
   }
 
   public MemberDeclaration visit(ConstructorDeclaration constructorDeclaration,
-      List<ParameterExpression> parameters, BlockExpression body) {
+      List<ParameterExpression> parameters, BlockStatement body) {
     return constructorDeclaration;
   }
 }

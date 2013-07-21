@@ -209,8 +209,8 @@ public class Expressions {
    */
   public static IndexExpression arrayIndex(Expression array,
       Expression indexExpression) {
-    return new IndexExpression(array, Collections.singletonList(
-        indexExpression));
+    return new IndexExpression(array,
+        Collections.singletonList(indexExpression));
   }
 
   /**
@@ -248,23 +248,24 @@ public class Expressions {
   /**
    * Creates a BlockExpression that contains the given statements.
    */
-  public static BlockExpression block(Statement... statements) {
-    return block(toList(statements));
+  public static BlockStatement block(
+      Iterable<? extends Statement> statements) {
+    return block((Type) null, statements);
   }
 
   /**
-   * Creates a BlockExpression that contains the given statements.
+   * Creates a BlockExpression that contains the given statements,
+   * using varargs.
    */
-  public static BlockExpression block(
-      Iterable<? extends Statement> statements) {
-    return block((Type) null, statements);
+  public static BlockStatement block(Statement... statements) {
+    return block(toList(statements));
   }
 
   /**
    * Creates a BlockExpression that contains the given expressions,
    * has no variables and has specific result type.
    */
-  public static BlockExpression block(Type type,
+  public static BlockStatement block(Type type,
       Iterable<? extends Statement> expressions) {
     List<Statement> list = toList(expressions);
     if (type == null) {
@@ -274,38 +275,38 @@ public class Expressions {
         type = Void.TYPE;
       }
     }
-    return new BlockExpression(list, type);
+    return new BlockStatement(list, type);
   }
 
   /**
    * Creates a BlockExpression that contains the given statements
-   * and has a specific result type.
+   * and has a specific result type, using varargs.
    */
-  public static BlockExpression block(Type type, Statement... statements) {
+  public static BlockStatement block(Type type, Statement... statements) {
     return block(type, toList(statements));
   }
 
   /**
    * Creates a GotoExpression representing a break statement.
    */
-  public static GotoExpression break_(LabelTarget labelTarget) {
-    throw Extensions.todo();
+  public static GotoStatement break_(LabelTarget labelTarget) {
+    return new GotoStatement(GotoExpressionKind.Break, null, null);
   }
 
   /**
    * Creates a GotoExpression representing a break statement. The
    * value passed to the label upon jumping can be specified.
    */
-  public static GotoExpression break_(LabelTarget labelTarget,
+  public static GotoStatement break_(LabelTarget labelTarget,
       Expression expression) {
-    throw Extensions.todo();
+    return new GotoStatement(GotoExpressionKind.Break, null, expression);
   }
 
   /**
    * Creates a GotoExpression representing a break statement with
    * the specified type.
    */
-  public static GotoExpression break_(LabelTarget labelTarget, Type type) {
+  public static GotoStatement break_(LabelTarget labelTarget, Type type) {
     throw Extensions.todo();
   }
 
@@ -314,23 +315,23 @@ public class Expressions {
    * the specified type. The value passed to the label upon jumping
    * can be specified.
    */
-  public static GotoExpression break_(LabelTarget labelTarget,
+  public static GotoStatement break_(LabelTarget labelTarget,
       Expression expression, Type type) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a MethodCallExpression that represents a call to a
-   * static method.
+   * static method that has arguments.
    */
   public static MethodCallExpression call(Method method,
-      Iterable<Expression> expressions) {
-    return new MethodCallExpression(method, null, toList(expressions));
+      Iterable<? extends Expression> arguments) {
+    return new MethodCallExpression(method, null, toList(arguments));
   }
 
   /**
    * Creates a MethodCallExpression that represents a call to a
-   * static method that has arguments.
+   * static method that has arguments, using varargs.
    */
   public static MethodCallExpression call(Method method,
       Expression... arguments) {
@@ -342,7 +343,16 @@ public class Expressions {
    * method that takes arguments.
    */
   public static MethodCallExpression call(Expression expression, Method method,
-      Iterable<Expression> arguments) {
+      Iterable<? extends Expression> arguments) {
+    return new MethodCallExpression(method, expression, toList(arguments));
+  }
+
+  /**
+   * Creates a MethodCallExpression that represents a call to a
+   * method that takes arguments, using varargs.
+   */
+  public static MethodCallExpression call(Expression expression, Method method,
+      Expression... arguments) {
     return new MethodCallExpression(method, expression, toList(arguments));
   }
 
@@ -357,37 +367,27 @@ public class Expressions {
    * is static.</p>
    */
   public static MethodCallExpression call(Type returnType,
-      Expression expression, Method method, Iterable<Expression> arguments) {
-    return new MethodCallExpression(returnType, method, expression, toList(
-        arguments));
+      Expression expression, Method method,
+      Iterable<? extends Expression> arguments) {
+    return new MethodCallExpression(returnType, method, expression,
+        toList(arguments));
   }
 
   /**
    * Creates a MethodCallExpression that represents a call to a
-   * method that takes arguments.
+   * method that takes arguments, with an explicit return type, with varargs.
+   *
+   * <p>The return type must be consistent with the return type of the method,
+   * but may contain extra information, such as type parameters.</p>
+   *
+   * <p>The {@code expression} argument may be null if and only if the method
+   * is static.</p>
    */
-  public static MethodCallExpression call(Expression expression, Method method,
+  public static MethodCallExpression call(Type returnType,
+      Expression expression, Method method,
       Expression... arguments) {
-    return new MethodCallExpression(method, expression, toList(arguments));
-  }
-
-  /**
-   * Creates a MethodCallExpression that represents a call to an
-   * instance method by calling the appropriate factory method.
-   */
-  public static MethodCallExpression call(Expression expression,
-      String methodName, Iterable<Expression> arguments) {
-    Method method;
-    try {
-      method = Types.toClass(expression.getType()).getMethod(methodName,
-          Types.toClassArray(arguments));
-    } catch (NoSuchMethodException e) {
-      throw new RuntimeException("while resolving method '"
-                                 + methodName
-                                 + "' in class "
-                                 + expression.getType(), e);
-    }
-    return call(expression, method, arguments);
+    return new MethodCallExpression(returnType, method, expression,
+        toList(arguments));
   }
 
   /**
@@ -395,8 +395,26 @@ public class Expressions {
    * instance method by calling the appropriate factory method.
    */
   public static MethodCallExpression call(Expression target, String methodName,
+      Iterable<? extends Expression> arguments) {
+    Method method;
+    try {
+      //noinspection unchecked
+      method = Types.toClass(target.getType())
+          .getMethod(methodName, Types.toClassArray(arguments));
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException("while resolving method '" + methodName
+          + "' in class " + target.getType(), e);
+    }
+    return call(target, method, arguments);
+  }
+
+  /**
+   * Creates a MethodCallExpression that represents a call to an
+   * instance method by calling the appropriate factory method, using varargs.
+   */
+  public static MethodCallExpression call(Expression target, String methodName,
       Expression... arguments) {
-    return call(target, methodName, Arrays.<Expression>asList(arguments));
+    return call(target, methodName, toList(arguments));
   }
 
   /**
@@ -405,7 +423,7 @@ public class Expressions {
    * appropriate factory method.
    */
   public static MethodCallExpression call(Type type, String methodName,
-      Iterable<Expression> arguments) {
+      Iterable<? extends Expression> arguments) {
     Method method = Types.lookupMethod(Types.toClass(type), methodName,
         Types.toClassArray(arguments));
     return new MethodCallExpression(method, null, toList(arguments));
@@ -414,11 +432,11 @@ public class Expressions {
   /**
    * Creates a MethodCallExpression that represents a call to a
    * static method by calling the
-   * appropriate factory method.
+   * appropriate factory method, using varargs.
    */
   public static MethodCallExpression call(Type type, String methodName,
       Expression... arguments) {
-    return call(type, methodName, Arrays.<Expression>asList(arguments));
+    return call(type, methodName, toList(arguments));
   }
 
   /**
@@ -556,7 +574,7 @@ public class Expressions {
     if (value != null && type instanceof Class) {
       // Fix up value so that it matches type.
       Class clazz = (Class) type;
-      Primitive primitive = Primitive.of(clazz);
+      Primitive primitive = Primitive.ofBoxOr(clazz);
       if (primitive != null) {
         clazz = primitive.boxClass;
       }
@@ -579,7 +597,7 @@ public class Expressions {
   /**
    * Creates a GotoExpression representing a continue statement.
    */
-  public static GotoExpression continue_(LabelTarget labelTarget) {
+  public static GotoStatement continue_(LabelTarget labelTarget) {
     throw Extensions.todo();
   }
 
@@ -587,7 +605,7 @@ public class Expressions {
    * Creates a GotoExpression representing a continue statement
    * with the specified type.
    */
-  public static GotoExpression continue_(LabelTarget labelTarget, Type type) {
+  public static GotoStatement continue_(LabelTarget labelTarget, Type type) {
     throw Extensions.todo();
   }
 
@@ -712,22 +730,13 @@ public class Expressions {
    * operation bound by the provided CallSiteBinder.
    */
   public static DynamicExpression dynamic(CallSiteBinder binder, Type type,
-      Iterable<Expression> expressions) {
+      Iterable<? extends Expression> expressions) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a DynamicExpression that represents a dynamic
-   * operation bound by the provided CallSiteBinder.
-   */
-  public static DynamicExpression dynamic(CallSiteBinder binder, Type type,
-      Expression expression) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates a DynamicExpression that represents a dynamic
-   * operation bound by the provided CallSiteBinder.
+   * operation bound by the provided CallSiteBinder, using varargs.
    */
   public static DynamicExpression dynamic(CallSiteBinder binder, Type type,
       Expression... expression) {
@@ -739,13 +748,13 @@ public class Expressions {
    * argument.
    */
   public static ElementInit elementInit(Method method,
-      Iterable<Expression> expressions) {
+      Iterable<? extends Expression> expressions) {
     throw Extensions.todo();
   }
 
   /**
    * Creates an ElementInit, given an array of values as the second
-   * argument.
+   * argument, using varargs.
    */
   public static ElementInit elementInit(Method method,
       Expression... expressions) {
@@ -888,7 +897,7 @@ public class Expressions {
   /**
    * Creates a GotoExpression representing a "go to" statement.
    */
-  public static GotoExpression goto_(LabelTarget labelTarget) {
+  public static GotoStatement goto_(LabelTarget labelTarget) {
     throw Extensions.todo();
   }
 
@@ -896,7 +905,7 @@ public class Expressions {
    * Creates a GotoExpression representing a "go to" statement. The
    * value passed to the label upon jumping can be specified.
    */
-  public static GotoExpression goto_(LabelTarget labelTarget,
+  public static GotoStatement goto_(LabelTarget labelTarget,
       Expression expression) {
     throw Extensions.todo();
   }
@@ -905,7 +914,7 @@ public class Expressions {
    * Creates a GotoExpression representing a "go to" statement with
    * the specified type.
    */
-  public static GotoExpression goto_(LabelTarget labelTarget, Type type) {
+  public static GotoStatement goto_(LabelTarget labelTarget, Type type) {
     throw Extensions.todo();
   }
 
@@ -914,7 +923,7 @@ public class Expressions {
    * the specified type. The value passed to the label upon jumping
    * can be specified.
    */
-  public static GotoExpression goto_(LabelTarget labelTarget,
+  public static GotoStatement goto_(LabelTarget labelTarget,
       Expression expression, Type type) {
     throw Extensions.todo();
   }
@@ -995,13 +1004,13 @@ public class Expressions {
    * lambda expression to a list of argument expressions.
    */
   public static InvocationExpression invoke(Expression expression,
-      Iterable<Expression> arguments) {
+      Iterable<? extends Expression> arguments) {
     throw Extensions.todo();
   }
 
   /**
    * Creates an InvocationExpression that applies a delegate or
-   * lambda expression to a list of argument expressions.
+   * lambda expression to a list of argument expressions, using varargs.
    */
   public static InvocationExpression invoke(Expression expression,
       Expression... arguments) {
@@ -1048,7 +1057,7 @@ public class Expressions {
    * Creates a LabelExpression representing a label without a
    * default value.
    */
-  public static LabelExpression label(LabelTarget labelTarget) {
+  public static LabelStatement label(LabelTarget labelTarget) {
     throw Extensions.todo();
   }
 
@@ -1072,7 +1081,7 @@ public class Expressions {
    * Creates a LabelExpression representing a label with the given
    * default value.
    */
-  public static LabelExpression label(LabelTarget labelTarget,
+  public static LabelStatement label(LabelTarget labelTarget,
       Expression expression) {
     throw Extensions.todo();
   }
@@ -1102,90 +1111,86 @@ public class Expressions {
    * type.
    */
   public static <F extends Function<?>> FunctionExpression<F> lambda(
-      BlockExpression body, Iterable<ParameterExpression> parameters) {
+      BlockStatement body,
+      Iterable<? extends ParameterExpression> parameters) {
     final List<ParameterExpression> parameterList = toList(parameters);
+    @SuppressWarnings("unchecked")
     Class<F> type = deduceType(parameterList, body.getType());
     return new FunctionExpression<F>(type, body, parameterList);
   }
 
   /**
    * Creates a LambdaExpression by first constructing a delegate
-   * type.
+   * type, using varargs.
    */
   public static <F extends Function<?>> FunctionExpression<F> lambda(
-      Expression body, Iterable<ParameterExpression> parameters) {
-    return lambda(Blocks.toFunctionBlock(body), parameters);
-  }
-
-  /**
-   * Creates an Expression<TDelegate> where the delegate type is
-   * known at compile time.
-   */
-  public static <TDelegate extends Function<?>> FunctionExpression<TDelegate>
-  lambda(BlockExpression body, ParameterExpression... parameters) {
+      BlockStatement body, ParameterExpression... parameters) {
     return lambda(body, toList(parameters));
   }
 
   /**
-   * Creates an Expression<TDelegate> where the delegate type is
+   * Creates an Expression where the delegate type {@code F} is
    * known at compile time.
    */
-  public static <TDelegate extends Function<?>> FunctionExpression<TDelegate>
-  lambda(Expression body, ParameterExpression... parameters) {
+  public static <F extends Function<?>> FunctionExpression<F> lambda(
+      Expression body, Iterable<? extends ParameterExpression> parameters) {
+    return lambda(Blocks.toFunctionBlock(body), parameters);
+  }
+
+  /**
+   * Creates an Expression where the delegate type {@code F} is
+   * known at compile time, using varargs.
+   */
+  public static <F extends Function<?>> FunctionExpression<F> lambda(
+      Expression body, ParameterExpression... parameters) {
     return lambda(Blocks.toFunctionBlock(body), toList(parameters));
   }
 
   /**
    * Creates a LambdaExpression by first constructing a delegate
-   * type. It can be used when the delegate type is not known at
-   * compile time.
+   * type.
+   *
+   * <p>It can be used when the delegate type is not known at compile time.
    */
   public static <T, F extends Function<? extends T>> FunctionExpression<F>
-  lambda(Class<F> type, BlockExpression body,
-      Iterable<ParameterExpression> parameters) {
+  lambda(Class<F> type, BlockStatement body,
+      Iterable<? extends ParameterExpression> parameters) {
     return new FunctionExpression<F>(type, body, toList(parameters));
   }
 
   /**
    * Creates a LambdaExpression by first constructing a delegate
-   * type. It can be used when the delegate type is not known at
-   * compile time.
+   * type, using varargs.
+   *
+   * <p>It can be used when the delegate type is not known at compile time.
    */
   public static <T, F extends Function<? extends T>> FunctionExpression<F>
-  lambda(Class<F> type, Expression body,
-      Iterable<ParameterExpression> parameters) {
-    return lambda(type, Blocks.toFunctionBlock(body), toList(parameters));
-  }
-
-  /**
-   * Creates a LambdaExpression by first constructing a delegate
-   * type. It can be used when the delegate type is not known at
-   * compile time.
-   */
-  public static <T, F extends Function<? extends T>> FunctionExpression<F>
-  lambda(Class<F> type, BlockExpression body,
+  lambda(Class<F> type, BlockStatement body,
       ParameterExpression... parameters) {
     return lambda(type, body, toList(parameters));
   }
 
   /**
    * Creates a LambdaExpression by first constructing a delegate
-   * type. It can be used when the delegate type is not known at
-   * compile time.
+   * type.
+   *
+   * <p>It can be used when the delegate type is not known at compile time.
    */
   public static <T, F extends Function<? extends T>> FunctionExpression<F>
-  lambda(Class<F> type, Expression body, ParameterExpression... parameters) {
-    return lambda(type, body, toList(parameters));
+  lambda(Class<F> type, Expression body,
+      Iterable<? extends ParameterExpression> parameters) {
+    return lambda(type, Blocks.toFunctionBlock(body), toList(parameters));
   }
 
   /**
    * Creates a LambdaExpression by first constructing a delegate
-   * type.
+   * type, using varargs.
+   *
+   * <p>It can be used when the delegate type is not known at compile time.
    */
   public static <T, F extends Function<? extends T>> FunctionExpression<F>
-  lambda(Type type, BlockExpression body, String name,
-      Iterable<ParameterExpression> parameters) {
-    throw Extensions.todo();
+  lambda(Class<F> type, Expression body, ParameterExpression... parameters) {
+    return lambda(type, Blocks.toFunctionBlock(body), toList(parameters));
   }
 
   /**
@@ -1272,13 +1277,13 @@ public class Expressions {
    * property.
    */
   public static MemberListBinding listBind(Member member,
-      Iterable<ElementInit> elementInits) {
+      Iterable<? extends ElementInit> elementInits) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a MemberListBinding where the member is a field or
-   * property.
+   * property, using varargs.
    */
   public static MemberListBinding listBind(Member member,
       ElementInit... elementInits) {
@@ -1290,13 +1295,13 @@ public class Expressions {
    * accessor method.
    */
   public static MemberListBinding listBind(Method method,
-      Iterable<ElementInit> elementInits) {
+      Iterable<? extends ElementInit> elementInits) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a MemberListBinding object based on a specified
-   * property accessor method.
+   * property accessor method, using varargs.
    */
   public static MemberListBinding listBind(Method method,
       ElementInit... elementInits) {
@@ -1308,22 +1313,13 @@ public class Expressions {
    * objects to initialize a collection.
    */
   public static ListInitExpression listInit(NewExpression newExpression,
-      Iterable<ElementInit> elementInits) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates a ListInitExpression that uses a method named "Add" to
-   * add elements to a collection.
-   */
-  public static ListInitExpression listInitE(NewExpression newExpression,
-      Iterable<Expression> arguments) {
+      Iterable<? extends ElementInit> elementInits) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a ListInitExpression that uses specified ElementInit
-   * objects to initialize a collection.
+   * objects to initialize a collection, using varargs.
    */
   public static ListInitExpression listInit(NewExpression newExpression,
       ElementInit... elementInits) {
@@ -1333,6 +1329,15 @@ public class Expressions {
   /**
    * Creates a ListInitExpression that uses a method named "Add" to
    * add elements to a collection.
+   */
+  public static ListInitExpression listInitE(NewExpression newExpression,
+      Iterable<? extends Expression> arguments) {
+    throw Extensions.todo();
+  }
+
+  /**
+   * Creates a ListInitExpression that uses a method named "Add" to
+   * add elements to a collection, using varargs.
    */
   public static ListInitExpression listInit(NewExpression newExpression,
       Expression... arguments) {
@@ -1344,13 +1349,13 @@ public class Expressions {
    * add elements to a collection.
    */
   public static ListInitExpression listInit(NewExpression newExpression,
-      Method method, Iterable<Expression> arguments) {
+      Method method, Iterable<? extends Expression> arguments) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a ListInitExpression that uses a specified method to
-   * add elements to a collection.
+   * add elements to a collection, using varargs.
    */
   public static ListInitExpression listInit(NewExpression newExpression,
       Method method, Expression... arguments) {
@@ -1360,24 +1365,20 @@ public class Expressions {
   /**
    * Creates a LoopExpression with the given body.
    */
-  public static LoopExpression loop(Expression body) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates a LoopExpression with the given body and break
-   * target.
-   */
-  public static LoopExpression loop(Expression body, LabelTarget breakTarget) {
-    throw Extensions.todo();
+  public static ForStatement for_(
+      Iterable<? extends DeclarationStatement> declarations,
+      Expression condition, Expression post, Statement body) {
+    return new ForStatement(toList(declarations), condition, post, body);
   }
 
   /**
    * Creates a LoopExpression with the given body.
    */
-  public static LoopExpression loop(Expression body, LabelTarget breakTarget,
-      LabelTarget continueTarget) {
-    throw Extensions.todo();
+  public static ForStatement for_(
+      DeclarationStatement declaration,
+      Expression condition, Expression post, Statement body) {
+    return new ForStatement(Collections.singletonList(declaration), condition,
+        post, body);
   }
 
   /**
@@ -1525,23 +1526,13 @@ public class Expressions {
    * operation bound by the provided CallSiteBinder.
    */
   public static DynamicExpression makeDynamic(Type type, CallSiteBinder binder,
-      Iterable<Expression> arguments) {
+      Iterable<? extends Expression> arguments) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a DynamicExpression that represents a dynamic
-   * operation bound by the provided CallSiteBinder and one
-   * argument.
-   */
-  public static DynamicExpression makeDynamic(Type type, CallSiteBinder binder,
-      Expression argument) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates a DynamicExpression that represents a dynamic
-   * operation bound by the provided CallSiteBinder.
+   * operation bound by the provided CallSiteBinder, using varargs.
    */
   public static DynamicExpression makeDynamic(Type type, CallSiteBinder binder,
       Expression... arguments) {
@@ -1553,17 +1544,8 @@ public class Expressions {
    * GotoExpressionKind. The value passed to the label upon jumping
    * can also be specified.
    */
-  public static GotoExpression makeGoto(GotoExpressionKind kind,
+  public static GotoStatement makeGoto(GotoExpressionKind kind,
       LabelTarget target, Expression value, Type type) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates an IndexExpression that represents accessing an
-   * indexed property in an object.
-   */
-  public static IndexExpression makeIndex(Expression instance,
-      PropertyInfo indexer, Iterable<Expression> arguments) {
     throw Extensions.todo();
   }
 
@@ -1579,8 +1561,19 @@ public class Expressions {
    * Creates a TryExpression representing a try block with the
    * specified elements.
    */
-  public static TryExpression makeTry(Type type, Expression body,
-      Expression finally_, Expression fault, Iterable<CatchBlock> handlers) {
+  public static TryStatement makeTry(Type type, Expression body,
+      Expression finally_, Expression fault,
+      Iterable<? extends CatchBlock> handlers) {
+    throw Extensions.todo();
+  }
+
+  /**
+   * Creates a TryExpression representing a try block with the
+   * specified elements, using varargs.
+   */
+  public static TryStatement makeTry(Type type, Expression body,
+      Expression finally_, Expression fault,
+      CatchBlock... handlers) {
     throw Extensions.todo();
   }
 
@@ -1609,13 +1602,13 @@ public class Expressions {
    * initialization of members of a field or property.
    */
   public static MemberMemberBinding memberBind(Member member,
-      Iterable<MemberBinding> bindings) {
+      Iterable<? extends MemberBinding> bindings) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a MemberMemberBinding that represents the recursive
-   * initialization of members of a field or property.
+   * initialization of members of a field or property, using varargs.
    */
   public static MemberMemberBinding memberBind(Member member,
       MemberBinding... bindings) {
@@ -1628,14 +1621,14 @@ public class Expressions {
    * a property accessor method.
    */
   public static MemberMemberBinding memberBind(Method method,
-      Iterable<MemberBinding> bindings) {
+      Iterable<? extends MemberBinding> bindings) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a MemberMemberBinding that represents the recursive
    * initialization of members of a member that is accessed by using
-   * a property accessor method.
+   * a property accessor method, using varargs.
    */
   public static MemberMemberBinding memberBind(Method method,
       MemberBinding... bindings) {
@@ -1647,12 +1640,13 @@ public class Expressions {
    * initializes a property of the object.
    */
   public static MemberInitExpression memberInit(NewExpression newExpression,
-      Iterable<MemberBinding> bindings) {
+      Iterable<? extends MemberBinding> bindings) {
     throw Extensions.todo();
   }
 
   /**
-   * Creates a MemberInitExpression.
+   * Represents an expression that creates a new object and
+   * initializes a property of the object, using varargs.
    */
   public static MemberInitExpression memberInit(NewExpression newExpression,
       MemberBinding... bindings) {
@@ -1663,8 +1657,8 @@ public class Expressions {
    * Declares a method.
    */
   public static MethodDeclaration methodDecl(int modifier, Type resultType,
-      String name, Iterable<ParameterExpression> parameters,
-      BlockExpression body) {
+      String name, Iterable<? extends ParameterExpression> parameters,
+      BlockStatement body) {
     return new MethodDeclaration(modifier, name, resultType, toList(parameters),
         body);
   }
@@ -1673,8 +1667,8 @@ public class Expressions {
    * Declares a constructor.
    */
   public static ConstructorDeclaration constructorDecl(int modifier,
-      Type declaredAgainst, Iterable<ParameterExpression> parameters,
-      BlockExpression body) {
+      Type declaredAgainst, Iterable<? extends ParameterExpression> parameters,
+      BlockStatement body) {
     return new ConstructorDeclaration(modifier, declaredAgainst, toList(
         parameters), body);
   }
@@ -1879,8 +1873,8 @@ public class Expressions {
    * constructor that takes no arguments.
    */
   public static NewExpression new_(Constructor constructor) {
-    return new_(constructor.getDeclaringClass(),
-        Collections.<Expression>emptyList());
+    return new_(
+        constructor.getDeclaringClass(), Collections.<Expression>emptyList());
   }
 
   /**
@@ -1896,10 +1890,22 @@ public class Expressions {
    * specified type whose parameters are assignable from the specified
    * arguments.
    */
-  public static NewExpression new_(Type type, Iterable<Expression> arguments) {
+  public static NewExpression new_(Type type,
+      Iterable<? extends Expression> arguments) {
     // Note that the last argument is not an empty list. That would cause
     // an anonymous inner-class with no members to be generated.
-    return new_(type, arguments, null);
+    return new NewExpression(type, toList(arguments), null);
+  }
+
+  /**
+   * Creates a NewExpression that represents calling the constructor of the
+   * specified type whose parameters are assignable from the specified
+   * arguments, using varargs.
+   */
+  public static NewExpression new_(Type type, Expression... arguments) {
+    // Note that the last argument is not an empty list. That would cause
+    // an anonymous inner-class with no members to be generated.
+    return new NewExpression(type, toList(arguments), null);
   }
 
   /**
@@ -1907,10 +1913,23 @@ public class Expressions {
    * specified type whose parameters are assignable from the specified
    * arguments.
    */
-  public static NewExpression new_(Type type, Iterable<Expression> arguments,
-      Iterable<MemberDeclaration> memberDeclarations) {
-    return new NewExpression(type, toList(arguments), toList(
-        memberDeclarations));
+  public static NewExpression new_(Type type,
+      Iterable<? extends Expression> arguments,
+      Iterable<? extends MemberDeclaration> memberDeclarations) {
+    return new NewExpression(type, toList(arguments),
+        toList(memberDeclarations));
+  }
+
+  /**
+   * Creates a NewExpression that represents calling the constructor of the
+   * specified type whose parameters are assignable from the specified
+   * arguments, using varargs.
+   */
+  public static NewExpression new_(Type type,
+      Iterable<? extends Expression> arguments,
+      MemberDeclaration... memberDeclarations) {
+    return new NewExpression(type, toList(arguments),
+        toList(memberDeclarations));
   }
 
   /**
@@ -1918,31 +1937,49 @@ public class Expressions {
    * constructor with the specified arguments.
    */
   public static NewExpression new_(Constructor constructor,
-      Iterable<Expression> expressions) {
+      Iterable<? extends Expression> expressions) {
     // Note that the last argument is not an empty list. That would cause
     // an anonymous inner-class with no members to be generated.
-    return new_(constructor.getDeclaringClass(), expressions, null);
+    return new NewExpression(constructor.getDeclaringClass(),
+        toList(expressions), null);
   }
 
   /**
    * Creates a NewExpression that represents calling the specified
-   * constructor with the specified arguments.
+   * constructor with the specified arguments, using varargs.
    */
   public static NewExpression new_(Constructor constructor,
       Expression... expressions) {
-    return new_(constructor, toList(expressions));
+    return new NewExpression(constructor.getDeclaringClass(),
+        toList(expressions), null);
   }
 
   /**
    * Creates a NewExpression that represents calling the specified
-   * constructor with the specified arguments. The members that
-   * access the constructor initialized fields are specified.
+   * constructor with the specified arguments.
+   *
+   * <p>The members that access the constructor initialized fields are
+   * specified.
    */
   public static NewExpression new_(Constructor constructor,
-      Iterable<Expression> expressions,
-      Iterable<MemberDeclaration> memberDeclarations) {
-    return new_(constructor.getDeclaringClass(), toList(expressions), toList(
-        memberDeclarations));
+      Iterable<? extends Expression> expressions,
+      Iterable<? extends MemberDeclaration> memberDeclarations) {
+    return new_(constructor.getDeclaringClass(), toList(expressions),
+        toList(memberDeclarations));
+  }
+
+  /**
+   * Creates a NewExpression that represents calling the specified
+   * constructor with the specified arguments, using varargs.
+   *
+   * <p>The members that access the constructor initialized fields are
+   * specified.
+   */
+  public static NewExpression new_(Constructor constructor,
+      Iterable<? extends Expression> expressions,
+      MemberDeclaration... memberDeclarations) {
+    return new_(constructor.getDeclaringClass(), toList(expressions),
+        toList(memberDeclarations));
   }
 
   /**
@@ -1950,13 +1987,13 @@ public class Expressions {
    * that has a specified rank.
    */
   public static NewArrayExpression newArrayBounds(Type type,
-      Iterable<Expression> expressions) {
+      Iterable<? extends Expression> expressions) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a NewArrayExpression that represents creating an array
-   * that has a specified rank.
+   * that has a specified rank, using varargs.
    */
   public static NewArrayExpression newArrayBounds(Type type,
       Expression... expressions) {
@@ -1971,14 +2008,16 @@ public class Expressions {
    * @param type Element type of the array.
    */
   public static NewArrayExpression newArrayInit(Type type,
-      Iterable<Expression> expressions) {
+      Iterable<? extends Expression> expressions) {
     return new NewArrayExpression(type, toList(expressions));
   }
 
   /**
    * Creates a NewArrayExpression that represents creating a
    * one-dimensional array and initializing it from a list of
-   * elements.
+   * elements, using varargs.
+   *
+   * @param type Element type of the array.
    */
   public static NewArrayExpression newArrayInit(Type type,
       Expression... expressions) {
@@ -2283,13 +2322,13 @@ public class Expressions {
    */
   // REVIEW: No equivalent to properties in Java.
   public static IndexExpression property(Expression expression,
-      PropertyInfo property, Iterable<Expression> arguments) {
+      PropertyInfo property, Iterable<? extends Expression> arguments) {
     throw Extensions.todo();
   }
 
   /**
    * Creates an IndexExpression representing the access to an
-   * indexed property.
+   * indexed property, using varargs.
    */
   // REVIEW: No equivalent to properties in Java.
   public static IndexExpression property(Expression expression,
@@ -2396,7 +2435,7 @@ public class Expressions {
   /**
    * Creates a GotoExpression representing a return statement.
    */
-  public static GotoExpression return_(LabelTarget labelTarget) {
+  public static GotoStatement return_(LabelTarget labelTarget) {
     return return_(labelTarget, (Expression) null);
   }
 
@@ -2404,21 +2443,21 @@ public class Expressions {
    * Creates a GotoExpression representing a return statement. The
    * value passed to the label upon jumping can be specified.
    */
-  public static GotoExpression return_(LabelTarget labelTarget,
+  public static GotoStatement return_(LabelTarget labelTarget,
       Expression expression) {
     return makeGoto(GotoExpressionKind.Return, labelTarget, expression);
   }
 
-  public static GotoExpression makeGoto(GotoExpressionKind kind,
+  public static GotoStatement makeGoto(GotoExpressionKind kind,
       LabelTarget labelTarget, Expression expression) {
-    return new GotoExpression(kind, labelTarget, expression);
+    return new GotoStatement(kind, labelTarget, expression);
   }
 
   /**
    * Creates a GotoExpression representing a return statement with
    * the specified type.
    */
-  public static GotoExpression return_(LabelTarget labelTarget, Type type) {
+  public static GotoStatement return_(LabelTarget labelTarget, Type type) {
     throw Extensions.todo();
   }
 
@@ -2427,7 +2466,7 @@ public class Expressions {
    * the specified type. The value passed to the label upon jumping
    * can be specified.
    */
-  public static GotoExpression return_(LabelTarget labelTarget,
+  public static GotoStatement return_(LabelTarget labelTarget,
       Expression expression, Type type) {
     throw Extensions.todo();
   }
@@ -2482,12 +2521,12 @@ public class Expressions {
    * Creates an instance of RuntimeVariablesExpression.
    */
   public static RuntimeVariablesExpression runtimeVariables(
-      Iterable<ParameterExpression> expressions) {
+      Iterable<? extends ParameterExpression> expressions) {
     throw Extensions.todo();
   }
 
   /**
-   * Creates an instance of RuntimeVariablesExpression.
+   * Creates an instance of RuntimeVariablesExpression, using varargs.
    */
   public static RuntimeVariablesExpression runtimeVariables(
       ParameterExpression... arguments) {
@@ -2593,7 +2632,7 @@ public class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * without a default case.
    */
-  public static SwitchExpression switch_(Expression switchValue,
+  public static SwitchStatement switch_(Expression switchValue,
       SwitchCase... cases) {
     return switch_(switchValue, null, null, toList(cases));
   }
@@ -2602,7 +2641,7 @@ public class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * that has a default case.
    */
-  public static SwitchExpression switch_(Expression switchValue,
+  public static SwitchStatement switch_(Expression switchValue,
       Expression defaultBody, SwitchCase... cases) {
     return switch_(switchValue, defaultBody, null, toList(cases));
   }
@@ -2611,16 +2650,17 @@ public class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * that has a default case.
    */
-  public static SwitchExpression switch_(Expression switchValue,
-      Expression defaultBody, Method method, Iterable<SwitchCase> cases) {
+  public static SwitchStatement switch_(Expression switchValue,
+      Expression defaultBody, Method method,
+      Iterable<? extends SwitchCase> cases) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a SwitchExpression that represents a switch statement
-   * that has a default case.
+   * that has a default case, using varargs.
    */
-  public static SwitchExpression switch_(Expression switchValue,
+  public static SwitchStatement switch_(Expression switchValue,
       Expression defaultBody, Method method, SwitchCase... cases) {
     return switch_(switchValue, defaultBody, method, toList(cases));
   }
@@ -2629,31 +2669,31 @@ public class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * that has a default case.
    */
-  public static SwitchExpression switch_(Type type, Expression switchValue,
-      Expression defaultBody, Method method, Iterable<SwitchCase> cases) {
+  public static SwitchStatement switch_(Type type, Expression switchValue,
+      Expression defaultBody, Method method,
+      Iterable<? extends SwitchCase> cases) {
     throw Extensions.todo();
   }
 
   /**
    * Creates a SwitchExpression that represents a switch statement
-   * that has a default case..
+   * that has a default case, using varargs.
    */
-  public static SwitchExpression switch_(Type type, Expression switchValue,
+  public static SwitchStatement switch_(Type type, Expression switchValue,
       Expression defaultBody, Method method, SwitchCase... cases) {
     return switch_(type, switchValue, defaultBody, method, toList(cases));
   }
 
   /**
-   * Creates a SwitchCase object to be used in a SwitchExpression
-   * object.
+   * Creates a SwitchCase for use in a SwitchExpression.
    */
   public static SwitchCase switchCase(Expression expression,
-      Iterable<Expression> body) {
+      Iterable<? extends Expression> body) {
     throw Extensions.todo();
   }
 
   /**
-   * Creates a SwitchCase for use in a SwitchExpression.
+   * Creates a SwitchCase for use in a SwitchExpression, with varargs.
    */
   public static SwitchCase switchCase(Expression expression,
       Expression... body) {
@@ -2712,7 +2752,7 @@ public class Expressions {
    * number of catch statements and neither a fault nor finally
    * block.
    */
-  public static TryExpression tryCatch(Expression body,
+  public static TryStatement tryCatch(Expression body,
       CatchBlock... handlers) {
     throw Extensions.todo();
   }
@@ -2721,7 +2761,7 @@ public class Expressions {
    * Creates a TryExpression representing a try block with any
    * number of catch statements and a finally block.
    */
-  public static TryExpression tryCatchFinally(Expression body,
+  public static TryStatement tryCatchFinally(Expression body,
       CatchBlock... handlers) {
     throw Extensions.todo();
   }
@@ -2730,7 +2770,7 @@ public class Expressions {
    * Creates a TryExpression representing a try block with a fault
    * block and no catch statements.
    */
-  public static TryExpression tryFault(Expression body, Expression fault) {
+  public static TryStatement tryFault(Expression body, Expression fault) {
     throw Extensions.todo();
   }
 
@@ -2738,7 +2778,7 @@ public class Expressions {
    * Creates a TryExpression representing a try block with a
    * finally block and no catch statements.
    */
-  public static TryExpression tryFinally(Expression body, Expression fault) {
+  public static TryStatement tryFinally(Expression body, Expression fault) {
     throw Extensions.todo();
   }
 
@@ -2839,25 +2879,25 @@ public class Expressions {
   /**
    * Creates a WhileExpression representing a while loop.
    */
-  public static WhileExpression while_(Expression condition, Statement body) {
-    return new WhileExpression(condition, body);
+  public static WhileStatement while_(Expression condition, Statement body) {
+    return new WhileStatement(condition, body);
   }
 
   /**
    * Creates a statement that declares a variable.
    */
-  public static DeclarationExpression declare(int modifiers,
+  public static DeclarationStatement declare(int modifiers,
       ParameterExpression parameter, Expression initializer) {
-    return new DeclarationExpression(modifiers, parameter, initializer);
+    return new DeclarationStatement(modifiers, parameter, initializer);
   }
 
   /**
    * Creates an expression that declares and initializes a variable. No
    * type is required; it is assumed that the variable is the same type as
    * the initializer. You can retrieve the {@link ParameterExpression} from
-   * the {@link DeclarationExpression#parameter} field of the result.
+   * the {@link DeclarationStatement#parameter} field of the result.
    */
-  public static DeclarationExpression declare(int modifiers, String name,
+  public static DeclarationStatement declare(int modifiers, String name,
       Expression initializer) {
     return declare(modifiers, parameter(initializer.getType(), name),
         initializer);
@@ -2867,7 +2907,7 @@ public class Expressions {
    * Creates a statement that executes an expression.
    */
   public static Statement statement(Expression expression) {
-    return new GotoExpression(GotoExpressionKind.Sequence, null, expression);
+    return new GotoStatement(GotoExpressionKind.Sequence, null, expression);
   }
 
   /** Combines a list of expressions using AND. Returns TRUE if the list is
@@ -2933,7 +2973,7 @@ public class Expressions {
   }
 
   /**
-   * Creates a fluent list with given elements.
+   * Creates a fluent list with elements from the given collection.
    */
   public static <T> FluentList<T> list(Iterable<T> ts) {
     return new FluentArrayList<T>(toList(ts));
@@ -3041,6 +3081,19 @@ public class Expressions {
       parameterExpressions1.add(parameterExpression.accept(visitor));
     }
     return parameterExpressions1;
+  }
+
+  static List<DeclarationStatement> acceptDeclarations(
+      List<DeclarationStatement> declarations, Visitor visitor) {
+    if (declarations == null || declarations.isEmpty()) {
+      return declarations; // short cut
+    }
+    final List<DeclarationStatement> declarations1 =
+        new ArrayList<DeclarationStatement>();
+    for (DeclarationStatement declaration : declarations) {
+      declarations1.add(declaration.accept(visitor));
+    }
+    return declarations1;
   }
 
   static List<MemberDeclaration> acceptMemberDeclarations(

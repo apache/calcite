@@ -18,9 +18,8 @@
 package net.hydromatic.linq4j.expressions;
 
 /**
- * <p>Helper methods concerning {@link BlockExpression}s.</p>
+ * <p>Helper methods concerning {@link BlockStatement}s.</p>
  *
- * @author jhyde
  * @see BlockBuilder
  */
 public final class Blocks {
@@ -28,9 +27,9 @@ public final class Blocks {
     throw new AssertionError("no blocks for you!");
   }
 
-  private static BlockExpression toFunctionBlock(Node body, boolean function) {
-    if (body instanceof BlockExpression) {
-      return (BlockExpression) body;
+  private static BlockStatement toFunctionBlock(Node body, boolean function) {
+    if (body instanceof BlockStatement) {
+      return (BlockStatement) body;
     }
     Statement statement;
     if (body instanceof Statement) {
@@ -50,19 +49,19 @@ public final class Blocks {
     return Expressions.block(statement);
   }
 
-  public static BlockExpression toFunctionBlock(Node body) {
+  public static BlockStatement toFunctionBlock(Node body) {
     return toFunctionBlock(body, true);
   }
 
-  public static BlockExpression toBlock(Node body) {
+  public static BlockStatement toBlock(Node body) {
     return toFunctionBlock(body, false);
   }
 
   /**
    * Prepends a statement to a block.
    */
-  public static BlockExpression create(Statement statement,
-      BlockExpression block) {
+  public static BlockStatement create(Statement statement,
+      BlockStatement block) {
     return Expressions.block(Expressions.list(statement).appendAll(
         block.statements));
   }
@@ -71,11 +70,11 @@ public final class Blocks {
    * Converts a simple "{ return expr; }" block into "expr"; otherwise
    * throws.
    */
-  public static Expression simple(BlockExpression block) {
+  public static Expression simple(BlockStatement block) {
     if (block.statements.size() == 1) {
       Statement statement = block.statements.get(0);
-      if (statement instanceof GotoExpression) {
-        return ((GotoExpression) statement).expression;
+      if (statement instanceof GotoStatement) {
+        return ((GotoStatement) statement).expression;
       }
     }
     throw new AssertionError("not a simple block: " + block);

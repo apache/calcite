@@ -18,7 +18,7 @@
 package net.hydromatic.linq4j.expressions;
 
 /**
- * Specifies what kind of jump a {@link GotoExpression} represents.
+ * Specifies what kind of jump a {@link GotoStatement} represents.
  */
 public enum GotoExpressionKind {
   /**

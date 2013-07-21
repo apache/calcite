@@ -20,8 +20,8 @@ package net.hydromatic.linq4j.expressions;
 /**
  * Represents a try/catch/finally/fault block.
  */
-public class TryExpression extends Statement {
-  public TryExpression(ExpressionType nodeType) {
+public class TryStatement extends Statement {
+  public TryStatement(ExpressionType nodeType) {
     super(nodeType, Void.TYPE);
   }
 
@@ -31,4 +31,4 @@ public class TryExpression extends Statement {
   }
 }
 
-// End TryExpression.java
+// End TryStatement.java

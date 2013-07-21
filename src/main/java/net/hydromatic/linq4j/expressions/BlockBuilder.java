@@ -21,7 +21,7 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 
 /**
- * Builder for {@link BlockExpression}.
+ * Builder for {@link BlockStatement}.
  *
  * <p>Has methods that help ensure that variable names are unique.</p>
  */
@@ -59,7 +59,7 @@ public class BlockBuilder {
    * (possibly a variable) that represents the result of the newly added
    * block.
    */
-  public Expression append(String name, BlockExpression block) {
+  public Expression append(String name, BlockStatement block) {
     return append(name, block, true);
   }
 
@@ -73,14 +73,14 @@ public class BlockBuilder {
    * a variable. Do not do this if the expression has
    * side-effects or a time-dependent value.
    */
-  public Expression append(String name, BlockExpression block,
+  public Expression append(String name, BlockStatement block,
       boolean optimize) {
     if (statements.size() > 0) {
       Statement lastStatement = statements.get(statements.size() - 1);
-      if (lastStatement instanceof GotoExpression) {
+      if (lastStatement instanceof GotoStatement) {
         // convert "return expr;" into "expr;"
         statements.set(statements.size() - 1, Expressions.statement(
-            ((GotoExpression) lastStatement).expression));
+            ((GotoStatement) lastStatement).expression));
       }
     }
     Expression result = null;
@@ -93,8 +93,8 @@ public class BlockBuilder {
         // Save effort, and only substitute variables if there are some.
         statement = statement.accept(visitor);
       }
-      if (statement instanceof DeclarationExpression) {
-        DeclarationExpression declaration = (DeclarationExpression) statement;
+      if (statement instanceof DeclarationStatement) {
+        DeclarationStatement declaration = (DeclarationStatement) statement;
         if (variables.contains(declaration.parameter.name)) {
           Expression x = append(
               newName(declaration.parameter.name, optimize),
@@ -109,18 +109,18 @@ public class BlockBuilder {
         add(statement);
       }
       if (i == block.statements.size() - 1) {
-        if (statement instanceof DeclarationExpression) {
-          result = ((DeclarationExpression) statement).parameter;
-        } else if (statement instanceof GotoExpression) {
+        if (statement instanceof DeclarationStatement) {
+          result = ((DeclarationStatement) statement).parameter;
+        } else if (statement instanceof GotoStatement) {
           statements.remove(statements.size() - 1);
-          result = append_(name, ((GotoExpression) statement).expression,
+          result = append_(name, ((GotoStatement) statement).expression,
               optimize);
           if (result instanceof ParameterExpression
               || result instanceof ConstantExpression) {
             // already simple; no need to declare a variable or
             // even to evaluate the expression
           } else {
-            DeclarationExpression declare = Expressions.declare(Modifier.FINAL,
+            DeclarationStatement declare = Expressions.declare(Modifier.FINAL,
                 newName(name, optimize), result);
             add(declare);
             result = declare.parameter;
@@ -143,6 +143,16 @@ public class BlockBuilder {
   }
 
   /**
+   * Appends an expression to a list of statements, if it is not null.
+   */
+  public Expression appendIfNotNull(String name, Expression expression) {
+    if (expression == null) {
+      return null;
+    }
+    return append(name, expression, true);
+  }
+
+  /**
    * Appends an expression to a list of statements, optionally optimizing if
    * the expression is used more than once.
    */
@@ -150,10 +160,10 @@ public class BlockBuilder {
       boolean optimize) {
     if (statements.size() > 0) {
       Statement lastStatement = statements.get(statements.size() - 1);
-      if (lastStatement instanceof GotoExpression) {
+      if (lastStatement instanceof GotoStatement) {
         // convert "return expr;" into "expr;"
         statements.set(statements.size() - 1, Expressions.statement(
-            ((GotoExpression) lastStatement).expression));
+            ((GotoStatement) lastStatement).expression));
       }
     }
     return append_(name, expression, optimize);
@@ -172,8 +182,8 @@ public class BlockBuilder {
     }
     if (optimizing) {
       for (Statement statement : statements) {
-        if (statement instanceof DeclarationExpression) {
-          DeclarationExpression decl = (DeclarationExpression) statement;
+        if (statement instanceof DeclarationStatement) {
+          DeclarationStatement decl = (DeclarationStatement) statement;
           if ((decl.modifiers & Modifier.FINAL) != 0
               && decl.initializer != null
               && decl.initializer.equals(expression)) {
@@ -182,7 +192,7 @@ public class BlockBuilder {
         }
       }
     }
-    DeclarationExpression declare = Expressions.declare(Modifier.FINAL, newName(
+    DeclarationStatement declare = Expressions.declare(Modifier.FINAL, newName(
         name, optimize), expression);
     add(declare);
     return declare.parameter;
@@ -190,8 +200,8 @@ public class BlockBuilder {
 
   public void add(Statement statement) {
     statements.add(statement);
-    if (statement instanceof DeclarationExpression) {
-      String name = ((DeclarationExpression) statement).parameter.name;
+    if (statement instanceof DeclarationStatement) {
+      String name = ((DeclarationStatement) statement).parameter.name;
       if (!variables.add(name)) {
         throw new AssertionError("duplicate variable " + name);
       }
@@ -205,7 +215,7 @@ public class BlockBuilder {
   /**
    * Returns a block consisting of the current list of statements.
    */
-  public BlockExpression toBlock() {
+  public BlockStatement toBlock() {
     if (optimizing) {
       optimize();
     }
@@ -220,8 +230,8 @@ public class BlockBuilder {
     List<Slot> slots = new ArrayList<Slot>();
     final UseCounter useCounter = new UseCounter();
     for (Statement statement : statements) {
-      if (statement instanceof DeclarationExpression) {
-        final Slot slot = new Slot((DeclarationExpression) statement);
+      if (statement instanceof DeclarationStatement) {
+        final Slot slot = new Slot((DeclarationStatement) statement);
         useCounter.map.put(slot.parameter, slot);
         slots.add(slot);
       }
@@ -237,8 +247,8 @@ public class BlockBuilder {
         statements);
     statements.clear();
     for (Statement oldStatement : oldStatements) {
-      if (oldStatement instanceof DeclarationExpression) {
-        DeclarationExpression statement = (DeclarationExpression) oldStatement;
+      if (oldStatement instanceof DeclarationStatement) {
+        DeclarationStatement statement = (DeclarationStatement) oldStatement;
         final Slot slot = useCounter.map.get(statement.parameter);
         int count = slot.count;
         if (Expressions.isConstantNull(slot.expression)) {
@@ -288,13 +298,21 @@ public class BlockBuilder {
   }
 
   /**
-   * Creates a name for a new variable, unique within this block.
+   * Creates a name for a new variable, unique within this block, controlling
+   * whether the variable can be inlined later.
    */
   private String newName(String suggestion, boolean optimize) {
     if (!optimize && !suggestion.startsWith("_")) {
       // "_" prefix reminds us not to consider the variable for inlining
       suggestion = '_' + suggestion;
     }
+    return newName(suggestion);
+  }
+
+  /**
+   * Creates a name for a new variable, unique within this block.
+   */
+  public String newName(String suggestion) {
     int i = 0;
     String candidate = suggestion;
     for (;;) {
@@ -364,9 +382,9 @@ public class BlockBuilder {
     private final Expression expression;
     private int count;
 
-    public Slot(DeclarationExpression declarationExpression) {
-      this.parameter = declarationExpression.parameter;
-      this.expression = declarationExpression.initializer;
+    public Slot(DeclarationStatement declarationStatement) {
+      this.parameter = declarationStatement.parameter;
+      this.expression = declarationStatement.initializer;
     }
   }
 }

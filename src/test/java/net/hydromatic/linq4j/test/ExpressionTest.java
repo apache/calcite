@@ -293,6 +293,13 @@ public class ExpressionTest {
                 "empno")));
 
     assertEquals(
+        "a.length",
+        Expressions.toString(
+            Expressions.field(
+                Expressions.parameter(Object[].class, "a"),
+                "length")));
+
+    assertEquals(
         "java.util.Collections.EMPTY_LIST",
         Expressions.toString(
             Expressions.field(
@@ -541,7 +548,7 @@ public class ExpressionTest {
         Expressions.parameter(
             Integer.TYPE,
             "index");
-    BlockExpression e =
+    BlockStatement e =
         Expressions.block(
             Expressions.declare(
                 Modifier.FINAL,
@@ -609,7 +616,7 @@ public class ExpressionTest {
   }
 
   @Test public void testWriteWhile() {
-    DeclarationExpression xDecl, yDecl;
+    DeclarationStatement xDecl, yDecl;
     Node node =
         Expressions.block(
             xDecl = Expressions.declare(
@@ -944,6 +951,61 @@ public class ExpressionTest {
         "{\n"
         + "  final Integer v0 = (Integer) (Short) ((Object[]) p)[4];\n"
         + "  return v0 == null ? null : v0.intValue() == 1997;\n"
+        + "}\n",
+        Expressions.toString(builder.toBlock()));
+  }
+
+  @Test public void testFor() throws NoSuchFieldException {
+    final BlockBuilder builder = new BlockBuilder();
+    final ParameterExpression i_ = Expressions.parameter(int.class, "i");
+    builder.add(
+        Expressions.for_(
+            Expressions.declare(
+                0, i_, Expressions.constant(0)),
+            Expressions.lessThan(i_, Expressions.constant(10)),
+            Expressions.postIncrementAssign(i_),
+            Expressions.block(
+                Expressions.statement(
+                    Expressions.call(
+                        Expressions.field(
+                            null, System.class.getField("out")),
+                        "println",
+                        i_)))));
+    assertEquals(
+        "{\n"
+        + "  for (int i = 0; i < 10; i++) {\n"
+        + "    System.out.println(i);\n"
+        + "  }\n"
+        + "}\n",
+        Expressions.toString(builder.toBlock()));
+  }
+
+  @Test public void testFor2() throws NoSuchFieldException {
+    final BlockBuilder builder = new BlockBuilder();
+    final ParameterExpression i_ = Expressions.parameter(int.class, "i");
+    final ParameterExpression j_ = Expressions.parameter(int.class, "j");
+    builder.add(
+        Expressions.for_(
+            Arrays.asList(
+                Expressions.declare(
+                    0, i_, Expressions.constant(0)),
+                Expressions.declare(
+                    0, j_, Expressions.constant(10))),
+            null,
+            null,
+            Expressions.block(
+                Expressions.ifThen(
+                    Expressions.lessThan(
+                        Expressions.preIncrementAssign(i_),
+                        Expressions.preDecrementAssign(j_)),
+                    Expressions.break_(null)))));
+    assertEquals(
+        "{\n"
+        + "  for (int i = 0, j = 10; ; ) {\n"
+        + "    if (++i < --j) {\n"
+        + "      break;\n"
+        + "    }\n"
+        + "  }\n"
         + "}\n",
         Expressions.toString(builder.toBlock()));
   }

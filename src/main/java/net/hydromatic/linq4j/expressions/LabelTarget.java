@@ -18,7 +18,7 @@
 package net.hydromatic.linq4j.expressions;
 
 /**
- * Used to represent the target of a {@link GotoExpression}.
+ * Used to represent the target of a {@link GotoStatement}.
  */
 public class LabelTarget {
   public final String name;

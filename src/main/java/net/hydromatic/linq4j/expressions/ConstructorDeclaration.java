@@ -29,10 +29,10 @@ public class ConstructorDeclaration extends MemberDeclaration {
   public final int modifier;
   public final Type resultType;
   public final List<ParameterExpression> parameters;
-  public final BlockExpression body;
+  public final BlockStatement body;
 
   public ConstructorDeclaration(int modifier, Type declaredAgainst,
-      List<ParameterExpression> parameters, BlockExpression body) {
+      List<ParameterExpression> parameters, BlockStatement body) {
     this.modifier = modifier;
     this.resultType = declaredAgainst;
     this.parameters = parameters;
@@ -42,7 +42,7 @@ public class ConstructorDeclaration extends MemberDeclaration {
   @Override
   public MemberDeclaration accept(Visitor visitor) {
     // do not visit parameters
-    final BlockExpression body = this.body.accept(visitor);
+    final BlockStatement body = this.body.accept(visitor);
     return visitor.visit(this, parameters, body);
   }
 

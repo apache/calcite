@@ -18,24 +18,30 @@
 package net.hydromatic.linq4j.expressions;
 
 /**
- * Represents a label, which can be put in any {@link Expression} context. If it
- * is jumped to, it will get the value provided by the corresponding
- * {@link GotoExpression}. Otherwise, it receives the value in
- * {@link #defaultValue}. If the Type equals {@link Void}, no value should be
- * provided.
+ * Represents a "while" statement.
  */
-public class LabelExpression extends Statement {
-  public final Expression defaultValue;
+public class WhileStatement extends Statement {
+  public final Expression condition;
+  public final Statement body;
 
-  public LabelExpression(Expression defaultValue, ExpressionType nodeType) {
-    super(nodeType, Void.TYPE);
-    this.defaultValue = defaultValue;
+  public WhileStatement(Expression condition, Statement body) {
+    super(ExpressionType.While, Void.TYPE);
+    this.condition = condition;
+    this.body = body;
   }
 
   @Override
-  public LabelExpression accept(Visitor visitor) {
-    return visitor.visit(this);
+  public Statement accept(Visitor visitor) {
+    final Expression condition1 = condition.accept(visitor);
+    final Statement body1 = body.accept(visitor);
+    return visitor.visit(this, condition1, body1);
+  }
+
+  @Override
+  void accept0(ExpressionWriter writer) {
+    writer.append("while (").append(condition).append(") ").append(
+        Blocks.toBlock(body));
   }
 }
 
-// End LabelExpression.java
+// End WhileStatement.java

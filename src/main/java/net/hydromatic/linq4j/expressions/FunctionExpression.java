@@ -29,11 +29,11 @@ import java.util.*;
 public final class FunctionExpression<F extends Function<?>>
     extends LambdaExpression {
   public final F function;
-  public final BlockExpression body;
+  public final BlockStatement body;
   public final List<ParameterExpression> parameterList;
   private F dynamicFunction;
 
-  private FunctionExpression(Class<F> type, F function, BlockExpression body,
+  private FunctionExpression(Class<F> type, F function, BlockStatement body,
       List<ParameterExpression> parameterList) {
     super(ExpressionType.Lambda, type);
     assert type != null;
@@ -48,14 +48,14 @@ public final class FunctionExpression<F extends Function<?>>
         Collections.<ParameterExpression>emptyList());
   }
 
-  public FunctionExpression(Class<F> type, BlockExpression body,
+  public FunctionExpression(Class<F> type, BlockStatement body,
       List<ParameterExpression> parameters) {
     this(type, null, body, parameters);
   }
 
   @Override
   public Expression accept(Visitor visitor) {
-    BlockExpression body = this.body.accept(visitor);
+    BlockStatement body = this.body.accept(visitor);
     return visitor.visit(this, body, parameterList);
   }
 

@@ -30,10 +30,10 @@ public class MethodDeclaration extends MemberDeclaration {
   public final String name;
   public final Type resultType;
   public final List<ParameterExpression> parameters;
-  public final BlockExpression body;
+  public final BlockStatement body;
 
   public MethodDeclaration(int modifier, String name, Type resultType,
-      List<ParameterExpression> parameters, BlockExpression body) {
+      List<ParameterExpression> parameters, BlockStatement body) {
     this.modifier = modifier;
     this.name = name;
     this.resultType = resultType;
@@ -44,7 +44,7 @@ public class MethodDeclaration extends MemberDeclaration {
   @Override
   public MemberDeclaration accept(Visitor visitor) {
     // do not visit parameters
-    final BlockExpression body = this.body.accept(visitor);
+    final BlockStatement body = this.body.accept(visitor);
     return visitor.visit(this, parameters, body);
   }
 
