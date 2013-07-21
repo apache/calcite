@@ -27,8 +27,7 @@ import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
-import org.eigenbase.util.Bug;
-
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.lang.reflect.*;
@@ -68,11 +67,9 @@ public class ReflectiveSchemaTest {
                         Employee.class),
                     null,
                     LINQ4J_AS_ENUMERABLE_METHOD,
-                    Arrays.<Expression>asList(
-                        Expressions.constant(
-                            new JdbcTest.HrSchema().emps))),
-                "asQueryable",
-                Collections.<Expression>emptyList()),
+                    Expressions.constant(
+                        new JdbcTest.HrSchema().emps)),
+                "asQueryable"),
             Employee.class)
             .where(
                 Expressions.<Predicate1<Employee>>lambda(
@@ -92,17 +89,14 @@ public class ReflectiveSchemaTest {
                 Expressions.<Function1<Employee, Object[]>>lambda(
                     Expressions.new_(
                         Object[].class,
-                        Arrays.<Expression>asList(
+                        Expressions.field(
+                            e, "empid"),
+                        Expressions.call(
                             Expressions.field(
-                                e, "empid"),
-                            Expressions.call(
-                                Expressions.field(
-                                    e, "name"),
-                                "toUpperCase",
-                                Collections.<Expression>emptyList()))),
+                                e, "name"),
+                            "toUpperCase")),
                     e))
             .toList();
-    Bug.remark("use varargs versions of new_ and lambda after linq4j upgrade");
     assertEquals(1, list.size());
     assertEquals(2, list.get(0).length);
     assertEquals(150, list.get(0)[0]);
@@ -126,8 +120,8 @@ public class ReflectiveSchemaTest {
                     Arrays.<Expression>asList(
                         Expressions.constant(
                             new JdbcTest.HrSchema().emps))),
-                "asQueryable",
-                Collections.<Expression>emptyList()), Employee.class)
+                "asQueryable"),
+            Employee.class)
             .select(Expressions.<Function1<Employee, Integer>>lambda(
                 Expressions.field(e, "empid"),
                 e))
@@ -139,7 +133,8 @@ public class ReflectiveSchemaTest {
    * Tests a relation that is accessed via method syntax.
    * The function returns a {@link net.hydromatic.linq4j.Queryable}.
    */
-  public void _testOperator() throws SQLException, ClassNotFoundException {
+  @Ignore
+  @Test public void testOperator() throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:optiq:");

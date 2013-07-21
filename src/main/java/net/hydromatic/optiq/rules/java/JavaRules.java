@@ -237,12 +237,12 @@ public class JavaRules {
           implementor.visitChild(this, 0, (EnumerableRel) left, pref);
       Expression leftExpression =
           builder.append(
-              "left", leftResult.expression);
+              "left", leftResult.block);
       final Result rightResult =
           implementor.visitChild(this, 1, (EnumerableRel) right, pref);
       Expression rightExpression =
           builder.append(
-              "right", rightResult.expression);
+              "right", rightResult.block);
       final PhysType physType =
           PhysTypeImpl.of(
               implementor.getTypeFactory(), getRowType(), pref.preferArray());
@@ -305,7 +305,7 @@ public class JavaRules {
     static MethodDeclaration overridingMethodDecl(
         Method method,
         Iterable<ParameterExpression> parameters,
-        BlockExpression body) {
+        BlockStatement body) {
       return Expressions.methodDecl(
           method.getModifiers() & ~Modifier.ABSTRACT,
           method.getReturnType(),
@@ -563,7 +563,7 @@ public class JavaRules {
                   BuiltinMethod.ENUMERATOR_CURRENT.method),
               inputJavaType);
 
-      BlockExpression moveNextBody;
+      BlockStatement moveNextBody;
       if (program.getCondition() == null) {
         moveNextBody =
             Blocks.toFunctionBlock(
@@ -609,12 +609,12 @@ public class JavaRules {
       builder3.add(
           Expressions.return_(
               null, physType.record(expressions)));
-      BlockExpression currentBody =
+      BlockStatement currentBody =
           builder3.toBlock();
 
       final Expression inputEnumerable =
           builder.append(
-              "inputEnumerable", result.expression, false);
+              "inputEnumerable", result.block, false);
       final Expression body =
           Expressions.new_(
               enumeratorType,
@@ -769,7 +769,7 @@ public class JavaRules {
       Expression childExp =
           builder.append(
               "child",
-              result.expression);
+              result.block);
       RelDataType inputRowType = getChild().getRowType();
 
       final PhysType physType =
@@ -891,13 +891,13 @@ public class JavaRules {
       BlockBuilder builder2 = new BlockBuilder();
       final ParameterExpression inParameter =
           Expressions.parameter(inputPhysType.getJavaRowType(), "in");
-      final ParameterExpression accParameter =
+      final ParameterExpression acc_ =
           Expressions.parameter(accPhysType.getJavaRowType(), "acc");
       for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
           : Ord.zip(Pair.zip(aggCalls, implementors))) {
         final Type type = initExpressions.get(ord.i).type;
         final Expression accumulator =
-            accPhysType.fieldReference(accParameter, ord.i);
+            accPhysType.fieldReference(acc_, ord.i);
         final List<Expression> conditions = new ArrayList<Expression>();
         for (int arg : ord.e.left.getArgList()) {
           if (inputPhysType.fieldNullable(arg)) {
@@ -924,14 +924,14 @@ public class JavaRules {
                   Expressions.foldAnd(conditions), assign));
         }
       }
-      builder2.add(accParameter);
+      builder2.add(acc_);
       final Expression accumulatorAdder =
           builder.append(
               "accumulatorAdder",
               Expressions.lambda(
                   Function2.class,
                   builder2.toBlock(),
-                  accParameter,
+                  acc_,
                   inParameter));
 
       // Function2<Integer, Object[], Object[]> resultSelector =
@@ -941,15 +941,15 @@ public class JavaRules {
       //         }
       //     };
       final List<Expression> results = Expressions.list();
-      final ParameterExpression keyParameter;
+      final ParameterExpression key_;
       if (keyArity == 0) {
-        keyParameter = null;
+        key_ = null;
       } else {
         final Type keyType = keyPhysType.getJavaRowType();
-        keyParameter = Expressions.parameter(keyType, "key");
+        key_ = Expressions.parameter(keyType, "key");
         for (int j = 0; j < keyArity; j++) {
           results.add(
-              keyPhysType.fieldReference(keyParameter, j));
+              keyPhysType.fieldReference(key_, j));
         }
       }
       for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
@@ -958,7 +958,7 @@ public class JavaRules {
             ord.e.right.implementResult(
                 ord.e.left.getAggregation(),
                 accPhysType.fieldReference(
-                    accParameter, ord.i)));
+                    acc_, ord.i)));
       }
       final PhysType resultPhysType = physType;
       if (keyArity == 0) {
@@ -968,7 +968,7 @@ public class JavaRules {
                 Expressions.lambda(
                     Function1.class,
                     resultPhysType.record(results),
-                    accParameter));
+                    acc_));
         builder.add(
             Expressions.return_(
                 null,
@@ -987,7 +987,8 @@ public class JavaRules {
                 Expressions.lambda(
                     Function2.class,
                     resultPhysType.record(results),
-                    Expressions.list(keyParameter, accParameter)));
+                    key_,
+                    acc_));
         builder.add(
             Expressions.return_(
                 null,
@@ -1075,7 +1076,7 @@ public class JavaRules {
               pref.prefer(result.format));
       Expression childExp =
           builder.append(
-              "child", result.expression);
+              "child", result.block);
 
       PhysType inputPhysType = result.physType;
       final Pair<Expression, Expression> pair =
@@ -1091,7 +1092,7 @@ public class JavaRules {
                   Expressions.list(
                       builder.append("keySelector", pair.left))
                   .appendIfNotNull(
-                      ainn(builder, "comparator", pair.right)))));
+                      builder.appendIfNotNull("comparator", pair.right)))));
       return implementor.result(physType, builder.toBlock());
     }
   }
@@ -1151,7 +1152,7 @@ public class JavaRules {
         Expression childExp =
             builder.append(
                 "child" + ord.i,
-                result.expression);
+                result.block);
 
         if (unionExp == null) {
           unionExp = childExp;
@@ -1243,7 +1244,7 @@ public class JavaRules {
         Expression childExp =
             builder.append(
                 "child" + ord.i,
-                result.expression);
+                result.block);
 
         if (intersectExp == null) {
           intersectExp = childExp;
@@ -1335,7 +1336,7 @@ public class JavaRules {
         Expression childExp =
             builder.append(
                 "child" + ord.i,
-                result.expression);
+                result.block);
 
         if (minusExp == null) {
           minusExp = childExp;
@@ -1453,9 +1454,10 @@ public class JavaRules {
           this, 0, (EnumerableRel) getChild(), pref);
       Expression childExp =
           builder.append(
-              "child", result.expression);
+              "child", result.block);
       final ParameterExpression collectionParameter =
-          Expressions.parameter(Collection.class, "collection");
+          Expressions.parameter(Collection.class,
+              builder.newName("collection"));
       builder.add(
           Expressions.declare(
               0,
@@ -1482,12 +1484,12 @@ public class JavaRules {
                 JavaRowFormat.CUSTOM);
         List<Expression> expressionList = new ArrayList<Expression>();
         final PhysType childPhysType = result.physType;
-        final ParameterExpression o =
+        final ParameterExpression o_ =
             Expressions.parameter(childPhysType.getJavaRowType(), "o");
         final int fieldCount =
             childPhysType.getRowType().getFieldCount();
         for (int i = 0; i < fieldCount; i++) {
-          expressionList.add(childPhysType.fieldReference(o, i));
+          expressionList.add(childPhysType.fieldReference(o_, i));
         }
         convertedChildExp =
             builder.append(
@@ -1496,7 +1498,7 @@ public class JavaRules {
                     childExp,
                     BuiltinMethod.SELECT.method,
                     Expressions.lambda(
-                        physType.record(expressionList), o)));
+                        physType.record(expressionList), o_)));
       } else {
         convertedChildExp = childExp;
       }
@@ -1710,7 +1712,7 @@ public class JavaRules {
 
       final BlockBuilder builder = new BlockBuilder();
       final Result result = implementor.visitChild(this, 0, child, pref);
-      Expression source_ = builder.append("source", result.expression);
+      Expression source_ = builder.append("source", result.block);
 
       PhysType inputPhysType = result.physType;
 
@@ -1743,10 +1745,11 @@ public class JavaRules {
         Expression multiMap_ =
             builder.append(
                 "multiMap", Expressions.new_(SortedMultiMap.class));
-        final ParameterExpression v_ =
-            Expressions.parameter(inputPhysType.getJavaRowType(), "v");
         final BlockBuilder builder2 = new BlockBuilder();
-        final DeclarationExpression declare =
+        final ParameterExpression v_ =
+            Expressions.parameter(inputPhysType.getJavaRowType(),
+                builder2.newName("v"));
+        final DeclarationStatement declare =
             Expressions.declare(
                 0, "key",
                 inputPhysType.selector(
@@ -1820,12 +1823,9 @@ public class JavaRules {
                 "list",
                 Expressions.new_(
                     ArrayList.class,
-                    Arrays.<Expression>asList(
-                        Expressions.call(
-                            multiMap_,
-                            BuiltinMethod.COLLECTION_SIZE.method))),
+                    Expressions.call(
+                        multiMap_, BuiltinMethod.COLLECTION_SIZE.method)),
                 false);
-        Bug.remark("remove asList after upgrade linq4j");
         final Expression iterator_ =
             builder.append(
                 "iterator",
@@ -1847,9 +1847,7 @@ public class JavaRules {
         final BlockBuilder builder4 = new BlockBuilder();
 
         final ParameterExpression i_ =
-            Expressions.parameter(int.class, "i");
-        builder3.add(
-            Expressions.declare(0, i_, Expressions.constant(0)));
+            Expressions.parameter(int.class, builder4.newName("i"));
 
         final Expression row_ =
             builder4.append(
@@ -1864,10 +1862,9 @@ public class JavaRules {
             new ArrayList<ParameterExpression>();
         for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
             : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
-          Bug.remark("use Builder.newParameter or newName");
           final ParameterExpression parameter =
               Expressions.parameter(outputPhysType.fieldClass(offset + ord.i),
-                  ord.e.left.name);
+                  builder4.newName(ord.e.left.name));
           final Expression initExpression =
               ord.e.right.implementInit(ord.e.left.getAggregation(),
                   parameter.type,
@@ -1936,17 +1933,13 @@ public class JavaRules {
                     BuiltinMethod.COLLECTION_ADD.method,
                     outputPhysType.record(expressions))));
 
-        Bug.remark("use increment after linq4j upgrade");
-        builder4.add(
-            Expressions.statement(
-                Expressions.assign(
-                    i_, Expressions.add(i_, Expressions.constant(1)))));
         builder3.add(
-            Expressions.while_(
+            Expressions.for_(
+                Expressions.declare(0, i_, Expressions.constant(0)),
                 Expressions.lessThan(
                     i_,
-                    Expressions.call(
-                        BuiltinMethod.SORTED_MULTI_MAP_LENGTH.method, rows_)),
+                    Expressions.field(rows_, "length")),
+                Expressions.preIncrementAssign(i_),
                 builder4.toBlock()));
 
         builder.add(
@@ -1996,8 +1989,7 @@ public class JavaRules {
       //       }
 
       final Expression min_ = Expressions.constant(0);
-      final Expression max_ = Expressions.call(
-          BuiltinMethod.SORTED_MULTI_MAP_LENGTH.method, rows_);
+      final Expression max_ = Expressions.field(rows_, "length");
       final SqlWindowOperator.OffsetRange offsetAndRange =
           SqlWindowOperator.getOffsetAndRange(
               window.lowerBound, window.upperBound, window.isRows);
@@ -2011,8 +2003,7 @@ public class JavaRules {
           builder.append("end",
               optimizeAdd(i_, (int) offsetAndRange.offset, min_, max_),
               false);
-      final DeclarationExpression jDecl = Expressions.declare(0, "j", start_);
-      builder.add(jDecl);
+      final DeclarationStatement jDecl = Expressions.declare(0, "j", start_);
       final ParameterExpression j_ = jDecl.parameter;
       final Expression row2_ = builder.append("row2",
           Expressions.convert_(
@@ -2042,13 +2033,12 @@ public class JavaRules {
               return Expressions.equal(j_, end_);
             }
           });
-      builder5.add(
-          Expressions.statement(
-              Expressions.assign(
-                  j_, Expressions.add(j_, Expressions.constant(1)))));
 
       builder.add(
-          Expressions.while_(Expressions.lessThanOrEqual(j_, end_),
+          Expressions.for_(
+              jDecl,
+              Expressions.lessThanOrEqual(j_, end_),
+              Expressions.preIncrementAssign(j_),
               builder5.toBlock()));
     }
 
@@ -2070,16 +2060,6 @@ public class JavaRules {
             Expressions.add(i_, Expressions.constant(offset)));
       }
     }
-  }
-
-  // Appends variable to builder if expression is not null.
-  private static Expression ainn(BlockBuilder builder, String name,
-      Expression expression) {
-    Bug.remark("move to linq4j BlockBuilder");
-    if (expression == null) {
-      return null;
-    }
-    return builder.append(name, expression);
   }
 
   public static interface AggCallContext {

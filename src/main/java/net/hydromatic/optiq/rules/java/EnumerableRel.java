@@ -17,10 +17,9 @@
 */
 package net.hydromatic.optiq.rules.java;
 
-import net.hydromatic.linq4j.expressions.BlockExpression;
+import net.hydromatic.linq4j.expressions.BlockStatement;
 
 import org.eigenbase.rel.RelNode;
-
 
 /**
  * A relational expression of one of the
@@ -85,7 +84,7 @@ public interface EnumerableRel
   }
 
   class Result {
-    public final BlockExpression expression;
+    public final BlockStatement block;
 
     /**
      * Describes the Java type returned by this relational expression, and the
@@ -94,9 +93,9 @@ public interface EnumerableRel
     public final PhysType physType;
     public final JavaRowFormat format;
 
-    public Result(BlockExpression expression, PhysType physType,
+    public Result(BlockStatement block, PhysType physType,
         JavaRowFormat format) {
-      this.expression = expression;
+      this.block = block;
       this.physType = physType;
       this.format = format;
     }

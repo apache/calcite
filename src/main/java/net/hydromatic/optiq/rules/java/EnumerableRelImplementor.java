@@ -35,7 +35,6 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.*;
 
-
 /**
  * Subclass of {@link RelImplementor} for relational operators
  * of one of the {@link EnumerableConvention} calling
@@ -67,10 +66,10 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
 
   public ClassDeclaration implementRoot(EnumerableRel rootRel,
       EnumerableRel.Prefer prefer) {
-    final EnumerableRel.Result implement = rootRel.implement(this, prefer);
+    final EnumerableRel.Result result = rootRel.implement(this, prefer);
     List<MemberDeclaration> memberDeclarations =
         new ArrayList<MemberDeclaration>();
-    declareSyntheticClasses(implement.expression, memberDeclarations);
+    declareSyntheticClasses(result.block, memberDeclarations);
 
     ParameterExpression root =
         Expressions.parameter(Modifier.FINAL, DataContext.class, "root");
@@ -80,7 +79,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
             Enumerable.class,
             BuiltinMethod.EXECUTABLE_EXECUTE.method.getName(),
             Expressions.list(root),
-            implement.expression));
+            result.block));
     memberDeclarations.add(
         Expressions.methodDecl(
             Modifier.PUBLIC,
@@ -91,7 +90,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
                 Expressions.return_(
                     null,
                     Expressions.constant(
-                        implement.physType.getJavaRowType())))));
+                        result.physType.getJavaRowType())))));
     return Expressions.classDecl(
         Modifier.PUBLIC,
         "Baz",
@@ -101,10 +100,10 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
   }
 
   private void declareSyntheticClasses(
-      BlockExpression implement,
+      BlockStatement block,
       List<MemberDeclaration> memberDeclarations) {
     final LinkedHashSet<Type> types = new LinkedHashSet<Type>();
-    implement.accept(new TypeFinder(types));
+    block.accept(new TypeFinder(types));
     for (Type type : types) {
       if (type instanceof JavaTypeFactoryImpl.SyntheticRecordType) {
         memberDeclarations.add(
@@ -339,10 +338,9 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
     return Expressions.variable(queryable.getClass(), name);
   }
 
-  public EnumerableRel.Result result(PhysType physType,
-      BlockExpression expression) {
+  public EnumerableRel.Result result(PhysType physType, BlockStatement block) {
     return new EnumerableRel.Result(
-        expression, physType, ((PhysTypeImpl) physType).format);
+        block, physType, ((PhysTypeImpl) physType).format);
   }
 
   private static class TypeFinder extends Visitor {

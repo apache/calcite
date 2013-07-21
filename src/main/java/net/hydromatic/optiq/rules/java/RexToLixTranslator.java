@@ -321,11 +321,9 @@ public class RexToLixTranslator {
     switch (literal.getType().getSqlTypeName()) {
     case DECIMAL:
       assert javaClass == BigDecimal.class;
-      Bug.remark("remove asList after upgrading linq4j");
       return Expressions.new_(
           BigDecimal.class,
-          Arrays.<Expression>asList(
-              Expressions.constant(value.toString())));
+          Expressions.constant(value.toString()));
     case DATE:
       value2 =
           (int) (((Calendar) value).getTimeInMillis() / MILLIS_IN_DAY);
@@ -487,21 +485,18 @@ public class RexToLixTranslator {
       if (fromBox != null) {
         // E.g. from "Integer" to "BigDecimal".
         // Generate "x == null ? null : new BigDecimal(x.intValue())"
-        Bug.remark("remove asList after upgrading linq4j");
         return Expressions.condition(
             Expressions.equal(operand, RexImpTable.NULL_EXPR),
             RexImpTable.NULL_EXPR,
             Expressions.new_(
                 BigDecimal.class,
-                Arrays.<Expression>asList(
-                    Expressions.unbox(operand, fromBox))));
+                Expressions.unbox(operand, fromBox)));
       }
       if (fromPrimitive != null) {
         // E.g. from "int" to "BigDecimal".
         // Generate "new BigDecimal(x)"
-        Bug.remark("remove singletonList after upgrading linq4j");
         return Expressions.new_(
-            BigDecimal.class, Collections.singletonList(operand));
+            BigDecimal.class, operand);
       }
       // E.g. from "Object" to "BigDecimal".
       // Generate "x == null ? null : SqlFunctions.toBigDecimal(x)"

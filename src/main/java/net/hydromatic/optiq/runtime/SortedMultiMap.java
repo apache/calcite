@@ -17,8 +17,6 @@
 */
 package net.hydromatic.optiq.runtime;
 
-import org.eigenbase.util.Bug;
-
 import java.util.*;
 
 /**
@@ -57,11 +55,6 @@ public class SortedMultiMap<K, V> extends HashMap<K, List<V>> {
         throw new UnsupportedOperationException();
       }
     };
-  }
-
-  public static int length(Object[] objects) {
-    Bug.remark("remove when upgrade linq4j");
-    return objects.length;
   }
 }
 

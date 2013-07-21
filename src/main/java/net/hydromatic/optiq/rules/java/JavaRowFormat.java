@@ -106,22 +106,31 @@ public enum JavaRowFormat {
           Collections.class,
           "EMPTY_LIST");
       case 2:
-        return Expressions.convert_(Expressions.call(List.class,
-            null,
-            BuiltinMethod.LIST2.method,
-            expressions), List.class);
+        return Expressions.convert_(
+            Expressions.call(
+                List.class,
+                null,
+                BuiltinMethod.LIST2.method,
+                expressions),
+            List.class);
       case 3:
-        return Expressions.convert_(Expressions.call(List.class,
-            null,
-            BuiltinMethod.LIST3.method,
-            expressions), List.class);
+        return Expressions.convert_(
+            Expressions.call(
+                List.class,
+                null,
+                BuiltinMethod.LIST3.method,
+                expressions),
+            List.class);
       default:
-        return Expressions.convert_(Expressions.call(List.class,
-            null,
-            BuiltinMethod.ARRAYS_AS_LIST.method,
-            Collections.<Expression>singletonList(Expressions.newArrayInit(
-                Object.class,
-                expressions))), List.class);
+        return Expressions.convert_(
+            Expressions.call(
+                List.class,
+                null,
+                BuiltinMethod.ARRAYS_AS_LIST.method,
+                Expressions.newArrayInit(
+                    Object.class,
+                    expressions)),
+            List.class);
       }
     }
 

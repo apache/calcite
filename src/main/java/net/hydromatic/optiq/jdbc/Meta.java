@@ -567,9 +567,8 @@ public class Meta {
       return Expressions.call(
           schema.getExpression(),
           "getTable",
-          Expressions.<Expression>list()
-              .append(Expressions.constant(tableName))
-              .append(Expressions.constant(getElementType())));
+          Expressions.constant(tableName),
+          Expressions.constant(getElementType()));
     }
 
     public QueryProvider getProvider() {

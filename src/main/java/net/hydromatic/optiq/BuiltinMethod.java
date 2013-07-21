@@ -98,7 +98,6 @@ public enum BuiltinMethod {
   SORTED_MULTI_MAP_PUT_MULTI(SortedMultiMap.class, "putMulti", Object.class,
       Object.class),
   SORTED_MULTI_MAP_ARRAYS(SortedMultiMap.class, "arrays", Comparator.class),
-  SORTED_MULTI_MAP_LENGTH(SortedMultiMap.class, "length", Object[].class),
   ARRAY_ITEM(SqlFunctions.class, "arrayItem", List.class, int.class),
   MAP_ITEM(SqlFunctions.class, "mapItem", Map.class, Object.class),
   ANY_ITEM(SqlFunctions.class, "item", Object.class, Object.class),
