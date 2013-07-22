@@ -5,7 +5,7 @@
   <groupId>net.hydromatic</groupId>
   <artifactId>optiq</artifactId>
   <packaging>jar</packaging>
-  <version>0.4.7</version>
+  <version>TRUNK-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>optiq</name>
@@ -68,7 +68,7 @@
     <connection>scm:git:git://github.com/julianhyde/optiq.git</connection>
     <developerConnection>scm:git:git@github.com:julianhyde/optiq.git</developerConnection>
     <url>http://github.com/julianhyde/optiq/tree/master</url>
-    <tag>optiq-0.4.7</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <!-- Dependencies. -->
