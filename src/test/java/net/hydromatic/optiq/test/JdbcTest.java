@@ -621,7 +621,8 @@ public class JdbcTest {
 
   /** Test case for
    * <a href="https://github.com/julianhyde/optiq/issues/35">issue #35</a>. */
-  @Ignore public void testJoinJoin() {
+  @Ignore
+  @Test public void testJoinJoin() {
     OptiqAssert.assertThat()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
@@ -963,7 +964,6 @@ public class JdbcTest {
   }
 
   /** Tests windowed aggregation. */
-  @Ignore
   @Test public void testWinAgg() {
     OptiqAssert.assertThat()
         .with(OptiqAssert.Config.REGULAR)
@@ -1460,11 +1460,10 @@ public class JdbcTest {
     public final int empid;
     public final int deptno;
     public final String name;
-    public final double salary;
+    public final float salary;
     public final Integer commission;
 
-    /** @see Bug#TodoFixed change salary to "float" when have linq4j-0.1.8 */
-    public Employee(int empid, int deptno, String name, double salary,
+    public Employee(int empid, int deptno, String name, float salary,
         Integer commission) {
       this.empid = empid;
       this.deptno = deptno;

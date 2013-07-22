@@ -2123,43 +2123,6 @@ public class JavaRules {
     Expression isFirst();
     Expression isLast();
   }
-
-  public static final EnumerableAggregateRule ENUMERABLE_WINAGG_RULE =
-      new EnumerableAggregateRule();
-
-  /**
-   * Rule to convert an {@link org.eigenbase.rel.AggregateRel} to an
-   * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableAggregateRel}.
-   */
-  private static class EnumerableWindowRule
-      extends ConverterRule {
-    private EnumerableWindowRule() {
-      super(
-          WindowedAggregateRel.class,
-          Convention.NONE,
-          EnumerableConvention.INSTANCE,
-          "EnumerableWindowRule");
-    }
-
-    public RelNode convert(RelNode rel) {
-      final WindowedAggregateRel win = (WindowedAggregateRel) rel;
-      final RelTraitSet traitSet =
-          win.getTraitSet().replace(EnumerableConvention.INSTANCE);
-      try {
-        return new EnumerableWindowRel(
-            rel.getCluster(),
-            traitSet,
-            convert(win.getChild(), traitSet),
-            win.getProgram(),
-            win.getAggCallList());
-      } catch (InvalidRelException e) {
-        tracer.warning(e.toString());
-        return null;
-      }
-    }
-  }
-
-
 }
 
 // End JavaRules.java

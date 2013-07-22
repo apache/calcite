@@ -100,11 +100,7 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>linq4j</artifactId>
-<<<<<<< HEAD
       <version>0.1.8</version>
-=======
-      <version>0.1.7</version>
->>>>>>> Release 0.4.6.
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
