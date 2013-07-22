@@ -1,12 +1,11 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <!-- The basics. -->
   <groupId>net.hydromatic</groupId>
   <artifactId>optiq</artifactId>
   <packaging>jar</packaging>
-  <version>TRUNK-SNAPSHOT</version>
+  <version>0.4.7</version>
 
   <!-- More project information. -->
   <name>optiq</name>
@@ -35,7 +34,7 @@
         <role>developer</role>
       </roles>
       <timezone>-8</timezone>
-      <properties/>
+      <properties />
     </developer>
   </developers>
 
@@ -63,12 +62,13 @@
     </repository>
   </distributionManagement>
 
-  <issueManagement/>
+  <issueManagement />
 
   <scm>
     <connection>scm:git:git://github.com/julianhyde/optiq.git</connection>
     <developerConnection>scm:git:git@github.com:julianhyde/optiq.git</developerConnection>
     <url>http://github.com/julianhyde/optiq/tree/master</url>
+    <tag>optiq-0.4.7</tag>
   </scm>
 
   <!-- Dependencies. -->
