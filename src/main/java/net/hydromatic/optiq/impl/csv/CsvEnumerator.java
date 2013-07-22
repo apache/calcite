@@ -123,6 +123,14 @@ class CsvEnumerator implements Enumerator<Object[]> {
     throw new UnsupportedOperationException();
   }
 
+  public void close() {
+    try {
+      reader.close();
+    } catch (IOException e) {
+      throw new RuntimeException("Error closing CSV reader", e);
+    }
+  }
+
   /** Returns an array of integers {0, ..., n - 1}. */
   static int[] identityList(int n) {
     int[] integers = new int[n];

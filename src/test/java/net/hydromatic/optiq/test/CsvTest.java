@@ -19,7 +19,9 @@ package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.function.Function1;
 
-import junit.framework.TestCase;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.io.PrintStream;
 import java.sql.*;
@@ -28,7 +30,7 @@ import java.util.Properties;
 /**
  * Unit test of the Optiq adapter for CSV.
  */
-public class CsvTest extends TestCase {
+public class CsvTest {
   private void close(Connection connection, Statement statement) {
     if (statement != null) {
       try {
@@ -49,7 +51,8 @@ public class CsvTest extends TestCase {
   /**
    * Tests the vanity driver.
    */
-  public void _testVanityDriver() throws SQLException {
+  @Ignore
+  @Test public void testVanityDriver() throws SQLException {
     Properties info = new Properties();
     Connection connection =
         DriverManager.getConnection("jdbc:csv:", info);
@@ -59,7 +62,8 @@ public class CsvTest extends TestCase {
   /**
    * Tests the vanity driver with properties in the URL.
    */
-  public void _testVanityDriverArgsInUrl() throws SQLException {
+  @Ignore
+  @Test public void testVanityDriverArgsInUrl() throws SQLException {
     Connection connection =
         DriverManager.getConnection(
             "jdbc:csv:"
@@ -70,29 +74,28 @@ public class CsvTest extends TestCase {
   /**
    * Reads from a table.
    */
-  public void testSelect() throws SQLException {
+  @Test public void testSelect() throws SQLException {
     checkSql("model", "select * from EMPS");
   }
 
-  public void testCustomTable() throws SQLException {
+  @Test public void testCustomTable() throws SQLException {
     checkSql("model-with-custom-table", "select * from CUSTOM_TABLE.EMPS");
   }
 
-  public void testPushDownProjectDumb() throws SQLException {
+  @Test public void testPushDownProjectDumb() throws SQLException {
     // rule does not fire, because we're using 'dumb' tables in simple model
     checkSql("model", "explain plan for select * from EMPS",
-        "PLAN=EnumerableCalcRel(expr#0..9=[{inputs}], proj#0..9=[{exprs}])\n"
-        + "  EnumerableTableAccessRel(table=[[SALES, EMPS]])\n"
+        "PLAN=EnumerableTableAccessRel(table=[[SALES, EMPS]])\n"
         + "\n");
   }
 
-  public void testPushDownProject() throws SQLException {
+  @Test public void testPushDownProject() throws SQLException {
     checkSql("smart", "explain plan for select * from EMPS",
         "PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n"
         + "\n");
   }
 
-  public void testPushDownProject2() throws SQLException {
+  @Test public void testPushDownProject2() throws SQLException {
     checkSql("smart", "explain plan for select name, empno from EMPS",
         "PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 0]])\n"
         + "\n");
@@ -124,7 +127,7 @@ public class CsvTest extends TestCase {
       public Void apply(ResultSet resultSet) {
         try {
           String actual = CsvTest.toString(resultSet);
-          assertEquals(expected, actual);
+          Assert.assertEquals(expected, actual);
         } catch (SQLException e) {
           throw new RuntimeException(e);
         }

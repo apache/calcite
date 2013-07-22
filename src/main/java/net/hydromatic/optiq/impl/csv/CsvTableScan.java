@@ -17,9 +17,9 @@
 */
 package net.hydromatic.optiq.impl.csv;
 
-import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.rules.java.*;
+
+import net.hydromatic.linq4j.expressions.*;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.TableAccessRelBase;
@@ -37,24 +37,14 @@ import java.util.*;
 public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
   final CsvTable csvTable;
   final int[] fields;
-  final PhysType physType;
 
   protected CsvTableScan(RelOptCluster cluster, RelOptTable table,
       CsvTable csvTable, int[] fields) {
-    super(cluster, cluster.traitSetOf(EnumerableConvention.ARRAY), table);
+    super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), table);
     this.csvTable = csvTable;
     this.fields = fields;
-    this.physType =
-        PhysTypeImpl.of(
-            (JavaTypeFactory) cluster.getTypeFactory(),
-            getRowType(),
-            (EnumerableConvention) getConvention());
 
     assert csvTable != null;
-  }
-
-  public PhysType getPhysType() {
-    return physType;
   }
 
   @Override
@@ -84,10 +74,18 @@ public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
     planner.addRule(CsvPushProjectOntoTableRule.INSTANCE);
   }
 
-  public BlockExpression implement(EnumerableRelImplementor implementor) {
-    return Blocks.toBlock(
-        Expressions.call(csvTable.getExpression(), "project",
-            Expressions.constant(fields)));
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    PhysType physType =
+        PhysTypeImpl.of(
+            implementor.getTypeFactory(),
+            getRowType(),
+            pref.preferArray());
+
+    return implementor.result(
+        physType,
+        Blocks.toBlock(
+            Expressions.call(csvTable.getExpression(), "project",
+                Expressions.constant(fields))));
   }
 }
 

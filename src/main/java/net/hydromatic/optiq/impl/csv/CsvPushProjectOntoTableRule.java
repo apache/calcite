@@ -20,9 +20,10 @@ package net.hydromatic.optiq.impl.csv;
 import org.eigenbase.rel.ProjectRel;
 import org.eigenbase.relopt.RelOptRule;
 import org.eigenbase.relopt.RelOptRuleCall;
-import org.eigenbase.relopt.RelOptRuleOperand;
 import org.eigenbase.rex.RexInputRef;
 import org.eigenbase.rex.RexNode;
+
+import java.util.List;
 
 /**
  * Planner rule that projects from a {@link CsvTableScan} scan just the columns
@@ -35,18 +36,16 @@ public class CsvPushProjectOntoTableRule extends RelOptRule {
 
   private CsvPushProjectOntoTableRule() {
     super(
-        new RelOptRuleOperand(
-            ProjectRel.class,
-            new RelOptRuleOperand(
-                CsvTableScan.class)),
+        some(ProjectRel.class,
+            leaf(CsvTableScan.class)),
         "CsvPushProjectOntoTableRule");
   }
 
   @Override
   public void onMatch(RelOptRuleCall call) {
-    final ProjectRel project = (ProjectRel) call.getRels()[0];
-    final CsvTableScan scan = (CsvTableScan) call.getRels()[1];
-    int[] fields = getProjectFields(project.getProjectExps());
+    final ProjectRel project = call.rel(0);
+    final CsvTableScan scan = call.rel(1);
+    int[] fields = getProjectFields(project.getProjects());
     if (fields == null) {
       // Project contains expressions more complex than just field references.
       return;
@@ -59,10 +58,10 @@ public class CsvPushProjectOntoTableRule extends RelOptRule {
             fields));
   }
 
-  private int[] getProjectFields(RexNode[] exps) {
-    final int[] fields = new int[exps.length];
-    for (int i = 0; i < exps.length; i++) {
-      final RexNode exp = exps[i];
+  private int[] getProjectFields(List<RexNode> exps) {
+    final int[] fields = new int[exps.size()];
+    for (int i = 0; i < exps.size(); i++) {
+      final RexNode exp = exps.get(i);
       if (exp instanceof RexInputRef) {
         fields[i] = ((RexInputRef) exp).getIndex();
       } else {

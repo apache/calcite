@@ -118,7 +118,7 @@ public class CsvTable extends AbstractQueryable<Object[]>
       RelOptTable relOptTable) {
     return new JavaRules.EnumerableTableAccessRel(
         context.getCluster(),
-        context.getCluster().traitSetOf(EnumerableConvention.ARRAY),
+        context.getCluster().traitSetOf(EnumerableConvention.INSTANCE),
         relOptTable,
         getExpression(),
         getElementType());
