@@ -17,9 +17,10 @@
 */
 package org.eigenbase.rex;
 
+import java.util.Set;
+
 import org.eigenbase.rel.RelFieldCollation;
-import org.eigenbase.sql.SqlOperator;
-import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.SqlKind;
 import org.eigenbase.util.Pair;
 
 import com.google.common.collect.ImmutableSet;
@@ -27,23 +28,26 @@ import com.google.common.collect.ImmutableSet;
 /**
  * Expression combined with sort flags (DESCENDING, NULLS LAST).
  */
-public class RexFieldCollation extends Pair<RexNode, ImmutableSet<SqlOperator>>
-{
-    public RexFieldCollation(RexNode left, ImmutableSet<SqlOperator> right) {
-        super(left, right);
+public class RexFieldCollation extends Pair<RexNode, ImmutableSet<SqlKind>> {
+    public RexFieldCollation(RexNode left, Set<SqlKind> right) {
+        super(left, ImmutableSet.copyOf(right));
     }
 
     @Override
     public String toString() {
         String s = left.toString();
-        for (SqlOperator operator : right) {
-            if (operator == SqlStdOperatorTable.descendingOperator) {
+        for (SqlKind operator : right) {
+            switch (operator) {
+            case DESCENDING:
                 s += " DESC";
-            } else if (operator == SqlStdOperatorTable.nullsFirstOperator) {
+                break;
+            case NULLS_FIRST:
                 s += " NULLS FIRST";
-            } else if (operator == SqlStdOperatorTable.nullsLastOperator) {
+                break;
+            case NULLS_LAST:
                 s += " NULLS LAST";
-            } else {
+                break;
+            default:
                 throw new AssertionError(operator);
             }
         }
@@ -51,15 +55,15 @@ public class RexFieldCollation extends Pair<RexNode, ImmutableSet<SqlOperator>>
     }
 
     public RelFieldCollation.Direction getDirection() {
-        return right.contains(SqlStdOperatorTable.descendingOperator)
+        return right.contains(SqlKind.DESCENDING)
             ? RelFieldCollation.Direction.Descending
             : RelFieldCollation.Direction.Ascending;
     }
 
     public RelFieldCollation.NullDirection getNullDirection() {
-        return right.contains(SqlStdOperatorTable.nullsLastOperator)
+        return right.contains(SqlKind.NULLS_LAST)
             ? RelFieldCollation.NullDirection.LAST
-            : right.contains(SqlStdOperatorTable.nullsFirstOperator)
+            : right.contains(SqlKind.NULLS_FIRST)
             ? RelFieldCollation.NullDirection.FIRST
             : RelFieldCollation.NullDirection.UNSPECIFIED;
     }

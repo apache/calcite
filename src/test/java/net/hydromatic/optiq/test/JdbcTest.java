@@ -1038,9 +1038,9 @@ public class JdbcTest {
             "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, RCNF INTEGER, RCNL INTEGER, R INTEGER, RD INTEGER]")
         .returns(
             "deptno=20; empid=200; commission=500; RCNF=1; RCNL=1; R=1; RD=1\n"
-            + "deptno=10; empid=150; commission=null; RCNF=3; RCNL=3; R=3; RD=1\n"
-            + "deptno=10; empid=110; commission=250; RCNF=2; RCNL=2; R=2; RD=2\n"
-            + "deptno=10; empid=100; commission=1000; RCNF=1; RCNL=1; R=1; RD=3\n");
+            + "deptno=10; empid=150; commission=null; RCNF=1; RCNL=3; R=3; RD=1\n"
+            + "deptno=10; empid=110; commission=250; RCNF=3; RCNL=2; R=2; RD=2\n"
+            + "deptno=10; empid=100; commission=1000; RCNF=2; RCNL=1; R=1; RD=3\n");
   }
 
   /** Tests WHERE comparing a nullable integer with an integer literal. */

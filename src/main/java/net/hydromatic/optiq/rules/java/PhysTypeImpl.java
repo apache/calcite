@@ -243,7 +243,7 @@ public class PhysTypeImpl implements PhysType {
                   Expressions.call(
                       Utilities.class,
                       fieldNullable(index)
-                          ? (nullsFirst != descending
+                          ? (nullsFirst
                           ? "compareNullsFirst"
                           : "compareNullsLast")
                           : "compare",

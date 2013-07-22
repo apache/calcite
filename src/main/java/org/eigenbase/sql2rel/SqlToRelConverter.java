@@ -1676,25 +1676,11 @@ public class SqlToRelConverter
         }
         final ImmutableList.Builder<RexFieldCollation> orderKeys =
             ImmutableList.builder();
+        final Set<SqlKind> flags = EnumSet.noneOf(SqlKind.class);
         for (SqlNode order : orderList) {
-            RexNode e = bb.convertExpression(order);
-            final ImmutableSet.Builder<SqlOperator> flags =
-                ImmutableSet.builder();
-            for (;;) {
-                if (e instanceof RexCall) {
-                    final SqlOperator op = ((RexCall) e).getOperator();
-                    if (op == SqlStdOperatorTable.descendingOperator
-                        || op == SqlStdOperatorTable.nullsLastOperator
-                        || op == SqlStdOperatorTable.nullsFirstOperator)
-                    {
-                        flags.add(SqlStdOperatorTable.descendingOperator);
-                        e = ((RexCall) e).getOperands().get(0);
-                        continue;
-                    }
-                }
-                break;
-            }
-            orderKeys.add(new RexFieldCollation(e, flags.build()));
+            flags.clear();
+            RexNode e = bb.convertSortExpression(order, flags);
+            orderKeys.add(new RexFieldCollation(e, flags));
         }
         RexNode rexAgg = exprConverter.convertCall(bb, aggCall);
         rexAgg =
@@ -4170,6 +4156,22 @@ public class SqlToRelConverter
             rex = expr.accept(this);
             Util.permAssert(rex != null, "conversion result not null");
             return rex;
+        }
+
+        /** Converts an item in an ORDER BY clause, extracting DESC, NULLS LAST
+         * and NULLS FIRST flags first. */
+        public RexNode convertSortExpression(SqlNode expr, Set<SqlKind> flags)
+        {
+            switch (expr.getKind()) {
+            case DESCENDING:
+            case NULLS_LAST:
+            case NULLS_FIRST:
+                flags.add(expr.getKind());
+                final SqlNode operand = ((SqlCall) expr).operands[0];
+                return convertSortExpression(operand, flags);
+            default:
+                return convertExpression(expr);
+            }
         }
 
         /**
