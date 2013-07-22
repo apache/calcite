@@ -976,9 +976,9 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n"
             + "window w as (partition by \"deptno\" order by \"empid\" rows 1 preceding)")
         .typeIs(
-            "[S DOUBLE, FIVE INTEGER NOT NULL, M DOUBLE, C BIGINT, deptno INTEGER NOT NULL, empid INTEGER NOT NULL]")
+            "[S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT, deptno INTEGER NOT NULL, empid INTEGER NOT NULL]")
         .explainContains(
-            "EnumerableCalcRel(expr#0..7=[{inputs}], expr#8=[0], expr#9=[>($t4, $t8)], expr#10=[null], expr#11=[CASE($t9, $t5, $t10)], expr#12=[CAST($t11):JavaType(class java.lang.Double)], expr#13=[5], expr#14=[CAST($t6):JavaType(class java.lang.Double)], expr#15=[CAST($t7):BIGINT], S=[$t12], FIVE=[$t13], M=[$t14], C=[$t15], deptno=[$t1], empid=[$t0])\n"
+            "EnumerableCalcRel(expr#0..7=[{inputs}], expr#8=[0], expr#9=[>($t4, $t8)], expr#10=[null], expr#11=[CASE($t9, $t5, $t10)], expr#12=[CAST($t11):JavaType(class java.lang.Float)], expr#13=[5], expr#14=[CAST($t6):JavaType(class java.lang.Float)], expr#15=[CAST($t7):BIGINT], S=[$t12], FIVE=[$t13], M=[$t14], C=[$t15], deptno=[$t1], empid=[$t0])\n"
             + "  EnumerableWindowRel(window#0=[window(partition {1} order by [0 Ascending] rows between 1 PRECEDING and CURRENT ROW aggs [COUNT($3), $SUM0($3), MIN($2), COUNT()])])\n"
             + "    EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[+($t3, $t0)], proj#0..1=[{exprs}], salary=[$t3], $3=[$t5])\n"
             + "      EnumerableTableAccessRel(table=[[hr, emps]])\n")
@@ -1011,7 +1011,7 @@ public class JdbcTest {
             + " w11 as (order by \"empid\" rows between 1 preceding and 1 following),\n"
             + " w11dept as (partition by \"deptno\" order by \"empid\" rows between 1 preceding and 1 following)")
         .typeIs(
-            "[S DOUBLE, FIVE INTEGER NOT NULL, M DOUBLE, C BIGINT, C2 BIGINT, C11 BIGINT, C11DEPT BIGINT, deptno INTEGER NOT NULL, empid INTEGER NOT NULL]")
+            "[S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT, C2 BIGINT, C11 BIGINT, C11DEPT BIGINT, deptno INTEGER NOT NULL, empid INTEGER NOT NULL]")
         // Check that optimizes for window whose PARTITION KEY is empty
         .planContains("tempList.size()")
         .returns(
@@ -1459,11 +1459,10 @@ public class JdbcTest {
     public final int empid;
     public final int deptno;
     public final String name;
-    public final double salary;
+    public final float salary;
     public final Integer commission;
 
-    /** @see Bug#TodoFixed change salary to "float" when have linq4j-0.1.8 */
-    public Employee(int empid, int deptno, String name, double salary,
+    public Employee(int empid, int deptno, String name, float salary,
         Integer commission) {
       this.empid = empid;
       this.deptno = deptno;
