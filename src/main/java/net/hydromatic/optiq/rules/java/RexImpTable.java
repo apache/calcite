@@ -157,6 +157,7 @@ public class RexImpTable {
         new MinMaxImplementor2();
     agg2Map.put(minOperator, minMax);
     agg2Map.put(maxOperator, minMax);
+    agg2Map.put(rankFunc, new RankImplementor2());
   }
 
   private void defineImplementor(
@@ -548,6 +549,13 @@ public class RexImpTable {
         Aggregation aggregation, Expression accumulator);
   }
 
+  /** Implements a windowed aggregate function. */
+  interface WinAggImplementor extends AggImplementor2 {
+    Expression implementResultPlus(
+        Aggregation aggregation, Expression accumulator, Expression start,
+        Expression end, Expression rows, Expression current);
+  }
+
   enum NullAs {
     NULL,
     FALSE,
@@ -790,6 +798,38 @@ public class RexImpTable {
     public Expression implementResult(
         Aggregation aggregation, Expression accumulator) {
       return accumulator;
+    }
+  }
+
+  static class RankImplementor2 implements WinAggImplementor {
+    public boolean callOnNull() {
+      return false;
+    }
+
+    public Expression implementInit(
+        Aggregation aggregation,
+        Type returnType,
+        List<Type> parameterTypes) {
+      return Expressions.constant(0, returnType);
+    }
+
+    public Expression implementAdd(
+        Aggregation aggregation,
+        Expression accumulator,
+        List<Expression> arguments) {
+      return accumulator;
+    }
+
+    public Expression implementResult(
+        Aggregation aggregation, Expression accumulator) {
+      return accumulator;
+    }
+
+    public Expression implementResultPlus(Aggregation aggregation,
+        Expression accumulator, Expression start, Expression end,
+        Expression rows, Expression current) {
+      // Rank is 1-based
+      return Expressions.add(current, Expressions.constant(1));
     }
   }
 

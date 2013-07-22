@@ -1733,47 +1733,89 @@ public class JavaRules {
 
         // Populate map of lists, one per partition
         //   final Map<Integer, List<Employee>> multiMap =
-        //     new HashMap<Integer, List<Employee>>();
+        //     new SortedMultiMap<Integer, List<Employee>>();
         //    source.foreach(
         //      new Function1<Employee, Void>() {
         //        public Void apply(Employee v) {
         //          final Integer k = v.deptno;
-        //          putMulti(multiMap, k, v);
+        //          multiMap.putMulti(k, v);
         //          return null;
         //        }
         //      });
-        Expression multiMap_ =
-            builder.append(
-                "multiMap", Expressions.new_(SortedMultiMap.class));
-        final BlockBuilder builder2 = new BlockBuilder();
-        final ParameterExpression v_ =
-            Expressions.parameter(inputPhysType.getJavaRowType(),
-                builder2.newName("v"));
-        final DeclarationStatement declare =
-            Expressions.declare(
-                0, "key",
-                inputPhysType.selector(
-                    v_, Util.toList(window.groupSet), JavaRowFormat.CUSTOM));
-        builder2.add(declare);
-        final ParameterExpression key_ = declare.parameter;
-        builder2.add(
-            Expressions.statement(
-                Expressions.call(
-                    multiMap_,
-                    BuiltinMethod.SORTED_MULTI_MAP_PUT_MULTI.method,
-                    key_,
-                    v_)));
-        builder2.add(
-            Expressions.return_(
-                null, Expressions.constant(null)));
+        //   final List<Xxx> list = new ArrayList<Xxx>(multiMap.size());
+        //   Iterator<Employee[]> iterator = multiMap.arrays(comparator);
+        //
+        final Expression collectionExpr;
+        final Expression iterator_;
+        if (window.groupSet.isEmpty()) {
+          // If partition key is empty, no need to partition.
+          //
+          //   final List<Employee> tempList =
+          //       source.into(new ArrayList<Employee>());
+          //   Iterator<Employee[]> iterator =
+          //       SortedMultiMap.singletonArrayIterator(comparator, tempList);
+          //   final List<Xxx> list = new ArrayList<Xxx>(tempList.size());
 
-        builder.add(
-            Expressions.statement(
-                Expressions.call(
-                    source_,
-                    BuiltinMethod.ENUMERABLE_FOREACH.method,
-                    Expressions.lambda(
-                        builder2.toBlock(), v_))));
+          final Expression tempList_ = builder.append(
+              "tempList",
+              Expressions.convert_(
+                  Expressions.call(
+                      source_,
+                      BuiltinMethod.INTO.method,
+                      Expressions.new_(ArrayList.class)),
+                  List.class));
+          iterator_ = builder.append(
+              "iterator",
+              Expressions.call(
+                  null,
+                  BuiltinMethod.SORTED_MULTI_MAP_SINGLETON.method,
+                  comparator_,
+                  tempList_));
+
+          collectionExpr = tempList_;
+        } else {
+          Expression multiMap_ =
+              builder.append(
+                  "multiMap", Expressions.new_(SortedMultiMap.class));
+          final BlockBuilder builder2 = new BlockBuilder();
+          final ParameterExpression v_ =
+              Expressions.parameter(inputPhysType.getJavaRowType(),
+                  builder2.newName("v"));
+          final DeclarationStatement declare =
+              Expressions.declare(
+                  0, "key",
+                  inputPhysType.selector(
+                      v_, Util.toList(window.groupSet), JavaRowFormat.CUSTOM));
+          builder2.add(declare);
+          final ParameterExpression key_ = declare.parameter;
+          builder2.add(
+              Expressions.statement(
+                  Expressions.call(
+                      multiMap_,
+                      BuiltinMethod.SORTED_MULTI_MAP_PUT_MULTI.method,
+                      key_,
+                      v_)));
+          builder2.add(
+              Expressions.return_(
+                  null, Expressions.constant(null)));
+
+          builder.add(
+              Expressions.statement(
+                  Expressions.call(
+                      source_,
+                      BuiltinMethod.ENUMERABLE_FOREACH.method,
+                      Expressions.lambda(
+                          builder2.toBlock(), v_))));
+
+          iterator_ = builder.append(
+              "iterator",
+              Expressions.call(
+                  multiMap_,
+                  BuiltinMethod.SORTED_MULTI_MAP_ARRAYS.method,
+                  comparator_));
+
+          collectionExpr = multiMap_;
+        }
 
         // The output from this stage is the input plus the aggregate functions.
         final List<Map.Entry<String, RelDataType>> fieldList =
@@ -1793,8 +1835,6 @@ public class JavaRules {
         // For each list of rows that have the same partitioning key, evaluate
         // all of the windowed aggregate functions.
         //
-        //   final List<Xxx> list = new ArrayList<Xxx>(multiMap.size());
-        //   Iterator<Employee[]> iterator = multiMap.arrays(comparator);
         //   while (iterator.hasNext()) {
         //     // <builder3>
         //     Employee[] rows = iterator.next();
@@ -1824,15 +1864,8 @@ public class JavaRules {
                 Expressions.new_(
                     ArrayList.class,
                     Expressions.call(
-                        multiMap_, BuiltinMethod.COLLECTION_SIZE.method)),
+                        collectionExpr, BuiltinMethod.COLLECTION_SIZE.method)),
                 false);
-        final Expression iterator_ =
-            builder.append(
-                "iterator",
-                Expressions.call(
-                    multiMap_,
-                    BuiltinMethod.SORTED_MULTI_MAP_ARRAYS.method,
-                    comparator_));
 
         final BlockBuilder builder3 = new BlockBuilder();
         Expression rows_ =
@@ -1875,12 +1908,24 @@ public class JavaRules {
           builder4.add(Expressions.declare(0, parameter, initExpression));
         }
 
+        final List<Expression> expressions = new ArrayList<Expression>();
+        for (int i = 0; i < offset; i++) {
+          expressions.add(
+              Types.castIfNecessary(
+                  inputPhysType.fieldClass(i),
+                  inputPhysType.fieldReference(row_, i)));
+        }
+
         final PhysType finalInputPhysType = inputPhysType;
         generateWindowLoop(builder4,
             window,
+            aggregateCalls,
+            implementors,
+            variables,
             rows_,
             i_,
             row_,
+            expressions,
             new Function1<AggCallContext, Void>() {
               public Void apply(AggCallContext a0) {
                 for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
@@ -1917,15 +1962,6 @@ public class JavaRules {
               }
             });
 
-        final List<Expression> expressions = new ArrayList<Expression>();
-        for (int i = 0; i < offset; i++) {
-          expressions.add(
-              Types.castIfNecessary(
-                  inputPhysType.fieldClass(i),
-                  inputPhysType.fieldReference(row_, i)));
-        }
-        expressions.addAll(variables);
-
         builder4.add(
             Expressions.statement(
                 Expressions.call(
@@ -1951,7 +1987,7 @@ public class JavaRules {
         builder.add(
             Expressions.statement(
                 Expressions.call(
-                    multiMap_,
+                    collectionExpr,
                     BuiltinMethod.MAP_CLEAR.method)));
 
         // We're not assigning to "source". For each window, create a new
@@ -1973,11 +2009,14 @@ public class JavaRules {
 
     /** Generates the loop that computes aggregate functions over the window.
      * Calls a callback to increment each aggregate function's accumulator. */
-    private void generateWindowLoop(BlockBuilder builder,
-        Window window,
+    private void generateWindowLoop(BlockBuilder builder, Window window,
+        List<AggregateCall> aggregateCalls,
+        List<RexImpTable.AggImplementor2> implementors,
+        List<ParameterExpression> variables,
         Expression rows_,
         ParameterExpression i_,
         Expression row_,
+        List<Expression> expressions,
         Function1<AggCallContext, Void> f3) {
       //       int j = Math.max(0, i - 1);
       //       while (j <= i) {
@@ -1989,14 +2028,16 @@ public class JavaRules {
       //       }
 
       final Expression min_ = Expressions.constant(0);
-      final Expression max_ = Expressions.field(rows_, "length");
+      final Expression max_ =
+          Expressions.subtract(Expressions.field(rows_, "length"),
+              Expressions.constant(1));
       final SqlWindowOperator.OffsetRange offsetAndRange =
           SqlWindowOperator.getOffsetAndRange(
               window.lowerBound, window.upperBound, window.isRows);
       final Expression start_ =
           builder.append("start",
               optimizeAdd(i_,
-                  (int) offsetAndRange.offset - (int) offsetAndRange.range + 1,
+                  (int) offsetAndRange.offset - (int) offsetAndRange.range,
                   min_, max_),
               false);
       final Expression end_ =
@@ -2040,6 +2081,19 @@ public class JavaRules {
               Expressions.lessThanOrEqual(j_, end_),
               Expressions.preIncrementAssign(j_),
               builder5.toBlock()));
+
+      for (Ord<Pair<AggregateCall, RexImpTable.AggImplementor2>> ord
+          : Ord.zip(Pair.zip(aggregateCalls, implementors))) {
+        final RexImpTable.AggImplementor2 implementor2 = ord.e.right;
+        expressions.add(
+            implementor2 instanceof RexImpTable.WinAggImplementor
+                ? ((RexImpTable.WinAggImplementor) implementor2)
+                .implementResultPlus(
+                    ord.e.left.getAggregation(), variables.get(ord.i),
+                    start_, end_, rows_, i_)
+                : implementor2.implementResult(
+                    ord.e.left.getAggregation(), variables.get(ord.i)));
+      }
     }
 
     private Expression optimizeAdd(Expression i_,

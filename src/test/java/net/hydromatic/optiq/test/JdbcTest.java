@@ -989,6 +989,60 @@ public class JdbcTest {
             + "S=14300.0; FIVE=5; M=7000.0; C=2; deptno=10; empid=150\n");
   }
 
+  /** Tests windowed aggregation with multiple windows.
+   * One window straddles the current row.
+   * Some windows have no PARTITION BY clause. */
+  @Test public void testWinAgg2() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select sum(\"salary\" + \"empid\") over w as s,\n"
+            + " 5 as five,\n"
+            + " min(\"salary\") over w as m,\n"
+            + " count(*) over w as c,\n"
+            + " count(*) over w2 as c2,\n"
+            + " count(*) over w11 as c11,\n"
+            + " count(*) over w11dept as c11dept,\n"
+            + " \"deptno\",\n"
+            + " \"empid\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "window w as (order by \"empid\" rows 1 preceding),\n"
+            + " w2 as (order by \"empid\" rows 2 preceding),\n"
+            + " w11 as (order by \"empid\" rows between 1 preceding and 1 following),\n"
+            + " w11dept as (partition by \"deptno\" order by \"empid\" rows between 1 preceding and 1 following)")
+        .typeIs(
+            "[S DOUBLE, FIVE INTEGER NOT NULL, M DOUBLE, C BIGINT, C2 BIGINT, C11 BIGINT, C11DEPT BIGINT, deptno INTEGER NOT NULL, empid INTEGER NOT NULL]")
+        // Check that optimizes for window whose PARTITION KEY is empty
+        .planContains("tempList.size()")
+        .returns(
+            "S=16400.0; FIVE=5; M=8000.0; C=2; C2=3; C11=2; C11DEPT=1; deptno=20; empid=200\n"
+            + "S=10100.0; FIVE=5; M=10000.0; C=1; C2=1; C11=2; C11DEPT=2; deptno=10; empid=100\n"
+            + "S=23220.0; FIVE=5; M=11500.0; C=2; C2=2; C11=3; C11DEPT=3; deptno=10; empid=110\n"
+            + "S=14300.0; FIVE=5; M=7000.0; C=2; C2=3; C11=3; C11DEPT=2; deptno=10; empid=150\n");
+  }
+
+  /** Tests for RANK and ORDER BY ... DESCENDING, NULLS FIRST, NULLS LAST. */
+  @Test public void testWinAggRank() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select  \"deptno\",\n"
+            + " \"empid\",\n"
+            + " \"commission\",\n"
+            + " rank() over (partition by \"deptno\" order by \"commission\" desc nulls first) as rcnf,\n"
+            + " rank() over (partition by \"deptno\" order by \"commission\" desc nulls last) as rcnl,\n"
+            + " rank() over (partition by \"deptno\" order by \"empid\") as r,\n"
+            + " rank() over (partition by \"deptno\" order by \"empid\" desc) as rd\n"
+            + "from \"hr\".\"emps\"")
+        .typeIs(
+            "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, commission INTEGER, RCNF INTEGER, RCNL INTEGER, R INTEGER, RD INTEGER]")
+        .returns(
+            "deptno=20; empid=200; commission=500; RCNF=1; RCNL=1; R=1; RD=1\n"
+            + "deptno=10; empid=150; commission=null; RCNF=3; RCNL=3; R=3; RD=1\n"
+            + "deptno=10; empid=110; commission=250; RCNF=2; RCNL=2; R=2; RD=2\n"
+            + "deptno=10; empid=100; commission=1000; RCNF=1; RCNL=1; R=1; RD=3\n");
+  }
+
   /** Tests WHERE comparing a nullable integer with an integer literal. */
   @Test public void testWhereNullable() {
     OptiqAssert.assertThat()

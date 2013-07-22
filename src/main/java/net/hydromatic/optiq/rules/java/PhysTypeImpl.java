@@ -306,18 +306,6 @@ public class PhysTypeImpl implements PhysType {
   }
 
   public Expression generateComparator(RelCollation collation) {
-    if (collation.getFieldCollations().size() == 1 && false) {
-      RelFieldCollation fieldCollation = collation.getFieldCollations().get(0);
-      return Expressions.call(
-          BuiltinMethod.NULLS_COMPARATOR.method,
-          Expressions.constant(
-              fieldCollation.nullDirection
-              == RelFieldCollation.NullDirection.FIRST),
-          Expressions.constant(
-              fieldCollation.direction
-              == RelFieldCollation.Direction.Descending));
-    }
-
     // int c;
     // c = Utilities.compare(v0, v1);
     // if (c != 0) return c; // or -c if descending

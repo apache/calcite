@@ -43,6 +43,7 @@ import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Converts a SQL parse tree (consisting of {@link org.eigenbase.sql.SqlNode}
@@ -1673,10 +1674,27 @@ public class SqlToRelConverter
                 throw new AssertionError("sort key must not be empty");
             }
         }
-        final ImmutableList.Builder<RexNode> orderKeys =
+        final ImmutableList.Builder<RexFieldCollation> orderKeys =
             ImmutableList.builder();
         for (SqlNode order : orderList) {
-            orderKeys.add(bb.convertExpression(order));
+            RexNode e = bb.convertExpression(order);
+            final ImmutableSet.Builder<SqlOperator> flags =
+                ImmutableSet.builder();
+            for (;;) {
+                if (e instanceof RexCall) {
+                    final SqlOperator op = ((RexCall) e).getOperator();
+                    if (op == SqlStdOperatorTable.descendingOperator
+                        || op == SqlStdOperatorTable.nullsLastOperator
+                        || op == SqlStdOperatorTable.nullsFirstOperator)
+                    {
+                        flags.add(SqlStdOperatorTable.descendingOperator);
+                        e = ((RexCall) e).getOperands().get(0);
+                        continue;
+                    }
+                }
+                break;
+            }
+            orderKeys.add(new RexFieldCollation(e, flags.build()));
         }
         RexNode rexAgg = exprConverter.convertCall(bb, aggCall);
         rexAgg =
@@ -4761,12 +4779,12 @@ public class SqlToRelConverter
         static final boolean ENABLE_HISTOGRAM_AGG = false;
 
         private final List<RexNode> partitionKeys;
-        private final List<RexNode> orderKeys;
+        private final ImmutableList<RexFieldCollation> orderKeys;
         private final SqlWindow window;
 
         HistogramShuttle(
             List<RexNode> partitionKeys,
-            List<RexNode> orderKeys,
+            ImmutableList<RexFieldCollation> orderKeys,
             SqlWindow window)
         {
             this.partitionKeys = partitionKeys;

@@ -112,16 +112,19 @@ public abstract class WindowRelBase
             });
     }
 
-    static RelCollation getCollation(final List<RexNode> exprs) {
+    static RelCollation getCollation(final List<RexFieldCollation> collations) {
         return RelCollationImpl.of(
             new AbstractList<RelFieldCollation>() {
                 public RelFieldCollation get(int index) {
+                    final RexFieldCollation collation = collations.get(index);
                     return new RelFieldCollation(
-                        ((RexLocalRef) exprs.get(index)).getIndex());
+                        ((RexLocalRef) collation.left).getIndex(),
+                        collation.getDirection(),
+                        collation.getNullDirection());
                 }
 
                 public int size() {
-                    return exprs.size();
+                    return collations.size();
                 }
             });
     }

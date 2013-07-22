@@ -29,7 +29,6 @@ import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * An operator describing a window specification.
  *
@@ -751,16 +750,6 @@ public class SqlWindowOperator
             range = lower.signedVal() + upper.signedVal();
         }
 
-        // if range is physical and crosses or touches zero (current row),
-        // increase the size by one
-        if (physical
-            && (lower != null)
-            && ((lower.sign != upper.sign)
-                || (lower.val == 0)
-                || (upper.val == 0)))
-        {
-            ++range;
-        }
         return new OffsetRange(offset, range);
     }
 

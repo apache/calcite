@@ -25,7 +25,6 @@ import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * An expression formed by a call to an operator with zero or more expressions
  * as operands.
@@ -167,6 +166,12 @@ public class RexCall
             return RexKind.Reinterpret;
         case COLUMN_LIST:
             return RexKind.Row;
+        case DESCENDING:
+            return RexKind.Descending;
+        case NULLS_FIRST:
+            return RexKind.NullsFirst;
+        case NULLS_LAST:
+             return RexKind.NullsLast;
         default:
             throw Util.unexpected(kind);
         }

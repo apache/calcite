@@ -37,6 +37,7 @@ import javax.sql.DataSource;
 public enum BuiltinMethod {
   QUERYABLE_SELECT(Queryable.class, "select", FunctionExpression.class),
   AS_QUERYABLE(Enumerable.class, "asQueryable"),
+  INTO(ExtendedEnumerable.class, "into", Collection.class),
   GET_SUB_SCHEMA(DataContext.class, "getSubSchema", String.class),
   GET_TARGET(ReflectiveSchema.class, "getTarget"),
   DATA_CONTEXT_GET_TABLE(DataContext.class, "getTable", String.class,
@@ -98,6 +99,8 @@ public enum BuiltinMethod {
   SORTED_MULTI_MAP_PUT_MULTI(SortedMultiMap.class, "putMulti", Object.class,
       Object.class),
   SORTED_MULTI_MAP_ARRAYS(SortedMultiMap.class, "arrays", Comparator.class),
+  SORTED_MULTI_MAP_SINGLETON(SortedMultiMap.class, "singletonArrayIterator",
+      Comparator.class, List.class),
   ARRAY_ITEM(SqlFunctions.class, "arrayItem", List.class, int.class),
   MAP_ITEM(SqlFunctions.class, "mapItem", Map.class, Object.class),
   ANY_ITEM(SqlFunctions.class, "item", Object.class, Object.class),

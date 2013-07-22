@@ -19,7 +19,6 @@ package org.eigenbase.rex;
 
 import java.util.*;
 
-
 /**
  * Enumeration of some important types of row-expression.
  *
@@ -254,7 +253,11 @@ public enum RexKind
     /**
      * The internal REINTERPRET operator
      */
-    Reinterpret;
+    Reinterpret,
+
+    Descending,
+    NullsFirst,
+    NullsLast;
 
     private final Set<RexKind> otherKinds;
 
@@ -272,8 +275,7 @@ public enum RexKind
     RexKind(RexKind [] others)
     {
         otherKinds = new HashSet<RexKind>();
-        for (int i = 0; i < others.length; i++) {
-            RexKind other = others[i];
+        for (RexKind other : others) {
             otherKinds.add(other);
             otherKinds.addAll(other.otherKinds);
         }

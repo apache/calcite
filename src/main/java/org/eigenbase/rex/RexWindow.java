@@ -39,7 +39,7 @@ public class RexWindow
     //~ Instance fields --------------------------------------------------------
 
     public final List<RexNode> partitionKeys;
-    public final List<RexNode> orderKeys;
+    public final ImmutableList<RexFieldCollation> orderKeys;
     private final SqlNode lowerBound;
     private final SqlNode upperBound;
     private final boolean isRows;
@@ -55,7 +55,7 @@ public class RexWindow
      */
     RexWindow(
         List<RexNode> partitionKeys,
-        List<RexNode> orderKeys,
+        List<RexFieldCollation> orderKeys,
         SqlNode lowerBound,
         SqlNode upperBound,
         boolean isRows)
@@ -121,7 +121,7 @@ public class RexWindow
                 if (i > 0) {
                     pw.print(", ");
                 }
-                RexNode orderKey = orderKeys.get(i);
+                RexFieldCollation orderKey = orderKeys.get(i);
                 pw.print(orderKey.toString());
             }
         }
@@ -166,14 +166,6 @@ public class RexWindow
     public boolean isRows()
     {
         return isRows;
-    }
-
-    public SqlWindowOperator.OffsetRange getOffsetAndRange()
-    {
-        return SqlWindowOperator.getOffsetAndRange(
-            getLowerBound(),
-            getUpperBound(),
-            isRows());
     }
 }
 

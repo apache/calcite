@@ -56,6 +56,17 @@ public class SortedMultiMap<K, V> extends HashMap<K, List<V>> {
       }
     };
   }
+
+  /** Shortcut method if the partition key is empty. We know that we would end
+   * up with a map with just one entry, so save ourselves the trouble of all
+   * that hashing. */
+  public static <V> Iterator<V[]> singletonArrayIterator(
+      Comparator<V> comparator, List<V> list) {
+    final SortedMultiMap<Object, V> multiMap =
+        new SortedMultiMap<Object, V>();
+    multiMap.put("x", list);
+    return multiMap.arrays(comparator);
+  }
 }
 
 // End SortedMultiMap.java

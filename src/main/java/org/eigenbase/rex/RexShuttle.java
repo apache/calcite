@@ -21,7 +21,6 @@ import java.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Passes over a row-expression, calling a handler method for each node,
  * appropriate to the type of the node.
@@ -63,7 +62,8 @@ public class RexShuttle
     public RexWindow visitWindow(RexWindow window)
     {
         boolean [] update = { false };
-        List<RexNode> clonedOrderKeys = visitList(window.orderKeys, update);
+        List<RexFieldCollation> clonedOrderKeys =
+            visitFieldCollations(window.orderKeys, update);
         List<RexNode> clonedPartitionKeys =
             visitList(window.partitionKeys, update);
         if (update[0]) {
@@ -135,13 +135,39 @@ public class RexShuttle
         List<? extends RexNode> exprs, boolean [] update)
     {
         ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
-        for (int i = 0; i < exprs.size(); i++) {
-            RexNode operand = exprs.get(i);
+        for (RexNode operand : exprs) {
             RexNode clonedOperand = operand.accept(this);
             if ((clonedOperand != operand) && (update != null)) {
                 update[0] = true;
             }
             clonedOperands.add(clonedOperand);
+        }
+        return clonedOperands.build();
+    }
+
+    /**
+     * Visits each of a list of field collations and returns a list of the
+     * results.
+     *
+     * @param collations List of field collations
+     * @param update If not null, sets this to true if any of the expressions
+     * was modified
+     *
+     * @return Array of visited field collations
+     */
+    protected List<RexFieldCollation> visitFieldCollations(
+        List<RexFieldCollation> collations, boolean [] update)
+    {
+        ImmutableList.Builder<RexFieldCollation> clonedOperands =
+            ImmutableList.builder();
+        for (RexFieldCollation collation : collations) {
+            RexNode clonedOperand = collation.left.accept(this);
+            if ((clonedOperand != collation.left) && (update != null)) {
+                update[0] = true;
+                collation =
+                    new RexFieldCollation(clonedOperand, collation.right);
+            }
+            clonedOperands.add(collation);
         }
         return clonedOperands.build();
     }

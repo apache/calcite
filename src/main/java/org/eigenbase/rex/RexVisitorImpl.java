@@ -61,8 +61,8 @@ public class RexVisitorImpl<R>
             return null;
         }
         final RexWindow window = over.getWindow();
-        for (RexNode orderKey : window.orderKeys) {
-            orderKey.accept(this);
+        for (RexFieldCollation orderKey : window.orderKeys) {
+            orderKey.left.accept(this);
         }
         for (RexNode partitionKey : window.partitionKeys) {
             partitionKey.accept(this);

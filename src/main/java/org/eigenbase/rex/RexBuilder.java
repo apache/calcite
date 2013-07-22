@@ -283,7 +283,7 @@ public class RexBuilder
         SqlAggFunction operator,
         List<RexNode> exprs,
         List<RexNode> partitionKeys,
-        List<RexNode> orderKeys,
+        ImmutableList<RexFieldCollation> orderKeys,
         SqlNode lowerBound,
         SqlNode upperBound,
         boolean physical,
@@ -355,6 +355,7 @@ public class RexBuilder
     /**
      * Creates a window specification.
      *
+     *
      * @param partitionKeys Partition keys
      * @param orderKeys Order keys
      * @param lowerBound Lower bound
@@ -364,7 +365,7 @@ public class RexBuilder
      */
     public RexWindow makeWindow(
         List<RexNode> partitionKeys,
-        List<RexNode> orderKeys,
+        ImmutableList<RexFieldCollation> orderKeys,
         SqlNode lowerBound,
         SqlNode upperBound,
         boolean isRows)
