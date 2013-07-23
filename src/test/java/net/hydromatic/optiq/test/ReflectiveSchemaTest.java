@@ -23,6 +23,7 @@ import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.*;
 import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.Schemas;
+import net.hydromatic.optiq.impl.TableFunctionInSchemaImpl;
 import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
@@ -32,6 +33,7 @@ import org.junit.Test;
 
 import java.lang.reflect.*;
 import java.sql.*;
+import java.sql.Statement;
 import java.util.*;
 import java.util.Date;
 
@@ -144,13 +146,11 @@ public class ReflectiveSchemaTest {
     MutableSchema rootSchema = optiqConnection.getRootSchema();
     MapSchema schema = MapSchema.create(rootSchema, "s");
     schema.addTableFunction(
-        "GenerateStrings",
-        Schemas.methodMember(
-            JdbcTest.GENERATE_STRINGS_METHOD, typeFactory));
+        new TableFunctionInSchemaImpl(schema, "GenerateStrings",
+        Schemas.methodMember(JdbcTest.GENERATE_STRINGS_METHOD, typeFactory)));
     schema.addTableFunction(
-        "StringUnion",
-        Schemas.methodMember(
-            JdbcTest.STRING_UNION_METHOD, typeFactory));
+        new TableFunctionInSchemaImpl(schema, "StringUnion",
+            Schemas.methodMember(JdbcTest.STRING_UNION_METHOD, typeFactory)));
     ReflectiveSchema.create(rootSchema, "hr", new JdbcTest.HrSchema());
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
@@ -173,12 +173,11 @@ public class ReflectiveSchemaTest {
     MutableSchema rootSchema = optiqConnection.getRootSchema();
     MapSchema schema = MapSchema.create(rootSchema, "s");
     schema.addTableFunction(
-        "emps_view",
         ViewTable.viewFunction(
             schema,
             "emps_view",
             "select * from \"hr\".\"emps\" where \"deptno\" = 10",
-            Collections.<String>emptyList()));
+            null));
     ReflectiveSchema.create(rootSchema, "hr", new JdbcTest.HrSchema());
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
@@ -188,6 +187,66 @@ public class ReflectiveSchemaTest {
         "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
         + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n",
         JdbcTest.toString(resultSet));
+  }
+
+  /**
+   * Tests a view with a path.
+   */
+  @Test public void testViewPath() throws SQLException, ClassNotFoundException {
+    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+    Connection connection =
+        DriverManager.getConnection("jdbc:optiq:");
+    OptiqConnection optiqConnection =
+        connection.unwrap(OptiqConnection.class);
+    MutableSchema rootSchema = optiqConnection.getRootSchema();
+    MapSchema schema = MapSchema.create(rootSchema, "s");
+    // create a view s.emps based on hr.emps. uses explicit schema path "hr".
+    schema.addTableFunction(
+        ViewTable.viewFunction(
+            schema,
+            "emps",
+            "select * from \"emps\" where \"deptno\" = 10",
+            Collections.singletonList("hr")));
+    schema.addTableFunction(
+        ViewTable.viewFunction(
+            schema,
+            "hr_emps",
+            "select * from \"emps\"",
+            Collections.singletonList("hr")));
+    schema.addTableFunction(
+        ViewTable.viewFunction(
+            schema,
+            "s_emps",
+            "select * from \"emps\"",
+            Collections.singletonList("s")));
+    schema.addTableFunction(
+        ViewTable.viewFunction(
+            schema,
+            "null_emps",
+            "select * from \"emps\"",
+            null));
+    ReflectiveSchema.create(rootSchema, "hr", new JdbcTest.HrSchema());
+    final Statement statement = connection.createStatement();
+    ResultSet resultSet;
+    resultSet = statement.executeQuery(
+        "select * from \"s\".\"hr_emps\"");
+    assertEquals(4, count(resultSet)); // "hr_emps" -> "hr"."emps", 4 rows
+    resultSet = statement.executeQuery(
+        "select * from \"s\".\"s_emps\""); // "s_emps" -> "s"."emps", 3 rows
+    assertEquals(3, count(resultSet));
+    resultSet = statement.executeQuery(
+        "select * from \"s\".\"null_emps\""); // "null_emps" -> "s"."emps", 3
+    assertEquals(3, count(resultSet));
+    statement.close();
+  }
+
+  private int count(ResultSet resultSet) throws SQLException {
+    int i = 0;
+    while (resultSet.next()) {
+      ++i;
+    }
+    resultSet.close();
+    return i;
   }
 
   /** Tests column based on java.sql.Date field. */
@@ -238,7 +297,6 @@ public class ReflectiveSchemaTest {
     checkAgg(with, "avg");
     checkAgg(with, "count");
   }
-
 
   private void checkAgg(OptiqAssert.AssertThat with, String fn) {
     for (Field field

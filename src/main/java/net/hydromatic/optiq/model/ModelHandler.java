@@ -18,8 +18,7 @@
 package net.hydromatic.optiq.model;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.TableInSchemaImpl;
-import net.hydromatic.optiq.impl.ViewTable;
+import net.hydromatic.optiq.impl.*;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
@@ -86,12 +85,10 @@ public class ModelHandler {
     populateSchema(jsonSchema, schema);
   }
 
-  private void populateSchema(JsonMapSchema jsonSchema, Schema schema) {
+  private void populateSchema(JsonSchema jsonSchema, Schema schema) {
     final Pair<String, Schema> pair = Pair.of(jsonSchema.name, schema);
     push(schemaStack, pair);
-    for (JsonTable jsonTable : jsonSchema.tables) {
-      jsonTable.accept(this);
-    }
+    jsonSchema.visitChildren(this);
     pop(schemaStack, pair);
   }
 
@@ -113,12 +110,38 @@ public class ModelHandler {
   }
 
   public void visit(JsonJdbcSchema jsonSchema) {
-    JdbcSchema.create(
-        currentMutableSchema("jdbc schema"),
-        dataSource(jsonSchema),
-        jsonSchema.jdbcCatalog,
-        jsonSchema.jdbcSchema,
-        jsonSchema.name);
+    JdbcSchema schema =
+        JdbcSchema.create(
+            currentMutableSchema("jdbc schema"),
+            dataSource(jsonSchema),
+            jsonSchema.jdbcCatalog,
+            jsonSchema.jdbcSchema,
+            jsonSchema.name);
+    populateSchema(jsonSchema, schema);
+  }
+
+  public void visit(JsonMaterialization jsonMaterialization) {
+    try {
+      final Schema schema = currentSchema();
+      if (!(schema instanceof MutableSchema)) {
+        throw new RuntimeException(
+            "Cannot define materialization; parent schema '"
+            + currentSchemaName()
+            + "' is not a SemiMutableSchema");
+      }
+      final MutableSchema mutableSchema = (MutableSchema) schema;
+      Schema.TableFunctionInSchema tableFunctionInSchema =
+          MaterializedViewTable.create(
+              schema,
+              jsonMaterialization.view,
+              jsonMaterialization.sql,
+              null,
+              jsonMaterialization.table);
+      mutableSchema.addTableFunction(tableFunctionInSchema);
+    } catch (Exception e) {
+      throw new RuntimeException("Error instantiating " + jsonMaterialization,
+          e);
+    }
   }
 
   private DataSource dataSource(JsonJdbcSchema jsonJdbcSchema) {
@@ -162,10 +185,9 @@ public class ModelHandler {
       final MutableSchema schema = currentMutableSchema("view");
       final List<String> path =
           jsonView.path == null
-              ? Collections.singletonList(peek(schemaStack).left)
+              ? currentSchemaPath()
               : jsonView.path;
       schema.addTableFunction(
-          jsonView.name,
           ViewTable.viewFunction(
               schema, jsonView.name, jsonView.sql, path));
     } catch (Exception e) {
@@ -173,8 +195,16 @@ public class ModelHandler {
     }
   }
 
+  private List<String> currentSchemaPath() {
+    return Collections.singletonList(peek(schemaStack).left);
+  }
+
   private Schema currentSchema() {
     return peek(schemaStack).right;
+  }
+
+  private String currentSchemaName() {
+    return peek(schemaStack).left;
   }
 
   private MutableSchema currentMutableSchema(String elementType) {

@@ -20,7 +20,6 @@ package org.eigenbase.sql.type;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Strategy interface to infer the type of an operator call from the type of the
  * operands.
@@ -43,7 +42,7 @@ public interface SqlReturnTypeInference
      *
      * @param opBinding description of operator binding
      *
-     * @return inferred type
+     * @return inferred type; may be null
      */
     public RelDataType inferReturnType(
         SqlOperatorBinding opBinding);

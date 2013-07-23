@@ -20,8 +20,6 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.optiq.model.*;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,7 +28,6 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.junit.Assert.*;
-
 
 /**
  * Unit test for data models.
@@ -141,6 +138,43 @@ public class ModelTest {
     assertEquals(2, list.size());
     assertEquals(1, list.get(0));
     assertEquals(3.5, list.get(1));
+  }
+
+  /** Tests that an immutable schema in a model cannot contain a
+   * materialization. */
+  @Test public void testModelImmutableSchemaCannotContainMaterialization()
+      throws Exception {
+    final OptiqAssert.AssertThat that =
+        OptiqAssert.assertThat().withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "  defaultSchema: 'adhoc',\n"
+            + "  schemas: [\n"
+            + "    {\n"
+            + "      name: 'empty'\n"
+            + "    },\n"
+            + "    {\n"
+            + "      name: 'adhoc',\n"
+            + "      type: 'custom',\n"
+            + "      factory: '"
+            + JdbcTest.MySchemaFactory.class.getName()
+            + "',\n"
+            + "      operand: {\n"
+            + "           'tableName': 'ELVIS',\n"
+            + "           'mutable': false\n"
+            + "      },\n"
+            + "      materializations: [\n"
+            + "        {\n"
+            + "          table: 'v',\n"
+            + "          sql: 'values (1)'\n"
+            + "        }\n"
+            + "      ]\n"
+            + "    }\n"
+            + "  ]\n"
+            + "}");
+    that.connectThrows(
+        "Cannot define materialization; parent schema 'adhoc' is not a "
+        + "SemiMutableSchema");
   }
 }
 

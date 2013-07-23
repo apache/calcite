@@ -26,7 +26,7 @@ public interface MutableSchema extends Schema {
   /** Defines a table-function in this schema. There can be multiple
    * table-functions with the same name; this method will not remove a
    * table-function with the same name, just define another overloading. */
-  void addTableFunction(String name, TableFunction tableFunction);
+  void addTableFunction(TableFunctionInSchema tableFunctionInSchema);
 
   /** Defines a table within this schema. */
   void addTable(TableInSchema table);

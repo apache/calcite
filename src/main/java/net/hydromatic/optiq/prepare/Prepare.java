@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.prepare;
 
+import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.runtime.Typed;
 
 import org.eigenbase.rel.*;
@@ -32,7 +33,6 @@ import org.eigenbase.trace.EigenbaseTrace;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.logging.Logger;
-
 
 /**
  * Abstract base for classes that implement
@@ -68,11 +68,11 @@ public abstract class Prepare {
    * struct fields are flattened, or field names are renamed for uniqueness)
    * @param rootRel root of a relational expression
    *
+   * @param materializations Tables known to be populated with a given query
    * @return an equivalent optimized relational expression
    */
-  protected RelNode optimize(
-      RelDataType logicalRowType,
-      RelNode rootRel) {
+  protected RelNode optimize(RelDataType logicalRowType, RelNode rootRel,
+      List<Materialization> materializations) {
     final RelOptPlanner planner = rootRel.getCluster().getPlanner();
 
     // Allow each rel to register its own rules.
@@ -86,6 +86,10 @@ public abstract class Prepare {
     visitor.go(rootRel);
 
     planner.setRoot(rootRel);
+    for (Materialization materialization : materializations) {
+      planner.addMaterialization(materialization.tableRel,
+          materialization.queryRel);
+    }
 
     RelTraitSet desiredTraits = getDesiredRootTraitSet(rootRel);
 
@@ -120,13 +124,15 @@ public abstract class Prepare {
       SqlNode sqlQuery,
       Class runtimeContextClass,
       SqlValidator validator,
-      boolean needsValidation) {
+      boolean needsValidation,
+      List<Materialization> materializations) {
     return prepareSql(
         sqlQuery,
         sqlQuery,
         runtimeContextClass,
         validator,
-        needsValidation);
+        needsValidation,
+        materializations);
   }
 
   public PreparedResult prepareSql(
@@ -134,7 +140,8 @@ public abstract class Prepare {
       SqlNode sqlNodeOriginal,
       Class runtimeContextClass,
       SqlValidator validator,
-      boolean needsValidation) {
+      boolean needsValidation,
+      List<Materialization> materializations) {
     queryString = sqlQuery.toString();
 
     init(runtimeContextClass);
@@ -196,16 +203,13 @@ public abstract class Prepare {
       switch (explainDepth) {
       case Physical:
       default:
-        rootRel =
-            optimize(
-                rootRel.getRowType(),
-                rootRel);
+        rootRel = optimize(rootRel.getRowType(), rootRel, materializations);
         return createPreparedExplanation(
             null, rootRel, explainAsXml, detailLevel);
       }
     }
 
-    rootRel = optimize(resultType, rootRel);
+    rootRel = optimize(resultType, rootRel, materializations);
 
     if (timingTracer != null) {
       timingTracer.traceTime("end optimization");
@@ -451,6 +455,29 @@ public abstract class Prepare {
     }
 
     public abstract Object execute();
+  }
+
+  /** Describes that a given SQL query is materialized by a given table.
+   * The materialization is currently valid, and can be used in the planning
+   * process. */
+  public static class Materialization {
+    /** The table that holds the materialized data. */
+    final Schema.TableInSchema materializedTable;
+    /** The query that derives the data. */
+    final String sql;
+    /** Relational expression for the table. Usually a
+     * {@link TableAccessRel}. */
+    RelNode tableRel;
+    /** Relational expression for the query to populate the table. */
+    RelNode queryRel;
+
+    public Materialization(Schema.TableInSchema materializedTable,
+        String sql) {
+      assert materializedTable != null;
+      assert sql != null;
+      this.materializedTable = materializedTable;
+      this.sql = sql;
+    }
   }
 }
 

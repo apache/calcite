@@ -54,7 +54,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
   final ParameterExpression rootExpression =
       Expressions.parameter(DataContext.class, "root");
   final MutableSchema rootSchema =
-      new MapSchema(this, typeFactory, rootExpression);
+      new MapSchema(null, this, typeFactory, "", rootExpression);
   final UnregisteredDriver driver;
   final net.hydromatic.optiq.jdbc.Factory factory;
   final Function0<OptiqPrepare> prepareFactory;
@@ -63,19 +63,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
   private String schema;
   private final OptiqDatabaseMetaData metaData;
   final Helper helper = Helper.INSTANCE;
-
-  final OptiqServer server = new OptiqServer() {
-    final List<OptiqServerStatement> statementList =
-        new ArrayList<OptiqServerStatement>();
-
-    public void removeStatement(OptiqServerStatement optiqServerStatement) {
-      statementList.add(optiqServerStatement);
-    }
-
-    public void addStatement(OptiqServerStatement statement) {
-      statementList.add(statement);
-    }
-  };
+  final OptiqServer server = new OptiqServerImpl();
   private final Schema informationSchema;
 
   /**
@@ -103,6 +91,18 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
     this.metaData = factory.newDatabaseMetaData(this);
     this.holdability = metaData.getResultSetHoldability();
     this.informationSchema = metaData.meta.createInformationSchema();
+  }
+
+  /** Returns a view onto this connection's configuration properties. Code
+   * within Optiq should use this view rather than calling
+   * {@link Properties#getProperty(String)}. */
+  ConnectionProperty.ConnectionConfig config() {
+    return ConnectionProperty.connectionConfig(info);
+  }
+
+  static ConnectionProperty.ConnectionConfig configOf(
+      OptiqConnection connection) {
+    return ConnectionProperty.connectionConfig(connection.getProperties());
   }
 
   // OptiqConnection methods
@@ -442,6 +442,19 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
 
     public OptiqConnection getConnection() {
       return (OptiqConnection) provider;
+    }
+  }
+
+  private static class OptiqServerImpl implements OptiqServer {
+    final List<OptiqServerStatement> statementList =
+        new ArrayList<OptiqServerStatement>();
+
+    public void removeStatement(OptiqServerStatement optiqServerStatement) {
+      statementList.add(optiqServerStatement);
+    }
+
+    public void addStatement(OptiqServerStatement statement) {
+      statementList.add(statement);
     }
   }
 }

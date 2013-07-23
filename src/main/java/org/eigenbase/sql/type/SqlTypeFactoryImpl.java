@@ -24,7 +24,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * SqlTypeFactoryImpl provides a default implementation of {@link
  * RelDataTypeFactory} which supports SQL types.
@@ -451,11 +450,10 @@ public class SqlTypeFactoryImpl
                 return null;
             }
         }
-        if (anyNullable) {
-            return createTypeWithNullability(resultType, true);
-        } else {
-            return resultType;
+        if (resultType != null && anyNullable) {
+            resultType = createTypeWithNullability(resultType, true);
         }
+        return resultType;
     }
 
     /**

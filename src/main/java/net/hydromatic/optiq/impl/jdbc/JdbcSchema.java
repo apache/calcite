@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.reltype.RelDataType;
@@ -28,6 +29,8 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.Util;
+
+import com.google.common.collect.*;
 
 import java.sql.*;
 import java.util.*;
@@ -42,6 +45,8 @@ import javax.sql.DataSource;
  */
 public class JdbcSchema implements Schema {
   final QueryProvider queryProvider;
+  private final MutableSchema parentSchema;
+  private final String name;
   final DataSource dataSource;
   final String catalog;
   final String schema;
@@ -63,6 +68,7 @@ public class JdbcSchema implements Schema {
    */
   public JdbcSchema(
       QueryProvider queryProvider,
+      MutableSchema parentSchema,
       String name,
       DataSource dataSource,
       SqlDialect dialect,
@@ -72,6 +78,8 @@ public class JdbcSchema implements Schema {
       Expression expression) {
     super();
     this.queryProvider = queryProvider;
+    this.parentSchema = parentSchema;
+    this.name = name;
     this.dataSource = dataSource;
     this.dialect = dialect;
     this.catalog = catalog;
@@ -105,6 +113,7 @@ public class JdbcSchema implements Schema {
     JdbcSchema schema =
         new JdbcSchema(
             parentSchema.getQueryProvider(),
+            parentSchema,
             name,
             dataSource,
             JdbcSchema.createDialect(dataSource),
@@ -149,6 +158,14 @@ public class JdbcSchema implements Schema {
     return JdbcUtils.DialectPool.INSTANCE.get(dataSource);
   }
 
+  public Schema getParentSchema() {
+    return parentSchema;
+  }
+
+  public String getName() {
+    return name;
+  }
+
   // Used by generated code.
   public DataSource getDataSource() {
     return dataSource;
@@ -166,11 +183,11 @@ public class JdbcSchema implements Schema {
     return queryProvider;
   }
 
-  public List<TableFunction> getTableFunctions(String name) {
+  public Collection<TableFunctionInSchema> getTableFunctions(String name) {
     return Collections.emptyList();
   }
 
-  public Collection<TableInSchema> getTables() {
+  public Map<String, TableInSchema> getTables() {
     Connection connection = null;
     ResultSet resultSet = null;
     try {
@@ -181,15 +198,16 @@ public class JdbcSchema implements Schema {
           schema,
           null,
           null);
-      final List<TableInSchema> names = new ArrayList<TableInSchema>();
+      final ImmutableMap.Builder<String, TableInSchema> builder =
+          ImmutableMap.builder();
       while (resultSet.next()) {
         final String name = resultSet.getString(3);
         final String tableTypeName = resultSet.getString(4);
         final TableType tableType =
             Util.enumVal(TableType.class, tableTypeName);
-        names.add(new TableInSchemaImpl(name, tableType));
+        builder.put(name, new TableInSchemaImpl(name, tableType));
       }
-      return names;
+      return builder.build();
     } catch (SQLException e) {
       throw new RuntimeException(
           "Exception while reading tables", e);
@@ -271,9 +289,9 @@ public class JdbcSchema implements Schema {
     }
   }
 
-  public Map<String, List<TableFunction>> getTableFunctions() {
+  public Multimap<String, TableFunctionInSchema> getTableFunctions() {
     // TODO: populate map from JDBC metadata
-    return Collections.emptyMap();
+    return ImmutableMultimap.of();
   }
 
   public Schema getSubSchema(String name) {

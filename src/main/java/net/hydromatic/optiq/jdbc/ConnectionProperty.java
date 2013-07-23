@@ -22,9 +22,12 @@ import java.util.*;
 /**
  * Properties that may be specified on the JDBC connect string.
  */
-enum ConnectionProperty {
+public enum ConnectionProperty {
   /** Whether to store query results in temporary tables. */
   AUTO_TEMP("autoTemp", Type.BOOLEAN, "false"),
+
+  /** Whether materializations are enabled. */
+  MATERIALIZATIONS_ENABLED("materializationsEnabled", Type.BOOLEAN, "true"),
 
   /** URI of the model. */
   MODEL("model", Type.STRING, null),
@@ -105,9 +108,38 @@ enum ConnectionProperty {
     return map;
   }
 
+  public static ConnectionConfig connectionConfig(final Properties properties) {
+    return new ConnectionConfig() {
+      public boolean autoTemp() {
+        return AUTO_TEMP.getBoolean(properties);
+      }
+
+      public boolean materializationsEnabled() {
+        return MATERIALIZATIONS_ENABLED.getBoolean(properties);
+      }
+
+      public String model() {
+        return MODEL.getString(properties);
+      }
+
+      public String schema() {
+        return SCHEMA.getString(properties);
+      }
+    };
+  }
   enum Type {
     BOOLEAN,
     STRING
+  }
+
+  /** Interface for reading connection properties within Optiq code. There is
+   * a method for every property. At some point there will be similar config
+   * classes for system and statement properties. */
+  public interface ConnectionConfig {
+    boolean autoTemp();
+    boolean materializationsEnabled();
+    String model();
+    String schema();
   }
 }
 

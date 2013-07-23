@@ -27,8 +27,7 @@ import net.hydromatic.optiq.runtime.*;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import java.sql.*;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Implementation of {@link java.sql.Statement}
@@ -420,6 +419,10 @@ public abstract class OptiqStatement
       return schemaName == null
           ? Collections.<String>emptyList()
           : Collections.singletonList(schemaName);
+    }
+
+    public ConnectionProperty.ConnectionConfig config() {
+      return ConnectionProperty.connectionConfig(connection.getProperties());
     }
   }
 }

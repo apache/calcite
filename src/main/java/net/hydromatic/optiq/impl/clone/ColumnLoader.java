@@ -17,12 +17,12 @@
 */
 package net.hydromatic.optiq.impl.clone;
 
+import net.hydromatic.linq4j.Enumerable;
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
 
-import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.reltype.RelDataType;
@@ -74,7 +74,7 @@ class ColumnLoader<T> {
   /** Creates a column loader, and performs the load. */
   ColumnLoader(
       JavaTypeFactory typeFactory,
-      Table<T> sourceTable,
+      Enumerable<T> sourceTable,
       RelDataType elementType) {
     this.typeFactory = typeFactory;
     sourceTable.into(list);

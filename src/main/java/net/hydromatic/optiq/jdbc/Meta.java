@@ -260,7 +260,7 @@ public class Meta {
   }
 
   Enumerable<MetaTable> tables(final MetaSchema schema) {
-    return Linq4j.asEnumerable(schema.optiqSchema.getTables())
+    return Linq4j.asEnumerable(schema.optiqSchema.getTables().values())
         .select(
             new Function1<Schema.TableInSchema, MetaTable>() {
               public MetaTable apply(Schema.TableInSchema tableInSchema) {
@@ -277,13 +277,12 @@ public class Meta {
       final Predicate1<String> matcher) {
     final List<Pair<String, TableFunction>> list =
         new ArrayList<Pair<String, TableFunction>>();
-    for (Map.Entry<String, List<TableFunction>> entry
-        : schema.optiqSchema.getTableFunctions().entrySet()) {
+    for (Map.Entry<String, Schema.TableFunctionInSchema> entry
+        : schema.optiqSchema.getTableFunctions().entries()) {
       if (matcher.apply(entry.getKey())) {
-        for (TableFunction tableFunction : entry.getValue()) {
-          if (tableFunction.getParameters().isEmpty()) {
-            list.add(Pair.of(entry.getKey(), tableFunction));
-          }
+        final TableFunction tableFunction = entry.getValue().getTableFunction();
+        if (tableFunction.getParameters().isEmpty()) {
+          list.add(Pair.of(entry.getKey(), tableFunction));
         }
       }
     }

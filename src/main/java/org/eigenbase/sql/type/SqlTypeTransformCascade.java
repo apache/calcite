@@ -60,6 +60,11 @@ public class SqlTypeTransformCascade
         SqlOperatorBinding opBinding)
     {
         RelDataType ret = rule.inferReturnType(opBinding);
+        if (ret == null) {
+            // inferReturnType may return null; transformType does not accept or
+            // return null types
+            return null;
+        }
         for (SqlTypeTransform transform : transforms) {
             ret = transform.transformType(opBinding, ret);
         }

@@ -15,33 +15,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.rules.java;
-
-import org.eigenbase.relopt.*;
+package net.hydromatic.optiq.model;
 
 /**
- * Family of calling conventions that return results as an
- * {@link net.hydromatic.linq4j.Enumerable}.
+ * Element that describes how a table is a materialization of a query.
+ *
+ * @see JsonRoot Description of schema elements
  */
-public enum EnumerableConvention implements Convention {
-  INSTANCE;
+public class JsonMaterialization {
+  public String view;
+  public String table;
+  public String sql;
+
+  public void accept(ModelHandler handler) {
+    handler.visit(this);
+  }
 
   @Override
   public String toString() {
-    return getName();
-  }
-
-  public Class getInterface() {
-    return EnumerableRel.class;
-  }
-
-  public String getName() {
-    return "ENUMERABLE";
-  }
-
-  public RelTraitDef getTraitDef() {
-    return ConventionTraitDef.instance;
+    return "JsonMaterialization(table=" + table + ", view=" + view + ")";
   }
 }
 
-// End EnumerableConvention.java
+// End JsonMaterialization.java

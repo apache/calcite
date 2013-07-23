@@ -43,7 +43,6 @@ import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Converts a SQL parse tree (consisting of {@link org.eigenbase.sql.SqlNode}
@@ -2817,7 +2816,7 @@ public class SqlToRelConverter
             false);
     }
 
-    private RelOptTable.ToRelContext makeToRelContext() {
+    public RelOptTable.ToRelContext makeToRelContext() {
         return new RelOptTable.ToRelContext() {
             public RelOptCluster getCluster() {
                 return cluster;

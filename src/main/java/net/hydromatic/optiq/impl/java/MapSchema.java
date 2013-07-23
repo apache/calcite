@@ -22,62 +22,77 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.Table;
 
-import org.eigenbase.reltype.RelDataType;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
 
-import java.lang.reflect.Type;
 import java.util.*;
 
 /**
  * Implementation of {@link Schema} backed by a {@link HashMap}.
  */
 public class MapSchema implements MutableSchema {
+  private final Schema parentSchema;
+  private final QueryProvider queryProvider;
+  protected final JavaTypeFactory typeFactory;
+  private final String name;
+  private final Expression expression;
 
   protected final Map<String, TableInSchema> tableMap =
       new HashMap<String, TableInSchema>();
 
-  protected final Map<String, List<TableFunction>> membersMap =
-      new HashMap<String, List<TableFunction>>();
+  protected final Multimap<String, TableFunctionInSchema> membersMap =
+      LinkedListMultimap.create();
 
   protected final Map<String, Schema> subSchemaMap =
       new HashMap<String, Schema>();
 
-  private final QueryProvider queryProvider;
-  protected final JavaTypeFactory typeFactory;
-  private final Expression expression;
-
   /**
    * Creates a MapSchema.
    *
+   * @param parentSchema Parent schema (may be null)
    * @param queryProvider Query provider
    * @param typeFactory Type factory
+   * @param name Name of schema
    * @param expression Expression for schema
    */
   public MapSchema(
+      Schema parentSchema,
       QueryProvider queryProvider,
       JavaTypeFactory typeFactory,
+      String name,
       Expression expression) {
+    this.parentSchema = parentSchema;
     this.queryProvider = queryProvider;
     this.typeFactory = typeFactory;
+    this.name = name;
     this.expression = expression;
 
     assert expression != null;
     assert typeFactory != null;
     assert queryProvider != null;
+    assert name != null;
   }
 
   /**
    * Creates a MapSchema that is a sub-schema.
    *
    * @param parentSchema Parent schema
+   * @param name Name of schema
    * @param expression Expression for schema
+   *
+   * @throws NullPointerException if parentSchema is null
    */
   public MapSchema(
       Schema parentSchema,
+      String name,
       Expression expression) {
     this(
+        parentSchema,
         parentSchema.getQueryProvider(),
         parentSchema.getTypeFactory(),
+        name,
         expression);
   }
 
@@ -94,6 +109,7 @@ public class MapSchema implements MutableSchema {
     MapSchema schema =
         new MapSchema(
             parentSchema,
+            name,
             parentSchema.getSubSchemaExpression(name, Object.class));
     parentSchema.addSchema(name, schema);
     return schema;
@@ -105,6 +121,14 @@ public class MapSchema implements MutableSchema {
     for (TableInSchema tableInSchema : initialTables()) {
       tableMap.put(tableInSchema.name, tableInSchema);
     }
+  }
+
+  public Schema getParentSchema() {
+    return parentSchema;
+  }
+
+  public String getName() {
+    return name;
   }
 
   public JavaTypeFactory getTypeFactory() {
@@ -119,8 +143,8 @@ public class MapSchema implements MutableSchema {
     return queryProvider;
   }
 
-  public Collection<TableInSchema> getTables() {
-    return tableMap.values();
+  public Map<String, TableInSchema> getTables() {
+    return tableMap;
   }
 
   public <E> Table<E> getTable(String name, Class<E> elementType) {
@@ -133,9 +157,10 @@ public class MapSchema implements MutableSchema {
       return table.getTable(elementType);
     }
     // Then look for a table-function with no arguments.
-    List<TableFunction> tableFunctions = membersMap.get(name);
+    Collection<TableFunctionInSchema> tableFunctions = membersMap.get(name);
     if (tableFunctions != null) {
-      for (TableFunction tableFunction : tableFunctions) {
+      for (TableFunctionInSchema tableFunctionInSchema : tableFunctions) {
+        TableFunction tableFunction = tableFunctionInSchema.getTableFunction();
         if (tableFunction.getParameters().isEmpty()) {
           //noinspection unchecked
           return tableFunction.apply(Collections.emptyList());
@@ -145,16 +170,12 @@ public class MapSchema implements MutableSchema {
     return null;
   }
 
-  public Map<String, List<TableFunction>> getTableFunctions() {
+  public Multimap<String, TableFunctionInSchema> getTableFunctions() {
     return membersMap;
   }
 
-  public List<TableFunction> getTableFunctions(String name) {
-    List<TableFunction> members = membersMap.get(name);
-    if (members != null) {
-      return members;
-    }
-    return Collections.emptyList();
+  public Collection<TableFunctionInSchema> getTableFunctions(String name) {
+    return membersMap.get(name);
   }
 
   public Collection<String> getSubSchemaNames() {
@@ -165,8 +186,8 @@ public class MapSchema implements MutableSchema {
     return subSchemaMap.get(name);
   }
 
-  public void addTableFunction(String name, TableFunction tableFunction) {
-    putMulti(membersMap, name, tableFunction);
+  public void addTableFunction(TableFunctionInSchema tableFunctionInSchema) {
+    membersMap.put(tableFunctionInSchema.name, tableFunctionInSchema);
   }
 
   public void addTable(TableInSchema table) {
@@ -200,32 +221,6 @@ public class MapSchema implements MutableSchema {
    */
   protected Collection<TableInSchema> initialTables() {
     return Collections.emptyList();
-  }
-
-  private Type deduceType(Object schemaObject) {
-    // REVIEW: Can we remove the dependency on RelDataType and work in
-    //   terms of Class?
-    if (schemaObject instanceof Member) {
-      RelDataType type = ((Member) schemaObject).getType();
-      return typeFactory.getJavaClass(type);
-    }
-    if (schemaObject instanceof Schema) {
-      return schemaObject.getClass();
-    }
-    return null;
-  }
-
-  protected static <K, V> void putMulti(
-      Map<K, List<V>> map, K k, V v) {
-    List<V> list = map.put(k, Collections.singletonList(v));
-    if (list == null) {
-      return;
-    }
-    if (list.size() == 1) {
-      list = new ArrayList<V>(list);
-    }
-    list.add(v);
-    map.put(k, list);
   }
 }
 

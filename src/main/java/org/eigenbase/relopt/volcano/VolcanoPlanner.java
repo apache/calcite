@@ -32,7 +32,6 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.linq4j.expressions.Expressions;
 
-
 /**
  * VolcanoPlanner optimizes queries by transforming expressions selectively
  * according to a dynamic programming algorithm.
@@ -225,6 +224,13 @@ public class VolcanoPlanner
     public RelNode getRoot()
     {
         return root;
+    }
+
+    public void addMaterialization(RelNode tableRel, RelNode queryRel) {
+        RelSubset subset = registerImpl(queryRel, null);
+        RelNode tableRel2 =
+            RelOptUtil.createCastRel(tableRel, queryRel.getRowType(), true);
+      registerImpl(tableRel2, subset.set);
     }
 
     /**

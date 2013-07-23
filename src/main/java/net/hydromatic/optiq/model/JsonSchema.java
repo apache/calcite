@@ -20,6 +20,9 @@ package net.hydromatic.optiq.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Schema schema element.
  *
@@ -36,7 +39,16 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 public abstract class JsonSchema {
   public String name;
 
+  public List<JsonMaterialization> materializations =
+      new ArrayList<JsonMaterialization>();
+
   public abstract void accept(ModelHandler handler);
+
+  public void visitChildren(ModelHandler modelHandler) {
+    for (JsonMaterialization jsonMaterialization : materializations) {
+      jsonMaterialization.accept(modelHandler);
+    }
+  }
 }
 
 // End JsonSchema.java

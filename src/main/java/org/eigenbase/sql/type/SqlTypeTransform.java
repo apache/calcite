@@ -20,7 +20,6 @@ package org.eigenbase.sql.type;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Strategy to transform one type to another. The transformation is dependent on
  * the implemented strategy object and in the general case is a function of the
@@ -41,9 +40,9 @@ public interface SqlTypeTransform
      * Transforms a type.
      *
      * @param opBinding call context in which transformation is being performed
-     * @param typeToTransform type to be transformed
+     * @param typeToTransform type to be transformed, never null
      *
-     * @return transformed type
+     * @return transformed type, never null
      */
     public RelDataType transformType(
         SqlOperatorBinding opBinding,

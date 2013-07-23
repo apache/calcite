@@ -15,33 +15,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.rules.java;
-
-import org.eigenbase.relopt.*;
 
 /**
- * Family of calling conventions that return results as an
- * {@link net.hydromatic.linq4j.Enumerable}.
+ * Management of materialized query results.
+ *
+ * <p>An actor ({@link MaterializeActor} maintains the state of all
+ * materializations in the system and is wrapped in a service
+ * ({@link MaterializationService}) for access from other parts of the system.
+ *
+ * <p>Optimizer rules allow Optiq to rewrite queries using materializations, if
+ * they are valid (that is, contain the same result as executing their defining
+ * query) and lower cost.
+ *
+ * <p>In future, the actor may manage the process of updating materializations,
+ * instantiating materializations from the intermediate results of queries, and
+ * recognize what materializations would be useful based on actual query load.
  */
-public enum EnumerableConvention implements Convention {
-  INSTANCE;
+package net.hydromatic.optiq.materialize;
 
-  @Override
-  public String toString() {
-    return getName();
-  }
-
-  public Class getInterface() {
-    return EnumerableRel.class;
-  }
-
-  public String getName() {
-    return "ENUMERABLE";
-  }
-
-  public RelTraitDef getTraitDef() {
-    return ConventionTraitDef.instance;
-  }
-}
-
-// End EnumerableConvention.java
+// End package-info.java

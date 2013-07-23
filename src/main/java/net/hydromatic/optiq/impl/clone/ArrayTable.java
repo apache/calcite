@@ -26,6 +26,8 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -52,13 +54,13 @@ class ArrayTable<T>
       Type elementType,
       RelDataType relDataType,
       Expression expression,
-      List<Column> columns,
+      List<? extends Column> columns,
       int size,
       int sortField) {
     super(schema.getQueryProvider(), elementType, expression);
     this.schema = schema;
     this.relDataType = relDataType;
-    this.columns = columns;
+    this.columns = ImmutableList.copyOf(columns);
     this.size = size;
     this.sortField = sortField;
 
@@ -447,8 +449,8 @@ class ArrayTable<T>
     }
 
     public Object getObject(Object dataSet, int ordinal) {
-      Column pair = (Column) dataSet;
-      return pair.dataSet;
+      Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
+      return pair.getValue();
     }
 
     public int getInt(Object dataSet, int ordinal) {

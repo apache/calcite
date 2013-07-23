@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.test;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
@@ -211,7 +212,8 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "state_province=WA; S=124366.0000; DC=1828\n");
   }
 
-  public void _testPlan() {
+  @Ignore
+  @Test public void testPlan() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
@@ -230,7 +232,8 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "            }\n");
   }
 
-  public void _testPlan2() {
+  @Ignore
+  @Test public void testPlan2() {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .withSchema("foodmart")
@@ -264,7 +267,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
         .query(
             "select \"store\".\"store_country\" as \"c0\", sum(\"inventory_fact_1997\".\"supply_time\") as \"m0\" from \"store\" as \"store\", \"inventory_fact_1997\" as \"inventory_fact_1997\" where \"inventory_fact_1997\".\"store_id\" = \"store\".\"store_id\" group by \"store\".\"store_country\"")
         .planContains(
-            "  final net.hydromatic.linq4j.Enumerable _inputEnumerable = root.getSubSchema(\"foodmart2\").getTable(\"store\", java.lang.Object.class).join(root.getSubSchema(\"foodmart2\").getTable(\"inventory_fact_1997\", java.lang.Object.class), new net.hydromatic.linq4j.function.Function1() {\n");
+            "  final net.hydromatic.linq4j.Enumerable _inputEnumerable = root.getSubSchema(\"foodmart2\").getTable(\"store\", java.lang.Object[].class).join(root.getSubSchema(\"foodmart2\").getTable(\"inventory_fact_1997\", java.lang.Object[].class), new net.hydromatic.linq4j.function.Function1() {\n");
   }
 }
 

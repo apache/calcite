@@ -55,8 +55,7 @@ public class Driver extends UnregisteredDriver {
           throws SQLException {
         super.onConnectionInit(connection);
         final String model =
-            ConnectionProperty.MODEL.getString(
-                connection.getProperties());
+            OptiqConnectionImpl.configOf(connection).model();
         if (model != null) {
           try {
             new ModelHandler(connection, model);

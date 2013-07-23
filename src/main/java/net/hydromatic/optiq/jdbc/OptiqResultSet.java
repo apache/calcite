@@ -136,9 +136,7 @@ public class OptiqResultSet implements ResultSet {
    */
   OptiqResultSet execute() {
     // Call driver's callback. It is permitted to throw a RuntimeException.
-    final boolean autoTemp =
-        ConnectionProperty.AUTO_TEMP.getBoolean(
-            statement.connection.getProperties());
+    final boolean autoTemp = statement.connection.config().autoTemp();
     Handler.ResultSink resultSink = null;
     if (autoTemp) {
       resultSink = new Handler.ResultSink() {

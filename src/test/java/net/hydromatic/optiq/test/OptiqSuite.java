@@ -58,6 +58,7 @@ import org.junit.runners.Suite;
     VolcanoPlannerTest.class,
     HepPlannerTest.class,
     RelOptRulesTest.class,
+    MaterializationTest.class,
     SargTest.class,
     SqlLimitsTest.class,
     PermutationTestCase.class,

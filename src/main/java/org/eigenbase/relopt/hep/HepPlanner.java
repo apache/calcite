@@ -31,7 +31,6 @@ import org.jgrapht.alg.*;
 import org.jgrapht.graph.*;
 import org.jgrapht.traverse.*;
 
-
 /**
  * HepPlanner is a heuristic implementation of the {@link RelOptPlanner}
  * interface.
@@ -117,6 +116,10 @@ public class HepPlanner
     public RelNode getRoot()
     {
         return root;
+    }
+
+    public void addMaterialization(RelNode tableRel, RelNode queryRel) {
+        // ignore - this planner does not support materializations
     }
 
     // implement RelOptPlanner
@@ -411,9 +414,9 @@ public class HepPlanner
         assert (start == root);
 
         // see above
-        /*
+/*
         collectGarbage();
-        */
+*/
 
         Iterator<HepRelVertex> iter =
             new TopologicalOrderIterator<HepRelVertex, DefaultEdge>(graph);

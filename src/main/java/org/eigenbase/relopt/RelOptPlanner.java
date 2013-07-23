@@ -26,7 +26,6 @@ import org.eigenbase.rel.metadata.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A <code>RelOptPlanner</code> is a query optimizer: it transforms a relational
  * expression into a semantically equivalent relational expression, according to
@@ -129,6 +128,23 @@ public interface RelOptPlanner
      * knowledge. Right now, the local planner retains control.
      */
     public RelOptPlanner chooseDelegate();
+
+    /**
+     * Defines a pair of relational expressions that are equivalent.
+     *
+     * <p>Typically {@code tableRel} is a {@link TableAccessRel} representing a
+     * table that is a materialized view and {@code queryRel} is the SQL
+     * expression that populates that view. The intention is that
+     * {@code tableRel} is cheaper to evaluate and therefore if the query being
+     * optimized uses (or can be rewritten to use) {@code queryRel} as a
+     * sub-expression then it can be optimized by using {@code tableRel}
+     * instead.</p>
+     *
+     * @param tableRel Relational expression representing the table holding
+     * the materialization
+     * @param queryRel Relational expression representing the query
+     */
+    void addMaterialization(RelNode tableRel, RelNode queryRel);
 
     /**
      * Finds the most efficient expression to implement this query.

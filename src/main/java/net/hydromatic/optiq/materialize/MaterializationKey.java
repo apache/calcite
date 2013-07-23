@@ -15,33 +15,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.rules.java;
+package net.hydromatic.optiq.materialize;
 
-import org.eigenbase.relopt.*;
+import java.io.Serializable;
+import java.util.UUID;
 
 /**
- * Family of calling conventions that return results as an
- * {@link net.hydromatic.linq4j.Enumerable}.
+ * Unique identifier for a materialization.
+ *
+ * <p>It is immutable and can only be created by the
+ * {@link MaterializationService}. For communicating with the service.</p>
  */
-public enum EnumerableConvention implements Convention {
-  INSTANCE;
+public class MaterializationKey implements Serializable {
+  private final UUID uuid = UUID.randomUUID();
+
+  @Override
+  public int hashCode() {
+    return uuid.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return this == obj
+        || obj instanceof MaterializationKey
+        && uuid.equals(((MaterializationKey) obj).uuid);
+  }
 
   @Override
   public String toString() {
-    return getName();
-  }
-
-  public Class getInterface() {
-    return EnumerableRel.class;
-  }
-
-  public String getName() {
-    return "ENUMERABLE";
-  }
-
-  public RelTraitDef getTraitDef() {
-    return ConventionTraitDef.instance;
+    return uuid.toString();
   }
 }
 
-// End EnumerableConvention.java
+// End MaterializationKey.java

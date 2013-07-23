@@ -39,9 +39,7 @@ public class MongoSchemaFactory implements SchemaFactory {
     String database = (String) map.get("database");
     final MongoSchema schema =
         new MongoSchema(
-            parentSchema,
-            host,
-            database,
+            parentSchema, name, host, database,
             parentSchema.getSubSchemaExpression(name, MongoSchema.class));
     parentSchema.addSchema(name, schema);
     return schema;

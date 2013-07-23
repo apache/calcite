@@ -18,7 +18,6 @@
 package org.eigenbase.sql.type;
 
 import java.nio.charset.*;
-
 import java.util.*;
 
 import org.eigenbase.rel.*;
@@ -30,6 +29,7 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
+import com.google.common.base.Preconditions;
 
 /**
  * Contains utility methods used during SQL validation or type derivation.
@@ -220,6 +220,7 @@ public abstract class SqlTypeUtil
         final List<RelDataType> argTypes,
         RelDataType type)
     {
+        Preconditions.checkNotNull(type);
         if (containsNullable(argTypes)) {
             type = typeFactory.createTypeWithNullability(type, true);
         }

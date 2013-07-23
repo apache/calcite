@@ -32,6 +32,14 @@ public class JsonMapSchema extends JsonSchema {
   public void accept(ModelHandler handler) {
     handler.visit(this);
   }
+
+  @Override
+  public void visitChildren(ModelHandler modelHandler) {
+    super.visitChildren(modelHandler);
+    for (JsonTable jsonTable : tables) {
+      jsonTable.accept(modelHandler);
+    }
+  }
 }
 
 // End JsonMapSchema.java

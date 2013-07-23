@@ -43,15 +43,17 @@ public class MongoSchema extends MapSchema {
    * Creates a MONGO schema.
    *
    * @param parentSchema Parent schema
+   * @param name Name of schema
    * @param host Mongo host, e.g. "localhost"
    * @param database Mongo database name, e.g. "foodmart"
    */
   public MongoSchema(
       Schema parentSchema,
+      String name,
       String host,
       String database,
       Expression expression) {
-    super(parentSchema, expression);
+    super(parentSchema, name, expression);
     try {
       MongoClient mongo = new MongoClient(host);
       this.mongoDb = mongo.getDB(database);

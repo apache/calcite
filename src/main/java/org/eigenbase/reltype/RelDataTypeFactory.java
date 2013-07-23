@@ -24,7 +24,6 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * RelDataTypeFactory is a factory for datatype descriptors. It defines methods
  * for instantiating and combining SQL, Java, and collection types. The factory
@@ -174,6 +173,8 @@ public interface RelDataTypeFactory
      * @param type input type
      * @param nullable true to request a nullable type; false to request a NOT
      * NULL type
+     *
+     * @throws NullPointerException if type is null
      *
      * @return output type, same as input type except with specified nullability
      */

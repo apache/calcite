@@ -22,8 +22,9 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
+import com.google.common.collect.Multimap;
+
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -47,7 +48,15 @@ public class DelegatingSchema implements Schema {
     return "DelegatingSchema(delegate=" + schema + ")";
   }
 
-  public Map<String, List<TableFunction>> getTableFunctions() {
+  public Schema getParentSchema() {
+    return schema.getParentSchema();
+  }
+
+  public String getName() {
+    return schema.getName();
+  }
+
+  public Multimap<String, TableFunctionInSchema> getTableFunctions() {
     return schema.getTableFunctions();
   }
 
@@ -59,7 +68,7 @@ public class DelegatingSchema implements Schema {
     return schema.getQueryProvider();
   }
 
-  public Collection<TableInSchema> getTables() {
+  public Map<String, TableInSchema> getTables() {
     return schema.getTables();
   }
 
@@ -67,7 +76,7 @@ public class DelegatingSchema implements Schema {
     return schema.getTable(name, elementType);
   }
 
-  public List<TableFunction> getTableFunctions(String name) {
+  public Collection<TableFunctionInSchema> getTableFunctions(String name) {
     return schema.getTableFunctions(name);
   }
 

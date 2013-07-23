@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Parameter;
+import net.hydromatic.optiq.impl.TableFunctionInSchemaImpl;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 
 import org.eigenbase.reltype.RelDataType;
@@ -34,9 +35,7 @@ import java.util.*;
  * fields and methods in a Java object.
  */
 public class ReflectiveSchema
-    extends MapSchema
-{
-
+    extends MapSchema {
   final Class clazz;
   private Object target;
 
@@ -44,38 +43,43 @@ public class ReflectiveSchema
    * Creates a ReflectiveSchema.
    *
    * @param parentSchema Parent schema
+   * @param name Name
    * @param target Object whose fields will be sub-objects of the schema
    * @param expression Expression for schema
    */
   public ReflectiveSchema(
       Schema parentSchema,
+      String name,
       Object target,
       Expression expression) {
     super(
+        parentSchema,
         parentSchema.getQueryProvider(),
-        parentSchema.getTypeFactory(), expression);
+        parentSchema.getTypeFactory(),
+        name,
+        expression);
     this.clazz = target.getClass();
     this.target = target;
     for (Field field : clazz.getFields()) {
-      final String name = field.getName();
+      final String fieldName = field.getName();
       final Table<Object> table = fieldRelation(field);
       if (table == null) {
         continue;
       }
       tableMap.put(
-          name,
+          fieldName,
           new TableInSchemaImpl(
-              this, name, TableType.TABLE, table));
+              this, fieldName, TableType.TABLE, table));
     }
     for (Method method : clazz.getMethods()) {
+      final String methodName = method.getName();
       if (method.getDeclaringClass() == Object.class
-          || method.getName().equals("toString")) {
+          || methodName.equals("toString")) {
         continue;
       }
-      putMulti(
-          membersMap,
-          method.getName(),
-          methodMember(method));
+      final TableFunction tableFunction = methodMember(method);
+      membersMap.put(methodName,
+          new TableFunctionInSchemaImpl(this, methodName, tableFunction));
     }
   }
 
@@ -94,6 +98,7 @@ public class ReflectiveSchema
     ReflectiveSchema schema =
         new ReflectiveSchema(
             parentSchema,
+            name,
             target,
             parentSchema.getSubSchemaExpression(
                 name, ReflectiveSchema.class));
@@ -279,6 +284,72 @@ public class ReflectiveSchema
 
     public Statistic getStatistic() {
       return Statistics.UNKNOWN;
+    }
+  }
+
+  /** Factory that creates a schema by instantiating an object and looking at
+   * its public fields.
+   *
+   * <p>The following example instantiates a {@code FoodMart} object as a schema
+   * that contains tables called {@code EMPS} and {@code DEPTS} based on the
+   * object's fields.</p>
+   *
+   * <pre>
+   * {@code schemas: [
+   *     {
+   *       name: "foodmart",
+   *       type: "custom",
+   *       factory: "net.hydromatic.optiq.impl.java.ReflectiveSchema.Factory",
+   *       operand: {
+   *         class: "com.acme.FoodMart",
+   *         staticMethod: "instance"
+   *       }
+   *     }
+   *   ]
+   *
+   * class FoodMart {
+   *   public static final FoodMart instance() {
+   *     return new FoodMart();
+   *   }
+   *
+   *   Employee[] EMPS;
+   *   Department[] DEPTS;
+   * }
+   * }</pre>
+   * */
+  public static class Factory implements SchemaFactory {
+    public Schema create(MutableSchema schema, String name,
+        Map<String, Object> operand) {
+      Class clazz;
+      Object target;
+      final Object className = operand.get("class");
+      if (className != null) {
+        try {
+          clazz = Class.forName((String) className);
+        } catch (ClassNotFoundException e) {
+          throw new RuntimeException("Error loading class " + className, e);
+        }
+      } else {
+        throw new RuntimeException("Operand 'class' is required");
+      }
+      final Object methodName = operand.get("staticMethod");
+      if (methodName != null) {
+        try {
+          //noinspection unchecked
+          Method method = clazz.getMethod((String) methodName);
+          target = method.invoke(null);
+        } catch (Exception e) {
+          throw new RuntimeException("Error invoking method " + methodName, e);
+        }
+      } else {
+        try {
+          target = clazz.newInstance();
+        } catch (Exception e) {
+          throw new RuntimeException("Error instantiating class " + className,
+              e);
+        }
+      }
+      return ReflectiveSchema.create(schema, name, target);
     }
   }
 }

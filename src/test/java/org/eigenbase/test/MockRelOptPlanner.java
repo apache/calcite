@@ -22,7 +22,6 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * MockRelOptPlanner is a mock implementation of the {@link RelOptPlanner}
  * interface.
@@ -50,6 +49,10 @@ public class MockRelOptPlanner
     public RelNode getRoot()
     {
         return root;
+    }
+
+    public void addMaterialization(RelNode tableRel, RelNode queryRel) {
+        // ignore - this planner does not support materializations
     }
 
     // implement RelOptPlanner

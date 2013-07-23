@@ -25,6 +25,7 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.Helper;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
+import net.hydromatic.optiq.materialize.MaterializationService;
 import net.hydromatic.optiq.rules.java.*;
 import net.hydromatic.optiq.runtime.*;
 
@@ -72,6 +73,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
    * this will become a preference, or we will run multiple phases: first
    * disabled, then enabled. */
   private static final boolean ENABLE_COLLATION_TRAIT = true;
+
+  public OptiqPrepareImpl() {
+  }
 
   public ParseResult parse(
       Context context, String sql) {
@@ -152,8 +156,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   public <T> PrepareResult<T> prepareQueryable(
       Context context,
       Queryable<T> queryable) {
-    return prepare_(
-        context, null, queryable, queryable.getElementType(), -1);
+    return prepare_(context, null, queryable, queryable.getElementType(), -1);
   }
 
   public <T> PrepareResult<T> prepareSql(
@@ -241,8 +244,16 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                   new OptiqSqlOperatorTable(rootSchema, typeFactory)));
       final SqlValidator validator =
           new OptiqSqlValidator(opTab, catalogReader, typeFactory);
+
+      final List<Prepare.Materialization> materializations =
+          context.config().materializationsEnabled()
+              ? MaterializationService.INSTANCE.query(rootSchema)
+              : ImmutableList.<Prepare.Materialization>of();
+      for (Prepare.Materialization materialization : materializations) {
+        populateMaterializations(planner, materialization);
+      }
       preparedResult = preparingStmt.prepareSql(
-          sqlNode, Object.class, validator, true);
+          sqlNode, Object.class, validator, true, materializations);
       switch (sqlNode.getKind()) {
       case INSERT:
       case EXPLAIN:
@@ -317,9 +328,35 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     return new PrepareResult<T>(
         sql,
         parameters,
+        jdbcType,
         columns,
         enumerable,
         resultClazz);
+  }
+
+  protected void populateMaterializations(RelOptPlanner planner,
+      Prepare.Materialization materialization) {
+    // REVIEW: initialize queryRel and tableRel inside MaterializationService,
+    // not here?
+    try {
+      final Schema schema = materialization.materializedTable.schema;
+      OptiqCatalogReader catalogReader =
+          new OptiqCatalogReader(
+              Schemas.root(schema),
+              butLast(materialization.materializedTable.path()),
+              schema.getTypeFactory());
+      final OptiqPreparingStmt preparingStmt =
+          new OptiqPreparingStmt(catalogReader, catalogReader.getTypeFactory(),
+              schema, EnumerableRel.Prefer.ANY, planner);
+      preparingStmt.populate(materialization);
+    } catch (Exception e) {
+      throw new RuntimeException("While populating materialization "
+          + materialization.materializedTable.path(), e);
+    }
+  }
+
+  private static <E> List<E> butLast(List<E> list) {
+    return list.subList(0, list.size() - 1);
   }
 
   private static RelDataType makeStruct(
@@ -388,7 +425,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       // Trim unused fields.
       rootRel = trimUnusedFields(rootRel);
 
-      rootRel = optimize(resultType, rootRel);
+      final List<Materialization> materializations = ImmutableList.of();
+      rootRel = optimize(resultType, rootRel, materializations);
 
       if (timingTracer != null) {
         timingTracer.traceTime("end optimization");
@@ -555,6 +593,30 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           return ((Typed) executable).getElementType();
         }
       };
+    }
+
+    /** Populates a materialization record, converting a table path
+     * (essentially a list of strings, like ["hr", "sales"]) into a table object
+     * that can be used in the planning process. */
+    void populate(Materialization materialization) {
+      SqlParser parser = new SqlParser(materialization.sql);
+      SqlNode node;
+      try {
+        node = parser.parseStmt();
+      } catch (SqlParseException e) {
+        throw new RuntimeException("parse failed", e);
+      }
+
+      SqlToRelConverter sqlToRelConverter2 =
+          getSqlToRelConverter(getSqlValidator(), catalogReader);
+
+      materialization.queryRel =
+          sqlToRelConverter2.convertQuery(node, true, true);
+
+      RelOptTable table =
+          catalogReader.getTable(materialization.materializedTable.path());
+      materialization.tableRel =
+          table.toRel(sqlToRelConverter2.makeToRelContext());
     }
   }
 
@@ -937,20 +999,20 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       }
       // FIXME: ignoring prefix of opName
       String name = opName.names[opName.names.length - 1];
-      List<TableFunction> tableFunctions =
+      Collection<Schema.TableFunctionInSchema> tableFunctions =
           rootSchema.getTableFunctions(name);
       if (tableFunctions.isEmpty()) {
         return Collections.emptyList();
       }
-      return toOps(name, tableFunctions);
+      return toOps(name, ImmutableList.copyOf(tableFunctions));
     }
 
     private List<SqlOperator> toOps(
         final String name,
-        final List<TableFunction> tableFunctions) {
+        final List<Schema.TableFunctionInSchema> tableFunctions) {
       return new AbstractList<SqlOperator>() {
         public SqlOperator get(int index) {
-          return toOp(name, tableFunctions.get(index));
+          return toOp(tableFunctions.get(index));
         }
 
         public int size() {
@@ -959,7 +1021,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       };
     }
 
-    private SqlOperator toOp(String name, TableFunction fun) {
+    private SqlOperator toOp(Schema.TableFunctionInSchema functionInSchema) {
+      final TableFunction fun = functionInSchema.getTableFunction();
       List<RelDataType> argTypes = new ArrayList<RelDataType>();
       List<SqlTypeFamily> typeFamilies = new ArrayList<SqlTypeFamily>();
       for (net.hydromatic.optiq.Parameter o
@@ -968,7 +1031,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         typeFamilies.add(SqlTypeFamily.ANY);
       }
       return new SqlFunction(
-          name,
+          functionInSchema.name,
           SqlKind.OTHER_FUNCTION,
           new ExplicitReturnTypeInference(
               typeFactory.createType(fun.getElementType())),

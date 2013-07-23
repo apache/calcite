@@ -15,33 +15,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.rules.java;
+package net.hydromatic.optiq.impl;
 
-import org.eigenbase.relopt.*;
+import net.hydromatic.optiq.*;
 
 /**
- * Family of calling conventions that return results as an
- * {@link net.hydromatic.linq4j.Enumerable}.
+ * Implementation of {@link net.hydromatic.optiq.Schema.TableFunctionInSchema}
+ * where all properties are held in fields.
  */
-public enum EnumerableConvention implements Convention {
-  INSTANCE;
+public class TableFunctionInSchemaImpl extends Schema.TableFunctionInSchema {
+  private final TableFunction tableFunction;
 
-  @Override
-  public String toString() {
-    return getName();
+  /** Creates a TableFunctionInSchemaImpl. */
+  public TableFunctionInSchemaImpl(Schema schema, String name,
+      TableFunction tableFunction) {
+    super(schema, name);
+    this.tableFunction = tableFunction;
   }
 
-  public Class getInterface() {
-    return EnumerableRel.class;
+  public TableFunction getTableFunction() {
+    return tableFunction;
   }
 
-  public String getName() {
-    return "ENUMERABLE";
-  }
-
-  public RelTraitDef getTraitDef() {
-    return ConventionTraitDef.instance;
+  public boolean isMaterialization() {
+    return tableFunction
+        instanceof MaterializedViewTable.MaterializedViewTableFunction;
   }
 }
 
-// End EnumerableConvention.java
+// End TableFunctionInSchemaImpl.java

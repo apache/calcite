@@ -15,33 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.rules.java;
+package net.hydromatic.optiq;
 
-import org.eigenbase.relopt.*;
 
 /**
- * Family of calling conventions that return results as an
- * {@link net.hydromatic.linq4j.Enumerable}.
+ * Schema to which materializations can be added.
  */
-public enum EnumerableConvention implements Convention {
-  INSTANCE;
-
-  @Override
-  public String toString() {
-    return getName();
-  }
-
-  public Class getInterface() {
-    return EnumerableRel.class;
-  }
-
-  public String getName() {
-    return "ENUMERABLE";
-  }
-
-  public RelTraitDef getTraitDef() {
-    return ConventionTraitDef.instance;
-  }
+public interface SemiMutableSchema extends Schema {
 }
 
-// End EnumerableConvention.java
+// End SemiMutableSchema.java

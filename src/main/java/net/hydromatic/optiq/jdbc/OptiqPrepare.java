@@ -25,6 +25,7 @@ import net.hydromatic.linq4j.function.Function0;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
@@ -36,8 +37,8 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.util.Calendar;
-import java.util.List;
+import java.sql.Date;
+import java.util.*;
 
 /**
  * API for a service that prepares statements for execution.
@@ -71,6 +72,8 @@ public interface OptiqPrepare {
     Schema getRootSchema();
 
     List<String> getDefaultSchemaPath();
+
+    ConnectionProperty.ConnectionConfig config();
   }
 
   public static class ParseResult {
@@ -89,19 +92,21 @@ public interface OptiqPrepare {
   public static class PrepareResult<T> {
     public final String sql; // for debug
     public final List<Parameter> parameterList;
+    public final RelDataType rowType;
     public final List<ColumnMetaData> columnList;
     public final RawEnumerable<T> enumerable;
     public final Class resultClazz;
 
-    public PrepareResult(
-        String sql,
+    public PrepareResult(String sql,
         List<Parameter> parameterList,
+        RelDataType rowType,
         List<ColumnMetaData> columnList,
         RawEnumerable<T> enumerable,
         Class resultClazz) {
       super();
       this.sql = sql;
       this.parameterList = parameterList;
+      this.rowType = rowType;
       this.columnList = columnList;
       this.enumerable = enumerable;
       this.resultClazz = resultClazz;

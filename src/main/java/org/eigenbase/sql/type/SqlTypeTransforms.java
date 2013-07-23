@@ -23,6 +23,7 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
+import com.google.common.base.Preconditions;
 
 /**
  * SqlTypeTransforms defines a number of reusable instances of {@link
@@ -54,7 +55,7 @@ public abstract class SqlTypeTransforms
                 return SqlTypeUtil.makeNullableIfOperandsAre(
                     opBinding.getTypeFactory(),
                     opBinding.collectOperandTypes(),
-                    typeToTransform);
+                    Preconditions.checkNotNull(typeToTransform));
             }
         };
 
@@ -69,7 +70,7 @@ public abstract class SqlTypeTransforms
                 RelDataType typeToTransform)
             {
                 return opBinding.getTypeFactory().createTypeWithNullability(
-                    typeToTransform,
+                    Preconditions.checkNotNull(typeToTransform),
                     false);
             }
         };
@@ -85,7 +86,7 @@ public abstract class SqlTypeTransforms
                 RelDataType typeToTransform)
             {
                 return opBinding.getTypeFactory().createTypeWithNullability(
-                    typeToTransform,
+                    Preconditions.checkNotNull(typeToTransform),
                     true);
             }
         };

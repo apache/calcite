@@ -189,6 +189,30 @@ public class OptiqAssert {
     };
   }
 
+  /** Checks that the result of the second and subsequent executions is the same
+   * as the first. */
+  static Function1<ResultSet, Void> consistentResult() {
+    return new Function1<ResultSet, Void>() {
+      int executeCount = 0;
+      String expected;
+
+      public Void apply(ResultSet resultSet) {
+        ++executeCount;
+        try {
+          final String resultString = OptiqAssert.toString(resultSet);
+          if (executeCount == 1) {
+            expected = resultString;
+          } else {
+            assertEquals(expected, resultString);
+          }
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
+  }
+
   static Function1<ResultSet, Void> checkResultUnordered(
       final String... lines) {
     return new Function1<ResultSet, Void>() {
@@ -258,37 +282,47 @@ public class OptiqAssert {
       Connection connection,
       String sql,
       int limit,
+      boolean materializationsEnabled,
       Function1<ResultSet, Void> resultChecker,
       Function1<Throwable, Void> exceptionChecker)
       throws Exception {
-    Statement statement = connection.createStatement();
-    statement.setMaxRows(limit <= 0 ? limit : Math.max(limit, 1));
-    ResultSet resultSet;
+    final String message =
+        "With materializationsEnabled=" + materializationsEnabled
+        + ", limit=" + limit;
     try {
-      resultSet = statement.executeQuery(sql);
-      if (exceptionChecker != null) {
-        exceptionChecker.apply(null);
-        return;
+      ((OptiqConnection) connection).getProperties().setProperty(
+          "materializationsEnabled", Boolean.toString(materializationsEnabled));
+      Statement statement = connection.createStatement();
+      statement.setMaxRows(limit <= 0 ? limit : Math.max(limit, 1));
+      ResultSet resultSet;
+      try {
+        resultSet = statement.executeQuery(sql);
+        if (exceptionChecker != null) {
+          exceptionChecker.apply(null);
+          return;
+        }
+      } catch (Exception e) {
+        if (exceptionChecker != null) {
+          exceptionChecker.apply(e);
+          return;
+        }
+        throw e;
+      } catch (Error e) {
+        if (exceptionChecker != null) {
+          exceptionChecker.apply(e);
+          return;
+        }
+        throw e;
       }
-    } catch (Exception e) {
-      if (exceptionChecker != null) {
-        exceptionChecker.apply(e);
-        return;
+      if (resultChecker != null) {
+        resultChecker.apply(resultSet);
       }
-      throw e;
-    } catch (Error e) {
-      if (exceptionChecker != null) {
-        exceptionChecker.apply(e);
-        return;
-      }
-      throw e;
+      resultSet.close();
+      statement.close();
+      connection.close();
+    } catch (Throwable e) {
+      throw new RuntimeException(message, e);
     }
-    if (resultChecker != null) {
-      resultChecker.apply(resultSet);
-    }
-    resultSet.close();
-    statement.close();
-    connection.close();
   }
 
   static String toString(ResultSet resultSet) throws SQLException {
@@ -403,6 +437,37 @@ public class OptiqAssert {
                   "jdbc:optiq:", info);
             }
           });
+    }
+
+    /** Adds materializations to the schema. */
+    public AssertThat withMaterializations(
+        String model, String... materializations) {
+      assert materializations.length % 2 == 0;
+      final StringBuilder buf = new StringBuilder("materializations: [\n");
+      for (int i = 0; i < materializations.length; i++) {
+        String table = materializations[i++];
+        buf.append("    {\n")
+            .append("      table: '").append(table).append("',\n")
+            .append("      view: '").append(table + "v").append("',\n");
+        String sql = materializations[i];
+        final String sql2 = sql
+            .replaceAll("`", "\"")
+            .replaceAll("'", "''");
+        buf.append("      sql: '").append(sql2)
+            .append("'\n")
+            .append(i >= materializations.length - 1 ? "}\n" : "},\n");
+      }
+      buf.append("  ],\n");
+      final String model2;
+      if (model.contains("jdbcSchema: ")) {
+        model2 = model.replace("jdbcSchema: ", buf + "jdbcSchema: ");
+      } else if (model.contains("type: ")) {
+        model2 = model.replace("type: ", buf + "type: ");
+      } else {
+        throw new AssertionError("do not know where to splice");
+      }
+      System.out.println(model2);
+      return withModel(model2);
     }
 
     public AssertQuery query(String sql) {
@@ -525,6 +590,7 @@ public class OptiqAssert {
     private ConnectionFactory connectionFactory;
     private String plan;
     private int limit;
+    private boolean materializationsEnabled = false;
 
     private AssertQuery(ConnectionFactory connectionFactory, String sql) {
       this.sql = sql;
@@ -541,7 +607,8 @@ public class OptiqAssert {
 
     public AssertQuery returns(Function1<ResultSet, Void> checker) {
       try {
-        assertQuery(createConnection(), sql, limit, checker, null);
+        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+            checker, null);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -555,8 +622,8 @@ public class OptiqAssert {
 
     public AssertQuery throws_(String message) {
       try {
-        assertQuery(createConnection(), sql, limit, null,
-            checkException(message));
+        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+            null, checkException(message));
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -566,7 +633,8 @@ public class OptiqAssert {
 
     public AssertQuery runs() {
       try {
-        assertQuery(createConnection(), sql, limit, null, null);
+        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+            null, null);
         return this;
       } catch (Exception e) {
         throw new RuntimeException(
@@ -577,7 +645,7 @@ public class OptiqAssert {
     public AssertQuery typeIs(String expected) {
       try {
         assertQuery(
-            createConnection(), sql, limit,
+            createConnection(), sql, limit, false,
             checkResultType(expected), null);
         return this;
       } catch (Exception e) {
@@ -590,7 +658,7 @@ public class OptiqAssert {
       String explainSql = "explain plan for " + sql;
       try {
         assertQuery(
-            createConnection(), explainSql, limit,
+            createConnection(), explainSql, limit, materializationsEnabled,
             checkResultContains(expected), null);
         return this;
       } catch (Exception e) {
@@ -625,7 +693,8 @@ public class OptiqAssert {
             }
           });
       try {
-        assertQuery(createConnection(), sql, limit, null, null);
+        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+            null, null);
         assertNotNull(plan);
       } catch (Exception e) {
         throw new RuntimeException(
@@ -638,6 +707,24 @@ public class OptiqAssert {
     /** Sets a limit on the number of rows returned. -1 means no limit. */
     public AssertQuery limit(int limit) {
       this.limit = limit;
+      return this;
+    }
+
+    public void sameResultWithMaterializationsDisabled() {
+      boolean save = materializationsEnabled;
+      try {
+        materializationsEnabled = true;
+        final Function1<ResultSet, Void> checker = consistentResult();
+        returns(checker);
+        materializationsEnabled = false;
+        returns(checker);
+      } finally {
+        materializationsEnabled = save;
+      }
+    }
+
+    public AssertQuery enableMaterializations(boolean enable) {
+      this.materializationsEnabled = enable;
       return this;
     }
   }

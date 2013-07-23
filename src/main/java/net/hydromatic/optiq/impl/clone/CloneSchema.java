@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.impl.clone;
 
+import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
@@ -24,6 +25,9 @@ import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 
+import org.eigenbase.reltype.RelDataType;
+
+import java.lang.reflect.Type;
 import java.util.Map;
 
 /**
@@ -40,14 +44,16 @@ public class CloneSchema extends MapSchema {
    * Creates a CloneSchema.
    *
    * @param parentSchema Parent schema
+   * @param name Name of schema
    * @param expression Expression for schema
    * @param sourceSchema JDBC data source
    */
   public CloneSchema(
       Schema parentSchema,
+      String name,
       Expression expression,
       Schema sourceSchema) {
-    super(parentSchema, expression);
+    super(parentSchema, name, expression);
     this.sourceSchema = sourceSchema;
   }
 
@@ -64,31 +70,37 @@ public class CloneSchema extends MapSchema {
     Table<E> sourceTable = sourceSchema.getTable(name, elementType);
     if (sourceTable != null) {
       //noinspection unchecked
-      table = createCloneTable(sourceTable, name);
-      addTable(
-          new TableInSchemaImpl(this, name, TableType.TABLE, table));
-      return table;
+      return createCloneTable(sourceTable, name);
     }
     return null;
   }
 
   private <T> Table<T> createCloneTable(Table<T> sourceTable, String name) {
-    // More efficient: table based on an array per column.
+    final TableInSchema tableInSchema =
+        createCloneTable(this, name, sourceTable.getRowType(), sourceTable);
+    addTable(tableInSchema);
+    return tableInSchema.getTable(null);
+  }
+
+  public static <T> TableInSchema createCloneTable(MutableSchema schema,
+      String name, RelDataType rowType, Enumerable<T> source) {
     final ColumnLoader loader =
-        new ColumnLoader<T>(
-            typeFactory, sourceTable, sourceTable.getRowType());
-    return new ArrayTable<T>(
-        this,
-        sourceTable.getElementType(),
-        sourceTable.getRowType(),
+        new ColumnLoader<T>(schema.getTypeFactory(), source, rowType);
+    final Type elementType = source instanceof Queryable
+        ? ((Queryable) source).getElementType()
+        : Object.class;
+    ArrayTable<T> table = new ArrayTable<T>(
+        schema, elementType,
+        rowType,
         Expressions.call(
-            getExpression(),
+            schema.getExpression(),
             BuiltinMethod.DATA_CONTEXT_GET_TABLE.method,
             Expressions.constant(name),
-            Expressions.constant(Object.class)),
+            Expressions.constant(Types.toClass(elementType))),
         loader.representationValues,
         loader.size(),
         loader.sortField);
+    return new TableInSchemaImpl(schema, name, TableType.TABLE, table);
   }
 
   /**
@@ -106,6 +118,7 @@ public class CloneSchema extends MapSchema {
     CloneSchema schema =
         new CloneSchema(
             parentSchema,
+            name,
             parentSchema.getSubSchemaExpression(name, Object.class),
             sourceSchema);
     parentSchema.addSchema(name, schema);

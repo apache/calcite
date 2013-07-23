@@ -20,9 +20,9 @@ package net.hydromatic.optiq;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Multimap;
+
+import java.util.*;
 
 /**
  * A namespace for tables and table functions.
@@ -56,6 +56,18 @@ import java.util.Map;
  * {@link Schema#getSubSchema(String)}.</p>
  */
 public interface Schema extends DataContext {
+  /**
+   * Returns the parent schema, or null if this schema has no parent.
+   */
+  Schema getParentSchema();
+
+  /**
+   * Returns the name of this schema.
+   *
+   * <p>The name must not be null, and must be unique within its parent.
+   * The root schema is typically named "".
+   */
+  String getName();
 
   /**
    * Returns a list of table functions in this schema with the given name, or
@@ -64,7 +76,7 @@ public interface Schema extends DataContext {
    * @param name Name of table function
    * @return List of table functions with given name, or empty list
    */
-  List<TableFunction> getTableFunctions(String name);
+  Collection<TableFunctionInSchema> getTableFunctions(String name);
 
   /**
    * Returns a table with the given name, or null.
@@ -79,25 +91,49 @@ public interface Schema extends DataContext {
 
   QueryProvider getQueryProvider();
 
-  Map<String, List<TableFunction>> getTableFunctions();
+  Multimap<String, TableFunctionInSchema> getTableFunctions();
 
   Collection<String> getSubSchemaNames();
 
-  Collection<TableInSchema> getTables();
+  Map<String, TableInSchema> getTables();
 
-  abstract class TableInSchema {
+  abstract class ObjectInSchema {
     public final Schema schema;
     public final String name;
+
+    public ObjectInSchema(Schema schema, String name) {
+      this.schema = schema;
+      this.name = name;
+    }
+
+    /** Returns this object's path. For example ["hr", "emps"]. */
+    public final List<String> path() {
+      return Schemas.path(schema, name);
+    }
+  }
+
+  abstract class TableInSchema extends ObjectInSchema {
     public final TableType tableType;
 
     public TableInSchema(
         Schema schema, String name, TableType tableType) {
-      this.schema = schema;
-      this.name = name;
+      super(schema, name);
       this.tableType = tableType;
     }
 
     public abstract <E> Table<E> getTable(Class<E> elementType);
+  }
+
+  abstract class TableFunctionInSchema extends ObjectInSchema {
+    public TableFunctionInSchema(Schema schema, String name) {
+      super(schema, name);
+    }
+
+    public abstract TableFunction getTableFunction();
+
+    /** Whether this represents a materialized view. (At a given point in time,
+     * it may or may not be materialized as a table.) */
+    public abstract boolean isMaterialization();
   }
 
   enum TableType {
