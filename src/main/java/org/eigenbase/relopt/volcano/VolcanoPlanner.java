@@ -156,10 +156,15 @@ public class VolcanoPlanner
      */
     private String originalRootString;
 
+    private RelNode originalRoot;
+
     /**
      * Whether the planner can accept new rules.
      */
     private boolean locked;
+
+    private final List<Materialization> materializations =
+        new ArrayList<Materialization>();
 
     //~ Constructors -----------------------------------------------------------
 
@@ -215,6 +220,9 @@ public class VolcanoPlanner
     public void setRoot(RelNode rel)
     {
         this.root = registerImpl(rel, null);
+        if (this.originalRoot == null) {
+            this.originalRoot = rel;
+        }
         this.originalRootString = RelOptUtil.toString(root);
 
         // Making a node the root changes its importance.
@@ -227,10 +235,82 @@ public class VolcanoPlanner
     }
 
     public void addMaterialization(RelNode tableRel, RelNode queryRel) {
-        RelSubset subset = registerImpl(queryRel, null);
+        materializations.add(new Materialization(tableRel, queryRel));
+    }
+
+    private void useMaterialization(Materialization materialization) {
+        RelSubset subset = registerImpl(materialization.queryRel, null);
         RelNode tableRel2 =
-            RelOptUtil.createCastRel(tableRel, queryRel.getRowType(), true);
-      registerImpl(tableRel2, subset.set);
+            RelOptUtil.createCastRel(
+                materialization.tableRel,
+                materialization.queryRel.getRowType(),
+                true);
+        registerImpl(tableRel2, subset.set);
+    }
+
+    private void useApplicableMaterializations() {
+        // Given materializations:
+        //   T = Emps Join Depts
+        //   T2 = T Group by C1
+        // graph will contain
+        //   (T, Emps), (T, Depts), (T2, T)
+        // and therefore we can deduce T2 uses Emps.
+        Graph<List> usesGraph = new Graph<List>();
+        for (Materialization materialization : materializations) {
+            if (materialization.table != null) {
+                for (RelOptTable usedTable
+                    : findTables(materialization.queryRel))
+                {
+                    usesGraph.createArc(
+                        materialization.table.getQualifiedName(),
+                        usedTable.getQualifiedName());
+                }
+            }
+        }
+
+        // Use a materialization if uses at least one of the tables are used by
+        // the query. (Simple rule that includes some materializations we won't
+        // actually use.)
+        final Set<RelOptTable> queryTables = findTables(originalRoot);
+        for (Materialization materialization : materializations) {
+            if (materialization.table != null) {
+                if (usesTable(materialization.table, queryTables, usesGraph)) {
+                    useMaterialization(materialization);
+                }
+            }
+        }
+    }
+
+    /** Returns whether {@code table} uses one or more of the tables in
+     * {@code usedTables}. */
+    private boolean usesTable(
+        RelOptTable table,
+        Set<RelOptTable> usedTables,
+        Graph<List> usesGraph)
+    {
+        for (RelOptTable queryTable : usedTables) {
+            if (usesGraph.getShortestPath(
+                    table.getQualifiedName(),
+                    queryTable.getQualifiedName()) != null)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Set<RelOptTable> findTables(RelNode rel) {
+        final Set<RelOptTable> usedTables = new LinkedHashSet<RelOptTable>();
+        new RelVisitor() {
+            @Override
+            public void visit(RelNode node, int ordinal, RelNode parent) {
+                if (node instanceof TableAccessRelBase) {
+                    usedTables.add(node.getTable());
+                }
+                super.visit(node, ordinal, parent);
+            }
+        }.go(rel);
+        return usedTables;
     }
 
     /**
@@ -414,6 +494,7 @@ public class VolcanoPlanner
      */
     public RelNode findBestExp()
     {
+        useApplicableMaterializations();
         int cumulativeTicks = 0;
         for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
             setInitialImportance();
@@ -1556,6 +1637,18 @@ SUBSET_LOOP:
                     getOperand0(),
                     rels);
             volcanoPlanner.ruleQueue.addMatch(match);
+        }
+    }
+
+    private static class Materialization {
+        private final RelNode tableRel;
+        private final RelOptTable table;
+        private final RelNode queryRel;
+
+        public Materialization(RelNode tableRel, RelNode queryRel) {
+            this.tableRel = tableRel;
+            this.table = tableRel.getTable();
+            this.queryRel = queryRel;
         }
     }
 }
