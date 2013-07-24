@@ -6,9 +6,6 @@
   <groupId>net.hydromatic</groupId>
   <artifactId>linq4j</artifactId>
   <packaging>jar</packaging>
-
-  <!-- Version number. The version number committed to github should be
-       TRUNK-SNAPSHOT except, briefly, when making a release. Next: 0.1.9. -->
   <version>TRUNK-SNAPSHOT</version>
 
   <!-- More project information. -->
@@ -73,6 +70,7 @@
 
   <scm>
     <connection>scm:git:git://github.com/julianhyde/linq4j.git</connection>
+    <developerConnection>scm:git:git@github.com:julianhyde/linq4j.git</developerConnection>
     <url>scm:git:git://github.com/julianhyde/linq4j.git</url>
   </scm>
 
@@ -117,8 +115,13 @@
             <goals>
               <goal>jar-no-fork</goal>
             </goals>
-            </execution>
-            </executions>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.4.1</version>
       </plugin>
 <!--
       <plugin>
