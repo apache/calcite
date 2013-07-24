@@ -315,7 +315,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                       : type)));
     }
     Enumerable<T> enumerable =
-        (Enumerable<T>) preparedResult.execute();
+        (Enumerable<T>) preparedResult.bind();
     if (maxRowCount >= 0) {
       // Apply limit. In JDBC 0 means "no limit". But for us, -1 means
       // "no limit", and 0 is a valid limit.
@@ -549,14 +549,14 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
       Hook.JAVA_PLAN.run(s);
 
-      final Executable executable;
+      final Bindable bindable;
       try {
-        executable = (Executable)
+        bindable = (Bindable)
             ClassBodyEvaluator.createFastClassBodyEvaluator(
                 new Scanner(null, new StringReader(s)),
                 expr.name,
                 Utilities.class,
-                new Class[]{Executable.class, Typed.class},
+                new Class[]{Bindable.class, Typed.class},
                 getClass().getClassLoader());
       } catch (Exception e) {
         throw Helper.INSTANCE.wrap(
@@ -584,13 +584,13 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         }
 
         @Override
-        public Object execute() {
-          return executable.execute(schema);
+        public Object bind() {
+          return bindable.bind(schema);
         }
 
         @Override
         public Type getElementType() {
-          return ((Typed) executable).getElementType();
+          return ((Typed) bindable).getElementType();
         }
       };
     }
@@ -630,7 +630,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
 
     @Override
-    public Object execute() {
+    public Object bind() {
       final String explanation = getCode();
       return Linq4j.singletonEnumerable(explanation);
     }

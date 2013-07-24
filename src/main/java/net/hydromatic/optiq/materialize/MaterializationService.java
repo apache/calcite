@@ -71,13 +71,11 @@ public class MaterializationService {
                   }
 
                   public Iterator<Object> iterator() {
-                    return prepareResult.enumerable instanceof Iterable
-                        ? ((Iterable) prepareResult.enumerable).iterator()
-                        : Linq4j.enumeratorIterator(enumerator());
+                    return prepareResult.iterator();
                   }
 
                   public Enumerator<Object> enumerator() {
-                    return prepareResult.enumerable.enumerator();
+                    return prepareResult.enumerator();
                   }
             });
         ((MutableSchema) schema).addTable(materializedTable);

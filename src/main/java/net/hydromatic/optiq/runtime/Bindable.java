@@ -21,9 +21,9 @@ import net.hydromatic.linq4j.Enumerable;
 import net.hydromatic.optiq.DataContext;
 
 /**
- * Executable statement.
+ * Statement that can be bound to a {@link DataContext} and then executed.
  */
-public interface Executable {
+public interface Bindable {
   /**
    * Executes this statement and returns an enumerable which will yield rows.
    * The {@code environment} parameter provides the values in the root of the
@@ -32,7 +32,7 @@ public interface Executable {
    * @param dataContext Environment that provides tables
    * @return Enumerable over rows
    */
-  Enumerable execute(DataContext dataContext);
+  Enumerable bind(DataContext dataContext);
 }
 
-// End Executable.java
+// End Bindable.java

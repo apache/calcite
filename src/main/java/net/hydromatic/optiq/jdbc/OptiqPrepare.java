@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.RawEnumerable;
 import net.hydromatic.linq4j.function.Function0;
@@ -25,7 +26,6 @@ import net.hydromatic.linq4j.function.Function0;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
-import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
@@ -94,7 +94,7 @@ public interface OptiqPrepare {
     public final List<Parameter> parameterList;
     public final RelDataType rowType;
     public final List<ColumnMetaData> columnList;
-    public final RawEnumerable<T> enumerable;
+    private final RawEnumerable<T> enumerable;
     public final Class resultClazz;
 
     public PrepareResult(String sql,
@@ -112,8 +112,17 @@ public interface OptiqPrepare {
       this.resultClazz = resultClazz;
     }
 
-    public Enumerator<T> execute() {
+    public Enumerator<T> enumerator() {
       return enumerable.enumerator();
+    }
+
+    public Iterator<T> iterator() {
+      if (enumerable instanceof Iterable) {
+        @SuppressWarnings("unchecked") final Iterable<T> iterable =
+            (Iterable) enumerable;
+        return iterable.iterator();
+      }
+      return Linq4j.enumeratorIterator(enumerable.enumerator());
     }
   }
 

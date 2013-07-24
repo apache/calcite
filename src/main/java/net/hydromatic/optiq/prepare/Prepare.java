@@ -364,7 +364,7 @@ public abstract class Prepare {
       return rel;
     }
 
-    public abstract Object execute();
+    public abstract Object bind();
   }
 
   /**
@@ -400,7 +400,7 @@ public abstract class Prepare {
      *
      * @return producer of rows resulting from execution
      */
-    Object execute();
+    Object bind();
   }
 
   /**
@@ -454,7 +454,7 @@ public abstract class Prepare {
       return rootRel;
     }
 
-    public abstract Object execute();
+    public abstract Object bind();
   }
 
   /** Describes that a given SQL query is materialized by a given table.

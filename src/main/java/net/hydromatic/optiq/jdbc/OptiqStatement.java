@@ -362,7 +362,7 @@ public abstract class OptiqStatement
       final OptiqPrepare.PrepareResult prepareResult) {
     return new Function0<Cursor>() {
       public Cursor apply() {
-        Enumerator<?> enumerator = prepareResult.execute();
+        Enumerator<?> enumerator = prepareResult.enumerator();
         //noinspection unchecked
         return prepareResult.columnList.size() == 1
             ? new ObjectEnumeratorCursor((Enumerator) enumerator)

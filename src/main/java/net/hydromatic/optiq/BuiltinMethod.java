@@ -83,7 +83,7 @@ public enum BuiltinMethod {
   ENUMERABLE_ENUMERATOR(Enumerable.class, "enumerator"),
   ENUMERABLE_FOREACH(Enumerable.class, "foreach", Function1.class),
   TYPED_GET_ELEMENT_TYPE(Typed.class, "getElementType"),
-  EXECUTABLE_EXECUTE(Executable.class, "execute", DataContext.class),
+  BINDABLE_BIND(Bindable.class, "bind", DataContext.class),
   COMPARATOR_COMPARE(Comparator.class, "compare", Object.class, Object.class),
   COLLECTIONS_REVERSE_ORDER(Collections.class, "reverseOrder"),
   COLLECTION_SIZE(Collection.class, "size"),

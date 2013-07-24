@@ -143,7 +143,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
       OptiqStatement statement = createStatement();
       OptiqPrepare.PrepareResult enumerable =
           statement.prepare(queryable);
-      return (Enumerator<T>) enumerable.execute();
+      return (Enumerator<T>) enumerable.enumerator();
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }

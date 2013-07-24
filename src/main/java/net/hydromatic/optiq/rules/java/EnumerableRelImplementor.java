@@ -24,7 +24,7 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
-import net.hydromatic.optiq.runtime.Executable;
+import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.Utilities;
 
 import org.eigenbase.rel.RelImplementorImpl;
@@ -77,7 +77,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
         Expressions.methodDecl(
             Modifier.PUBLIC,
             Enumerable.class,
-            BuiltinMethod.EXECUTABLE_EXECUTE.method.getName(),
+            BuiltinMethod.BINDABLE_BIND.method.getName(),
             Expressions.list(root),
             result.block));
     memberDeclarations.add(
@@ -95,7 +95,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
         Modifier.PUBLIC,
         "Baz",
         null,
-        Collections.<Type>singletonList(Executable.class),
+        Collections.<Type>singletonList(Bindable.class),
         memberDeclarations);
   }
 
