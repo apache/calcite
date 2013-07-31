@@ -124,6 +124,13 @@ public interface OptiqPrepare {
       }
       return Linq4j.enumeratorIterator(enumerable.enumerator());
     }
+
+    /** Returns the executable object. You may use this method to access the
+     * result of the preparation, but if you need to execute it please call
+     * {@link #enumerator()} or {@link #iterator()}. */
+    public Object getExecutable() {
+      return enumerable;
+    }
   }
 
   /**
