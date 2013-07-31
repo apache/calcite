@@ -107,8 +107,9 @@ class VolcanoCost
         VolcanoCost that = (VolcanoCost) other;
         return (this == that)
             || ((this.dRows <= that.dRows)
-                && (this.dCpu <= that.dCpu)
-                && (this.dIo <= that.dIo));
+//                && (this.dCpu <= that.dCpu)
+//                && (this.dIo <= that.dIo)
+        );
     }
 
     public boolean isLt(RelOptCost other)
