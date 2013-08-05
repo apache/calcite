@@ -90,6 +90,7 @@ public class OptiqResultSet implements ResultSet {
       this.cursor = null;
       cursor.close();
     }
+    statement.onResultSetClose(this);
     // TODO: for timeout, see IteratorResultSet.close
 /*
         if (timeoutCursor != null) {

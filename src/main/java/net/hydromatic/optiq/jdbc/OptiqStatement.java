@@ -95,7 +95,15 @@ public abstract class OptiqStatement
     return result;
   }
 
-  public synchronized void close() {
+  public synchronized void close() throws SQLException {
+    try {
+      close_();
+    } catch (RuntimeException e) {
+      throw connection.helper.createException("While closing statement", e);
+    }
+  }
+
+  private void close_() {
     if (!closed) {
       closed = true;
       connection.server.removeStatement(this);
@@ -104,6 +112,9 @@ public abstract class OptiqStatement
         openResultSet = null;
         c.close();
       }
+      // If onStatementClose throws, this method will throw an exception (later
+      // converted to SQLException), but this statement still gets closed.
+      connection.driver.handler.onStatementClose(this);
     }
   }
 
@@ -382,7 +393,7 @@ public abstract class OptiqStatement
    */
   void onResultSetClose(ResultSet resultSet) {
     if (closeOnCompletion) {
-      close();
+      close_();
     }
   }
 

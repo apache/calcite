@@ -191,7 +191,17 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
   }
 
   public void close() throws SQLException {
-    closed = true;
+    if (!closed) {
+      closed = true;
+
+      // Per specification, if onConnectionClose throws, this method will throw
+      // a SQLException, but statement will still be closed.
+      try {
+        driver.handler.onConnectionClose(this);
+      } catch (RuntimeException e) {
+        throw helper.createException("While closing connection", e);
+      }
+    }
   }
 
   public boolean isClosed() throws SQLException {

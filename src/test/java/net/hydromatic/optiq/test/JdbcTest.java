@@ -31,6 +31,7 @@ import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.*;
+import net.hydromatic.optiq.jdbc.Driver;
 import net.hydromatic.optiq.prepare.Prepare;
 
 import org.apache.commons.dbcp.BasicDataSource;
@@ -258,6 +259,101 @@ public class JdbcTest {
     }
     optiqConnection.setSchema("foodmart2");
     return optiqConnection;
+  }
+
+  /** Tests {@link Handler#onConnectionClose}
+   * and  {@link Handler#onStatementClose}. */
+  @Test public void testOnConnectionClose() throws Exception {
+    final int[] closeCount = {0};
+    final int[] statementCloseCount = {0};
+    HandlerDriver.HANDLERS.set(
+        new HandlerImpl() {
+          @Override
+          public void onConnectionClose(OptiqConnection connection) {
+            ++closeCount[0];
+            throw new RuntimeException();
+          }
+          @Override
+          public void onStatementClose(OptiqStatement statement) {
+            ++statementCloseCount[0];
+            throw new RuntimeException();
+          }
+        });
+    final HandlerDriver driver =
+        new HandlerDriver();
+    OptiqConnection connection = (OptiqConnection)
+        driver.connect("jdbc:optiq:", new Properties());
+    MutableSchema rootSchema = connection.getRootSchema();
+    ReflectiveSchema.create(
+        rootSchema, "hr", new HrSchema());
+    connection.setSchema("hr");
+    final Statement statement = connection.createStatement();
+    final ResultSet resultSet =
+        statement.executeQuery("select * from \"emps\"");
+    assertEquals(0, closeCount[0]);
+    assertEquals(0, statementCloseCount[0]);
+    resultSet.close();
+    assertEquals(0, closeCount[0]);
+    assertEquals(0, statementCloseCount[0]);
+
+    // Close statement. It throws SQLException, but statement is still closed.
+    try {
+      statement.close();
+      fail("expecting error");
+    } catch (SQLException e) {
+      // ok
+    }
+    assertEquals(0, closeCount[0]);
+    assertEquals(1, statementCloseCount[0]);
+
+    // Close connection. It throws SQLException, but connection is still closed.
+    try {
+      connection.close();
+      fail("expecting error");
+    } catch (SQLException e) {
+      // ok
+    }
+    assertEquals(1, closeCount[0]);
+    assertEquals(1, statementCloseCount[0]);
+
+    // Close a closed connection. Handler is not called again.
+    connection.close();
+    assertEquals(1, closeCount[0]);
+    assertEquals(1, statementCloseCount[0]);
+
+    HandlerDriver.HANDLERS.remove();
+  }
+
+  /** Tests {@link java.sql.Statement#closeOnCompletion()}. */
+  @Test public void testStatementCloseOnCompletion() throws Exception {
+    final Driver driver = new Driver();
+    OptiqConnection connection = (OptiqConnection)
+        driver.connect("jdbc:optiq:", new Properties());
+    MutableSchema rootSchema = connection.getRootSchema();
+    ReflectiveSchema.create(
+        rootSchema, "hr", new HrSchema());
+    connection.setSchema("hr");
+    final Statement statement = connection.createStatement();
+    assertFalse(statement.isCloseOnCompletion());
+    statement.closeOnCompletion();
+    assertTrue(statement.isCloseOnCompletion());
+    final ResultSet resultSet =
+        statement.executeQuery("select * from \"emps\"");
+
+    assertFalse(resultSet.isClosed());
+    assertFalse(statement.isClosed());
+    assertFalse(connection.isClosed());
+
+    // when result set is closed, statement is closed automatically
+    resultSet.close();
+    assertTrue(resultSet.isClosed());
+    assertTrue(statement.isClosed());
+    assertFalse(connection.isClosed());
+
+    connection.close();
+    assertTrue(resultSet.isClosed());
+    assertTrue(statement.isClosed());
+    assertTrue(connection.isClosed());
   }
 
   /**
@@ -1736,6 +1832,20 @@ public class JdbcTest {
           results.add(resultSink);
         }
       };
+    }
+  }
+
+  /** Mock driver that a given {@link Handler}. */
+  public static class HandlerDriver extends net.hydromatic.optiq.jdbc.Driver {
+    private static final ThreadLocal<Handler> HANDLERS =
+        new ThreadLocal<Handler>();
+
+    public HandlerDriver() {
+    }
+
+    @Override
+    protected Handler createHandler() {
+      return HANDLERS.get();
     }
   }
 

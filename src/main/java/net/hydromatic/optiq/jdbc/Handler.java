@@ -27,13 +27,25 @@ import java.sql.SQLException;
  * need to achieve special effects.</p>
  */
 public interface Handler {
-  /** Called when a connection is being created. If it throws, the connection
-   * will not be created.
+  /** Called by Optiq server when a connection is being created.
+   *
+   * <p>If the implementation of this method throws, the connection
+   * will not be created.</p>
    *
    * @param connection Connection
    * @throws SQLException on error
    */
   void onConnectionInit(OptiqConnection connection) throws SQLException;
+
+  /** Called by Optiq server when a connection is being closed.
+   *
+   * <p>If the implementation of this method throws, the call to
+   * {@link java.sql.Connection#close} that triggered this method will throw an
+   * exception, but the connection will still be marked closed.</p>
+   *
+   * @param connection Connection
+   */
+  void onConnectionClose(OptiqConnection connection) throws RuntimeException;
 
   /** Called by Optiq server when a statement is being executed.
    *
@@ -51,6 +63,20 @@ public interface Handler {
   void onStatementExecute(
       OptiqStatement statement,
       ResultSink resultSink) throws RuntimeException;
+
+  /** Called by Optiq server when a statement is being closed.
+   *
+   * <p>This method is called after marking the statement closed, and after
+   * closing any open {@link java.sql.ResultSet} objects.</p>
+   *
+   * <p>If the implementation of this method throws, the call to
+   * {@link java.sql.Statement#close} that triggered this method will throw an
+   * exception, but the statement will still be marked closed.
+   *
+   * @param statement Statement
+   * @throws RuntimeException on error
+   */
+  void onStatementClose(OptiqStatement statement) throws RuntimeException;
 
   interface ResultSink {
     /** Registers a temporary table. */

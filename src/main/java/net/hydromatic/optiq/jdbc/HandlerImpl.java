@@ -30,8 +30,18 @@ public class HandlerImpl implements Handler {
     // nothing
   }
 
+  public void onConnectionClose(OptiqConnection connection)
+      throws RuntimeException {
+    // nothing
+  }
+
   public void onStatementExecute(
       OptiqStatement statement, ResultSink resultSink) throws RuntimeException {
+    // nothing
+  }
+
+  public void onStatementClose(OptiqStatement statement)
+      throws RuntimeException {
     // nothing
   }
 }
