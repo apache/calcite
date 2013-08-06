@@ -25,10 +25,12 @@ import net.hydromatic.optiq.impl.jdbc.JdbcQueryProvider;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.Hook;
 
+import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.*;
 import java.sql.*;
 import java.sql.Date;
 import java.text.DateFormat;
@@ -382,6 +384,47 @@ public class OptiqAssert {
     default:
       return String.valueOf(resultSet.getObject(i));
     }
+  }
+
+  /** Calls a non-static method via reflection. Useful for testing methods that
+   * don't exist in certain versions of the JDK. */
+  static Object call(Object o, String methodName, Object... args)
+      throws NoSuchMethodException, InvocationTargetException,
+      IllegalAccessException {
+    return method(o, methodName, args).invoke(o, args);
+  }
+
+  /** Finds a non-static method based on its target, name and arguments.
+   * Throws if not found. */
+  static Method method(Object o, String methodName, Object[] args) {
+    for (Class<?> aClass = o.getClass();;) {
+      loop:
+      for (Method method1 : aClass.getMethods()) {
+        if (method1.getName().equals(methodName)
+            && method1.getParameterTypes().length == args.length
+            && Modifier.isPublic(method1.getDeclaringClass().getModifiers())) {
+          for (Pair<Object, Class<?>> pair
+              : Pair.zip(args, method1.getParameterTypes())) {
+            if (!pair.right.isInstance(pair.left)) {
+              continue loop;
+            }
+          }
+          return method1;
+        }
+      }
+      if (aClass.getSuperclass() != null
+          && aClass.getSuperclass() != Object.class) {
+        aClass = aClass.getSuperclass();
+      } else {
+        final Class<?>[] interfaces = aClass.getInterfaces();
+        if (interfaces.length > 0) {
+          aClass = interfaces[0];
+        } else {
+          break;
+        }
+      }
+    }
+    throw new AssertionError("method " + methodName + " not found");
   }
 
   /**

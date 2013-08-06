@@ -334,9 +334,9 @@ public class JdbcTest {
         rootSchema, "hr", new HrSchema());
     connection.setSchema("hr");
     final Statement statement = connection.createStatement();
-    assertFalse(statement.isCloseOnCompletion());
-    statement.closeOnCompletion();
-    assertTrue(statement.isCloseOnCompletion());
+    assertFalse((Boolean) OptiqAssert.call(statement, "isCloseOnCompletion"));
+    OptiqAssert.call(statement, "closeOnCompletion");
+    assertTrue((Boolean) OptiqAssert.call(statement, "isCloseOnCompletion"));
     final ResultSet resultSet =
         statement.executeQuery("select * from \"emps\"");
 
