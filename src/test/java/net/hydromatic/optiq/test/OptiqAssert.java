@@ -192,20 +192,30 @@ public class OptiqAssert {
   }
 
   /** Checks that the result of the second and subsequent executions is the same
-   * as the first. */
-  static Function1<ResultSet, Void> consistentResult() {
+   * as the first.
+   *
+   * @param ordered Whether order should be the same both times
+   */
+  static Function1<ResultSet, Void> consistentResult(final boolean ordered) {
     return new Function1<ResultSet, Void>() {
       int executeCount = 0;
-      String expected;
+      Object expected;
 
       public Void apply(ResultSet resultSet) {
         ++executeCount;
         try {
-          final String resultString = OptiqAssert.toString(resultSet);
+          final Object result =
+              OptiqAssert.toStringList(
+                  resultSet,
+                  ordered ? new ArrayList<String>() : new TreeSet<String>());
           if (executeCount == 1) {
-            expected = resultString;
+            expected = result;
           } else {
-            assertEquals(expected, resultString);
+            if (!expected.equals(result)) {
+              // compare strings to get better error message
+              assertEquals(expected.toString(), result.toString());
+              fail("oops");
+            }
           }
           return null;
         } catch (SQLException e) {
@@ -347,8 +357,8 @@ public class OptiqAssert {
     return buf.toString();
   }
 
-  static void toStringList(ResultSet resultSet, Collection<String> list)
-      throws SQLException {
+  static Collection<String> toStringList(ResultSet resultSet,
+      Collection<String> list) throws SQLException {
     final StringBuilder buf = new StringBuilder();
     while (resultSet.next()) {
       int n = resultSet.getMetaData().getColumnCount();
@@ -366,6 +376,7 @@ public class OptiqAssert {
       list.add(buf.toString());
       buf.setLength(0);
     }
+    return list;
   }
 
   private static String str(ResultSet resultSet, int i) throws SQLException {
@@ -757,7 +768,8 @@ public class OptiqAssert {
       boolean save = materializationsEnabled;
       try {
         materializationsEnabled = true;
-        final Function1<ResultSet, Void> checker = consistentResult();
+        final boolean ordered = sql.toUpperCase().contains("ORDER BY");
+        final Function1<ResultSet, Void> checker = consistentResult(ordered);
         returns(checker);
         materializationsEnabled = false;
         returns(checker);

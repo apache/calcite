@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.optiq.materialize.MaterializationService;
+import net.hydromatic.optiq.prepare.Prepare;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -44,6 +45,48 @@ public class MaterializationTest {
           .sameResultWithMaterializationsDisabled();
     } finally {
       MaterializationService.INSTANCE.clear();
+    }
+  }
+
+  @Test public void testFilterQueryOnProjectView() {
+    try {
+      Prepare.TRIM = true;
+      OptiqAssert.assertThat()
+          .with(OptiqAssert.Config.REGULAR)
+          .withMaterializations(
+              JdbcTest.HR_MODEL,
+              "m0",
+              "select \"deptno\", \"empid\" from \"emps\"")
+          .query(
+              "select \"empid\" + 1 as x from \"emps\" where \"deptno\" = 10")
+          .enableMaterializations(true)
+          .explainContains(
+              "EnumerableTableAccessRel(table=[[hr, m0]])")
+          .sameResultWithMaterializationsDisabled();
+    } finally {
+      MaterializationService.INSTANCE.clear();
+      Prepare.TRIM = false;
+    }
+  }
+
+  @Test public void testFilterQueryOnProjectView2() {
+    try {
+      Prepare.TRIM = true;
+      OptiqAssert.assertThat()
+          .with(OptiqAssert.Config.REGULAR)
+          .withMaterializations(
+              JdbcTest.HR_MODEL,
+              "m0",
+              "select \"deptno\", \"empid\", \"name\" from \"emps\"")
+          .query(
+              "select \"empid\" + 1 as x, \"name\" from \"emps\" where \"deptno\" = 10")
+          .enableMaterializations(true)
+          .explainContains(
+              "EnumerableTableAccessRel(table=[[hr, m0]])")
+          .sameResultWithMaterializationsDisabled();
+    } finally {
+      MaterializationService.INSTANCE.clear();
+      Prepare.TRIM = false;
     }
   }
 

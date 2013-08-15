@@ -5091,7 +5091,7 @@ public class SqlValidatorTest
      * lurking in the validation process.
      */
     @Test public void testLarge() {
-        int x = 1000;
+        int x = 700;
         if (System.getProperty("os.name").startsWith("Windows")) {
             // NOTE jvs 1-Nov-2006:  Default thread stack size
             // on Windows is too small, so avoid stack overflow

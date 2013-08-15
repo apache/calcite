@@ -27,6 +27,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.util.Bug;
 
 import java.lang.reflect.Type;
 import java.sql.Date;
@@ -79,8 +80,13 @@ class ColumnLoader<T> {
     this.typeFactory = typeFactory;
     sourceTable.into(list);
     final int[] sorts = {-1};
-    load(elementType, sorts);
-    this.sortField = sorts[0];
+    if (Bug.TodoFixed) {
+      load(elementType, sorts);
+      this.sortField = sorts[0];
+    } else {
+      load(elementType, null);
+      sortField = -1;
+    }
   }
 
   static int nextPowerOf2(int v) {
@@ -126,6 +132,23 @@ class ColumnLoader<T> {
       }
     }
     return r;
+  }
+
+  static int[] invert(int[] targets) {
+    final int[] sources = new int[targets.length];
+    for (int i = 0; i < targets.length; i++) {
+      sources[targets[i]] = i;
+    }
+    return sources;
+  }
+
+  static boolean isIdentity(int[] sources) {
+    for (int i = 0; i < sources.length; i++) {
+      if (sources[i] != i) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public int size() {
@@ -191,14 +214,7 @@ class ColumnLoader<T> {
           sources[i] = kevs[i].source;
         }
 
-        boolean identity = true;
-        for (int i = 0; i < sources.length; i++) {
-          if (sources[i] != i) {
-            identity = false;
-            break;
-          }
-        }
-        if (identity) {
+        if (isIdentity(sources)) {
           // Table was already sorted. Clear the permutation.
           // We've already set sort[0], so we won't check for another
           // sorted column.

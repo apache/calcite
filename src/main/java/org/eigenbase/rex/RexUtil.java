@@ -694,6 +694,10 @@ public class RexUtil
         final List<RelCollation> newCollationList =
             new ArrayList<RelCollation>();
         for (RelCollation collation : collationList) {
+            if (collation == RelCollationImpl.PRESERVE) {
+                newCollationList.add(collation);
+                continue;
+            }
             final List<RelFieldCollation> newFieldCollationList =
                 new ArrayList<RelFieldCollation>();
             for (RelFieldCollation fieldCollation

@@ -50,6 +50,8 @@ public abstract class Prepare {
   protected EigenbaseTimingTracer timingTracer;
   protected List<List<String>> fieldOrigins;
 
+  public static boolean TRIM = false; // temporary. for testing.
+
   public Prepare(CatalogReader catalogReader, Convention resultConvention) {
     this.catalogReader = catalogReader;
     this.resultConvention = resultConvention;
@@ -281,9 +283,11 @@ public abstract class Prepare {
    * @return Trimmed relational expression
    */
   protected RelNode trimUnusedFields(RelNode rootRel) {
-    return getSqlToRelConverter(
-        getSqlValidator(),
-        catalogReader).trimUnusedFields(rootRel);
+    final SqlToRelConverter converter =
+        getSqlToRelConverter(
+            getSqlValidator(), catalogReader);
+    converter.setTrimUnusedFields(TRIM);
+    return converter.trimUnusedFields(rootRel);
   }
 
   /**

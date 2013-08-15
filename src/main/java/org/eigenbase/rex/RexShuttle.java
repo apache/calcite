@@ -221,8 +221,7 @@ public class RexShuttle
      *
      * @return whether any of the expressions changed
      */
-    public final <T extends RexNode> boolean apply(List<T> exprList)
-    {
+    public final <T extends RexNode> boolean mutate(List<T> exprList) {
         int changeCount = 0;
         for (int i = 0; i < exprList.size(); i++) {
             T expr = exprList.get(i);
@@ -233,6 +232,19 @@ public class RexShuttle
             }
         }
         return changeCount > 0;
+    }
+
+    /**
+     * Applies this shuttle to each expression in a list and returns the
+     * resulting list. Does not modify the initial list.
+     */
+    public final <T extends RexNode> List<T> apply(List<T> exprList) {
+        final List<T> list2 = new ArrayList<T>(exprList);
+        if (mutate(list2)) {
+            return list2;
+        } else {
+            return exprList;
+        }
     }
 
     /**

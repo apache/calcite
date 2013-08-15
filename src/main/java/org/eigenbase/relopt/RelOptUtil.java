@@ -31,7 +31,6 @@ import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
  * {@link RelNode}s.
@@ -1625,11 +1624,17 @@ public abstract class RelOptUtil
         boolean fail)
     {
         if (!areRowTypesEqual(type1, type2, false)) {
-            assert !fail : "Type mismatch:" + NL
-                + desc1 + ":" + NL
-                + type1.getFullTypeString() + NL
-                + desc2 + ":" + NL
-                + type2.getFullTypeString();
+            if (fail) {
+                throw new AssertionError(
+                    "Type mismatch:\n"
+                    + desc1
+                    + ":\n"
+                    + type1.getFullTypeString()
+                    + "\n"
+                    + desc2
+                    + ":\n"
+                    + type2.getFullTypeString());
+            }
             return false;
         }
         return true;

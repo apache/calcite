@@ -239,6 +239,18 @@ public class VolcanoPlanner
     }
 
     private void useMaterialization(Materialization materialization) {
+        // Try to rewrite the original root query in terms of the materialized
+        // query. If that is possible, register the remnant query as equivalent
+        // to the root.
+        //
+        RelNode sub = substitute(originalRoot, materialization);
+        if (sub != null) {
+            // TODO: try to substitute other materializations in the remnant.
+            // Useful for big queries, e.g.
+            //   (t1 group by c1) join (t2 group by c2).
+            registerImpl(sub, root.set);
+            return;
+        }
         RelSubset subset = registerImpl(materialization.queryRel, null);
         RelNode tableRel2 =
             RelOptUtil.createCastRel(
@@ -246,6 +258,13 @@ public class VolcanoPlanner
                 materialization.queryRel.getRowType(),
                 true);
         registerImpl(tableRel2, subset.set);
+    }
+
+    private RelNode substitute(
+        RelNode root, Materialization materialization)
+    {
+        return new SubstitutionVisitor(materialization.queryRel, root)
+            .go(materialization.tableRel);
     }
 
     private void useApplicableMaterializations() {

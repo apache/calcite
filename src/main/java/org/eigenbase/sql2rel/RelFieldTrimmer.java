@@ -31,7 +31,6 @@ import org.eigenbase.util.mapping.*;
 
 import net.hydromatic.linq4j.Ord;
 
-
 /**
  * Transformer that walks over a tree of relational expressions, replacing each
  * {@link RelNode} with a 'slimmed down' relational expression that projects
@@ -207,6 +206,7 @@ public class RelFieldTrimmer
             : "target: " + mapping.getTargetCount()
               + " + " + extraFields.size()
               + " != " + newFieldCount;
+        if (Bug.TodoFixed)
         assert newFieldCount > 0 : "rel has no fields after trim: " + rel;
         if (newRel.equals(rel)) {
             return new TrimResult(rel, mapping);

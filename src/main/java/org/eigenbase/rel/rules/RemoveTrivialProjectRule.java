@@ -24,7 +24,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * Rule which, given a {@link ProjectRel} node which merely returns its input,
  * converts the node into its child.
@@ -54,26 +53,36 @@ public class RemoveTrivialProjectRule
     public void onMatch(RelOptRuleCall call)
     {
         ProjectRel project = call.rel(0);
+        RelNode stripped = strip(project);
+        if (stripped == project) {
+            return;
+        }
+        RelNode child = call.getPlanner().register(stripped, project);
+        call.transformTo(
+            convert(
+                child,
+                project.getTraitSet()));
+    }
+
+    /** Returns the child of a project if the project is trivial, otherwise
+     * the project itself. */
+    public static RelNode strip(ProjectRel project) {
         RelNode child = project.getChild();
         final RelDataType childRowType = child.getRowType();
         if (!childRowType.isStruct()) {
-            return;
+            return project;
         }
         if (!project.isBoxed()) {
-            return;
+            return project;
         }
         if (!isIdentity(
                 project.getProjects(),
                 project.getRowType(),
                 childRowType))
         {
-            return;
+            return project;
         }
-        child = call.getPlanner().register(child, project);
-        call.transformTo(
-            convert(
-                child,
-                project.getTraitSet()));
+        return child;
     }
 
     public static boolean isIdentity(
