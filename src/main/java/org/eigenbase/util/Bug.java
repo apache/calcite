@@ -217,8 +217,15 @@ public abstract class Bug
     /** Use this to flag temporary code. */
     public static final boolean TodoFixed = false;
 
-  /** Use this method to flag temporary code. */
+    /** Use this method to flag temporary code. */
     public static boolean remark(String remark) {
+        Util.discard(remark);
+        return false;
+    }
+
+    /** Use this method to flag code that should be re-visited after upgrading
+     * a component. */
+    public static boolean upgrade(String remark) {
         Util.discard(remark);
         return false;
     }

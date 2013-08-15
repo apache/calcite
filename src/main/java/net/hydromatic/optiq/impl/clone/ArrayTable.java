@@ -23,8 +23,7 @@ import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
 
@@ -212,11 +211,33 @@ class ArrayTable<T>
       this.cardinality = cardinality;
     }
 
-    public Column permute(int[] targets) {
+    public Column permute(int[] sources) {
       return new Column(
           representation,
-          representation.permute(dataSet, targets),
+          representation.permute(dataSet, sources),
           cardinality);
+    }
+
+    @Override
+    public String toString() {
+      return "Column(representation=" + representation
+          + ", value=" + representation.toString(dataSet) + ")";
+    }
+
+    /** Returns a list view onto a data set. */
+    public static List asList(final Representation representation,
+        final Object dataSet) {
+      // Cache size. It might be expensive to compute.
+      final int size = representation.size(dataSet);
+      return new AbstractList() {
+        public Object get(int index) {
+          return representation.getObject(dataSet, index);
+        }
+
+        public int size() {
+          return size;
+        }
+      };
     }
   }
 
@@ -233,6 +254,14 @@ class ArrayTable<T>
     /** Creates a data set that is the same as a given data set
      * but re-ordered. */
     Object permute(Object dataSet, int[] sources);
+
+    /** Returns the number of elements in a data set. (Some representations
+     * return the capacity, which may be slightly larger than the actual
+     * size.) */
+    int size(Object dataSet);
+
+    /** Converts a data set to a string. */
+    String toString(Object dataSet);
   }
 
   public static class ObjectArray implements Representation {
@@ -240,6 +269,10 @@ class ArrayTable<T>
 
     public ObjectArray(int ordinal) {
       this.ordinal = ordinal;
+    }
+
+    public String toString() {
+      return "ObjectArray(ordinal=" + ordinal + ")";
     }
 
     public RepresentationType getType() {
@@ -269,6 +302,14 @@ class ArrayTable<T>
     public int getInt(Object dataSet, int ordinal) {
       return ((Number) getObject(dataSet, ordinal)).intValue();
     }
+
+    public int size(Object dataSet) {
+      return ((Comparable[]) dataSet).length;
+    }
+
+    public String toString(Object dataSet) {
+      return Arrays.toString((Comparable[]) dataSet);
+    }
   }
 
   public static class PrimitiveArray implements Representation {
@@ -280,6 +321,13 @@ class ArrayTable<T>
       this.ordinal = ordinal;
       this.primitive = primitive;
       this.p = p;
+    }
+
+    public String toString() {
+      return "PrimitiveArray(ordinal=" + ordinal
+          + ", primitive=" + primitive
+          + ", p=" + p
+          + ")";
     }
 
     public RepresentationType getType() {
@@ -303,9 +351,51 @@ class ArrayTable<T>
     public int getInt(Object dataSet, int ordinal) {
       return Array.getInt(dataSet, ordinal);
     }
+
+    public int size(Object dataSet) {
+      return Array.getLength(dataSet);
+    }
+
+    public String toString(Object dataSet) {
+      return toString(p, dataSet);
+    }
+
+    private static String toString(Primitive p, Object dataSet) {
+      Bug.upgrade("use Primitive.arrayToString after linq4j upgrade");
+      switch (p) {
+      case BOOLEAN:
+        return Arrays.toString((boolean[]) dataSet);
+      case BYTE:
+        return Arrays.toString((byte[]) dataSet);
+      case CHAR:
+        return Arrays.toString((char[]) dataSet);
+      case DOUBLE:
+        return Arrays.toString((double[]) dataSet);
+      case FLOAT:
+        return Arrays.toString((float[]) dataSet);
+      case INT:
+        return Arrays.toString((int[]) dataSet);
+      case LONG:
+        return Arrays.toString((long[]) dataSet);
+      case OTHER:
+      case VOID:
+        return Arrays.toString((Object[]) dataSet);
+      case SHORT:
+        return Arrays.toString((short[]) dataSet);
+      default:
+        throw new AssertionError(p);
+      }
+    }
   }
 
   public static class PrimitiveDictionary implements Representation {
+    public PrimitiveDictionary() {
+    }
+
+    public String toString() {
+      return "PrimitiveDictionary()";
+    }
+
     public RepresentationType getType() {
       return RepresentationType.PRIMITIVE_DICTIONARY;
     }
@@ -325,6 +415,14 @@ class ArrayTable<T>
     public int getInt(Object dataSet, int ordinal) {
       throw new UnsupportedOperationException(); // TODO:
     }
+
+    public int size(Object dataSet) {
+      throw new UnsupportedOperationException(); // TODO:
+    }
+
+    public String toString(Object dataSet) {
+      throw new UnsupportedOperationException(); // TODO:
+    }
   }
 
   public static class ObjectDictionary implements Representation {
@@ -336,6 +434,12 @@ class ArrayTable<T>
         Representation representation) {
       this.ordinal = ordinal;
       this.representation = representation;
+    }
+
+    public String toString() {
+      return "ObjectDictionary(ordinal=" + ordinal
+          + ", representation=" + representation
+          + ")";
     }
 
     public RepresentationType getType() {
@@ -374,7 +478,8 @@ class ArrayTable<T>
     }
 
     public Object getObject(Object dataSet, int ordinal) {
-      Pair<Object, Object[]> pair = (Pair<Object, Object[]>) dataSet;
+      final Pair<Object, Comparable[]> pair =
+          (Pair<Object, Comparable[]>) dataSet;
       int code = representation.getInt(pair.left, ordinal);
       return pair.right[code];
     }
@@ -382,9 +487,27 @@ class ArrayTable<T>
     public int getInt(Object dataSet, int ordinal) {
       return ((Number) getObject(dataSet, ordinal)).intValue();
     }
+
+    public int size(Object dataSet) {
+      final Pair<Object, Comparable[]> pair =
+          (Pair<Object, Comparable[]>) dataSet;
+      return representation.size(pair.left);
+    }
+
+    public String toString(Object dataSet) {
+      return Column.asList(this, dataSet).toString();
+    }
   }
 
   public static class StringDictionary implements Representation {
+    public StringDictionary() {
+    }
+
+    @Override
+    public String toString() {
+      return "StringDictionary()";
+    }
+
     public RepresentationType getType() {
       return RepresentationType.STRING_DICTIONARY;
     }
@@ -404,9 +527,24 @@ class ArrayTable<T>
     public int getInt(Object dataSet, int ordinal) {
       throw new UnsupportedOperationException(); // TODO:
     }
+
+    public int size(Object dataSet) {
+      throw new UnsupportedOperationException(); // TODO:
+    }
+
+    public String toString(Object dataSet) {
+      return Column.asList(this, dataSet).toString();
+    }
   }
 
   public static class ByteStringDictionary implements Representation {
+    public ByteStringDictionary() {
+    }
+
+    public String toString() {
+      return "ByteStringDictionary()";
+    }
+
     public RepresentationType getType() {
       return RepresentationType.BYTE_STRING_DICTIONARY;
     }
@@ -426,6 +564,14 @@ class ArrayTable<T>
     public int getInt(Object dataSet, int ordinal) {
       throw new UnsupportedOperationException(); // TODO:
     }
+
+    public int size(Object dataSet) {
+      throw new UnsupportedOperationException(); // TODO:
+    }
+
+    public String toString(Object dataSet) {
+      return Column.asList(this, dataSet).toString();
+    }
   }
 
   public static class Constant implements Representation {
@@ -433,6 +579,10 @@ class ArrayTable<T>
 
     public Constant(int ordinal) {
       this.ordinal = ordinal;
+    }
+
+    public String toString() {
+      return "Constant(ordinal=" + ordinal + ")";
     }
 
     public RepresentationType getType() {
@@ -457,6 +607,16 @@ class ArrayTable<T>
       Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
       return ((Number) pair.left).intValue();
     }
+
+    public int size(Object dataSet) {
+      Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
+      return pair.right;
+    }
+
+    public String toString(Object dataSet) {
+      Pair<Object, Integer> pair = (Pair<Object, Integer>) dataSet;
+      return Collections.nCopies(pair.right, pair.left).toString();
+    }
   }
 
   public static class BitSlicedPrimitiveArray implements Representation {
@@ -472,6 +632,14 @@ class ArrayTable<T>
       this.bitCount = bitCount;
       this.primitive = primitive;
       this.signed = signed;
+    }
+
+    @Override
+    public String toString() {
+      return "BitSlicedPrimitiveArray(ordinal=" + ordinal
+          + ", bitCount=" + bitCount
+          + ", primitive=" + primitive
+          + ", signed=" + signed + ")";
     }
 
     public RepresentationType getType() {
@@ -493,7 +661,7 @@ class ArrayTable<T>
       if (valueCount > 0
           && valueList.get(0) instanceof Boolean) {
         @SuppressWarnings("unchecked")
-        final List<Boolean> booleans = (List) valueSet.values;
+        final List<Boolean> booleans = (List) valueList;
         for (i = 0; i < n; i++) {
           long v = 0;
           for (int j = 0; j < chunksPerWord; j++) {
@@ -510,7 +678,7 @@ class ArrayTable<T>
         }
       } else {
         @SuppressWarnings("unchecked")
-        final List<Number> numbers = (List) valueSet.values;
+        final List<Number> numbers = (List) valueList;
         for (i = 0; i < n; i++) {
           long v = 0;
           for (int j = 0; j < chunksPerWord; j++) {
@@ -621,6 +789,16 @@ class ArrayTable<T>
       final int chunk = ordinal % chunksPerWord;
       final int shift = chunk * bitCount;
       values[word] |= value << shift;
+    }
+
+    public int size(Object dataSet) {
+      final long[] longs = (long[]) dataSet;
+      final int chunksPerWord = 64 / bitCount;
+      return longs.length * chunksPerWord; // may be slightly too high
+    }
+
+    public String toString(Object dataSet) {
+      return Column.asList(this, dataSet).toString();
     }
   }
 

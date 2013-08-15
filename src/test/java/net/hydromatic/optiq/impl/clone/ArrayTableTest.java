@@ -17,12 +17,18 @@
 */
 package net.hydromatic.optiq.impl.clone;
 
+import net.hydromatic.linq4j.Enumerable;
+import net.hydromatic.linq4j.Linq4j;
+import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
+
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
+
 import org.junit.Test;
 
 import java.util.Arrays;
 
 import static org.junit.Assert.*;
-
 
 /**
  * Unit test for {@link ArrayTable} and {@link ColumnLoader}.
@@ -272,6 +278,80 @@ public class ArrayTableTest {
     assertEquals("foo", representation2.getObject(pair.dataSet, 1));
     assertNull(representation2.getObject(pair.dataSet, 10));
     assertEquals(2, pair.cardinality);
+  }
+
+  @Test public void testLoadSorted() {
+    final JavaTypeFactoryImpl typeFactory = new JavaTypeFactoryImpl();
+    final RelDataType rowType = typeFactory.createStructType(
+        new RelDataTypeFactory.FieldInfoBuilder()
+            .add("empid", typeFactory.createType(int.class))
+            .add("deptno", typeFactory.createType(int.class))
+            .add("name", typeFactory.createType(String.class)));
+    final Enumerable<Object[]> enumerable =
+        Linq4j.asEnumerable(
+            Arrays.asList(
+                new Object[]{100, 10, "Bill"},
+                new Object[]{200, 20, "Eric"},
+                new Object[]{150, 10, "Sebastian"},
+                new Object[]{160, 10, "Theodore"}));
+    final ColumnLoader<Object[]> loader =
+        new ColumnLoader<Object[]>(typeFactory, enumerable, rowType);
+    checkColumn(
+        loader.representationValues.get(0),
+        ArrayTable.RepresentationType.BIT_SLICED_PRIMITIVE_ARRAY,
+        "Column(representation=BitSlicedPrimitiveArray(ordinal=0, bitCount=8, primitive=INT, signed=false), value=[100, 150, 160, 200, 0, 0, 0, 0])");
+    checkColumn(
+        loader.representationValues.get(1),
+        ArrayTable.RepresentationType.BIT_SLICED_PRIMITIVE_ARRAY,
+        "Column(representation=BitSlicedPrimitiveArray(ordinal=1, bitCount=5, primitive=INT, signed=false), value=[10, 10, 10, 20, 0, 0, 0, 0, 0, 0, 0, 0])");
+    checkColumn(
+        loader.representationValues.get(2),
+        ArrayTable.RepresentationType.OBJECT_ARRAY,
+        "Column(representation=ObjectArray(ordinal=2), value=[Bill, Sebastian, Theodore, Eric])");
+  }
+
+  /** As {@link #testLoadSorted()} but column #1 is the unique column, not
+   * column #0. The algorithm needs to go back and permute the values of
+   * column #0 after it discovers that column #1 is unique and sorts by it. */
+  @Test public void testLoadSorted2() {
+    final JavaTypeFactoryImpl typeFactory = new JavaTypeFactoryImpl();
+    final RelDataType rowType = typeFactory.createStructType(
+        new RelDataTypeFactory.FieldInfoBuilder()
+            .add("deptno", typeFactory.createType(int.class))
+            .add("empid", typeFactory.createType(int.class))
+            .add("name", typeFactory.createType(String.class)));
+    final Enumerable<Object[]> enumerable =
+        Linq4j.asEnumerable(
+            Arrays.asList(
+                new Object[]{10, 100, "Bill"},
+                new Object[]{20, 200, "Eric"},
+                new Object[]{30, 150, "Sebastian"},
+                new Object[]{10, 160, "Theodore"}));
+    final ColumnLoader<Object[]> loader =
+        new ColumnLoader<Object[]>(typeFactory, enumerable, rowType);
+    // Note that values have been sorted with {20, 200, Eric} last because the
+    // value 200 is the highest value of empid, the unique column.
+    checkColumn(
+        loader.representationValues.get(0),
+        ArrayTable.RepresentationType.BIT_SLICED_PRIMITIVE_ARRAY,
+        "Column(representation=BitSlicedPrimitiveArray(ordinal=0, bitCount=5, primitive=INT, signed=false), value=[10, 30, 10, 20, 0, 0, 0, 0, 0, 0, 0, 0])");
+    checkColumn(
+        loader.representationValues.get(1),
+        ArrayTable.RepresentationType.BIT_SLICED_PRIMITIVE_ARRAY,
+        "Column(representation=BitSlicedPrimitiveArray(ordinal=1, bitCount=8, primitive=INT, signed=false), value=[100, 150, 160, 200, 0, 0, 0, 0])");
+    checkColumn(
+        loader.representationValues.get(2),
+        ArrayTable.RepresentationType.OBJECT_ARRAY,
+        "Column(representation=ObjectArray(ordinal=2), value=[Bill, Sebastian, Theodore, Eric])");
+  }
+
+  private void checkColumn(ArrayTable.Column x,
+      ArrayTable.RepresentationType expectedRepresentationType,
+      String expectedString) {
+    assertEquals(
+        expectedRepresentationType,
+        x.representation.getType());
+    assertEquals(expectedString, x.toString());
   }
 }
 

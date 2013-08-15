@@ -27,7 +27,6 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
-import org.eigenbase.util.Bug;
 
 import java.lang.reflect.Type;
 import java.sql.Date;
@@ -80,13 +79,8 @@ class ColumnLoader<T> {
     this.typeFactory = typeFactory;
     sourceTable.into(list);
     final int[] sorts = {-1};
-    if (Bug.TodoFixed) {
-      load(elementType, sorts);
-      this.sortField = sorts[0];
-    } else {
-      load(elementType, null);
-      sortField = -1;
-    }
+    load(elementType, sorts);
+    this.sortField = sorts[0];
   }
 
   static int nextPowerOf2(int v) {
