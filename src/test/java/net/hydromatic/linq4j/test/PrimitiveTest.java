@@ -26,7 +26,6 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-
 /**
  * Unit test for {@link Primitive}.
  */
@@ -239,6 +238,49 @@ public class PrimitiveTest {
     final Object permute = Primitive.CHAR.permute(chars, sources);
     assertTrue(permute instanceof char[]);
     assertEquals("bcdefga", new String((char[]) permute));
+  }
+
+  /** Test for {@link Primitive#arrayToString(Object)}. */
+  @Test public void testArrayToString() {
+    char[] chars = {'a', 'b', 'c', 'd', 'e', 'f', 'g'};
+    assertEquals("[a, b, c, d, e, f, g]", Primitive.CHAR.arrayToString(chars));
+  }
+
+  /** Test for {@link Primitive#sortArray(Object)}. */
+  @Test public void testArraySort() {
+    char[] chars = {'m', 'o', 'n', 'o', 'l', 'a', 'k', 'e'};
+    Primitive.CHAR.sortArray(chars);
+    assertEquals("[a, e, k, l, m, n, o, o]",
+        Primitive.CHAR.arrayToString(chars));
+
+    // mixed true and false
+    boolean[] booleans0 = {true, false, true, true, false};
+    Primitive.BOOLEAN.sortArray(booleans0);
+    assertEquals("[false, false, true, true, true]",
+        Primitive.BOOLEAN.arrayToString(booleans0));
+
+    // all false
+    boolean[] booleans1 = {false, false, false, false, false};
+    Primitive.BOOLEAN.sortArray(booleans1);
+    assertEquals("[false, false, false, false, false]",
+        Primitive.BOOLEAN.arrayToString(booleans1));
+
+    // all true
+    boolean[] booleans2 = {true, true, true, true, true};
+    Primitive.BOOLEAN.sortArray(booleans2);
+    assertEquals("[true, true, true, true, true]",
+        Primitive.BOOLEAN.arrayToString(booleans2));
+
+    // empty
+    boolean[] booleans3 = {};
+    Primitive.BOOLEAN.sortArray(booleans3);
+    assertEquals("[]", Primitive.BOOLEAN.arrayToString(booleans3));
+
+    // ranges specified
+    boolean[] booleans4 = {true, true, false, false, true, false, false};
+    Primitive.BOOLEAN.sortArray(booleans4, 1, 6);
+    assertEquals("[true, false, false, false, true, true, false]",
+        Primitive.BOOLEAN.arrayToString(booleans4));
   }
 }
 

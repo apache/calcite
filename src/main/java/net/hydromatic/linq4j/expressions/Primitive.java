@@ -490,6 +490,138 @@ public enum Primitive {
   }
 
   /**
+   * Converts an array to a string.
+   *
+   * @param array Array of this primitive type
+   *
+   * @return String representation of array
+   */
+  public String arrayToString(Object array) {
+    switch (this) {
+    case BOOLEAN:
+      return Arrays.toString((boolean[]) array);
+    case BYTE:
+      return Arrays.toString((byte[]) array);
+    case CHAR:
+      return Arrays.toString((char[]) array);
+    case DOUBLE:
+      return Arrays.toString((double[]) array);
+    case FLOAT:
+      return Arrays.toString((float[]) array);
+    case INT:
+      return Arrays.toString((int[]) array);
+    case LONG:
+      return Arrays.toString((long[]) array);
+    case SHORT:
+      return Arrays.toString((short[]) array);
+    case OTHER:
+    case VOID:
+      return Arrays.toString((Object[]) array);
+    default:
+      throw new AssertionError("unexpected " + this);
+    }
+  }
+
+  /**
+   * Sorts an array of this primitive type.
+   *
+   * @param array Array of this primitive type
+   */
+  public void sortArray(Object array) {
+    switch (this) {
+    case BOOLEAN:
+      // there is no Arrays.sort(boolean[])
+      final boolean[] booleans = (boolean[]) array;
+      sortBooleanArray(booleans, 0, booleans.length);
+      return;
+    case BYTE:
+      Arrays.sort((byte[]) array);
+      return;
+    case CHAR:
+      Arrays.sort((char[]) array);
+      return;
+    case DOUBLE:
+      Arrays.sort((double[]) array);
+      return;
+    case FLOAT:
+      Arrays.sort((float[]) array);
+      return;
+    case INT:
+      Arrays.sort((int[]) array);
+      return;
+    case LONG:
+      Arrays.sort((long[]) array);
+      return;
+    case SHORT:
+      Arrays.sort((short[]) array);
+      return;
+    case OTHER:
+    case VOID:
+      Arrays.sort((Object[]) array);
+      return;
+    default:
+      throw new AssertionError("unexpected " + this);
+    }
+  }
+
+  /**
+   * Sorts a specified range of an array of this primitive type.
+   *
+   * @param array Array of this primitive type
+   * @param fromIndex the index of the first element, inclusive, to be sorted
+   * @param toIndex the index of the last element, exclusive, to be sorted
+   */
+  public void sortArray(Object array, int fromIndex, int toIndex) {
+    switch (this) {
+    case BOOLEAN:
+      // there is no Arrays.sort(boolean[], int, int)
+      sortBooleanArray((boolean[]) array, fromIndex, toIndex);
+      return;
+    case BYTE:
+      Arrays.sort((byte[]) array, fromIndex, toIndex);
+      return;
+    case CHAR:
+      Arrays.sort((char[]) array, fromIndex, toIndex);
+      return;
+    case DOUBLE:
+      Arrays.sort((double[]) array, fromIndex, toIndex);
+      return;
+    case FLOAT:
+      Arrays.sort((float[]) array, fromIndex, toIndex);
+      return;
+    case INT:
+      Arrays.sort((int[]) array, fromIndex, toIndex);
+      return;
+    case LONG:
+      Arrays.sort((long[]) array, fromIndex, toIndex);
+      return;
+    case SHORT:
+      Arrays.sort((short[]) array, fromIndex, toIndex);
+      return;
+    case OTHER:
+    case VOID:
+      Arrays.sort((Object[]) array, fromIndex, toIndex);
+      return;
+    default:
+      throw new AssertionError("unexpected " + this);
+    }
+  }
+
+  private static void sortBooleanArray(boolean[] booleans, int fromIndex,
+      int toIndex) {
+    // The sorted array will be like [false, false, ..., false, true, ... true].
+    // Every time we see a "false", the transition point moves up one.
+    int midIndex = fromIndex;
+    for (int i = fromIndex; i < toIndex; i++) {
+      if (!booleans[i]) {
+        ++midIndex;
+      }
+    }
+    Arrays.fill(booleans, fromIndex, midIndex, false);
+    Arrays.fill(booleans, midIndex, toIndex, true);
+  }
+
+  /**
    * Sends a field value to a sink.
    */
   public void send(Field field, Object o, Sink sink)
