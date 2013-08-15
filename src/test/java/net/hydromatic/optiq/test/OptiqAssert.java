@@ -502,7 +502,7 @@ public class OptiqAssert {
         String table = materializations[i++];
         buf.append("    {\n")
             .append("      table: '").append(table).append("',\n")
-            .append("      view: '").append(table + "v").append("',\n");
+            .append("      view: '").append(table).append("v',\n");
         String sql = materializations[i];
         final String sql2 = sql
             .replaceAll("`", "\"")

@@ -21,9 +21,8 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
-import org.eigenbase.rex.RexInputRef;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.rex.RexShuttle;
+import org.eigenbase.rex.*;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -60,6 +59,17 @@ import com.google.common.collect.ImmutableList;
  * {@link org.eigenbase.rel.AggregateRel}.</p>
  */
 public class SubstitutionVisitor {
+    private static final List<UnifyRule> RULES =
+        Arrays.<UnifyRule>asList(
+            ScanUnifyRule.INSTANCE,
+            ProjectToProjectUnifyRule.INSTANCE,
+            FilterToProjectUnifyRule.INSTANCE,
+            ProjectToFilterUnifyRule.INSTANCE,
+            FilterToFilterUnifyRule.INSTANCE);
+
+    private static final Map<Pair<Class, Class>, List<UnifyRule>> RULE_MAP =
+        new HashMap<Pair<Class, Class>, List<UnifyRule>>();
+
     private final RelNode query;
     private final RelNode find;
 
@@ -73,10 +83,6 @@ public class SubstitutionVisitor {
 
     /** Nodes in {@link #query} that have no children. */
     final List<RelNode> queryLeaves;
-
-    /** Map from leaves in {@link #find} to leaves in {@link #query}. */
-    final Map<RelNode, RelNode> leafMap =
-        new IdentityHashMap<RelNode, RelNode>();
 
     final Map<RelNode, RelNode> replacementMap =
         new HashMap<RelNode, RelNode>();
@@ -130,6 +136,7 @@ public class SubstitutionVisitor {
         }
     }
 
+    // TODO: move to RelOptUtil
     private static RelNode replace(RelNode query, RelNode find, RelNode replace)
     {
         if (find == replace) {
@@ -163,6 +170,189 @@ public class SubstitutionVisitor {
         return query;
     }
 
+    /** Maps a condition onto a target.
+     *
+     * <p>If condition is stronger than target, returns the residue.
+     * If it is equal to target, returns the expression that evaluates to
+     * the constant {@code true}. If it is weaker than target, returns
+     * {@code null}.</p>
+     *
+     * <p>The terms satisfy the relation
+     * <pre>
+     *     {@code residue = condition AND NOT target}
+     * </pre>
+     *
+     * <p>Example #1: condition stronger than target</p>
+     * <ul>
+     *     <li>condition: x = 1 AND y = 2</li>
+     *     <li>target: x = 1</li>
+     *     <li>residue: y = 2</li>
+     * </ul>
+     *
+     * <p>Example #2: target weaker than target (valid, but not currently
+     * implemented)</p>
+     * <ul>
+     *     <li>condition: x = 1</li>
+     *     <li>target: x = 1 OR z = 3</li>
+     *     <li>residue: z = 3</li>
+     * </ul>
+     *
+     * <p>Example #3: condition and target are equivalent</p>
+     * <ul>
+     *     <li>condition: x = 1 and y = 2</li>
+     *     <li>target: y = 2 and x = 1</li>
+     *     <li>residue: true</li>
+     * </ul>
+     *
+     * <p>Example #4: condition weaker than target</p>
+     * <ul>
+     *     <li>condition: x = 1</li>
+     *     <li>target: x = 1 AND y = 2</li>
+     *     <li>residue: null (i.e. no match)</li>
+     * </ul>
+     *
+     * <p>There are many other possible examples. It amounts to solving
+     * whether {@code condition AND NOT target} can ever evaluate to
+     * true, and therefore is a form of the NP-complete
+     * <a href"http://en.wikipedia.org/wiki/Satisfiability">Satisfiability</a>
+     * problem.</p>
+     */
+    static RexNode splitFilter(
+        RexBuilder rexBuilder, RexNode condition, RexNode target)
+    {
+        RexNode x = andNot(rexBuilder, condition, target);
+        if (mayBeSatisfiable(x)) {
+            return simplify(rexBuilder, x);
+        }
+        return null;
+    }
+
+    /** Returns whether a boolean expression ever returns true.
+     *
+     * <p>This method may give false positives. For instance, it will say
+     * that {@code x = 5 AND x > 10} is satisfiable, because at present it
+     * cannot prove that it is not.</p> */
+    public static boolean mayBeSatisfiable(RexNode e) {
+        // Example:
+        //  e: x = 1 AND y = 2 AND z = 3 AND NOT (x = 1 AND y = 2)
+        //  disjunctions: {x = 1, y = 2, z = 3}
+        //  notDisjunctions: {x = 1 AND y = 2}
+        final List<RexNode> disjunctions = new ArrayList<RexNode>();
+        RelOptUtil.decomposeConjunction(e, disjunctions);
+        final List<RexNode> notDisjunctions = new ArrayList<RexNode>();
+        for (int i = 0; i < disjunctions.size(); i++) {
+            final RexNode disjunction = disjunctions.get(i);
+            final RexKind kind = disjunction.getKind();
+            switch (kind) {
+            case Not:
+                notDisjunctions.add(
+                    ((RexCall) disjunction).getOperands().get(0));
+                disjunctions.remove(i);
+                --i;
+                break;
+            case Literal:
+                if (!RexLiteral.booleanValue(disjunction)) {
+                    return false;
+                }
+            }
+        }
+        // If one of the not-disjunctions is a disjunction that is wholly
+        // contained in the disjunctions list, the expression is not
+        // satisfiable.
+        //
+        // Example #1. x AND y AND z AND NOT (x AND y)  - not satisfiable
+        // Example #2. x AND y AND NOT (x AND y)        - not satisfiable
+        // Example #3. x AND y AND NOT (x AND y AND z)  - may be satisfiable
+        for (RexNode notDisjunction : notDisjunctions) {
+            final List<RexNode> disjunctions2 = new ArrayList<RexNode>();
+            RelOptUtil.decomposeConjunction(notDisjunction, disjunctions2);
+            if (containsAll(disjunctions, disjunctions2)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Returns whether {@code list} contains every item in {@code list2}. */
+    static boolean containsAll(List<RexNode> list, List<RexNode> list2) {
+        for (RexNode e2 : list2) {
+            if (!list.contains(e2)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Simplifies a boolean expression.
+     *
+     * <p>In particular:</p>
+     * <ul>
+     *     <li>{@code simplify(x = 1 AND y = 2 AND NOT x = 1)}
+     *      returns {@code y = 2}</li>
+     *     <li>{@code simplify(x = 1 AND FALSE)}
+     *      returns {@code FALSE}</li>
+     * </ul>
+     */
+    public static RexNode simplify(RexBuilder rexBuilder, RexNode e) {
+        final List<RexNode> disjunctions = new ArrayList<RexNode>();
+        RelOptUtil.decomposeConjunction(e, disjunctions);
+        final List<RexNode> notDisjunctions = new ArrayList<RexNode>();
+        for (int i = 0; i < disjunctions.size(); i++) {
+            final RexNode disjunction = disjunctions.get(i);
+            final RexKind kind = disjunction.getKind();
+            switch (kind) {
+            case Not:
+                notDisjunctions.add(
+                    ((RexCall) disjunction).getOperands().get(0));
+                disjunctions.remove(i);
+                --i;
+                break;
+            case Literal:
+                if (!RexLiteral.booleanValue(disjunction)) {
+                    return disjunction; // false
+                } else {
+                    disjunctions.remove(i);
+                    --i;
+                }
+            }
+        }
+        if (disjunctions.isEmpty() && notDisjunctions.isEmpty()) {
+            return rexBuilder.makeLiteral(true);
+        }
+        // If one of the not-disjunctions is a disjunction that is wholly
+        // contained in the disjunctions list, the expression is not
+        // satisfiable.
+        //
+        // Example #1. x AND y AND z AND NOT (x AND y)  - not satisfiable
+        // Example #2. x AND y AND NOT (x AND y)        - not satisfiable
+        // Example #3. x AND y AND NOT (x AND y AND z)  - may be satisfiable
+        for (RexNode notDisjunction : notDisjunctions) {
+            final List<RexNode> disjunctions2 = new ArrayList<RexNode>();
+            RelOptUtil.decomposeConjunction(notDisjunction, disjunctions2);
+            if (containsAll(disjunctions, disjunctions2)) {
+                return rexBuilder.makeLiteral(false);
+            }
+        }
+        // Add the NOT disjunctions back in.
+        for (RexNode notDisjunction : notDisjunctions) {
+            disjunctions.add(
+                rexBuilder.makeCall(
+                    SqlStdOperatorTable.notOperator,
+                    notDisjunction));
+        }
+        return RelOptUtil.composeConjunction(rexBuilder, disjunctions);
+    }
+
+    /** Creates the expression {@code e1 AND NOT e2}. */
+    static RexNode andNot(RexBuilder rexBuilder, RexNode e1, RexNode e2) {
+        return rexBuilder.makeCall(
+            SqlStdOperatorTable.andOperator,
+            e1,
+            rexBuilder.makeCall(
+                SqlStdOperatorTable.notOperator,
+                e2));
+    }
+
     public RelNode go(RelNode replacement) {
         assert equalType("find", find, "replacement", replacement);
         replacementMap.put(find, replacement);
@@ -193,15 +383,17 @@ public class SubstitutionVisitor {
             queryParent = pair.left;
         }
 
-        for (UnifyRule rule : RULES) {
-            if (findInputs.isEmpty()) {
-                for (RelNode queryLeaf : queryLeaves) {
+        if (findInputs.isEmpty()) {
+            for (RelNode queryLeaf : queryLeaves) {
+                for (UnifyRule rule : applicableRules(queryLeaf, find)) {
                     final UnifyResult x = apply(rule, queryLeaf, find);
                     if (x != null) {
                         return x;
                     }
                 }
-            } else {
+            }
+        } else {
+            for (UnifyRule rule : applicableRules(queryParent, find)) {
                 final UnifyResult x = apply(rule, queryParent, find);
                 if (x != null) {
                     return x;
@@ -209,6 +401,29 @@ public class SubstitutionVisitor {
             }
         }
         return null;
+    }
+
+    private static List<UnifyRule> applicableRules(RelNode query, RelNode find)
+    {
+        final Class queryClass = query.getClass();
+        final Class findClass = find.getClass();
+        final Pair<Class, Class> key = Pair.of(queryClass, findClass);
+        List<UnifyRule> list = RULE_MAP.get(key);
+        if (list == null) {
+            final ImmutableList.Builder<UnifyRule> builder =
+                ImmutableList.builder();
+            for (UnifyRule rule : RULES) {
+                //noinspection unchecked
+                if (rule.getQueryClass().isAssignableFrom(queryClass)
+                    && rule.getTargetClass().isAssignableFrom(findClass))
+                {
+                    builder.add(rule);
+                }
+            }
+            list = builder.build();
+            RULE_MAP.put(key, list);
+        }
+        return RULES;
     }
 
     private <Q extends RelNode, T extends RelNode> UnifyResult apply(
@@ -225,168 +440,6 @@ public class SubstitutionVisitor {
                     targetClass.cast(find)));
         }
         return null;
-    }
-
-    // First, burrow to the bottom of the replacement.
-    private DownResult match(RelNode find) {
-        switch (Match.of(find)) {
-        case FILTER:
-            return matchFilter(((FilterRel) find));
-        case PROJECT:
-            return matchProject(((ProjectRel) find));
-        case SCAN:
-            return matchScan((TableAccessRelBase) find);
-        case UNION:
-            return matchUnion((UnionRel) find);
-        case JOIN:
-            return matchJoin((JoinRel) find);
-        default:
-            throw new AssertionError(find);
-        }
-    }
-
-    DownResult matchScan(TableAccessRelBase find) {
-        // We've reached a leaf of the "find" tree. Find the corresponding
-        // leaf of the "query" tree.
-        final RelNode query = leafMap.get(find);
-        assert query instanceof TableAccessRelBase;
-        return DownResult.of(query);
-    }
-
-    DownResult matchProject(ProjectRel find) {
-        DownResult in = match(find.getChild());
-        switch (Match.of(in.rel)) {
-        case PROJECT:
-            // Decompose the project. For example, if
-            //   query = Project(2, 7 from T)
-            //   find = Project(2, 3, 7 from T)
-            // then
-            //   in.
-            //   out.result = Project(0, 1, 2 from MV)
-            //   out.residue = lambda R => Project(0, 2 from R)
-        }
-        // TODO:
-        return DownResult.of(null);
-    }
-
-    DownResult matchFilter(FilterRel find) {
-        return match(find.getChild());
-    }
-
-    DownResult matchUnion(UnionRel find) {
-        throw new AssertionError(); // TODO:
-    }
-
-    DownResult matchJoin(JoinRel find) {
-        throw new AssertionError(); // TODO:
-    }
-
-    private interface Handler<R> {
-        R apply(TableAccessRelBase rel);
-        R apply(ProjectRel rel);
-        R apply(FilterRel rel);
-        R apply(UnionRel rel);
-        R apply(JoinRel rel);
-    }
-
-    private enum Match {
-        SCAN {
-            public <R> Dispatcher<R> dispatcher(
-                final RelNode rel, final Handler<R> handler)
-            {
-                return new Dispatcher<R>() {
-                    public R apply() {
-                        return handler.apply((TableAccessRelBase) rel);
-                    }
-                };
-            }
-        },
-        PROJECT {
-            public <R> Dispatcher<R> dispatcher(
-                final RelNode rel, final Handler<R> handler)
-            {
-                return new Dispatcher<R>() {
-                    public R apply() {
-                        return handler.apply((ProjectRel) rel);
-                    }
-                };
-            }
-        },
-        FILTER {
-            public <R> Dispatcher<R> dispatcher(
-                final RelNode rel, final Handler<R> handler)
-            {
-                return new Dispatcher<R>() {
-                    public R apply() {
-                        return handler.apply((FilterRel) rel);
-                    }
-                };
-            }
-        },
-        UNION {
-            public <R> Dispatcher<R> dispatcher(
-                final RelNode rel, final Handler<R> handler)
-            {
-                return new Dispatcher<R>() {
-                    public R apply() {
-                        return handler.apply((UnionRel) rel);
-                    }
-                };
-            }
-        },
-        JOIN {
-            public <R> Dispatcher<R> dispatcher(
-                final RelNode rel, final Handler<R> handler)
-            {
-                return new Dispatcher<R>() {
-                    public R apply() {
-                        return handler.apply((JoinRel) rel);
-                    }
-                };
-            }
-        };
-
-        static Match of(RelNode rel) {
-            if (rel instanceof TableAccessRelBase) {
-                return SCAN;
-            }
-            if (rel instanceof ProjectRel) {
-                return PROJECT;
-            }
-            if (rel instanceof FilterRel) {
-                return FILTER;
-            }
-            if (rel instanceof JoinRel) {
-                return JOIN;
-            }
-            if (rel instanceof UnionRel) {
-                return UNION;
-            }
-            throw new AssertionError("unexpected " + rel);
-        }
-
-        public abstract <R> Dispatcher<R> dispatcher(
-            RelNode rel, Handler<R> handler);
-    }
-
-    private static abstract class Dispatcher<R> {
-        public static <R> Dispatcher<R> of(RelNode rel, Handler<R> handler) {
-            return Match.of(rel).dispatcher(rel, handler);
-        }
-
-        public abstract R apply();
-    }
-
-    private static class DownResult {
-        public final RelNode rel;
-
-        private DownResult(RelNode rel) {
-            this.rel = rel;
-        }
-
-        static DownResult of(RelNode rel) {
-            return new DownResult(rel);
-        }
     }
 
     private static class MatchFailed extends RuntimeException {
@@ -434,9 +487,7 @@ public class SubstitutionVisitor {
         final Q query;
         final T target;
 
-        public UnifyIn(
-            Q query, T target)
-        {
+        public UnifyIn(Q query, T target) {
             this.query = query;
             this.target = target;
         }
@@ -453,6 +504,11 @@ public class SubstitutionVisitor {
                 result = replace(result, target, replace);
             }
             return new UnifyResult(query, target, result);
+        }
+
+        /** Creates a {@link UnifyIn} based on the parent of {@code query}. */
+        public <Q2 extends RelNode> UnifyIn<Q2, T> create(Q2 query) {
+            return new UnifyIn<Q2, T>(query, target);
         }
     }
 
@@ -504,6 +560,8 @@ public class SubstitutionVisitor {
     private static class ScanUnifyRule
         extends AbstractUnifyRule<TableAccessRelBase, TableAccessRelBase>
     {
+        public static final ScanUnifyRule INSTANCE = new ScanUnifyRule();
+
         public ScanUnifyRule() {
             super(TableAccessRelBase.class, TableAccessRelBase.class);
         }
@@ -520,21 +578,29 @@ public class SubstitutionVisitor {
         }
     }
 
-    private static class ProjectUnifyRule
+    private static class ProjectToProjectUnifyRule
         extends AbstractUnifyRule<ProjectRel, ProjectRel>
     {
-        public ProjectUnifyRule() {
+        public static final ProjectToProjectUnifyRule INSTANCE =
+            new ProjectToProjectUnifyRule();
+
+        private ProjectToProjectUnifyRule() {
             super(ProjectRel.class, ProjectRel.class);
         }
 
         public UnifyResult apply(UnifyIn<ProjectRel, ProjectRel> in)
         {
             final RexShuttle shuttle = getRexShuttle(in.target);
+            final List<RexNode> newProjects;
+            try {
+                newProjects = shuttle.apply(in.query.getProjects());
+            } catch (MatchFailed e) {
+                return null;
+            }
             final ProjectRel newProject =
                 new ProjectRel(
                     in.target.getCluster(),
-                    in.target,
-                    shuttle.apply(in.query.getProjects()),
+                    in.target, newProjects,
                     in.query.getRowType(),
                     in.query.getFlags(),
                     in.query.getCollationList());
@@ -547,7 +613,10 @@ public class SubstitutionVisitor {
     private static class FilterToProjectUnifyRule
         extends AbstractUnifyRule<FilterRel, ProjectRel>
     {
-        public FilterToProjectUnifyRule() {
+        public static final FilterToProjectUnifyRule INSTANCE =
+            new FilterToProjectUnifyRule();
+
+        private FilterToProjectUnifyRule() {
             super(FilterRel.class, ProjectRel.class);
         }
 
@@ -561,15 +630,87 @@ public class SubstitutionVisitor {
                 //
                 // TODO: make sure that constants are ok
                 final RexShuttle shuttle = getRexShuttle(in.target);
+                final RexNode newCondition;
+                try {
+                    newCondition = in.query.getCondition().accept(shuttle);
+                } catch (MatchFailed e) {
+                    return null;
+                }
                 final FilterRel newFilter =
                     new FilterRel(
                         in.query.getCluster(),
                         in.target,
-                        in.query.getCondition().accept(shuttle));
+                        newCondition);
                 return in.result(newFilter);
             } catch (MatchFailed e) {
                 return null;
             }
+        }
+    }
+
+    private static class FilterToFilterUnifyRule
+        extends AbstractUnifyRule<FilterRel, FilterRel>
+    {
+        public static final FilterToFilterUnifyRule INSTANCE =
+            new FilterToFilterUnifyRule();
+
+        private FilterToFilterUnifyRule() {
+            super(FilterRel.class, FilterRel.class);
+        }
+
+        public UnifyResult apply(UnifyIn<FilterRel, FilterRel> in)
+        {
+            // in.query can be rewritten in terms of in.target if its condition
+            // is weaker. For example:
+            //   query: SELECT * FROM t WHERE x = 1 AND y = 2
+            //   target: SELECT * FROM t WHERE x = 1
+            // transforms to
+            //   result: SELECT * FROM (target) WHERE y = 2
+            final FilterRel newFilter = createFilter(in.query, in.target);
+            if (newFilter == null) {
+                return null;
+            }
+            return in.result(newFilter);
+        }
+
+        FilterRel createFilter(FilterRel query, FilterRel target) {
+            // TODO: split query's filter into parts that are and are
+            // not evaluated by target.
+            final RexNode newCondition = query.getCondition();
+            return new FilterRel(
+                query.getCluster(), target,
+                newCondition);
+        }
+    }
+
+    private static class ProjectToFilterUnifyRule
+        extends AbstractUnifyRule<ProjectRel, FilterRel>
+    {
+        public static final ProjectToFilterUnifyRule INSTANCE =
+            new ProjectToFilterUnifyRule();
+
+        private ProjectToFilterUnifyRule() {
+            super(ProjectRel.class, FilterRel.class);
+        }
+
+        public UnifyResult apply(UnifyIn<ProjectRel, FilterRel> in)
+        {
+            final Pair<RelNode, Integer> queryParent = in.parent(in.query);
+            if (queryParent.left instanceof FilterRel) {
+                final UnifyIn<FilterRel, FilterRel> in2 =
+                    in.create((FilterRel) queryParent.left);
+                final FilterRel newFilter =
+                    FilterToFilterUnifyRule.INSTANCE.createFilter(
+                        in2.query, in2.target);
+                if (newFilter == null) {
+                    return null;
+                }
+                return in2.result(
+                    in.query.copy(
+                        in.query.getTraitSet(),
+                        ImmutableList.<RelNode>of(newFilter)));
+            }
+            return null;
         }
     }
 
@@ -589,12 +730,6 @@ public class SubstitutionVisitor {
             }
         };
     }
-
-    private static final List<UnifyRule> RULES =
-        Arrays.<UnifyRule>asList(
-            new ScanUnifyRule(),
-            new ProjectUnifyRule(),
-            new FilterToProjectUnifyRule());
 }
 
 // End SubstitutionVisitor.java
