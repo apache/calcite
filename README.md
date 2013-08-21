@@ -158,6 +158,7 @@ The following features are complete.
 * Many standard functions and aggregate functions
 * JDBC queries against Linq4j and JDBC back-ends
 * <a href="https://github.com/julianhyde/linq4j">Linq4j</a> front-end
+* SQL features: SELECT, FROM (including JOIN syntax), WHERE, GROUP BY (and aggregate functions including COUNT(DISTINCT ...)), HAVING, ORDER BY (including NULLS FIRST/LAST), set operations (UNION, INTERSECT, MINUS), sub-queries (including correlated sub-queries), windowed aggregates, LIMIT (syntax as <a href="http://www.postgresql.org/docs/8.4/static/sql-select.html#SQL-LIMIT">Postgres</a>)
 
 ### Adapters
 

@@ -20,8 +20,6 @@ package org.eigenbase.sql;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
-import org.eigenbase.util.*;
-
 
 /**
  * A <code>SqlSelect</code> is a node of a parse tree which represents a select
@@ -42,7 +40,9 @@ public class SqlSelect
     public static final int HAVING_OPERAND = 5;
     public static final int WINDOW_OPERAND = 6;
     public static final int ORDER_OPERAND = 7;
-    public static final int OPERAND_COUNT = 8;
+    public static final int OFFSET_OPERAND = 8;
+    public static final int FETCH_OPERAND = 9;
+    public static final int OPERAND_COUNT = 10;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -52,22 +52,10 @@ public class SqlSelect
         SqlParserPos pos)
     {
         super(operator, operands, pos);
-        Util.pre(
-            operands.length == OPERAND_COUNT,
-            "operands.length == OPERAND_COUNT");
-        Util.pre(
-            operands[KEYWORDS_OPERAND] != null,
-            "operands[KEYWORDS_OPERAND] != null");
-        Util.pre(
-            operands[KEYWORDS_OPERAND] instanceof SqlNodeList,
-            "operands[KEYWORDS_OPERAND] instanceof SqlNodeList");
-        Util.pre(
-            operands[WINDOW_OPERAND] != null,
-            "operands[WINDOW_OPERAND] != null");
-        Util.pre(
-            operands[WINDOW_OPERAND] instanceof SqlNodeList,
-            "operands[WINDOW_OPERAND] instanceof SqlNodeList");
-        Util.pre(pos != null, "pos != null");
+        assert operands.length == OPERAND_COUNT;
+        assert operands[KEYWORDS_OPERAND] instanceof SqlNodeList;
+        assert operands[WINDOW_OPERAND] instanceof SqlNodeList;
+        assert pos != null;
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -124,6 +112,16 @@ public class SqlSelect
     public final SqlNodeList getOrderList()
     {
         return (SqlNodeList) operands[SqlSelect.ORDER_OPERAND];
+    }
+
+    public final SqlNode getOffset()
+    {
+        return operands[SqlSelect.OFFSET_OPERAND];
+    }
+
+    public final SqlNode getFetch()
+    {
+        return operands[SqlSelect.FETCH_OPERAND];
     }
 
     public void addFrom(SqlIdentifier tableId)

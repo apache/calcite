@@ -86,6 +86,12 @@ public class SqlAdvisorTest
         Arrays.asList(
             "Table(EMP)");
 
+    protected static final List<String> FETCH_OFFSET =
+        Arrays.asList(
+            "Keyword(FETCH)",
+            "Keyword(LIMIT)",
+            "Keyword(OFFSET)");
+
     protected static final List<String> EXPR_KEYWORDS =
         Arrays.asList(
             "Keyword(()",
@@ -229,6 +235,9 @@ public class SqlAdvisorTest
     private static final List<String> WHERE_KEYWORDS =
         Arrays.asList(
             "Keyword(EXCEPT)",
+            "Keyword(FETCH)",
+            "Keyword(OFFSET)",
+            "Keyword(LIMIT)",
             "Keyword(GROUP)",
             "Keyword(HAVING)",
             "Keyword(INTERSECT)",
@@ -239,8 +248,12 @@ public class SqlAdvisorTest
     private static final List<String> A_TABLE =
         Arrays.asList(
             "Table(A)");
+
     protected static final List<String> JOIN_KEYWORDS =
         Arrays.asList(
+            "Keyword(FETCH)",
+            "Keyword(OFFSET)",
+            "Keyword(LIMIT)",
             "Keyword(UNION)",
             "Keyword(FULL)",
             "Keyword(ORDER)",
@@ -263,21 +276,21 @@ public class SqlAdvisorTest
             "Keyword(INTERSECT)",
             "Keyword(WHERE)");
 
-  private static final List<String> SETOPS =
-      Arrays.asList(
-          "Keyword(EXCEPT)",
-          "Keyword(INTERSECT)",
-          "Keyword(ORDER)",
-          "Keyword(UNION)");
+    private static final List<String> SETOPS =
+        Arrays.asList(
+            "Keyword(EXCEPT)",
+            "Keyword(INTERSECT)",
+            "Keyword(ORDER)",
+            "Keyword(UNION)");
 
-  //~ Instance fields --------------------------------------------------------
+    //~ Instance fields --------------------------------------------------------
 
     public final Logger logger = Logger.getLogger(getClass().getName());
 
     //~ Constructors -----------------------------------------------------------
 
     public SqlAdvisorTest() {
-      super(null);
+        super(null);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -658,7 +671,9 @@ public class SqlAdvisorTest
         sql =
             "select ^dummy, b.dummy from sales.emp a join sales.dept b "
             + "on a.deptno=b.deptno where empno=1";
-        assertHint(sql, getSelectKeywords(), EXPR_KEYWORDS, AB_TABLES, SETOPS);
+        assertHint(
+            sql, getSelectKeywords(), EXPR_KEYWORDS, AB_TABLES, SETOPS,
+            FETCH_OFFSET);
 
         sql = "select ^ from (values (1))";
         assertComplete(
@@ -666,6 +681,7 @@ public class SqlAdvisorTest
             getSelectKeywords(),
             EXPR_KEYWORDS,
             SETOPS,
+            FETCH_OFFSET,
             Arrays.asList("Table(EXPR$0)", "Column(EXPR$0)"));
 
         sql = "select ^ from (values (1)) as t(c)";
@@ -674,11 +690,13 @@ public class SqlAdvisorTest
             getSelectKeywords(),
             EXPR_KEYWORDS,
             SETOPS,
+            FETCH_OFFSET,
             Arrays.asList("Table(T)", "Column(C)"));
 
         sql = "select ^, b.dummy from sales.emp a join sales.dept b ";
         assertComplete(
-            sql, getSelectKeywords(), EXPR_KEYWORDS, SETOPS, AB_TABLES);
+            sql, getSelectKeywords(), EXPR_KEYWORDS, SETOPS, AB_TABLES,
+            FETCH_OFFSET);
 
         sql =
             "select dummy, ^b.dummy from sales.emp a join sales.dept b "
@@ -701,6 +719,7 @@ public class SqlAdvisorTest
             EXPR_KEYWORDS,
             EMP_COLUMNS,
             SETOPS,
+            FETCH_OFFSET,
             Arrays.asList("Table(EMP)"));
 
         sql = "select emp.^ from sales.emp";
@@ -739,7 +758,7 @@ public class SqlAdvisorTest
 
         sql =
             "select emp.empno from sales.emp where empno=1 order by empno ^, deptno";
-        assertComplete(sql, PREDICATE_KEYWORDS, ORDER_KEYWORDS);
+        assertComplete(sql, PREDICATE_KEYWORDS, ORDER_KEYWORDS, FETCH_OFFSET);
     }
 
     @Test public void testSubQuery() throws Exception {
@@ -755,9 +774,10 @@ public class SqlAdvisorTest
         sql =
             "select ^t.dummy from (select 1 as x, 2 as y from sales.emp) as t where t.dummy=1";
         assertHint(
-            sql, EXPR_KEYWORDS, getSelectKeywords(), xyColumns, tTable, SETOPS);
+            sql, EXPR_KEYWORDS, getSelectKeywords(), xyColumns, tTable, SETOPS,
+            FETCH_OFFSET);
 
-      sql = "select t.^ from (select 1 as x, 2 as y from sales.emp) as t";
+        sql = "select t.^ from (select 1 as x, 2 as y from sales.emp) as t";
         assertComplete(sql, xyColumns, STAR_KEYWORD);
 
         sql =
@@ -1143,7 +1163,8 @@ public class SqlAdvisorTest
             EXPR_KEYWORDS,
             A_TABLE,
             DEPT_COLUMNS,
-            SETOPS);
+            SETOPS,
+            FETCH_OFFSET);
 
         sql = "insert into emp(empno, mgr) values (123, 3 + ^)";
         assertComplete(sql, EXPR_KEYWORDS);

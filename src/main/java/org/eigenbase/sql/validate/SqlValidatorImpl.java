@@ -1019,17 +1019,20 @@ public class SqlValidatorImpl
                     null,
                     null,
                     null,
+                    null,
+                    null,
                     node.getParserPosition());
             }
 
         case ORDER_BY:
         {
             SqlCall orderBy = (SqlCall) node;
-            SqlNode query =
-                orderBy.getOperands()[SqlOrderByOperator.QUERY_OPERAND];
+            final SqlNode[] operands = orderBy.getOperands();
+            SqlNode query = operands[SqlOrderByOperator.QUERY_OPERAND];
             SqlNodeList orderList =
-                (SqlNodeList)
-                orderBy.getOperands()[SqlOrderByOperator.ORDER_OPERAND];
+                (SqlNodeList) operands[SqlOrderByOperator.ORDER_OPERAND];
+            SqlNode offset = operands[SqlOrderByOperator.OFFSET_OPERAND];
+            SqlNode fetch = operands[SqlOrderByOperator.FETCH_OPERAND];
             if (query instanceof SqlSelect) {
                 SqlSelect select = (SqlSelect) query;
 
@@ -1038,6 +1041,8 @@ public class SqlValidatorImpl
                 if (select.getOrderList() == null) {
                     // push ORDER BY into existing select
                     select.setOperand(SqlSelect.ORDER_OPERAND, orderList);
+                    select.setOperand(SqlSelect.OFFSET_OPERAND, offset);
+                    select.setOperand(SqlSelect.FETCH_OPERAND, fetch);
                     return select;
                 }
             }
@@ -1052,6 +1057,8 @@ public class SqlValidatorImpl
                 null,
                 null,
                 orderList,
+                offset,
+                fetch,
                 SqlParserPos.ZERO);
         }
 
@@ -1065,6 +1072,8 @@ public class SqlValidatorImpl
                 null,
                 selectList,
                 call.getOperands()[0],
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -1167,6 +1176,8 @@ public class SqlValidatorImpl
                 null,
                 null,
                 null,
+                null,
+                null,
                 SqlParserPos.ZERO);
         call.setOperand(SqlMerge.SOURCE_SELECT_OPERAND, select);
 
@@ -1189,6 +1200,8 @@ public class SqlValidatorImpl
                     null,
                     selectList,
                     insertSource,
+                    null,
+                    null,
                     null,
                     null,
                     null,
@@ -1273,6 +1286,8 @@ public class SqlValidatorImpl
                 null,
                 null,
                 null,
+                null,
+                null,
                 SqlParserPos.ZERO);
         source = SqlValidatorUtil.addAlias(source, UPDATE_SRC_ALIAS);
         SqlMerge mergeCall =
@@ -1346,6 +1361,8 @@ public class SqlValidatorImpl
             null,
             null,
             null,
+            null,
+            null,
             SqlParserPos.ZERO);
     }
 
@@ -1373,6 +1390,8 @@ public class SqlValidatorImpl
             selectList,
             sourceTable,
             call.getCondition(),
+            null,
+            null,
             null,
             null,
             null,

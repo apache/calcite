@@ -528,12 +528,24 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
 /**
  * Parses either a row expression or a query expression with an optional
  * ORDER BY.
+ *
+ * <p>Postgres syntax for limit:
+ *
+ *    [ LIMIT { count | ALL } ]
+ *    [ OFFSET start ]
+ *
+ * <p>SQL:2008 syntax for limit:
+ *
+ *    [ OFFSET start { ROW | ROWS } ]
+ *    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
  */
 SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
 {
     SqlNode e;
-    SqlNodeList orderBy;
-    SqlParserPos pos;
+    SqlNodeList orderBy = null;
+    SqlNode start = null;
+    SqlNode count = null;
+    SqlParserPos pos = null;
 }
 {
     (
@@ -543,12 +555,30 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
         // use the syntactic type of the expression we just parsed
         // to decide whether ORDER BY makes sense
         orderBy = OrderBy(e.isA(SqlKind.QUERY))
-        {
-            pos = getPos();
-            e = SqlStdOperatorTable.orderByOperator.createCall(pos, e, orderBy);
-        }
+    ]
+    [
+        // Postgres-style syntax. "LIMIT ... OFFSET ..."
+        <LIMIT> ( count = UnsignedNumericLiteral() | <ALL> )
+    ]
+    [
+        // ROW or ROWS is required in SQL:2008 but we make it optional
+        // because it is not present in Postgres-style syntax.
+        <OFFSET> start = UnsignedNumericLiteral() [ <ROW> | <ROWS> ]
+    ]
+    [
+        // SQL:2008-style syntax. "OFFSET ... FETCH ...".
+        // If you specify both LIMIT and FETCH, FETCH wins.
+        <FETCH> ( <FIRST> | <NEXT> ) count = UnsignedNumericLiteral() ( <ROW> | <ROWS> ) <ONLY>
     ]
     {
+        if (orderBy != null || start != null || count != null) {
+            pos = getPos();
+            if (orderBy == null) {
+                orderBy = SqlNodeList.Empty;
+            }
+            e = SqlStdOperatorTable.orderByOperator.createCall(pos, e, orderBy, start, count);
+
+        }
         return e;
     }
 }
@@ -838,7 +868,7 @@ SqlSelect SqlSelect() :
         return SqlStdOperatorTable.selectOperator.createCall(
             new SqlNodeList(keywords, pos),
             new SqlNodeList(selectList, selectListPos.plusAll(selectList)),
-            fromClause, where, groupBy, having, windowDecls, null,
+            fromClause, where, groupBy, having, windowDecls, null, null, null,
             pos.plus(getPos()));
     }
 }
@@ -4568,6 +4598,7 @@ TOKEN :
     | < OCTET_LENGTH: "OCTET_LENGTH" >
     | < OCTETS: "OCTETS" >
     | < OF: "OF" >
+    | < OFFSET: "OFFSET" >
     | < OLD: "OLD" >
     | < ON: "ON" >
     | < ONLY: "ONLY" >

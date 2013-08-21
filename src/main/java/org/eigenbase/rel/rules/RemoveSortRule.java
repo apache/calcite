@@ -42,6 +42,10 @@ public class RemoveSortRule extends RelOptRule {
             return;
         }
         final SortRel sort = call.rel(0);
+        if (sort.offset != null || sort.fetch != null) {
+            // Don't remove sort if would also remove OFFSET or LIMIT.
+            return;
+        }
         final RelCollation collation = sort.getCollation();
         final RelTraitSet traits = sort.getTraitSet().replace(collation);
         call.transformTo(convert(sort.getChild(), traits));

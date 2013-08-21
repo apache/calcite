@@ -1053,6 +1053,61 @@ public class JdbcTest {
             + "store_id=0; grocery_sqft=null\n");
   }
 
+  /** Tests ORDER BY ... FETCH. */
+  @Test public void testOrderByFetch() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
+            + "where \"store_id\" < 10\n"
+            + "order by 1 fetch first 5 rows only")
+        .returns(
+            "store_id=0; grocery_sqft=null\n"
+            + "store_id=1; grocery_sqft=17475\n"
+            + "store_id=2; grocery_sqft=22271\n"
+            + "store_id=3; grocery_sqft=24390\n"
+            + "store_id=4; grocery_sqft=16844\n");
+  }
+
+  /** Tests ORDER BY ... OFFSET ... FETCH. */
+  @Test public void testOrderByOffsetFetch() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
+            + "where \"store_id\" < 10\n"
+            + "order by 1 offset 2 rows fetch next 5 rows only")
+        .returns(
+            "store_id=2; grocery_sqft=22271\n"
+            + "store_id=3; grocery_sqft=24390\n"
+            + "store_id=4; grocery_sqft=16844\n"
+            + "store_id=5; grocery_sqft=15012\n"
+            + "store_id=6; grocery_sqft=15337\n");
+  }
+
+  /** Tests FETCH with no ORDER BY. */
+  @Test public void testFetch() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"empid\" from \"hr\".\"emps\"\n"
+            + "fetch first 2 rows only")
+        .returns(
+            "empid=100\n"
+            + "empid=200\n");
+  }
+
+  @Test public void testFetchStar() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from \"hr\".\"emps\"\n"
+            + "fetch first 2 rows only")
+        .returns(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n");
+  }
+
   /** Tests sorting by a column that is already sorted. */
   @Test public void testOrderByOnSortedTable() {
     OptiqAssert.assertThat()

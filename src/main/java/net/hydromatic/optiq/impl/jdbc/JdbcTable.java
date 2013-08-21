@@ -117,8 +117,9 @@ class JdbcTable extends AbstractQueryable<Object[]>
                 Collections.singletonList(
                     new SqlIdentifier("*", SqlParserPos.ZERO)),
                 SqlParserPos.ZERO),
-            tableName(), null, null, null, null, null, SqlParserPos.ZERO);
-    final SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.DUMMY);
+            tableName(), null, null, null, null, null, null, null,
+            SqlParserPos.ZERO);
+      final SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.DUMMY);
     node.unparse(writer, 0, 0);
     return writer.toSqlString();
   }

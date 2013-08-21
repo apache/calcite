@@ -27,7 +27,6 @@ import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Relational expression which imposes a particular sort order on its input
  * without otherwise changing its content.
@@ -39,6 +38,8 @@ public class SortRel
 
     protected final RelCollation collation;
     protected final ImmutableList<RexNode> fieldExps;
+    public final RexNode offset;
+    public final RexNode fetch;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -56,8 +57,32 @@ public class SortRel
         RelNode child,
         RelCollation collation)
     {
+        this(cluster, traits, child, collation, null, null);
+    }
+
+    /**
+     * Creates a sorter.
+     *
+     * @param cluster Cluster this relational expression belongs to
+     * @param traits Traits
+     * @param child input relational expression
+     * @param collation array of sort specifications
+     * @param offset Expression for number of rows to discard before returning
+     *               first row
+     * @param fetch Expression for number of rows to fetch
+     */
+    public SortRel(
+        RelOptCluster cluster,
+        RelTraitSet traits,
+        RelNode child,
+        RelCollation collation,
+        RexNode offset,
+        RexNode fetch)
+    {
         super(cluster, traits, child);
         this.collation = collation;
+        this.offset = offset;
+        this.fetch = fetch;
 
         assert traits.containsIfApplicable(collation)
             : "traits=" + traits + ", collation=" + collation;
@@ -82,12 +107,24 @@ public class SortRel
         RelNode newInput,
         RelCollation newCollation)
     {
+      return copy(traitSet, newInput, newCollation, offset, fetch);
+    }
+
+    public SortRel copy(
+        RelTraitSet traitSet,
+        RelNode newInput,
+        RelCollation newCollation,
+        RexNode offset,
+        RexNode fetch)
+    {
         assert traitSet.contains(Convention.NONE);
         return new SortRel(
             getCluster(),
             traitSet,
             newInput,
-            newCollation);
+            newCollation,
+            offset,
+            fetch);
     }
 
     @Override public List<RexNode> getChildExps() {
@@ -128,6 +165,8 @@ public class SortRel
         {
             pw.item("dir" + ord.i, ord.e.shortString());
         }
+        pw.itemIf("offset", offset, offset != null);
+        pw.itemIf("fetch", fetch, fetch != null);
         return pw;
     }
 }

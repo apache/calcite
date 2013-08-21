@@ -34,6 +34,8 @@ public class SqlOrderByOperator
     // constants representing operand positions
     public static final int QUERY_OPERAND = 0;
     public static final int ORDER_OPERAND = 1;
+    public static final int OFFSET_OPERAND = 2;
+    public static final int FETCH_OPERAND = 3;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -56,18 +58,40 @@ public class SqlOrderByOperator
         int leftPrec,
         int rightPrec)
     {
-        assert (operands.length == 2);
+        assert operands.length == 4;
         final SqlWriter.Frame frame =
             writer.startList(SqlWriter.FrameTypeEnum.OrderBy);
         operands[QUERY_OPERAND].unparse(
             writer,
             getLeftPrec(),
             getRightPrec());
-        writer.sep(getName());
-        final SqlWriter.Frame listFrame =
-            writer.startList(SqlWriter.FrameTypeEnum.OrderByList);
-        unparseListClause(writer, operands[ORDER_OPERAND]);
-        writer.endList(listFrame);
+        if (operands[ORDER_OPERAND] != SqlNodeList.Empty) {
+            writer.sep(getName());
+            final SqlWriter.Frame listFrame =
+                writer.startList(SqlWriter.FrameTypeEnum.OrderByList);
+            unparseListClause(writer, operands[ORDER_OPERAND]);
+            writer.endList(listFrame);
+        }
+        if (operands[OFFSET_OPERAND] != null) {
+            final SqlWriter.Frame frame2 =
+                writer.startList(SqlWriter.FrameTypeEnum.Offset);
+            writer.newlineAndIndent();
+            writer.keyword("OFFSET");
+            operands[OFFSET_OPERAND].unparse(writer, -1, -1);
+            writer.keyword("ROWS");
+            writer.endList(frame2);
+        }
+        if (operands[FETCH_OPERAND] != null) {
+            final SqlWriter.Frame frame3 =
+                writer.startList(SqlWriter.FrameTypeEnum.Fetch);
+            writer.newlineAndIndent();
+            writer.keyword("FETCH");
+            writer.keyword("NEXT");
+            operands[FETCH_OPERAND].unparse(writer, -1, -1);
+            writer.keyword("ROWS");
+            writer.keyword("ONLY");
+            writer.endList(frame3);
+        }
         writer.endList(frame);
     }
 }

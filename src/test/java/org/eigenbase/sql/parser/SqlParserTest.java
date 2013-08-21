@@ -29,7 +29,6 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-
 /**
  * A <code>SqlParserTest</code> is a unit-test for {@link SqlParser the SQL
  * parser}.
@@ -1219,6 +1218,101 @@ public class SqlParserTest {
         checkFails(
             "select (1 ^order^ by x, y) from t where a = b",
             "ORDER BY unexpected");
+    }
+
+    @Test public void testOrderOffsetFetch() {
+        check(
+            "select a from foo order by b, c offset 1 row fetch first 2 row only",
+            "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 2 ROWS ONLY");
+        // as above, but ROWS rather than ROW
+        check(
+            "select a from foo order by b, c offset 1 rows fetch first 2 rows only",
+            "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 2 ROWS ONLY");
+        // as above, but NEXT (means same as FIRST)
+        check(
+            "select a from foo order by b, c offset 1 rows fetch next 3 rows only",
+            "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 3 ROWS ONLY");
+        // as above, but omit the ROWS noise word after OFFSET. This is not
+        // compatible with SQL:2008 but allows the Postgres syntax
+        // "LIMIT ... OFFSET".
+        check(
+            "select a from foo order by b, c offset 1 fetch next 3 rows only",
+            "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 3 ROWS ONLY");
+        // as above, omit OFFSET
+        check(
+            "select a from foo order by b, c fetch next 3 rows only",
+            "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "FETCH NEXT 3 ROWS ONLY");
+        // FETCH, no ORDER BY or OFFSET
+        check(
+            "select a from foo fetch next 4 rows only",
+            "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "FETCH NEXT 4 ROWS ONLY");
+        // OFFSET, no ORDER BY or FETCH
+        check(
+            "select a from foo offset 1 row",
+            "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "OFFSET 1 ROWS");
+        // OFFSET and FETCH, no ORDER BY
+        check(
+            "select a from foo offset 1 row fetch next 3 rows only",
+            "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 3 ROWS ONLY");
+        // missing ROWS after FETCH
+        checkFails(
+            "select a from foo offset 1 fetch next 3 ^only^",
+            "(?s).*Encountered \"only\" at .*");
+        // FETCH before OFFSET is illegal
+        checkFails(
+            "select a from foo fetch next 3 rows only ^offset^ 1",
+            "(?s).*Encountered \"offset\" at .*");
+    }
+
+    /** "LIMIT ... OFFSET ..." is the postgres equivalent of SQL:2008
+     * "OFFSET ... FETCH". It all maps down to a parse tree that looks like
+     * SQL:2008. */
+    @Test public void testLimit() {
+        check(
+            "select a from foo order by b, c limit 2 offset 1",
+            "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 2 ROWS ONLY");
+        check(
+            "select a from foo order by b, c limit 2",
+            "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "FETCH NEXT 2 ROWS ONLY");
+        check(
+            "select a from foo order by b, c offset 1",
+            "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS");
     }
 
     @Test public void testSqlInlineComment() {

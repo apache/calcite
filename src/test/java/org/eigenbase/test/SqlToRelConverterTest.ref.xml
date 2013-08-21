@@ -1133,9 +1133,9 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
     </TestCase>
     <TestCase name="testOverOrderWindow">
         <Resource name="sql">
-            <![CDATA[select last_value(deptno) over w
+            <![CDATA[select last_value(deptno) over (order by empno)
 from emp
-window w as (order by empno)]]>
+]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1146,9 +1146,9 @@ ProjectRel(EXPR$0=[CAST(LAST_VALUE($7) OVER (ORDER BY $0 ROWS BETWEEN CURRENT RO
     </TestCase>
     <TestCase name="testOverOrderFollowingWindow">
         <Resource name="sql">
-            <![CDATA[select last_value(deptno) over w
+            <![CDATA[select last_value(deptno) over (order by empno rows 2 following)
 from emp
-window w as (order by empno rows 2 following)]]>
+]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1425,6 +1425,54 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
     ProjectRel(DEPTNO=[$0], ENAME=[$1])
       TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testOrderOffsetFetch">
+        <Resource name="sql">
+            <![CDATA[select empno from emp order by empno offset 10 rows fetch next 5 rows only]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+SortRel(sort0=[$0], dir0=[Ascending], offset=[10], fetch=[5])
+  ProjectRel(EMPNO=[$0])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testFetch">
+        <Resource name="sql">
+            <![CDATA[select empno from emp fetch next 5 rows only]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+SortRel(fetch=[5])
+  ProjectRel(EMPNO=[$0])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testOffsetFetch">
+        <Resource name="sql">
+            <![CDATA[select empno from emp offset 10 rows fetch next 5 rows only]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+SortRel(offset=[10], fetch=[5])
+  ProjectRel(EMPNO=[$0])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testOffset">
+        <Resource name="sql">
+            <![CDATA[select empno from emp offset 10 rows]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+SortRel(offset=[10])
+  ProjectRel(EMPNO=[$0])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

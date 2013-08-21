@@ -82,7 +82,7 @@ public class JdbcImplementor {
         : node;
     return SqlStdOperatorTable.selectOperator.createCall(
         SqlNodeList.Empty, null, node, null, null, null,
-        SqlNodeList.Empty, null, POS);
+        SqlNodeList.Empty, null, null, null, POS);
   }
 
   public Result visitChild(int i, RelNode e) {

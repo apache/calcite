@@ -26,7 +26,6 @@ import org.eigenbase.util.*;
 
 import org.junit.Test;
 
-
 /**
  * Unit test for {@link org.eigenbase.sql2rel.SqlToRelConverter}.
  */
@@ -330,6 +329,30 @@ public class SqlToRelConverterTest
             + "union all "
             + "select deptno, deptno from dept "
             + "order by empno * sal + 2",
+            "${plan}");
+    }
+
+    @Test public void testOrderOffsetFetch() {
+        check(
+            "select empno from emp order by empno offset 10 rows fetch next 5 rows only",
+            "${plan}");
+    }
+
+    @Test public void testOffsetFetch() {
+        check(
+            "select empno from emp offset 10 rows fetch next 5 rows only",
+            "${plan}");
+    }
+
+    @Test public void testOffset() {
+        check(
+            "select empno from emp offset 10 rows",
+            "${plan}");
+    }
+
+    @Test public void testFetch() {
+        check(
+            "select empno from emp fetch next 5 rows only",
             "${plan}");
     }
 

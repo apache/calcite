@@ -65,6 +65,8 @@ public enum BuiltinMethod {
   CONCAT(ExtendedEnumerable.class, "concat", Enumerable.class),
   INTERSECT(ExtendedEnumerable.class, "intersect", Enumerable.class),
   EXCEPT(ExtendedEnumerable.class, "except", Enumerable.class),
+  SKIP(ExtendedEnumerable.class, "skip", int.class),
+  TAKE(ExtendedEnumerable.class, "take", int.class),
   SINGLETON_ENUMERABLE(Linq4j.class, "singletonEnumerable", Object.class),
   NULLS_COMPARATOR(Functions.class, "nullsComparator", boolean.class,
       boolean.class),

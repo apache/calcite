@@ -510,7 +510,7 @@ public class JavaRules {
       double dRows = RelMetadataQuery.getRowCount(this);
       double dCpu =
           RelMetadataQuery.getRowCount(getChild())
-              * program.getExprCount();
+          * program.getExprCount();
       double dIo = 0;
       return planner.makeCost(dRows, dCpu, dIo);
     }
@@ -622,7 +622,7 @@ public class JavaRules {
               Expressions.<MemberDeclaration>list(
                   Expressions.fieldDecl(
                       Modifier.PUBLIC
-                          | Modifier.FINAL,
+                      | Modifier.FINAL,
                       inputEnumerator,
                       Expressions.call(
                           inputEnumerable,
@@ -1027,6 +1027,9 @@ public class JavaRules {
 
     public RelNode convert(RelNode rel) {
       final SortRel sort = (SortRel) rel;
+      if (sort.offset != null || sort.fetch != null) {
+        return null;
+      }
       final RelTraitSet traitSet =
           sort.getTraitSet().replace(EnumerableConvention.INSTANCE);
       final RelNode input = sort.getChild();
@@ -1036,19 +1039,18 @@ public class JavaRules {
           convert(
               input,
               input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
-          sort.getCollation());
+          sort.getCollation(),
+          null,
+          null);
     }
   }
 
   public static class EnumerableSortRel
       extends SortRel
       implements EnumerableRel {
-    public EnumerableSortRel(
-        RelOptCluster cluster,
-        RelTraitSet traitSet,
-        RelNode child,
-        RelCollation collation) {
-      super(cluster, traitSet, child, collation);
+    public EnumerableSortRel(RelOptCluster cluster, RelTraitSet traitSet,
+        RelNode child, RelCollation collation, RexNode offset, RexNode fetch) {
+      super(cluster, traitSet, child, collation, offset, fetch);
       assert getConvention() instanceof EnumerableConvention;
       assert getConvention() == child.getConvention();
     }
@@ -1057,12 +1059,16 @@ public class JavaRules {
     public EnumerableSortRel copy(
         RelTraitSet traitSet,
         RelNode newInput,
-        RelCollation newCollation) {
+        RelCollation newCollation,
+        RexNode offset,
+        RexNode fetch) {
       return new EnumerableSortRel(
           getCluster(),
           traitSet,
           newInput,
-          newCollation);
+          newCollation,
+          offset,
+          fetch);
     }
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -1091,8 +1097,126 @@ public class JavaRules {
                   BuiltinMethod.ORDER_BY.method,
                   Expressions.list(
                       builder.append("keySelector", pair.left))
-                  .appendIfNotNull(
-                      builder.appendIfNotNull("comparator", pair.right)))));
+                  .appendIfNotNull(builder.appendIfNotNull("comparator",
+                      pair.right)))));
+      return implementor.result(physType, builder.toBlock());
+    }
+  }
+
+  public static final EnumerableLimitRule ENUMERABLE_LIMIT_RULE =
+      new EnumerableLimitRule();
+
+  /**
+   * Rule to convert an {@link org.eigenbase.rel.SortRel} that has
+   * {@code offset} or {@code fetch} set to an
+   * {@link net.hydromatic.optiq.rules.java.JavaRules.EnumerableLimitRel}
+   * on top of a "pure" {@code SortRel} that has no offset or fetch.
+   */
+  private static class EnumerableLimitRule
+      extends RelOptRule {
+    private EnumerableLimitRule() {
+      super(
+          any(SortRel.class),
+          "EnumerableLimitRule");
+    }
+
+    @Override
+    public void onMatch(RelOptRuleCall call) {
+      final SortRel sort = call.rel(0);
+      if (sort.offset == null && sort.fetch == null) {
+        return;
+      }
+      final RelTraitSet traitSet =
+          sort.getTraitSet().replace(EnumerableConvention.INSTANCE);
+      RelNode input = sort.getChild();
+      if (!sort.getCollation().getFieldCollations().isEmpty()) {
+        input = sort.copy(
+            sort.getTraitSet().replace(RelCollationImpl.EMPTY),
+            input,
+            RelCollationImpl.EMPTY,
+            null,
+            null);
+      }
+      RelNode x = convert(
+          input,
+          input.getTraitSet().replace(EnumerableConvention.INSTANCE));
+      call.transformTo(
+          new EnumerableLimitRel(
+              sort.getCluster(),
+              traitSet,
+              x,
+              sort.offset,
+              sort.fetch));
+    }
+  }
+
+  /** Relational expression that applies a limit and/or offset to its input. */
+  public static class EnumerableLimitRel
+      extends SingleRel
+      implements EnumerableRel {
+    private final RexNode offset;
+    private final RexNode fetch;
+
+    public EnumerableLimitRel(
+        RelOptCluster cluster,
+        RelTraitSet traitSet,
+        RelNode child,
+        RexNode offset,
+        RexNode fetch) {
+      super(cluster, traitSet, child);
+      this.offset = offset;
+      this.fetch = fetch;
+      assert getConvention() instanceof EnumerableConvention;
+      assert getConvention() == child.getConvention();
+    }
+
+    @Override
+    public EnumerableLimitRel copy(
+        RelTraitSet traitSet,
+        List<RelNode> newInputs) {
+      return new EnumerableLimitRel(
+          getCluster(),
+          traitSet,
+          sole(newInputs),
+          offset,
+          fetch);
+    }
+
+    public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+      final BlockBuilder builder = new BlockBuilder();
+      final EnumerableRel child = (EnumerableRel) getChild();
+      final Result result = implementor.visitChild(this, 0, child, pref);
+      final PhysType physType =
+          PhysTypeImpl.of(
+              implementor.getTypeFactory(),
+              getRowType(),
+              result.format);
+      Expression childExp =
+          builder.append(
+              "child", result.block);
+
+      Expression v = childExp;
+      if (offset != null) {
+        v = builder.append(
+            "offset",
+            Expressions.call(
+                v,
+                BuiltinMethod.SKIP.method,
+                Expressions.constant(RexLiteral.intValue(offset))));
+      }
+      if (fetch != null) {
+        v = builder.append(
+            "fetch",
+            Expressions.call(
+                v,
+                BuiltinMethod.TAKE.method,
+                Expressions.constant(RexLiteral.intValue(fetch))));
+      }
+
+      builder.add(
+          Expressions.return_(
+              null,
+              v));
       return implementor.result(physType, builder.toBlock());
     }
   }

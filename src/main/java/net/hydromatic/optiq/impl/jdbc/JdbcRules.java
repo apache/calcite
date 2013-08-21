@@ -441,6 +441,10 @@ public class JdbcRules {
 
     public RelNode convert(RelNode rel) {
       final SortRel sort = (SortRel) rel;
+      if (sort.offset != null || sort.fetch != null) {
+        // Cannot implement "OFFSET n FETCH n" currently.
+        return null;
+      }
       final RelTraitSet traitSet = sort.getTraitSet().replace(out);
       return new JdbcSortRel(rel.getCluster(), traitSet,
           convert(sort.getChild(), traitSet), sort.getCollation());
@@ -776,7 +780,7 @@ public class JdbcRules {
         selects.add(
             SqlStdOperatorTable.selectOperator.createCall(SqlNodeList.Empty,
                 new SqlNodeList(selectList, POS), null, null, null,
-                null, null, null, POS));
+                null, null, null, null, null, POS));
       }
       SqlNode query = null;
       for (SqlSelect select : selects) {

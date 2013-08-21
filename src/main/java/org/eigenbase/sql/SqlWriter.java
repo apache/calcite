@@ -135,6 +135,22 @@ public interface SqlWriter
         OrderByList,
 
         /**
+         * OFFSET clause.
+         *
+         * <p>Example:
+         * <li>OFFSET 10 ROWS</li></p>
+         */
+        Offset,
+
+        /**
+         * FETCH clause.
+         *
+         * <p>Example:
+         * <li>FETCH FIRST 3 ROWS ONLY</li></p>
+         */
+        Fetch,
+
+        /**
          * GROUP BY list.
          *
          * <p>Example:

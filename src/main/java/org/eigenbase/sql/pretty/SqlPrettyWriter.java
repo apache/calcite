@@ -29,7 +29,6 @@ import org.eigenbase.sql.util.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Pretty printer for SQL statements.
  *
@@ -604,6 +603,8 @@ public class SqlPrettyWriter
                 }
 
             case OrderBy:
+            case Offset:
+            case Fetch:
                 return new FrameImpl(
                     frameType,
                     keyword,

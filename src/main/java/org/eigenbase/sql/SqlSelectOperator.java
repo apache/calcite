@@ -24,7 +24,6 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 
-
 /**
  * An operator describing a query. (Not a query itself.)
  *
@@ -78,6 +77,8 @@ public class SqlSelectOperator
     /**
      * Creates a call to the <code>SELECT</code> operator.
      *
+     *
+     *
      * @param keywordList List of keywords such DISTINCT and ALL, or null
      * @param selectList The SELECT clause, or null if empty
      * @param fromClause The FROM clause
@@ -86,9 +87,12 @@ public class SqlSelectOperator
      * @param having The HAVING clause, or null if not present
      * @param windowDecls The WINDOW clause, or null if not present
      * @param orderBy The ORDER BY clause, or null if not present
-     * @param pos The parser position, or {@link SqlParserPos#ZERO} if not
-     * specified; must not be null.
-     *
+     * @param offset Expression for number of rows to discard before returning
+     *               first row
+     * @param fetch Expression for number of rows to fetch
+     * @param pos The parser position, or
+     *            {@link org.eigenbase.sql.parser.SqlParserPos#ZERO} if not
+     *            specified; must not be null.
      * @return A {@link SqlSelect}, never null
      */
     public SqlSelect createCall(
@@ -100,6 +104,8 @@ public class SqlSelectOperator
         SqlNode having,
         SqlNodeList windowDecls,
         SqlNode orderBy,
+        SqlNode offset,
+        SqlNode fetch,
         SqlParserPos pos)
     {
         if (keywordList == null) {
@@ -117,7 +123,9 @@ public class SqlSelectOperator
             groupBy,
             having,
             windowDecls,
-            orderBy);
+            orderBy,
+            offset,
+            fetch);
     }
 
     public <R> void acceptCall(

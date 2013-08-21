@@ -23,7 +23,6 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * SqlProcedureCallOperator represents the CALL statement. It takes a single
  * operand which is the real SqlCall.
@@ -61,6 +60,8 @@ public class SqlProcedureCallOperator
                 SqlStdOperatorTable.rowConstructor.createCall(
                     SqlParserPos.ZERO,
                     SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO))),
+            null,
+            null,
             null,
             null,
             null,

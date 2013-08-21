@@ -549,7 +549,9 @@ public class SqlToRelConverter
         if (select.isDistinct()) {
             distinctify(bb, true);
         }
-        convertOrder(select, bb, collation, orderExprList);
+        convertOrder(
+            select, bb, collation, orderExprList, select.getOffset(),
+            select.getFetch());
         bb.setRoot(bb.root, true);
     }
 
@@ -678,16 +680,23 @@ public class SqlToRelConverter
      * @param collation Collation list
      * @param orderExprList Method populates this list with orderBy expressions
      *   not present in selectList
+     * @param offset Expression for number of rows to discard before returning
+     *               first row
+     * @param fetch Expression for number of rows to fetch
      */
     protected void convertOrder(
         SqlSelect select,
         Blackboard bb,
         RelCollation collation,
-        List<SqlNode> orderExprList)
+        List<SqlNode> orderExprList,
+        SqlNode offset,
+        SqlNode fetch)
     {
         if (select.getOrderList() == null) {
             assert collation.getFieldCollations().isEmpty();
-            return;
+            if (offset == null && fetch == null) {
+                return;
+            }
         }
 
         // Create a sorter using the previously constructed collations.
@@ -696,7 +705,9 @@ public class SqlToRelConverter
                 cluster,
                 cluster.traitSetOf(Convention.NONE, collation),
                 bb.root,
-                collation),
+                collation,
+                offset == null ? null : convertExpression(offset),
+                fetch == null ? null : convertExpression(fetch)),
             false);
 
         // If extra expressions were added to the project list for sorting,
