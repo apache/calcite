@@ -827,11 +827,22 @@ public class RexProgramBuilder
 
     /**
      * Removes all project items.
+     *
+     * <p>After calling this method, you may need to re-normalize.</p>
      */
     public void clearProjects()
     {
         projectRefList.clear();
         projectNameList.clear();
+    }
+
+    /**
+     * Clears the condition.
+     *
+     * <p>After calling this method, you may need to re-normalize.</p>
+     */
+    public void clearCondition() {
+        conditionRef = null;
     }
 
     /**

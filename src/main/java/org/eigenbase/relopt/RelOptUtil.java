@@ -27,6 +27,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
+import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
@@ -1367,7 +1368,7 @@ public abstract class RelOptUtil
                 leftKeys.add(((RexInputRef) leftKey).getIndex());
             } else {
                 newLeftFields.add(leftKey);
-                newLeftFieldNames.add(leftKey.toString());
+                newLeftFieldNames.add(null);
                 leftKeys.add(origLeftInputSize + newLeftKeyCount);
                 newLeftKeyCount++;
             }
@@ -1392,7 +1393,7 @@ public abstract class RelOptUtil
                 rightKeys.add(((RexInputRef) rightKey).getIndex());
             } else {
                 newRightFields.add(rightKey);
-                newRightFieldNames.add(rightKey.toString());
+                newRightFieldNames.add(null);
                 rightKeys.add(origRightInputSize + newRightKeyCount);
                 newRightKeyCount++;
             }
@@ -1405,7 +1406,7 @@ public abstract class RelOptUtil
                 CalcRel.createProject(
                     leftRel,
                     newLeftFields,
-                    newLeftFieldNames);
+                    SqlValidatorUtil.uniquify(newLeftFieldNames));
         }
 
         if (newRightKeyCount > 0) {
@@ -1413,7 +1414,7 @@ public abstract class RelOptUtil
                 CalcRel.createProject(
                     rightRel,
                     newRightFields,
-                    newRightFieldNames);
+                    SqlValidatorUtil.uniquify(newRightFieldNames));
         }
 
         inputRels[0] = leftRel;

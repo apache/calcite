@@ -143,6 +143,24 @@ public class RexProgram
     }
 
     /**
+     * Returns a list of project expressions and their field names.
+     */
+    public List<Pair<RexLocalRef, String>> getNamedProjects()
+    {
+        return new AbstractList<Pair<RexLocalRef, String>>() {
+            public int size() {
+                return projects.size();
+            }
+
+            public Pair<RexLocalRef, String> get(int index) {
+                return Pair.of(
+                    projects.get(index),
+                    outputRowType.getFieldList().get(index).getName());
+            }
+        };
+    }
+
+    /**
      * Returns the field reference of this program's filter condition, or null
      * if there is no condition.
      */
@@ -318,6 +336,24 @@ public class RexProgram
      */
     public static RexProgram createIdentity(RelDataType rowType)
     {
+        return createIdentity(rowType, rowType);
+    }
+
+    /**
+     * Creates a program that projects its input fields but with possibly
+     * different names for the output fields.
+     */
+    public static RexProgram createIdentity(
+        RelDataType rowType,
+        RelDataType outputRowType)
+    {
+        if (rowType != outputRowType
+            && !Pair.right(rowType.getFieldList()).equals(
+                Pair.right(outputRowType.getFieldList())))
+        {
+            throw new IllegalArgumentException(
+                "field type mismatch: " + rowType + " vs. " + outputRowType);
+        }
         final List<RelDataTypeField> fields = rowType.getFieldList();
         final List<RexLocalRef> projectRefs = new ArrayList<RexLocalRef>();
         final List<RexInputRef> refs = new ArrayList<RexInputRef>();
@@ -326,7 +362,7 @@ public class RexProgram
             refs.add(ref);
             projectRefs.add(new RexLocalRef(i, ref.getType()));
         }
-        return new RexProgram(rowType, refs, projectRefs, null, rowType);
+        return new RexProgram(rowType, refs, projectRefs, null, outputRowType);
     }
 
     /**
