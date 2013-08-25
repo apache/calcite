@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.Helper;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
@@ -49,7 +50,7 @@ import org.eigenbase.util.Pair;
 import org.codehaus.janino.*;
 import org.codehaus.janino.Scanner;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.*;
 
 import java.io.StringReader;
 import java.lang.reflect.Type;
@@ -73,6 +74,15 @@ public class OptiqPrepareImpl implements OptiqPrepare {
    * this will become a preference, or we will run multiple phases: first
    * disabled, then enabled. */
   private static final boolean ENABLE_COLLATION_TRAIT = true;
+
+  private static final Set<String> SIMPLE_SQLS =
+      ImmutableSet.of(
+          "SELECT 1",
+          "select 1",
+          "SELECT 1 FROM DUAL",
+          "select 1 from dual",
+          "values 1",
+          "VALUES 1");
 
   public OptiqPrepareImpl() {
   }
@@ -175,6 +185,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       Queryable<T> queryable,
       Type elementType,
       int maxRowCount) {
+    if (SIMPLE_SQLS.contains(sql)) {
+      return simplePrepare(context, sql);
+    }
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     OptiqCatalogReader catalogReader =
         new OptiqCatalogReader(
@@ -201,6 +214,28 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       }
     }
     throw exception;
+  }
+
+  /** Quickly prepares a simple SQL statement, circumventing the usual
+   * preparation process. */
+  private <T> PrepareResult<T> simplePrepare(Context context, String sql) {
+    final JavaTypeFactory typeFactory = context.getTypeFactory();
+    final RelDataType x = typeFactory.createStructType(
+        ImmutableList.of(
+            Pair.of(
+                "EXPR$0", typeFactory.createSqlType(SqlTypeName.INTEGER))));
+    @SuppressWarnings("unchecked")
+    final List<T> list = (List) ImmutableList.of(1);
+    final List<String> origin = null;
+    final List<List<String>> origins =
+        Collections.nCopies(x.getFieldCount(), origin);
+    return new PrepareResult<T>(
+        sql,
+        ImmutableList.<Parameter>of(),
+        x,
+        getColumnMetaDataList(typeFactory, x, x, origins),
+        Linq4j.asEnumerable(list),
+        Integer.class);
   }
 
   <T> PrepareResult<T> prepare2_(
@@ -273,11 +308,35 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
     // TODO: parameters
     final List<Parameter> parameters = Collections.emptyList();
-    // TODO: column meta data
-    final List<ColumnMetaData> columns =
-        new ArrayList<ColumnMetaData>();
     RelDataType jdbcType = makeStruct(typeFactory, x);
     final List<List<String>> originList = preparedResult.getFieldOrigins();
+    final List<ColumnMetaData> columns =
+        getColumnMetaDataList(typeFactory, x, jdbcType, originList);
+    Enumerable<T> enumerable =
+        (Enumerable<T>) preparedResult.bind();
+    if (maxRowCount >= 0) {
+      // Apply limit. In JDBC 0 means "no limit". But for us, -1 means
+      // "no limit", and 0 is a valid limit.
+      enumerable = enumerable.take(maxRowCount);
+    }
+    Class resultClazz = null;
+    if (preparedResult instanceof Typed) {
+      resultClazz = (Class) ((Typed) preparedResult).getElementType();
+    }
+    return new PrepareResult<T>(
+        sql,
+        parameters,
+        jdbcType,
+        columns,
+        enumerable,
+        resultClazz);
+  }
+
+  private List<ColumnMetaData> getColumnMetaDataList(
+      JavaTypeFactory typeFactory, RelDataType x, RelDataType jdbcType,
+      List<List<String>> originList) {
+    final List<ColumnMetaData> columns =
+        new ArrayList<ColumnMetaData>();
     for (Ord<RelDataTypeField> pair : Ord.zip(jdbcType.getFieldList())) {
       final RelDataTypeField field = pair.e;
       RelDataType type = field.getType();
@@ -315,24 +374,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
                       ? x.getFieldList().get(pair.i).getType()
                       : type)));
     }
-    Enumerable<T> enumerable =
-        (Enumerable<T>) preparedResult.bind();
-    if (maxRowCount >= 0) {
-      // Apply limit. In JDBC 0 means "no limit". But for us, -1 means
-      // "no limit", and 0 is a valid limit.
-      enumerable = enumerable.take(maxRowCount);
-    }
-    Class resultClazz = null;
-    if (preparedResult instanceof Typed) {
-      resultClazz = (Class) ((Typed) preparedResult).getElementType();
-    }
-    return new PrepareResult<T>(
-        sql,
-        parameters,
-        jdbcType,
-        columns,
-        enumerable,
-        resultClazz);
+    return columns;
   }
 
   protected void populateMaterializations(RelOptPlanner planner,
