@@ -24,11 +24,12 @@ import net.hydromatic.linq4j.function.*;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.MapSchema;
-
 import net.hydromatic.optiq.runtime.*;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.Pair;
+
+import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Field;
 import java.sql.*;
@@ -451,6 +452,28 @@ public class Meta {
   }
 
   private static class NamedFieldGetter {
+    private static final Map<Class, Pair<Integer, String>> MAP =
+        ImmutableMap.<Class, Pair<Integer, String>>builder()
+            .put(boolean.class, Pair.of(Types.BOOLEAN, "BOOLEAN"))
+            .put(Boolean.class, Pair.of(Types.BOOLEAN, "BOOLEAN"))
+            .put(byte.class, Pair.of(Types.TINYINT, "TINYINT"))
+            .put(Byte.class, Pair.of(Types.TINYINT, "TINYINT"))
+            .put(short.class, Pair.of(Types.SMALLINT, "SMALLINT"))
+            .put(Short.class, Pair.of(Types.SMALLINT, "SMALLINT"))
+            .put(int.class, Pair.of(Types.INTEGER, "INTEGER"))
+            .put(Integer.class, Pair.of(Types.INTEGER, "INTEGER"))
+            .put(long.class, Pair.of(Types.BIGINT, "BIGINT"))
+            .put(Long.class, Pair.of(Types.BIGINT, "BIGINT"))
+            .put(float.class, Pair.of(Types.FLOAT, "FLOAT"))
+            .put(Float.class, Pair.of(Types.FLOAT, "FLOAT"))
+            .put(double.class, Pair.of(Types.DOUBLE, "DOUBLE"))
+            .put(Double.class, Pair.of(Types.DOUBLE, "DOUBLE"))
+            .put(String.class, Pair.of(Types.VARCHAR, "VARCHAR"))
+            .put(java.sql.Date.class, Pair.of(Types.DATE, "DATE"))
+            .put(Time.class, Pair.of(Types.TIME, "TIME"))
+            .put(Timestamp.class, Pair.of(Types.TIMESTAMP, "TIMESTAMP"))
+            .build();
+
     private final List<Field> fields = new ArrayList<Field>();
     private final List<ColumnMetaData> columnNames =
         new ArrayList<ColumnMetaData>();
@@ -465,6 +488,7 @@ public class Meta {
         } catch (NoSuchFieldException e) {
           throw new RuntimeException(e);
         }
+        Pair<Integer, String> pair = lookupType(field.getType());
         columnNames.add(
             new ColumnMetaData(
                 index, false, true, false, false,
@@ -472,10 +496,14 @@ public class Meta {
                     ? DatabaseMetaData.columnNullable
                     : DatabaseMetaData.columnNoNulls,
                 true, -1, name, name, null,
-                0, 0, null, null, Types.VARCHAR, "VARCHAR", true,
+                0, 0, null, null, pair.left, pair.right, true,
                 false, false, null, field.getType()));
         fields.add(field);
       }
+    }
+
+    private Pair<Integer, String> lookupType(Class<?> type) {
+      return MAP.get(type);
     }
 
     private String uncamel(String name) {

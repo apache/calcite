@@ -435,6 +435,14 @@ public class JdbcTest {
     DatabaseMetaData metaData = connection.getMetaData();
     ResultSet resultSet = metaData.getColumns(null, null, null, null);
     assertTrue(resultSet.next()); // there's something
+    String name = resultSet.getString(4);
+    int type = resultSet.getInt(5);
+    String typeName = resultSet.getString(6);
+    int columnSize = resultSet.getInt(7);
+    int decimalDigits = resultSet.getInt(9);
+    int numPrecRadix = resultSet.getInt(10);
+    int charOctetLength = resultSet.getInt(16);
+    String isNullable = resultSet.getString(18);
     resultSet.close();
     connection.close();
   }
@@ -461,6 +469,16 @@ public class JdbcTest {
     assertEquals(null, metaData.getTableName(3));
     resultSet.close();
     connection.close();
+  }
+
+  /** Tests some queries that have expedited processing because connection pools
+   * like to use them to check whether the connection is alive.
+   */
+  @Test public void testSimple() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query("SELECT 1")
+        .returns("EXPR$0=1\n");
   }
 
   @Test public void testCloneSchema()
@@ -531,6 +549,16 @@ public class JdbcTest {
             + "          EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])\n"
             + "        EnumerableTableAccessRel(table=[[foodmart2, product_class]])\n"
             + "\n");
+  }
+
+  @Test public void testOrderByCase() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select \"time_by_day\".\"the_year\" as \"c0\" from \"time_by_day\" as \"time_by_day\" group by \"time_by_day\".\"the_year\" order by CASE WHEN \"time_by_day\".\"the_year\" IS NULL THEN 1 ELSE 0 END, \"time_by_day\".\"the_year\" ASC")
+        .returns(
+            "c0=1997\n"
+            + "c0=1998\n");
   }
 
   private static final String[] queries = {

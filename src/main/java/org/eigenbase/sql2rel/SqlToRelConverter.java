@@ -4652,7 +4652,10 @@ public class SqlToRelConverter
                 return null;
             } else {
                 for (SqlNode operand : call.operands) {
-                    operand.accept(this);
+                    // Operands are occasionally null, e.g. switched CASE arg 0.
+                    if (operand != null) {
+                        operand.accept(this);
+                    }
                 }
             }
             return null;
