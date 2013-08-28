@@ -241,7 +241,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
   }
 
   public void clearWarnings() throws SQLException {
-    throw new UnsupportedOperationException();
+    // no-op since connection pooling often calls this.
   }
 
   public Statement createStatement(
