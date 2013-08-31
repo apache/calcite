@@ -24,10 +24,8 @@ import org.eigenbase.reltype.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
- * A <code>RelOptAbstractTable</code> is a partial implementation of {@link
- * RelOptTable}.
+ * Partial implementation of {@link RelOptTable}.
  *
  * @author jhyde
  * @version $Id$
@@ -38,9 +36,9 @@ public abstract class RelOptAbstractTable
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected RelOptSchema schema;
-    protected RelDataType rowType;
-    protected String name;
+    protected final RelOptSchema schema;
+    protected final RelDataType rowType;
+    protected final String name;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -76,19 +74,30 @@ public abstract class RelOptAbstractTable
         return rowType;
     }
 
-    public void setRowType(RelDataType rowType)
-    {
-        this.rowType = rowType;
-    }
-
     public RelOptSchema getRelOptSchema()
     {
         return schema;
     }
 
+    // Override to define collations.
     public List<RelCollation> getCollationList()
     {
-        return Collections.<RelCollation>emptyList();
+        return Collections.emptyList();
+    }
+
+    public <T> T unwrap(Class<T> clazz) {
+        return clazz.isInstance(this)
+            ? clazz.cast(this)
+            : null;
+    }
+
+    // Override to define keys
+    public boolean isKey(BitSet columns) {
+        return false;
+    }
+
+    public RelNode toRel(ToRelContext context) {
+        return new TableAccessRel(context.getCluster(), this);
     }
 }
 

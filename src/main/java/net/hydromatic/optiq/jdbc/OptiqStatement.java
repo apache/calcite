@@ -399,18 +399,20 @@ public abstract class OptiqStatement
 
   protected <T> OptiqPrepare.PrepareResult<T> parseQuery(String sql) {
     final OptiqPrepare prepare = connection.prepareFactory.apply();
-    return prepare.prepareSql(
-        new ContextImpl(connection), sql, null, Object[].class,
+    return prepare.prepareSql(createPrepareContext(), sql, null, Object[].class,
         maxRowCount <= 0 ? -1 : maxRowCount);
+  }
+
+  public ContextImpl createPrepareContext() {
+    return new ContextImpl(connection);
   }
 
   protected <T> OptiqPrepare.PrepareResult prepare(Queryable<T> queryable) {
     final OptiqPrepare prepare = connection.prepareFactory.apply();
-    return prepare.prepareQueryable(
-        new ContextImpl(connection), queryable);
+    return prepare.prepareQueryable(createPrepareContext(), queryable);
   }
 
-  private class ContextImpl implements OptiqPrepare.Context {
+  private static class ContextImpl implements OptiqPrepare.Context {
     private final OptiqConnectionImpl connection;
 
     public ContextImpl(OptiqConnectionImpl connection) {

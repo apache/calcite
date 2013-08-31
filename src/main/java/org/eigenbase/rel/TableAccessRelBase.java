@@ -25,7 +25,6 @@ import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.util.Util;
 
-
 /**
  * <code>TableAccessRelBase</code> is an abstract base class for implementations
  * of {@link TableAccessRel}.
@@ -41,7 +40,7 @@ public abstract class TableAccessRelBase
     /**
      * The table definition.
      */
-    protected RelOptTable table;
+    protected final RelOptTable table;
 
     //~ Constructors -----------------------------------------------------------
 

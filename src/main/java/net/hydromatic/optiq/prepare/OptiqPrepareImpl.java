@@ -29,6 +29,8 @@ import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.materialize.MaterializationService;
 import net.hydromatic.optiq.rules.java.*;
 import net.hydromatic.optiq.runtime.*;
+import net.hydromatic.optiq.server.OptiqServerStatement;
+import net.hydromatic.optiq.tools.Frameworks;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
@@ -410,6 +412,21 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
     return typeFactory.createStructType(
         RelDataTypeFactory.FieldInfoBuilder.of("$0", type));
+  }
+
+  /** Executes an optimize action. */
+  public <R> R withPlanner(OptiqServerStatement statement,
+      Frameworks.PlannerAction<R> action) {
+    final Context context = statement.createPrepareContext();
+    final JavaTypeFactory typeFactory = context.getTypeFactory();
+    OptiqCatalogReader catalogReader = new OptiqCatalogReader(
+        context.getRootSchema(), context.getDefaultSchemaPath(), typeFactory);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RelOptPlanner planner = createPlanner();
+    final RelOptQuery query = new RelOptQuery(planner);
+    final RelOptCluster cluster =
+        query.createCluster(rexBuilder.getTypeFactory(), rexBuilder);
+    return action.apply(cluster, catalogReader, context.getRootSchema());
   }
 
   private static class OptiqPreparingStmt extends Prepare {

@@ -17,10 +17,14 @@
 */
 package net.hydromatic.optiq.server;
 
+import net.hydromatic.optiq.jdbc.OptiqPrepare;
+
 /**
  * Statement within an Optiq server.
  */
 public interface OptiqServerStatement {
+  /** Creates a context for preparing a statement for execution. */
+  OptiqPrepare.Context createPrepareContext();
 }
 
 // End OptiqServerStatement.java
