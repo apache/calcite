@@ -22,7 +22,6 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A postfix unary operator.
  */
@@ -91,6 +90,15 @@ public class SqlPostfixOperator
             }
         }
         return type;
+    }
+
+    @Override
+    public boolean validRexOperands(int count, boolean fail) {
+        if (count != 1) {
+            assert !fail : "wrong operand count " + count + " for " + this;
+            return false;
+        }
+        return true;
     }
 }
 

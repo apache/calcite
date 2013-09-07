@@ -167,8 +167,8 @@ public class MaterializationTest {
 
   /** As {@link #testFilterQueryOnFilterView()} but condition is stronger in
    * query. */
-   @Ignore
-   @Test public void testFilterQueryOnFilterView2() {
+  @Ignore
+  @Test public void testFilterQueryOnFilterView2() {
     checkMaterialize(
         "select \"deptno\", \"empid\", \"name\" from \"emps\" where \"deptno\" = 10",
         "select \"empid\" + 1 as x, \"name\" from \"emps\" where \"deptno\" = 10 and \"empid\" < 150");
@@ -209,7 +209,6 @@ public class MaterializationTest {
   /** Unit test for logic functions
    * {@link org.eigenbase.relopt.SubstitutionVisitor#mayBeSatisfiable} and
    * {@link org.eigenbase.relopt.SubstitutionVisitor#simplify}. */
-  @Ignore
   @Test public void testSatisfiable() {
     // TRUE may be satisfiable
     checkSatisfiable(rexBuilder.makeLiteral(true), "true");
@@ -307,7 +306,7 @@ public class MaterializationTest {
                     i1_eq_1)));
     checkSatisfiable(e6, "AND(=($0, 0), NOT(AND(=($0, 0), =($1, 1))))");
 
-    // "$0 = 0 AND $1 = 1 NOT ($0 = 0)" may be satisfiable. Can simplify.
+    // "$0 = 0 AND ($1 = 1 AND NOT ($0 = 0))" is not satisfiable.
     final RexNode e7 =
         rexBuilder.makeCall(
             SqlStdOperatorTable.andOperator,
@@ -318,7 +317,7 @@ public class MaterializationTest {
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.notOperator,
                     i0_eq_0)));
-    checkSatisfiable(e7, "AND(=($0, 0), NOT(AND(=($0, 0), =($1, 1))))");
+    checkNotSatisfiable(e7);
 
     // The expression "$2".
     final RexInputRef i2 =

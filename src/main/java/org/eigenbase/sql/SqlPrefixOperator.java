@@ -22,7 +22,6 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A unary operator.
  */
@@ -102,6 +101,15 @@ public class SqlPrefixOperator
         }
 
         return super.getMonotonicity(call, scope);
+    }
+
+    @Override
+    public boolean validRexOperands(int count, boolean fail) {
+        if (count != 1) {
+            assert !fail : "wrong operand count " + count + " for " + this;
+            return false;
+        }
+        return true;
     }
 }
 

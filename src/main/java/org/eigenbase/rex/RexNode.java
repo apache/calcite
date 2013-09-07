@@ -19,7 +19,6 @@ package org.eigenbase.rex;
 
 import org.eigenbase.reltype.*;
 
-
 /**
  * Row expression.
  *
@@ -57,6 +56,15 @@ public abstract class RexNode
      * expression is equal to the literal <code>TRUE</code>.)
      */
     public boolean isAlwaysTrue()
+    {
+        return false;
+    }
+
+    /**
+     * Returns whether this expression always returns false. (Such as if this
+     * expression is equal to the literal <code>FALSE</code>.)
+     */
+    public boolean isAlwaysFalse()
     {
         return false;
     }

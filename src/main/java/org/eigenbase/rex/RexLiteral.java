@@ -34,7 +34,6 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
-
 /**
  * Constant value in a row-expression.
  *
@@ -552,6 +551,14 @@ public class RexLiteral
             return false;
         }
         return booleanValue(this);
+    }
+
+    public boolean isAlwaysFalse()
+    {
+        if (typeName != SqlTypeName.BOOLEAN) {
+            return false;
+        }
+        return !booleanValue(this);
     }
 
     public boolean equals(Object obj)

@@ -23,10 +23,10 @@ import java.nio.charset.*;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
-
 
 /**
  * <code>SqlBinaryOperator</code> is a binary operator.
@@ -79,7 +79,7 @@ public class SqlBinaryOperator
     {
         Util.discard(operandsCount);
 
-        //op0 opname op1
+        // op0 opname op1
         return "{1} {0} {2}";
     }
 
@@ -131,7 +131,7 @@ public class SqlBinaryOperator
             assert (null != col1) && (null != col2)
                 : "An implicit or explicit collation should have been set";
 
-            //validation will occur inside getCoercibilityDyadicOperator...
+            // validation will occur inside getCoercibilityDyadicOperator...
             SqlCollation resultCol =
                 SqlCollation.getCoercibilityDyadicOperator(
                     col1,
@@ -181,7 +181,7 @@ public class SqlBinaryOperator
             assert (null != col1) && (null != col2)
                 : "An implicit or explicit collation should have been set";
 
-            //validation will occur inside getCoercibilityDyadicOperator...
+            // validation will occur inside getCoercibilityDyadicOperator...
             SqlCollation resultCol =
                 SqlCollation.getCoercibilityDyadicOperator(
                     col1,
@@ -233,6 +233,22 @@ public class SqlBinaryOperator
         }
 
         return super.getMonotonicity(call, scope);
+    }
+
+    @Override
+    public boolean validRexOperands(int count, boolean fail) {
+        if (count != 2) {
+            // Special exception for AND and OR.
+            if ((this == SqlStdOperatorTable.andOperator
+                 || this == SqlStdOperatorTable.orOperator)
+                && count > 2)
+            {
+                return true;
+            }
+            assert !fail : "wrong operand count " + count + " for " + this;
+            return false;
+        }
+        return true;
     }
 }
 

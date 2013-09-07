@@ -1818,6 +1818,51 @@ public abstract class RelOptUtil
     }
 
     /**
+     * Decomposes a predicate into a list of expressions that are AND'ed
+     * together, and a list of expressions that are preceded by NOT.
+     *
+     * <p>For example, {@code a AND NOT b AND NOT (c and d) AND TRUE AND NOT
+     * FALSE} returns {@code rexList = [a], notList = [b, c AND d]}.</p>
+     *
+     * <p>TRUE and NOT FALSE expressions are ignored. FALSE and NOT TRUE
+     * expressions are placed on {@code rexList} and {@code notList} as other
+     * expressions.</p>
+     *
+     * <p>For example, {@code a AND TRUE AND NOT TRUE} returns
+     * {@code rexList = [a], notList = [TRUE]}.</p>
+     *
+     * @param rexPredicate predicate to be analyzed
+     * @param rexList list of decomposed RexNodes (except those with NOT)
+     * @param notList list of decomposed RexNodes that were prefixed NOT
+     */
+    public static void decomposeConjunction(
+        RexNode rexPredicate,
+        List<RexNode> rexList,
+        List<RexNode> notList)
+    {
+        if (rexPredicate == null || rexPredicate.isAlwaysTrue()) {
+            return;
+        }
+        switch (rexPredicate.getKind()) {
+        case And:
+            for (RexNode operand : ((RexCall) rexPredicate).getOperands()) {
+                decomposeConjunction(operand, rexList, notList);
+            }
+            break;
+        case Not:
+            final RexNode e = ((RexCall) rexPredicate).getOperands().get(0);
+            if (e.isAlwaysFalse()) {
+                return;
+            }
+            notList.add(e);
+            break;
+        default:
+            rexList.add(rexPredicate);
+            break;
+        }
+    }
+
+    /**
      * Returns condition decomposed by AND.
      *
      * <p>For example, {@code conjunctions(TRUE)} returns the empty list.</p>

@@ -27,7 +27,6 @@ import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A <code>SqlOperator</code> is a type of node in a SQL parse tree (it is NOT a
  * node in a SQL parse tree). It includes functions, operators such as '=', and
@@ -191,7 +190,7 @@ public abstract class SqlOperator
             return operandTypeChecker.getOperandCountRange();
         }
 
-        // If you see this error you need to overide this method
+        // If you see this error you need to override this method
         // or give operandTypeChecker a value.
         throw Util.needToImplement(this);
     }
@@ -598,6 +597,18 @@ public abstract class SqlOperator
                 call,
                 EigenbaseResource.instance().WrongNumOfArguments.ex());
         }
+    }
+
+    /** Returns whether the given operands are valid. If not valid and
+     * {@code fail}, throws an assertion error.
+     *
+     * <p>Similar to {@link #checkOperandCount}, but some operators may have
+     * different valid operands in {@link SqlNode} and {@code RexNode} formats
+     * (some examples are CAST and AND), and this method throws internal errors,
+     * not user errors.</p>
+     */
+    public boolean validRexOperands(int count, boolean fail) {
+        return true;
     }
 
     /**

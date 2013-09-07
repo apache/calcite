@@ -238,20 +238,23 @@ public class SubstitutionVisitor {
         //  disjunctions: {x = 1, y = 2, z = 3}
         //  notDisjunctions: {x = 1 AND y = 2}
         final List<RexNode> disjunctions = new ArrayList<RexNode>();
-        RelOptUtil.decomposeConjunction(e, disjunctions);
         final List<RexNode> notDisjunctions = new ArrayList<RexNode>();
-        for (int i = 0; i < disjunctions.size(); i++) {
-            final RexNode disjunction = disjunctions.get(i);
-            final RexKind kind = disjunction.getKind();
-            switch (kind) {
-            case Not:
-                notDisjunctions.add(
-                    ((RexCall) disjunction).getOperands().get(0));
-                disjunctions.remove(i);
-                --i;
-                break;
+        RelOptUtil.decomposeConjunction(e, disjunctions, notDisjunctions);
+
+        // If there is a single FALSE or NOT TRUE, the whole expression is
+        // always false.
+        for (RexNode disjunction : disjunctions) {
+            switch (disjunction.getKind()) {
             case Literal:
                 if (!RexLiteral.booleanValue(disjunction)) {
+                    return false;
+                }
+            }
+        }
+        for (RexNode disjunction : notDisjunctions) {
+            switch (disjunction.getKind()) {
+            case Literal:
+                if (RexLiteral.booleanValue(disjunction)) {
                     return false;
                 }
             }
