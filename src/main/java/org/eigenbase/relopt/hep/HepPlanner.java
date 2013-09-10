@@ -26,10 +26,7 @@ import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.util.*;
 
-import org.jgrapht.*;
-import org.jgrapht.alg.*;
-import org.jgrapht.graph.*;
-import org.jgrapht.traverse.*;
+import net.hydromatic.optiq.util.graph.*;
 
 /**
  * HepPlanner is a heuristic implementation of the {@link RelOptPlanner}
@@ -95,7 +92,7 @@ public class HepPlanner
         mapDigestToVertex = new HashMap<String, HepRelVertex>();
         graph =
             new DefaultDirectedGraph<HepRelVertex, DefaultEdge>(
-                DefaultEdge.class);
+                DefaultEdge.<HepRelVertex>factory());
 
         // NOTE jvs 24-Apr-2006:  We use LinkedHashSet here and below
         // in order to provide deterministic behavior.

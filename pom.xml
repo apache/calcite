@@ -105,11 +105,6 @@
       <version>14.0.1</version>
     </dependency>
     <dependency>
-      <groupId>org.jgrapht</groupId>
-      <artifactId>jgrapht-jdk1.5</artifactId>
-      <version>0.7.3</version>
-    </dependency>
-    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>2.1.1</version>

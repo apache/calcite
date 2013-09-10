@@ -22,9 +22,6 @@ import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.hep.*;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 
 /**
  * HepPlannerTest is a unit test for {@link HepPlanner}. See {@link

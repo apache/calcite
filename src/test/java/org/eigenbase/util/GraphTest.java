@@ -17,8 +17,12 @@
 */
 package org.eigenbase.util;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
+import net.hydromatic.optiq.util.graph.*;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -72,6 +76,60 @@ public class GraphTest {
         }
         return buf.toString();
     }
+
+  /** Unit test for {@link DepthFirstIterator}. */
+  @Test public void testDepthFirst() {
+    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    final List<String> list = new ArrayList<String>();
+    for (String s : DepthFirstIterator.of(graph, "A")) {
+      list.add(s);
+    }
+    assertEquals("[A, B, C, D, E, C, D, F]", list.toString());
+  }
+
+  /** Unit test for {@link DepthFirstIterator}. */
+  @Test public void testPredecessorList() {
+    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    final List<String> list = Graphs.predecessorListOf(graph, "C");
+    assertEquals("[B, E]", list.toString());
+  }
+
+  /** Unit test for
+   * {@link DefaultDirectedGraph#removeAllVertices(java.util.Collection)}. */
+  @Test public void testRemoveAllVertices() {
+    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    graph.removeAllVertices(Arrays.asList("B", "E"));
+    assertEquals("[A, C, D, F]", graph.vertexSet().toString());
+  }
+
+  /** Unit test for {@link TopologicalOrderIterator}. */
+  @Test public void testTopologicalOrderIterator() {
+    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    final List<String> list = new ArrayList<String>();
+    for (String s : TopologicalOrderIterator.of(graph)) {
+      list.add(s);
+    }
+    assertEquals("[A, B, E, C, F, D]", list.toString());
+  }
+
+  private DefaultDirectedGraph<String, DefaultEdge> createDag() {
+    final DefaultDirectedGraph<String, DefaultEdge> graph =
+        new DefaultDirectedGraph<String, DefaultEdge>(
+            DefaultEdge.<String>factory());
+    graph.addVertex("A");
+    graph.addVertex("B");
+    graph.addVertex("C");
+    graph.addVertex("D");
+    graph.addVertex("E");
+    graph.addVertex("F");
+    graph.addEdge("A", "B");
+    graph.addEdge("B", "C");
+    graph.addEdge("C", "D");
+    graph.addEdge("A", "E");
+    graph.addEdge("E", "C");
+    graph.addEdge("E", "F");
+    return graph;
+  }
 }
 
 // End GraphTest.java

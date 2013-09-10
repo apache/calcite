@@ -28,9 +28,7 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
 
-import org.jgrapht.DirectedGraph;
-import org.jgrapht.graph.*;
-import org.jgrapht.traverse.TopologicalOrderIterator;
+import net.hydromatic.optiq.util.graph.*;
 
 /**
  * CalcRelSplitter operates on a {@link CalcRel} with multiple {@link RexCall}
@@ -401,7 +399,8 @@ public abstract class CalcRelSplitter
         List<Set<Integer>> cohorts)
     {
         final DirectedGraph<Integer, DefaultEdge> graph =
-            new DefaultDirectedGraph<Integer, DefaultEdge>(DefaultEdge.class);
+            new DefaultDirectedGraph<Integer, DefaultEdge>(
+                DefaultEdge.<Integer>factory());
         for (int i = 0; i < exprs.length; i++) {
             graph.addVertex(i);
         }
