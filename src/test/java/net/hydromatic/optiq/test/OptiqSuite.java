@@ -19,6 +19,8 @@ package net.hydromatic.optiq.test;
 
 import net.hydromatic.optiq.impl.clone.ArrayTableTest;
 
+import net.hydromatic.optiq.util.graph.DirectedGraphTest;
+
 import org.eigenbase.relopt.RelOptUtilTest;
 import org.eigenbase.relopt.volcano.VolcanoPlannerTest;
 import org.eigenbase.relopt.volcano.VolcanoPlannerTraitTest;
@@ -38,7 +40,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
     ArrayTableTest.class,
     ArrayQueueTest.class,
-    GraphTest.class,
+    DirectedGraphTest.class,
     ReflectVisitorTest.class,
     RelOptUtilTest.class,
     UtilTest.class,

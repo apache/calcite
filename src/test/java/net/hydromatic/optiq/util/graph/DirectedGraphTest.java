@@ -15,67 +15,55 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.util;
+package net.hydromatic.optiq.util.graph;
+
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-
-import net.hydromatic.optiq.util.graph.*;
-import org.junit.Test;
 
 import static org.junit.Assert.*;
 
 /**
- * Unit test for {@link Graph}.
+ * Unit test for {@link DirectedGraph}.
  */
-public class GraphTest {
-    public GraphTest() {
-    }
+public class DirectedGraphTest {
+  public DirectedGraphTest() {
+  }
 
-    @Test public void test() {
-        Graph<String> g = new Graph<String>();
-        g.createArc("A", "B");
-        g.createArc("B", "C");
-        g.createArc("D", "C");
-        g.createArc("C", "D");
-        g.createArc("E", "F");
-        g.createArc("C", "C");
-        assertEquals(
-            "{A-B, B-C, C-D}",
-            Graph.Arc.toString(g.getShortestPath("A", "D")));
-        g.createArc("B", "D");
-        assertEquals(
-            "{A-B, B-D}",
-            Graph.Arc.toString(g.getShortestPath("A", "D")));
-        assertNull(
-            "There is no path from A to E",
-            g.getShortestPath("A", "E"));
-        assertEquals(
-            "{}",
-            Graph.Arc.toString(g.getShortestPath("D", "D")));
-        assertNull(
-            "Node X is not in the graph",
-            g.getShortestPath("X", "A"));
-        assertEquals(
-            "{A-B, B-D} {A-B, B-C, C-D}",
-            toString(g.getPaths("A", "D")));
-    }
+  @Test public void testOne() {
+    DirectedGraph<String, DefaultEdge> g = DefaultDirectedGraph.create();
+    g.addVertex("A");
+    g.addVertex("B");
+    g.addVertex("C");
+    g.addVertex("D");
+    g.addVertex("E");
+    g.addVertex("F");
+    g.addEdge("A", "B");
+    g.addEdge("B", "C");
+    g.addEdge("D", "C");
+    g.addEdge("C", "D");
+    g.addEdge("E", "F");
+    g.addEdge("C", "C");
+    assertEquals("[A, B, C, D]", shortestPath(g, "A", "D").toString());
+    g.addEdge("B", "D");
+    assertEquals("[A, B, D]", shortestPath(g, "A", "D").toString());
+    assertNull("There is no path from A to E", shortestPath(g, "A", "E"));
+    assertEquals("[]", shortestPath(g, "D", "D").toString());
+    assertNull("Node X is not in the graph", shortestPath(g, "X", "A"));
+    assertEquals("[[A, B, C, D], [A, B, D]]", paths(g, "A", "D").toString());
+  }
 
-    private static <T> String toString(final Iterator<Graph.Arc<T>[]> iter)
-    {
-        StringBuilder buf = new StringBuilder();
-        int count = 0;
-        while (iter.hasNext()) {
-            Graph.Arc<T>[] path = iter.next();
-            if (count++ > 0) {
-                buf.append(" ");
-            }
-            buf.append(Graph.Arc.toString(path));
-        }
-        return buf.toString();
-    }
+  private <V> List<V> shortestPath(DirectedGraph<V, DefaultEdge> g,
+      V source, V target) {
+    return Graphs.makeImmutable(g).getShortestPath(source, target);
+  }
+
+  private <V> List<List<V>> paths(DirectedGraph<V, DefaultEdge> g,
+      V source, V target) {
+    return Graphs.makeImmutable(g).getPaths(source, target);
+  }
 
   /** Unit test for {@link DepthFirstIterator}. */
   @Test public void testDepthFirst() {
@@ -114,8 +102,7 @@ public class GraphTest {
 
   private DefaultDirectedGraph<String, DefaultEdge> createDag() {
     final DefaultDirectedGraph<String, DefaultEdge> graph =
-        new DefaultDirectedGraph<String, DefaultEdge>(
-            DefaultEdge.<String>factory());
+        DefaultDirectedGraph.create();
     graph.addVertex("A");
     graph.addVertex("B");
     graph.addVertex("C");
@@ -130,6 +117,40 @@ public class GraphTest {
     graph.addEdge("E", "F");
     return graph;
   }
+
+  /** Unit test for
+   * {@link net.hydromatic.optiq.util.graph.Graphs.FrozenGraph}. */
+  @Test public void testPaths() {
+    //       B -> C
+    //      /      \
+    //     A        E
+    //      \      /
+    //       D -->
+    final DefaultDirectedGraph<String, DefaultEdge> graph =
+        DefaultDirectedGraph.create();
+    graph.addVertex("A");
+    graph.addVertex("B");
+    graph.addVertex("C");
+    graph.addVertex("D");
+    graph.addVertex("E");
+    graph.addVertex("F");
+    graph.addEdge("A", "B");
+    graph.addEdge("B", "C");
+    graph.addEdge("A", "D");
+    graph.addEdge("D", "E");
+    graph.addEdge("C", "E");
+    final Graphs.FrozenGraph<String, DefaultEdge> frozenGraph =
+        Graphs.makeImmutable(graph);
+    assertEquals("[A, B]", frozenGraph.getShortestPath("A", "B").toString());
+    assertEquals("[[A, B]]", frozenGraph.getPaths("A", "B").toString());
+    assertEquals("[A, D, E]", frozenGraph.getShortestPath("A", "E").toString());
+    assertEquals("[[A, B, C, E], [A, D, E]]",
+        frozenGraph.getPaths("A", "E").toString());
+    assertNull(frozenGraph.getShortestPath("B", "A"));
+    assertNull(frozenGraph.getShortestPath("D", "C"));
+    assertEquals("[[D, E]]", frozenGraph.getPaths("D", "E").toString());
+    assertEquals("[D, E]", frozenGraph.getShortestPath("D", "E").toString());
+  }
 }
 
-// End GraphTest.java
+// End DirectedGraphTest.java

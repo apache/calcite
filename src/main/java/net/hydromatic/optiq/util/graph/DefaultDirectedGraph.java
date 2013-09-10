@@ -24,31 +24,56 @@ import java.util.*;
  */
 public class DefaultDirectedGraph<V, E extends DefaultEdge>
     implements DirectedGraph<V, E> {
+  final Set<E> edges = new LinkedHashSet<E>();
   final Map<V, VertexInfo<V, E>> vertexMap =
       new LinkedHashMap<V, VertexInfo<V, E>>();
-  private final EdgeFactory<V, E> edgeFactory;
+  final EdgeFactory<V, E> edgeFactory;
 
   /** Creates a graph. */
   public DefaultDirectedGraph(EdgeFactory<V, E> edgeFactory) {
     this.edgeFactory = edgeFactory;
   }
 
+  public static <V> DefaultDirectedGraph<V, DefaultEdge> create() {
+    return new DefaultDirectedGraph<V, DefaultEdge>(DefaultEdge.<V>factory());
+  }
+
   public void addVertex(V vertex) {
     vertexMap.put(vertex, new VertexInfo<V, E>());
   }
 
-  public void addEdge(V vertex, V targetVertex) {
-    final VertexInfo<V, E> info = vertexMap.get(vertex);
-    info.outEdges.add(edgeFactory.createEdge(vertex, targetVertex));
+  public Set<E> edgeSet() {
+    return Collections.unmodifiableSet(edges);
   }
 
-  public boolean removeEdge(V vertex, V targetVertex) {
-    final VertexInfo<V, E> info = vertexMap.get(vertex);
+  public E addEdge(V vertex, V targetVertex) {
+    final E edge = edgeFactory.createEdge(vertex, targetVertex);
+    if (edges.add(edge)) {
+      final VertexInfo<V, E> info = vertexMap.get(vertex);
+      info.outEdges.add(edge);
+    }
+    return edge;
+  }
+
+  public E getEdge(V source, V target) {
+    // REVIEW: could instead use edges.get(new DefaultEdge(source, target))
+    final VertexInfo<V, E> info = vertexMap.get(source);
+    for (E outEdge : info.outEdges) {
+      if (outEdge.target.equals(target)) {
+        return outEdge;
+      }
+    }
+    return null;
+  }
+
+  public boolean removeEdge(V source, V target) {
+    final VertexInfo<V, E> info = vertexMap.get(source);
     List<E> outEdges = info.outEdges;
     for (int i = 0, size = outEdges.size(); i < size; i++) {
-      E outEdge = outEdges.get(i);
-      if (outEdge.target.equals(targetVertex)) {
+      E edge = outEdges.get(i);
+      if (edge.target.equals(target)) {
         outEdges.remove(i);
+        edges.remove(edge);
         return true;
       }
     }
@@ -87,6 +112,16 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
       }
     }
     return list;
+  }
+
+  final V source(E edge) {
+    //noinspection unchecked
+    return (V) edge.source;
+  }
+
+  final V target(E edge) {
+    //noinspection unchecked
+    return (V) edge.target;
   }
 
   static class VertexInfo<V, E> {

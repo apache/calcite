@@ -29,7 +29,8 @@ import java.util.Set;
  */
 public interface DirectedGraph<V, E> {
   void addVertex(V vertex);
-  void addEdge(V vertex, V targetVertex);
+  E addEdge(V vertex, V targetVertex);
+  E getEdge(V source, V target);
   boolean removeEdge(V vertex, V targetVertex);
   Set<V> vertexSet();
   void removeAllVertices(Collection<V> collection);
@@ -37,6 +38,8 @@ public interface DirectedGraph<V, E> {
   List<E> getOutwardEdges(V source);
 
   List<E> getInwardEdges(V vertex);
+
+  Set<E> edgeSet();
 
   interface EdgeFactory<V, E> {
     E createEdge(V v0, V v1);

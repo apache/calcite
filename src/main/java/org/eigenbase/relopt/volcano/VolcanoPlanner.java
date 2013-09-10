@@ -30,6 +30,8 @@ import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.util.graph.*;
+
 import net.hydromatic.linq4j.expressions.Expressions;
 
 /**
@@ -274,13 +276,14 @@ public class VolcanoPlanner
         // graph will contain
         //   (T, Emps), (T, Depts), (T2, T)
         // and therefore we can deduce T2 uses Emps.
-        Graph<List> usesGraph = new Graph<List>();
+        DirectedGraph<List<String>, DefaultEdge> usesGraph =
+            DefaultDirectedGraph.create();
         for (Materialization materialization : materializations) {
             if (materialization.table != null) {
                 for (RelOptTable usedTable
                     : findTables(materialization.queryRel))
                 {
-                    usesGraph.createArc(
+                    usesGraph.addEdge(
                         materialization.table.getQualifiedName(),
                         usedTable.getQualifiedName());
                 }
@@ -290,10 +293,13 @@ public class VolcanoPlanner
         // Use a materialization if uses at least one of the tables are used by
         // the query. (Simple rule that includes some materializations we won't
         // actually use.)
+        final Graphs.FrozenGraph<List<String>, DefaultEdge> frozenGraph =
+            Graphs.makeImmutable(usesGraph);
         final Set<RelOptTable> queryTables = findTables(originalRoot);
         for (Materialization materialization : materializations) {
             if (materialization.table != null) {
-                if (usesTable(materialization.table, queryTables, usesGraph)) {
+                if (usesTable(materialization.table, queryTables, frozenGraph))
+                {
                     useMaterialization(materialization);
                 }
             }
@@ -305,7 +311,7 @@ public class VolcanoPlanner
     private boolean usesTable(
         RelOptTable table,
         Set<RelOptTable> usedTables,
-        Graph<List> usesGraph)
+        Graphs.FrozenGraph<List<String>, DefaultEdge> usesGraph)
     {
         for (RelOptTable queryTable : usedTables) {
             if (usesGraph.getShortestPath(

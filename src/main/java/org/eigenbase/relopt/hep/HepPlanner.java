@@ -90,9 +90,7 @@ public class HepPlanner
         this.mainProgram = program;
 
         mapDigestToVertex = new HashMap<String, HepRelVertex>();
-        graph =
-            new DefaultDirectedGraph<HepRelVertex, DefaultEdge>(
-                DefaultEdge.<HepRelVertex>factory());
+        graph = DefaultDirectedGraph.create();
 
         // NOTE jvs 24-Apr-2006:  We use LinkedHashSet here and below
         // in order to provide deterministic behavior.

@@ -23,6 +23,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.util.graph.*;
 
 /**
  * Definition of the the convention trait.
@@ -86,17 +87,14 @@ public class ConventionTraitDef
         if (converterRule.isGuaranteed()) {
             ConversionData conversionData = getConversionData(planner);
 
-            final Graph<Convention> conversionGraph =
-                conversionData.conversionGraph;
-            final MultiMap<Graph.Arc, ConverterRule> mapArcToConverterRule =
-                conversionData.mapArcToConverterRule;
+            final Convention inConvention =
+                (Convention) converterRule.getInTrait();
+            final Convention outConvention =
+                (Convention) converterRule.getOutTrait();
+            conversionData.conversionGraph.addEdge(inConvention, outConvention);
 
-            final Graph.Arc arc =
-                conversionGraph.createArc(
-                    (Convention) converterRule.getInTrait(),
-                    (Convention) converterRule.getOutTrait());
-
-            mapArcToConverterRule.putMulti(arc, converterRule);
+            conversionData.mapArcToConverterRule.putMulti(
+                Pair.of(inConvention, outConvention), converterRule);
         }
     }
 
@@ -107,18 +105,17 @@ public class ConventionTraitDef
         if (converterRule.isGuaranteed()) {
             ConversionData conversionData = getConversionData(planner);
 
-            final Graph<Convention> conversionGraph =
-                conversionData.conversionGraph;
-            final MultiMap<Graph.Arc, ConverterRule> mapArcToConverterRule =
-                conversionData.mapArcToConverterRule;
+            final Convention inConvention =
+                (Convention) converterRule.getInTrait();
+            final Convention outConvention =
+                (Convention) converterRule.getOutTrait();
 
-            final Graph.Arc arc =
-                conversionGraph.deleteArc(
-                    (Convention) converterRule.getInTrait(),
-                    (Convention) converterRule.getOutTrait());
-            assert arc != null;
-
-            mapArcToConverterRule.removeMulti(arc, converterRule);
+            final boolean removed =
+                conversionData.conversionGraph.removeEdge(
+                    inConvention, outConvention);
+            assert removed;
+            conversionData.mapArcToConverterRule.removeMulti(
+                Pair.of(inConvention, outConvention), converterRule);
         }
     }
 
@@ -130,38 +127,40 @@ public class ConventionTraitDef
         boolean allowInfiniteCostConverters)
     {
         final ConversionData conversionData = getConversionData(planner);
-        final Graph<Convention> conversionGraph =
-            conversionData.conversionGraph;
-        final MultiMap<Graph.Arc, ConverterRule> mapArcToConverterRule =
-            conversionData.mapArcToConverterRule;
 
         final Convention fromConvention = rel.getConvention();
 
-        Iterator<Graph.Arc<Convention>[]> conversionPaths =
-            conversionGraph.getPaths(fromConvention, toConvention);
+        List<List<Convention>> conversionPaths =
+            conversionData.getPaths(fromConvention, toConvention);
 
 loop:
-        while (conversionPaths.hasNext()) {
-            Graph.Arc [] arcs = conversionPaths.next();
-            assert (arcs[0].from == fromConvention);
-            assert (arcs[arcs.length - 1].to == toConvention);
+        for (List<Convention> conversionPath : conversionPaths) {
+            assert conversionPath.get(0) == fromConvention;
+            assert conversionPath.get(conversionPath.size() - 1)
+                == toConvention;
             RelNode converted = rel;
-            for (Graph.Arc arc : arcs) {
+            Convention previous = null;
+            for (Convention arc : conversionPath) {
                 if (planner.getCost(converted).isInfinite()
                     && !allowInfiniteCostConverters)
                 {
                     continue loop;
                 }
-                converted = changeConvention(
-                    converted, arc, mapArcToConverterRule);
+                if (previous != null) {
+                    converted =
+                        changeConvention(
+                            converted, previous, arc,
+                            conversionData.mapArcToConverterRule);
                 if (converted == null) {
                     throw Util.newInternal(
                         "Converter from "
-                        + arc.from
+                        + previous
                         + " to "
-                        + arc.to
+                        + arc
                         + " guaranteed that it could convert any relexp");
                 }
+                }
+                previous = arc;
             }
             return converted;
         }
@@ -175,16 +174,19 @@ loop:
      */
     private RelNode changeConvention(
         RelNode rel,
-        Graph.Arc arc,
-        final MultiMap<Graph.Arc, ConverterRule> mapArcToConverterRule)
+        Convention source,
+        Convention target,
+        final MultiMap<Pair<Convention, Convention>, ConverterRule>
+            mapArcToConverterRule)
     {
-        assert (arc.from == rel.getConvention());
+        assert source == rel.getConvention();
 
         // Try to apply each converter rule for this arc's source/target calling
         // conventions.
-        for (ConverterRule rule : mapArcToConverterRule.getMulti(arc)) {
-            assert rule.getInTrait() == arc.from;
-            assert rule.getOutTrait() == arc.to;
+      final Pair<Convention, Convention> key = Pair.of(source, target);
+      for (ConverterRule rule : mapArcToConverterRule.getMulti(key)) {
+            assert rule.getInTrait() == source;
+            assert rule.getOutTrait() == target;
             RelNode converted = rule.convert(rel);
             if (converted != null) {
                 return converted;
@@ -199,9 +201,8 @@ loop:
         Convention toConvention)
     {
         ConversionData conversionData = getConversionData(planner);
-        return conversionData.conversionGraph.getShortestPath(
-            fromConvention,
-            toConvention) != null;
+        return conversionData.getShortestPath(fromConvention, toConvention)
+            != null;
     }
 
     private ConversionData getConversionData(RelOptPlanner planner)
@@ -220,16 +221,39 @@ loop:
 
     private static final class ConversionData
     {
-        final Graph<Convention> conversionGraph =
-            new Graph<Convention>();
+        final DirectedGraph<Convention, DefaultEdge> conversionGraph =
+            DefaultDirectedGraph.create();
 
         /**
          * For a given source/target convention, there may be several possible
-         * conversion rules. Maps {@link org.eigenbase.util.Graph.Arc} to a
+         * conversion rules. Maps {@link DefaultEdge} to a
          * collection of {@link ConverterRule} objects.
          */
-        final MultiMap<Graph.Arc, ConverterRule> mapArcToConverterRule =
-            new MultiMap<Graph.Arc, ConverterRule>();
+        final MultiMap<Pair<Convention, Convention>, ConverterRule>
+            mapArcToConverterRule =
+            new MultiMap<Pair<Convention, Convention>, ConverterRule>();
+        private Graphs.FrozenGraph<Convention, DefaultEdge> pathMap;
+
+        public List<List<Convention>> getPaths(
+            Convention fromConvention,
+            Convention toConvention)
+        {
+            return getPathMap().getPaths(fromConvention, toConvention);
+        }
+
+        private Graphs.FrozenGraph<Convention, DefaultEdge> getPathMap() {
+            if (pathMap == null) {
+                pathMap = Graphs.makeImmutable(conversionGraph);
+            }
+            return pathMap;
+        }
+
+        public List<Convention> getShortestPath(
+            Convention fromConvention,
+            Convention toConvention)
+        {
+            return getPathMap().getShortestPath(fromConvention, toConvention);
+        }
     }
 }
 

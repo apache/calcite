@@ -399,8 +399,7 @@ public abstract class CalcRelSplitter
         List<Set<Integer>> cohorts)
     {
         final DirectedGraph<Integer, DefaultEdge> graph =
-            new DefaultDirectedGraph<Integer, DefaultEdge>(
-                DefaultEdge.<Integer>factory());
+            DefaultDirectedGraph.create();
         for (int i = 0; i < exprs.length; i++) {
             graph.addVertex(i);
         }
