@@ -106,23 +106,6 @@ public class JdbcTest {
       + "   ]\n"
       + "}";
 
-  static String toString(ResultSet resultSet) throws SQLException {
-    StringBuilder buf = new StringBuilder();
-    while (resultSet.next()) {
-      int n = resultSet.getMetaData().getColumnCount();
-      String sep = "";
-      for (int i = 1; i <= n; i++) {
-        buf.append(sep)
-            .append(resultSet.getMetaData().getColumnLabel(i))
-            .append("=")
-            .append(resultSet.getObject(i));
-        sep = "; ";
-      }
-      buf.append("\n");
-    }
-    return buf.toString();
-  }
-
   /**
    * Tests a relation that is accessed via method syntax.
    * The function returns a {@link Queryable}.
@@ -305,7 +288,7 @@ public class JdbcTest {
         + "  on e.\"deptno\" = d.\"deptno\"\n"
         + "group by d.\"deptno\"\n"
         + "having count(*) > 1");
-    toString(resultSet);
+    OptiqAssert.toString(resultSet);
     resultSet.close();
     statement.close();
     connection.close();
@@ -1523,13 +1506,13 @@ public class JdbcTest {
               assertEquals(
                   "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=EMPLOYEES; TABLE_TYPE=TABLE; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n"
                   + "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=V; TABLE_TYPE=VIEW; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n",
-                  JdbcTest.toString(
+                  OptiqAssert.toString(
                       metaData.getTables(null, "adhoc", null, null)));
 
               // views only
               assertEquals(
                   "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=V; TABLE_TYPE=VIEW; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n",
-                  JdbcTest.toString(
+                  OptiqAssert.toString(
                       metaData.getTables(
                           null, "adhoc", null,
                           new String[] {
@@ -1616,7 +1599,7 @@ public class JdbcTest {
     Statement statement = optiqConnection.createStatement();
     ResultSet resultSet =
         statement.executeQuery("SELECT \"myvalue\" from TEST.\"mytable2\"");
-    assertEquals("myvalue=2\n", toString(resultSet));
+    assertEquals("myvalue=2\n", OptiqAssert.toString(resultSet));
     resultSet.close();
     statement.close();
     connection.close();

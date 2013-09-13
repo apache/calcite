@@ -33,7 +33,12 @@ public enum ConnectionProperty {
   MODEL("model", Type.STRING, null),
 
   /** Name of initial schema. */
-  SCHEMA("schema", Type.STRING, null);
+  SCHEMA("schema", Type.STRING, null),
+
+  /** Specifies whether Spark should be used as the engine for processing that
+   * cannot be pushed to the source system. If false (the default), Optiq
+   * generates code that implements the Enumerable interface. */
+  SPARK("spark", Type.BOOLEAN, "false");
 
   private final String camelName;
   private final Type type;
@@ -125,6 +130,10 @@ public enum ConnectionProperty {
       public String schema() {
         return SCHEMA.getString(properties);
       }
+
+      public boolean spark() {
+        return SPARK.getBoolean(properties);
+      }
     };
   }
   enum Type {
@@ -140,6 +149,7 @@ public enum ConnectionProperty {
     boolean materializationsEnabled();
     String model();
     String schema();
+    boolean spark();
   }
 }
 

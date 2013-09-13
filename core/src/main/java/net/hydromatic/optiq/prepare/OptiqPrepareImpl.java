@@ -24,6 +24,7 @@ import net.hydromatic.linq4j.function.Function0;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.impl.spark.SparkRel;
 import net.hydromatic.optiq.jdbc.Helper;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.materialize.MaterializationService;
@@ -47,6 +48,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
+import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
 
 import org.codehaus.janino.*;
@@ -255,13 +257,18 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     } else {
       prefer = EnumerableRel.Prefer.CUSTOM;
     }
+    final Convention convention =
+        context.config().spark()
+            ? SparkRel.CONVENTION
+            : EnumerableConvention.INSTANCE;
     final OptiqPreparingStmt preparingStmt =
         new OptiqPreparingStmt(
             catalogReader,
             typeFactory,
             context.getRootSchema(),
             prefer,
-            planner);
+            planner,
+            convention);
 
     final RelDataType x;
     final Prepare.PreparedResult preparedResult;
@@ -392,7 +399,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               schema.getTypeFactory());
       final OptiqPreparingStmt preparingStmt =
           new OptiqPreparingStmt(catalogReader, catalogReader.getTypeFactory(),
-              schema, EnumerableRel.Prefer.ANY, planner);
+              schema, EnumerableRel.Prefer.ANY, planner,
+              EnumerableConvention.INSTANCE);
       preparingStmt.populate(materialization);
     } catch (Exception e) {
       throw new RuntimeException("While populating materialization "
@@ -437,13 +445,24 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     private SqlValidator sqlValidator;
     private EnumerableRel.Prefer prefer;
 
-    public OptiqPreparingStmt(
-        CatalogReader catalogReader,
+    @Deprecated
+    public OptiqPreparingStmt(CatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
         Schema schema,
         EnumerableRel.Prefer prefer,
         RelOptPlanner planner) {
-      super(catalogReader, EnumerableConvention.INSTANCE);
+      this(catalogReader, typeFactory, schema, prefer, planner,
+          EnumerableConvention.INSTANCE);
+      Bug.upgrade("remove before 0.4.14");
+    }
+
+    public OptiqPreparingStmt(CatalogReader catalogReader,
+        RelDataTypeFactory typeFactory,
+        Schema schema,
+        EnumerableRel.Prefer prefer,
+        RelOptPlanner planner,
+        Convention resultConvention) {
+      super(catalogReader, resultConvention);
       this.schema = schema;
       this.prefer = prefer;
       this.planner = planner;

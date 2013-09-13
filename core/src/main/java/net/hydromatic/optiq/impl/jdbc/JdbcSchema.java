@@ -52,7 +52,7 @@ public class JdbcSchema implements Schema {
   final String schema;
   final JavaTypeFactory typeFactory;
   private final Expression expression;
-  final SqlDialect dialect;
+  public final SqlDialect dialect;
   final JdbcConvention convention;
 
   /**

@@ -410,7 +410,7 @@ public class JdbcImplementor {
 
     /** Converts a non-query node into a SELECT node. Set operators (UNION,
      * INTERSECT, EXCEPT) remain as is. */
-    SqlNode asQuery() {
+    public SqlNode asQuery() {
       if (node instanceof SqlCall
           && ((SqlCall) node).getOperator() instanceof SqlSetOperator) {
         return node;
