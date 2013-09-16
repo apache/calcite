@@ -18,11 +18,8 @@
 package org.eigenbase.util;
 
 import java.io.*;
-
 import java.lang.management.*;
-
 import java.math.*;
-
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.util.*;
@@ -30,6 +27,8 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.test.*;
+
+import net.hydromatic.optiq.runtime.FlatLists;
 
 import org.junit.Test;
 
@@ -1003,7 +1002,31 @@ public class UtilTest {
         return list;
     }
 
-  //~ Inner Classes ----------------------------------------------------------
+    /** Tests that flat lists behave like regular lists in terms of equals
+     * and hashCode. */
+    @Test public void testFlatList() {
+        final List<String> emp = FlatLists.of();
+        final List<String> emp0 = Collections.emptyList();
+        assertEquals(emp, emp0);
+        assertEquals(emp.hashCode(), emp0.hashCode());
+
+        final List<String> ab = FlatLists.of("A", "B");
+        final List<String> ab0 = Arrays.asList("A", "B");
+        assertEquals(ab, ab0);
+        assertEquals(ab.hashCode(), ab0.hashCode());
+
+        final List<String> an = FlatLists.of("A", null);
+        final List<String> an0 = Arrays.asList("A", null);
+        assertEquals(an, an0);
+        assertEquals(an.hashCode(), an0.hashCode());
+
+        final List<String> anb = FlatLists.of("A", null, "B");
+        final List<String> anb0 = Arrays.asList("A", null, "B");
+        assertEquals(anb, anb0);
+        assertEquals(anb.hashCode(), anb0.hashCode());
+    }
+
+    //~ Inner Classes ----------------------------------------------------------
 
     /**
      * Enumeration which extends BasicValue does NOT serialize correctly.

@@ -378,9 +378,9 @@ public class FlatLists {
 
     public int hashCode() {
       int h = 1;
-      h = h * 31 + t0.hashCode();
-      h = h * 31 + t1.hashCode();
-      h = h * 31 + t2.hashCode();
+      h = h * 31 + Utilities.hash(t0);
+      h = h * 31 + Utilities.hash(t1);
+      h = h * 31 + Utilities.hash(t2);
       return h;
     }
 
