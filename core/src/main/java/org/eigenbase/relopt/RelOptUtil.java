@@ -2382,6 +2382,16 @@ public abstract class RelOptUtil
             (List) rel.getInputs());
     }
 
+    /** Returns a shallow copy of a relational expression with a particular
+     * input replaced. */
+    public static RelNode replaceInput(
+        RelNode parent, int ordinal, RelNode newInput)
+    {
+        final List<RelNode> inputs = new ArrayList<RelNode>(parent.getInputs());
+        inputs.set(ordinal, newInput);
+        return parent.copy(parent.getTraitSet(), inputs);
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     private static class VariableSetVisitor

@@ -220,9 +220,10 @@ public class SubstitutionVisitor {
     static RexNode splitFilter(
         RexBuilder rexBuilder, RexNode condition, RexNode target)
     {
-        RexNode x = andNot(rexBuilder, condition, target);
+        RexNode x = andNot(rexBuilder, target, condition);
         if (mayBeSatisfiable(x)) {
-            return simplify(rexBuilder, x);
+            RexNode x2 = andNot(rexBuilder, condition, target);
+            return simplify(rexBuilder, x2);
         }
         return null;
     }
@@ -384,6 +385,11 @@ public class SubstitutionVisitor {
             queryInputs.add(unifyResult.result);
             Pair<RelNode, Integer> pair = parentMap.get(unifyResult.query);
             queryParent = pair.left;
+/*
+            queryParent = RelOptUtil.replaceInput(
+                pair.left, pair.right, unifyResult.result);
+            parentMap.put(queryParent, pair);
+*/
         }
 
         if (findInputs.isEmpty()) {
@@ -399,6 +405,19 @@ public class SubstitutionVisitor {
             for (UnifyRule rule : applicableRules(queryParent, find)) {
                 final UnifyResult x = apply(rule, queryParent, find);
                 if (x != null) {
+                    System.out.println(
+                        "Rule: " + rule
+                        + "\nQuery:\n"
+                        + RelOptUtil.toString(queryParent)
+                        + (x.query != queryParent
+                           ? "\nQuery (original):\n"
+                           + RelOptUtil.toString(queryParent)
+                           : "")
+                        + "\nFind:\n"
+                        + RelOptUtil.toString(find)
+                        + "\nResult:\n"
+                        + RelOptUtil.toString(x.result)
+                        + "\n");
                     return x;
                 }
             }
@@ -426,7 +445,7 @@ public class SubstitutionVisitor {
             list = builder.build();
             RULE_MAP.put(key, list);
         }
-        return RULES;
+        return list;
     }
 
     private <Q extends RelNode, T extends RelNode> UnifyResult apply(
@@ -591,8 +610,7 @@ public class SubstitutionVisitor {
             super(ProjectRel.class, ProjectRel.class);
         }
 
-        public UnifyResult apply(UnifyIn<ProjectRel, ProjectRel> in)
-        {
+        public UnifyResult apply(UnifyIn<ProjectRel, ProjectRel> in) {
             final RexShuttle shuttle = getRexShuttle(in.target);
             final List<RexNode> newProjects;
             try {
@@ -623,8 +641,7 @@ public class SubstitutionVisitor {
             super(FilterRel.class, ProjectRel.class);
         }
 
-        public UnifyResult apply(UnifyIn<FilterRel, ProjectRel> in)
-        {
+        public UnifyResult apply(UnifyIn<FilterRel, ProjectRel> in) {
             // Child of projectTarget is equivalent to child of filterQuery.
             try {
                 // TODO: shuttle that recognizes more complex
@@ -661,8 +678,7 @@ public class SubstitutionVisitor {
             super(FilterRel.class, FilterRel.class);
         }
 
-        public UnifyResult apply(UnifyIn<FilterRel, FilterRel> in)
-        {
+        public UnifyResult apply(UnifyIn<FilterRel, FilterRel> in) {
             // in.query can be rewritten in terms of in.target if its condition
             // is weaker. For example:
             //   query: SELECT * FROM t WHERE x = 1 AND y = 2
@@ -677,12 +693,19 @@ public class SubstitutionVisitor {
         }
 
         FilterRel createFilter(FilterRel query, FilterRel target) {
-            // TODO: split query's filter into parts that are and are
-            // not evaluated by target.
-            final RexNode newCondition = query.getCondition();
-            return new FilterRel(
-                query.getCluster(), target,
-                newCondition);
+            final RelOptCluster cluster = query.getCluster();
+            final RexNode newCondition =
+                splitFilter(
+                    cluster.getRexBuilder(), query.getCondition(),
+                    target.getCondition());
+            if (newCondition == null) {
+                // Could not map query onto target.
+                return null;
+            }
+            if (newCondition.isAlwaysTrue()) {
+                return target;
+            }
+            return new FilterRel(cluster, target, newCondition);
         }
     }
 

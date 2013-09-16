@@ -204,12 +204,12 @@ public class OptiqAssert {
   static Function1<ResultSet, Void> consistentResult(final boolean ordered) {
     return new Function1<ResultSet, Void>() {
       int executeCount = 0;
-      Object expected;
+      Collection expected;
 
       public Void apply(ResultSet resultSet) {
         ++executeCount;
         try {
-          final Object result =
+          final Collection result =
               OptiqAssert.toStringList(
                   resultSet,
                   ordered ? new ArrayList<String>() : new TreeSet<String>());
@@ -218,7 +218,7 @@ public class OptiqAssert {
           } else {
             if (!expected.equals(result)) {
               // compare strings to get better error message
-              assertEquals(expected.toString(), result.toString());
+              assertEquals(newlineList(expected), newlineList(result));
               fail("oops");
             }
           }
@@ -228,6 +228,14 @@ public class OptiqAssert {
         }
       }
     };
+  }
+
+  static String newlineList(Collection collection) {
+    final StringBuilder buf = new StringBuilder();
+    for (Object o : collection) {
+      buf.append(o).append('\n');
+    }
+    return buf.toString();
   }
 
   static Function1<ResultSet, Void> checkResultUnordered(
@@ -839,11 +847,11 @@ public class OptiqAssert {
     public void sameResultWithMaterializationsDisabled() {
       boolean save = materializationsEnabled;
       try {
-        materializationsEnabled = true;
+        materializationsEnabled = false;
         final boolean ordered = sql.toUpperCase().contains("ORDER BY");
         final Function1<ResultSet, Void> checker = consistentResult(ordered);
         returns(checker);
-        materializationsEnabled = false;
+        materializationsEnabled = true;
         returns(checker);
       } finally {
         materializationsEnabled = save;

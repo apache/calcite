@@ -173,7 +173,6 @@ public class RexProgram
      * Creates a program which calculates projections and filters rows based
      * upon a condition. Does not attempt to eliminate common sub-expressions.
      *
-     *
      * @param projectExprs Project expressions
      * @param conditionExpr Condition on which to filter rows, or null if rows
      * are not to be filtered
@@ -189,13 +188,41 @@ public class RexProgram
         RelDataType outputRowType,
         RexBuilder rexBuilder)
     {
+        return create(
+            inputRowType, projectExprs, conditionExpr,
+            outputRowType.getFieldNames(), rexBuilder);
+    }
+
+    /**
+     * Creates a program which calculates projections and filters rows based
+     * upon a condition. Does not attempt to eliminate common sub-expressions.
+     *
+     * @param projectExprs Project expressions
+     * @param conditionExpr Condition on which to filter rows, or null if rows
+     * are not to be filtered
+     * @param fieldNames Names of projected fields
+     * @param rexBuilder Builder of rex expressions
+     *
+     * @return A program
+     */
+    public static RexProgram create(
+        RelDataType inputRowType,
+        List<RexNode> projectExprs,
+        RexNode conditionExpr,
+        List<String> fieldNames,
+        RexBuilder rexBuilder)
+    {
+        if (fieldNames == null) {
+            fieldNames = Collections.nCopies(projectExprs.size(), null);
+        } else {
+            assert fieldNames.size() == projectExprs.size()
+                : "fieldNames=" + fieldNames
+                + ", exprs=" + projectExprs;
+        }
         final RexProgramBuilder programBuilder =
             new RexProgramBuilder(inputRowType, rexBuilder);
-        final List<RelDataTypeField> fields = outputRowType.getFieldList();
         for (int i = 0; i < projectExprs.size(); i++) {
-            programBuilder.addProject(
-                projectExprs.get(i),
-                fields.get(i).getName());
+            programBuilder.addProject(projectExprs.get(i), fieldNames.get(i));
         }
         if (conditionExpr != null) {
             programBuilder.addCondition(conditionExpr);

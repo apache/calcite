@@ -155,22 +155,11 @@ public final class CalcRel
         List<String> fieldNames,
         boolean optimize)
     {
-        if (fieldNames == null) {
-            fieldNames = Collections.nCopies(exprs.size(), null);
-        } else {
-            assert (fieldNames.size() == exprs.size())
-                : "fieldNames=" + fieldNames
-                + ", exprs=" + exprs;
-        }
         final RelOptCluster cluster = child.getCluster();
-        RexProgramBuilder builder =
-            new RexProgramBuilder(
-                child.getRowType(),
+        final RexProgram program =
+            RexProgram.create(
+                child.getRowType(), exprs, null, fieldNames,
                 cluster.getRexBuilder());
-        for (Pair<RexNode, String> pair : Pair.zip(exprs, fieldNames)) {
-            builder.addProject(pair.left, pair.right);
-        }
-        final RexProgram program = builder.getProgram();
         final List<RelCollation> collationList =
             program.getCollations(child.getCollationList());
         if (DeprecateProjectAndFilter) {
