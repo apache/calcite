@@ -28,6 +28,10 @@ public class Utilities {
     return o0 == o1 || o0 != null && o0.equals(o1);
   }
 
+  public static int hash(Object v) {
+    return v == null ? 0 : v.hashCode();
+  }
+
   public static int hash(int h, boolean v) {
     return h * 37 + (v ? 2 : 1);
   }

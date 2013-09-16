@@ -1136,6 +1136,21 @@ public class JdbcTest {
             + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n");
   }
 
+  /** Tests composite GROUP BY where one of the columns has NULL values. */
+  @Test public void testGroupByNull() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"deptno\", \"commission\", sum(\"salary\") s\n"
+            + "from \"hr\".\"emps\"\n"
+            + "group by \"deptno\", \"commission\"")
+        .returns(
+            "deptno=10; commission=null; S=7000.0\n"
+            + "deptno=20; commission=500; S=8000.0\n"
+            + "deptno=10; commission=1000; S=10000.0\n"
+            + "deptno=10; commission=250; S=11500.0\n");
+  }
+
   /** Tests sorting by a column that is already sorted. */
   @Test public void testOrderByOnSortedTable() {
     OptiqAssert.assertThat()
