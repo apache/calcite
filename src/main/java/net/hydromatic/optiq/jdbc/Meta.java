@@ -91,7 +91,8 @@ public class Meta {
                             MetaSchema, Enumerable<MetaTable>>() {
                           public Enumerable<MetaTable> apply(
                               MetaSchema a0) {
-                            return tables(a0);
+                            return tablesAndTableFunctions(a0,
+                                Functions.<String>truePredicate1());
                           }
                         })
                     .enumerator();
@@ -114,7 +115,8 @@ public class Meta {
                             MetaSchema, Enumerable<MetaTable>>() {
                           public Enumerable<MetaTable> apply(
                               MetaSchema a0) {
-                            return tables(a0);
+                            return tablesAndTableFunctions(
+                                a0, Functions.<String>truePredicate1());
                           }
                         })
                     .selectMany(
@@ -171,13 +173,8 @@ public class Meta {
             .selectMany(
                 new Function1<MetaSchema, Enumerable<MetaTable>>() {
                   public Enumerable<MetaTable> apply(MetaSchema a0) {
-                    return tables(a0)
-                        .where(
-                            Meta.<MetaTable>namedMatcher(
-                                tableNamePattern))
-                        .concat(
-                            tableFunctions(
-                                a0, matcher(tableNamePattern)));
+                    return tablesAndTableFunctions(
+                        a0, matcher(tableNamePattern));
                   }
                 })
             .where(typeFilter),
@@ -200,17 +197,17 @@ public class Meta {
       String schemaPattern,
       String tableNamePattern,
       String columnNamePattern) {
+    final Predicate1<String> tableNameMatcher = matcher(tableNamePattern);
     return createResultSet(
         schemas(catalog)
             .where(Meta.<MetaSchema>namedMatcher(schemaPattern))
             .selectMany(
                 new Function1<MetaSchema, Enumerable<MetaTable>>() {
                   public Enumerable<MetaTable> apply(MetaSchema a0) {
-                    return tables(a0);
+                    return tablesAndTableFunctions(
+                        a0, tableNameMatcher);
                   }
                 })
-            .where(
-                Meta.<MetaTable>namedMatcher(tableNamePattern))
             .selectMany(
                 new Function1<MetaTable, Enumerable<MetaColumn>>() {
                   public Enumerable<MetaColumn> apply(MetaTable a0) {
@@ -302,6 +299,20 @@ public class Meta {
                     Schema.TableType.VIEW.name());
               }
             });
+  }
+
+  Enumerable<MetaTable> tablesAndTableFunctions(
+      final MetaSchema schema,
+      final Predicate1<String> matcher) {
+    return tables(schema)
+        .where(
+            new Predicate1<MetaTable>() {
+              public boolean apply(MetaTable v1) {
+                return matcher.apply(v1.getName());
+              }
+            })
+        .concat(
+            tableFunctions(schema, matcher));
   }
 
   public Enumerable<MetaColumn> columns(final MetaTable table) {
