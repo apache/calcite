@@ -38,8 +38,13 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return new DefaultDirectedGraph<V, DefaultEdge>(DefaultEdge.<V>factory());
   }
 
-  public void addVertex(V vertex) {
-    vertexMap.put(vertex, new VertexInfo<V, E>());
+  public boolean addVertex(V vertex) {
+    if (vertexMap.containsKey(vertex)) {
+      return false;
+    } else {
+      vertexMap.put(vertex, new VertexInfo<V, E>());
+      return true;
+    }
   }
 
   public Set<E> edgeSet() {
@@ -47,12 +52,21 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   }
 
   public E addEdge(V vertex, V targetVertex) {
+    final VertexInfo<V, E> info = vertexMap.get(vertex);
+    if (info == null) {
+      throw new IllegalArgumentException("no vertex " + vertex);
+    }
+    final VertexInfo<V, E> info2 = vertexMap.get(targetVertex);
+    if (info2 == null) {
+      throw new IllegalArgumentException("no vertex " + targetVertex);
+    }
     final E edge = edgeFactory.createEdge(vertex, targetVertex);
     if (edges.add(edge)) {
-      final VertexInfo<V, E> info = vertexMap.get(vertex);
       info.outEdges.add(edge);
+      return edge;
+    } else {
+      return null;
     }
-    return edge;
   }
 
   public E getEdge(V source, V target) {

@@ -65,6 +65,49 @@ public class DirectedGraphTest {
     return Graphs.makeImmutable(g).getPaths(source, target);
   }
 
+  @Test public void testVertexMustExist() {
+    DirectedGraph<String, DefaultEdge> g = DefaultDirectedGraph.create();
+
+    final boolean b = g.addVertex("A");
+    assertTrue(b);
+
+    final boolean b2 = g.addVertex("A");
+    assertFalse(b2);
+
+    try {
+      DefaultEdge x = g.addEdge("A", "B");
+      fail("expected exception, got " + x);
+    } catch (IllegalArgumentException e) {
+      // ok
+    }
+    g.addVertex("B");
+    DefaultEdge x = g.addEdge("A", "B");
+    assertNotNull(x);
+    DefaultEdge x2 = g.addEdge("A", "B");
+    assertNull(x2);
+    try {
+      DefaultEdge x3 = g.addEdge("Z", "A");
+      fail("expected exception, got " + x3);
+    } catch (IllegalArgumentException e) {
+      // ok
+    }
+    g.addVertex("Z");
+    DefaultEdge x3 = g.addEdge("Z", "A");
+    assertNotNull(x3);
+    DefaultEdge x4 = g.addEdge("Z", "A");
+    assertNull(x4);
+
+    // Attempting to add a vertex already present does not change the graph.
+    final List<DefaultEdge> in1 = g.getInwardEdges("A");
+    final List<DefaultEdge> out1 = g.getOutwardEdges("A");
+    final boolean b3 = g.addVertex("A");
+    assertFalse(b3);
+    final List<DefaultEdge> in2 = g.getInwardEdges("A");
+    final List<DefaultEdge> out2 = g.getOutwardEdges("A");
+    assertEquals(in1, in2);
+    assertEquals(out1, out2);
+  }
+
   /** Unit test for {@link DepthFirstIterator}. */
   @Test public void testDepthFirst() {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();

@@ -283,6 +283,10 @@ public class VolcanoPlanner
                 for (RelOptTable usedTable
                     : findTables(materialization.queryRel))
                 {
+                    usesGraph.addVertex(
+                        materialization.table.getQualifiedName());
+                    usesGraph.addVertex(
+                        usedTable.getQualifiedName());
                     usesGraph.addEdge(
                         materialization.table.getQualifiedName(),
                         usedTable.getQualifiedName());
