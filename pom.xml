@@ -60,6 +60,11 @@
       <url>http://conjars.org/repo</url>
       <layout>default</layout>
     </repository>
+    <site>
+      <id>optiq.website</id>
+      <name>Optiq Website</name>
+      <url>file:/home/jhyde/optiq</url>
+    </site>
   </distributionManagement>
 
   <issueManagement />

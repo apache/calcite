@@ -10,6 +10,7 @@
   <packaging>jar</packaging>
   <version>0.4.12-SNAPSHOT</version>
   <name>optiq-mongodb</name>
+  <description>MongoDB adapter for Optiq.</description>
 
   <dependencies>
     <dependency>

@@ -10,6 +10,7 @@
   <packaging>jar</packaging>
   <version>0.4.12-SNAPSHOT</version>
   <name>optiq-core</name>
+  <description>Core Optiq APIs and engine.</description>
 
   <build>
     <plugins>
