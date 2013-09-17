@@ -74,9 +74,8 @@
   <modules>
     <module>core</module>
     <module>mongodb</module>
-<!--
     <module>spark</module>
--->
+    <module>splunk</module>
   </modules>
 
   <!-- Dependencies. -->

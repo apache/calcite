@@ -1,0 +1,29 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>net.hydromatic</groupId>
+    <artifactId>optiq-parent</artifactId>
+    <version>0.4.12-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>optiq-splunk</artifactId>
+  <packaging>jar</packaging>
+  <version>0.4.12-SNAPSHOT</version>
+  <name>optiq-splunk</name>
+  <description>Splunk adapter for Optiq; also a JDBC driver for Splunk.</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>optiq-core</artifactId>
+      <version>0.4.12-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>net.sf.opencsv</groupId>
+      <artifactId>opencsv</artifactId>
+      <version>2.3</version>
+    </dependency>
+  </dependencies>
+
+</project>
