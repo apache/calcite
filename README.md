@@ -8,7 +8,7 @@ Optiq is a dynamic data management framework.
 Prerequisites
 =============
 
-Optiq requires git, maven, and JDK 1.6 or later (JDK 1.7 preferred).
+Optiq requires git, maven (3.0.4 or later), and JDK 1.6 or later (JDK 1.7 preferred).
 
 Download and build
 ==================

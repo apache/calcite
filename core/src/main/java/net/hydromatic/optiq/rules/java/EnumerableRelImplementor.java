@@ -31,6 +31,9 @@ import org.eigenbase.rel.RelImplementorImpl;
 import org.eigenbase.relopt.RelImplementor;
 import org.eigenbase.rex.RexBuilder;
 
+import com.google.common.collect.ImmutableList;
+
+import java.io.Serializable;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -119,7 +122,7 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
             Modifier.PUBLIC | Modifier.STATIC,
             type.getName(),
             null,
-            Collections.<Type>emptyList(),
+            ImmutableList.<Type>of(Serializable.class),
             new ArrayList<MemberDeclaration>());
 
     // For each field:

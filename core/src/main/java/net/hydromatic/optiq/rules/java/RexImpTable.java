@@ -556,7 +556,7 @@ public class RexImpTable {
         Expression end, Expression rows, Expression current);
   }
 
-  enum NullAs {
+  public enum NullAs {
     NULL,
     FALSE,
     TRUE,

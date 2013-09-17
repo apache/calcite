@@ -40,6 +40,11 @@ public interface SparkRel extends RelNode {
   }
 
   public class Result {
+    public final BlockStatement block;
+
+    public Result(BlockStatement block) {
+      this.block = block;
+    }
   }
 }
 
