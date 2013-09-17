@@ -204,8 +204,8 @@ public class FlatLists {
    * no array, only one piece of memory allocated, therefore is very compact
    * and cache and CPU efficient.
    *
-   * <p>The list is read-only, cannot be modified or resized, and neither
-   * of the elements can be null.
+   * <p>The list is read-only and cannot be modified or re-sized.
+   * The elements may be null.
    *
    * <p>The list is created via {@link FlatLists#of}.
    *
@@ -220,8 +220,6 @@ public class FlatLists {
     Flat2List(T t0, T t1) {
       this.t0 = t0;
       this.t1 = t1;
-      assert t0 != null;
-      assert t1 != null;
     }
 
     public String toString() {
@@ -267,21 +265,39 @@ public class FlatLists {
     }
 
     public int indexOf(Object o) {
-      if (t0.equals(o)) {
-        return 0;
-      }
-      if (t1.equals(o)) {
-        return 1;
+      if (o == null) {
+        if (t0 == null) {
+          return 0;
+        }
+        if (t1 == null) {
+          return 1;
+        }
+      } else {
+        if (t0.equals(o)) {
+          return 0;
+        }
+        if (t1.equals(o)) {
+          return 1;
+        }
       }
       return -1;
     }
 
     public int lastIndexOf(Object o) {
-      if (t1.equals(o)) {
-        return 1;
-      }
-      if (t0.equals(o)) {
-        return 0;
+      if (o == null) {
+        if (t1 == null) {
+          return 1;
+        }
+        if (t0 == null) {
+          return 0;
+        }
+      } else {
+        if (t1.equals(o)) {
+          return 1;
+        }
+        if (t0.equals(o)) {
+          return 0;
+        }
       }
       return -1;
     }
@@ -315,8 +331,8 @@ public class FlatLists {
    * no array, only one piece of memory allocated, therefore is very compact
    * and cache and CPU efficient.
    *
-   * <p>The list is read-only, cannot be modified or resized, and none
-   * of the elements can be null.
+   * <p>The list is read-only, cannot be modified or re-sized.
+   * The elements may be null.
    *
    * <p>The list is created via {@link FlatLists#of(java.util.List)}.
    *
@@ -333,9 +349,6 @@ public class FlatLists {
       this.t0 = t0;
       this.t1 = t1;
       this.t2 = t2;
-      assert t0 != null;
-      assert t1 != null;
-      assert t2 != null;
     }
 
     public String toString() {
@@ -385,27 +398,51 @@ public class FlatLists {
     }
 
     public int indexOf(Object o) {
-      if (t0.equals(o)) {
-        return 0;
-      }
-      if (t1.equals(o)) {
-        return 1;
-      }
-      if (t2.equals(o)) {
-        return 2;
+      if (o == null) {
+        if (t0 == null) {
+          return 0;
+        }
+        if (t1 == null) {
+          return 1;
+        }
+        if (t2 == null) {
+          return 2;
+        }
+      } else {
+        if (t0.equals(o)) {
+          return 0;
+        }
+        if (t1.equals(o)) {
+          return 1;
+        }
+        if (t2.equals(o)) {
+          return 2;
+        }
       }
       return -1;
     }
 
     public int lastIndexOf(Object o) {
-      if (t2.equals(o)) {
-        return 2;
-      }
-      if (t1.equals(o)) {
-        return 1;
-      }
-      if (t0.equals(o)) {
-        return 0;
+      if (o == null) {
+        if (t2 == null) {
+          return 2;
+        }
+        if (t1 == null) {
+          return 1;
+        }
+        if (t0 == null) {
+          return 0;
+        }
+      } else {
+        if (t2.equals(o)) {
+          return 2;
+        }
+        if (t1.equals(o)) {
+          return 1;
+        }
+        if (t0.equals(o)) {
+          return 0;
+        }
       }
       return -1;
     }
