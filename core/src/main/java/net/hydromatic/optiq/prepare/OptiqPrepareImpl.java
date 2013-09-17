@@ -24,8 +24,6 @@ import net.hydromatic.linq4j.function.Function0;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.impl.spark.SparkRel;
-import net.hydromatic.optiq.impl.spark.SparkRules;
 import net.hydromatic.optiq.jdbc.Helper;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.materialize.MaterializationService;
@@ -58,6 +56,7 @@ import org.codehaus.janino.Scanner;
 import com.google.common.collect.*;
 
 import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
@@ -81,7 +80,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   private static final boolean ENABLE_COLLATION_TRAIT = true;
 
   /** Whether to enable Spark. */
-  private static final boolean ENABLE_SPARK = true;
+  private static final ThreadLocal<Pair<Convention, List<RelOptRule>>> SPARK =
+      new ThreadLocal<Pair<Convention, List<RelOptRule>>>();
 
   private static final Set<String> SIMPLE_SQLS =
       ImmutableSet.of(
@@ -149,8 +149,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
       planner.registerAbstractRelationalRules();
     }
-    if (ENABLE_SPARK) {
-      for (RelOptRule rule : SparkRules.rules()) {
+    final Pair<Convention, List<RelOptRule>> spark = SPARK.get();
+    if (spark != null) {
+      for (RelOptRule rule : spark.right) {
         planner.addRule(rule);
       }
     }
@@ -164,7 +165,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(JavaRules.ENUMERABLE_INTERSECT_RULE);
     planner.addRule(JavaRules.ENUMERABLE_MINUS_RULE);
     planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
-    if (!ENABLE_SPARK) {
+    if (spark == null) {
       planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
     }
     planner.addRule(JavaRules.ENUMERABLE_WINDOW_RULE);
@@ -221,11 +222,38 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         throw new AssertionError("factory returned null planner");
       }
       try {
+        if (context.config().spark()) {
+          try {
+            //noinspection unchecked
+            SPARK.set(
+                Pair.of(
+                    (Convention)
+                    Class.forName("net.hydromatic.optiq.impl.spark.SparkRel")
+                      .getField("CONVENTION")
+                      .get(null),
+                    (List<RelOptRule>)
+                    Class.forName("net.hydromatic.optiq.impl.spark.SparkRules")
+                      .getMethod("rules")
+                      .invoke(null)));
+          } catch (ClassNotFoundException e) {
+          throw new RuntimeException(e);
+          } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+          } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+          } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+          } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+          }
+        }
         return prepare2_(
             context, sql, queryable, elementType, maxRowCount,
             catalogReader, planner);
       } catch (RelOptPlanner.CannotPlanException e) {
         exception = e;
+      } finally {
+        SPARK.remove();
       }
     }
     throw exception;
@@ -275,7 +303,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             context.getRootSchema(),
             prefer,
             planner,
-            ENABLE_SPARK,
             EnumerableConvention.INSTANCE);
 
     final RelDataType x;
@@ -407,7 +434,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               schema.getTypeFactory());
       final OptiqPreparingStmt preparingStmt =
           new OptiqPreparingStmt(catalogReader, catalogReader.getTypeFactory(),
-              schema, EnumerableRel.Prefer.ANY, planner, false,
+              schema, EnumerableRel.Prefer.ANY, planner,
               EnumerableConvention.INSTANCE);
       preparingStmt.populate(materialization);
     } catch (Exception e) {
@@ -449,7 +476,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     private final RelOptPlanner planner;
     private final RexBuilder rexBuilder;
     private final Schema schema;
-    private final boolean spark;
     private int expansionDepth;
     private SqlValidator sqlValidator;
     private EnumerableRel.Prefer prefer;
@@ -460,7 +486,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         Schema schema,
         EnumerableRel.Prefer prefer,
         RelOptPlanner planner) {
-      this(catalogReader, typeFactory, schema, prefer, planner, false,
+      this(catalogReader, typeFactory, schema, prefer, planner,
           EnumerableConvention.INSTANCE);
       Bug.upgrade("remove before 0.4.14");
     }
@@ -470,13 +496,11 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         Schema schema,
         EnumerableRel.Prefer prefer,
         RelOptPlanner planner,
-        boolean spark,
         Convention resultConvention) {
       super(catalogReader, resultConvention);
       this.schema = schema;
       this.prefer = prefer;
       this.planner = planner;
-      this.spark = spark;
       this.rexBuilder = new RexBuilder(typeFactory);
     }
 
@@ -554,10 +578,11 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     public RelNode flattenTypes(
         RelNode rootRel,
         boolean restructure) {
-      if (spark) {
+      final Pair<Convention, List<RelOptRule>> spark = SPARK.get();
+      if (spark != null) {
         RelNode root2 =
             planner.changeTraits(rootRel,
-                rootRel.getTraitSet().plus(SparkRel.CONVENTION));
+                rootRel.getTraitSet().plus(spark.left));
         return planner.changeTraits(root2,
             rootRel.getTraitSet());
       }

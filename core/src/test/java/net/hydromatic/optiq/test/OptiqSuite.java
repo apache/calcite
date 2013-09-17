@@ -78,7 +78,6 @@ import org.junit.runners.Suite;
     RexProgramTest.class,
     RexTransformerTest.class,
     JdbcAdapterTest.class,
-    SparkAdapterTest.class,
     JdbcTest.class
 })
 public class OptiqSuite {

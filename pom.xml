@@ -74,6 +74,7 @@
   <modules>
     <module>core</module>
     <module>mongodb</module>
+    <module>spark</module>
   </modules>
 
   <!-- Dependencies. -->
@@ -118,11 +119,6 @@
       <groupId>org.codehaus.janino</groupId>
       <artifactId>janino</artifactId>
       <version>2.6.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core</artifactId>
-      <version>0.8.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.incava</groupId>
