@@ -79,9 +79,6 @@
   <modules>
     <module>core</module>
     <module>mongodb</module>
-<!-- disabled because depends on non-released version of spark
-    <module>spark</module>
--->
     <module>splunk</module>
   </modules>
 
@@ -202,4 +199,13 @@
     </repository>
   </repositories>
 
+
+  <profiles>
+    <profile>
+      <id>spark</id>
+      <modules>
+        <module>spark</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>
