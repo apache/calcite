@@ -79,7 +79,9 @@
   <modules>
     <module>core</module>
     <module>mongodb</module>
+<!-- disabled because depends on non-released version of spark
     <module>spark</module>
+-->
     <module>splunk</module>
   </modules>
 
