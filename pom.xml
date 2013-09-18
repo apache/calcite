@@ -5,7 +5,7 @@
   <groupId>net.hydromatic</groupId>
   <artifactId>optiq-parent</artifactId>
   <packaging>pom</packaging>
-  <version>0.4.12</version>
+  <version>0.4.13-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>optiq-parent</name>
