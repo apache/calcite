@@ -81,8 +81,8 @@
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
-      <artifactId>optiq</artifactId>
-      <version>0.4.7</version>
+      <artifactId>optiq-core</artifactId>
+      <version>0.4.12</version>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>

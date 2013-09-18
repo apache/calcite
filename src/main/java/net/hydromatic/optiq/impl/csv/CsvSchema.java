@@ -40,6 +40,7 @@ public class CsvSchema extends MapSchema {
    * Creates a CSV schema.
    *
    * @param parentSchema Parent schema
+   * @param name Schema name
    * @param directoryFile Directory that holds .csv files
    * @param expression Java expression to create an instance of this schema
    *                   in generated code
@@ -48,10 +49,11 @@ public class CsvSchema extends MapSchema {
    */
   public CsvSchema(
       Schema parentSchema,
+      String name,
       File directoryFile,
       Expression expression,
       boolean smart) {
-    super(parentSchema, expression);
+    super(parentSchema, name, expression);
     this.directoryFile = directoryFile;
     this.smart = smart;
   }

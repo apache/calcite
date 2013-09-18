@@ -41,6 +41,7 @@ public class CsvSchemaFactory implements SchemaFactory {
     final CsvSchema schema =
         new CsvSchema(
             parentSchema,
+            name,
             new File(directory),
             parentSchema.getSubSchemaExpression(name, CsvSchema.class),
             smart != null && smart);
