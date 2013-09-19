@@ -4,12 +4,12 @@
 
 ```SQL
 query:
-  \{
+  {
       select
   |   query UNION [ ALL ] query
   |   query EXCEPT query
   |   query INTERSECT query
-  \}
+  }
   [ ORDER BY orderItem [, orderItem ]* ]
   [ LIMIT { count | ALL } ]
   [ OFFSET start { ROW | ROWS } ]
@@ -106,7 +106,7 @@ name will have been converted to upper case also.
 
 | Data type   | Description               | Range and examples   |
 | ----------- | ------------------------- | ---------------------|
-| `BOOLEAN`   | Logical values            | Values: `TRUE`, `FALSE`, `UNKNOWN`
+| <code>BOOLEAN</code>   | Logical values            | Values: `TRUE`, `FALSE`, `UNKNOWN`
 | `TINYINT`   | 1 byte signed integer     | Range is -255 to 256
 | `SMALLINT`  | 2 byte signed integer     | Range is -32768 to 32767
 | `INTEGER`, `INT` | 4 byte signed integer  | Range is -2147483648 to 2147483647
