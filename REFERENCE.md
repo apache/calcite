@@ -22,7 +22,7 @@ select:
 SELECT [ ALL | DISTINCT ] { * | projectItem [, projectItem ]* }
 FROM tableExpression
 [ WHERE booleanExpression ]
-[ GROUP BY { () | expression [, ...] } ]
+[ GROUP BY { () | expression [, expression]* } ]
 [ HAVING booleanExpression ]
 ```
 
@@ -80,23 +80,19 @@ clause of an enclosing query.
 
 | Data type | Description               | Range                |
 | --------- | ------------------------- | ---------------------|
-| BOOLEAN   | Logical values            | TRUE, FALSE, UNKNOWN |
-| TINYINT   | 1 byte signed integer     | -255 to 256 |
-| SMALLINT  | 2 byte signed integer     | -32768 to 32767 |
-| INTEGER, INT | 4 byte signed integer  | -2147483648 to 2147483647 |
-| BIGINT    | 8 byte signed integer     | -9223372036854775808 to 9223372036854775807 |
-| DECIMAL   | Fixed point               | |
-| NUMERIC   | Fixed point               | |
-| REAL,     | 4 byte floating point     | 6 decimal digits precision |
-| FLOAT     |                           | |
-| DOUBLE    | 8 byte floating point     | 15 decimal digits precision |
-| VARCHAR(n), | Variable-length         | As CHAR |
-| CHARACTER VARYING(n) | character string | |
-| CHAR(n),   | Fixed-width character    | 'Hello', '' (empty string) |
-| CHARACTER(n) | string                 |
-| VARBINARY(n), | Variable-length       | As BINARY |
-| BINARY VARYING(n) | binary string     | |
-| BINARY(n) | Fixed-width binary string | x'45F0AB', x'' (empty string) |
+| BOOLEAN   | Logical values            | TRUE, FALSE, UNKNOWN
+| TINYINT   | 1 byte signed integer     | -255 to 256
+| SMALLINT  | 2 byte signed integer     | -32768 to 32767
+| INTEGER, INT | 4 byte signed integer  | -2147483648 to 2147483647
+| BIGINT    | 8 byte signed integer     | -9223372036854775808 to 9223372036854775807
+| DECIMAL   | Fixed point               |
+| NUMERIC   | Fixed point               |
+| REAL, FLOAT | 4 byte floating point     | 6 decimal digits precision 
+| DOUBLE    | 8 byte floating point     | 15 decimal digits precision
+| VARCHAR(n), CHARACTER VARYING(n) | Variable-length character string | As CHAR 
+| CHAR(n), CHARACTER(n) | Fixed-width character string | 'Hello', '' (empty string)
+| VARBINARY(n), BINARY VARYING(n) | Variable-length binary string | As BINARY
+| BINARY(n) | Fixed-width binary string | x'45F0AB', x'' (empty string)
 | DATE      | Date                      | DATE '1969-07-20'
 | TIME      | Time of day               | TIME '20:17:40'
 | TIMESTAMP | Date and time             | TIMESTAMP '1969-07-20 20:17:40'
