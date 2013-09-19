@@ -77,8 +77,7 @@ BasicDataSource dataSource = new BasicDataSource();
 dataSource.setUrl("jdbc:mysql://localhost");
 dataSource.setUsername("sa");
 dataSource.setPassword("");
-JdbcSchema.create(optiqConnection, dataSource,
-    rootSchema, "hr", "");
+JdbcSchema.create(optiqConnection, dataSource, rootSchema, "hr", "");
 ```
 
 and Optiq will execute the same query in JDBC. To the application, the
@@ -160,23 +159,21 @@ The following features are complete.
 * <a href="https://github.com/julianhyde/linq4j">Linq4j</a> front-end
 * SQL features: SELECT, FROM (including JOIN syntax), WHERE, GROUP BY (and aggregate functions including COUNT(DISTINCT ...)), HAVING, ORDER BY (including NULLS FIRST/LAST), set operations (UNION, INTERSECT, MINUS), sub-queries (including correlated sub-queries), windowed aggregates, LIMIT (syntax as <a href="http://www.postgresql.org/docs/8.4/static/sql-select.html#SQL-LIMIT">Postgres</a>)
 
+For more details, see the <a href="REFERENCE.md">Reference guide</a>.
+
+### Drivers
+
+* <a href="http://www.hydromatic.net/optiq/optiq-core/apidocs/net/hydromatic/optiq/jdbc/package-summary.html">JDBC driver</a>
+
 ### Adapters
 
-* <a href="https://github.com/julianhyde/optiq-splunk">Splunk adapter</a>
-* <a href="https://github.com/julianhyde/optiq-csv">CSV adapter</a>
-* MongoDB adapter
-* JDBC adapter
-* <a href="https://github.com/Cascading/lingual">Cascading adapter (Lingual)</a>
 * <a href="https://github.com/apache/incubator-drill">Apache Drill adapter</a>
-
-## Backlog
-
-* Easy API to manage sets of optimizer rules
-* Easy API to register calling conventions
-* Make 'guaranteed' a constructor parameter to ConverterRule. (It's
-  too easy to forget.)
-* RelOptRule.convert should check whether there is a subset of desired
-  traitSet before creating
+* <a href="https://github.com/Cascading/lingual">Cascading adapter (Lingual)</a>
+* <a href="https://github.com/julianhyde/optiq-csv">CSV adapter</a>
+* <a href="http://www.hydromatic.net/optiq/optiq-core/apidocs/net/hydromatic/optiq/impl/jdbc/package-summary.html">JDBC adapter</a>
+* <a href="http://www.hydromatic.net/optiq/optiq-mongodb/apidocs/net/hydromatic/optiq/impl/mongodb/package-summary.html">MongoDB adapter</a>
+* <a href="http://www.hydromatic.net/optiq/optiq-spark/apidocs/net/hydromatic/optiq/impl/spark/package-summary.html">Spark adapter</a>
+* <a href="http://www.hydromatic.net/optiq/optiq-splunk/apidocs/net/hydromatic/optiq/impl/splunk/package-summary.html">Splunk adapter</a>
 
 ## More information
 
@@ -187,9 +184,11 @@ The following features are complete.
 * Source code: http://github.com/julianhyde/optiq
 * Developers list: http://groups.google.com/group/optiq-dev
 * <a href="HOWTO.md">HOWTO</a>
+* <a href="REFERENCE.md">Reference guide</a>
 
 ### Presentations
 
 * <a href="http://www.slideshare.net/julianhyde/how-to-integrate-splunk-with-any-data-solution">Splunk 2012 User Conference</a>
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-drill-user-group-2013.pdf?raw=true">Drill / SQL / Optiq</a>
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-richrelevance-2013.pdf?raw=true">SQL on Big Data using Optiq</a>
+* <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a>
