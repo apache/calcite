@@ -4,12 +4,12 @@
 
 ```SQL
 query:
-  {
+  \{
       select
   |   query UNION [ ALL ] query
   |   query EXCEPT query
   |   query INTERSECT query
-  }
+  \}
   [ ORDER BY orderItem [, orderItem ]* ]
   [ LIMIT { count | ALL } ]
   [ OFFSET start { ROW | ROWS } ]
