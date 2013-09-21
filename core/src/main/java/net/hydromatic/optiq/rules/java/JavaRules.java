@@ -20,7 +20,6 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.runtime.SortedMultiMap;
 
@@ -1831,7 +1830,7 @@ public class JavaRules {
     }
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-      final JavaTypeFactoryImpl typeFactory = implementor.getTypeFactory();
+      final JavaTypeFactory typeFactory = implementor.getTypeFactory();
       final EnumerableRel child = (EnumerableRel) getChild();
 
       final BlockBuilder builder = new BlockBuilder();

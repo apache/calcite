@@ -18,7 +18,6 @@
 package org.eigenbase.sql2rel;
 
 import java.math.*;
-
 import java.util.*;
 
 import org.eigenbase.reltype.*;
@@ -29,6 +28,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.runtime.ByteString;
 
 /**
  * Standard implementation of {@link SqlNodeToRexConverter}.
@@ -126,8 +126,8 @@ public class SqlNodeToRexConverterImpl
 
             // An even number of hexits (e.g. X'ABCD') makes whole number
             // of bytes.
-            byte [] bytes = bitString.getAsByteArray();
-            return rexBuilder.makeBinaryLiteral(bytes);
+            ByteString byteString = new ByteString(bitString.getAsByteArray());
+            return rexBuilder.makeBinaryLiteral(byteString);
         case SYMBOL:
             return rexBuilder.makeFlag(value);
         case TIMESTAMP:

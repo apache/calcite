@@ -56,6 +56,10 @@ public class DelegatingSchema implements Schema {
     return schema.getName();
   }
 
+  public Object get(String name) {
+    return schema.get(name);
+  }
+
   public Multimap<String, TableFunctionInSchema> getTableFunctions() {
     return schema.getTableFunctions();
   }

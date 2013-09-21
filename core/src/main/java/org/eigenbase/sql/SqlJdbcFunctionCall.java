@@ -774,7 +774,7 @@ public class SqlJdbcFunctionCall
                 new MakeCall(SqlStdOperatorTable.positionFunc, 2));
             map.put(
                 "LTRIM",
-                new MakeCall(SqlStdOperatorTable.trimLeadingFunc, 1) {
+                new MakeCall(SqlStdOperatorTable.trimFunc, 1) {
                     @Override
                     SqlCall createCall(
                         SqlNode[] operands, SqlParserPos pos)
@@ -782,6 +782,9 @@ public class SqlJdbcFunctionCall
                         assert 1 == operands.length;
                         return super.createCall(
                             new SqlNode[] {
+                                SqlLiteral.createSymbol(
+                                    SqlTrimFunction.Flag.LEADING,
+                                    SqlParserPos.ZERO),
                                 SqlLiteral.createCharString(" ", null),
                                 operands[0]
                             },
@@ -790,7 +793,7 @@ public class SqlJdbcFunctionCall
                 });
             map.put(
                 "RTRIM",
-                new MakeCall(SqlStdOperatorTable.trimTrailingFunc, 1) {
+                new MakeCall(SqlStdOperatorTable.trimFunc, 1) {
                     @Override
                     SqlCall createCall(
                         SqlNode[] operands, SqlParserPos pos)
@@ -798,6 +801,9 @@ public class SqlJdbcFunctionCall
                         assert 1 == operands.length;
                         return super.createCall(
                             new SqlNode[] {
+                                SqlLiteral.createSymbol(
+                                    SqlTrimFunction.Flag.TRAILING,
+                                    SqlParserPos.ZERO),
                                 SqlLiteral.createCharString(" ", null),
                                 operands[0]
                             },

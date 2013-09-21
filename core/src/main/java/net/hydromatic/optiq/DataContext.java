@@ -39,6 +39,16 @@ public interface DataContext {
    * Returns the type factory.
    */
   JavaTypeFactory getTypeFactory();
+
+  /**
+   * Returns a context variable.
+   *
+   * <p>Supported variables include: "sparkContext", "currentTimestamp",
+   * "localTimestamp".</p>
+   *
+   * @param name Name of variable
+   */
+  Object get(String name);
 }
 
 // End DataContext.java

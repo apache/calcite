@@ -20,6 +20,8 @@ package net.hydromatic.optiq.impl.spark;
 import net.hydromatic.linq4j.Enumerable;
 
 import net.hydromatic.linq4j.Linq4j;
+import net.hydromatic.optiq.DataContext;
+
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
@@ -30,8 +32,6 @@ import java.util.*;
  * methods.
  */
 public class SparkRuntime {
-  private static JavaSparkContext SPARK_CONTEXT;
-
   /** Converts an array into an RDD. */
   public static <T> JavaRDD<T> createRdd(JavaSparkContext sc, T[] ts) {
     final List<T> list = Arrays.asList(ts);
@@ -54,11 +54,8 @@ public class SparkRuntime {
    *
    * <p>Currently a global variable; maybe later held within {@code root}.</p>
    */
-  public static JavaSparkContext getSparkContext() {
-    if (SPARK_CONTEXT == null) {
-      SPARK_CONTEXT = new JavaSparkContext("local[1]", "optiq");
-    }
-    return SPARK_CONTEXT;
+  public static JavaSparkContext getSparkContext(DataContext root) {
+    return (JavaSparkContext) root.get("sparkContext");
   }
 }
 

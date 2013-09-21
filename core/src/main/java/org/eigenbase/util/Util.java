@@ -29,9 +29,11 @@ import java.sql.*;
 import java.text.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.*;
 import java.util.jar.*;
 import java.util.logging.*;
 import java.util.regex.*;
+import java.util.stream.Stream;
 
 import org.eigenbase.sql.validate.*;
 
@@ -2160,6 +2162,18 @@ public class Util
 
     public static <T> T first(T t0, T t1) {
         return t0 != null ? t0 : t1;
+    }
+
+    public static List<Integer> range(final int start, final int end) {
+        return new AbstractList<Integer>() {
+            public int size() {
+                return end - start;
+            }
+
+            public Integer get(int index) {
+                return start + index;
+            }
+        };
     }
 
     //~ Inner Classes ----------------------------------------------------------

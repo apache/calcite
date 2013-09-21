@@ -17,12 +17,11 @@
 */
 package net.hydromatic.optiq.test;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for using Optiq with Spark as an internal engine, as implemented by
@@ -33,7 +32,6 @@ public class SparkAdapterTest {
    * Tests a VALUES query evaluated using Spark.
    * There are no data sources.
    */
-  @Ignore // currently DAGScheduler gives ClassNotFoundException
   @Test public void testValues() throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
@@ -41,7 +39,10 @@ public class SparkAdapterTest {
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from (values (1, 'a'), (2, 'b'))");
-    assertTrue(resultSet.next());
+    assertEquals(
+        "EXPR$0=1; EXPR$1=a\n"
+        + "EXPR$0=2; EXPR$1=b\n",
+        OptiqAssert.toString(resultSet));
   }
 }
 

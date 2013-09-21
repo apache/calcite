@@ -21,6 +21,7 @@ import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.runtime.ByteString;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
@@ -186,8 +187,16 @@ public class RexToLixTranslator {
       switch (targetType.getSqlTypeName()) {
       case VARCHAR:
         convert = Expressions.call(
-            BuiltinMethod.TRIM.method, convert);
+            BuiltinMethod.RTRIM.method, convert);
       }
+      break;
+    case BINARY:
+      switch (targetType.getSqlTypeName()) {
+      case VARBINARY:
+        convert = Expressions.call(
+            BuiltinMethod.RTRIM.method, convert);
+      }
+      break;
     }
     // Going from anything to CHAR(n) or VARCHAR(n), make sure value is no
     // longer than n.
@@ -195,11 +204,15 @@ public class RexToLixTranslator {
     switch (targetType.getSqlTypeName()) {
     case CHAR:
     case VARCHAR:
+    case BINARY:
+    case VARBINARY:
       final int targetPrecision = targetType.getPrecision();
       if (targetPrecision >= 0) {
         switch (sourceType.getSqlTypeName()) {
         case CHAR:
         case VARCHAR:
+        case BINARY:
+        case VARBINARY:
           // If this is a widening cast, no need to truncate.
           final int sourcePrecision = sourceType.getPrecision();
           if (sourcePrecision < 0
@@ -321,9 +334,11 @@ public class RexToLixTranslator {
     switch (literal.getType().getSqlTypeName()) {
     case DECIMAL:
       assert javaClass == BigDecimal.class;
-      return Expressions.new_(
-          BigDecimal.class,
-          Expressions.constant(value.toString()));
+      return value == null
+          ? Expressions.constant(null)
+          : Expressions.new_(
+              BigDecimal.class,
+              Expressions.constant(value.toString()));
     case DATE:
       value2 =
           (int) (((Calendar) value).getTimeInMillis() / MILLIS_IN_DAY);
@@ -339,6 +354,13 @@ public class RexToLixTranslator {
     case VARCHAR:
       value2 = value == null ? null : ((NlsString) value).getValue();
       break;
+    case BINARY:
+    case VARBINARY:
+      return Expressions.new_(
+          ByteString.class,
+          Expressions.constant(
+              ((ByteString) value).getBytes(),
+              byte[].class));
     default:
       final Primitive primitive = Primitive.ofBoxOr(javaClass);
       if (primitive != null && value instanceof Number) {

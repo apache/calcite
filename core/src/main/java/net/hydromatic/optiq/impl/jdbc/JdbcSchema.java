@@ -166,6 +166,10 @@ public class JdbcSchema implements Schema {
     return name;
   }
 
+  public Object get(String name) {
+    return parentSchema.get(name);
+  }
+
   // Used by generated code.
   public DataSource getDataSource() {
     return dataSource;

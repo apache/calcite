@@ -87,10 +87,11 @@ public class SparkToEnumerableConverter
 
   /** Implementation of
    * {@link net.hydromatic.optiq.impl.spark.SparkRel.Implementor}. */
-  private static class SparkImplementorImpl implements SparkRel.Implementor {
+  private static class SparkImplementorImpl extends SparkRel.Implementor {
     private final EnumerableRelImplementor implementor;
 
     public SparkImplementorImpl(EnumerableRelImplementor implementor) {
+      super(implementor.getRexBuilder());
       this.implementor = implementor;
     }
 

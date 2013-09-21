@@ -131,6 +131,10 @@ public class MapSchema implements MutableSchema {
     return name;
   }
 
+  public Object get(String name) {
+    return parentSchema.get(name);
+  }
+
   public JavaTypeFactory getTypeFactory() {
     return typeFactory;
   }

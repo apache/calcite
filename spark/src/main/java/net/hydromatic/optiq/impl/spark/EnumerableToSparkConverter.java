@@ -67,7 +67,8 @@ public class EnumerableToSparkConverter
     final Expression source = null; // TODO:
     final Expression sparkContext =
         Expressions.call(
-            SparkMethod.GET_SPARK_CONTEXT.method);
+            SparkMethod.GET_SPARK_CONTEXT.method,
+            implementor.root);
     final Expression rdd =
         list.append(
             "rdd",

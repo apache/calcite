@@ -270,7 +270,7 @@ public class SqlFunction
             // if we have a match on function name and parameter count, but
             // couldn't find a function with  a COLUMN_LIST type, retry, but
             // this time, don't convert the row argument to a COLUMN_LIST type;
-            // if we did find a match, go back and revalidate the row operands
+            // if we did find a match, go back and re-validate the row operands
             // (corresponding to column references), now that we can set the
             // scope to that of the source cursor referenced by that ColumnList
             // type
@@ -283,7 +283,7 @@ public class SqlFunction
                         getFunctionType()))
                 {
                     // remove the already validated node types corresponding to
-                    // row arguments before revalidating
+                    // row arguments before re-validating
                     for (SqlNode operand : operands) {
                         if (operand.getKind() == SqlKind.ROW) {
                             validator.removeValidatedNodeType(operand);

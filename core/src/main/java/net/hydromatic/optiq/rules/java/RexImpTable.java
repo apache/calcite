@@ -20,14 +20,16 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.BuiltinMethod;
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.rex.*;
-import org.eigenbase.sql.SqlOperator;
+import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
+import org.eigenbase.sql.fun.SqlTrimFunction;
 import org.eigenbase.sql.type.SqlTypeName;
 
 import java.lang.reflect.Method;
@@ -43,6 +45,9 @@ import static org.eigenbase.sql.fun.SqlStdOperatorTable.*;
  * Contains implementations of Rex operators as Java code.
  */
 public class RexImpTable {
+  public static final ParameterExpression root =
+      Expressions.parameter(DataContext.class, "root");
+
   public static final ConstantExpression NULL_EXPR =
       Expressions.constant(null);
   public static final ConstantExpression FALSE_EXPR =
@@ -79,6 +84,11 @@ public class RexImpTable {
         NullPolicy.STRICT);
     defineMethod(
         overlayFunc, BuiltinMethod.OVERLAY.method, NullPolicy.STRICT);
+    defineMethod(
+        positionFunc, BuiltinMethod.POSITION.method, NullPolicy.STRICT);
+
+    final TrimImplementor trimImplementor = new TrimImplementor();
+    defineImplementor(trimFunc, NullPolicy.STRICT, trimImplementor, false);
 
     // logical
     defineBinary(andOperator, AndAlso, NullPolicy.AND, null);
@@ -109,6 +119,8 @@ public class RexImpTable {
     defineMethod(expFunc, "exp", NullPolicy.STRICT);
     defineMethod(powerFunc, "power", NullPolicy.STRICT);
     defineMethod(lnFunc, "ln", NullPolicy.STRICT);
+    defineMethod(log10Func, "log10", NullPolicy.STRICT);
+    defineMethod(absFunc, "abs", NullPolicy.STRICT);
 
     map.put(isNullOperator, new IsXxxImplementor(null, false));
     map.put(isNotNullOperator, new IsXxxImplementor(null, true));
@@ -135,15 +147,29 @@ public class RexImpTable {
 
     map.put(caseOperator, new CaseImplementor());
     defineImplementor(
-        SqlStdOperatorTable.castFunc,
-        NullPolicy.STRICT,
-        new CastImplementor(),
-        false);
+        castFunc, NullPolicy.STRICT, new CastImplementor(), false);
 
     final CallImplementor value = new ValueConstructorImplementor();
-    map.put(SqlStdOperatorTable.mapValueConstructor, value);
-    map.put(SqlStdOperatorTable.arrayValueConstructor, value);
-    map.put(SqlStdOperatorTable.itemOp, new ItemImplementor());
+    map.put(mapValueConstructor, value);
+    map.put(arrayValueConstructor, value);
+    map.put(itemOp, new ItemImplementor());
+
+    // System functions
+    final SystemFunctionImplementor systemFunctionImplementor =
+        new SystemFunctionImplementor();
+    map.put(userFunc, systemFunctionImplementor);
+    map.put(currentUserFunc, systemFunctionImplementor);
+    map.put(sessionUserFunc, systemFunctionImplementor);
+    map.put(systemUserFunc, systemFunctionImplementor);
+    map.put(currentPathFunc, systemFunctionImplementor);
+    map.put(currentRoleFunc, systemFunctionImplementor);
+
+    // Current time functions
+    map.put(currentTimeFunc, systemFunctionImplementor);
+    map.put(currentTimestampFunc, systemFunctionImplementor);
+    map.put(currentDateFunc, systemFunctionImplementor);
+    map.put(localTimeFunc, systemFunctionImplementor);
+    map.put(localTimestampFunc, systemFunctionImplementor);
 
     aggMap.put(countOperator, new BuiltinAggregateImplementor("longCount"));
     aggMap.put(sumOperator, new BuiltinAggregateImplementor("sum"));
@@ -220,7 +246,7 @@ public class RexImpTable {
           final List<Expression> expressions =
               translator.translateList(
                   call2.getOperands(), nullAs);
-          return Expressions.foldAnd(expressions);
+          return foldAnd(expressions);
         }
       };
     case OR:
@@ -299,6 +325,38 @@ public class RexImpTable {
     }
   }
 
+  /** Temporary fix for {@link Expressions#foldAnd(java.util.List)}. */
+  static Expression foldAnd(List<Expression> conditions) {
+    org.eigenbase.util.Bug.upgrade("linq4j 1.9");
+    Expression e = null;
+    int nullCount = 0;
+    for (Expression condition : conditions) {
+      if (condition instanceof ConstantExpression) {
+        final Boolean value = (Boolean) ((ConstantExpression) condition).value;
+        if (value == null) {
+          ++nullCount;
+          continue;
+        } else if (value) {
+          continue;
+        } else {
+          return Expressions.constant(false);
+        }
+      }
+      if (e == null) {
+        e = condition;
+      } else {
+        e = Expressions.andAlso(e, condition);
+      }
+    }
+    if (nullCount > 0) {
+      return Expressions.constant(null);
+    }
+    if (e == null) {
+      return Expressions.constant(true);
+    }
+    return e;
+  }
+
   private void defineMethod(
       SqlOperator operator, String functionName, NullPolicy nullPolicy) {
     defineImplementor(
@@ -362,13 +420,18 @@ public class RexImpTable {
   }
 
   static Expression optimize2(Expression operand, Expression expression) {
-    return optimize(
-        Expressions.condition(
-            Expressions.equal(
-                operand,
-                NULL_EXPR),
-            NULL_EXPR,
-            expression));
+    if (Primitive.is(operand.getType())) {
+      // Primitive values cannot be null
+      return optimize(expression);
+    } else {
+      return optimize(
+          Expressions.condition(
+              Expressions.equal(
+                  operand,
+                  NULL_EXPR),
+              NULL_EXPR,
+              expression));
+    }
   }
 
   private static boolean nullable(RexCall call, int i) {
@@ -449,10 +512,16 @@ public class RexImpTable {
       return implementNullSemantics(
           translator, call2, nullAs, implementor);
     } catch (RexToLixTranslator.AlwaysNull e) {
-      if (nullAs == NullAs.NOT_POSSIBLE) {
+      switch (nullAs) {
+      case NOT_POSSIBLE:
         throw e;
+      case FALSE:
+        return FALSE_EXPR;
+      case TRUE:
+        return TRUE_EXPR;
+      default:
+        return NULL_EXPR;
       }
-      return NULL_EXPR;
     }
   }
 
@@ -833,6 +902,26 @@ public class RexImpTable {
     }
   }
 
+  private static class TrimImplementor implements NotNullImplementor {
+    public Expression implement(RexToLixTranslator translator, RexCall call,
+        List<Expression> translatedOperands) {
+      final RexLiteral literal = (RexLiteral) call.getOperands().get(0);
+      final SqlLiteral.SqlSymbol symbol =
+          (SqlLiteral.SqlSymbol) literal.getValue();
+      SqlTrimFunction.Flag flag = (SqlTrimFunction.Flag) symbol;
+      return Expressions.call(
+          BuiltinMethod.TRIM.method,
+          Expressions.constant(
+              flag == SqlTrimFunction.Flag.BOTH
+              || flag == SqlTrimFunction.Flag.LEADING),
+          Expressions.constant(
+              flag == SqlTrimFunction.Flag.BOTH
+              || flag == SqlTrimFunction.Flag.TRAILING),
+          translatedOperands.get(0),
+          translatedOperands.get(1));
+    }
+  }
+
   private static class MethodImplementor implements NotNullImplementor {
     private final Method method;
 
@@ -881,6 +970,13 @@ public class RexImpTable {
             Primitive.FLOAT,
             Primitive.DOUBLE);
 
+    private static final List<SqlBinaryOperator> COMPARISON_OPERATORS =
+        Arrays.asList(
+            SqlStdOperatorTable.lessThanOperator,
+            SqlStdOperatorTable.lessThanOrEqualOperator,
+            SqlStdOperatorTable.greaterThanOperator,
+            SqlStdOperatorTable.greaterThanOrEqualOperator);
+
     private final ExpressionType expressionType;
     private final String backupMethodName;
 
@@ -911,7 +1007,8 @@ public class RexImpTable {
         final Primitive primitive =
             Primitive.ofBoxOr(expressions.get(0).getType());
         if (primitive == null
-            || !COMP_OP_TYPES.contains(primitive)) {
+            || COMPARISON_OPERATORS.contains(call.getOperator())
+            && !COMP_OP_TYPES.contains(primitive)) {
           return Expressions.call(
               SqlFunctions.class,
               backupMethodName,
@@ -1152,6 +1249,46 @@ public class RexImpTable {
         return new MethodImplementor(BuiltinMethod.MAP_ITEM.method);
       default:
         return new MethodImplementor(BuiltinMethod.ANY_ITEM.method);
+      }
+    }
+  }
+
+  private static class SystemFunctionImplementor
+      implements CallImplementor {
+    public Expression implement(
+        RexToLixTranslator translator,
+        RexCall call,
+        NullAs nullAs) {
+      switch (nullAs) {
+      case IS_NULL:
+        return Expressions.constant(false);
+      case IS_NOT_NULL:
+        return Expressions.constant(true);
+      }
+      final SqlOperator op = call.getOperator();
+      if (op == currentUserFunc
+          || op == sessionUserFunc
+          || op == userFunc) {
+        return Expressions.constant("sa");
+      } else if (op == systemUserFunc) {
+        return Expressions.constant(System.getProperty("user.name"));
+      } else if (op == currentPathFunc
+          || op == currentRoleFunc) {
+        // By default, the CURRENT_ROLE function returns
+        // the empty string because a role has to be set explicitly.
+        return Expressions.constant("");
+      } else if (op == currentTimestampFunc) {
+        return Expressions.call(BuiltinMethod.CURRENT_TIMESTAMP.method, root);
+      } else if (op == currentTimeFunc) {
+        return Expressions.call(BuiltinMethod.CURRENT_TIME.method, root);
+      } else if (op == currentDateFunc) {
+        return Expressions.call(BuiltinMethod.CURRENT_DATE.method, root);
+      } else if (op == localTimestampFunc) {
+        return Expressions.call(BuiltinMethod.LOCAL_TIMESTAMP.method, root);
+      } else if (op == localTimeFunc) {
+        return Expressions.call(BuiltinMethod.LOCAL_TIME.method, root);
+      } else {
+        throw new AssertionError("unknown function " + op);
       }
     }
   }

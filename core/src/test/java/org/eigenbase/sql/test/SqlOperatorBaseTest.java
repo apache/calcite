@@ -141,7 +141,7 @@ public abstract class SqlOperatorBaseTest {
     public static final Pattern timestampPattern =
         Pattern.compile(
             "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] "
-            + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]");
+            + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9][0-9]");
 
     /**
      * Regular expression for a SQL DATE value.
@@ -212,8 +212,11 @@ public abstract class SqlOperatorBaseTest {
     private static final SqlTester.VmName VM_FENNEL = SqlTester.VmName.FENNEL;
     private static final SqlTester.VmName VM_JAVA = SqlTester.VmName.JAVA;
     private static final SqlTester.VmName VM_EXPAND = SqlTester.VmName.EXPAND;
-    protected static final TimeZone gmtTimeZone = TimeZone.getTimeZone("GMT");
-    protected static final TimeZone defaultTimeZone = TimeZone.getDefault();
+    protected static final TimeZone UTC_TZ = TimeZone.getTimeZone("GMT");
+    // time zone for the LOCAL_{DATE,TIME,TIMESTAMP} functions
+    protected static final TimeZone LOCAL_TZ = TimeZone.getDefault();
+    // time zone for the CURRENT{DATE,TIME,TIMESTAMP} functions
+    protected static final TimeZone CURRENT_TZ = LOCAL_TZ;
 
     private static final Pattern invalidArgForPower = Pattern.compile(
         "(?s).*Invalid argument\\(s\\) for 'POWER' function.*");
@@ -254,7 +257,11 @@ public abstract class SqlOperatorBaseTest {
 
     /** For development. Put any old code in here. */
     @Test public void testDummy() {
-        checkCastToScalarOkay("'1'", "INTEGER", "1");
+      tester.checkString(
+          "trim(leading 'a' from 'aAa')",
+          "Aa",
+          "VARCHAR(3) NOT NULL");
+        testTrimFunc();
     }
 
     @Test public void testBetween() {
@@ -281,9 +288,6 @@ public abstract class SqlOperatorBaseTest {
         tester.checkBoolean(
             "1.5e1 between 1.6e1 and 1.7e1",
             Boolean.FALSE);
-        if (!enable) {
-            return;
-        }
         tester.checkBoolean("x'' between x'' and x''", Boolean.TRUE);
         tester.checkNull("cast(null as integer) between -1 and 2");
         tester.checkNull("1 between -1 and cast(null as integer)");
@@ -1345,7 +1349,6 @@ public abstract class SqlOperatorBaseTest {
             + "when 2 then cast('bcd' as varchar(3)) end",
             "a",
             "VARCHAR(3)");
-
         if (DECIMAL) {
         tester.checkScalarExact(
             "case 2 when 1 then 11.2 when 2 then 4.543 else null end",
@@ -1383,12 +1386,25 @@ public abstract class SqlOperatorBaseTest {
             4.543,
             0);
         tester.checkNull("case 'a' when 'b' then 1 end");
-        if (!enable) {
-            return;
-        }
+
+        // Per spec, 'case x when y then ...'
+        // translates to 'case when x = y then ...'
+        // so nulls do not match.
+        // (Unlike Oracle's 'decode(null, null, ...)', by the way.)
+        tester.checkString(
+            "case cast(null as int) when cast(null as int) then 'nulls match' else 'nulls do not match' end",
+            "nulls do not match",
+            "CHAR(18) NOT NULL");
+
         tester.checkScalarExact(
             "case when 'a'=cast(null as varchar(1)) then 1 else 2 end",
             "2");
+
+        // equivalent to "nullif('a',cast(null as varchar(1)))"
+        tester.checkString(
+            "case when 'a' = cast(null as varchar(1)) then null else 'a' end",
+            "a",
+            "CHAR(1)");
 
         if (todo) {
             tester.checkScalar(
@@ -1399,7 +1415,47 @@ public abstract class SqlOperatorBaseTest {
                 "case 1 when 1 then row('a','b') when 2 then row('ab','cd') end",
                 "ROW(CHAR(2) NOT NULL, CHAR(2) NOT NULL)",
                 "row('a ','b ')");
+
+            // multiple values in some cases (introduced in SQL:2011)
+            // https://github.com/julianhyde/optiq/issues/53
+            tester.checkString(
+                "case 1 "
+                + "when 1, 2 then '1 or 2' "
+                + "when 2 then 'not possible' end"
+                + "when 3, 2 then '3' "
+                + "else 'none of the above' "
+                + "end",
+                "a",
+                "VARCHAR(3)");
+            tester.checkString(
+                "case 2 "
+                + "when 1, 2 then '1 or 2' "
+                + "when 2 then 'not possible' end"
+                + "when 3, 2 then '3' "
+                + "else 'none of the above' "
+                + "end",
+                "1 or 2",
+                "VARCHAR(3)");
+            tester.checkString(
+                "case 3 "
+                + "when 1, 2 then '1 or 2' "
+                + "when 2 then 'not possible' end"
+                + "when 3, 2 then '3' "
+                + "else 'none of the above' "
+                + "end",
+                "3",
+                "VARCHAR(3)");
+            tester.checkString(
+                "case 4 "
+                + "when 1, 2 then '1 or 2' "
+                + "when 2 then 'not possible' end"
+                + "when 3, 2 then '3' "
+                + "else 'none of the above' "
+                + "end",
+                "none of the above",
+                "VARCHAR(3)");
         }
+
         // TODO: Check case with multisets
     }
 
@@ -1724,9 +1780,6 @@ public abstract class SqlOperatorBaseTest {
             "_latin1'Spaghetti'\n' all''Amatriciana'",
             "Spaghetti all'Amatriciana",
             "CHAR(25) NOT NULL");
-        if (!enable) {
-            return;
-        }
         tester.checkBoolean("x'1234'\n'abcd' = x'1234abcd'", Boolean.TRUE);
         tester.checkBoolean("x'1234'\n'' = x'1234'", Boolean.TRUE);
         tester.checkBoolean("x''\n'ab' = x'ab'", Boolean.TRUE);
@@ -1783,14 +1836,11 @@ public abstract class SqlOperatorBaseTest {
         tester.checkNull(
             " cast(null as char(1)) || cast(null as char(2)) ");
 
-        if (todo) {
-            // not yet implemented
-            tester.checkString(
-                " x'f'||x'f' ",
-                "X'FF",
-                "BINARY(1) NOT NULL");
-            tester.checkNull("x'ff' || cast(null as varbinary)");
-        }
+        tester.checkString(
+            " x'fe'||x'df' ",
+            "fedf",
+            "BINARY(2) NOT NULL");
+        tester.checkNull("x'ff' || cast(null as varbinary)");
     }
 
     @Test public void testDivideOperator() {
@@ -1879,6 +1929,10 @@ public abstract class SqlOperatorBaseTest {
             "cast(1e2 as real)=cast(101 as bigint)",
             Boolean.FALSE);
         tester.checkBoolean("'a'='b'", Boolean.FALSE);
+        tester.checkBoolean("true = true", Boolean.TRUE);
+        tester.checkBoolean("true = false", Boolean.FALSE);
+        tester.checkBoolean("false = true", Boolean.FALSE);
+        tester.checkBoolean("false = false", Boolean.TRUE);
         tester.checkBoolean(
             "cast('a' as varchar(30))=cast('a' as varchar(30))",
             Boolean.TRUE);
@@ -1986,9 +2040,6 @@ public abstract class SqlOperatorBaseTest {
             SqlStdOperatorTable.isDistinctFromOperator,
             VM_EXPAND);
         tester.checkBoolean("1 is distinct from 1", Boolean.FALSE);
-        if (!enable) {
-            return;
-        }
         tester.checkBoolean("1 is distinct from 1.0", Boolean.FALSE);
         tester.checkBoolean("1 is distinct from 2", Boolean.TRUE);
         tester.checkBoolean(
@@ -2014,6 +2065,9 @@ public abstract class SqlOperatorBaseTest {
         }
 
         // Intervals
+        if (!INTERVAL) {
+            return;
+        }
         tester.checkBoolean(
             "interval '2' day is distinct from interval '1' day",
             Boolean.TRUE);
@@ -2055,7 +2109,7 @@ public abstract class SqlOperatorBaseTest {
                 true);
         }
 
-        if (!enable) {
+        if (!INTERVAL) {
             return;
         }
         // Intervals
@@ -3308,14 +3362,13 @@ public abstract class SqlOperatorBaseTest {
             "overlay('ABCdef' placing 'abc' from 1 for 2)",
             "abcCdef",
             "VARCHAR(9) NOT NULL");
-        if (!enable) {
-            return;
-        }
+        if (enable)
         tester.checkString(
             "overlay(cast('ABCdef' as varchar(10)) placing "
             + "cast('abc' as char(5)) from 1 for 2)",
             "abc  Cdef",
             "VARCHAR(15) NOT NULL");
+        if (enable)
         tester.checkString(
             "overlay(cast('ABCdef' as char(10)) placing "
             + "cast('abc' as char(5)) from 1 for 2)",
@@ -3326,18 +3379,37 @@ public abstract class SqlOperatorBaseTest {
         tester.checkNull(
             "overlay(cast(null as varchar(1)) placing 'abc' from 1)");
 
-        if (false) {
-            // hex strings not yet implemented in calc
-            tester.checkNull(
-                "overlay(x'abc' placing x'abc' from cast(null as integer))");
-        }
+        tester.checkString(
+            "overlay(x'ABCdef' placing x'abcd' from 1)",
+            "abcdef",
+            "VARBINARY(5) NOT NULL");
+        tester.checkString(
+            "overlay(x'ABCDEF1234' placing x'2345' from 1 for 2)",
+            "2345ef1234",
+            "VARBINARY(7) NOT NULL");
+        if (enable)
+        tester.checkString(
+            "overlay(cast(x'ABCdef' as varbinary(5)) placing "
+            + "cast(x'abcd' as binary(3)) from 1 for 2)",
+            "abc  Cdef",
+            "VARBINARY(8) NOT NULL");
+        if (enable)
+        tester.checkString(
+            "overlay(cast(x'ABCdef' as binary(5)) placing "
+            + "cast(x'abcd' as binary(3)) from 1 for 2)",
+            "abc  Cdef    ",
+            "VARBINARY(8) NOT NULL");
+        tester.checkNull(
+            "overlay(x'ABCdef' placing x'abcd' from 1 for cast(null as integer))");
+        tester.checkNull(
+            "overlay(cast(null as varbinary(1)) placing x'abcd' from 1)");
+
+        tester.checkNull(
+            "overlay(x'abcd' placing x'abcd' from cast(null as integer))");
     }
 
     @Test public void testPositionFunc() {
         tester.setFor(SqlStdOperatorTable.positionFunc);
-        if (!enable) {
-            return;
-        }
         tester.checkScalarExact("position('b' in 'abc')", "2");
         tester.checkScalarExact("position('' in 'abc')", "1");
 
@@ -3409,9 +3481,6 @@ public abstract class SqlOperatorBaseTest {
 
     @Test public void testPowerFunc() {
         tester.setFor(SqlStdOperatorTable.powerFunc);
-        if (!enable) {
-            return;
-        }
         tester.checkScalarApprox(
             "power(2,-2)",
             "DOUBLE NOT NULL",
@@ -3448,16 +3517,9 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testExpFunc() {
-        // todo: implement in fennel
         tester.setFor(SqlStdOperatorTable.expFunc, VM_FENNEL);
-        if (!enable) {
-            return;
-        }
         tester.checkScalarApprox(
-            "exp(2)",
-            "DOUBLE NOT NULL",
-            7.389056,
-            0.000001);
+            "exp(2)", "DOUBLE NOT NULL", 7.389056, 0.000001);
         tester.checkScalarApprox(
             "exp(-2)",
             "DOUBLE NOT NULL",
@@ -3504,16 +3566,11 @@ public abstract class SqlOperatorBaseTest {
         // submit as non-runtime because the janino exception does not have
         // error position information and the framework is unhappy with that.
         tester.checkFails(
-            "mod(3,case 'a' when 'a' then 0 end)",
-            divisionByZeroMessage,
-            true);
+            "mod(3,case 'a' when 'a' then 0 end)", divisionByZeroMessage, true);
     }
 
     @Test public void testLnFunc() {
         tester.setFor(SqlStdOperatorTable.lnFunc);
-        if (!enable) {
-            return;
-        }
         tester.checkScalarApprox(
             "ln(2.71828)",
             "DOUBLE NOT NULL",
@@ -3529,9 +3586,6 @@ public abstract class SqlOperatorBaseTest {
 
     @Test public void testLogFunc() {
         tester.setFor(SqlStdOperatorTable.log10Func);
-        if (!enable) {
-            return;
-        }
         tester.checkScalarApprox(
             "log10(10)",
             "DOUBLE NOT NULL",
@@ -3562,27 +3616,15 @@ public abstract class SqlOperatorBaseTest {
 
     @Test public void testAbsFunc() {
         tester.setFor(SqlStdOperatorTable.absFunc);
-
-        if (!enable) {
-            return;
-        }
         tester.checkScalarExact("abs(-1)", "1");
         tester.checkScalarExact(
-            "abs(cast(10 as TINYINT))",
-            "TINYINT NOT NULL",
-            "10");
+            "abs(cast(10 as TINYINT))", "TINYINT NOT NULL", "10");
         tester.checkScalarExact(
-            "abs(cast(-20 as SMALLINT))",
-            "SMALLINT NOT NULL",
-            "20");
+            "abs(cast(-20 as SMALLINT))", "SMALLINT NOT NULL", "20");
         tester.checkScalarExact(
-            "abs(cast(-100 as INT))",
-            "INTEGER NOT NULL",
-            "100");
+            "abs(cast(-100 as INT))", "INTEGER NOT NULL", "100");
         tester.checkScalarExact(
-            "abs(cast(1000 as BIGINT))",
-            "BIGINT NOT NULL",
-            "1000");
+            "abs(cast(1000 as BIGINT))", "BIGINT NOT NULL", "1000");
         tester.checkScalarExact(
             "abs(54.4)",
             "DECIMAL(3, 1) NOT NULL",
@@ -3633,9 +3675,6 @@ public abstract class SqlOperatorBaseTest {
     @Test public void testNullifFunc() {
         tester.setFor(SqlStdOperatorTable.nullIfFunc, VM_EXPAND);
         tester.checkNull("nullif(1,1)");
-        if (!enable) {
-            return;
-        }
         tester.checkScalarExact(
             "nullif(1.5, 13.56)",
             "DECIMAL(2, 1)",
@@ -3714,51 +3753,32 @@ public abstract class SqlOperatorBaseTest {
 
     @Test public void testUserFunc() {
         tester.setFor(SqlStdOperatorTable.userFunc, VM_FENNEL);
-        if (!enable) {
-            return;
-        }
         tester.checkString("USER", "sa", "VARCHAR(2000) NOT NULL");
     }
 
     @Test public void testCurrentUserFunc() {
         tester.setFor(SqlStdOperatorTable.currentUserFunc, VM_FENNEL);
-        if (!enable) {
-            return;
-        }
         tester.checkString("CURRENT_USER", "sa", "VARCHAR(2000) NOT NULL");
     }
 
     @Test public void testSessionUserFunc() {
         tester.setFor(SqlStdOperatorTable.sessionUserFunc, VM_FENNEL);
-        if (!enable) {
-            return;
-        }
         tester.checkString("SESSION_USER", "sa", "VARCHAR(2000) NOT NULL");
     }
 
     @Test public void testSystemUserFunc() {
         tester.setFor(SqlStdOperatorTable.systemUserFunc, VM_FENNEL);
-        if (!enable) {
-            return;
-        }
         String user = System.getProperty("user.name"); // e.g. "jhyde"
         tester.checkString("SYSTEM_USER", user, "VARCHAR(2000) NOT NULL");
     }
 
     @Test public void testCurrentPathFunc() {
         tester.setFor(SqlStdOperatorTable.currentPathFunc, VM_FENNEL);
-        if (!enable) {
-            return;
-        }
         tester.checkString("CURRENT_PATH", "", "VARCHAR(2000) NOT NULL");
     }
 
     @Test public void testCurrentRoleFunc() {
         tester.setFor(SqlStdOperatorTable.currentRoleFunc, VM_FENNEL);
-        if (!enable) {
-            return;
-        }
-
         // By default, the CURRENT_ROLE function returns
         // the empty string because a role has to be set explicitly.
         tester.checkString("CURRENT_ROLE", "", "VARCHAR(2000) NOT NULL");
@@ -3766,9 +3786,6 @@ public abstract class SqlOperatorBaseTest {
 
     @Test public void testLocalTimeFunc() {
         tester.setFor(SqlStdOperatorTable.localTimeFunc);
-        if (!enable) {
-            return;
-        }
         tester.checkScalar("LOCALTIME", timePattern, "TIME(0) NOT NULL");
         tester.checkFails(
             "^LOCALTIME()^",
@@ -3782,16 +3799,13 @@ public abstract class SqlOperatorBaseTest {
         tester.checkScalar(
             "CAST(LOCALTIME AS VARCHAR(30))",
             Pattern.compile(
-                currentTimeString(defaultTimeZone).substring(11)
+                currentTimeString(LOCAL_TZ).substring(11)
                 + "[0-9][0-9]:[0-9][0-9]"),
             "VARCHAR(30) NOT NULL");
     }
 
     @Test public void testLocalTimestampFunc() {
         tester.setFor(SqlStdOperatorTable.localTimestampFunc);
-        if (!enable) {
-            return;
-        }
         tester.checkScalar(
             "LOCALTIMESTAMP",
             timestampPattern,
@@ -3801,9 +3815,7 @@ public abstract class SqlOperatorBaseTest {
             "No match found for function signature LOCALTIMESTAMP\\(\\)",
             false);
         tester.checkFails(
-            "LOCALTIMESTAMP(^4000000000^)",
-            literalOutOfRangeMessage,
-            false);
+            "LOCALTIMESTAMP(^4000000000^)", literalOutOfRangeMessage, false);
         tester.checkScalar(
             "LOCALTIMESTAMP(1)",
             timestampPattern,
@@ -3814,16 +3826,13 @@ public abstract class SqlOperatorBaseTest {
         tester.checkScalar(
             "CAST(LOCALTIMESTAMP AS VARCHAR(30))",
             Pattern.compile(
-                currentTimeString(defaultTimeZone)
+                currentTimeString(LOCAL_TZ)
                 + "[0-9][0-9]:[0-9][0-9]"),
             "VARCHAR(30) NOT NULL");
     }
 
     @Test public void testCurrentTimeFunc() {
         tester.setFor(SqlStdOperatorTable.currentTimeFunc);
-        if (!enable) {
-            return;
-        }
         tester.checkScalar(
             "CURRENT_TIME",
             timePattern,
@@ -3833,27 +3842,18 @@ public abstract class SqlOperatorBaseTest {
             "No match found for function signature CURRENT_TIME\\(\\)",
             false);
         tester.checkScalar(
-            "CURRENT_TIME(1)",
-            timePattern,
-            "TIME(1) NOT NULL");
+            "CURRENT_TIME(1)", timePattern, "TIME(1) NOT NULL");
 
-        if (Bug.Fnl77Fixed) {
-            // Currently works with Java calc, but fennel calc returns time in
-            // GMT time zone.
-            tester.checkScalar(
-                "CAST(CURRENT_TIME AS VARCHAR(30))",
-                Pattern.compile(
-                    currentTimeString(defaultTimeZone).substring(11)
-                    + "[0-9][0-9]:[0-9][0-9]"),
-                "VARCHAR(30) NOT NULL");
-        }
+        tester.checkScalar(
+            "CAST(CURRENT_TIME AS VARCHAR(30))",
+            Pattern.compile(
+                currentTimeString(CURRENT_TZ).substring(11)
+                + "[0-9][0-9]:[0-9][0-9]"),
+            "VARCHAR(30) NOT NULL");
     }
 
     @Test public void testCurrentTimestampFunc() {
         tester.setFor(SqlStdOperatorTable.currentTimestampFunc);
-        if (!enable) {
-            return;
-        }
         tester.checkScalar(
             "CURRENT_TIMESTAMP",
             timestampPattern,
@@ -3863,27 +3863,18 @@ public abstract class SqlOperatorBaseTest {
             "No match found for function signature CURRENT_TIMESTAMP\\(\\)",
             false);
         tester.checkFails(
-            "CURRENT_TIMESTAMP(^4000000000^)",
-            literalOutOfRangeMessage,
-            false);
+            "CURRENT_TIMESTAMP(^4000000000^)", literalOutOfRangeMessage, false);
         tester.checkScalar(
             "CURRENT_TIMESTAMP(1)",
             timestampPattern,
             "TIMESTAMP(1) NOT NULL");
 
-        // Check that timestamp is being generated in the right timezone by
-        // generating a specific timestamp. We truncate to hours so that minor
-        // delays don't generate false negatives.
-        if (Bug.Fnl77Fixed) {
-            // Currently works with Java calc, but fennel calc returns time in
-            // GMT time zone.
-            tester.checkScalar(
-                "CAST(CURRENT_TIMESTAMP AS VARCHAR(30))",
-                Pattern.compile(
-                    currentTimeString(defaultTimeZone)
-                    + "[0-9][0-9]:[0-9][0-9]"),
+        tester.checkScalar(
+            "CAST(CURRENT_TIMESTAMP AS VARCHAR(30))",
+            Pattern.compile(
+                currentTimeString(CURRENT_TZ)
+                + "[0-9][0-9]:[0-9][0-9]"),
                 "VARCHAR(30) NOT NULL");
-        }
     }
 
     /**
@@ -3908,15 +3899,15 @@ public abstract class SqlOperatorBaseTest {
 
     @Test public void testCurrentDateFunc() {
         tester.setFor(SqlStdOperatorTable.currentDateFunc, VM_FENNEL);
-        if (!enable) {
-            return;
-        }
         tester.checkScalar("CURRENT_DATE", datePattern, "DATE NOT NULL");
+        if (INTERVAL)
         tester.checkScalar(
             "(CURRENT_DATE - CURRENT_DATE) DAY",
             "+0",
             "INTERVAL DAY NOT NULL");
         tester.checkBoolean("CURRENT_DATE IS NULL", false);
+        tester.checkBoolean("CURRENT_DATE IS NOT NULL", true);
+        tester.checkBoolean("NOT (CURRENT_DATE IS NULL)", true);
         tester.checkFails(
             "^CURRENT_DATE()^",
             "No match found for function signature CURRENT_DATE\\(\\)",
@@ -3925,7 +3916,7 @@ public abstract class SqlOperatorBaseTest {
         // Check the actual value.
         tester.checkScalar(
             "CAST(CURRENT_DATE AS VARCHAR(30))",
-            currentTimeString(defaultTimeZone).substring(0, 10),
+            currentTimeString(LOCAL_TZ).substring(0, 10),
             "VARCHAR(30) NOT NULL");
     }
 
@@ -3936,9 +3927,7 @@ public abstract class SqlOperatorBaseTest {
             "ab",
             "VARCHAR(3) NOT NULL");
         tester.checkString(
-            "substring('abc' from 2)",
-            "bc",
-            "VARCHAR(3) NOT NULL");
+            "substring('abc' from 2)", "bc", "VARCHAR(3) NOT NULL");
 
         if (Bug.Frg296Fixed) {
             // substring regexp not supported yet
@@ -3951,10 +3940,7 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testTrimFunc() {
-        tester.setFor(SqlStdOperatorTable.trimBothFunc);
-        if (!enable) {
-            return;
-        }
+        tester.setFor(SqlStdOperatorTable.trimFunc);
 
         // SQL:2003 6.29.11 Trimming a CHAR yields a VARCHAR
         tester.checkString(
@@ -3962,9 +3948,7 @@ public abstract class SqlOperatorBaseTest {
             "A",
             "VARCHAR(3) NOT NULL");
         tester.checkString(
-            "trim(both 'a' from 'aAa')",
-            "A",
-            "VARCHAR(3) NOT NULL");
+            "trim(both 'a' from 'aAa')", "A", "VARCHAR(3) NOT NULL");
         tester.checkString(
             "trim(leading 'a' from 'aAa')",
             "Aa",
@@ -4037,8 +4021,7 @@ public abstract class SqlOperatorBaseTest {
             VM_JAVA);
         if (todo) {
             tester.checkScalarExact(
-                "cardinality(multiset[cast(null as integer),2]))",
-                "2");
+                "cardinality(multiset[cast(null as integer),2]))", "2");
         }
 
         if (!enable) {
@@ -4071,8 +4054,7 @@ public abstract class SqlOperatorBaseTest {
                 "cast(null as double) member of multiset[1.1]",
                 Boolean.FALSE);
             tester.checkBoolean(
-                "1.1 member of multiset[cast(null as double)]",
-                Boolean.FALSE);
+                "1.1 member of multiset[cast(null as double)]", Boolean.FALSE);
         }
     }
 
@@ -4171,7 +4153,8 @@ public abstract class SqlOperatorBaseTest {
             "map['foo', CAST(NULL AS INTEGER), 'bar', 7]['bar']", "INTEGER",
             "7");
         tester.checkScalarExact(
-            "map['foo', CAST(NULL AS INTEGER), 'bar', 7]['baz']", "INTEGER",
+            "map['foo', CAST(NULL AS INTEGER), 'bar', 7]['baz']",
+            "INTEGER",
             null);
     }
 
@@ -4187,8 +4170,8 @@ public abstract class SqlOperatorBaseTest {
             false);
 
         tester.checkFails(
-            "^map[1, 1, 2, 'x']^",
-            "Parameters must be of the same type", false);
+            "^map[1, 1, 2, 'x']^", "Parameters must be of the same type",
+            false);
         tester.checkScalarExact(
             "map['washington', 1, 'obama', 44]",
             "(CHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL",
@@ -4802,11 +4785,6 @@ public abstract class SqlOperatorBaseTest {
                 final String expr =
                     "CAST(" + literalString
                     + " AS " + type + ")";
-                if ((type.getSqlTypeName() == SqlTypeName.VARBINARY)
-                    && !Bug.Frg283Fixed)
-                {
-                    continue;
-                }
                 try {
                     tester.checkType(
                         expr,
@@ -4896,21 +4874,18 @@ public abstract class SqlOperatorBaseTest {
             "CAST('ABCD' AS VARCHAR(2))",
             "AB",
             "VARCHAR(2) NOT NULL");
+        tester.checkScalar(
+            "CAST(x'ABCDEF12' AS BINARY(2))",
+            "abcd",
+            "BINARY(2) NOT NULL");
+        tester.checkScalar(
+            "CAST(x'ABCDEF12' AS VARBINARY(2))",
+            "abcd",
+            "VARBINARY(2) NOT NULL");
+
         if (!enable) {
             return;
         }
-        tester.checkScalar(
-            "CAST(x'ABCDEF12' AS BINARY(2))",
-            "ABCD",
-            "BINARY(2) NOT NULL");
-
-        if (Bug.Frg283Fixed) {
-            tester.checkScalar(
-                "CAST(x'ABCDEF12' AS VARBINARY(2))",
-                "ABCD",
-                "VARBINARY(2) NOT NULL");
-        }
-
         tester.checkBoolean(
             "CAST(X'' AS BINARY(3)) = X'000000'",
             true);

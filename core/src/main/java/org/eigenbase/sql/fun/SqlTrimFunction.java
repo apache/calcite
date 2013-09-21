@@ -17,10 +17,12 @@
 */
 package org.eigenbase.sql.fun;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
-
 
 /**
  * Definition of the "TRIM" builtin SQL function.
@@ -32,8 +34,6 @@ import org.eigenbase.sql.type.*;
 public class SqlTrimFunction
     extends SqlFunction
 {
-    private final Flag flag;
-
     //~ Enums ------------------------------------------------------------------
 
     /**
@@ -66,19 +66,29 @@ public class SqlTrimFunction
 
     //~ Constructors -----------------------------------------------------------
 
-    public SqlTrimFunction(Flag flag)
+    public SqlTrimFunction()
     {
         super(
             "TRIM",
             SqlKind.TRIM,
             new SqlTypeTransformCascade(
-                SqlTypeStrategies.rtiSecondArgType,
+                SqlTypeStrategies.rtiThirdArgType,
                 SqlTypeTransforms.toNullable,
                 SqlTypeTransforms.toVarying),
             null,
-            SqlTypeStrategies.otcStringSameX2,
+            SqlTypeStrategies.and(
+                SqlTypeStrategies.family(
+                    SqlTypeFamily.ANY,
+                    SqlTypeFamily.STRING,
+                    SqlTypeFamily.STRING),
+                // Arguments 1 and 2 must have same type
+                new SameOperandTypeChecker(3) {
+                    @Override
+                    protected List<Integer> getOperandList() {
+                        return Arrays.asList(1, 2);
+                    }
+                }),
             SqlFunctionCategory.String);
-        this.flag = flag;
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -90,18 +100,18 @@ public class SqlTrimFunction
         int rightPrec)
     {
         final SqlWriter.Frame frame = writer.startFunCall(getName());
-        assert operands[0] instanceof SqlLiteral;
-        writer.sep(flag.name());
+        assert operands[0] instanceof SqlLiteral : operands[0];
         operands[0].unparse(writer, leftPrec, rightPrec);
-        writer.sep("FROM");
         operands[1].unparse(writer, leftPrec, rightPrec);
+        writer.sep("FROM");
+        operands[2].unparse(writer, leftPrec, rightPrec);
         writer.endFunCall(frame);
     }
 
     public String getSignatureTemplate(final int operandsCount)
     {
         switch (operandsCount) {
-        case 2:
+        case 3:
             return "{0}([BOTH|LEADING|TRAILING} {1} FROM {2})";
         default:
             throw new AssertionError();
@@ -114,36 +124,13 @@ public class SqlTrimFunction
         SqlNode ... operands)
     {
         assert functionQualifier == null;
-        assert operands.length == 2;
-        if (operands[0] == null) {
-            operands[0] = SqlLiteral.createCharString(" ", pos);
+        assert operands.length == 3;
+        assert operands[0] instanceof SqlLiteral
+            && ((SqlLiteral) operands[0]).getValue() instanceof Flag;
+        if (operands[1] == null) {
+            operands[1] = SqlLiteral.createCharString(" ", pos);
         }
         return super.createCall(functionQualifier, pos, operands);
-    }
-
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        SqlCall call = callBinding.getCall();
-        for (int i = 0; i < 2; i++) {
-            if (!SqlTypeStrategies.otcString.checkSingleOperandType(
-                    callBinding,
-                    call.operands[i],
-                    0,
-                    throwOnFailure))
-            {
-                if (throwOnFailure) {
-                    throw callBinding.newValidationSignatureError();
-                }
-                return false;
-            }
-        }
-
-        return SqlTypeUtil.isCharTypeComparable(
-            callBinding,
-            call.operands,
-            throwOnFailure);
     }
 }
 

@@ -189,12 +189,6 @@ public abstract class Bug
     public static final boolean Frg282Fixed = false;
 
     /**
-     * Whether <a href="http://issues.eigenbase.org/browse/FRG-283">issue
-     * FRG-283: Calc cannot cast VARBINARY values</a> is fixed.
-     */
-    public static final boolean Frg283Fixed = false;
-
-    /**
      * Whether <a href="http://issues.eigenbase.org/browse/FRG-296">issue
      * FRG-296: SUBSTRING(string FROM regexp FOR regexp)</a> is fixed.
      */

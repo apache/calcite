@@ -18,7 +18,6 @@
 package org.eigenbase.rex;
 
 import java.math.*;
-import java.nio.*;
 import java.util.*;
 
 import org.eigenbase.rel.*;
@@ -30,6 +29,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.DateTimeUtil;
 
+import net.hydromatic.optiq.runtime.ByteString;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import com.google.common.collect.ImmutableList;
@@ -438,7 +438,10 @@ public class RexBuilder
             if (RexLiteral.valueMatchesType(value, sqlType, false)
                 && (!(value instanceof NlsString)
                     || (type.getPrecision()
-                       >= ((NlsString) value).getValue().length())))
+                       >= ((NlsString) value).getValue().length()))
+                && (!(value instanceof ByteString)
+                    || (type.getPrecision()
+                       >= ((ByteString) value).length())))
             {
                 switch (literal.getTypeName()) {
                 case CHAR:
@@ -456,7 +459,7 @@ public class RexBuilder
                     calendar.setTimeInMillis(
                         SqlFunctions.round(
                             calendar.getTimeInMillis(),
-                            SqlFunctions.power(10, 3 - scale)));
+                            SqlFunctions.powerX(10, 3 - scale)));
                     break;
                 }
                 return makeLiteral(value, type, literal.getTypeName());
@@ -855,13 +858,13 @@ public class RexBuilder
     /**
      * Creates a byte array literal.
      */
-    public RexLiteral makeBinaryLiteral(byte [] byteArray)
+    public RexLiteral makeBinaryLiteral(ByteString byteString)
     {
         return makeLiteral(
-            ByteBuffer.wrap(byteArray),
+            byteString,
             typeFactory.createSqlType(
                 SqlTypeName.BINARY,
-                byteArray.length),
+                byteString.length()),
             SqlTypeName.BINARY);
     }
 
@@ -1187,9 +1190,10 @@ public class RexBuilder
                 return literal;
             }
         case BINARY:
-            return makeBinaryLiteral(new byte[type.getPrecision()]);
+            return makeBinaryLiteral(
+                new ByteString(new byte[type.getPrecision()]));
         case VARBINARY:
-            literal = makeBinaryLiteral(new byte[0]);
+            literal = makeBinaryLiteral(ByteString.EMPTY);
             if (allowCast) {
                 return makeCast(type, literal);
             } else {

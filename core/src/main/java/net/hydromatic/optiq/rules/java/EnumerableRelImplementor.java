@@ -22,12 +22,10 @@ import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.Utilities;
 
-import org.eigenbase.rel.RelImplementorImpl;
 import org.eigenbase.relopt.RelImplementor;
 import org.eigenbase.rex.RexBuilder;
 
@@ -43,16 +41,12 @@ import java.util.*;
  * of one of the {@link EnumerableConvention} calling
  * conventions.
  */
-public class EnumerableRelImplementor extends RelImplementorImpl {
-  public Map<String, Queryable> map = new LinkedHashMap<String, Queryable>();
+public class EnumerableRelImplementor extends JavaRelImplementor {
+  public final Map<String, Queryable> map =
+      new LinkedHashMap<String, Queryable>();
 
   public EnumerableRelImplementor(RexBuilder rexBuilder) {
     super(rexBuilder);
-  }
-
-  @Override
-  public JavaTypeFactoryImpl getTypeFactory() {
-    return (JavaTypeFactoryImpl) super.getTypeFactory();
   }
 
   public EnumerableRel.Result visitChild(
@@ -74,8 +68,6 @@ public class EnumerableRelImplementor extends RelImplementorImpl {
         new ArrayList<MemberDeclaration>();
     declareSyntheticClasses(result.block, memberDeclarations);
 
-    ParameterExpression root =
-        Expressions.parameter(Modifier.FINAL, DataContext.class, "root");
     memberDeclarations.add(
         Expressions.methodDecl(
             Modifier.PUBLIC,

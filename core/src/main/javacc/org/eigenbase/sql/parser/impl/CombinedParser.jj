@@ -32,6 +32,7 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.BitString;
 import org.eigenbase.util14.DateTimeUtil;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.resource.*;
 
@@ -3761,7 +3762,7 @@ SqlNode BuiltinFunctionCall() :
     (
         <TRIM>
         {
-            SqlFunction op = null;
+            SqlLiteral flag = null;
             SqlNode trimChars = null;
             pos = getPos();
         }
@@ -3771,24 +3772,30 @@ SqlNode BuiltinFunctionCall() :
             [
                 <BOTH>
                 {
-                    op = SqlStdOperatorTable.trimBothFunc;
+                    pos = getPos();
+                    flag = SqlLiteral.createSymbol(
+                        SqlTrimFunction.Flag.BOTH, pos);
                 }
                 |
                 <TRAILING>
                 {
-                    op = SqlStdOperatorTable.trimTrailingFunc;
+                    pos = getPos();
+                    flag = SqlLiteral.createSymbol(
+                        SqlTrimFunction.Flag.TRAILING, pos);
                 }
                 |
                 <LEADING>
                 {
-                    op = SqlStdOperatorTable.trimLeadingFunc;
+                    pos = getPos();
+                    flag = SqlLiteral.createSymbol(
+                        SqlTrimFunction.Flag.LEADING, pos);
                 }
             ]
             [ trimChars = Expression(ExprContext.ACCEPT_SUBQUERY) ]
             (
                 <FROM>
                 {
-                    if (null == op && null == trimChars) {
+                    if (null == flag && null == trimChars) {
                         throw SqlUtil.newContextException(
                             getPos(),
                             EigenbaseResource.instance().IllegalFromEmpty.ex());
@@ -3798,27 +3805,23 @@ SqlNode BuiltinFunctionCall() :
                 {
                     // This is to handle the case of TRIM(x)
                     // (FRG-191).
-                    args = startList(null); // no trim chars
+                    args = startList(flag);
+                    args.add(null); // no trim chars
                     args.add(trimChars); // reinterpret trimChars as source
-                    if (op == null) {
-                        op = SqlStdOperatorTable.trimBothFunc;
-                    }
-                    return op.createCall(
+                    return SqlStdOperatorTable.trimFunc.createCall(
                         pos, SqlParserUtil.toNodeArray(args));
                 }
             )
         ]
         e = Expression(ExprContext.ACCEPT_SUBQUERY)
         {
-            args = startList(trimChars);
+            args = startList(flag);
+            args.add(trimChars);
             args.add(e);
         }
         <RPAREN>
         {
-            if (op == null) {
-                op = SqlStdOperatorTable.trimBothFunc;
-            }
-            return op.createCall(
+            return SqlStdOperatorTable.trimFunc.createCall(
                 pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
         }
     )

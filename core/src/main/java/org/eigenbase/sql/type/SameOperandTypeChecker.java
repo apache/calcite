@@ -22,7 +22,7 @@ import java.util.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
-
+import org.eigenbase.util.Util;
 
 /**
  * Parameter type-checking strategy where all operand types must be the same.
@@ -58,6 +58,10 @@ public class SameOperandTypeChecker
             callBinding);
     }
 
+    protected List<Integer> getOperandList() {
+        return Util.range(0, nOperands);
+    }
+
     private boolean checkOperandTypesImpl(
         SqlOperatorBinding operatorBinding,
         boolean throwOnFailure,
@@ -69,7 +73,7 @@ public class SameOperandTypeChecker
         }
         assert !(throwOnFailure && (callBinding == null));
         RelDataType [] types = new RelDataType[nOperandsActual];
-        for (int i = 0; i < nOperandsActual; ++i) {
+        for (int i : getOperandList()) {
             if (operatorBinding.isOperandNull(i, false)) {
                 if (throwOnFailure) {
                     throw callBinding.getValidator().newValidationError(
@@ -81,18 +85,23 @@ public class SameOperandTypeChecker
             }
             types[i] = operatorBinding.getOperandType(i);
         }
-        for (int i = 1; i < nOperandsActual; ++i) {
-            if (!SqlTypeUtil.isComparable(types[i], types[i - 1])) {
-                if (!throwOnFailure) {
-                    return false;
-                }
+        int prev = -1;
+        for (int i : getOperandList()) {
+            if (prev >= 0) {
+                if (!SqlTypeUtil.isComparable(types[i], types[prev])) {
+                    if (!throwOnFailure) {
+                        return false;
+                    }
 
-                // REVIEW jvs 5-June-2005: Why don't we use
-                // newValidationSignatureError() here?  It gives more
-                // specific diagnostics.
-                throw callBinding.newValidationError(
-                    EigenbaseResource.instance().NeedSameTypeParameter.ex());
+                    // REVIEW jvs 5-June-2005: Why don't we use
+                    // newValidationSignatureError() here?  It gives more
+                    // specific diagnostics.
+                    throw callBinding.newValidationError(
+                        EigenbaseResource.instance().NeedSameTypeParameter
+                            .ex());
+                }
             }
+            prev = i;
         }
         return true;
     }

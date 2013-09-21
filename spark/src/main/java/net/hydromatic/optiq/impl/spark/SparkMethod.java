@@ -19,6 +19,8 @@ package net.hydromatic.optiq.impl.spark;
 
 import net.hydromatic.linq4j.Enumerable;
 import net.hydromatic.linq4j.expressions.Types;
+import net.hydromatic.optiq.DataContext;
+
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
@@ -36,7 +38,7 @@ public enum SparkMethod {
       Object[].class),
   CREATE_RDD(SparkRuntime.class, "createRdd", JavaSparkContext.class,
       Enumerable.class),
-  GET_SPARK_CONTEXT(SparkRuntime.class, "getSparkContext");
+  GET_SPARK_CONTEXT(SparkRuntime.class, "getSparkContext", DataContext.class);
 
   public final Method method;
 

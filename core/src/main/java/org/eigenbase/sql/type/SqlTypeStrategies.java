@@ -1005,60 +1005,54 @@ public abstract class SqlTypeStrategies
             public RelDataType inferReturnType(
                 SqlOperatorBinding opBinding)
             {
-                if (!(SqlTypeUtil.inCharFamily(opBinding.getOperandType(0))
-                        && SqlTypeUtil.inCharFamily(
-                            opBinding.getOperandType(1))))
+                final RelDataType argType0 = opBinding.getOperandType(0);
+                final RelDataType argType1 = opBinding.getOperandType(1);
+                if (!(SqlTypeUtil.inCharOrBinaryFamilies(argType0)
+                        && SqlTypeUtil.inCharOrBinaryFamilies(argType1)))
                 {
                     Util.pre(
-                        SqlTypeUtil.sameNamedType(
-                            opBinding.getOperandType(0),
-                            opBinding.getOperandType(1)),
+                        SqlTypeUtil.sameNamedType(argType0, argType1),
                         "SqlTypeUtil.sameNamedType(argTypes[0], argTypes[1])");
                 }
                 SqlCollation pickedCollation = null;
-                if (SqlTypeUtil.inCharFamily(opBinding.getOperandType(0))) {
+                if (SqlTypeUtil.inCharFamily(argType0)) {
                     if (!SqlTypeUtil.isCharTypeComparable(
                             opBinding.collectOperandTypes().subList(0, 2)))
                     {
                         throw opBinding.newError(
                             EigenbaseResource.instance().TypeNotComparable.ex(
-                                opBinding.getOperandType(0).getFullTypeString(),
-                                opBinding.getOperandType(1)
-                                    .getFullTypeString()));
+                                argType0.getFullTypeString(),
+                                argType1.getFullTypeString()));
                     }
 
                     pickedCollation =
                         SqlCollation.getCoercibilityDyadicOperator(
-                            opBinding.getOperandType(0).getCollation(),
-                            opBinding.getOperandType(1).getCollation());
+                            argType0.getCollation(), argType1.getCollation());
                     assert (null != pickedCollation);
                 }
 
                 // Determine whether result is variable-length
                 SqlTypeName typeName =
-                    opBinding.getOperandType(0).getSqlTypeName();
-                if (SqlTypeUtil.isBoundedVariableWidth(
-                        opBinding.getOperandType(1)))
-                {
-                    typeName = opBinding.getOperandType(1).getSqlTypeName();
+                    argType0.getSqlTypeName();
+                if (SqlTypeUtil.isBoundedVariableWidth(argType1)) {
+                    typeName = argType1.getSqlTypeName();
                 }
 
                 RelDataType ret;
                 ret =
                     opBinding.getTypeFactory().createSqlType(
                         typeName,
-                        opBinding.getOperandType(0).getPrecision()
-                        + opBinding.getOperandType(1).getPrecision());
+                        argType0.getPrecision() + argType1.getPrecision());
                 if (null != pickedCollation) {
                     RelDataType pickedType;
-                    if (opBinding.getOperandType(0).getCollation().equals(
+                    if (argType0.getCollation().equals(
                             pickedCollation))
                     {
-                        pickedType = opBinding.getOperandType(0);
-                    } else if (opBinding.getOperandType(1).getCollation()
-                            .equals(pickedCollation))
+                        pickedType = argType0;
+                    } else if (argType1.getCollation().equals(
+                            pickedCollation))
                     {
-                        pickedType = opBinding.getOperandType(1);
+                        pickedType = argType1;
                     } else {
                         throw Util.newInternal("should never come here");
                     }

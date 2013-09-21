@@ -30,6 +30,9 @@ import java.util.Arrays;
 public class ByteString implements Comparable<ByteString>, Serializable {
   private final byte[] bytes;
 
+  /** An empty byte string. */
+  public static final ByteString EMPTY = new ByteString(new byte[0], false);
+
   private static final char[] digits = {
       '0', '1', '2', '3', '4', '5', '6', '7',
       '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
@@ -41,7 +44,12 @@ public class ByteString implements Comparable<ByteString>, Serializable {
    * @param bytes Bytes
    */
   public ByteString(byte[] bytes) {
-    this.bytes = bytes.clone();
+    this(bytes.clone(), false);
+  }
+
+  // private constructor that does not copy
+  private ByteString(byte[] bytes, boolean dummy) {
+    this.bytes = bytes;
   }
 
   @Override
@@ -51,7 +59,8 @@ public class ByteString implements Comparable<ByteString>, Serializable {
 
   @Override
   public boolean equals(Object obj) {
-    return obj instanceof ByteString
+    return this == obj
+        || obj instanceof ByteString
         && Arrays.equals(bytes, ((ByteString) obj).bytes);
   }
 
@@ -76,7 +85,16 @@ public class ByteString implements Comparable<ByteString>, Serializable {
    */
   @Override
   public String toString() {
-    return toString(bytes);
+    return toString(16);
+  }
+
+  /**
+   * Returns this byte string in a given base.
+   *
+   * @return String in given base
+   */
+  public String toString(int base) {
+    return toString(bytes, base);
   }
 
   /**
@@ -86,16 +104,37 @@ public class ByteString implements Comparable<ByteString>, Serializable {
    * returns {@code "DEAD"}.</p>
    *
    * @param bytes Array of bytes
+   * @param base Base (2 or 16)
    * @return String
    */
-  public static String toString(byte[] bytes) {
-    char[] chars = new char[bytes.length * 2];
-    for (int i = 0, j = 0; i < bytes.length; i++) {
-      byte b = bytes[i];
-      chars[j++] = digits[(b & 0xF0) >> 4];
-      chars[j++] = digits[b & 0x0F];
+  public static String toString(byte[] bytes, int base) {
+    char[] chars;
+    int j = 0;
+    switch (base) {
+    case 2:
+      chars = new char[bytes.length * 8];
+      for (byte b : bytes) {
+        chars[j++] = digits[(b & 0x80) >> 7];
+        chars[j++] = digits[(b & 0x40) >> 6];
+        chars[j++] = digits[(b & 0x20) >> 5];
+        chars[j++] = digits[(b & 0x10) >> 4];
+        chars[j++] = digits[(b & 0x08) >> 3];
+        chars[j++] = digits[(b & 0x04) >> 2];
+        chars[j++] = digits[(b & 0x02) >> 1];
+        chars[j++] = digits[b & 0x01];
+      }
+      break;
+    case 16:
+      chars = new char[bytes.length * 2];
+      for (byte b : bytes) {
+        chars[j++] = digits[(b & 0xF0) >> 4];
+        chars[j++] = digits[b & 0x0F];
+      }
+      break;
+    default:
+      throw new IllegalArgumentException("bad base " + base);
     }
-    return new String(chars);
+    return new String(chars, 0, j);
   }
 
   @SuppressWarnings({
@@ -127,6 +166,70 @@ public class ByteString implements Comparable<ByteString>, Serializable {
    */
   public byte byteAt(int i) {
     return bytes[i];
+  }
+
+  /**
+   * Returns a ByteString that consists of a given range.
+   *
+   * @param start Start of range
+   * @param end Position after end of range
+   * @return Substring
+   */
+  public ByteString substring(int start, int end) {
+    byte[] bytes = Arrays.copyOfRange(this.bytes, start, end);
+    return new ByteString(bytes, false);
+  }
+
+  /**
+   * Returns a ByteString that starts at a given position.
+   *
+   * @param start Start of range
+   * @return Substring
+   */
+  public ByteString substring(int start) {
+    return substring(start, length());
+  }
+
+  /**
+   * Returns a copy of the byte array.
+   */
+  public byte[] getBytes() {
+    return bytes.clone();
+  }
+
+  /**
+   * Returns a ByteString consisting of the concatenation of this and another
+   * string.
+   *
+   * @param other Byte string to concatenate
+   * @return Combined byte string
+   */
+  public ByteString concat(ByteString other) {
+    int otherLen = other.length();
+    if (otherLen == 0) {
+      return this;
+    }
+    int len = bytes.length;
+    byte[] buf = Arrays.copyOf(bytes, len + otherLen);
+    System.arraycopy(other.bytes, 0, buf, len, other.bytes.length);
+    return new ByteString(buf, false);
+  }
+
+  /** Returns the position at which {@code seek} first occurs in this byte
+   * string, or -1 if it does not occur. */
+  public int indexOf(ByteString seek) {
+    iLoop:
+    for (int i = 0; i < bytes.length - seek.bytes.length + 1; i++) {
+      for (int j = 0;; j++) {
+        if (j == seek.bytes.length) {
+          return i;
+        }
+        if (bytes[i + j] != seek.bytes[j]) {
+          continue iLoop;
+        }
+      }
+    }
+    return -1;
   }
 }
 

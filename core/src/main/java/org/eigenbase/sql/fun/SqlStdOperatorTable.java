@@ -1003,12 +1003,7 @@ public class SqlStdOperatorTable
     /**
      * The "TRIM" function.
      */
-    public static final SqlFunction trimBothFunc =
-        new SqlTrimFunction(SqlTrimFunction.Flag.BOTH);
-    public static final SqlFunction trimLeadingFunc =
-        new SqlTrimFunction(SqlTrimFunction.Flag.LEADING);
-    public static final SqlFunction trimTrailingFunc =
-        new SqlTrimFunction(SqlTrimFunction.Flag.TRAILING);
+    public static final SqlFunction trimFunc = new SqlTrimFunction();
 
     public static final SqlFunction positionFunc = new SqlPositionFunction();
 

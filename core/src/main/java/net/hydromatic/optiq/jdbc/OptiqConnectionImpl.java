@@ -29,8 +29,11 @@ import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
-import java.lang.reflect.Type;
+import com.google.common.collect.ImmutableMap;
+
+import java.lang.reflect.*;
 import java.sql.*;
+import java.sql.Array;
 import java.util.*;
 import java.util.concurrent.Executor;
 
@@ -54,7 +57,52 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
   final ParameterExpression rootExpression =
       Expressions.parameter(DataContext.class, "root");
   final MutableSchema rootSchema =
-      new MapSchema(null, this, typeFactory, "", rootExpression);
+      new MapSchema(null, this, typeFactory, "", rootExpression) {
+        private Object sparkContext;
+
+        // Store the time at which the query started executing. The SQL
+        // standard says that functions such as CURRENTTIMESTAMP return the
+        // same value throughout the query.
+        final long time = System.currentTimeMillis();
+        final long localOffset =
+            Calendar.getInstance().getTimeZone().getOffset(time);
+        final long currentOffset = localOffset;
+        private final ImmutableMap<Object, Object> map =
+            ImmutableMap.builder()
+                .put("utcTimestamp", time)
+                .put("currentTimestamp", time + currentOffset)
+                .put("localTimestamp", time + localOffset)
+                .build();
+
+        @Override
+        public synchronized Object get(String name) {
+          if (name.equals("sparkContext")) {
+            if (sparkContext == null) {
+              try {
+                final Class<?> clazz =
+                    Class.forName("org.apache.spark.api.java.JavaSparkContext");
+                final Constructor<?> constructor =
+                    clazz.getConstructor(String.class, String.class);
+                sparkContext = constructor.newInstance("local[1]", "optiq");
+              } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+              } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
+              } catch (NoSuchMethodException e) {
+                throw new RuntimeException(e);
+              } catch (InstantiationException e) {
+                throw new RuntimeException(e);
+              } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+              }
+            }
+            return sparkContext;
+          } else {
+            return map.get(name);
+          }
+        }
+      };
+
   final UnregisteredDriver driver;
   final net.hydromatic.optiq.jdbc.Factory factory;
   final Function0<OptiqPrepare> prepareFactory;

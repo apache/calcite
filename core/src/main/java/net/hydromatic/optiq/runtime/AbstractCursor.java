@@ -484,8 +484,8 @@ public abstract class AbstractCursor implements Cursor {
   }
 
   /**
-   * Accessor that assumes that the underlying value is a {@link Float};
-   * corresponds to {@link java.sql.Types#FLOAT}.
+   * Accessor that assumes that the underlying value is a {@link Double};
+   * corresponds to {@link java.sql.Types#DOUBLE}.
    */
   private static class DoubleAccessor extends ApproximateNumericAccessor {
     public DoubleAccessor(Getter getter) {
@@ -569,7 +569,8 @@ public abstract class AbstractCursor implements Cursor {
 
   /**
    * Accessor that assumes that the underlying value is a {@link String};
-   * corresponds to {@link java.sql.Types#CHAR} and {@link java.sql.Types#VARCHAR}.
+   * corresponds to {@link java.sql.Types#CHAR}
+   * and {@link java.sql.Types#VARCHAR}.
    */
   private static class StringAccessor extends AccessorImpl {
     public StringAccessor(Getter getter) {
@@ -604,8 +605,9 @@ public abstract class AbstractCursor implements Cursor {
 
   /**
    * Accessor that assumes that the underlying value is an array of
-   * {@code byte} values;
-   * corresponds to {@link java.sql.Types#BINARY} and {@link java.sql.Types#VARBINARY}.
+   * {@link ByteString} values;
+   * corresponds to {@link java.sql.Types#BINARY}
+   * and {@link java.sql.Types#VARBINARY}.
    */
   private static class BinaryAccessor extends AccessorImpl {
     public BinaryAccessor(Getter getter) {
@@ -613,13 +615,8 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     public byte[] getBytes() {
-      return (byte[]) getObject();
-    }
-
-    @Override
-    public String getString() {
-      byte[] bytes = getBytes();
-      return bytes == null ? null : ByteString.toString(bytes);
+      final ByteString o = (ByteString) getObject();
+      return o == null ? null : o.getBytes();
     }
   }
 

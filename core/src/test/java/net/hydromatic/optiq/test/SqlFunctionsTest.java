@@ -17,18 +17,14 @@
 */
 package net.hydromatic.optiq.test;
 
-import net.hydromatic.optiq.runtime.SqlFunctions;
-import net.hydromatic.optiq.runtime.Utilities;
+import net.hydromatic.optiq.runtime.*;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import java.util.*;
 
 import static net.hydromatic.optiq.runtime.SqlFunctions.*;
 import static org.junit.Assert.*;
-
 
 /**
  * Unit test for the methods in {@link SqlFunctions} that implement SQL
@@ -45,7 +41,7 @@ public class SqlFunctionsTest {
     // pass in null, it is treated like the string "null", as the following
     // tests show. Not the desired behavior for SQL.
     assertEquals("anull", concat("a", null));
-    assertEquals("nullnull", concat(null, null));
+    assertEquals("nullnull", concat((String) null, null));
     assertEquals("nullb", concat(null, "b"));
   }
 
@@ -117,13 +113,17 @@ public class SqlFunctionsTest {
 
   /** Test for {@link SqlFunctions#trim}. */
   @Test public void testTrim() {
-    assertEquals("", trim(""));
-    assertEquals("", trim("    "));
-    assertEquals("x", trim("   x  "));
-    assertEquals("x", trim("   x "));
-    assertEquals("x y", trim("   x y "));
-    assertEquals("x", trim("   x"));
-    assertEquals("x", trim("x"));
+    assertEquals("", trimSpacesBoth(""));
+    assertEquals("", trimSpacesBoth("    "));
+    assertEquals("x", trimSpacesBoth("   x  "));
+    assertEquals("x", trimSpacesBoth("   x "));
+    assertEquals("x y", trimSpacesBoth("   x y "));
+    assertEquals("x", trimSpacesBoth("   x"));
+    assertEquals("x", trimSpacesBoth("x"));
+  }
+
+  static String trimSpacesBoth(String s) {
+    return trim(true, true, " ", s);
   }
 
   @Test public void testUnixDateToString() {
@@ -218,6 +218,40 @@ public class SqlFunctionsTest {
     assertEquals(13000, SqlFunctions.round(12845, 1000));
     assertEquals(-12000, SqlFunctions.round(-12345, 1000));
     assertEquals(-13000, SqlFunctions.round(-12845, 1000));
+  }
+
+  @Test public void testByteString() {
+    final byte[] bytes = {(byte) 0xAB, (byte) 0xFF};
+    final ByteString byteString = new ByteString(bytes);
+    assertEquals(2, byteString.length());
+    assertEquals("abff", byteString.toString());
+    assertEquals("abff", byteString.toString(16));
+    assertEquals("1010101111111111", byteString.toString(2));
+
+    final ByteString emptyByteString = new ByteString(new byte[0]);
+    assertEquals(0, emptyByteString.length());
+    assertEquals("", emptyByteString.toString());
+    assertEquals("", emptyByteString.toString(16));
+    assertEquals("", emptyByteString.toString(2));
+
+    assertEquals(emptyByteString, ByteString.EMPTY);
+
+    assertEquals("ff", byteString.substring(1, 2).toString());
+    assertEquals("abff", byteString.substring(0, 2).toString());
+    assertEquals("", byteString.substring(2, 2).toString());
+
+    // Add empty string, get original string back
+    assertSame(byteString.concat(emptyByteString), byteString);
+    final ByteString byteString1 = new ByteString(new byte[]{(byte) 12});
+    assertEquals("abff0c", byteString.concat(byteString1).toString());
+
+    final byte[] bytes3 = {(byte) 0xFF};
+    final ByteString byteString3 = new ByteString(bytes3);
+
+    assertEquals(0, byteString.indexOf(emptyByteString));
+    assertEquals(-1, byteString.indexOf(byteString1));
+    assertEquals(1, byteString.indexOf(byteString3));
+    assertEquals(-1, byteString3.indexOf(byteString));
   }
 }
 

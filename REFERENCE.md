@@ -228,6 +228,9 @@ Note:
 | SUBSTRING(string FROM integer FOR integer)
 | INITCAP(string)
 
+Not implemented:
+* SUBSTRING(string FROM regexp FOR regexp)
+
 ### Binary string operators and functions
 
 | Operator syntax | Description
@@ -279,10 +282,13 @@ Not implemented:
 
 | Operator syntax | Description
 | --------------- | -----------
-| CASE value WHEN value1 THEN result1 [ WHEN valueN THEN resultN ]* [ ELSE resultZ ] END
-| CASE WHEN condition1 THEN result1 [ WHEN conditionN THEN resultN ]* [ ELSE resultZ ] END
-| NULLIF(value, value)
-| COALESCE(value, value)
+| CASE value<br/>WHEN value1 THEN result1<br/>[ WHEN valueN THEN resultN ]*<br/>[ ELSE resultZ ]<br/> END | Simple case
+| CASE WHEN condition1 THEN result1 [ WHEN conditionN THEN resultN ]* [ ELSE resultZ ] END | Searched case
+| NULLIF(value, value) | Returns NULL if the values are the same. For example, <code>NULLIF(5, 5)</code> returns NULL; <code>NULLIF(5, 0)</code> returns 5.
+| COALESCE(value, value [, value]* ) | Provides a value if the first value is null. For example, <code>COALESCE(NULL, 5)</code> returns 5.
+
+Note implemented:
+* CASE value<br/>WHEN value11 [, value1M ]* THEN result1<br/>[ WHEN valueN1 [ , value NM ]* THEN resultN ]*<br/>[ ELSE resultZ ]<br/> END | Simple case with multiple values per THEN clause
 
 ### Type conversion
 

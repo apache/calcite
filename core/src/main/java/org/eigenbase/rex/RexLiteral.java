@@ -18,12 +18,9 @@
 package org.eigenbase.rex;
 
 import java.io.*;
-
 import java.math.*;
-
 import java.nio.*;
 import java.nio.charset.*;
-
 import java.util.*;
 
 import org.eigenbase.reltype.*;
@@ -33,6 +30,8 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
+
+import net.hydromatic.optiq.runtime.ByteString;
 
 /**
  * Constant value in a row-expression.
@@ -218,7 +217,7 @@ public class RexLiteral
             }
             // fall through
         case BINARY:
-            return value instanceof ByteBuffer;
+            return value instanceof ByteString;
         case VARCHAR: // not allowed -- use Char
             if (strict) {
                 throw Util.unexpected(typeName);
@@ -313,12 +312,9 @@ public class RexLiteral
             pw.print(Util.toScientificNotation((BigDecimal) value));
             break;
         case BINARY:
-            assert value instanceof ByteBuffer;
+            assert value instanceof ByteString;
             pw.print("X'");
-            pw.print(
-                ConversionUtil.toStringFromByteArray(
-                    ((ByteBuffer) value).array(),
-                    16));
+            pw.print((((ByteString) value).toString(16)));
             pw.print("'");
             break;
         case NULL:
@@ -409,8 +405,7 @@ public class RexLiteral
             return new RexLiteral(d, type, typeName);
         case BINARY:
             byte [] bytes = ConversionUtil.toByteArrayFromString(literal, 16);
-            ByteBuffer buffer = ByteBuffer.wrap(bytes);
-            return new RexLiteral(buffer, type, typeName);
+            return new RexLiteral(new ByteString(bytes), type, typeName);
         case NULL:
             return new RexLiteral(null, type, typeName);
         case INTERVAL_DAY_TIME:

@@ -88,6 +88,10 @@ public class SplunkSchema implements Schema {
     return name;
   }
 
+  public Object get(String name) {
+    return parentSchema.get(name);
+  }
+
   public Expression getExpression() {
     return expression;
   }

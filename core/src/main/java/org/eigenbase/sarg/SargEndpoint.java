@@ -19,13 +19,12 @@ package org.eigenbase.sarg;
 
 import java.math.*;
 
-import java.nio.*;
-
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.runtime.ByteString;
 
 /**
  * SargEndpoint represents an endpoint of a ({@link SargInterval}).
@@ -174,8 +173,8 @@ public class SargEndpoint
             roundingCompensation = convertNumber((BigDecimal) value);
         } else if (value instanceof NlsString) {
             roundingCompensation = convertString((NlsString) value);
-        } else if (value instanceof ByteBuffer) {
-            roundingCompensation = convertBytes((ByteBuffer) value);
+        } else if (value instanceof ByteString) {
+            roundingCompensation = convertBytes((ByteString) value);
         } else {
             // NOTE jvs 19-Feb-2006:  Once we support fractional time
             // precision, need to handle that here.
@@ -264,24 +263,17 @@ public class SargEndpoint
         }
     }
 
-    private int convertBytes(ByteBuffer value)
+    private int convertBytes(ByteString value)
     {
         // REVIEW jvs 11-Sept-2006:  What about 0-padding for BINARY?
 
         // For binary strings, have to deal with truncation.
 
-        byte [] a = value.array();
-        if (a.length <= dataType.getPrecision()) {
+        if (value.length() <= dataType.getPrecision()) {
             // No truncation required.
             return 0;
         }
-        byte [] truncated = new byte[dataType.getPrecision()];
-        System.arraycopy(
-            a,
-            0,
-            truncated,
-            0,
-            dataType.getPrecision());
+        ByteString truncated = value.substring(0, dataType.getPrecision());
         coordinate = factory.getRexBuilder().makeBinaryLiteral(truncated);
 
         // Truncation is always "down" in coordinate space, so rounding

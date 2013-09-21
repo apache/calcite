@@ -18,11 +18,12 @@
 package net.hydromatic.optiq.impl.spark;
 
 import net.hydromatic.linq4j.expressions.BlockStatement;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.rules.java.JavaRelImplementor;
 import net.hydromatic.optiq.rules.java.PhysType;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.Convention;
+import org.eigenbase.rex.RexBuilder;
 
 /**
  * Relational expression that uses Spark calling convention.
@@ -33,10 +34,12 @@ public interface SparkRel extends RelNode {
   /** Calling convention for relational operations that occur in Spark. */
   final Convention CONVENTION = new Convention.Impl("SPARK", SparkRel.class);
 
-  public interface Implementor {
-    Result result(PhysType physType, BlockStatement blockStatement);
+  public abstract class Implementor extends JavaRelImplementor {
+    public Implementor(RexBuilder rexBuilder) {
+      super(rexBuilder);
+    }
 
-    JavaTypeFactory getTypeFactory();
+    abstract Result result(PhysType physType, BlockStatement blockStatement);
   }
 
   public class Result {
