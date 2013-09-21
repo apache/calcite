@@ -1268,36 +1268,29 @@ public abstract class SqlOperatorBaseTest {
     protected static Calendar getCalendarNotTooNear(int timeUnit)
     {
         while (true) {
-            Calendar cal = Calendar.getInstance();
-            final Calendar fcal;
+            final Calendar cal = Calendar.getInstance();
             try {
                 switch (timeUnit) {
                 case Calendar.DAY_OF_MONTH:
-
-                    // Within two minutes of the end of the day.
-                    // Wait 2 minutes to force calendar into next
-                    // day, then get a new instance to return
+                    // Within two minutes of the end of the day. Wait in 10s
+                    // increments until calendar moves into the next next day.
                     if ((cal.get(Calendar.HOUR_OF_DAY) == 23)
                         && (cal.get(Calendar.MINUTE) >= 58))
                     {
-                        Thread.sleep(2 * 60 * 1000);
-                        cal = Calendar.getInstance();
+                        Thread.sleep(10 * 1000);
                         continue;
                     }
-                    fcal = cal;
-                    return fcal;
-                case Calendar.HOUR_OF_DAY:
+                    return cal;
 
-                    // Within two minutes of the top of the hour.
-                    // Wait 2 minutes to force calendar into next
-                    // hour, then get a new instance to return
+                case Calendar.HOUR_OF_DAY:
+                    // Within two minutes of the top of the hour. Wait in 10s
+                    // increments until calendar moves into the next next day.
                     if ((cal.get(Calendar.MINUTE) >= 58)) {
-                        Thread.sleep(2 * 60 * 1000);
-                        cal = Calendar.getInstance();
+                        Thread.sleep(10 * 1000);
                         continue;
                     }
-                    fcal = cal;
-                    return fcal;
+                    return cal;
+
                 default:
                     throw Util.newInternal("unexpected time unit " + timeUnit);
                 }

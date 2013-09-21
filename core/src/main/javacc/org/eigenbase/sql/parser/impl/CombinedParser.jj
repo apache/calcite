@@ -3805,6 +3805,10 @@ SqlNode BuiltinFunctionCall() :
                 {
                     // This is to handle the case of TRIM(x)
                     // (FRG-191).
+                    if (flag == null) {
+                        flag = SqlLiteral.createSymbol(
+                            SqlTrimFunction.Flag.BOTH, SqlParserPos.ZERO);
+                    }
                     args = startList(flag);
                     args.add(null); // no trim chars
                     args.add(trimChars); // reinterpret trimChars as source
@@ -3815,6 +3819,10 @@ SqlNode BuiltinFunctionCall() :
         ]
         e = Expression(ExprContext.ACCEPT_SUBQUERY)
         {
+            if (flag == null) {
+                flag = SqlLiteral.createSymbol(
+                    SqlTrimFunction.Flag.BOTH, SqlParserPos.ZERO);
+            }
             args = startList(flag);
             args.add(trimChars);
             args.add(e);

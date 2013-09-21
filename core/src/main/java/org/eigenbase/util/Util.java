@@ -29,17 +29,13 @@ import java.sql.*;
 import java.text.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.*;
 import java.util.jar.*;
 import java.util.logging.*;
 import java.util.regex.*;
-import java.util.stream.Stream;
 
 import org.eigenbase.sql.validate.*;
 
 import net.hydromatic.linq4j.Ord;
-
-import com.google.common.collect.Iterables;
 
 /**
  * Miscellaneous utility functions.

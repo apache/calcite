@@ -905,10 +905,9 @@ public class RexImpTable {
   private static class TrimImplementor implements NotNullImplementor {
     public Expression implement(RexToLixTranslator translator, RexCall call,
         List<Expression> translatedOperands) {
-      final RexLiteral literal = (RexLiteral) call.getOperands().get(0);
-      final SqlLiteral.SqlSymbol symbol =
-          (SqlLiteral.SqlSymbol) literal.getValue();
-      SqlTrimFunction.Flag flag = (SqlTrimFunction.Flag) symbol;
+      final Object value =
+          ((ConstantExpression) translatedOperands.get(0)).value;
+      SqlTrimFunction.Flag flag = (SqlTrimFunction.Flag) value;
       return Expressions.call(
           BuiltinMethod.TRIM.method,
           Expressions.constant(
@@ -917,8 +916,8 @@ public class RexImpTable {
           Expressions.constant(
               flag == SqlTrimFunction.Flag.BOTH
               || flag == SqlTrimFunction.Flag.TRAILING),
-          translatedOperands.get(0),
-          translatedOperands.get(1));
+          translatedOperands.get(1),
+          translatedOperands.get(2));
     }
   }
 

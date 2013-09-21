@@ -361,6 +361,10 @@ public class RexToLixTranslator {
           Expressions.constant(
               ((ByteString) value).getBytes(),
               byte[].class));
+    case SYMBOL:
+        value2 = value;
+        javaClass = value.getClass();
+        break;
     default:
       final Primitive primitive = Primitive.ofBoxOr(javaClass);
       if (primitive != null && value instanceof Number) {

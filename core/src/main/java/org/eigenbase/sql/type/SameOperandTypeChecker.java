@@ -58,8 +58,10 @@ public class SameOperandTypeChecker
             callBinding);
     }
 
-    protected List<Integer> getOperandList() {
-        return Util.range(0, nOperands);
+    protected List<Integer> getOperandList(int operandCount) {
+        return nOperands == -1
+            ? Util.range(0, operandCount)
+            : Util.range(0, nOperands);
     }
 
     private boolean checkOperandTypesImpl(
@@ -73,7 +75,9 @@ public class SameOperandTypeChecker
         }
         assert !(throwOnFailure && (callBinding == null));
         RelDataType [] types = new RelDataType[nOperandsActual];
-        for (int i : getOperandList()) {
+        final List<Integer> operandList =
+            getOperandList(operatorBinding.getOperandCount());
+        for (int i : operandList) {
             if (operatorBinding.isOperandNull(i, false)) {
                 if (throwOnFailure) {
                     throw callBinding.getValidator().newValidationError(
@@ -86,7 +90,7 @@ public class SameOperandTypeChecker
             types[i] = operatorBinding.getOperandType(i);
         }
         int prev = -1;
-        for (int i : getOperandList()) {
+        for (int i : operandList) {
             if (prev >= 0) {
                 if (!SqlTypeUtil.isComparable(types[i], types[prev])) {
                     if (!throwOnFailure) {

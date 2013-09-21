@@ -1114,15 +1114,14 @@ public class SqlValidatorTest
             checkExp("\"SUBSTRING\"('a' from 1)");
             checkExp("\"TRIM\"('b')");
         } else {
-            // Very poor error message. JVS's above remarks notwithstanding,
-            // the parser creates a call to TRIM with 1 rather than the
-            // expected 3 args, and the remaining two args are filled in with
-            // NULL literals so that we get as far as validation.
             checkExpFails(
-                "^\"TRIM\"('b')^",
-                "No match found for function signature TRIM\\(<CHARACTER>\\)");
+                "^\"TRIM\"('b' FROM 'a')^",
+                "(?s).*Encountered \"FROM\" at .*");
 
-            // It's OK if the function name is not quoted
+            // Without the "FROM" noise word, TRIM is parsed as a regular
+            // function, not as a built-in. So we can parse with and without
+            // quoting.
+            checkExpType("\"TRIM\"('b')", "VARCHAR(1) NOT NULL");
             checkExpType("TRIM('b')", "VARCHAR(1) NOT NULL");
         }
     }

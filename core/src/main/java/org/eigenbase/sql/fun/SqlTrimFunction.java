@@ -24,6 +24,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * Definition of the "TRIM" builtin SQL function.
  *
@@ -84,8 +86,8 @@ public class SqlTrimFunction
                 // Arguments 1 and 2 must have same type
                 new SameOperandTypeChecker(3) {
                     @Override
-                    protected List<Integer> getOperandList() {
-                        return Arrays.asList(1, 2);
+                    protected List<Integer> getOperandList(int operandCount) {
+                        return ImmutableList.of(1, 2);
                     }
                 }),
             SqlFunctionCategory.String);
@@ -124,13 +126,42 @@ public class SqlTrimFunction
         SqlNode ... operands)
     {
         assert functionQualifier == null;
-        assert operands.length == 3;
-        assert operands[0] instanceof SqlLiteral
-            && ((SqlLiteral) operands[0]).getValue() instanceof Flag;
-        if (operands[1] == null) {
-            operands[1] = SqlLiteral.createCharString(" ", pos);
+        switch (operands.length) {
+        case 1:
+            // This variant occurs when someone writes TRIM(string)
+            // as opposed to the sugared syntax TRIM(string FROM string).
+            operands = new SqlNode[]{
+                SqlLiteral.createSymbol(Flag.BOTH, SqlParserPos.ZERO),
+                SqlLiteral.createCharString(" ", pos),
+                operands[0]
+            };
+            break;
+        case 3:
+            assert operands[0] instanceof SqlLiteral
+                   && ((SqlLiteral) operands[0]).getValue() instanceof Flag;
+            if (operands[1] == null) {
+                operands[1] = SqlLiteral.createCharString(" ", pos);
+            }
+            break;
+        default:
+            throw new IllegalArgumentException(
+                "invalid operand count " + Arrays.toString(operands));
         }
         return super.createCall(functionQualifier, pos, operands);
+    }
+
+    public boolean checkOperandTypes(
+        SqlCallBinding callBinding,
+        boolean throwOnFailure)
+    {
+        if (!super.checkOperandTypes(callBinding, throwOnFailure)) {
+            return false;
+        }
+        final SqlNode[] operands = callBinding.getCall().getOperands();
+        return SqlTypeUtil.isCharTypeComparable(
+            callBinding,
+            new SqlNode[] {operands[1], operands[2]},
+            throwOnFailure);
     }
 }
 
