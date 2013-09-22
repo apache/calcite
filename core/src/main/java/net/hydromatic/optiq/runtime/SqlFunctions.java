@@ -1122,6 +1122,194 @@ public class SqlFunctions {
     return day + (153 * m + 2) / 5 + 365 * y + y / 4 - 32083;
   }
 
+  public static String intervalYearMonthToString(int v, TimeUnitRange range) {
+    final StringBuilder buf = new StringBuilder();
+    if (v >= 0) {
+      buf.append('+');
+    } else {
+      buf.append('-');
+      v = -v;
+    }
+    final int y;
+    final int m;
+    switch (range) {
+    case YEAR:
+      y = v / 12;
+      buf.append(y);
+      break;
+    case YEAR_TO_MONTH:
+      y = v / 12;
+      buf.append(y);
+      buf.append('-');
+      m = v % 12;
+      number(buf, m, 2);
+      break;
+    case MONTH:
+      m = v;
+      buf.append(m);
+      break;
+    default:
+      throw new AssertionError(range);
+    }
+    return buf.toString();
+  }
+
+  private static StringBuilder number(StringBuilder buf, int v, int n) {
+    for (int k = digitCount(v); k < n; k++) {
+      buf.append('0');
+    }
+    return buf.append(v);
+  }
+
+  public static int digitCount(int v) {
+    for (int n = 1;; n++) {
+      v /= 10;
+      if (v == 0) {
+        return n;
+      }
+    }
+  }
+
+  public static String intervalDayTimeToString(long v, TimeUnitRange range,
+      int scale) {
+    final StringBuilder buf = new StringBuilder();
+    if (v >= 0) {
+      buf.append('+');
+    } else {
+      buf.append('-');
+      v = -v;
+    }
+    final long ms;
+    final long s;
+    final long m;
+    final long h;
+    final long d;
+    switch (range) {
+    case DAY_TO_SECOND:
+      ms = v % 1000;
+      v /= 1000;
+      s = v % 60;
+      v /= 60;
+      m = v % 60;
+      v /= 60;
+      h = v % 24;
+      v /= 24;
+      d = v;
+      buf.append((int) d);
+      buf.append(' ');
+      number(buf, (int) h, 2);
+      buf.append(':');
+      number(buf, (int) m, 2);
+      buf.append(':');
+      number(buf, (int) s, 2);
+      fraction(buf, scale, ms);
+      break;
+    case DAY_TO_MINUTE:
+      v /= 1000;
+      v /= 60;
+      m = v % 60;
+      v /= 60;
+      h = v % 24;
+      v /= 24;
+      d = v;
+      buf.append((int) d);
+      buf.append(' ');
+      number(buf, (int) h, 2);
+      buf.append(':');
+      number(buf, (int) m, 2);
+      break;
+    case DAY_TO_HOUR:
+      v /= 1000;
+      v /= 60;
+      v /= 60;
+      h = v % 24;
+      v /= 24;
+      d = v;
+      buf.append((int) d);
+      buf.append(' ');
+      number(buf, (int) h, 2);
+      break;
+    case DAY:
+      v /= 1000;
+      v /= 60;
+      v /= 60;
+      v /= 24;
+      d = v;
+      buf.append((int) d);
+      break;
+    case HOUR:
+      v /= 1000;
+      v /= 60;
+      v /= 60;
+      h = v;
+      buf.append((int) h);
+      break;
+    case HOUR_TO_MINUTE:
+      v /= 1000;
+      v /= 60;
+      m = v % 60;
+      v /= 60;
+      h = v;
+      buf.append((int) h);
+      buf.append(':');
+      number(buf, (int) m, 2);
+      break;
+    case HOUR_TO_SECOND:
+      ms = v % 1000;
+      v /= 1000;
+      s = v % 60;
+      v /= 60;
+      m = v % 60;
+      v /= 60;
+      h = v;
+      buf.append((int) h);
+      buf.append(':');
+      number(buf, (int) m, 2);
+      buf.append(':');
+      number(buf, (int) s, 2);
+      fraction(buf, scale, ms);
+      break;
+    case MINUTE_TO_SECOND:
+      ms = v % 1000;
+      v /= 1000;
+      s = v % 60;
+      v /= 60;
+      m = v;
+      buf.append((int) m);
+      buf.append(':');
+      number(buf, (int) s, 2);
+      fraction(buf, scale, ms);
+      break;
+    case MINUTE:
+      v /= 1000;
+      v /= 60;
+      m = v;
+      buf.append((int) m);
+      break;
+    case SECOND:
+      ms = v % 1000;
+      v /= 1000;
+      s = v;
+      buf.append((int) s);
+      fraction(buf, scale, ms);
+      break;
+    default:
+      throw new AssertionError(range);
+    }
+    return buf.toString();
+  }
+
+  private static void fraction(StringBuilder buf, int scale, long ms) {
+    if (scale > 0) {
+      buf.append('.');
+      long v1 = scale == 3 ? ms
+          : scale == 2 ? ms / 10
+          : scale == 1 ? ms / 100
+            : 0;
+      number(buf, (int) v1, scale);
+    }
+  }
+
   /** Helper for "array element reference". Caller has already ensured that
    * array and index are not null. Index is 1-based, per SQL. */
   public static Object arrayItem(List list, int item) {
@@ -1159,6 +1347,27 @@ public class SqlFunctions {
   /** NULL -> TRUE, FALSE -> FALSE, TRUE -> TRUE. */
   public static boolean isNotFalse(Boolean b) {
     return b == null || b;
+  }
+
+  public enum TimeUnitRange {
+    YEAR,
+    YEAR_TO_MONTH,
+    MONTH,
+    DAY,
+    DAY_TO_HOUR,
+    DAY_TO_MINUTE,
+    DAY_TO_SECOND,
+    HOUR,
+    HOUR_TO_MINUTE,
+    HOUR_TO_SECOND,
+    MINUTE,
+    MINUTE_TO_SECOND,
+    SECOND;
+
+    /** Whether this is in the YEAR-TO-MONTH family of intervals. */
+    public boolean monthly() {
+      return ordinal() <= MONTH.ordinal();
+    }
   }
 }
 

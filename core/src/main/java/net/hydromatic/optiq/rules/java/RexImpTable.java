@@ -112,6 +112,7 @@ public class RexImpTable {
     defineBinary(minusOperator, Subtract, NullPolicy.STRICT, "minus");
     defineBinary(multiplyOperator, Multiply, NullPolicy.STRICT, "multiply");
     defineBinary(divideOperator, Divide, NullPolicy.STRICT, "divide");
+    defineBinary(divideIntegerOperator, Divide, NullPolicy.STRICT, "divide");
     defineUnary(prefixMinusOperator, Negate, NullPolicy.STRICT);
     defineUnary(prefixPlusOperator, UnaryPlus, NullPolicy.STRICT);
 
@@ -121,6 +122,8 @@ public class RexImpTable {
     defineMethod(lnFunc, "ln", NullPolicy.STRICT);
     defineMethod(log10Func, "log10", NullPolicy.STRICT);
     defineMethod(absFunc, "abs", NullPolicy.STRICT);
+    defineMethod(ceilFunc, "ceil", NullPolicy.STRICT);
+    defineMethod(floorFunc, "floor", NullPolicy.STRICT);
 
     map.put(isNullOperator, new IsXxxImplementor(null, false));
     map.put(isNotNullOperator, new IsXxxImplementor(null, true));
@@ -146,8 +149,11 @@ public class RexImpTable {
         NotImplementor.of(similarImplementor), false);
 
     map.put(caseOperator, new CaseImplementor());
-    defineImplementor(
-        castFunc, NullPolicy.STRICT, new CastImplementor(), false);
+
+    defineImplementor(castFunc, NullPolicy.STRICT, new CastImplementor(),
+        false);
+    defineImplementor(reinterpretOperator, NullPolicy.STRICT,
+        new ReinterpretImplementor(), false);
 
     final CallImplementor value = new ValueConstructorImplementor();
     map.put(mapValueConstructor, value);
@@ -246,7 +252,7 @@ public class RexImpTable {
           final List<Expression> expressions =
               translator.translateList(
                   call2.getOperands(), nullAs);
-          return foldAnd(expressions);
+          return Expressions.foldAnd(expressions);
         }
       };
     case OR:
@@ -323,38 +329,6 @@ public class RexImpTable {
     default:
       throw new AssertionError(nullPolicy);
     }
-  }
-
-  /** Temporary fix for {@link Expressions#foldAnd(java.util.List)}. */
-  static Expression foldAnd(List<Expression> conditions) {
-    org.eigenbase.util.Bug.upgrade("linq4j 1.9");
-    Expression e = null;
-    int nullCount = 0;
-    for (Expression condition : conditions) {
-      if (condition instanceof ConstantExpression) {
-        final Boolean value = (Boolean) ((ConstantExpression) condition).value;
-        if (value == null) {
-          ++nullCount;
-          continue;
-        } else if (value) {
-          continue;
-        } else {
-          return Expressions.constant(false);
-        }
-      }
-      if (e == null) {
-        e = condition;
-      } else {
-        e = Expressions.andAlso(e, condition);
-      }
-    }
-    if (nullCount > 0) {
-      return Expressions.constant(null);
-    }
-    if (e == null) {
-      return Expressions.constant(true);
-    }
-    return e;
   }
 
   private void defineMethod(
@@ -460,6 +434,12 @@ public class RexImpTable {
       return operands;
     }
     final RelDataType type = typeFactory.leastRestrictive(types);
+    if (type == null) {
+      // There is no common type. Presumably this is a binary operator with
+      // asymmetric arguments (e.g. interval / integer) which is not intended
+      // to be harmonized.
+      return operands;
+    }
     assert (nullCount > 0) == type.isNullable();
     final List<RexNode> list = new ArrayList<RexNode>();
     for (RexNode operand : operands) {
@@ -1211,6 +1191,16 @@ public class RexImpTable {
           translator.nullifyType(call.getType(), nullable);
       return translator.translateCast(
           sourceType, targetType, translatedOperands.get(0));
+    }
+  }
+
+  private static class ReinterpretImplementor implements NotNullImplementor {
+    public Expression implement(
+        RexToLixTranslator translator,
+        RexCall call,
+        List<Expression> translatedOperands) {
+      assert call.getOperands().size() == 1;
+      return translatedOperands.get(0);
     }
   }
 

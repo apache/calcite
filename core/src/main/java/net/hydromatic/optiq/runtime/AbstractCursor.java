@@ -118,6 +118,20 @@ public abstract class AbstractCursor implements Cursor {
     case Types.ARRAY:
     case Types.STRUCT:
     case Types.OTHER: // e.g. map
+      if (type.typeName.startsWith("INTERVAL_")) {
+        int end = type.typeName.indexOf("(");
+        if (end < 0) {
+          end = type.typeName.length();
+        }
+        SqlFunctions.TimeUnitRange range =
+            SqlFunctions.TimeUnitRange.valueOf(
+                type.typeName.substring("INTERVAL_".length(), end));
+        if (range.monthly()) {
+          return new IntervalYearMonthAccessor(getter, range);
+        } else {
+          return new IntervalDayTimeAccessor(getter, range, type.scale);
+        }
+      }
       return new ObjectAccessor(getter);
     default:
       throw new RuntimeException("unknown type " + type.type);
@@ -650,7 +664,8 @@ public abstract class AbstractCursor implements Cursor {
 
     @Override
     public String getString() {
-      return getDate(LOCAL_CALENDAR).toString();
+        final Date date = getDate(LOCAL_CALENDAR);
+        return date == null ? null : date.toString();
     }
   }
 
@@ -683,7 +698,8 @@ public abstract class AbstractCursor implements Cursor {
 
     @Override
     public String getString() {
-      return getTime(LOCAL_CALENDAR).toString();
+        final Time time = getTime(LOCAL_CALENDAR);
+        return time == null ? null : time.toString();
     }
   }
 
@@ -716,7 +732,8 @@ public abstract class AbstractCursor implements Cursor {
 
     @Override
     public String getString() {
-      return getTimestamp(LOCAL_CALENDAR).toString();
+        final Timestamp timestamp = getTimestamp(LOCAL_CALENDAR);
+        return timestamp == null ? null : timestamp.toString();
     }
   }
 
@@ -836,6 +853,54 @@ public abstract class AbstractCursor implements Cursor {
     @Override
     public String getString() {
       return getTimestamp(LOCAL_CALENDAR).toString();
+    }
+  }
+
+  /**
+   * Accessor that assumes that the underlying value is a {@code int};
+   * corresponds to {@link java.sql.Types#OTHER}.
+   */
+  private static class IntervalYearMonthAccessor extends IntAccessor {
+    private final SqlFunctions.TimeUnitRange range;
+
+    public IntervalYearMonthAccessor(Getter getter,
+        SqlFunctions.TimeUnitRange range) {
+      super(getter);
+      this.range = range;
+    }
+
+    @Override
+    public String getString() {
+      Integer v = (Integer) getObject();
+      if (v == null) {
+        return null;
+      }
+      return SqlFunctions.intervalYearMonthToString(v, range);
+    }
+  }
+
+  /**
+   * Accessor that assumes that the underlying value is a {@code long};
+   * corresponds to {@link java.sql.Types#OTHER}.
+   */
+  private static class IntervalDayTimeAccessor extends LongAccessor {
+    private final SqlFunctions.TimeUnitRange range;
+    private final int scale;
+
+    public IntervalDayTimeAccessor(Getter getter,
+        SqlFunctions.TimeUnitRange range, int scale) {
+      super(getter);
+      this.range = range;
+      this.scale = scale;
+    }
+
+    @Override
+    public String getString() {
+      Long v = (Long) getObject();
+      if (v == null) {
+        return null;
+      }
+      return SqlFunctions.intervalDayTimeToString(v, range, scale);
     }
   }
 

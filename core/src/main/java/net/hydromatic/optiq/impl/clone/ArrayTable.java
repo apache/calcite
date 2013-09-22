@@ -20,6 +20,7 @@ package net.hydromatic.optiq.impl.clone;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Primitive;
+
 import net.hydromatic.optiq.*;
 
 import org.eigenbase.reltype.RelDataType;
@@ -357,34 +358,7 @@ class ArrayTable<T>
     }
 
     public String toString(Object dataSet) {
-      return toString(p, dataSet);
-    }
-
-    private static String toString(Primitive p, Object dataSet) {
-      Bug.upgrade("use Primitive.arrayToString after linq4j upgrade");
-      switch (p) {
-      case BOOLEAN:
-        return Arrays.toString((boolean[]) dataSet);
-      case BYTE:
-        return Arrays.toString((byte[]) dataSet);
-      case CHAR:
-        return Arrays.toString((char[]) dataSet);
-      case DOUBLE:
-        return Arrays.toString((double[]) dataSet);
-      case FLOAT:
-        return Arrays.toString((float[]) dataSet);
-      case INT:
-        return Arrays.toString((int[]) dataSet);
-      case LONG:
-        return Arrays.toString((long[]) dataSet);
-      case OTHER:
-      case VOID:
-        return Arrays.toString((Object[]) dataSet);
-      case SHORT:
-        return Arrays.toString((short[]) dataSet);
-      default:
-        throw new AssertionError(p);
-      }
+        return p.arrayToString(dataSet);
     }
   }
 

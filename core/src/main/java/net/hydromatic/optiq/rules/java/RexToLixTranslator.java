@@ -29,6 +29,7 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactoryImpl;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
+import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.*;
 
 import java.lang.reflect.Method;
@@ -147,6 +148,8 @@ public class RexToLixTranslator {
       break;
     case CHAR:
     case VARCHAR:
+      final SqlIntervalQualifier interval =
+          sourceType.getIntervalQualifier();
       switch (sourceType.getSqlTypeName()) {
       case DATE:
         convert = RexImpTable.optimize2(
@@ -168,6 +171,23 @@ public class RexToLixTranslator {
             Expressions.call(
                 BuiltinMethod.UNIX_TIMESTAMP_TO_STRING.method,
                 operand));
+        break;
+      case INTERVAL_YEAR_MONTH:
+        convert = RexImpTable.optimize2(
+            operand,
+            Expressions.call(
+                BuiltinMethod.INTERVAL_YEAR_MONTH_TO_STRING.method,
+                operand,
+                Expressions.constant(interval.foo())));
+        break;
+      case INTERVAL_DAY_TIME:
+        convert = RexImpTable.optimize2(
+            operand,
+            Expressions.call(
+                BuiltinMethod.INTERVAL_DAY_TIME_TO_STRING.method,
+                operand,
+                Expressions.constant(interval.foo()),
+                Expressions.constant(interval.getFractionalSecondPrecision())));
         break;
       case BOOLEAN:
         convert = RexImpTable.optimize2(
@@ -340,15 +360,33 @@ public class RexToLixTranslator {
               BigDecimal.class,
               Expressions.constant(value.toString()));
     case DATE:
-      value2 =
-          (int) (((Calendar) value).getTimeInMillis() / MILLIS_IN_DAY);
+      value2 = value == null ? null
+          : (int) (((Calendar) value).getTimeInMillis() / MILLIS_IN_DAY);
       break;
     case TIME:
-      value2 =
-          (int) (((Calendar) value).getTimeInMillis() % MILLIS_IN_DAY);
+      value2 = value == null ? null
+          : (int) (((Calendar) value).getTimeInMillis() % MILLIS_IN_DAY);
       break;
     case TIMESTAMP:
-      value2 = ((Calendar) value).getTimeInMillis();
+      value2 = value == null ? null : ((Calendar) value).getTimeInMillis();
+      break;
+    case INTERVAL_DAY_TIME:
+      if (value == null) {
+        value2 = null;
+        javaClass = Long.class;
+      } else {
+        value2 = ((BigDecimal) value).longValue();
+        javaClass = long.class;
+      }
+      break;
+    case INTERVAL_YEAR_MONTH:
+      if (value == null) {
+        value2 = null;
+        javaClass = Integer.class;
+      } else {
+        value2 = ((BigDecimal) value).intValue();
+        javaClass = int.class;
+      }
       break;
     case CHAR:
     case VARCHAR:

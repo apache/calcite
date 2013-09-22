@@ -386,6 +386,17 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       RelDataType type = field.getType();
       List<String> origins = originList.get(pair.i);
       SqlTypeName sqlTypeName = type.getSqlTypeName();
+      final String typeName;
+      switch (sqlTypeName) {
+      case INTERVAL_YEAR_MONTH:
+      case INTERVAL_DAY_TIME:
+        // e.g. "INTERVAL_MONTH" or "INTERVAL_YEAR_MONTH"
+        typeName = "INTERVAL_"
+            + type.getIntervalQualifier().toString().replace(' ', '_');
+        break;
+      default:
+        typeName = sqlTypeName.getName();
+      }
       columns.add(
           new ColumnMetaData(
               columns.size(),
@@ -408,7 +419,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               origins == null ? null : origins.get(1),
               null,
               sqlTypeName.getJdbcOrdinal(),
-              sqlTypeName.getName(),
+              typeName,
               true,
               false,
               false,

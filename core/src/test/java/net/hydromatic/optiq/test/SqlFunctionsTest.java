@@ -174,6 +174,39 @@ public class SqlFunctionsTest {
         unixTimestampToString(86400000L * 32L - 1L));
   }
 
+  @Test public void testIntervalYearMonthToString() {
+    TimeUnitRange range = TimeUnitRange.YEAR_TO_MONTH;
+    assertEquals("+0-00", intervalYearMonthToString(0, range));
+    assertEquals("+1-00", intervalYearMonthToString(12, range));
+    assertEquals("+1-01", intervalYearMonthToString(13, range));
+    assertEquals("-1-01", intervalYearMonthToString(-13, range));
+  }
+
+  @Test public void testIntervalDayTimeToString() {
+    assertEquals("+0", intervalYearMonthToString(0, TimeUnitRange.YEAR));
+    assertEquals("+0-00",
+        intervalYearMonthToString(0, TimeUnitRange.YEAR_TO_MONTH));
+    assertEquals("+0", intervalYearMonthToString(0, TimeUnitRange.MONTH));
+    assertEquals("+0", intervalDayTimeToString(0, TimeUnitRange.DAY, 0));
+    assertEquals("+0 00",
+        intervalDayTimeToString(0, TimeUnitRange.DAY_TO_HOUR, 0));
+    assertEquals("+0 00:00",
+        intervalDayTimeToString(0, TimeUnitRange.DAY_TO_MINUTE, 0));
+    assertEquals("+0 00:00:00",
+        intervalDayTimeToString(0, TimeUnitRange.DAY_TO_SECOND, 0));
+    assertEquals("+0", intervalDayTimeToString(0, TimeUnitRange.HOUR, 0));
+    assertEquals("+0:00",
+        intervalDayTimeToString(0, TimeUnitRange.HOUR_TO_MINUTE, 0));
+    assertEquals("+0:00:00",
+        intervalDayTimeToString(0, TimeUnitRange.HOUR_TO_SECOND, 0));
+    assertEquals("+0",
+        intervalDayTimeToString(0, TimeUnitRange.MINUTE, 0));
+    assertEquals("+0:00",
+        intervalDayTimeToString(0, TimeUnitRange.MINUTE_TO_SECOND, 0));
+    assertEquals("+0",
+        intervalDayTimeToString(0, TimeUnitRange.SECOND, 0));
+  }
+
   /** Unit test for
    * {@link Utilities#compare(java.util.List, java.util.List)}. */
   @Test public void testCompare() {
@@ -252,6 +285,16 @@ public class SqlFunctionsTest {
     assertEquals(-1, byteString.indexOf(byteString1));
     assertEquals(1, byteString.indexOf(byteString3));
     assertEquals(-1, byteString3.indexOf(byteString));
+  }
+
+  @Test public void testEasyLog10() {
+    assertEquals(1, SqlFunctions.digitCount(0));
+    assertEquals(1, SqlFunctions.digitCount(1));
+    assertEquals(1, SqlFunctions.digitCount(9));
+    assertEquals(2, SqlFunctions.digitCount(10));
+    assertEquals(2, SqlFunctions.digitCount(11));
+    assertEquals(2, SqlFunctions.digitCount(99));
+    assertEquals(3, SqlFunctions.digitCount(100));
   }
 }
 

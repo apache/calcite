@@ -28,7 +28,6 @@ import java.util.regex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
-import org.eigenbase.sql.test.SqlTester.VmName;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.SqlString;
 import org.eigenbase.sql.validate.SqlConformance;
@@ -257,11 +256,7 @@ public abstract class SqlOperatorBaseTest {
 
     /** For development. Put any old code in here. */
     @Test public void testDummy() {
-      tester.checkString(
-          "trim(leading 'a' from 'aAa')",
-          "Aa",
-          "VARCHAR(3) NOT NULL");
-        testTrimFunc();
+        tester.checkNull("cast(null as interval day to second(3))");
     }
 
     @Test public void testBetween() {
@@ -495,25 +490,22 @@ public abstract class SqlOperatorBaseTest {
             "VARCHAR(30)",
             "2008-01-01 01:02:03");
 
-        // todo: cast of intervals to strings not supported in fennel
-        if (!(tester.isVm(VmName.FENNEL)) && INTERVAL) {
-            checkCastToString(
-                "interval '3-2' year to month",
-                "CHAR(5)",
-                "+3-02");
-            checkCastToString(
-                "interval '32' month",
-                "CHAR(3)",
-                "+32");
-            checkCastToString(
-                "interval '1 2:3:4' day to second",
-                "CHAR(11)",
-                "+1 02:03:04");
-            checkCastToString(
-                "interval '1234.56' second(4,2)",
-                "CHAR(8)",
-                "+1234.56");
-        }
+        checkCastToString(
+            "interval '3-2' year to month",
+            "CHAR(5)",
+            "+3-02");
+        checkCastToString(
+            "interval '32' month",
+            "CHAR(3)",
+            "+32");
+        checkCastToString(
+            "interval '1 2:3:4' day to second",
+            "CHAR(11)",
+            "+1 02:03:04");
+        checkCastToString(
+            "interval '1234.56' second(4,2)",
+            "CHAR(8)",
+            "+1234.56");
 
         // boolean
         checkCastToString("True", "CHAR(4)", "TRUE");
@@ -684,11 +676,9 @@ public abstract class SqlOperatorBaseTest {
 
     @Test public void testCastIntervalToNumeric() {
         tester.setFor(SqlStdOperatorTable.castFunc);
-        if (!INTERVAL) {
-            return;
-        }
 
         // interval to decimal
+        if (DECIMAL) {
         tester.checkScalarExact(
             "cast(INTERVAL '1.29' second(1,2) as decimal(2,1))",
             "DECIMAL(2, 1) NOT NULL",
@@ -733,6 +723,11 @@ public abstract class SqlOperatorBaseTest {
             "cast(INTERVAL '-5' day as decimal(2,1))",
             "DECIMAL(2, 1) NOT NULL",
             "-5.0");
+        }
+
+        if (!INTERVAL) {
+            return;
+        }
 
         // Interval to bigint
         tester.checkScalarExact(
@@ -1025,16 +1020,11 @@ public abstract class SqlOperatorBaseTest {
         tester.checkNull("cast(null as double)");
         tester.checkNull("cast(null as varchar(10))");
         tester.checkNull("cast(null as char(10))");
-        if (!enable) {
-            return;
-        }
         tester.checkNull("cast(null as date)");
         tester.checkNull("cast(null as time)");
         tester.checkNull("cast(null as timestamp)");
-        if (INTERVAL) {
-            tester.checkNull("cast(null as interval year to month)");
+        tester.checkNull("cast(null as interval year to month)");
         tester.checkNull("cast(null as interval day to second(3))");
-        }
         tester.checkNull("cast(null as boolean)");
     }
 
@@ -1883,16 +1873,13 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testDivideOperatorIntervals() {
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkScalar(
             "interval '-2:2' hour to minute / 3",
             "-0:40",
             "INTERVAL HOUR TO MINUTE NOT NULL");
         tester.checkScalar(
             "interval '2:5:12' hour to second / 2 / -3",
-            "-0:20:52",
+            "-0:20:52.000000",
             "INTERVAL HOUR TO SECOND NOT NULL");
         tester.checkNull(
             "interval '2' day / cast(null as bigint)");
@@ -1944,10 +1931,6 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testEqualsOperatorInterval() {
-        // Intervals
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkBoolean(
             "interval '2' day = interval '1' day",
             Boolean.FALSE);
@@ -1995,9 +1978,6 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testGreaterThanOperatorIntervals() {
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkBoolean(
             "interval '2' day > interval '1' day",
             Boolean.TRUE);
@@ -2058,9 +2038,6 @@ public abstract class SqlOperatorBaseTest {
         }
 
         // Intervals
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkBoolean(
             "interval '2' day is distinct from interval '1' day",
             Boolean.TRUE);
@@ -2102,9 +2079,6 @@ public abstract class SqlOperatorBaseTest {
                 true);
         }
 
-        if (!INTERVAL) {
-            return;
-        }
         // Intervals
         tester.checkBoolean(
             "interval '2' day is not distinct from interval '1' day",
@@ -2136,9 +2110,6 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testGreaterThanOrEqualOperatorIntervals() {
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkBoolean(
             "interval '2' day >= interval '1' day",
             Boolean.TRUE);
@@ -2361,9 +2332,6 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testLessThanOrEqualOperatorInterval() {
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkBoolean(
             "interval '2' day <= interval '1' day",
             Boolean.FALSE);
@@ -2458,9 +2426,6 @@ public abstract class SqlOperatorBaseTest {
 
     @Test public void testMinusIntervalOperator() {
         tester.setFor(SqlStdOperatorTable.minusOperator);
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkScalar(
             "interval '2' day - interval '1' day",
             "+1",
@@ -2485,6 +2450,9 @@ public abstract class SqlOperatorBaseTest {
             "time '12:03:01' - interval '1:1' hour to minute",
             "11:02:01",
             "TIME(0) NOT NULL");
+        if (!INTERVAL) {
+            return;
+        }
         tester.checkScalar(
             "date '2005-03-02' - interval '5' day",
             "2005-02-25",
@@ -2624,16 +2592,13 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testMultiplyIntervals() {
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkScalar(
             "interval '2:2' hour to minute * 3",
             "+6:06",
             "INTERVAL HOUR TO MINUTE NOT NULL");
         tester.checkScalar(
             "3 * 2 * interval '2:5:12' hour to second",
-            "+12:31:12",
+            "+12:31:12.000000",
             "INTERVAL HOUR TO SECOND NOT NULL");
         tester.checkNull(
             "interval '2' day * cast(null as bigint)");
@@ -2660,9 +2625,6 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testNotEqualsOperatorIntervals() {
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkBoolean(
             "interval '2' day <> interval '1' day",
             Boolean.TRUE);
@@ -2792,10 +2754,6 @@ public abstract class SqlOperatorBaseTest {
 
     @Test public void testPlusIntervalOperator() {
         tester.setFor(SqlStdOperatorTable.plusOperator);
-        if (!INTERVAL) {
-            return;
-        }
-
         tester.checkScalar(
             "interval '2' day + interval '1' day",
             "+3",
@@ -2806,7 +2764,7 @@ public abstract class SqlOperatorBaseTest {
             "INTERVAL DAY TO MINUTE NOT NULL");
         tester.checkScalar(
             "interval '2' day + interval '5' minute + interval '-3' second",
-            "+2 00:04:57",
+            "+2 00:04:57.000000",
             "INTERVAL DAY TO SECOND NOT NULL");
         tester.checkScalar(
             "interval '2' year + interval '1' month",
@@ -2820,6 +2778,9 @@ public abstract class SqlOperatorBaseTest {
             "time '12:03:01' + interval '1:1' hour to minute",
             "13:04:01",
             "TIME(0) NOT NULL");
+        if (!INTERVAL) {
+            return;
+        }
         tester.checkScalar(
             "interval '5' day + date '2005-03-02'",
             "2005-03-07",
@@ -2953,16 +2914,13 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testPrefixMinusOperatorIntervals() {
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkScalar(
             "-interval '-6:2:8' hour to second",
-            "+6:02:08",
+            "+6:02:08.000000",
             "INTERVAL HOUR TO SECOND NOT NULL");
         tester.checkScalar(
             "- -interval '-6:2:8' hour to second",
-            "-6:02:08",
+            "-6:02:08.000000",
             "INTERVAL HOUR TO SECOND NOT NULL");
         tester.checkScalar(
             "-interval '5' month",
@@ -2982,16 +2940,13 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testPrefixPlusOperatorIntervals() {
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkScalar(
             "+interval '-6:2:8' hour to second",
-            "-6:02:08",
+            "-6:02:08.000000",
             "INTERVAL HOUR TO SECOND NOT NULL");
         tester.checkScalar(
             "++interval '-6:2:8' hour to second",
-            "-6:02:08",
+            "-6:02:08.000000",
             "INTERVAL HOUR TO SECOND NOT NULL");
         if (Bug.Frg254Fixed) {
             tester.checkScalar(
@@ -3651,9 +3606,6 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testAbsFuncIntervals() {
-        if (!INTERVAL) {
-           return;
-        }
         tester.checkScalar(
             "abs(interval '-2' day)",
             "+2",
@@ -3719,9 +3671,6 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testNullIfOperatorIntervals() {
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkScalar(
             "nullif(interval '2' month, interval '3' year)",
             "+2",
@@ -3893,7 +3842,6 @@ public abstract class SqlOperatorBaseTest {
     @Test public void testCurrentDateFunc() {
         tester.setFor(SqlStdOperatorTable.currentDateFunc, VM_FENNEL);
         tester.checkScalar("CURRENT_DATE", datePattern, "DATE NOT NULL");
-        if (INTERVAL)
         tester.checkScalar(
             "(CURRENT_DATE - CURRENT_DATE) DAY",
             "+0",
@@ -4068,9 +4016,6 @@ public abstract class SqlOperatorBaseTest {
             VM_FENNEL,
             VM_JAVA);
 
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkScalar(
             "extract(day from interval '2 3:4:5.678' day to second)",
             "2",
@@ -4093,6 +4038,9 @@ public abstract class SqlOperatorBaseTest {
             "extract(year from interval '4-2' year to month)",
             "4",
             "BIGINT NOT NULL");
+        if (!INTERVAL) {
+            return;
+        }
         tester.checkScalar(
             "extract(month from interval '4-2' year to month)",
             "2",
@@ -4192,15 +4140,14 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testCeilFuncInterval() {
-        if (!INTERVAL) {
-           return;
-        }
         tester.checkScalar(
             "ceil(interval '3:4:5' hour to second)",
-            "+4:00:00",
+            "+4:00:00.000000",
             "INTERVAL HOUR TO SECOND NOT NULL");
         tester.checkScalar(
-            "ceil(interval '-6.3' second)", "-6", "INTERVAL SECOND NOT NULL");
+            "ceil(interval '-6.3' second)",
+            "-6.000000",
+            "INTERVAL SECOND NOT NULL");
         tester.checkScalar(
             "ceil(interval '5-1' year to month)",
             "+6-00",
@@ -4234,15 +4181,14 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testFloorFuncInterval() {
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkScalar(
             "floor(interval '3:4:5' hour to second)",
-            "+3:00:00",
+            "+3:00:00.000000",
             "INTERVAL HOUR TO SECOND NOT NULL");
         tester.checkScalar(
-            "floor(interval '-6.3' second)", "-7", "INTERVAL SECOND NOT NULL");
+            "floor(interval '-6.3' second)",
+            "-7.000000",
+            "INTERVAL SECOND NOT NULL");
         tester.checkScalar(
             "floor(interval '5-1' year to month)",
             "+5-00",

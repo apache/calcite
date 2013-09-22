@@ -122,7 +122,7 @@ public class JavaTypeFactoryImpl
     if (type.isStruct() && type.getFieldCount() == 1) {
       return getJavaClass(type.getFieldList().get(0).getType());
     }
-    if (type instanceof BasicSqlType) {
+    if (type instanceof BasicSqlType || type instanceof IntervalSqlType) {
       switch (type.getSqlTypeName()) {
       case VARCHAR:
       case CHAR:
@@ -130,9 +130,11 @@ public class JavaTypeFactoryImpl
       case DATE:
       case TIME:
       case INTEGER:
+      case INTERVAL_YEAR_MONTH:
         return type.isNullable() ? Integer.class : int.class;
       case TIMESTAMP:
       case BIGINT:
+      case INTERVAL_DAY_TIME:
         return type.isNullable() ? Long.class : long.class;
       case SMALLINT:
         return type.isNullable() ? Short.class : short.class;

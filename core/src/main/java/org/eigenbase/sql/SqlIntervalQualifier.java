@@ -28,6 +28,8 @@ import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.runtime.SqlFunctions;
+
 /**
  * Represents an INTERVAL qualifier.
  *
@@ -269,6 +271,10 @@ public class SqlIntervalQualifier
     }
 
     //~ Methods ----------------------------------------------------------------
+
+    public SqlFunctions.TimeUnitRange foo() {
+        return SqlFunctions.TimeUnitRange.valueOf(timeUnitRange.name());
+    }
 
     public void validate(
         SqlValidator validator,

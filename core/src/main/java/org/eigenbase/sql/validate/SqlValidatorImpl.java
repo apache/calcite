@@ -2668,7 +2668,7 @@ public class SqlValidatorImpl
             if (literal instanceof SqlIntervalLiteral) {
                 SqlIntervalLiteral.IntervalValue interval =
                     (SqlIntervalLiteral.IntervalValue)
-                    ((SqlIntervalLiteral) literal).getValue();
+                    literal.getValue();
                 SqlIntervalQualifier intervalQualifier =
                     interval.getIntervalQualifier();
 
