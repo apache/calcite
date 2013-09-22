@@ -285,6 +285,14 @@ public class ExpressionTest {
                         Expressions.constant(2), Expressions.constant(3)),
                     Double.TYPE))));
 
+    // "--5" would be a syntax error
+    assertEquals(
+        "- - 5",
+        Expressions.toString(
+            Expressions.negate(
+                Expressions.negate(
+                    Expressions.constant(5)))));
+
     assertEquals(
         "a.empno",
         Expressions.toString(

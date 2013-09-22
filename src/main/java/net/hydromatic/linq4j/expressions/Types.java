@@ -344,7 +344,9 @@ public class Types {
         }
       }
       throw new RuntimeException(
-          "while resolving method '" + methodName + "' in class " + clazz, e);
+          "while resolving method '" + methodName
+          + Arrays.toString(argumentTypes)
+          + "' in class " + clazz, e);
     }
   }
 

@@ -6,7 +6,7 @@
   <groupId>net.hydromatic</groupId>
   <artifactId>linq4j</artifactId>
   <packaging>jar</packaging>
-  <version>TRUNK-SNAPSHOT</version>
+  <version>0.1.9-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>linq4j</name>

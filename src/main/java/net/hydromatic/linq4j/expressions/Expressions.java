@@ -2910,13 +2910,20 @@ public class Expressions {
     return new GotoStatement(GotoExpressionKind.Sequence, null, expression);
   }
 
-  /** Combines a list of expressions using AND. Returns TRUE if the list is
-   * empty. */
+  /** Combines a list of expressions using AND.
+   * Returns TRUE if the list is empty.
+   * Returns FALSE if any of the conditions are constant FALSE;
+   * otherwise returns NULL if any of the conditions are constant NULL. */
   public static Expression foldAnd(List<Expression> conditions) {
     Expression e = null;
+    int nullCount = 0;
     for (Expression condition : conditions) {
       if (condition instanceof ConstantExpression) {
-        if ((Boolean) ((ConstantExpression) condition).value) {
+        final Boolean value = (Boolean) ((ConstantExpression) condition).value;
+        if (value == null) {
+          ++nullCount;
+          continue;
+        } else if (value) {
           continue;
         } else {
           return constant(false);
@@ -2928,19 +2935,29 @@ public class Expressions {
         e = andAlso(e, condition);
       }
     }
+    if (nullCount > 0) {
+      return constant(null);
+    }
     if (e == null) {
       return constant(true);
     }
     return e;
   }
 
-  /** Combines a list of expressions using OR. Returns FALSE if the list is
-   * empty. */
+  /** Combines a list of expressions using OR.
+   * Returns FALSE if the list is empty.
+   * Returns TRUE if any of the conditions are constant TRUE;
+   * otherwise returns NULL if all of the conditions are constant NULL. */
   public static Expression foldOr(List<Expression> conditions) {
     Expression e = null;
+    int nullCount = 0;
     for (Expression condition : conditions) {
       if (condition instanceof ConstantExpression) {
-        if ((Boolean) ((ConstantExpression) condition).value) {
+        final Boolean value = (Boolean) ((ConstantExpression) condition).value;
+        if (value == null) {
+          ++nullCount;
+          continue;
+        } else if (value) {
           return constant(true);
         } else {
           continue;
@@ -2953,6 +2970,9 @@ public class Expressions {
       }
     }
     if (e == null) {
+      if (nullCount > 0) {
+        return constant(null);
+      }
       return constant(false);
     }
     return e;

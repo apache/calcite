@@ -237,7 +237,7 @@ public enum ExpressionType {
    * An arithmetic negation operation, such as (-a). The object
    * a should not be modified in place.
    */
-  Negate("-", false, 2, true),
+  Negate("- ", false, 2, true),
 
   /**
    * A unary plus operation, such as (+a). The result of a
@@ -245,7 +245,7 @@ public enum ExpressionType {
    * operand, but user-defined implementations might have
    * unusual results.
    */
-  UnaryPlus("+", false, 2, true),
+  UnaryPlus("+ ", false, 2, true),
 
   /**
    * An arithmetic negation operation, such as (-a), that has
