@@ -367,17 +367,23 @@ public class StandardConvertletTable
         RelDataTypeFactory typeFactory = cx.getTypeFactory();
         assert call.getKind() == SqlKind.CAST;
         if (call.operands[1] instanceof SqlIntervalQualifier) {
-            SqlNode node = call.operands[0];
-            if (node instanceof SqlIntervalLiteral) {
+            final SqlIntervalQualifier intervalQualifier =
+                (SqlIntervalQualifier) call.operands[1];
+            final SqlNode node = call.operands[0];
+            if (node instanceof SqlIntervalLiteral
+                || node instanceof SqlNumericLiteral)
+            {
                 RexLiteral sourceInterval =
                     (RexLiteral) cx.convertExpression(node);
-                long sourceValue =
-                    ((BigDecimal) sourceInterval.getValue()).longValue();
-                SqlIntervalQualifier intervalQualifier =
-                    (SqlIntervalQualifier) call.operands[1];
+                BigDecimal sourceValue =
+                    ((BigDecimal) sourceInterval.getValue());
                 RexLiteral castedInterval =
                     cx.getRexBuilder().makeIntervalLiteral(
-                        sourceValue, intervalQualifier);
+                        sourceValue.multiply(
+                            BigDecimal.valueOf(
+                                intervalQualifier.getStartUnit().multiplier),
+                            MathContext.UNLIMITED),
+                        intervalQualifier);
                 return castToValidatedType(cx, call, castedInterval);
             }
             return castToValidatedType(cx, call, cx.convertExpression(node));

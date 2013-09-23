@@ -1134,6 +1134,7 @@ public class SqlFunctions {
     final int m;
     switch (range) {
     case YEAR:
+      v = roundUp(v, 12);
       y = v / 12;
       buf.append(y);
       break;
@@ -1186,6 +1187,7 @@ public class SqlFunctions {
     final long d;
     switch (range) {
     case DAY_TO_SECOND:
+      v = roundUp(v, powerX(10, 3 - scale));
       ms = v % 1000;
       v /= 1000;
       s = v % 60;
@@ -1205,6 +1207,7 @@ public class SqlFunctions {
       fraction(buf, scale, ms);
       break;
     case DAY_TO_MINUTE:
+      v = roundUp(v, 1000 * 60);
       v /= 1000;
       v /= 60;
       m = v % 60;
@@ -1219,6 +1222,7 @@ public class SqlFunctions {
       number(buf, (int) m, 2);
       break;
     case DAY_TO_HOUR:
+      v = roundUp(v, 1000 * 60 * 60);
       v /= 1000;
       v /= 60;
       v /= 60;
@@ -1230,14 +1234,12 @@ public class SqlFunctions {
       number(buf, (int) h, 2);
       break;
     case DAY:
-      v /= 1000;
-      v /= 60;
-      v /= 60;
-      v /= 24;
-      d = v;
+      v = roundUp(v, 1000 * 60 * 60 * 24);
+      d = v / (1000 * 60 * 60 * 24);
       buf.append((int) d);
       break;
     case HOUR:
+      v = roundUp(v, 1000 * 60 * 60);
       v /= 1000;
       v /= 60;
       v /= 60;
@@ -1245,6 +1247,7 @@ public class SqlFunctions {
       buf.append((int) h);
       break;
     case HOUR_TO_MINUTE:
+      v = roundUp(v, 1000 * 60);
       v /= 1000;
       v /= 60;
       m = v % 60;
@@ -1255,6 +1258,7 @@ public class SqlFunctions {
       number(buf, (int) m, 2);
       break;
     case HOUR_TO_SECOND:
+      v = roundUp(v, powerX(10, 3 - scale));
       ms = v % 1000;
       v /= 1000;
       s = v % 60;
@@ -1270,6 +1274,7 @@ public class SqlFunctions {
       fraction(buf, scale, ms);
       break;
     case MINUTE_TO_SECOND:
+      v = roundUp(v, powerX(10, 3 - scale));
       ms = v % 1000;
       v /= 1000;
       s = v % 60;
@@ -1281,12 +1286,14 @@ public class SqlFunctions {
       fraction(buf, scale, ms);
       break;
     case MINUTE:
+      v = roundUp(v, 1000 * 60);
       v /= 1000;
       v /= 60;
       m = v;
       buf.append((int) m);
       break;
     case SECOND:
+      v = roundUp(v, powerX(10, 3 - scale));
       ms = v % 1000;
       v /= 1000;
       s = v;
@@ -1297,6 +1304,31 @@ public class SqlFunctions {
       throw new AssertionError(range);
     }
     return buf.toString();
+  }
+
+  /**
+   * Rounds a dividend to the nearest divisor.
+   * For example roundUp(31, 10) yields 30; roundUp(37, 10) yields 40.
+   * @param dividend Number to be divided
+   * @param divisor Number to divide by
+   * @return Rounded dividend
+   */
+  private static long roundUp(long dividend, long divisor) {
+    long remainder = dividend % divisor;
+    dividend -= remainder;
+    if (remainder * 2 > divisor) {
+      dividend += divisor;
+    }
+    return dividend;
+  }
+
+  private static int roundUp(int dividend, int divisor) {
+    int remainder = dividend % divisor;
+    dividend -= remainder;
+    if (remainder * 2 > divisor) {
+      dividend += divisor;
+    }
+    return dividend;
   }
 
   private static void fraction(StringBuilder buf, int scale, long ms) {

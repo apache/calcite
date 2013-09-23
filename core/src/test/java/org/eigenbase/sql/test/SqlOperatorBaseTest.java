@@ -140,7 +140,7 @@ public abstract class SqlOperatorBaseTest {
     public static final Pattern timestampPattern =
         Pattern.compile(
             "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] "
-            + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9][0-9]");
+            + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]");
 
     /**
      * Regular expression for a SQL DATE value.
@@ -256,7 +256,6 @@ public abstract class SqlOperatorBaseTest {
 
     /** For development. Put any old code in here. */
     @Test public void testDummy() {
-        tester.checkNull("cast(null as interval day to second(3))");
     }
 
     @Test public void testBetween() {
@@ -725,10 +724,6 @@ public abstract class SqlOperatorBaseTest {
             "-5.0");
         }
 
-        if (!INTERVAL) {
-            return;
-        }
-
         // Interval to bigint
         tester.checkScalarExact(
             "cast(INTERVAL '1.25' second as bigint)",
@@ -760,12 +755,9 @@ public abstract class SqlOperatorBaseTest {
 
     @Test public void testCastToInterval() {
         tester.setFor(SqlStdOperatorTable.castFunc);
-        if (!INTERVAL) {
-            return;
-        }
         tester.checkScalar(
             "cast(5 as interval second)",
-            "+5",
+            "+5.000000",
             "INTERVAL SECOND NOT NULL");
         tester.checkScalar(
             "cast(5 as interval minute)",
@@ -1257,8 +1249,9 @@ public abstract class SqlOperatorBaseTest {
      */
     protected static Calendar getCalendarNotTooNear(int timeUnit)
     {
+        final Calendar cal = Calendar.getInstance();
         while (true) {
-            final Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(System.currentTimeMillis());
             try {
                 switch (timeUnit) {
                 case Calendar.DAY_OF_MONTH:

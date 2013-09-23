@@ -190,7 +190,7 @@ public class RexLiteral
             // Unlike SqlLiteral, we do not allow boolean null.
             return value instanceof Boolean;
         case NULL:
-            return false; // value should have been false
+            return false; // value should have been null
         case INTEGER: // not allowed -- use Decimal
         case TINYINT:
         case SMALLINT:
@@ -301,7 +301,7 @@ public class RexLiteral
             break;
         case BOOLEAN:
             assert value instanceof Boolean;
-            pw.print(((Boolean) value).booleanValue() ? "true" : "false");
+            pw.print(((Boolean) value).booleanValue());
             break;
         case DECIMAL:
             assert value instanceof BigDecimal;
@@ -311,6 +311,11 @@ public class RexLiteral
             assert value instanceof BigDecimal;
             pw.print(Util.toScientificNotation((BigDecimal) value));
             break;
+        case BIGINT:
+          assert value instanceof BigDecimal;
+          pw.print(((BigDecimal) value).longValue());
+          pw.print('L');
+          break;
         case BINARY:
             assert value instanceof ByteString;
             pw.print("X'");

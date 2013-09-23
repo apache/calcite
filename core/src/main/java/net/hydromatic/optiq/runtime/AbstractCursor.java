@@ -142,6 +142,17 @@ public abstract class AbstractCursor implements Cursor {
 
   public abstract boolean next();
 
+  /** Accesses a timestamp value as a string. The timestamp is in SQL format
+   * (e.g. "2013-09-22 22:30:32"), not Java format ("2013-09-22 22:30:32.123").
+   *
+   * @param accessor Accessor for this column
+   * @return Timestamp string
+   */
+  static String timestampAsString(Accessor accessor) {
+    final Timestamp timestamp = accessor.getTimestamp(LOCAL_CALENDAR);
+    return timestamp == null ? null : timestamp.toString().substring(0, 19);
+  }
+
   static class AccessorImpl implements Accessor {
     protected final Getter getter;
 
@@ -732,8 +743,7 @@ public abstract class AbstractCursor implements Cursor {
 
     @Override
     public String getString() {
-        final Timestamp timestamp = getTimestamp(LOCAL_CALENDAR);
-        return timestamp == null ? null : timestamp.toString();
+      return timestampAsString(this);
     }
   }
 
@@ -823,7 +833,7 @@ public abstract class AbstractCursor implements Cursor {
 
     @Override
     public String getString() {
-      return getTimestamp(LOCAL_CALENDAR).toString();
+      return timestampAsString(this);
     }
   }
 
@@ -852,7 +862,7 @@ public abstract class AbstractCursor implements Cursor {
 
     @Override
     public String getString() {
-      return getTimestamp(LOCAL_CALENDAR).toString();
+      return timestampAsString(this);
     }
   }
 

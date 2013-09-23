@@ -146,14 +146,14 @@ public class SqlNodeToRexConverterImpl
                 (SqlIntervalLiteral.IntervalValue) value;
             l = SqlParserUtil.intervalToMonths(intervalValue);
             return rexBuilder.makeIntervalLiteral(
-                l,
+                BigDecimal.valueOf(l),
                 intervalValue.getIntervalQualifier());
         case INTERVAL_DAY_TIME:
             intervalValue =
                 (SqlIntervalLiteral.IntervalValue) value;
             l = SqlParserUtil.intervalToMillis(intervalValue);
             return rexBuilder.makeIntervalLiteral(
-                l,
+                BigDecimal.valueOf(l),
                 intervalValue.getIntervalQualifier());
         default:
             throw Util.unexpected(literal.getTypeName());

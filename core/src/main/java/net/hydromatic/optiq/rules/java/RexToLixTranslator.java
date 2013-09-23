@@ -29,7 +29,6 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactoryImpl;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.*;
 
 import java.lang.reflect.Method;

@@ -461,6 +461,22 @@ public class RexBuilder
                             calendar.getTimeInMillis(),
                             SqlFunctions.powerX(10, 3 - scale)));
                     break;
+                case INTERVAL_DAY_TIME:
+                    BigDecimal value2 = (BigDecimal) value;
+                    final long multiplier =
+                        literal.getType().getIntervalQualifier().getStartUnit()
+                            .multiplier;
+                    SqlTypeName typeName = type.getSqlTypeName();
+                    // Not all types are allowed for literals
+                    switch (typeName) {
+                    case INTEGER:
+                        typeName = SqlTypeName.BIGINT;
+                    }
+                    return makeLiteral(
+                        value2.divide(
+                            BigDecimal.valueOf(multiplier), 0,
+                            BigDecimal.ROUND_HALF_DOWN),
+                        type, typeName);
                 }
                 return makeLiteral(value, type, literal.getTypeName());
             }
@@ -1056,11 +1072,11 @@ public class RexBuilder
      * Creates an interval literal.
      */
     public RexLiteral makeIntervalLiteral(
-        long l,
+        BigDecimal v,
         SqlIntervalQualifier intervalQualifier)
     {
         return makeLiteral(
-            new BigDecimal(l),
+            v,
             typeFactory.createSqlIntervalType(intervalQualifier),
             intervalQualifier.isYearMonth() ? SqlTypeName.INTERVAL_YEAR_MONTH
             : SqlTypeName.INTERVAL_DAY_TIME);
