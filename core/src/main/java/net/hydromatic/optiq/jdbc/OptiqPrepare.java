@@ -28,6 +28,9 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.runtime.ColumnMetaData;
 
+import org.eigenbase.rel.RelNode;
+import org.eigenbase.relopt.RelOptPlanner;
+import org.eigenbase.relopt.volcano.VolcanoPlanner;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlNode;
 
@@ -74,6 +77,16 @@ public interface OptiqPrepare {
     List<String> getDefaultSchemaPath();
 
     ConnectionProperty.ConnectionConfig config();
+
+    SparkHandler spark();
+  }
+
+  /** Callback to register Spark as the main engine. */
+  public interface SparkHandler {
+    RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
+        boolean restructure);
+
+    void registerRules(VolcanoPlanner planner);
   }
 
   public static class ParseResult {

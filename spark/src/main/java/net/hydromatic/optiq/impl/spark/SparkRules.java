@@ -163,7 +163,8 @@ public class SparkRules {
       builder.add(
           Expressions.return_(null,
               Expressions.call(SparkMethod.ARRAY_TO_RDD.method,
-                  Expressions.call(SparkMethod.GET_SPARK_CONTEXT.method),
+                  Expressions.call(SparkMethod.GET_SPARK_CONTEXT.method,
+                      implementor.root),
                   Expressions.newArrayInit(Primitive.box(rowClass),
                       expressions))));
       return implementor.result(physType, builder.toBlock());

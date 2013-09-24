@@ -19,7 +19,7 @@ package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.Function0;
+import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
@@ -56,7 +56,6 @@ import org.codehaus.janino.Scanner;
 import com.google.common.collect.*;
 
 import java.io.StringReader;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.*;
@@ -78,10 +77,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
    * this will become a preference, or we will run multiple phases: first
    * disabled, then enabled. */
   private static final boolean ENABLE_COLLATION_TRAIT = true;
-
-  /** Whether to enable Spark. */
-  private static final ThreadLocal<Pair<Convention, List<RelOptRule>>> SPARK =
-      new ThreadLocal<Pair<Convention, List<RelOptRule>>>();
 
   private static final Set<String> SIMPLE_SQLS =
       ImmutableSet.of(
@@ -129,12 +124,13 @@ public class OptiqPrepareImpl implements OptiqPrepare {
    * complex planner for complex and costly queries.</p>
    *
    * <p>The default implementation returns a factory that calls
-   * {@link #createPlanner()}.</p> */
-  protected List<Function0<RelOptPlanner>> createPlannerFactories() {
-    return Collections.<Function0<RelOptPlanner>>singletonList(
-        new Function0<RelOptPlanner>() {
-          public RelOptPlanner apply() {
-            return createPlanner();
+   * {@link #createPlanner(net.hydromatic.optiq.jdbc.OptiqPrepare.Context)}.</p>
+   */
+  protected List<Function1<Context, RelOptPlanner>> createPlannerFactories() {
+    return Collections.<Function1<Context, RelOptPlanner>>singletonList(
+        new Function1<Context, RelOptPlanner>() {
+          public RelOptPlanner apply(Context context) {
+            return createPlanner(context);
           }
         }
     );
@@ -142,18 +138,12 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
   /** Creates a query planner and initializes it with a default set of
    * rules. */
-  protected RelOptPlanner createPlanner() {
+  protected RelOptPlanner createPlanner(Context context) {
     final VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.instance);
     if (ENABLE_COLLATION_TRAIT) {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
       planner.registerAbstractRelationalRules();
-    }
-    final Pair<Convention, List<RelOptRule>> spark = SPARK.get();
-    if (spark != null) {
-      for (RelOptRule rule : spark.right) {
-        planner.addRule(rule);
-      }
     }
     RelOptUtil.registerAbstractRels(planner);
     planner.addRule(JavaRules.ENUMERABLE_JOIN_RULE);
@@ -165,9 +155,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(JavaRules.ENUMERABLE_INTERSECT_RULE);
     planner.addRule(JavaRules.ENUMERABLE_MINUS_RULE);
     planner.addRule(JavaRules.ENUMERABLE_TABLE_MODIFICATION_RULE);
-    if (spark == null) {
-      planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
-    }
+    planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
     planner.addRule(JavaRules.ENUMERABLE_WINDOW_RULE);
     planner.addRule(JavaRules.ENUMERABLE_ONE_ROW_RULE);
     planner.addRule(TableAccessRule.instance);
@@ -177,6 +165,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(ReduceAggregatesRule.instance);
     planner.addRule(SwapJoinRule.instance);
     planner.addRule(WindowedAggSplitterRule.INSTANCE);
+    final SparkHandler spark = context.spark();
+    if (spark != null) {
+      spark.registerRules(planner);
+    }
     return planner;
   }
 
@@ -210,50 +202,23 @@ public class OptiqPrepareImpl implements OptiqPrepare {
             context.getRootSchema(),
             context.getDefaultSchemaPath(),
             typeFactory);
-    final List<Function0<RelOptPlanner>> plannerFactories =
+    final List<Function1<Context, RelOptPlanner>> plannerFactories =
         createPlannerFactories();
     if (plannerFactories.isEmpty()) {
       throw new AssertionError("no planner factories");
     }
     RuntimeException exception = new RuntimeException();
-    for (Function0<RelOptPlanner> plannerFactory : plannerFactories) {
-      final RelOptPlanner planner = plannerFactory.apply();
+    for (Function1<Context, RelOptPlanner> plannerFactory : plannerFactories) {
+      final RelOptPlanner planner = plannerFactory.apply(context);
       if (planner == null) {
         throw new AssertionError("factory returned null planner");
       }
       try {
-        if (context.config().spark()) {
-          try {
-            //noinspection unchecked
-            SPARK.set(
-                Pair.of(
-                    (Convention)
-                    Class.forName("net.hydromatic.optiq.impl.spark.SparkRel")
-                      .getField("CONVENTION")
-                      .get(null),
-                    (List<RelOptRule>)
-                    Class.forName("net.hydromatic.optiq.impl.spark.SparkRules")
-                      .getMethod("rules")
-                      .invoke(null)));
-          } catch (ClassNotFoundException e) {
-          throw new RuntimeException(e);
-          } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-          } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-          } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-          } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-          }
-        }
         return prepare2_(
             context, sql, queryable, elementType, maxRowCount,
             catalogReader, planner);
       } catch (RelOptPlanner.CannotPlanException e) {
         exception = e;
-      } finally {
-        SPARK.remove();
       }
     }
     throw exception;
@@ -298,6 +263,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
     final OptiqPreparingStmt preparingStmt =
         new OptiqPreparingStmt(
+            context,
             catalogReader,
             typeFactory,
             context.getRootSchema(),
@@ -330,7 +296,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               ? MaterializationService.INSTANCE.query(rootSchema)
               : ImmutableList.<Prepare.Materialization>of();
       for (Prepare.Materialization materialization : materializations) {
-        populateMaterializations(planner, materialization);
+        populateMaterializations(context, planner, materialization);
       }
       preparedResult = preparingStmt.prepareSql(
           sqlNode, Object.class, validator, true, materializations);
@@ -432,8 +398,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     return columns;
   }
 
-  protected void populateMaterializations(RelOptPlanner planner,
-      Prepare.Materialization materialization) {
+  protected void populateMaterializations(Context context,
+      RelOptPlanner planner, Prepare.Materialization materialization) {
     // REVIEW: initialize queryRel and tableRel inside MaterializationService,
     // not here?
     try {
@@ -444,7 +410,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               butLast(materialization.materializedTable.path()),
               schema.getTypeFactory());
       final OptiqPreparingStmt preparingStmt =
-          new OptiqPreparingStmt(catalogReader, catalogReader.getTypeFactory(),
+          new OptiqPreparingStmt(context, catalogReader,
+              catalogReader.getTypeFactory(),
               schema, EnumerableRel.Prefer.ANY, planner,
               EnumerableConvention.INSTANCE);
       preparingStmt.populate(materialization);
@@ -476,7 +443,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     OptiqCatalogReader catalogReader = new OptiqCatalogReader(
         context.getRootSchema(), context.getDefaultSchemaPath(), typeFactory);
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
-    final RelOptPlanner planner = createPlanner();
+    final RelOptPlanner planner = createPlanner(context);
     final RelOptQuery query = new RelOptQuery(planner);
     final RelOptCluster cluster =
         query.createCluster(rexBuilder.getTypeFactory(), rexBuilder);
@@ -486,10 +453,11 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   private static class OptiqPreparingStmt extends Prepare {
     private final RelOptPlanner planner;
     private final RexBuilder rexBuilder;
+    private final Context context;
     private final Schema schema;
     private int expansionDepth;
     private SqlValidator sqlValidator;
-    private EnumerableRel.Prefer prefer;
+    private final EnumerableRel.Prefer prefer;
 
     @Deprecated
     public OptiqPreparingStmt(CatalogReader catalogReader,
@@ -497,18 +465,20 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         Schema schema,
         EnumerableRel.Prefer prefer,
         RelOptPlanner planner) {
-      this(catalogReader, typeFactory, schema, prefer, planner,
+      this(null, catalogReader, typeFactory, schema, prefer, planner,
           EnumerableConvention.INSTANCE);
-      Bug.upgrade("remove before 0.4.14");
+      Bug.upgrade("remove before 0.4.14, then assert context not null");
     }
 
-    public OptiqPreparingStmt(CatalogReader catalogReader,
+    public OptiqPreparingStmt(Context context,
+        CatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
         Schema schema,
         EnumerableRel.Prefer prefer,
         RelOptPlanner planner,
         Convention resultConvention) {
       super(catalogReader, resultConvention);
+      this.context = context;
       this.schema = schema;
       this.prefer = prefer;
       this.planner = planner;
@@ -589,13 +559,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     public RelNode flattenTypes(
         RelNode rootRel,
         boolean restructure) {
-      final Pair<Convention, List<RelOptRule>> spark = SPARK.get();
+      final SparkHandler spark = context.spark();
       if (spark != null) {
-        RelNode root2 =
-            planner.changeTraits(rootRel,
-                rootRel.getTraitSet().plus(spark.left));
-        return planner.changeTraits(root2,
-            rootRel.getTraitSet());
+        return spark.flattenTypes(planner, rootRel, restructure);
       }
       return rootRel;
     }

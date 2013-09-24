@@ -201,6 +201,10 @@ public final class Schemas {
       public ConnectionProperty.ConnectionConfig config() {
         return ConnectionProperty.connectionConfig(connection.getProperties());
       }
+
+      public OptiqPrepare.SparkHandler spark() {
+        return null;
+      }
     };
   }
 }

@@ -19,13 +19,19 @@ package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Queryable;
-
 import net.hydromatic.linq4j.function.Function0;
+
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.*;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
+import org.eigenbase.rel.RelNode;
+import org.eigenbase.relopt.*;
+import org.eigenbase.relopt.volcano.VolcanoPlanner;
+import org.eigenbase.util.Pair;
+
+import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
 import java.util.*;
 
@@ -436,6 +442,30 @@ public abstract class OptiqStatement
 
     public ConnectionProperty.ConnectionConfig config() {
       return ConnectionProperty.connectionConfig(connection.getProperties());
+    }
+
+    public OptiqPrepare.SparkHandler spark() {
+      try {
+        final Class<?> clazz =
+            Class.forName("net.hydromatic.optiq.impl.spark.SparkHandlerImpl");
+        return (OptiqPrepare.SparkHandler) clazz.newInstance();
+      } catch (InstantiationException e) {
+        throw new RuntimeException(e);
+      } catch (IllegalAccessException e) {
+        throw new RuntimeException(e);
+      } catch (ClassNotFoundException e) {
+        return new OptiqPrepare.SparkHandler() {
+          public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
+              boolean restructure) {
+            return rootRel;
+          }
+
+          public void registerRules(VolcanoPlanner planner) {
+          }
+        };
+      } catch (ClassCastException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }
