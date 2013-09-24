@@ -32,6 +32,8 @@ import org.eigenbase.sql.util.SqlShuttle;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.runtime.Utilities;
+
 import com.google.common.collect.ImmutableList;
 
 import static org.junit.Assert.*;
@@ -1058,12 +1060,12 @@ public class SqlValidatorTestCase {
                     public int compare(SqlNode o1, SqlNode o2) {
                         final SqlParserPos pos0 = o1.getParserPosition();
                         final SqlParserPos pos1 = o2.getParserPosition();
-                        int c = -Integer.compare(
+                        int c = -Utilities.compare(
                             pos0.getLineNum(), pos1.getLineNum());
                         if (c != 0) {
                             return c;
                         }
-                        return -Integer.compare(
+                        return -Utilities.compare(
                             pos0.getColumnNum(), pos1.getColumnNum());
                     }
                 });
