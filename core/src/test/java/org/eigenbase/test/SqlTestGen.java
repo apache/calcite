@@ -154,7 +154,7 @@ public class SqlTestGen {
                 }
 
                 public void checkCollation(
-                    String sql,
+                    String expression,
                     String expectedCollationName,
                     SqlCollation.Coercibility expectedCoercibility)
                 {
@@ -163,7 +163,7 @@ public class SqlTestGen {
                 }
 
                 public void checkCharset(
-                    String sql,
+                    String expression,
                     Charset expectedCharset)
                 {
                     // We could generate the SQL -- or maybe describe -- but

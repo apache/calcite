@@ -702,6 +702,32 @@ public class Util
     }
 
     /**
+     * Converts a list of a string, with commas between elements.
+     *
+     * For example,
+     * <code>commaList(Arrays.asList({"a", "b"}))</code>
+     * returns "a, b".
+     *
+     * @param list List
+     * @return String representation of string
+     */
+    public static <T> String commaList(List<T> list)
+    {
+        if (list.size() == 1) {
+            return list.get(0).toString();
+        }
+        final StringBuilder buf = new StringBuilder();
+        int k = -1;
+        for (T t : list) {
+            if (++k > 0) {
+                buf.append(", ");
+            }
+            buf.append(t);
+        }
+        return buf.toString();
+    }
+
+    /**
      * Returns the connect string with which to connect to the 'Sales' test
      * database. In the process, it loads the necessary drivers.
      */

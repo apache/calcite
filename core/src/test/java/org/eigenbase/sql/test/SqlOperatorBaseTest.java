@@ -256,6 +256,8 @@ public abstract class SqlOperatorBaseTest {
 
     /** For development. Put any old code in here. */
     @Test public void testDummy() {
+        //testNullIfOperatorIntervals();
+        //testCastIntervalToInterval();
     }
 
     @Test public void testBetween() {
@@ -797,6 +799,16 @@ public abstract class SqlOperatorBaseTest {
             "INTERVAL MINUTE(4) NOT NULL");
     }
 
+    @Test public void testCastIntervalToInterval() {
+        if (!INTERVAL) {
+            return;
+        }
+        tester.checkScalar(
+            "cast(interval '2 5' day to hour as interval hour to minute)",
+            "+29:00",
+            "INTERVAL HOUR TO MINUTE NOT NULL");
+    }
+
     @Test public void testCastWithRoundingToScalar() {
         tester.setFor(SqlStdOperatorTable.castFunc);
 
@@ -1026,7 +1038,7 @@ public abstract class SqlOperatorBaseTest {
 
         tester.checkScalar(
             "cast(TIMESTAMP '1945-02-24 12:42:25.34' as TIMESTAMP)",
-            "1945-02-24 12:42:25.0",
+            "1945-02-24 12:42:25",
             "TIMESTAMP(0) NOT NULL");
 
         tester.checkScalar(
@@ -1074,7 +1086,7 @@ public abstract class SqlOperatorBaseTest {
 
         tester.checkScalar(
             "cast(DATE '1945-02-24' as TIMESTAMP)",
-            "1945-02-24 00:00:00.0",
+            "1945-02-24 00:00:00",
             "TIMESTAMP(0) NOT NULL");
 
         if (!enable) {
@@ -1868,7 +1880,7 @@ public abstract class SqlOperatorBaseTest {
     @Test public void testDivideOperatorIntervals() {
         tester.checkScalar(
             "interval '-2:2' hour to minute / 3",
-            "-0:40",
+            "-0:41",
             "INTERVAL HOUR TO MINUTE NOT NULL");
         tester.checkScalar(
             "interval '2:5:12' hour to second / 2 / -3",
@@ -1878,16 +1890,17 @@ public abstract class SqlOperatorBaseTest {
             "interval '2' day / cast(null as bigint)");
         tester.checkNull(
             "cast(null as interval month) / 2");
-        if (todo) {
-            tester.checkScalar(
-                "interval '3-3' year to month / 15e-1",
-                "+02-02",
-                "INTERVAL YEAR TO MONTH NOT NULL");
-            tester.checkScalar(
-                "interval '3-4' year to month / 4.5",
-                "+00-08",
-                "INTERVAL YEAR TO MONTH NOT NULL");
+        if (!INTERVAL) {
+            return;
         }
+        tester.checkScalar(
+            "interval '3-3' year to month / 15e-1",
+            "+02-02",
+            "INTERVAL YEAR TO MONTH NOT NULL");
+        tester.checkScalar(
+            "interval '3-4' year to month / 4.5",
+            "+00-08",
+            "INTERVAL YEAR TO MONTH NOT NULL");
     }
 
     @Test public void testEqualsOperator() {
@@ -3668,6 +3681,9 @@ public abstract class SqlOperatorBaseTest {
             "nullif(interval '2' month, interval '3' year)",
             "+2",
             "INTERVAL MONTH");
+        if (!INTERVAL) {
+            return;
+        }
         tester.checkScalar(
             "nullif(interval '2 5' day to hour, interval '5' second)",
             "+2 05",

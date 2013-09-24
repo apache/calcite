@@ -19,7 +19,7 @@ package org.eigenbase.test;
 
 import java.nio.charset.*;
 
-import java.util.List;
+import java.util.*;
 import java.util.regex.*;
 
 import org.eigenbase.reltype.*;
@@ -28,11 +28,13 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.test.*;
 import org.eigenbase.sql.type.*;
+import org.eigenbase.sql.util.SqlShuttle;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-import static org.junit.Assert.*;
+import com.google.common.collect.ImmutableList;
 
+import static org.junit.Assert.*;
 
 /**
  * An abstract base class for implementing tests against {@link SqlValidator}.
@@ -550,6 +552,10 @@ public class SqlValidatorTestCase {
         protected final SqlOperatorTable opTab;
         protected final SqlConformance conformance;
 
+        /** Whether to generate queries with literals extracted as columns.
+         * After we have fixed tests, we want this to be true. */
+        public static final boolean PARAMETERIZE = false;
+
         public TesterImpl(SqlConformance conformance)
         {
             assert conformance != null;
@@ -745,34 +751,39 @@ public class SqlValidatorTestCase {
 
         public void checkType(String expression, String type)
         {
-            checkColumnType(
-                buildQuery(expression),
-                type);
+            for (String sql : buildQueries(expression)) {
+                checkColumnType(sql, type);
+            }
         }
 
         public void checkCollation(
-            String sql,
+            String expression,
             String expectedCollationName,
             SqlCollation.Coercibility expectedCoercibility)
         {
-            RelDataType actualType = getColumnType(buildQuery(sql));
-            SqlCollation collation = actualType.getCollation();
+            for (String sql : buildQueries(expression)) {
+                RelDataType actualType = getColumnType(sql);
+                SqlCollation collation = actualType.getCollation();
 
-            assertEquals(expectedCollationName, collation.getCollationName());
-            assertEquals(expectedCoercibility, collation.getCoercibility());
+                assertEquals(
+                    expectedCollationName, collation.getCollationName());
+                assertEquals(expectedCoercibility, collation.getCoercibility());
+            }
         }
 
         public void checkCharset(
-            String sql,
+            String expression,
             Charset expectedCharset)
         {
-            RelDataType actualType = getColumnType(buildQuery(sql));
-            Charset actualCharset = actualType.getCharset();
+            for (String sql : buildQueries(expression)) {
+                RelDataType actualType = getColumnType(sql);
+                Charset actualCharset = actualType.getCharset();
 
-            if (!expectedCharset.equals(actualCharset)) {
-                fail(
-                    NL + "Expected=" + expectedCharset.name() + NL
-                    + "  actual=" + actualCharset.name());
+                if (!expectedCharset.equals(actualCharset)) {
+                    fail(
+                        NL + "Expected=" + expectedCharset.name() + NL
+                        + "  actual=" + actualCharset.name());
+                }
             }
         }
 
@@ -806,9 +817,7 @@ public class SqlValidatorTestCase {
         {
             String query =
                 AbstractSqlTester.generateWinAggQuery(
-                    expr,
-                    windowSpec,
-                    inputValues);
+                    expr, windowSpec, inputValues);
             check(query, AbstractSqlTester.AnyTypeChecker, result, delta);
         }
 
@@ -818,19 +827,18 @@ public class SqlValidatorTestCase {
             String resultType)
         {
             checkType(expression, resultType);
-            check(
-                buildQuery(expression),
-                AbstractSqlTester.AnyTypeChecker,
-                result,
-                0);
+            for (String sql : buildQueries(expression)) {
+                check(sql, AbstractSqlTester.AnyTypeChecker, result, 0);
+            }
         }
 
         public void checkScalarExact(
             String expression,
             String result)
         {
-            String sql = buildQuery(expression);
-            check(sql, AbstractSqlTester.IntegerTypeChecker, result, 0);
+            for (String sql : buildQueries(expression)) {
+                check(sql, AbstractSqlTester.IntegerTypeChecker, result, 0);
+            }
         }
 
         public void checkScalarExact(
@@ -838,10 +846,11 @@ public class SqlValidatorTestCase {
             String expectedType,
             String result)
         {
-            String sql = buildQuery(expression);
-            TypeChecker typeChecker =
-                new AbstractSqlTester.StringTypeChecker(expectedType);
-            check(sql, typeChecker, result, 0);
+            for (String sql : buildQueries(expression)) {
+                TypeChecker typeChecker =
+                    new AbstractSqlTester.StringTypeChecker(expectedType);
+                check(sql, typeChecker, result, 0);
+            }
         }
 
         public void checkScalarApprox(
@@ -850,29 +859,31 @@ public class SqlValidatorTestCase {
             double expectedResult,
             double delta)
         {
-            String sql = buildQuery(expression);
-            TypeChecker typeChecker =
-                new AbstractSqlTester.StringTypeChecker(expectedType);
-            check(
-                sql,
-                typeChecker,
-                new Double(expectedResult),
-                delta);
+            for (String sql : buildQueries(expression)) {
+                TypeChecker typeChecker =
+                    new AbstractSqlTester.StringTypeChecker(expectedType);
+                check(
+                    sql,
+                    typeChecker,
+                    new Double(expectedResult),
+                    delta);
+            }
         }
 
         public void checkBoolean(
             String expression,
             Boolean result)
         {
-            String sql = buildQuery(expression);
-            if (null == result) {
-                checkNull(expression);
-            } else {
-                check(
-                    sql,
-                    AbstractSqlTester.BooleanTypeChecker,
-                    result.toString(),
-                    0);
+            for (String sql : buildQueries(expression)) {
+                if (null == result) {
+                    checkNull(expression);
+                } else {
+                    check(
+                        sql,
+                        AbstractSqlTester.BooleanTypeChecker,
+                        result.toString(),
+                        0);
+                }
             }
         }
 
@@ -881,16 +892,18 @@ public class SqlValidatorTestCase {
             String result,
             String expectedType)
         {
-            String sql = buildQuery(expression);
-            TypeChecker typeChecker =
-                new AbstractSqlTester.StringTypeChecker(expectedType);
-            check(sql, typeChecker, result, 0);
+            for (String sql : buildQueries(expression)) {
+                TypeChecker typeChecker =
+                    new AbstractSqlTester.StringTypeChecker(expectedType);
+                check(sql, typeChecker, result, 0);
+            }
         }
 
         public void checkNull(String expression)
         {
-            String sql = buildQuery(expression);
-            check(sql, AbstractSqlTester.AnyTypeChecker, null, 0);
+            for (String sql : buildQueries(expression)) {
+                check(sql, AbstractSqlTester.AnyTypeChecker, null, 0);
+            }
         }
 
         public final void check(
@@ -964,6 +977,169 @@ public class SqlValidatorTestCase {
         private static String buildQuery(String expression)
         {
             return "values (" + expression + ")";
+        }
+
+        /**
+         * Builds a query that extracts all literals as columns in an underlying
+         * select.
+         *
+         * <p>For example,</p>
+         *
+         * <blockquote>{@code 1 < 5}</blockquote>
+         *
+         * <p>becomes</p>
+         *
+         * <blockquote>{@code SELECT p0 < p1
+         * FROM (VALUES (1, 5)) AS t(p0, p1)}</blockquote>
+         *
+         * <p>Null literals don't have enough type information to be extracted.
+         * We push down {@code CAST(NULL AS type)} but raw nulls such as
+         * {@code CASE 1 WHEN 2 THEN 'a' ELSE NULL END} are left as is.</p>
+         *
+         * @param expression Scalar expression
+         * @return Query that evaluates a scalar expression
+         */
+        private String buildQuery2(String expression)
+        {
+            // "values (1 < 5)"
+            // becomes
+            // "select p0 < p1 from (values (1, 5)) as t(p0, p1)"
+            SqlNode x;
+            final String sql = "values (" + expression + ")";
+            try {
+                x = parseQuery(sql);
+            } catch (SqlParseException e) {
+                throw new RuntimeException(e);
+            }
+            final Collection<SqlNode> literalSet = new LinkedHashSet<SqlNode>();
+            x.accept(
+                new SqlShuttle() {
+                    private final List<SqlOperator> ops =
+                        ImmutableList.<SqlOperator>of(
+                            SqlStdOperatorTable.literalChainOperator,
+                            SqlStdOperatorTable.localTimeFunc,
+                            SqlStdOperatorTable.localTimestampFunc,
+                            SqlStdOperatorTable.currentTimeFunc,
+                            SqlStdOperatorTable.currentTimestampFunc);
+
+                    @Override
+                    public SqlNode visit(SqlLiteral literal) {
+                        if (!isNull(literal)
+                            && literal.getTypeName() != SqlTypeName.SYMBOL)
+                        {
+                            literalSet.add(literal);
+                        }
+                        return literal;
+                    }
+
+                    @Override
+                    public SqlNode visit(SqlCall call) {
+                        final SqlOperator operator = call.getOperator();
+                        if (operator == SqlStdOperatorTable.castFunc
+                            && isNull(call.getOperandList().get(0)))
+                        {
+                            literalSet.add(call);
+                            return call;
+                        } else if (ops.contains(operator)) {
+                            // "Argument to function 'LOCALTIME' must be a
+                            // literal"
+                            return call;
+                        } else {
+                            return super.visit(call);
+                        }
+                    }
+
+                    private boolean isNull(SqlNode sqlNode) {
+                        return sqlNode instanceof SqlLiteral
+                            && ((SqlLiteral) sqlNode).getTypeName()
+                               == SqlTypeName.NULL;
+                    }
+                });
+            final List<SqlNode> nodes = new ArrayList<SqlNode>(literalSet);
+            Collections.sort(
+                nodes,
+                new Comparator<SqlNode>() {
+                    public int compare(SqlNode o1, SqlNode o2) {
+                        final SqlParserPos pos0 = o1.getParserPosition();
+                        final SqlParserPos pos1 = o2.getParserPosition();
+                        int c = -Integer.compare(
+                            pos0.getLineNum(), pos1.getLineNum());
+                        if (c != 0) {
+                            return c;
+                        }
+                        return -Integer.compare(
+                            pos0.getColumnNum(), pos1.getColumnNum());
+                    }
+                });
+            String sql2 = sql;
+            final List<Pair<String, String>> values =
+                new ArrayList<Pair<String, String>>();
+            int p = 0;
+            for (SqlNode literal : nodes) {
+                final SqlParserPos pos = literal.getParserPosition();
+                final int start =
+                    SqlParserUtil.lineColToIndex(
+                        sql, pos.getLineNum(), pos.getColumnNum());
+                final int end =
+                    SqlParserUtil.lineColToIndex(
+                        sql,
+                        pos.getEndLineNum(),
+                        pos.getEndColumnNum()) + 1;
+                String param = "p" + (p++);
+                values.add(Pair.of(sql2.substring(start, end), param));
+                sql2 = sql2.substring(0, start)
+                    + param
+                    + sql2.substring(end);
+            }
+            if (values.isEmpty()) {
+                values.add(Pair.of("1", "p0"));
+            }
+            return "select "
+                   + sql2.substring("values (".length(), sql2.length() - 1)
+                   + " from (values ("
+                   + Util.commaList(Pair.left(values))
+                   + ")) as t("
+                   + Util.commaList(Pair.right(values))
+                   + ")";
+        }
+
+        /**
+         * Converts a scalar expression into a list of SQL queries that
+         * evaluate it.
+         *
+         * @param expression Scalar expression
+         * @return List of queries that evaluate an expression
+         */
+        private Iterable<String> buildQueries(final String expression)
+        {
+            // Why an explicit iterable rather than a list? If there is
+            // a syntax error in the expression, the calling code discovers it
+            // before we try to parse it to do substitutions on the parse tree.
+            return new Iterable<String>() {
+                public Iterator<String> iterator() {
+                    return new Iterator<String>() {
+                        int i = 0;
+                        public void remove() {
+                            throw new UnsupportedOperationException();
+                        }
+
+                        public String next() {
+                            switch (i++) {
+                            case 0:
+                                return buildQuery(expression);
+                            case 1:
+                                return buildQuery2(expression);
+                            default:
+                                throw new NoSuchElementException();
+                            }
+                        }
+
+                        public boolean hasNext() {
+                            return PARAMETERIZE ? i < 2 : i < 1;
+                        }
+                    };
+                }
+            };
         }
 
         public boolean isVm(VmName vmName)
