@@ -552,10 +552,6 @@ public class SqlValidatorTestCase {
         protected final SqlOperatorTable opTab;
         protected final SqlConformance conformance;
 
-        /** Whether to generate queries with literals extracted as columns.
-         * After we have fixed tests, we want this to be true. */
-        public static final boolean PARAMETERIZE = false;
-
         public TesterImpl(SqlConformance conformance)
         {
             assert conformance != null;
@@ -1135,7 +1131,7 @@ public class SqlValidatorTestCase {
                         }
 
                         public boolean hasNext() {
-                            return PARAMETERIZE ? i < 2 : i < 1;
+                            return i < 2;
                         }
                     };
                 }

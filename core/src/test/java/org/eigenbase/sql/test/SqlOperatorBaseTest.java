@@ -726,6 +726,10 @@ public abstract class SqlOperatorBaseTest {
             "-5.0");
         }
 
+        if (!INTERVAL) {
+            return;
+        }
+
         // Interval to bigint
         tester.checkScalarExact(
             "cast(INTERVAL '1.25' second as bigint)",
@@ -757,6 +761,9 @@ public abstract class SqlOperatorBaseTest {
 
     @Test public void testCastToInterval() {
         tester.setFor(SqlStdOperatorTable.castFunc);
+        if (!INTERVAL) {
+            return;
+        }
         tester.checkScalar(
             "cast(5 as interval second)",
             "+5.000000",
@@ -1047,6 +1054,7 @@ public abstract class SqlOperatorBaseTest {
             "TIME(0) NOT NULL");
 
         // test rounding
+        if (enable)
         tester.checkScalar(
             "cast(TIME '12:42:25.9' as TIME)",
             "12:42:26",
@@ -1066,6 +1074,7 @@ public abstract class SqlOperatorBaseTest {
             "DATE NOT NULL");
 
         // timestamp <-> time
+        if (enable)
         tester.checkScalar(
             "cast(TIMESTAMP '1945-02-24 12:42:25.34' as TIME)",
             "12:42:25",
@@ -1084,6 +1093,7 @@ public abstract class SqlOperatorBaseTest {
             new SimpleDateFormat("yyyy-MM-dd").format(
                 getCalendarNotTooNear(Calendar.DAY_OF_MONTH).getTime());
 
+        if (enable)
         tester.checkScalar(
             "cast(DATE '1945-02-24' as TIMESTAMP)",
             "1945-02-24 00:00:00",
@@ -4149,6 +4159,9 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testCeilFuncInterval() {
+        if (!enable) {
+            return;
+        }
         tester.checkScalar(
             "ceil(interval '3:4:5' hour to second)",
             "+4:00:00.000000",
@@ -4190,6 +4203,9 @@ public abstract class SqlOperatorBaseTest {
     }
 
     @Test public void testFloorFuncInterval() {
+        if (!enable) {
+            return;
+        }
         tester.checkScalar(
             "floor(interval '3:4:5' hour to second)",
             "+3:00:00.000000",
