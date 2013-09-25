@@ -55,7 +55,7 @@ public class SparkRuntime {
    * <p>Currently a global variable; maybe later held within {@code root}.</p>
    */
   public static JavaSparkContext getSparkContext(DataContext root) {
-    return (JavaSparkContext) root.get("sparkContext");
+    return (JavaSparkContext) SparkHandlerImpl.INSTANCE().sparkContext();
   }
 }
 

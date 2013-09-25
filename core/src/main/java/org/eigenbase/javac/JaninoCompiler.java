@@ -17,6 +17,9 @@
 */
 package org.eigenbase.javac;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.*;
 
 import org.eigenbase.util.*;
@@ -80,7 +83,8 @@ public class JaninoCompiler
             new AccountingClassLoader(
                 parentClassLoader,
                 sourceFinder,
-                null);
+                null,
+                args.destdir == null ? null : new File(args.destdir));
         try {
             classLoader.loadClass(args.fullClassName);
         } catch (ClassNotFoundException ex) {
@@ -149,17 +153,20 @@ public class JaninoCompiler
     private static class AccountingClassLoader
         extends JavaSourceClassLoader
     {
+        private final File destDir;
         private int nBytes;
 
         public AccountingClassLoader(
             ClassLoader parentClassLoader,
             ResourceFinder sourceFinder,
-            String optionalCharacterEncoding)
+            String optionalCharacterEncoding,
+            File destDir)
         {
             super(
                 parentClassLoader,
                 sourceFinder,
                 optionalCharacterEncoding);
+            this.destDir = destDir;
         }
 
         int getTotalByteCodeSize()
@@ -171,9 +178,22 @@ public class JaninoCompiler
         public Map generateBytecodes(String name)
             throws ClassNotFoundException
         {
-            Map map = super.generateBytecodes(name);
+            Map<String, byte[]> map = super.generateBytecodes(name);
             if (map == null) {
                 return map;
+            }
+
+            if (destDir != null) {
+              try {
+                for (Map.Entry<String, byte[]> entry : map.entrySet()) {
+                  File file = new File(destDir, entry.getKey() + ".class");
+                  FileOutputStream fos = new FileOutputStream(file);
+                  fos.write(entry.getValue());
+                  fos.close();
+                }
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
             }
 
             // NOTE jvs 18-Oct-2006:  Janino has actually compiled everything

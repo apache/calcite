@@ -50,11 +50,13 @@ import org.eigenbase.sql2rel.SqlToRelConverter;
 import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
 
+import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.*;
 import org.codehaus.janino.Scanner;
 
 import com.google.common.collect.*;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -165,10 +167,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(ReduceAggregatesRule.instance);
     planner.addRule(SwapJoinRule.instance);
     planner.addRule(WindowedAggSplitterRule.INSTANCE);
-    final SparkHandler spark = context.spark();
-    if (spark != null) {
-      spark.registerRules(planner);
-    }
+    context.spark().registerRules(planner);
     return planner;
   }
 
@@ -560,7 +559,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         RelNode rootRel,
         boolean restructure) {
       final SparkHandler spark = context.spark();
-      if (spark != null) {
+      if (spark.enabled()) {
         return spark.flattenTypes(planner, rootRel, restructure);
       }
       return rootRel;
@@ -650,13 +649,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
       final Bindable bindable;
       try {
-        bindable = (Bindable)
-            ClassBodyEvaluator.createFastClassBodyEvaluator(
-                new Scanner(null, new StringReader(s)),
-                expr.name,
-                Utilities.class,
-                new Class[]{Bindable.class, Typed.class},
-                getClass().getClassLoader());
+        bindable = getBindable(expr, s);
       } catch (Exception e) {
         throw Helper.INSTANCE.wrap(
             "Error while compiling generated Java code:\n"
@@ -692,6 +685,19 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           return ((Typed) bindable).getElementType();
         }
       };
+    }
+
+    private Bindable getBindable(ClassDeclaration expr,
+        String s) throws CompileException, IOException {
+      if (context.spark().enabled()) {
+        return context.spark().compile(expr, s);
+      }
+      return (Bindable) ClassBodyEvaluator.createFastClassBodyEvaluator(
+          new Scanner(null, new StringReader(s)),
+          expr.name,
+          Utilities.class,
+          new Class[]{Bindable.class, Typed.class},
+          getClass().getClassLoader());
     }
 
     /** Populates a materialization record, converting a table path

@@ -21,8 +21,6 @@ import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertEquals;
-
 /**
  * Tests for using Optiq with Spark as an internal engine, as implemented by
  * the {@link net.hydromatic.optiq.impl.spark} package.
@@ -32,17 +30,26 @@ public class SparkAdapterTest {
    * Tests a VALUES query evaluated using Spark.
    * There are no data sources.
    */
-  @Test public void testValues() throws SQLException, ClassNotFoundException {
-    Class.forName("net.hydromatic.optiq.jdbc.Driver");
-    Connection connection =
-        DriverManager.getConnection("jdbc:optiq:spark=true");
-    ResultSet resultSet = connection.createStatement().executeQuery(
-        "select *\n"
-        + "from (values (1, 'a'), (2, 'b'))");
-    assertEquals(
-        "EXPR$0=1; EXPR$1=a\n"
-        + "EXPR$0=2; EXPR$1=b\n",
-        OptiqAssert.toString(resultSet));
+  @Test public void testValues() throws SQLException {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.SPARK)
+        .query(
+            "select *\n"
+            + "from (values (1, 'a'), (2, 'b'))")
+        .returns(
+            "EXPR$0=1; EXPR$1=a\n"
+            + "EXPR$0=2; EXPR$1=b\n");
+  }
+
+  /** Tests values followed by filter, evaluated by Spark. */
+  @Test public void testValuesFilter() throws SQLException {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.SPARK)
+        .query(
+            "select *\n"
+            + "from (values (1, 'a'), (2, 'b')) as t(x, y)\n"
+            + "where x < 2")
+        .returns("X=1; Y=a\n");
   }
 }
 

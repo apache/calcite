@@ -36,8 +36,8 @@ import java.util.*;
  * different numbers or types of parameters.
  * For this reason, {@link #getTableFunctions} returns a list of all
  * members with the same name. Optiq will call
- * {@link Schemas#resolve(String, java.util.List, java.util.List)} to choose the
- * appropriate one.</p>
+ * {@link Schemas#resolve(String, java.util.Collection, java.util.List)}
+ * to choose the appropriate one.</p>
  *
  * <p>The most common and important type of member is the one with no
  * arguments and a result type that is a collection of records. This is called a

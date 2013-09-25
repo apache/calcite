@@ -58,8 +58,6 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
       Expressions.parameter(DataContext.class, "root");
   final MutableSchema rootSchema =
       new MapSchema(null, this, typeFactory, "", rootExpression) {
-        private Object sparkContext;
-
         // Store the time at which the query started executing. The SQL
         // standard says that functions such as CURRENTTIMESTAMP return the
         // same value throughout the query.
@@ -76,30 +74,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
 
         @Override
         public synchronized Object get(String name) {
-          if (name.equals("sparkContext")) {
-            if (sparkContext == null) {
-              try {
-                final Class<?> clazz =
-                    Class.forName("org.apache.spark.api.java.JavaSparkContext");
-                final Constructor<?> constructor =
-                    clazz.getConstructor(String.class, String.class);
-                sparkContext = constructor.newInstance("local[1]", "optiq");
-              } catch (ClassNotFoundException e) {
-                throw new RuntimeException(e);
-              } catch (InvocationTargetException e) {
-                throw new RuntimeException(e);
-              } catch (NoSuchMethodException e) {
-                throw new RuntimeException(e);
-              } catch (InstantiationException e) {
-                throw new RuntimeException(e);
-              } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-              }
-            }
-            return sparkContext;
-          } else {
-            return map.get(name);
-          }
+          return map.get(name);
         }
       };
 

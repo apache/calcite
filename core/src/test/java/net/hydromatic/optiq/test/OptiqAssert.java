@@ -453,13 +453,14 @@ public class OptiqAssert {
 
   static OptiqConnection getConnection(String... schema)
       throws ClassNotFoundException, SQLException {
+    final List<String> schemaList = Arrays.asList(schema);
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
+    String suffix = schemaList.contains("spark") ? "spark=true" : "";
     Connection connection =
-        DriverManager.getConnection("jdbc:optiq:");
+        DriverManager.getConnection("jdbc:optiq:" + suffix);
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     MutableSchema rootSchema = optiqConnection.getRootSchema();
-    final List<String> schemaList = Arrays.asList(schema);
     if (schemaList.contains("hr")) {
       ReflectiveSchema.create(rootSchema, "hr", new JdbcTest.HrSchema());
     }
@@ -683,6 +684,8 @@ public class OptiqAssert {
             JdbcQueryProvider.INSTANCE, false);
       case FOODMART_CLONE:
         return getConnection(JdbcQueryProvider.INSTANCE, true);
+      case SPARK:
+        return getConnection("spark");
       default:
         throw Util.unexpected(config);
       }
@@ -894,6 +897,9 @@ public class OptiqAssert {
 
     /** Configuration that includes the metadata schema. */
     REGULAR_PLUS_METADATA,
+
+    /** Configuration that loads Spark. */
+    SPARK,
   }
 }
 

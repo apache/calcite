@@ -19,6 +19,7 @@ package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Queryable;
+import net.hydromatic.linq4j.expressions.ClassDeclaration;
 import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.Schema;
@@ -445,27 +446,7 @@ public abstract class OptiqStatement
     }
 
     public OptiqPrepare.SparkHandler spark() {
-      try {
-        final Class<?> clazz =
-            Class.forName("net.hydromatic.optiq.impl.spark.SparkHandlerImpl");
-        return (OptiqPrepare.SparkHandler) clazz.newInstance();
-      } catch (InstantiationException e) {
-        throw new RuntimeException(e);
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-      } catch (ClassNotFoundException e) {
-        return new OptiqPrepare.SparkHandler() {
-          public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
-              boolean restructure) {
-            return rootRel;
-          }
-
-          public void registerRules(VolcanoPlanner planner) {
-          }
-        };
-      } catch (ClassCastException e) {
-        throw new RuntimeException(e);
-      }
+      return OptiqPrepare.Dummy.getSparkHandler();
     }
   }
 }

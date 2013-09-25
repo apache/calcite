@@ -21,11 +21,13 @@ import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.RawEnumerable;
+import net.hydromatic.linq4j.expressions.ClassDeclaration;
 import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.rel.RelNode;
@@ -36,6 +38,8 @@ import org.eigenbase.sql.SqlNode;
 
 import java.io.InputStream;
 import java.io.Reader;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -78,6 +82,7 @@ public interface OptiqPrepare {
 
     ConnectionProperty.ConnectionConfig config();
 
+    /** Returns the spark handler. Never null. */
     SparkHandler spark();
   }
 
@@ -87,6 +92,63 @@ public interface OptiqPrepare {
         boolean restructure);
 
     void registerRules(VolcanoPlanner planner);
+
+    boolean enabled();
+
+    Bindable compile(ClassDeclaration expr, String s);
+
+    Object sparkContext();
+  }
+
+  public static class Dummy {
+    private static SparkHandler handler;
+    public static synchronized SparkHandler getSparkHandler() {
+      if (handler == null) {
+        handler = createHandler();
+      }
+      return handler;
+    }
+
+    private static SparkHandler createHandler() {
+      try {
+        final Class<?> clazz =
+            Class.forName("net.hydromatic.optiq.impl.spark.SparkHandlerImpl");
+        Method method = clazz.getMethod("INSTANCE");
+        return (OptiqPrepare.SparkHandler) method.invoke(null);
+      } catch (ClassNotFoundException e) {
+        return new TrivialSparkHandler();
+      } catch (IllegalAccessException e) {
+        throw new RuntimeException(e);
+      } catch (ClassCastException e) {
+        throw new RuntimeException(e);
+      } catch (NoSuchMethodException e) {
+        throw new RuntimeException(e);
+      } catch (InvocationTargetException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    private static class TrivialSparkHandler implements SparkHandler {
+      public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
+          boolean restructure) {
+        return rootRel;
+      }
+
+      public void registerRules(VolcanoPlanner planner) {
+      }
+
+      public boolean enabled() {
+        return false;
+      }
+
+      public Bindable compile(ClassDeclaration expr, String s) {
+        throw new UnsupportedOperationException();
+      }
+
+      public Object sparkContext() {
+        throw new UnsupportedOperationException();
+      }
+    }
   }
 
   public static class ParseResult {

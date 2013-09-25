@@ -17,24 +17,68 @@
 */
 package net.hydromatic.optiq.impl.spark;
 
+import net.hydromatic.linq4j.expressions.ClassDeclaration;
+
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.rules.java.JavaRules;
+import net.hydromatic.optiq.runtime.Bindable;
+import net.hydromatic.optiq.runtime.Typed;
 
+import org.apache.spark.api.java.JavaSparkContext;
+
+import org.eigenbase.javac.JaninoCompiler;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.volcano.VolcanoPlanner;
-import org.eigenbase.util.Pair;
 
-import java.util.List;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Calendar;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Implementation of {@link OptiqPrepare.SparkHandler}. Gives the core Optiq
  * engine access to rules that only exist in the Spark module.
  */
-@SuppressWarnings("UnusedDeclaration")
 public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
-  Pair<Convention, List<RelOptRule>> pair = Pair.of(
-      SparkRel.CONVENTION, SparkRules.rules());
+  private final HttpServer classServer;
+  private final AtomicInteger classId;
+  private final JavaSparkContext sparkContext =
+      new JavaSparkContext("local[1]", "optiq");
+
+  private static SparkHandlerImpl INSTANCE;
+  private static final File SRC_DIR = new File("/tmp");
+  private static final File CLASS_DIR = new File("core/target/classes");
+
+  /** Creates a SparkHandlerImpl. */
+  private SparkHandlerImpl() {
+    classServer = new HttpServer(CLASS_DIR);
+
+    // Start the classServer and store its URI in a spark system property
+    // (which will be passed to executors so that they can connect to it)
+    classServer.start();
+    System.setProperty("spark.repl.class.uri", classServer.uri());
+
+    // Generate a starting point for class names that is unlikely to clash with
+    // previous classes. A better solution would be to clear the class directory
+    // on startup.
+    final Calendar calendar = Calendar.getInstance();
+    classId = new AtomicInteger(
+        calendar.get(Calendar.HOUR_OF_DAY) * 10000
+        + calendar.get(Calendar.MINUTE) * 100
+        + calendar.get(Calendar.SECOND));
+  }
+
+  /** Creates a SparkHandlerImpl, initializing on first call. Optiq-core calls
+   * this via reflection. */
+  @SuppressWarnings("UnusedDeclaration")
+  public static final OptiqPrepare.SparkHandler INSTANCE() {
+    if (INSTANCE == null) {
+      INSTANCE = new SparkHandlerImpl();
+    }
+    return INSTANCE;
+  }
 
   public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
       boolean restructure) {
@@ -49,6 +93,52 @@ public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
       planner.addRule(rule);
     }
     planner.removeRule(JavaRules.ENUMERABLE_VALUES_RULE);
+  }
+
+  public Object sparkContext() {
+    return sparkContext;
+  }
+
+  public boolean enabled() {
+    return true;
+  }
+
+  public Bindable compile(ClassDeclaration expr, String s) {
+    try {
+      String className = "OptiqProgram" + classId.getAndIncrement();
+      File file = new File(SRC_DIR, className + ".java");
+      FileWriter fileWriter = new FileWriter(file, false);
+      String source =
+          "public class " + className + "\n"
+          + "    implements " + Bindable.class.getName()
+          + ", " + Typed.class.getName()
+          + " {\n"
+          + s + "\n"
+          + "}\n";
+
+      System.out.println("======================");
+      System.out.println(source);
+      System.out.println("======================");
+
+      fileWriter.write(source);
+      fileWriter.close();
+      JaninoCompiler compiler = new JaninoCompiler();
+      compiler.getArgs().setDestdir(CLASS_DIR.getAbsolutePath());
+      compiler.getArgs().setSource(source, file.getAbsolutePath());
+      compiler.getArgs().setFullClassName(className);
+      compiler.compile();
+      Class<?> clazz = Class.forName(className);
+      Object o = clazz.newInstance();
+      return (Bindable) o;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException(e);
+    } catch (InstantiationException e) {
+      throw new RuntimeException(e);
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
 
