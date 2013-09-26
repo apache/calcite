@@ -36,6 +36,8 @@ import java.sql.SQLException;
 import java.util.*;
 import javax.sql.DataSource;
 
+import static org.eigenbase.util.Stacks.*;
+
 /**
  * Reads a model and creates schema objects accordingly.
  */
@@ -150,19 +152,6 @@ public class ModelHandler {
     dataSource.setUsername(jsonJdbcSchema.jdbcUser);
     dataSource.setPassword(jsonJdbcSchema.jdbcPassword);
     return dataSource;
-  }
-
-  private <T> T peek(List<T> stack) {
-    return stack.get(stack.size() - 1);
-  }
-
-  private <T> void push(List<T> stack, T element) {
-    stack.add(element);
-  }
-
-  private <T> void pop(List<T> stack, T element) {
-    assert stack.get(stack.size() - 1) == element;
-    stack.remove(stack.size() - 1);
   }
 
   public void visit(JsonCustomTable jsonTable) {

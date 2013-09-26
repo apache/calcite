@@ -203,7 +203,7 @@ public final class Schemas {
       }
 
       public OptiqPrepare.SparkHandler spark() {
-        return null;
+        return OptiqPrepare.Dummy.getSparkHandler();
       }
     };
   }

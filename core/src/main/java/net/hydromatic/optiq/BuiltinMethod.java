@@ -26,6 +26,7 @@ import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.runtime.*;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
 import javax.sql.DataSource;
@@ -36,6 +37,7 @@ import javax.sql.DataSource;
 public enum BuiltinMethod {
   QUERYABLE_SELECT(Queryable.class, "select", FunctionExpression.class),
   AS_QUERYABLE(Enumerable.class, "asQueryable"),
+  ABSTRACT_ENUMERABLE_CTOR(AbstractEnumerable.class),
   INTO(ExtendedEnumerable.class, "into", Collection.class),
   GET_SUB_SCHEMA(DataContext.class, "getSubSchema", String.class),
   GET_TARGET(ReflectiveSchema.class, "getTarget"),
@@ -144,18 +146,27 @@ public enum BuiltinMethod {
   ROUND_INT(SqlFunctions.class, "round", int.class, int.class);
 
   public final Method method;
+  public final Constructor constructor;
 
   private static final HashMap<Method, BuiltinMethod> MAP =
       new HashMap<Method, BuiltinMethod>();
 
   static {
     for (BuiltinMethod builtinMethod : BuiltinMethod.values()) {
-      MAP.put(builtinMethod.method, builtinMethod);
+      if (builtinMethod.method != null) {
+        MAP.put(builtinMethod.method, builtinMethod);
+      }
     }
   }
 
   BuiltinMethod(Class clazz, String methodName, Class... argumentTypes) {
     this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
+    this.constructor = null;
+  }
+
+  BuiltinMethod(Class clazz, Class... argumentTypes) {
+    this.method = null;
+    this.constructor = Types.lookupConstructor(clazz, argumentTypes);
   }
 
   public static BuiltinMethod lookup(Method method) {

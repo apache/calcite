@@ -28,11 +28,14 @@ import org.eigenbase.rel.convert.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
+import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.util.*;
 
 import net.hydromatic.optiq.util.graph.*;
 
 import net.hydromatic.linq4j.expressions.Expressions;
+
+import static org.eigenbase.util.Stacks.*;
 
 /**
  * VolcanoPlanner optimizes queries by transforming expressions selectively
@@ -168,6 +171,11 @@ public class VolcanoPlanner
     private final List<Materialization> materializations =
         new ArrayList<Materialization>();
 
+    final Map<RelNode, Object> provenanceMap = new HashMap<RelNode, Object>();
+
+    private final List<VolcanoRuleCall> ruleCallStack =
+        new ArrayList<VolcanoRuleCall>();
+
     //~ Constructors -----------------------------------------------------------
 
     /**
@@ -225,7 +233,8 @@ public class VolcanoPlanner
         if (this.originalRoot == null) {
             this.originalRoot = rel;
         }
-        this.originalRootString = RelOptUtil.toString(root);
+        this.originalRootString =
+            RelOptUtil.toString(root, SqlExplainLevel.ALL_ATTRIBUTES);
 
         // Making a node the root changes its importance.
         this.ruleQueue.recompute(this.root);
@@ -606,9 +615,73 @@ public class VolcanoPlanner
         if (tracer.isLoggable(Level.FINE)) {
             tracer.fine(
                 "Cheapest plan:\n"
-                + RelOptUtil.toString(cheapest));
+                + RelOptUtil.toString(
+                    cheapest, SqlExplainLevel.ALL_ATTRIBUTES));
+
+            tracer.fine(
+                "Provenance:\n"
+                + provenance(cheapest));
         }
         return cheapest;
+    }
+
+    /** Returns a multi-line string describing the provenance of a tree of
+     * relational expressions. For each node in the tree, prints the rule that
+     * created the node, if any. Recursively describes the provenance of the
+     * relational expressions that are the arguments to that rule.
+     *
+     * <p>Thus, every relational expression and rule invocation that affected
+     * the final outcome is described in the provenance. This can be useful
+     * when finding the root cause of "mistakes" in a query plan.</p>
+     *
+     * @param root Root relational expression in a tree
+     * @return Multi-line string describing the rules that created the tree
+     */
+    private String provenance(RelNode root) {
+        final StringWriter sw = new StringWriter();
+        final PrintWriter pw = new PrintWriter(sw);
+        final List<RelNode> nodes = new ArrayList<RelNode>();
+        new RelVisitor() {
+            public void visit(RelNode node, int ordinal, RelNode parent) {
+                nodes.add(node);
+                super.visit(node, ordinal, parent);
+            }
+        }.go(root);
+        final Set<RelNode> visited = new HashSet<RelNode>();
+        for (RelNode node : nodes) {
+            provenanceRecurse(pw, node, 0, visited);
+        }
+        pw.flush();
+        return sw.toString();
+    }
+
+    /** Helper for {@link #provenance(org.eigenbase.rel.RelNode)}. */
+    private void provenanceRecurse(
+        PrintWriter pw, RelNode node, int i, Set<RelNode> visited)
+    {
+        pw.print(Util.spaces(i * 2));
+        if (!visited.add(node)) {
+            pw.println("rel#" + node.getId() + " (see above)");
+            return;
+        }
+        pw.println(node);
+        Object o = provenanceMap.get(node);
+        pw.print(Util.spaces(i * 2 + 2));
+        if (o == null) {
+            pw.println("no parent");
+        } else if (o instanceof RelNode) {
+            RelNode rel = (RelNode) o;
+            pw.println("direct");
+            provenanceRecurse(pw, rel, i + 2, visited);
+        } else if (o instanceof VolcanoRuleCall) {
+            VolcanoRuleCall ruleCall = (VolcanoRuleCall) o;
+            pw.println(ruleCall);
+            for (RelNode rel : ruleCall.rels) {
+                provenanceRecurse(pw, rel, i + 2, visited);
+            }
+        } else {
+            throw new AssertionError("bad type " + o);
+        }
     }
 
     private void setInitialImportance()
@@ -1373,6 +1446,11 @@ SUBSET_LOOP:
         // Ensure that its sub-expressions are registered.
         rel = rel.onRegister(this);
 
+        // Record its provenance. (Rule call may be null.)
+        final VolcanoRuleCall ruleCall =
+            ruleCallStack.isEmpty() ? null : peek(ruleCallStack);
+        provenanceMap.put(rel, ruleCall);
+
         // If it is equivalent to an existing expression, return the set that
         // the equivalent expression belongs to.
         String digest = rel.getDigest();
@@ -1635,6 +1713,16 @@ SUBSET_LOOP:
      */
     public void setLocked(boolean locked) {
         this.locked = locked;
+    }
+
+    public void ensureRegistered(
+        RelNode rel,
+        RelNode equivRel,
+        VolcanoRuleCall ruleCall)
+    {
+        push(ruleCallStack, ruleCall);
+        ensureRegistered(rel, equivRel);
+        pop(ruleCallStack, ruleCall);
     }
 
     //~ Inner Classes ----------------------------------------------------------

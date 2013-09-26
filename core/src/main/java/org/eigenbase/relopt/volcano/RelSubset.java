@@ -424,7 +424,9 @@ public class RelSubset
                 inputs.add(input);
             }
             if (!inputs.equals(oldInputs)) {
+                final RelNode pOld = p;
                 p = p.copy(p.getTraitSet(), inputs);
+                planner.provenanceMap.put(p, pOld);
             }
             return p;
         }

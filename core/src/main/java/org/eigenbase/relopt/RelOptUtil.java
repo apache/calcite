@@ -355,18 +355,6 @@ public abstract class RelOptUtil
 
             RelDataType inputFieldType = ret.getRowType();
 
-            int outputFieldCount;
-            if (isIn) {
-                if (needsOuterJoin) {
-                    outputFieldCount = inputFieldType.getFieldCount() + 1;
-                } else {
-                    outputFieldCount = inputFieldType.getFieldCount();
-                }
-            } else {
-                // EXISTS only projects TRUE in the subquery
-                outputFieldCount = 1;
-            }
-
             List<RexNode> exprs = new ArrayList<RexNode>();
 
             // for IN/NOT IN , it needs to output the fields
@@ -417,13 +405,12 @@ public abstract class RelOptUtil
                         Util.bitSetBetween(0, newProjFieldCount - 1),
                         Collections.singletonList(aggCall));
             } else {
-                final List<AggregateCall> aggCalls = Collections.emptyList();
                 ret =
                     new AggregateRel(
                         ret.getCluster(),
                         ret,
                         Util.bitSetBetween(0, ret.getRowType().getFieldCount()),
-                        aggCalls);
+                        Collections.<AggregateCall>emptyList());
             }
         }
 
@@ -1735,13 +1722,24 @@ public abstract class RelOptUtil
     }
 
     /**
+     * Converts a relational expression to a string, showing just basic
+     * attributes.
+     */
+    public static String toString(final RelNode rel) {
+        return toString(rel, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    }
+
+    /**
      * Converts a relational expression to a string.
      */
-    public static String toString(final RelNode rel)
+    public static String toString(
+        final RelNode rel,
+        SqlExplainLevel detailLevel)
     {
         final StringWriter sw = new StringWriter();
         final RelOptPlanWriter planWriter =
-            new RelOptPlanWriter(new PrintWriter(sw));
+            new RelOptPlanWriter(
+                new PrintWriter(sw), detailLevel);
         planWriter.setIdPrefix(false);
         rel.explain(planWriter);
         return sw.toString();

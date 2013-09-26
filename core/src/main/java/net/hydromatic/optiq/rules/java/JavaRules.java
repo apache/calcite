@@ -52,9 +52,6 @@ import java.util.logging.Logger;
  */
 public class JavaRules {
 
-  private static final Constructor ABSTRACT_ENUMERABLE_CTOR =
-      Types.lookupConstructor(AbstractEnumerable.class);
-
   protected static final Logger tracer = EigenbaseTrace.getPlannerTracer();
 
   public static final boolean BRIDGE_METHODS = true;
@@ -301,8 +298,7 @@ public class JavaRules {
    */
   public static class EnumUtil {
     /** Declares a method that overrides another method. */
-    static MethodDeclaration overridingMethodDecl(
-        Method method,
+    public static MethodDeclaration overridingMethodDecl(Method method,
         Iterable<ParameterExpression> parameters,
         BlockStatement body) {
       return Expressions.methodDecl(
@@ -656,7 +652,7 @@ public class JavaRules {
           Expressions.return_(
               null,
               Expressions.new_(
-                  ABSTRACT_ENUMERABLE_CTOR,
+                  BuiltinMethod.ABSTRACT_ENUMERABLE_CTOR.constructor,
                   // TODO: generics
                   //   Collections.singletonList(inputRowType),
                   NO_EXPRS,

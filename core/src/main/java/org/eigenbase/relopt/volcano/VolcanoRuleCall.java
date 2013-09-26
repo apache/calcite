@@ -126,7 +126,7 @@ public class VolcanoRuleCall
                 volcanoPlanner.listener.ruleProductionSucceeded(event);
             }
 
-            getPlanner().ensureRegistered(rel, rels[0]);
+            volcanoPlanner.ensureRegistered(rel, rels[0], this);
 
             if (volcanoPlanner.listener != null) {
                 RelOptListener.RuleProductionEvent event =

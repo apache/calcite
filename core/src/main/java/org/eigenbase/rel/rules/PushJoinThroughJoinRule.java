@@ -54,17 +54,31 @@ import org.eigenbase.util.mapping.Mappings;
  * ({@code ON TRUE}). After the rule, each join has one condition.</p>
  */
 public class PushJoinThroughJoinRule extends RelOptRule {
-    public static final RelOptRule INSTANCE = new PushJoinThroughJoinRule();
+    public static final RelOptRule RIGHT =
+        new PushJoinThroughJoinRule("PushJoinThroughJoinRule:right", true);
+    public static final RelOptRule LEFT =
+        new PushJoinThroughJoinRule("PushJoinThroughJoinRule:left", false);
 
-    private PushJoinThroughJoinRule() {
+    private final boolean right;
+
+    private PushJoinThroughJoinRule(String description, boolean right) {
         super(
             some(
                 JoinRel.class, any(JoinRel.class), any(RelNode.class)),
-            "RotateJoinRule");
+            description);
+        this.right = right;
     }
 
     @Override
     public void onMatch(RelOptRuleCall call) {
+        if (right) {
+            onMatchRight(call);
+        } else {
+            onMatchLeft(call);
+        }
+    }
+
+    private void onMatchRight(RelOptRuleCall call) {
         final JoinRel topJoin = call.rel(0);
         final JoinRel bottomJoin = call.rel(1);
         final RelNode relC = call.rel(2);
@@ -80,8 +94,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final int aCount = relA.getRowType().getFieldCount();
         final int bCount = relB.getRowType().getFieldCount();
         final int cCount = relC.getRowType().getFieldCount();
-        final int aTop = aCount;
-        final int bTop = aTop + bCount;
+        final BitSet bBitSet = Util.bitSetBetween(aCount, aCount + bCount);
 
         // becomes
         //
@@ -105,11 +118,16 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         List<RexNode> nonIntersecting = new ArrayList<RexNode>();
         for (RexNode node : RelOptUtil.conjunctions(topJoin.getCondition())) {
             BitSet inputBitSet = RelOptUtil.InputFinder.bits(node);
-            if (Util.bitSetBetween(aTop, bTop).intersects(inputBitSet)) {
+            if (bBitSet.intersects(inputBitSet)) {
                 intersecting.add(node);
             } else {
                 nonIntersecting.add(node);
             }
+        }
+
+        if (topJoin.getCondition().toString().contains("OR")) {
+            assert intersecting.toString().contains("OR")
+                || nonIntersecting.toString().contains("OR");
         }
 
         // If there's nothing to push down, it's not worth proceeding.
@@ -168,7 +186,127 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final JoinRel newTopJoin =
             new JoinRel(
                 cluster, newBottomJoin, relB, newTopCondition,
-                JoinRelType.INNER,  Collections.<String>emptySet());
+                JoinRelType.INNER, Collections.<String>emptySet());
+
+        final RelNode newProject =
+            CalcRel.createProject(newTopJoin, Mappings.asList(topMapping));
+
+        call.transformTo(newProject);
+    }
+
+    /** Similar to {@link #onMatch}, but swaps the upper sibling with the left
+     * of the two lower siblings, rather than the right. */
+    private void onMatchLeft(RelOptRuleCall call) {
+        final JoinRel topJoin = call.rel(0);
+        final JoinRel bottomJoin = call.rel(1);
+        final RelNode relC = call.rel(2);
+        final RelNode relA = bottomJoin.getLeft();
+        final RelNode relB = bottomJoin.getRight();
+
+        //        topJoin
+        //        /     \
+        //   bottomJoin  C
+        //    /    \
+        //   A      B
+
+        final int aCount = relA.getRowType().getFieldCount();
+        final int bCount = relB.getRowType().getFieldCount();
+        final int cCount = relC.getRowType().getFieldCount();
+        final BitSet aBitSet = Util.bitSetBetween(0, aCount);
+
+        // becomes
+        //
+        //        newTopJoin
+        //        /        \
+        //   newBottomJoin  A
+        //    /    \
+        //   C      B
+
+        // If either join is not inner, we cannot proceed.
+        // (Is this too strict?)
+        if (topJoin.getJoinType() != JoinRelType.INNER
+            || bottomJoin.getJoinType() != JoinRelType.INNER)
+        {
+            return;
+        }
+
+        // Split the condition of topJoin into a conjunction. Each of the
+        // parts that does not use columns from A can be pushed down.
+        List<RexNode> intersecting = new ArrayList<RexNode>();
+        List<RexNode> nonIntersecting = new ArrayList<RexNode>();
+        for (RexNode node : RelOptUtil.conjunctions(topJoin.getCondition())) {
+            BitSet inputBitSet = RelOptUtil.InputFinder.bits(node);
+            if (aBitSet.intersects(inputBitSet)) {
+                intersecting.add(node);
+            } else {
+                nonIntersecting.add(node);
+            }
+        }
+
+        if (topJoin.getCondition().toString().contains("OR")) {
+            assert intersecting.toString().contains("OR")
+                   || nonIntersecting.toString().contains("OR");
+        }
+
+        // If there's nothing to push down, it's not worth proceeding.
+        if (nonIntersecting.isEmpty()) {
+            return;
+        }
+
+        final RelOptCluster cluster = topJoin.getCluster();
+        final Mappings.TargetMapping bottomMapping =
+            Mappings.create(
+                MappingType.InverseSurjection,
+                aCount + bCount + cCount,
+                cCount + bCount);
+        for (int t = 0; t < bottomMapping.getTargetCount(); t++) {
+            int s;
+            if (t >= cCount) {
+                s = aCount + (t - cCount);
+            } else {
+                s = aCount + bCount + t;
+            }
+            bottomMapping.set(s, t);
+        }
+        RexNode newBottomCondition =
+            RelOptUtil.composeConjunction(
+                cluster.getRexBuilder(),
+                nonIntersecting)
+            .accept(new RexPermuteInputsShuttle(bottomMapping, relC, relB));
+        final JoinRel newBottomJoin =
+            new JoinRel(
+                cluster, relC, relB, newBottomCondition,
+                JoinRelType.INNER, Collections.<String>emptySet());
+
+        // target: | C      | B | A       |
+        // source: | A       | B | C      |
+        final Mappings.TargetMapping topMapping =
+            Mappings.create(
+                MappingType.InverseSurjection,
+                aCount + bCount + cCount,
+                aCount + bCount + cCount);
+        for (int s = 0; s < topMapping.getTargetCount(); s++) {
+            int t;
+            if (s >= aCount + bCount) {
+                t = s - (aCount + bCount);
+            } else if (s >= aCount) {
+                t = s - aCount + cCount;
+            } else {
+                t = s + cCount + bCount;
+            }
+            topMapping.set(s, t);
+        }
+        RexNode newTopCondition =
+            RelOptUtil.composeConjunction(
+                cluster.getRexBuilder(),
+                intersecting)
+            .accept(
+                new RexPermuteInputsShuttle(topMapping, newBottomJoin, relA));
+        @SuppressWarnings("SuspiciousNameCombination")
+        final JoinRel newTopJoin =
+            new JoinRel(
+                cluster, newBottomJoin, relA, newTopCondition,
+                JoinRelType.INNER, Collections.<String>emptySet());
 
         final RelNode newProject =
             CalcRel.createProject(newTopJoin, Mappings.asList(topMapping));

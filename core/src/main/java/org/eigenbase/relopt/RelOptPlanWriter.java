@@ -45,7 +45,6 @@ public class RelOptPlanWriter {
     protected final Spacer spacer = new Spacer();
     private final List<Pair<String, Object>> values =
         new ArrayList<Pair<String, Object>>();
-    private int subsetPrefixLength;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -114,6 +113,11 @@ public class RelOptPlanWriter {
                 .append(RelMetadataQuery.getRowCount(rel))
                 .append(", cumulative cost = ")
                 .append(RelMetadataQuery.getCumulativeCost(rel));
+            if (!withIdPrefix) {
+                // If we didn't print the rel id at the start of the line, print
+                // it at the end.
+                s.append(", id = ").append(rel.getId());
+            }
         }
         pw.println(s);
         spacer.add(2);
@@ -217,10 +221,6 @@ public class RelOptPlanWriter {
         }
         buf.append(")");
         return buf.toString();
-    }
-
-    public void setSubsetPrefixLength(int subsetPrefixLength) {
-        this.subsetPrefixLength = subsetPrefixLength;
     }
 }
 
