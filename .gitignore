@@ -3,3 +3,6 @@ target
 .idea
 *.iml
 settings.xml
+.classpath.txt
+.fullclasspath.txt
+
