@@ -130,20 +130,6 @@ public abstract class RelOptUtil
         }
     }
 
-    public static String toString(RelNode [] a)
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append("{");
-        for (int i = 0; i < a.length; i++) {
-            if (i > 0) {
-                sb.append(", ");
-            }
-            sb.append(a[i].toString());
-        }
-        sb.append("}");
-        return sb.toString();
-    }
-
     /**
      * Returns a list of the types of the fields in a given struct type. The
      * list is immutable.

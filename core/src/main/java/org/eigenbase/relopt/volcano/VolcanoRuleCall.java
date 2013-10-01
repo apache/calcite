@@ -112,8 +112,9 @@ public class VolcanoRuleCall
                 String relDesc =
                     "rel#" + rel.getId() + ":" + rel.getRelTypeName();
                 tracer.finest(
-                    "Rule " + getRule() + " arguments "
-                    + RelOptUtil.toString(rels) + " created " + relDesc);
+                    "call#" + id
+                    + ": Rule " + getRule() + " arguments "
+                    + Arrays.toString(rels) + " created " + relDesc);
             }
 
             if (volcanoPlanner.listener != null) {
@@ -202,8 +203,9 @@ public class VolcanoRuleCall
 
             if (tracer.isLoggable(Level.FINE)) {
                 tracer.fine(
-                    "Apply rule [" + getRule() + "] to "
-                    + RelOptUtil.toString(rels));
+                    "call#" + id
+                    + ": Apply rule [" + getRule() + "] to "
+                    + Arrays.toString(rels));
             }
 
             if (volcanoPlanner.listener != null) {
@@ -224,10 +226,10 @@ public class VolcanoRuleCall
 
             if (tracer.isLoggable(Level.FINE)) {
                 if (generatedRelList.isEmpty()) {
-                    tracer.fine("Match generated 0 successors.");
+                    tracer.fine("call#" + id + " generated 0 successors.");
                 } else {
                     tracer.fine(
-                        "Match generated " + generatedRelList.size()
+                        "call#" + id + " generated " + generatedRelList.size()
                         + " successors: " + generatedRelList);
                 }
                 this.generatedRelList = null;

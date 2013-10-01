@@ -426,7 +426,8 @@ public class RelSubset
             if (!inputs.equals(oldInputs)) {
                 final RelNode pOld = p;
                 p = p.copy(p.getTraitSet(), inputs);
-                planner.provenanceMap.put(p, pOld);
+                planner.provenanceMap.put(
+                    p, new VolcanoPlanner.DirectProvenance(pOld));
             }
             return p;
         }

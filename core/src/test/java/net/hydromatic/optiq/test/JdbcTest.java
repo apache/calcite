@@ -106,6 +106,10 @@ public class JdbcTest {
       + "   ]\n"
       + "}";
 
+  public static List<Pair<String, String>> getFoodmartQueries() {
+    return FOODMART_QUERIES;
+  }
+
   /**
    * Tests a relation that is accessed via method syntax.
    * The function returns a {@link Queryable}.
@@ -445,6 +449,7 @@ public class JdbcTest {
   }
 
   /** Tests plan for a query with 4 tables, 3 joins. */
+  @Ignore
   @Test public void testCloneGroupBy2Plan() {
     OptiqAssert.assertThat()
         .with(OptiqAssert.Config.FOODMART_CLONE)
@@ -678,7 +683,68 @@ public class JdbcTest {
       + "and \"time_by_day\".\"the_year\" = 1997\n"
       + "group by \"store\".\"store_country\", \"time_by_day\".\"the_year\"",
       "c0=USA; c1=1997; m0=225627.2336; m1=86837; m2=5581; m3=151211.2100\n",
+      // query 6077
+      "select \"time_by_day\".\"the_year\" as \"c0\",\n"
+      + " count(distinct \"sales_fact_1997\".\"customer_id\") as \"m0\"\n"
+      + "from \"time_by_day\" as \"time_by_day\",\n"
+      + " \"sales_fact_1997\" as \"sales_fact_1997\",\n"
+      + " \"product_class\" as \"product_class\",\n"
+      + " \"product\" as \"product\"\n"
+      + "where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\"\n"
+      + "and \"time_by_day\".\"the_year\" = 1997\n"
+      + "and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
+      + "and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\"\n"
+      + "and (((\"product\".\"brand_name\" = 'Cormorant'\n"
+      + "   and \"product_class\".\"product_subcategory\" = 'Pot Scrubbers'\n"
+      + "   and \"product_class\".\"product_category\" = 'Kitchen Products'\n"
+      + "   and \"product_class\".\"product_department\" = 'Household'\n"
+      + "   and \"product_class\".\"product_family\" = 'Non-Consumable')\n"
+      + " or (\"product\".\"brand_name\" = 'Denny'\n"
+      + "   and \"product_class\".\"product_subcategory\" = 'Pot Scrubbers'\n"
+      + "   and \"product_class\".\"product_category\" = 'Kitchen Products'\n"
+      + "   and \"product_class\".\"product_department\" = 'Household'\n"
+      + "   and \"product_class\".\"product_family\" = 'Non-Consumable')\n"
+      + " or (\"product\".\"brand_name\" = 'High Quality'\n"
+      + "   and \"product_class\".\"product_subcategory\" = 'Pot Scrubbers'\n"
+      + "   and \"product_class\".\"product_category\" = 'Kitchen Products'\n"
+      + "   and \"product_class\".\"product_department\" = 'Household'\n"
+      + "   and \"product_class\".\"product_family\" = 'Non-Consumable')\n"
+      + " or (\"product\".\"brand_name\" = 'Red Wing'\n"
+      + "   and \"product_class\".\"product_subcategory\" = 'Pot Scrubbers'\n"
+      + "   and \"product_class\".\"product_category\" = 'Kitchen Products'\n"
+      + "   and \"product_class\".\"product_department\" = 'Household'\n"
+      + "   and \"product_class\".\"product_family\" = 'Non-Consumable'))\n"
+      + " or (\"product_class\".\"product_subcategory\" = 'Pots and Pans'\n"
+      + "   and \"product_class\".\"product_category\" = 'Kitchen Products'\n"
+      + "   and \"product_class\".\"product_department\" = 'Household'\n"
+      + "   and \"product_class\".\"product_family\" = 'Non-Consumable'))\n"
+      + "group by \"time_by_day\".\"the_year\"\n",
+      "xxtodo",
+      // query 6077, simplified
+//      "select count(distinct \"sales_fact_1997\".\"customer_id\") as \"m0\"\n"
+      "select count(\"sales_fact_1997\".\"customer_id\") as \"m0\"\n"
+      + "from \"sales_fact_1997\" as \"sales_fact_1997\",\n"
+      + " \"product_class\" as \"product_class\",\n"
+      + " \"product\" as \"product\"\n"
+      + "where \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
+      + "and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\"\n"
+      + "and ((\"product\".\"brand_name\" = 'Cormorant'\n"
+      + "   and \"product_class\".\"product_subcategory\" = 'Pot Scrubbers')\n"
+      + " or (\"product_class\".\"product_subcategory\" = 'Pots and Pans'))\n",
+      "xxxx",
+      // query 6077, simplified further
+      "select count(distinct \"sales_fact_1997\".\"customer_id\") as \"m0\"\n"
+      + "from \"sales_fact_1997\" as \"sales_fact_1997\",\n"
+      + " \"product_class\" as \"product_class\",\n"
+      + " \"product\" as \"product\"\n"
+      + "where \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
+      + "and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\"\n"
+      + "and \"product\".\"brand_name\" = 'Cormorant'\n",
+      "xxxx",
   };
+
+  public static final List<Pair<String, String>> FOODMART_QUERIES =
+      querify(queries);
 
   /** Test case for
    * <a href="https://github.com/julianhyde/optiq/issues/35">issue #35</a>. */
@@ -731,16 +797,16 @@ public class JdbcTest {
 
   /** Returns a list of (query, expected) pairs. The expected result is
    * sometimes null. */
-  public static List<Pair<String, String>> getFoodmartQueries() {
+  private static List<Pair<String, String>> querify(String[] queries1) {
     final List<Pair<String, String>> list =
         new ArrayList<Pair<String, String>>();
-    for (int i = 0; i < queries.length; i++) {
-      String query = queries[i];
+    for (int i = 0; i < queries1.length; i++) {
+      String query = queries1[i];
       String expected = null;
-      if (i + 1 < queries.length
-          && queries[i + 1] != null
-          && !queries[i + 1].startsWith("select")) {
-        expected = queries[++i];
+      if (i + 1 < queries1.length
+          && queries1[i + 1] != null
+          && !queries1[i + 1].startsWith("select")) {
+        expected = queries1[++i];
       }
       list.add(Pair.of(query, expected));
     }
@@ -748,15 +814,15 @@ public class JdbcTest {
   }
 
   /** A selection of queries generated by Mondrian. */
+  @Ignore
   @Test public void testCloneQueries() {
     OptiqAssert.AssertThat with =
         OptiqAssert.assertThat()
             .with(OptiqAssert.Config.FOODMART_CLONE);
-    final List<Pair<String, String>> queries = getFoodmartQueries();
-    for (Ord<Pair<String, String>> query : Ord.zip(queries)) {
+    for (Ord<Pair<String, String>> query : Ord.zip(FOODMART_QUERIES)) {
       try {
         // uncomment to run specific queries:
-//      if (query.i != queries.size() - 1) continue;
+//      if (query.i != FOODMART_QUERIES.size() - 1) continue;
         final String sql = query.e.left;
         final String expected = query.e.right;
         final OptiqAssert.AssertQuery query1 = with.query(sql);
@@ -775,30 +841,35 @@ public class JdbcTest {
     }
   }
 
-  @Test public void testFoo() {
+  /** Checks that a 3-way join is re-ordered so that join conditions can be
+   * applied. The plan must not contain cartesian joins.
+   * {@link org.eigenbase.rel.rules.PushJoinThroughJoinRule} makes this
+   * possible. */
+  @Ignore
+  @Test public void testExplainJoin() {
     OptiqAssert.assertThat()
         .with(OptiqAssert.Config.FOODMART_CLONE)
-        .query(
-            "select \"store\".\"store_country\" as \"c0\",\n"
-            + " \"time_by_day\".\"the_year\" as \"c1\",\n"
-            + " sum(\"sales_fact_1997\".\"store_cost\") as \"m0\",\n"
-            + " count(\"sales_fact_1997\".\"product_id\") as \"m1\",\n"
-            + " count(distinct \"sales_fact_1997\".\"customer_id\") as "
-            + "\"m2\",\n"
-            + " sum((case when \"sales_fact_1997\".\"promotion_id\" = 0 then "
-            + "0\n"
-            + "     else \"sales_fact_1997\".\"store_sales\" end)) as \"m3\"\n"
-            + "from \"store\" as \"store\",\n"
-            + " \"sales_fact_1997\" as \"sales_fact_1997\",\n"
-            + " \"time_by_day\" as \"time_by_day\"\n"
-            + "where \"sales_fact_1997\".\"store_id\" = \"store\""
-            + ".\"store_id\"\n"
-            + "and \"sales_fact_1997\".\"time_id\" = \"time_by_day\""
-            + ".\"time_id\"\n"
-            + "and \"time_by_day\".\"the_year\" = 1997\n"
-            + "group by \"store\".\"store_country\", \"time_by_day\".\"the_year\"")
-//        .explainContains("xxx")
-        .runs();
+        .query(FOODMART_QUERIES.get(48).left)
+        .explainContains(
+            "EnumerableAggregateRel(group=[{}], m0=[COUNT($0)])\n"
+            + "  EnumerableAggregateRel(group=[{0}])\n"
+            + "    EnumerableCalcRel(expr#0..27=[{inputs}], customer_id=[$t7])\n"
+            + "      EnumerableJoinRel(condition=[=($13, $0)], joinType=[inner])\n"
+            + "        EnumerableTableAccessRel(table=[[foodmart2, product_class]])\n"
+            + "        EnumerableJoinRel(condition=[=($0, $9)], joinType=[inner])\n"
+            + "          EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])\n"
+            + "          EnumerableCalcRel(expr#0..14=[{inputs}], expr#15=['Cormorant'], expr#16=[=($t2, $t15)], proj#0..14=[{exprs}], $condition=[$t16])\n"
+            + "            EnumerableTableAccessRel(table=[[foodmart2, product]]");
+  }
+
+  /** Condition involving OR makes this more complex than
+   * {@link #testExplainJoin()}. */
+  @Ignore
+  @Test public void testExplainJoinOrderingWithOr() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(FOODMART_QUERIES.get(47).left)
+        .explainContains("xxx");
   }
 
   /** There was a bug representing a nullable timestamp using a {@link Long}
@@ -891,7 +962,12 @@ public class JdbcTest {
             + "and \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\"\n"
             + "and \"customer\".\"country\" = 'USA'\n"
             + "and \"customer\".\"state_province\" = 'WA'\n"
-            + "and \"customer\".\"city\" in ('Anacortes', 'Ballard', 'Bellingham', 'Bremerton', 'Burien', 'Edmonds', 'Everett', 'Issaquah', 'Kirkland', 'Lynnwood', 'Marysville', 'Olympia', 'Port Orchard', 'Puyallup', 'Redmond', 'Renton', 'Seattle', 'Sedro Woolley', 'Spokane', 'Tacoma', 'Walla Walla', 'Yakima') group by \"time_by_day\".\"the_year\", \"product_class\".\"product_family\", \"customer\".\"country\", \"customer\".\"state_province\", \"customer\".\"city\"")
+            + "and \"customer\".\"city\" in ('Anacortes', 'Ballard', 'Bellingham', 'Bremerton', 'Burien', 'Edmonds', 'Everett', 'Issaquah', 'Kirkland', 'Lynnwood', 'Marysville', 'Olympia', 'Port Orchard', 'Puyallup', 'Redmond', 'Renton', 'Seattle', 'Sedro Woolley', 'Spokane', 'Tacoma', 'Walla Walla', 'Yakima')\n"
+            + "group by \"time_by_day\".\"the_year\",\n"
+            + " \"product_class\".\"product_family\",\n"
+            + " \"customer\".\"country\",\n"
+            + " \"customer\".\"state_province\",\n"
+            + " \"customer\".\"city\"")
         .returns(
             "c0=1997; c1=Drink; c2=USA; c3=WA; c4=Sedro Woolley; m0=58.0000\n");
   }

@@ -146,6 +146,17 @@ public class RexShuttle
     }
 
     /**
+     * Visits a list and writes the results to another list.
+     */
+    public void visitList(
+        List<? extends RexNode> exprs, List<RexNode> outExprs)
+    {
+        for (RexNode expr : exprs) {
+            outExprs.add(expr.accept(this));
+        }
+    }
+
+    /**
      * Visits each of a list of field collations and returns a list of the
      * results.
      *

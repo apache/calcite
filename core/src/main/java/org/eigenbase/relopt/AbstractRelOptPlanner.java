@@ -284,7 +284,8 @@ public abstract class AbstractRelOptPlanner
         if (isRuleExcluded(ruleCall.getRule())) {
             if (tracer.isLoggable(Level.FINE)) {
                 tracer.fine(
-                    "Rule [" + ruleCall.getRule() + "] not fired"
+                    "call#" + ruleCall.id
+                    + ": Rule [" + ruleCall.getRule() + "] not fired"
                     + " due to exclusion filter");
             }
             return;
@@ -292,8 +293,9 @@ public abstract class AbstractRelOptPlanner
 
         if (tracer.isLoggable(Level.FINE)) {
             tracer.fine(
-                "Apply rule [" + ruleCall.getRule() + "] to ["
-                + RelOptUtil.toString(ruleCall.rels) + "]");
+                "call#" + ruleCall.id
+                + ": Apply rule [" + ruleCall.getRule() + "] to "
+                + Arrays.toString(ruleCall.rels));
         }
 
         if (listener != null) {
@@ -334,8 +336,9 @@ public abstract class AbstractRelOptPlanner
     {
         if (before && tracer.isLoggable(Level.FINE)) {
             tracer.fine(
-                "Rule " + ruleCall.getRule() + " arguments "
-                + RelOptUtil.toString(ruleCall.rels) + " produced "
+                "call#" + ruleCall.id
+                + ": Rule " + ruleCall.getRule() + " arguments "
+                + Arrays.toString(ruleCall.rels) + " produced "
                 + newRel);
         }
 

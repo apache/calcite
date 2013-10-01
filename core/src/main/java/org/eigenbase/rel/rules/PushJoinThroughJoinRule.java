@@ -84,6 +84,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final RelNode relC = call.rel(2);
         final RelNode relA = bottomJoin.getLeft();
         final RelNode relB = bottomJoin.getRight();
+        final RelOptCluster cluster = topJoin.getCluster();
 
         //        topJoin
         //        /     \
@@ -114,45 +115,42 @@ public class PushJoinThroughJoinRule extends RelOptRule {
 
         // Split the condition of topJoin into a conjunction. Each of the
         // parts that does not use columns from B can be pushed down.
-        List<RexNode> intersecting = new ArrayList<RexNode>();
-        List<RexNode> nonIntersecting = new ArrayList<RexNode>();
-        for (RexNode node : RelOptUtil.conjunctions(topJoin.getCondition())) {
-            BitSet inputBitSet = RelOptUtil.InputFinder.bits(node);
-            if (bBitSet.intersects(inputBitSet)) {
-                intersecting.add(node);
-            } else {
-                nonIntersecting.add(node);
-            }
-        }
-
-        if (topJoin.getCondition().toString().contains("OR")) {
-            assert intersecting.toString().contains("OR")
-                || nonIntersecting.toString().contains("OR");
-        }
+        final List<RexNode> intersecting = new ArrayList<RexNode>();
+        final List<RexNode> nonIntersecting = new ArrayList<RexNode>();
+        split(topJoin.getCondition(), bBitSet, intersecting, nonIntersecting);
 
         // If there's nothing to push down, it's not worth proceeding.
         if (nonIntersecting.isEmpty()) {
             return;
         }
 
-        final RelOptCluster cluster = topJoin.getCluster();
+        // Split the condition of bottomJoin into a conjunction. Each of the
+        // parts that use columns from B will need to be pulled up.
+        final List<RexNode> bottomIntersecting = new ArrayList<RexNode>();
+        final List<RexNode> bottomNonIntersecting = new ArrayList<RexNode>();
+        split(
+            bottomJoin.getCondition(), bBitSet, bottomIntersecting,
+            bottomNonIntersecting);
+
+        // target: | A       | C      |
+        // source: | A       | B | C      |
         final Mappings.TargetMapping bottomMapping =
-            Mappings.create(
-                MappingType.InverseSurjection,
+            createShiftMapping(
                 aCount + bCount + cCount,
-                aCount + cCount);
-        for (int t = 0; t < bottomMapping.getTargetCount(); t++) {
-            int s = t;
-            if (t >= aCount) {
-                s += bCount;
-            }
-            bottomMapping.set(s, t);
-        }
+                0, 0, aCount,
+                aCount, aCount + bCount, cCount);
+        List<RexNode> newBottomList = new ArrayList<RexNode>();
+        new RexPermuteInputsShuttle(bottomMapping, relA, relC)
+            .visitList(nonIntersecting, newBottomList);
+        final Mappings.TargetMapping bottomBottomMapping =
+            createShiftMapping(
+                aCount + bCount,
+                0, 0, aCount);
+        new RexPermuteInputsShuttle(bottomBottomMapping, relA, relC)
+            .visitList(bottomNonIntersecting, newBottomList);
         RexNode newBottomCondition =
             RelOptUtil.composeConjunction(
-                cluster.getRexBuilder(),
-                nonIntersecting)
-            .accept(new RexPermuteInputsShuttle(bottomMapping, relA, relC));
+                cluster.getRexBuilder(), newBottomList);
         final JoinRel newBottomJoin =
             new JoinRel(
                 cluster, relA, relC, newBottomCondition,
@@ -161,33 +159,27 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         // target: | A       | C      | B |
         // source: | A       | B | C      |
         final Mappings.TargetMapping topMapping =
-            Mappings.create(
-                MappingType.InverseSurjection,
+            createShiftMapping(
                 aCount + bCount + cCount,
-                aCount + bCount + cCount);
-        for (int s = 0; s < topMapping.getTargetCount(); s++) {
-            int t;
-            if (s >= aCount + bCount) {
-                t = s - bCount;
-            } else if (s >= aCount) {
-                t = s + cCount;
-            } else {
-                t = s;
-            }
-            topMapping.set(s, t);
-        }
+                0, 0, aCount,
+                aCount + cCount, aCount, bCount,
+                aCount, aCount + bCount, cCount);
+        List<RexNode> newTopList = new ArrayList<RexNode>();
+        new RexPermuteInputsShuttle(topMapping, newBottomJoin, relB)
+            .visitList(intersecting, newTopList);
+        new RexPermuteInputsShuttle(topMapping, newBottomJoin, relB)
+            .visitList(bottomIntersecting, newTopList);
         RexNode newTopCondition =
             RelOptUtil.composeConjunction(
                 cluster.getRexBuilder(),
-                intersecting)
-            .accept(
-                new RexPermuteInputsShuttle(topMapping, newBottomJoin, relB));
+                newTopList);
         @SuppressWarnings("SuspiciousNameCombination")
         final JoinRel newTopJoin =
             new JoinRel(
                 cluster, newBottomJoin, relB, newTopCondition,
                 JoinRelType.INNER, Collections.<String>emptySet());
 
+      assert !Mappings.isIdentity(topMapping);
         final RelNode newProject =
             CalcRel.createProject(newTopJoin, Mappings.asList(topMapping));
 
@@ -202,6 +194,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final RelNode relC = call.rel(2);
         final RelNode relA = bottomJoin.getLeft();
         final RelNode relB = bottomJoin.getRight();
+        final RelOptCluster cluster = topJoin.getCluster();
 
         //        topJoin
         //        /     \
@@ -232,47 +225,43 @@ public class PushJoinThroughJoinRule extends RelOptRule {
 
         // Split the condition of topJoin into a conjunction. Each of the
         // parts that does not use columns from A can be pushed down.
-        List<RexNode> intersecting = new ArrayList<RexNode>();
-        List<RexNode> nonIntersecting = new ArrayList<RexNode>();
-        for (RexNode node : RelOptUtil.conjunctions(topJoin.getCondition())) {
-            BitSet inputBitSet = RelOptUtil.InputFinder.bits(node);
-            if (aBitSet.intersects(inputBitSet)) {
-                intersecting.add(node);
-            } else {
-                nonIntersecting.add(node);
-            }
-        }
-
-        if (topJoin.getCondition().toString().contains("OR")) {
-            assert intersecting.toString().contains("OR")
-                   || nonIntersecting.toString().contains("OR");
-        }
+        final List<RexNode> intersecting = new ArrayList<RexNode>();
+        final List<RexNode> nonIntersecting = new ArrayList<RexNode>();
+        split(topJoin.getCondition(), aBitSet, intersecting, nonIntersecting);
 
         // If there's nothing to push down, it's not worth proceeding.
         if (nonIntersecting.isEmpty()) {
             return;
         }
 
-        final RelOptCluster cluster = topJoin.getCluster();
+        // Split the condition of bottomJoin into a conjunction. Each of the
+        // parts that use columns from B will need to be pulled up.
+        final List<RexNode> bottomIntersecting = new ArrayList<RexNode>();
+        final List<RexNode> bottomNonIntersecting = new ArrayList<RexNode>();
+        split(
+            bottomJoin.getCondition(), aBitSet, bottomIntersecting,
+            bottomNonIntersecting);
+
+        // target: | C      | B |
+        // source: | A       | B | C      |
         final Mappings.TargetMapping bottomMapping =
-            Mappings.create(
-                MappingType.InverseSurjection,
+            createShiftMapping(
                 aCount + bCount + cCount,
-                cCount + bCount);
-        for (int t = 0; t < bottomMapping.getTargetCount(); t++) {
-            int s;
-            if (t >= cCount) {
-                s = aCount + (t - cCount);
-            } else {
-                s = aCount + bCount + t;
-            }
-            bottomMapping.set(s, t);
-        }
+                cCount, aCount, bCount,
+                0, aCount + bCount, cCount);
+        List<RexNode> newBottomList = new ArrayList<RexNode>();
+        new RexPermuteInputsShuttle(bottomMapping, relC, relB)
+            .visitList(nonIntersecting, newBottomList);
+        final Mappings.TargetMapping bottomBottomMapping =
+            createShiftMapping(
+                aCount + bCount + cCount,
+                0, aCount + bCount, cCount,
+                cCount, aCount, bCount);
+        new RexPermuteInputsShuttle(bottomBottomMapping, relC, relB)
+            .visitList(bottomNonIntersecting, newBottomList);
         RexNode newBottomCondition =
             RelOptUtil.composeConjunction(
-                cluster.getRexBuilder(),
-                nonIntersecting)
-            .accept(new RexPermuteInputsShuttle(bottomMapping, relC, relB));
+                cluster.getRexBuilder(), newBottomList);
         final JoinRel newBottomJoin =
             new JoinRel(
                 cluster, relC, relB, newBottomCondition,
@@ -281,27 +270,19 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         // target: | C      | B | A       |
         // source: | A       | B | C      |
         final Mappings.TargetMapping topMapping =
-            Mappings.create(
-                MappingType.InverseSurjection,
+            createShiftMapping(
                 aCount + bCount + cCount,
-                aCount + bCount + cCount);
-        for (int s = 0; s < topMapping.getTargetCount(); s++) {
-            int t;
-            if (s >= aCount + bCount) {
-                t = s - (aCount + bCount);
-            } else if (s >= aCount) {
-                t = s - aCount + cCount;
-            } else {
-                t = s + cCount + bCount;
-            }
-            topMapping.set(s, t);
-        }
+                cCount + bCount, 0, aCount,
+                cCount, aCount, bCount,
+                0, aCount + bCount, cCount);
+        List<RexNode> newTopList = new ArrayList<RexNode>();
+        new RexPermuteInputsShuttle(topMapping, newBottomJoin, relA)
+            .visitList(intersecting, newTopList);
+        new RexPermuteInputsShuttle(topMapping, newBottomJoin, relA)
+            .visitList(bottomIntersecting, newTopList);
         RexNode newTopCondition =
             RelOptUtil.composeConjunction(
-                cluster.getRexBuilder(),
-                intersecting)
-            .accept(
-                new RexPermuteInputsShuttle(topMapping, newBottomJoin, relA));
+                cluster.getRexBuilder(), newTopList);
         @SuppressWarnings("SuspiciousNameCombination")
         final JoinRel newTopJoin =
             new JoinRel(
@@ -312,6 +293,52 @@ public class PushJoinThroughJoinRule extends RelOptRule {
             CalcRel.createProject(newTopJoin, Mappings.asList(topMapping));
 
         call.transformTo(newProject);
+    }
+
+    /** Splits a condition into conjunctions that do or do not intersect with
+     * a given bit set. */
+    static void split(
+        RexNode condition,
+        BitSet bitSet,
+        List<RexNode> intersecting,
+        List<RexNode> nonIntersecting)
+    {
+        for (RexNode node : RelOptUtil.conjunctions(condition)) {
+            BitSet inputBitSet = RelOptUtil.InputFinder.bits(node);
+            if (bitSet.intersects(inputBitSet)) {
+                intersecting.add(node);
+            } else {
+                nonIntersecting.add(node);
+            }
+        }
+    }
+
+    static Mappings.TargetMapping createShiftMapping(
+        int sourceCount, int... ints)
+    {
+        int targetCount = 0;
+        assert ints.length % 3 == 0;
+        for (int i = 0; i < ints.length; i += 3) {
+            final int length = ints[i + 2];
+            targetCount += length;
+        }
+        final Mappings.TargetMapping mapping =
+            Mappings.create(
+                MappingType.InverseSurjection,
+                sourceCount, // aCount + bCount + cCount,
+                targetCount); // cCount + bCount
+
+        for (int i = 0; i < ints.length; i += 3) {
+            final int target = ints[i];
+            final int source = ints[i + 1];
+            final int length = ints[i + 2];
+            assert source + length <= sourceCount;
+            for (int j = 0; j < length; j++) {
+                assert mapping.getTargetOpt(source + j) == -1;
+                mapping.set(source + j, target + j);
+            }
+        }
+        return mapping;
     }
 }
 

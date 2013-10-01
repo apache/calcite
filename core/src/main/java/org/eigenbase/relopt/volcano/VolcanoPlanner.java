@@ -18,7 +18,6 @@
 package org.eigenbase.relopt.volcano;
 
 import java.io.*;
-
 import java.util.*;
 import java.util.logging.*;
 import java.util.regex.*;
@@ -34,6 +33,8 @@ import org.eigenbase.util.*;
 import net.hydromatic.optiq.util.graph.*;
 
 import net.hydromatic.linq4j.expressions.Expressions;
+
+import com.google.common.collect.ImmutableList;
 
 import static org.eigenbase.util.Stacks.*;
 
@@ -171,7 +172,8 @@ public class VolcanoPlanner
     private final List<Materialization> materializations =
         new ArrayList<Materialization>();
 
-    final Map<RelNode, Object> provenanceMap = new HashMap<RelNode, Object>();
+    final Map<RelNode, Provenance> provenanceMap =
+        new HashMap<RelNode, Provenance>();
 
     private final List<VolcanoRuleCall> ruleCallStack =
         new ArrayList<VolcanoRuleCall>();
@@ -665,18 +667,18 @@ public class VolcanoPlanner
             return;
         }
         pw.println(node);
-        Object o = provenanceMap.get(node);
+        final Provenance o = provenanceMap.get(node);
         pw.print(Util.spaces(i * 2 + 2));
-        if (o == null) {
+        if (o == Provenance.EMPTY) {
             pw.println("no parent");
-        } else if (o instanceof RelNode) {
-            RelNode rel = (RelNode) o;
+        } else if (o instanceof DirectProvenance) {
+            RelNode rel = ((DirectProvenance) o).source;
             pw.println("direct");
             provenanceRecurse(pw, rel, i + 2, visited);
-        } else if (o instanceof VolcanoRuleCall) {
-            VolcanoRuleCall ruleCall = (VolcanoRuleCall) o;
-            pw.println(ruleCall);
-            for (RelNode rel : ruleCall.rels) {
+        } else if (o instanceof RuleProvenance) {
+            RuleProvenance rule = (RuleProvenance) o;
+            pw.println("call#" + rule.callId + " rule [" + rule.rule + "]");
+            for (RelNode rel : rule.rels) {
                 provenanceRecurse(pw, rel, i + 2, visited);
             }
         } else {
@@ -1447,9 +1449,19 @@ SUBSET_LOOP:
         rel = rel.onRegister(this);
 
         // Record its provenance. (Rule call may be null.)
-        final VolcanoRuleCall ruleCall =
-            ruleCallStack.isEmpty() ? null : peek(ruleCallStack);
-        provenanceMap.put(rel, ruleCall);
+        final VolcanoRuleCall ruleCall;
+        if (ruleCallStack.isEmpty()) {
+            ruleCall = null;
+            provenanceMap.put(rel, Provenance.EMPTY);
+        } else {
+            ruleCall = peek(ruleCallStack);
+            provenanceMap.put(
+                rel,
+                new RuleProvenance(
+                    ruleCall.rule,
+                    ImmutableList.<RelNode>copyOf(ruleCall.rels),
+                    ruleCall.id));
+        }
 
         // If it is equivalent to an existing expression, return the set that
         // the equivalent expression belongs to.
@@ -1766,6 +1778,39 @@ SUBSET_LOOP:
             this.tableRel = tableRel;
             this.table = tableRel.getTable();
             this.queryRel = queryRel;
+        }
+    }
+
+    /** Where a RelNode came from. */
+    private static abstract class Provenance {
+        public static final Provenance EMPTY = new UnknownProvenance();
+    }
+
+    /** We do not know where this RelNode came from. Probably created by hand,
+     * or by sql-to-rel converter. */
+    private static class UnknownProvenance extends Provenance {
+    }
+
+    /** A RelNode that came directly from another RelNode via a copy. */
+    static class DirectProvenance extends Provenance {
+        final RelNode source;
+
+        DirectProvenance(RelNode source) {
+            this.source = source;
+        }
+    }
+
+    /** A RelNode that came via the firing of a rule. */
+    static class RuleProvenance extends Provenance {
+        final RelOptRule rule;
+        final ImmutableList<RelNode> rels;
+        final int callId;
+
+        RuleProvenance(RelOptRule rule, ImmutableList<RelNode> rels, int callId)
+        {
+            this.rule = rule;
+            this.rels = rels;
+            this.callId = callId;
         }
     }
 }

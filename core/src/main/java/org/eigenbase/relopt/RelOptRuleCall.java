@@ -36,11 +36,15 @@ public abstract class RelOptRuleCall
 
     protected static final Logger tracer = EigenbaseTrace.getPlannerTracer();
 
+    /** Generator for {@link #id} values. */
+    static int nextId = 0;
+
     //~ Instance fields --------------------------------------------------------
 
+    public final int id;
     private final RelOptRuleOperand operand0;
     private final Map<RelNode, List<RelNode>> nodeChildren;
-    private final RelOptRule rule;
+    public final RelOptRule rule;
     public final RelNode [] rels;
     private final RelOptPlanner planner;
     private final List<RelNode> parents;
@@ -65,6 +69,7 @@ public abstract class RelOptRuleCall
         Map<RelNode, List<RelNode>> nodeChildren,
         List<RelNode> parents)
     {
+        this.id = nextId++;
         this.planner = planner;
         this.operand0 = operand;
         this.nodeChildren = nodeChildren;

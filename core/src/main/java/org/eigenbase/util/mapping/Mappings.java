@@ -300,6 +300,19 @@ public abstract class Mappings
         return mapping;
     }
 
+    /** Returns whether a mapping is the identity. */
+    public static boolean isIdentity(TargetMapping mapping) {
+        if (mapping.getSourceCount() != mapping.getTargetCount()) {
+            return false;
+        }
+        for (int i = 0; i < mapping.getSourceCount(); i++) {
+            if (mapping.getTargetOpt(i) != i) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     //~ Inner Interfaces -------------------------------------------------------
 
     /**

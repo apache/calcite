@@ -27,10 +27,12 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.test.*;
-
-import net.hydromatic.optiq.runtime.FlatLists;
+import org.eigenbase.util.mapping.MappingType;
+import org.eigenbase.util.mapping.Mappings;
 
 import org.junit.Test;
+
+import net.hydromatic.optiq.runtime.FlatLists;
 
 import static org.junit.Assert.*;
 
@@ -1024,6 +1026,20 @@ public class UtilTest {
         final List<String> anb0 = Arrays.asList("A", null, "B");
         assertEquals(anb, anb0);
         assertEquals(anb.hashCode(), anb0.hashCode());
+    }
+
+    @Test public void testMappings() {
+        assertTrue(Mappings.isIdentity(Mappings.createIdentity(0)));
+        assertTrue(Mappings.isIdentity(Mappings.createIdentity(5)));
+        assertFalse(
+            Mappings.isIdentity(
+                Mappings.create(MappingType.PartialSurjection, 3, 4)));
+        assertFalse(
+            Mappings.isIdentity(
+                Mappings.create(MappingType.PartialSurjection, 3, 3)));
+        assertFalse(
+            Mappings.isIdentity(
+                Mappings.create(MappingType.PartialSurjection, 4, 4)));
     }
 
     //~ Inner Classes ----------------------------------------------------------
