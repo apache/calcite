@@ -63,10 +63,11 @@ class RexCopier
 
     public RexNode visitCall(final RexCall call)
     {
+        final boolean[] update = null;
         return builder.makeCall(
             builder.getTypeFactory().copyType(call.getType()),
             call.getOperator(),
-            visitList(call.getOperands(), null));
+            visitList(call.getOperands(), update));
     }
 
     public RexNode visitCorrelVariable(RexCorrelVariable variable)
