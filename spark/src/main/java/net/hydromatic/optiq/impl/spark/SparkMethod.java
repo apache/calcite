@@ -23,6 +23,7 @@ import net.hydromatic.optiq.DataContext;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -38,7 +39,9 @@ public enum SparkMethod {
       Object[].class),
   CREATE_RDD(SparkRuntime.class, "createRdd", JavaSparkContext.class,
       Enumerable.class),
-  GET_SPARK_CONTEXT(SparkRuntime.class, "getSparkContext", DataContext.class);
+  GET_SPARK_CONTEXT(SparkRuntime.class, "getSparkContext", DataContext.class),
+  RDD_FLAT_MAP(JavaRDD.class, "flatMap", FlatMapFunction.class),
+  FLAT_MAP_FUNCTION_CALL(FlatMapFunction.class, "call", Object.class);
 
   public final Method method;
 

@@ -97,7 +97,15 @@ public class SparkToEnumerableConverter
 
     public SparkRel.Result result(PhysType physType,
         BlockStatement blockStatement) {
-      return new SparkRel.Result(blockStatement);
+      return new SparkRel.Result(physType, blockStatement);
+    }
+
+    SparkRel.Result visitInput(SparkRel parent, int ordinal, SparkRel input) {
+      if (parent != null) {
+        assert input == parent.getInputs().get(ordinal);
+      }
+      createFrame(parent, ordinal, input);
+      return input.implementSpark(this);
     }
 
     public JavaTypeFactory getTypeFactory() {

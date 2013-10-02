@@ -87,6 +87,8 @@ public enum BuiltinMethod {
   BINDABLE_BIND(Bindable.class, "bind", DataContext.class),
   COMPARATOR_COMPARE(Comparator.class, "compare", Object.class, Object.class),
   COLLECTIONS_REVERSE_ORDER(Collections.class, "reverseOrder"),
+  COLLECTIONS_EMPTY_LIST(Collections.class, "emptyList"),
+  COLLECTIONS_SINGLETON_LIST(Collections.class, "singletonList", Object.class),
   COLLECTION_SIZE(Collection.class, "size"),
   MAP_CLEAR(Map.class, "clear"),
   MAP_GET(Map.class, "get", Object.class),

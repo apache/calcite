@@ -25,6 +25,8 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.util.Pair;
 
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -59,6 +61,8 @@ import com.google.common.collect.ImmutableList;
  * {@link org.eigenbase.rel.AggregateRel}.</p>
  */
 public class SubstitutionVisitor {
+    private static final boolean DEBUG = OptiqPrepareImpl.DEBUG;
+
     private static final List<UnifyRule> RULES =
         Arrays.<UnifyRule>asList(
             ScanUnifyRule.INSTANCE,
@@ -364,9 +368,11 @@ public class SubstitutionVisitor {
         if (unifyResult != null) {
             final RelNode node =
                 replace(query, unifyResult.query, unifyResult.result);
-            System.out.println(
-                "Convert: query=" + RelOptUtil.toString(query)
-                + "\nnode=" + RelOptUtil.toString(node));
+            if (DEBUG) {
+                System.out.println(
+                    "Convert: query=" + RelOptUtil.toString(query)
+                    + "\nnode=" + RelOptUtil.toString(node));
+            }
             return node;
         }
         return null;
@@ -397,6 +403,21 @@ public class SubstitutionVisitor {
                 for (UnifyRule rule : applicableRules(queryLeaf, find)) {
                     final UnifyResult x = apply(rule, queryLeaf, find);
                     if (x != null) {
+                        if (DEBUG) {
+                            System.out.println(
+                                "Rule: " + rule
+                                + "\nQuery:\n"
+                                + RelOptUtil.toString(queryParent)
+                                + (x.query != queryParent
+                                    ? "\nQuery (original):\n"
+                                      + RelOptUtil.toString(queryParent)
+                                    : "")
+                                + "\nFind:\n"
+                                + RelOptUtil.toString(find)
+                                + "\nResult:\n"
+                                + RelOptUtil.toString(x.result)
+                                + "\n");
+                        }
                         return x;
                     }
                 }
@@ -405,19 +426,21 @@ public class SubstitutionVisitor {
             for (UnifyRule rule : applicableRules(queryParent, find)) {
                 final UnifyResult x = apply(rule, queryParent, find);
                 if (x != null) {
-                    System.out.println(
-                        "Rule: " + rule
-                        + "\nQuery:\n"
-                        + RelOptUtil.toString(queryParent)
-                        + (x.query != queryParent
-                           ? "\nQuery (original):\n"
-                           + RelOptUtil.toString(queryParent)
-                           : "")
-                        + "\nFind:\n"
-                        + RelOptUtil.toString(find)
-                        + "\nResult:\n"
-                        + RelOptUtil.toString(x.result)
-                        + "\n");
+                    if (DEBUG) {
+                        System.out.println(
+                            "Rule: " + rule
+                            + "\nQuery:\n"
+                            + RelOptUtil.toString(queryParent)
+                            + (x.query != queryParent
+                                ? "\nQuery (original):\n"
+                                  + RelOptUtil.toString(queryParent)
+                                : "")
+                            + "\nFind:\n"
+                            + RelOptUtil.toString(find)
+                            + "\nResult:\n"
+                            + RelOptUtil.toString(x.result)
+                            + "\n");
+                    }
                     return x;
                 }
             }

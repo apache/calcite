@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq.test;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.*;
@@ -38,7 +39,10 @@ public class SparkAdapterTest {
             + "from (values (1, 'a'), (2, 'b'))")
         .returns(
             "EXPR$0=1; EXPR$1=a\n"
-            + "EXPR$0=2; EXPR$1=b\n");
+            + "EXPR$0=2; EXPR$1=b\n")
+        .explainContains(
+            "SparkToEnumerableConverter\n"
+            + "  SparkValuesRel(tuples=[[{ 1, 'a' }, { 2, 'b' }]])");
   }
 
   /** Tests values followed by filter, evaluated by Spark. */
@@ -49,7 +53,11 @@ public class SparkAdapterTest {
             "select *\n"
             + "from (values (1, 'a'), (2, 'b')) as t(x, y)\n"
             + "where x < 2")
-        .returns("X=1; Y=a\n");
+        .returns("X=1; Y=a\n")
+        .explainContains(
+            "PLAN=SparkToEnumerableConverter\n"
+            + "  SparkCalcRel(expr#0..1=[{inputs}], expr#2=[2], expr#3=[<($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+            + "    SparkValuesRel(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n");
   }
 }
 

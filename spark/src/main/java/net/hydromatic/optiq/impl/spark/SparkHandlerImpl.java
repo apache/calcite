@@ -34,6 +34,7 @@ import org.eigenbase.relopt.volcano.VolcanoPlanner;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -112,6 +113,7 @@ public class SparkHandlerImpl implements OptiqPrepare.SparkHandler {
           "public class " + className + "\n"
           + "    implements " + Bindable.class.getName()
           + ", " + Typed.class.getName()
+          + ", " + Serializable.class.getName()
           + " {\n"
           + s + "\n"
           + "}\n";

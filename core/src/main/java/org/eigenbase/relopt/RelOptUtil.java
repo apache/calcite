@@ -1722,6 +1722,9 @@ public abstract class RelOptUtil
         final RelNode rel,
         SqlExplainLevel detailLevel)
     {
+        if (rel == null) {
+            return null;
+        }
         final StringWriter sw = new StringWriter();
         final RelOptPlanWriter planWriter =
             new RelOptPlanWriter(

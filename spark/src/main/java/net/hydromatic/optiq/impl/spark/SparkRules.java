@@ -19,19 +19,24 @@ package net.hydromatic.optiq.impl.spark;
 
 import net.hydromatic.linq4j.expressions.*;
 
+import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.rules.java.*;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
+import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.RexLiteral;
+import org.eigenbase.rex.RexMultisetUtil;
+import org.eigenbase.rex.RexProgram;
 import org.eigenbase.util.Pair;
 
 import scala.Tuple2;
@@ -51,8 +56,17 @@ public class SparkRules {
     return ImmutableList.<RelOptRule>of(
         EnumerableToSparkConverterRule.INSTANCE,
         SparkToEnumerableConverterRule.INSTANCE,
-        SPARK_VALUES_RULE);
+        SPARK_VALUES_RULE,
+        SPARK_CALC_RULE);
   }
+
+  public static final boolean BRIDGE_METHODS = true;
+
+  private static final List<ParameterExpression> NO_PARAMS =
+      Collections.emptyList();
+
+  private static final List<Expression> NO_EXPRS =
+      Collections.emptyList();
 
   static class EnumerableToSparkConverterRule extends ConverterRule {
     public static final EnumerableToSparkConverterRule INSTANCE =
@@ -171,6 +185,183 @@ public class SparkRules {
     }
   }
 
+  public static final SparkCalcRule SPARK_CALC_RULE =
+      new SparkCalcRule();
+
+  /**
+   * Rule to convert a {@link CalcRel} to an
+   * {@link net.hydromatic.optiq.impl.spark.SparkRules.SparkCalcRel}.
+   */
+  private static class SparkCalcRule
+      extends ConverterRule {
+    private SparkCalcRule() {
+      super(
+          CalcRel.class,
+          Convention.NONE,
+          SparkRel.CONVENTION,
+          "SparkCalcRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final CalcRel calc = (CalcRel) rel;
+
+      // If there's a multiset, let FarragoMultisetSplitter work on it
+      // first.
+      final RexProgram program = calc.getProgram();
+      if (RexMultisetUtil.containsMultiset(program)
+          || program.containsAggs()) {
+        return null;
+      }
+
+      return new SparkCalcRel(
+          rel.getCluster(),
+          rel.getTraitSet().replace(SparkRel.CONVENTION),
+          convert(calc.getChild(),
+              calc.getChild().getTraitSet().replace(SparkRel.CONVENTION)),
+          program,
+          ProjectRelBase.Flags.Boxed);
+    }
+  }
+
+  public static class SparkCalcRel
+      extends SingleRel
+      implements SparkRel {
+    private final RexProgram program;
+
+    /**
+     * Values defined in {@link org.eigenbase.rel.ProjectRelBase.Flags}.
+     */
+    protected int flags;
+
+    public SparkCalcRel(RelOptCluster cluster,
+        RelTraitSet traitSet,
+        RelNode child,
+        RexProgram program,
+        int flags) {
+      super(cluster, traitSet, child);
+      assert getConvention() == SparkRel.CONVENTION;
+      assert !program.containsAggs();
+      this.flags = flags;
+      this.program = program;
+      this.rowType = program.getOutputRowType();
+    }
+
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+      return program.explainCalc(super.explainTerms(pw));
+    }
+
+    public double getRows() {
+      return FilterRel.estimateFilteredRows(getChild(), program);
+    }
+
+    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+      double dRows = RelMetadataQuery.getRowCount(this);
+      double dCpu =
+          RelMetadataQuery.getRowCount(getChild())
+          * program.getExprCount();
+      double dIo = 0;
+      return planner.makeCost(dRows, dCpu, dIo);
+    }
+
+    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new SparkCalcRel(
+          getCluster(),
+          traitSet,
+          sole(inputs),
+          program.copy(),
+          getFlags());
+    }
+
+    public int getFlags() {
+      return flags;
+    }
+
+    public Result implementSpark(Implementor implementor) {
+      final JavaTypeFactory typeFactory = implementor.getTypeFactory();
+      final BlockBuilder builder = new BlockBuilder();
+      final SparkRel child = (SparkRel) getChild();
+
+      final Result result = implementor.visitInput(this, 0, child);
+
+      final PhysType physType =
+          PhysTypeImpl.of(
+              typeFactory, getRowType(), JavaRowFormat.CUSTOM);
+
+      // final RDD<Employee> inputRdd = <<child impl>>;
+      // return inputRdd.flatMap(
+      //   new FlatMapFunction<Employee, X>() {
+      //          public List<X> call(Employee e) {
+      //              if (!(e.empno < 10)) {
+      //                  return Collections.emptyList();
+      //              }
+      //              return Collections.singletonList(
+      //                  new X(...)));
+      //          }
+      //      })
+
+
+      Type outputJavaType = physType.getJavaRowType();
+      final Type rddType =
+          Types.of(
+              JavaRDD.class, outputJavaType);
+      Type inputJavaType = result.physType.getJavaRowType();
+      final Expression inputRdd_ =
+          builder.append(
+              "inputRdd",
+              result.block);
+
+      BlockBuilder builder2 = new BlockBuilder();
+
+      final ParameterExpression e_ =
+          Expressions.parameter(inputJavaType, "e");
+      if (program.getCondition() != null) {
+        Expression condition =
+            RexToLixTranslator.translateCondition(
+                program,
+                typeFactory,
+                builder2,
+                new RexToLixTranslator.InputGetterImpl(
+                    Collections.singletonList(
+                        Pair.of((Expression) e_, result.physType))));
+        builder2.add(
+            Expressions.ifThen(
+                Expressions.not(condition),
+                Expressions.return_(null,
+                    Expressions.call(
+                        BuiltinMethod.COLLECTIONS_EMPTY_LIST.method))));
+      }
+
+      List<Expression> expressions =
+          RexToLixTranslator.translateProjects(
+              program,
+              typeFactory,
+              builder2,
+              new RexToLixTranslator.InputGetterImpl(
+                  Collections.singletonList(
+                      Pair.of((Expression) e_, result.physType))));
+      builder2.add(
+          Expressions.return_(null,
+              Expressions.convert_(
+                  Expressions.call(
+                      BuiltinMethod.COLLECTIONS_SINGLETON_LIST.method,
+                      physType.record(expressions)),
+                  List.class)));
+
+      final BlockStatement callBody = builder2.toBlock();
+      builder.add(
+          Expressions.return_(
+              null,
+              Expressions.call(
+                  inputRdd_,
+                  SparkMethod.RDD_FLAT_MAP.method,
+                  Expressions.lambda(
+                      SparkRuntime.OptiqFlatMapFunction.class,
+                      callBody,
+                      e_))));
+      return implementor.result(physType, builder.toBlock());
+    }
+  }
+
   // Play area
 
   public static void main(String[] args) {
@@ -224,6 +415,19 @@ public class SparkRules {
                 return integer % 2;
               }
             }).collect().toString());
+    System.out.println(
+        file.flatMap(
+            new FlatMapFunction<String, Pair<String, Integer>>() {
+                public List<Pair<String, Integer>> call(String x) {
+                    if (!x.startsWith("a")) {
+                        return Collections.emptyList();
+                    }
+                    return Collections.singletonList(
+                        Pair.of(x.toUpperCase(), x.length()));
+                }
+            })
+            .take(5)
+            .toString());
   }
 }
 

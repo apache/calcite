@@ -40,12 +40,16 @@ public interface SparkRel extends RelNode {
     }
 
     abstract Result result(PhysType physType, BlockStatement blockStatement);
+
+    abstract Result visitInput(SparkRel parent, int ordinal, SparkRel input);
   }
 
   public class Result {
     public final BlockStatement block;
+    public final PhysType physType;
 
-    public Result(BlockStatement block) {
+    public Result(PhysType physType, BlockStatement block) {
+      this.physType = physType;
       this.block = block;
     }
   }

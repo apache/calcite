@@ -24,6 +24,7 @@ import net.hydromatic.optiq.DataContext;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
 
 import java.util.*;
 
@@ -56,6 +57,13 @@ public class SparkRuntime {
    */
   public static JavaSparkContext getSparkContext(DataContext root) {
     return (JavaSparkContext) SparkHandlerImpl.INSTANCE().sparkContext();
+  }
+
+  /** Combines linq4j {@link net.hydromatic.linq4j.function.Function}
+   * and Spark {@link org.apache.spark.api.java.function.FlatMapFunction}. */
+  public static abstract class OptiqFlatMapFunction<T, R>
+      extends FlatMapFunction<T, R>
+      implements net.hydromatic.linq4j.function.Function {
   }
 }
 

@@ -17,6 +17,7 @@
 */
 package org.eigenbase.util;
 
+import java.io.Serializable;
 import java.util.*;
 
 
@@ -28,7 +29,7 @@ import java.util.*;
  * {@link java.util.Collection}.
  */
 public class Pair<T1, T2>
-    implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>
+    implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable
 {
     //~ Instance fields --------------------------------------------------------
 
