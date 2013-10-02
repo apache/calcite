@@ -748,18 +748,18 @@ public abstract class EnumerableDefaults {
       final Function2<TSource, TInner, TResult> resultSelector,
       final EqualityComparer<TKey> comparer) {
     return new AbstractEnumerable<TResult>() {
-      final Lookup<TKey, TSource> outerMap =
-          comparer == null
-              ? outer.toLookup(outerKeySelector)
-              : outer.toLookup(outerKeySelector, comparer);
-      final Lookup<TKey, TInner> innerLookup =
-          comparer == null
-              ? inner.toLookup(innerKeySelector)
-              : inner.toLookup(innerKeySelector, comparer);
-      final Enumerator<Map.Entry<TKey, Enumerable<TSource>>> entries =
-          Linq4j.enumerator(outerMap.entrySet());
-
       public Enumerator<TResult> enumerator() {
+        final Lookup<TKey, TSource> outerMap =
+            comparer == null
+                ? outer.toLookup(outerKeySelector)
+                : outer.toLookup(outerKeySelector, comparer);
+        final Lookup<TKey, TInner> innerLookup =
+            comparer == null
+                ? inner.toLookup(innerKeySelector)
+                : inner.toLookup(innerKeySelector, comparer);
+        final Enumerator<Map.Entry<TKey, Enumerable<TSource>>> entries =
+            Linq4j.enumerator(outerMap.entrySet());
+
         return new Enumerator<TResult>() {
           Enumerator<List<Object>> productEnumerator = Linq4j.emptyEnumerator();
 

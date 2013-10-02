@@ -149,13 +149,14 @@ public final class FunctionExpression<F extends Function<?>>
         && !(body.getType() instanceof TypeVariable)) {
       resultType2 = body.getType();
     }
+    String methodName = getAbstractMethodName();
     writer.append("new ")
         .append(type)
         .append("()")
         .begin(" {\n")
         .append("public ")
         .append(Types.className(resultType2))
-        .list(" apply(", ", ", ") ", params)
+        .list(" " + methodName + "(", ", ", ") ", params)
         .append(Blocks.toFunctionBlock(body));
 
     // Generate an intermediate bridge method if at least one parameter is
@@ -164,9 +165,9 @@ public final class FunctionExpression<F extends Function<?>>
       writer
           .append("public ")
           .append(Types.boxClassName(bridgeResultType))
-          .list(" apply(", ", ", ") ", boxBridgeParams)
+          .list(" " + methodName + "(", ", ", ") ", boxBridgeParams)
           .begin("{\n")
-          .list("return apply(\n", ",\n", ");\n", boxBridgeArgs)
+          .list("return " + methodName + "(\n", ",\n", ");\n", boxBridgeArgs)
           .end("}\n");
     }
 
@@ -179,13 +180,20 @@ public final class FunctionExpression<F extends Function<?>>
       writer
         .append("public ")
         .append(Types.boxClassName(bridgeResultType))
-        .list(" apply(", ", ", ") ", bridgeParams)
+        .list(" " + methodName + "(", ", ", ") ", bridgeParams)
         .begin("{\n")
-        .list("return apply(\n", ",\n", ");\n", bridgeArgs)
+        .list("return " + methodName + "(\n", ",\n", ");\n", bridgeArgs)
         .end("}\n");
     }
 
     writer.end("}\n");
+  }
+
+  private String getAbstractMethodName() {
+    if (type.toString().contains("OptiqFlatMapFunction")) {
+      return "call"; // FIXME
+    }
+    return "apply";
   }
 
   public interface Invokable {
