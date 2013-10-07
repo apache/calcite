@@ -34,7 +34,6 @@ import java.util.*;
  */
 public class OptiqResultSet implements ResultSet {
   private final OptiqStatement statement;
-  private final boolean[] wasNull = {false};
   private final List<ColumnMetaData> columnMetaDataList;
   private final Function0<Cursor> cursorFactory;
   private final ResultSetMetaData resultSetMetaData;
@@ -169,7 +168,7 @@ public class OptiqResultSet implements ResultSet {
   }
 
   public boolean wasNull() throws SQLException {
-    return wasNull[0];
+    return cursor.wasNull();
   }
 
   public String getString(int columnIndex) throws SQLException {

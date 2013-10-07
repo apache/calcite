@@ -51,6 +51,11 @@ public interface Cursor extends Closeable {
   void close();
 
   /**
+   * Returns whether the last value returned was null.
+   */
+  boolean wasNull();
+
+  /**
    * Accessor of a column value.
    */
   interface Accessor {

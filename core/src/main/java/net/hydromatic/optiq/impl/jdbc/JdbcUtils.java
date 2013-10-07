@@ -20,13 +20,13 @@ package net.hydromatic.optiq.impl.jdbc;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.function.*;
 
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.sql.SqlDialect;
+import org.eigenbase.util.IntList;
+import org.eigenbase.util.Pair;
+import org.eigenbase.util14.DateTimeUtil;
 
 import java.sql.*;
+import java.sql.Date;
 import java.util.*;
 import javax.sql.DataSource;
 
@@ -36,20 +36,6 @@ import javax.sql.DataSource;
 final class JdbcUtils {
   private JdbcUtils() {
     throw new AssertionError("no instances!");
-  }
-
-  static List<Primitive> getPrimitives(
-      JavaTypeFactory typeFactory, RelDataType rowType) {
-    final List<RelDataTypeField> fields = rowType.getFieldList();
-    final List<Primitive> primitiveList = new ArrayList<Primitive>();
-    for (RelDataTypeField field : fields) {
-      Class clazz = (Class) typeFactory.getJavaClass(field.getType());
-      primitiveList.add(
-          Primitive.of(clazz) != null
-              ? Primitive.of(clazz)
-              : Primitive.OTHER);
-    }
-    return primitiveList;
   }
 
   public static class DialectPool {
@@ -98,22 +84,26 @@ final class JdbcUtils {
     private final ResultSet resultSet;
     private final int columnCount;
     private final Primitive[] primitives;
+    private final int[] types;
 
     public ObjectArrayRowBuilder(
-        ResultSet resultSet, Primitive[] primitives) throws SQLException {
+        ResultSet resultSet, Primitive[] primitives, int[] types)
+        throws SQLException {
       this.resultSet = resultSet;
       this.primitives = primitives;
+      this.types = types;
       this.columnCount = resultSet.getMetaData().getColumnCount();
     }
 
     public static Function1<ResultSet, Function0<Object[]>> factory(
-        List<Primitive> primitiveList) {
-      final Primitive[] primitives =
-          primitiveList.toArray(new Primitive[primitiveList.size()]);
+        final List<Pair<Primitive, Integer>> list) {
       return new Function1<ResultSet, Function0<Object[]>>() {
         public Function0<Object[]> apply(ResultSet resultSet) {
           try {
-            return new ObjectArrayRowBuilder(resultSet, primitives);
+            return new ObjectArrayRowBuilder(
+                resultSet,
+                Pair.left(list).toArray(new Primitive[list.size()]),
+                IntList.toArray(Pair.right(list)));
           } catch (SQLException e) {
             throw new RuntimeException(e);
           }
@@ -133,8 +123,51 @@ final class JdbcUtils {
       }
     }
 
+    /**
+     * Gets a value from a given column in a JDBC result set.
+     *
+     * @param i Ordinal of column (1-based, per JDBC)
+     */
     private Object value(int i) throws SQLException {
+      // MySQL returns timestamps shifted into local time. Using
+      // getTimestamp(int, Calendar) with a UTC calendar should prevent this,
+      // but does not. So we shift explicitly.
+      switch (types[i]) {
+      case Types.TIMESTAMP:
+        return shift(resultSet.getTimestamp(i + 1));
+      case Types.TIME:
+        return shift(resultSet.getTime(i + 1));
+      case Types.DATE:
+        return shift(resultSet.getDate(i + 1));
+      }
       return primitives[i].jdbcGet(resultSet, i + 1);
+    }
+
+    private static Timestamp shift(Timestamp v) {
+      if (v == null) {
+        return null;
+      }
+      long time = v.getTime();
+      int offset = TimeZone.getDefault().getOffset(time);
+      return new Timestamp(time + offset);
+    }
+
+    private static Time shift(Time v) {
+      if (v == null) {
+        return null;
+      }
+      long time = v.getTime();
+      int offset = TimeZone.getDefault().getOffset(time);
+      return new Time((time + offset) % DateTimeUtil.MILLIS_PER_DAY);
+    }
+
+    private static Date shift(Date v) {
+      if (v == null) {
+        return null;
+      }
+      long time = v.getTime();
+      int offset = TimeZone.getDefault().getOffset(time);
+      return new Date(time + offset);
     }
   }
 }

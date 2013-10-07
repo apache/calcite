@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.runtime;
 
+import org.eigenbase.util14.DateTimeUtil;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -33,7 +35,6 @@ import java.util.*;
  * {@link Accessor} implementations if it wishes.</p>
  */
 public abstract class AbstractCursor implements Cursor {
-  private static final int MILLIS_PER_DAY = 86400000;
   private static final Calendar LOCAL_CALENDAR = Calendar.getInstance();
 
   /**
@@ -43,6 +44,10 @@ public abstract class AbstractCursor implements Cursor {
   protected final boolean[] wasNull = {false};
 
   protected AbstractCursor() {
+  }
+
+  public boolean wasNull() {
+    return wasNull[0];
   }
 
   public List<Accessor> createAccessors(List<ColumnMetaData> types) {
@@ -83,27 +88,27 @@ public abstract class AbstractCursor implements Cursor {
     case Types.VARBINARY:
       return new BinaryAccessor(getter);
     case Types.DATE:
-      switch (Rep.of(type.internalClass)) {
+      switch (type.representation) {
       case PRIMITIVE_INT:
       case INTEGER:
         return new DateFromIntAccessor(getter);
       case JAVA_SQL_DATE:
         return new DateAccessor(getter);
       default:
-        throw new AssertionError("bad " + type.internalClass);
+        throw new AssertionError("bad " + type.representation);
       }
     case Types.TIME:
-      switch (Rep.of(type.internalClass)) {
+      switch (type.representation) {
       case PRIMITIVE_INT:
       case INTEGER:
         return new TimeFromIntAccessor(getter);
       case JAVA_SQL_TIME:
         return new TimeAccessor(getter);
       default:
-        throw new AssertionError("bad " + type.internalClass);
+        throw new AssertionError("bad " + type.representation);
       }
     case Types.TIMESTAMP:
-      switch (Rep.of(type.internalClass)) {
+      switch (type.representation) {
       case PRIMITIVE_LONG:
       case LONG:
         return new TimestampFromLongAccessor(getter);
@@ -112,7 +117,7 @@ public abstract class AbstractCursor implements Cursor {
       case JAVA_UTIL_DATE:
         return new TimestampFromUtilDateAccessor(getter);
       default:
-        throw new AssertionError("bad " + type.internalClass);
+        throw new AssertionError("bad " + type.representation);
       }
     case Types.JAVA_OBJECT:
     case Types.ARRAY:
@@ -166,19 +171,19 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     public boolean getBoolean() {
-      throw cannotConvert("boolean");
+      return getLong() != 0L;
     }
 
     public byte getByte() {
-      throw cannotConvert("byte");
+      return (byte) getLong();
     }
 
     public short getShort() {
-      throw cannotConvert("short");
+      return (short) getLong();
     }
 
     public int getInt() {
-      throw cannotConvert("int");
+      return (int) getLong();
     }
 
     public long getLong() {
@@ -186,7 +191,7 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     public float getFloat() {
-      throw cannotConvert("float");
+      return (float) getDouble();
     }
 
     public double getDouble() {
@@ -238,7 +243,8 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     private RuntimeException cannotConvert(String targetType) {
-      return new RuntimeException("cannot convert to " + targetType);
+      return new RuntimeException("cannot convert to " + targetType + " ("
+          + this + ")");
     }
 
     public Object getObject(Map<String, Class<?>> map) {
@@ -331,22 +337,6 @@ public abstract class AbstractCursor implements Cursor {
     }
 
     public abstract long getLong();
-
-    public int getInt() {
-      return (int) getLong();
-    }
-
-    public short getShort() {
-      return (short) getLong();
-    }
-
-    public byte getByte() {
-      return (byte) getLong();
-    }
-
-    public boolean getBoolean() {
-      return getLong() != 0d;
-    }
   }
 
   /**
@@ -464,28 +454,8 @@ public abstract class AbstractCursor implements Cursor {
 
     public abstract double getDouble();
 
-    public float getFloat() {
-      return (float) getDouble();
-    }
-
     public long getLong() {
       return (long) getDouble();
-    }
-
-    public int getInt() {
-      return (int) getDouble();
-    }
-
-    public short getShort() {
-      return (short) getDouble();
-    }
-
-    public byte getByte() {
-      return (byte) getDouble();
-    }
-
-    public boolean getBoolean() {
-      return getDouble() != 0;
     }
   }
 
@@ -666,7 +636,7 @@ public abstract class AbstractCursor implements Cursor {
       if (vv == 0 && getter.wasNull()) {
         return null;
       }
-      long v = (long) vv * MILLIS_PER_DAY;
+      long v = (long) vv * DateTimeUtil.MILLIS_PER_DAY;
       if (calendar != null) {
         v -= calendar.getTimeZone().getOffset(v);
       }
@@ -775,6 +745,14 @@ public abstract class AbstractCursor implements Cursor {
     public String getString() {
       return getDate(LOCAL_CALENDAR).toString();
     }
+
+    @Override
+    public long getLong() {
+      Date date = getDate(null);
+      return date == null
+          ? 0L
+          : (date.getTime() / DateTimeUtil.MILLIS_PER_DAY);
+    }
   }
 
   /**
@@ -804,6 +782,12 @@ public abstract class AbstractCursor implements Cursor {
     @Override
     public String getString() {
       return getTime(LOCAL_CALENDAR).toString();
+    }
+
+    @Override
+    public long getLong() {
+      Time time = getTime(null);
+      return time == null ? 0L : (time.getTime() % DateTimeUtil.MILLIS_PER_DAY);
     }
   }
 
@@ -835,6 +819,12 @@ public abstract class AbstractCursor implements Cursor {
     public String getString() {
       return timestampAsString(this);
     }
+
+    @Override
+    public long getLong() {
+      Timestamp timestamp = getTimestamp(null);
+      return timestamp == null ? 0 : timestamp.getTime();
+    }
   }
 
   /**
@@ -863,6 +853,12 @@ public abstract class AbstractCursor implements Cursor {
     @Override
     public String getString() {
       return timestampAsString(this);
+    }
+
+    @Override
+    public long getLong() {
+      Timestamp timestamp = getTimestamp(null);
+      return timestamp == null ? 0 : timestamp.getTime();
     }
   }
 
@@ -928,46 +924,6 @@ public abstract class AbstractCursor implements Cursor {
     Object getObject();
 
     boolean wasNull();
-  }
-
-  enum Rep {
-    PRIMITIVE_BOOLEAN(boolean.class),
-    PRIMITIVE_BYTE(byte.class),
-    PRIMITIVE_CHAR(char.class),
-    PRIMITIVE_SHORT(short.class),
-    PRIMITIVE_INT(int.class),
-    PRIMITIVE_LONG(long.class),
-    PRIMITIVE_FLOAT(float.class),
-    PRIMITIVE_DOUBLE(double.class),
-    BOOLEAN(Boolean.class),
-    BYTE(Byte.class),
-    CHARACTER(Character.class),
-    SHORT(Short.class),
-    INTEGER(Integer.class),
-    LONG(Long.class),
-    FLOAT(Float.class),
-    DOUBLE(Double.class),
-    JAVA_SQL_TIME(Time.class),
-    JAVA_SQL_TIMESTAMP(Timestamp.class),
-    JAVA_SQL_DATE(java.sql.Date.class),
-    JAVA_UTIL_DATE(java.util.Date.class);
-
-    private final Class clazz;
-
-    Rep(Class clazz) {
-      this.clazz = clazz;
-    }
-
-    static Rep[] values = values();
-
-    static Rep of(Class clazz) {
-      for (Rep rep : values) {
-        if (rep.clazz == clazz) {
-          return rep;
-        }
-      }
-      throw new IllegalArgumentException("no Rep for " + clazz);
-    }
   }
 }
 

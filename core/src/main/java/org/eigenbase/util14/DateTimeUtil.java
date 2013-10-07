@@ -61,13 +61,22 @@ public class DateTimeUtil
      */
     public static final TimeZone defaultZone = TimeZone.getDefault();
 
+    /** The number of milliseconds in a second. */
+    public static final long MILLIS_PER_SECOND = 1000L;
+
+    /** The number of milliseconds in a minute. */
+    public static final long MILLIS_PER_MINUTE = 60000L;
+
+    /** The number of milliseconds in an hour. */
+    public static final long MILLIS_PER_HOUR = 3600000L; // = 60 * 60 * 1000
+
     /**
      * The number of milliseconds in a day.
      *
-     * <p>In the fennel calculator, this is the modulo 'mask' when converting
+     * <p>This is the modulo 'mask' used when converting
      * TIMESTAMP values to DATE and TIME values.
      */
-    public static final long MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
+    public static final long MILLIS_PER_DAY = 86400000; // = 24 * 60 * 60 * 1000
 
     /**
      * Calendar set to the epoch (1970-01-01 00:00:00 UTC). Useful for

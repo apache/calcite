@@ -517,7 +517,11 @@ public class RexLiteral
         case DECIMAL:
             return new Long(((BigDecimal) value).unscaledValue().longValue());
         case DATE:
+            return (int) (((Calendar) value).getTimeInMillis()
+                / DateTimeUtil.MILLIS_PER_DAY);
         case TIME:
+            return (int) (((Calendar) value).getTimeInMillis()
+                % DateTimeUtil.MILLIS_PER_DAY);
         case TIMESTAMP:
             return new Long(((Calendar) value).getTimeInMillis());
         default:

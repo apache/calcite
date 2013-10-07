@@ -49,6 +49,7 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
 import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.*;
@@ -364,6 +365,15 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       default:
         typeName = sqlTypeName.getName();
       }
+      Class clazz =
+          (Class) typeFactory.getJavaClass(
+              x.isStruct()
+                  ? x.getFieldList().get(pair.i).getType()
+                  : type);
+      final ColumnMetaData.Rep rep =
+          Util.first(ColumnMetaData.Rep.VALUE_MAP.get(clazz),
+              ColumnMetaData.Rep.OBJECT);
+      assert rep != null;
       columns.add(
           new ColumnMetaData(
               columns.size(),
@@ -391,10 +401,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               false,
               false,
               null,
-              (Class) typeFactory.getJavaClass(
-                  x.isStruct()
-                      ? x.getFieldList().get(pair.i).getType()
-                      : type)));
+              rep));
     }
     return columns;
   }

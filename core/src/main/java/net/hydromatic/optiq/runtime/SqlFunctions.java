@@ -19,6 +19,8 @@ package net.hydromatic.optiq.runtime;
 
 import net.hydromatic.optiq.DataContext;
 
+import org.eigenbase.util14.DateTimeUtil;
+
 import java.math.*;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
@@ -1006,9 +1008,9 @@ public class SqlFunctions {
   /** Helper for CAST({timestamp} AS VARCHAR(n)). */
   public static String unixTimestampToString(long timestamp) {
     final StringBuilder buf = new StringBuilder(17);
-    unixDateToString(buf, (int) (timestamp / 86400000));
+    unixDateToString(buf, (int) (timestamp / DateTimeUtil.MILLIS_PER_DAY));
     buf.append(' ');
-    unixTimeToString(buf, (int) (timestamp % 86400000));
+    unixTimeToString(buf, (int) (timestamp % DateTimeUtil.MILLIS_PER_DAY));
     return buf.toString();
   }
 
@@ -1040,12 +1042,12 @@ public class SqlFunctions {
 
   /** SQL {@code CURRENT_TIME} function. */
   public static int currentTime(DataContext root) {
-    return (int) (currentTimestamp(root) % 86400000);
+    return (int) (currentTimestamp(root) % DateTimeUtil.MILLIS_PER_DAY);
   }
 
   /** SQL {@code CURRENT_DATE} function. */
   public static int currentDate(DataContext root) {
-    return (int) (currentTimestamp(root) / 86400000);
+    return (int) (currentTimestamp(root) / DateTimeUtil.MILLIS_PER_DAY);
   }
 
   /** SQL {@code LOCAL_TIMESTAMP} function. */
@@ -1055,7 +1057,7 @@ public class SqlFunctions {
 
   /** SQL {@code LOCAL_TIME} function. */
   public static int localTime(DataContext root) {
-    return (int) (localTimestamp(root) % 86400000);
+    return (int) (localTimestamp(root) % DateTimeUtil.MILLIS_PER_DAY);
   }
 
   private static void int2(StringBuilder buf, int i) {

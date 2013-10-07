@@ -27,6 +27,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.util14.DateTimeUtil;
 
 import java.lang.reflect.Type;
 import java.sql.Date;
@@ -54,14 +55,18 @@ class ColumnLoader<T> {
   private static final Function1<Time, Integer> TIME_TO_INT =
       new Function1<Time, Integer>() {
         public Integer apply(Time a0) {
-          return a0 == null ? null : (int) (a0.getTime() % 86400000);
+          return a0 == null
+              ? null
+              : (int) (a0.getTime() % DateTimeUtil.MILLIS_PER_DAY);
         }
       };
 
   private static final Function1<Date, Integer> DATE_TO_INT =
       new Function1<Date, Integer>() {
         public Integer apply(Date a0) {
-          return a0 == null ? null : (int) (a0.getTime() / 86400000);
+          return a0 == null
+              ? null
+              : (int) (a0.getTime() / DateTimeUtil.MILLIS_PER_DAY);
         }
       };
 
@@ -233,7 +238,7 @@ class ColumnLoader<T> {
    * {@link java.sql.Date} and {@link java.sql.Time} values to
    * {@link Integer}. */
   private static List wrap(List list, RelDataType type) {
-    if (type.isNullable()) {
+//    if (type.isNullable()) {
       switch (type.getSqlTypeName()) {
       case TIMESTAMP:
         return Functions.adapt(list, TIMESTAMP_TO_LONG);
@@ -242,7 +247,7 @@ class ColumnLoader<T> {
       case DATE:
         return Functions.adapt(list, DATE_TO_INT);
       }
-    }
+//    }
     return list;
   }
 

@@ -28,6 +28,8 @@ import net.hydromatic.optiq.impl.ViewTable;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
+import org.eigenbase.util14.DateTimeUtil;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -256,7 +258,7 @@ public class ReflectiveSchemaTest {
         .query("select * from \"s\".\"emps\"")
         .returns(
             "hireDate=1970-01-01; empid=10; deptno=20; name=fred; salary=0.0; commission=null\n"
-            + "hireDate=1970-01-01; empid=10; deptno=20; name=bill; salary=0.0; commission=null\n");
+            + "hireDate=1970-04-11; empid=10; deptno=20; name=bill; salary=0.0; commission=null\n");
   }
 
   /** Tests querying an object that has no public fields. */
@@ -281,7 +283,7 @@ public class ReflectiveSchemaTest {
             + "primitiveBoolean=true\n");
     with.query("select * from \"s\".\"everyTypes\"")
         .returns(
-            "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01T00:00:00Z; utilDate=1970-01-01T00:00:00Z; string=1\n"
+            "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1\n"
             + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null\n");
   }
 
@@ -569,9 +571,10 @@ public class ReflectiveSchemaTest {
   public static class DateColumnSchema {
     public final EmployeeWithHireDate[] emps = {
         new EmployeeWithHireDate(
-            10, 20, "fred", 0f, null, new java.sql.Date(0)),
+            10, 20, "fred", 0f, null, new java.sql.Date(0)), // 1970-1-1
         new EmployeeWithHireDate(
-            10, 20, "bill", 0f, null, new java.sql.Date(100))
+            10, 20, "bill", 0f, null,
+            new java.sql.Date(100 * DateTimeUtil.MILLIS_PER_DAY)) // 1970-04-11
     };
   }
 }

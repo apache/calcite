@@ -500,6 +500,8 @@ public class Meta {
           throw new RuntimeException(e);
         }
         Pair<Integer, String> pair = lookupType(field.getType());
+        ColumnMetaData.Rep rep =
+            ColumnMetaData.Rep.VALUE_MAP.get(field.getType());
         columnNames.add(
             new ColumnMetaData(
                 index, false, true, false, false,
@@ -508,7 +510,7 @@ public class Meta {
                     : DatabaseMetaData.columnNoNulls,
                 true, -1, name, name, null,
                 0, 0, null, null, pair.left, pair.right, true,
-                false, false, null, field.getType()));
+                false, false, null, rep));
         fields.add(field);
       }
     }

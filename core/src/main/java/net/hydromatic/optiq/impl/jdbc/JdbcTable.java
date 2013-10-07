@@ -27,14 +27,16 @@ import net.hydromatic.optiq.runtime.ResultSetEnumerable;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParserPos;
 import org.eigenbase.sql.pretty.SqlPrettyWriter;
 import org.eigenbase.sql.util.SqlString;
+import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import java.lang.reflect.Type;
-import java.sql.ResultSet;
 import java.util.*;
 
 /**
@@ -99,14 +101,23 @@ class JdbcTable extends AbstractQueryable<Object[]>
 
   public Enumerator<Object[]> enumerator() {
     final SqlString sql = generateSql();
-    Function1<ResultSet, Function0<Object[]>> rowBuilderFactory =
-        JdbcUtils.ObjectArrayRowBuilder.factory(
-            JdbcUtils.getPrimitives(
-                schema.typeFactory, rowType));
     return ResultSetEnumerable.of(
         schema.getDataSource(),
         sql.getSql(),
-        rowBuilderFactory).enumerator();
+        JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses())).enumerator();
+  }
+
+  private List<Pair<Primitive, Integer>> fieldClasses() {
+    return Functions.adapt(
+        rowType.getFieldList(),
+        new Function1<RelDataTypeField, Pair<Primitive, Integer>>() {
+          public Pair<Primitive, Integer> apply(RelDataTypeField field) {
+            RelDataType type = field.getType();
+            Class clazz = (Class) schema.typeFactory.getJavaClass(type);
+            return Pair.of(Util.first(Primitive.of(clazz), Primitive.OTHER),
+                type.getSqlTypeName().getJdbcOrdinal());
+          }
+        });
   }
 
   SqlString generateSql() {

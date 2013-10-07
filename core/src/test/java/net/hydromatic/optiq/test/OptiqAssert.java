@@ -28,6 +28,8 @@ import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.Hook;
 
+import net.hydromatic.optiq.runtime.SqlFunctions;
+
 import org.apache.commons.dbcp.BasicDataSource;
 
 import org.eigenbase.util.Pair;
@@ -37,7 +39,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.*;
 import java.sql.*;
-import java.sql.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -396,15 +397,24 @@ public class OptiqAssert {
     final int columnType = resultSet.getMetaData().getColumnType(i);
     switch (columnType) {
     case Types.DATE:
-      final Date date = resultSet.getDate(i, null);
-      return date == null ? "null" : UTC_DATE_FORMAT.format(date);
+      // Avoid differences between SQL datetime formats and Java datetime
+      // formats, and in particular automatic offset into local timezone, by
+      // going straight from int to String, avoiding java.sql.Date, Time and
+      // Timestamp.
+      final int date = resultSet.getInt(i);
+      return date == 0 && resultSet.wasNull()
+          ? "null"
+          : SqlFunctions.unixDateToString(date);
     case Types.TIME:
-      final Time time = resultSet.getTime(i, null);
-      return time == null ? "null" : UTC_TIME_FORMAT.format(time);
+      final int time = resultSet.getInt(i);
+      return time == 0 && resultSet.wasNull()
+          ? "null"
+          : SqlFunctions.unixTimeToString(time);
     case Types.TIMESTAMP:
-      final Timestamp timestamp = resultSet.getTimestamp(i, null);
-      return timestamp == null
-          ? "null" : UTC_TIMESTAMP_FORMAT.format(timestamp);
+      final long timestamp = resultSet.getLong(i);
+      return timestamp == 0 && resultSet.wasNull()
+          ? "null"
+          : SqlFunctions.unixTimestampToString(timestamp);
     default:
       return String.valueOf(resultSet.getObject(i));
     }

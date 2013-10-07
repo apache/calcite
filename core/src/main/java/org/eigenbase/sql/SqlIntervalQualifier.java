@@ -27,6 +27,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+import org.eigenbase.util14.DateTimeUtil;
 
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
@@ -102,10 +103,12 @@ public class SqlIntervalQualifier
     {
         YEAR(true, ' ', 12 /* months */, null),
         MONTH(true, '-', 1 /* months */, BigDecimal.valueOf(12)),
-        DAY(false, '-', 86400000 /* millis = 24 * 3600000 */, null),
-        HOUR(false, ' ', 3600000 /* millis */, BigDecimal.valueOf(24)),
-        MINUTE(false, ':', 60000 /* millis */, BigDecimal.valueOf(60)),
-        SECOND(false, ':', 1000 /* millis */, BigDecimal.valueOf(60));
+        DAY(false, '-', DateTimeUtil.MILLIS_PER_DAY, null),
+        HOUR(false, ' ', DateTimeUtil.MILLIS_PER_HOUR, BigDecimal.valueOf(24)),
+        MINUTE(
+            false, ':', DateTimeUtil.MILLIS_PER_MINUTE, BigDecimal.valueOf(60)),
+        SECOND(
+            false, ':', DateTimeUtil.MILLIS_PER_SECOND, BigDecimal.valueOf(60));
 
         public final boolean yearMonth;
         public final char separator;
