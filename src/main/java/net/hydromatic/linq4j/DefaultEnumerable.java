@@ -52,11 +52,16 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
 
   public <R> R foreach(Function1<T, R> func) {
     R result = null;
-    for (Enumerator<T> enumerator = enumerator(); enumerator.moveNext();) {
-      T t = enumerator.current();
-      result = func.apply(t);
+    final Enumerator<T> enumerator = enumerator();
+    try {
+      while (enumerator.moveNext()) {
+        T t = enumerator.current();
+        result = func.apply(t);
+      }
+      return result;
+    } finally {
+      enumerator.close();
     }
-    return result;
   }
 
   public Queryable<T> asQueryable() {
