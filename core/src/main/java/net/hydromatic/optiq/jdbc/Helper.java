@@ -77,6 +77,10 @@ public class Helper {
                   return false;
                 }
 
+                public boolean wasNull() {
+                  return false;
+                }
+
                 public void close() {
                   // no resources to release
                 }
