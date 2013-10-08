@@ -18,18 +18,13 @@
 package org.eigenbase.test;
 
 import java.io.*;
-
 import java.lang.reflect.*;
-
 import java.nio.charset.*;
-
 import java.util.*;
 
-import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
-
 
 /**
  * Utility to generate a SQL script from validator test.
@@ -119,7 +114,10 @@ public class SqlTestGen {
             return new TesterImpl(conformance) {
                 public SqlValidator getValidator()
                 {
-                    throw new UnsupportedOperationException();
+                    return (SqlValidator) Proxy.newProxyInstance(
+                        SqlValidatorSpooler.class.getClassLoader(),
+                        new Class[] {SqlValidator.class},
+                        new MyInvocationHandler());
                 }
 
                 public void assertExceptionIsThrown(
@@ -140,9 +138,12 @@ public class SqlTestGen {
                     }
                 }
 
-                public RelDataType getColumnType(String sql)
-                {
-                    return null;
+                @Override
+                public void checkColumnType(String sql, String expected) {
+                }
+
+                @Override
+                public void checkResultType(String sql, String expected) {
                 }
 
                 public void checkType(
@@ -169,7 +170,40 @@ public class SqlTestGen {
                     // We could generate the SQL -- or maybe describe -- but
                     // ignore it for now.
                 }
+
+                @Override
+                public void checkIntervalConv(String sql, String expected) {
+                }
+
+                @Override
+                public void checkRewrite(
+                    SqlValidator validator,
+                    String query,
+                    String expectedRewrite)
+                {
+                }
+
+                @Override
+                public void checkFieldOrigin(
+                    String sql,
+                    String fieldOriginList)
+                {
+                }
             };
+        }
+
+        /** Handles the methods in
+         * {@link org.eigenbase.sql.validate.SqlValidator} that are called
+         * from validator tests. */
+        public static class MyInvocationHandler
+            extends BarfingInvocationHandler
+        {
+            public void setIdentifierExpansion(boolean b) {}
+            public void setColumnReferenceExpansion(boolean b) {}
+            public void setCallRewrite(boolean b) {}
+            public boolean shouldExpandIdentifiers() {
+                return true;
+            }
         }
     }
 }
