@@ -17,6 +17,7 @@
 */
 package net.hydromatic.optiq;
 
+import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
 
@@ -102,6 +103,8 @@ public interface Schema extends DataContext {
     public final String name;
 
     public ObjectInSchema(Schema schema, String name) {
+      Linq4j.requireNonNull(schema);
+      Linq4j.requireNonNull(name);
       this.schema = schema;
       this.name = name;
     }

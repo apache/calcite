@@ -119,7 +119,7 @@ public class MapSchema implements MutableSchema {
    * in a JSON model. */
   public void initialize() {
     for (TableInSchema tableInSchema : initialTables()) {
-      tableMap.put(tableInSchema.name, tableInSchema);
+      addTable(tableInSchema);
     }
   }
 

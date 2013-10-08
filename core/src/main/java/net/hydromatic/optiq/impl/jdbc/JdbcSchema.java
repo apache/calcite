@@ -54,6 +54,7 @@ public class JdbcSchema implements Schema {
   private final Expression expression;
   public final SqlDialect dialect;
   final JdbcConvention convention;
+  private Map<String, TableInSchemaImpl> allTables;
 
   /**
    * Creates a JDBC schema.
@@ -192,6 +193,14 @@ public class JdbcSchema implements Schema {
   }
 
   public Map<String, TableInSchema> getTables() {
+    if (allTables == null) {
+      allTables = computeTables();
+    }
+    //noinspection unchecked
+    return (Map) allTables;
+  }
+
+  private Map<String, TableInSchemaImpl> computeTables() {
     Connection connection = null;
     ResultSet resultSet = null;
     try {
@@ -202,7 +211,7 @@ public class JdbcSchema implements Schema {
           schema,
           null,
           null);
-      final ImmutableMap.Builder<String, TableInSchema> builder =
+      final ImmutableMap.Builder<String, TableInSchemaImpl> builder =
           ImmutableMap.builder();
       while (resultSet.next()) {
         final String name = resultSet.getString(3);
@@ -222,7 +231,19 @@ public class JdbcSchema implements Schema {
 
   public <T> Table<T> getTable(String name, Class<T> elementType) {
     assert elementType != null;
+    if (allTables != null) {
+      TableInSchemaImpl tableInSchema = allTables.get(name);
+      if (tableInSchema != null
+          && tableInSchema.table != null) {
+        //noinspection unchecked
+        return tableInSchema.table;
+      }
+    }
+    //noinspection unchecked
+    return computeTable(name);
+  }
 
+  private Table computeTable(String name) {
     Connection connection = null;
     ResultSet resultSet = null;
     try {
@@ -242,7 +263,7 @@ public class JdbcSchema implements Schema {
       resultSet.close();
       final RelDataType type =
           getRelDataType(connection, catalogName, schemaName, tableName);
-      return (Table) new JdbcTable(type, this, name);
+      return new JdbcTable(type, this, name);
     } catch (SQLException e) {
       throw new RuntimeException(
           "Exception while reading definition of table '" + name + "'",
@@ -344,6 +365,7 @@ public class JdbcSchema implements Schema {
       if (table == null) {
         table = JdbcSchema.this.getTable(name, elementType);
       }
+      //noinspection unchecked
       return table;
     }
   }
