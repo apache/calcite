@@ -5,7 +5,7 @@
   <groupId>net.hydromatic</groupId>
   <artifactId>linq4j</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.10-SNAPSHOT</version>
+  <version>0.1.10</version>
 
   <!-- More project information. -->
   <name>linq4j</name>
@@ -71,7 +71,7 @@
     <connection>scm:git:git://github.com/julianhyde/linq4j.git</connection>
     <developerConnection>scm:git:git@github.com:julianhyde/linq4j.git</developerConnection>
     <url>scm:git:git://github.com/julianhyde/linq4j.git</url>
-    <tag>HEAD</tag>
+    <tag>linq4j-0.1.10</tag>
   </scm>
 
   <!-- Dependencies. -->
