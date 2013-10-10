@@ -82,12 +82,12 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.4.12</version>
+      <version>0.4.14</version>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>linq4j</artifactId>
-      <version>0.1.8</version>
+      <version>0.1.10</version>
     </dependency>
     <dependency>
       <groupId>net.sf.opencsv</groupId>
