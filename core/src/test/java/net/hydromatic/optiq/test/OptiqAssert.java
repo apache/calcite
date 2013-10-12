@@ -352,13 +352,14 @@ public class OptiqAssert {
 
   static String toString(ResultSet resultSet) throws SQLException {
     final StringBuilder buf = new StringBuilder();
+    final ResultSetMetaData metaData = resultSet.getMetaData();
     while (resultSet.next()) {
-      int n = resultSet.getMetaData().getColumnCount();
+      int n = metaData.getColumnCount();
       if (n > 0) {
         for (int i = 1;; i++) {
-          buf.append(resultSet.getMetaData().getColumnLabel(i))
+          buf.append(metaData.getColumnLabel(i))
               .append("=")
-              .append(str(resultSet, i));
+              .append(resultSet.getString(i));
           if (i == n) {
             break;
           }
@@ -379,7 +380,7 @@ public class OptiqAssert {
         for (int i = 1;; i++) {
           buf.append(resultSet.getMetaData().getColumnLabel(i))
               .append("=")
-              .append(str(resultSet, i));
+              .append(resultSet.getString(i));
           if (i == n) {
             break;
           }

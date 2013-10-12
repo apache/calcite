@@ -38,6 +38,7 @@ public class OptiqResultSet implements ResultSet {
   private final List<ColumnMetaData> columnMetaDataList;
   private final Function0<Cursor> cursorFactory;
   private final ResultSetMetaData resultSetMetaData;
+  private final Calendar localCalendar;
 
   private Cursor cursor;
   private List<Cursor.Accessor> accessorList;
@@ -73,6 +74,9 @@ public class OptiqResultSet implements ResultSet {
     for (ColumnMetaData column : columnMetaDataList) {
       columnNameMap.put(column.label, columnNameMap.size());
     }
+    final TimeZone timeZone =
+        (TimeZone) statement.connection.rootSchema.get("timeZone");
+    this.localCalendar = Calendar.getInstance(timeZone);
   }
 
   private Cursor.Accessor getAccessor(int columnIndex) {
@@ -149,7 +153,8 @@ public class OptiqResultSet implements ResultSet {
         statement, resultSink);
 
     this.cursor = cursorFactory.apply();
-    this.accessorList = cursor.createAccessors(columnMetaDataList);
+    this.accessorList =
+        cursor.createAccessors(columnMetaDataList, localCalendar);
     accessorMap.clear();
     for (Map.Entry<String, Integer> entry : columnNameMap.entrySet()) {
       accessorMap.put(entry.getKey(), accessorList.get(entry.getValue()));
@@ -214,15 +219,15 @@ public class OptiqResultSet implements ResultSet {
   }
 
   public Date getDate(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getDate();
+    return getAccessor(columnIndex - 1).getDate(localCalendar);
   }
 
   public Time getTime(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getTime();
+    return getAccessor(columnIndex - 1).getTime(localCalendar);
   }
 
   public Timestamp getTimestamp(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getTimestamp();
+    return getAccessor(columnIndex - 1).getTimestamp(localCalendar);
   }
 
   public InputStream getAsciiStream(int columnIndex) throws SQLException {
@@ -279,15 +284,15 @@ public class OptiqResultSet implements ResultSet {
   }
 
   public Date getDate(String columnLabel) throws SQLException {
-    return getAccessor(columnLabel).getDate();
+    return getAccessor(columnLabel).getDate(localCalendar);
   }
 
   public Time getTime(String columnLabel) throws SQLException {
-    return getAccessor(columnLabel).getTime();
+    return getAccessor(columnLabel).getTime(localCalendar);
   }
 
   public Timestamp getTimestamp(String columnLabel) throws SQLException {
-    return getAccessor(columnLabel).getTimestamp();
+    return getAccessor(columnLabel).getTimestamp(localCalendar);
   }
 
   public InputStream getAsciiStream(String columnLabel) throws SQLException {

@@ -80,6 +80,11 @@ public class DateTimeUtil
         zeroCalendar.setTimeInMillis(0);
     }
 
+    /**
+     * Calendar set to local time.
+     */
+    private static final Calendar LOCAL_CALENDAR = Calendar.getInstance();
+
     //~ Methods ----------------------------------------------------------------
 
     /**

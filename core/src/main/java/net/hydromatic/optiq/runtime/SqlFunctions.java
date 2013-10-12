@@ -17,13 +17,23 @@
 */
 package net.hydromatic.optiq.runtime;
 
-import net.hydromatic.optiq.DataContext;
+import org.eigenbase.util.Util;
+import org.eigenbase.util14.DateTimeUtil;
 
-import java.math.*;
-import java.sql.Timestamp;
+import java.io.InputStream;
+import java.io.Reader;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.net.URL;
+import java.sql.*;
+import java.sql.Date;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.regex.Pattern;
+
+import net.hydromatic.optiq.DataContext;
 
 /**
  * Helper methods to implement SQL functions in generated code.
@@ -1006,9 +1016,15 @@ public class SqlFunctions {
   /** Helper for CAST({timestamp} AS VARCHAR(n)). */
   public static String unixTimestampToString(long timestamp) {
     final StringBuilder buf = new StringBuilder(17);
-    unixDateToString(buf, (int) (timestamp / 86400000));
+    int date = (int) (timestamp / DateTimeUtil.MILLIS_PER_DAY);
+    int time = (int) (timestamp % DateTimeUtil.MILLIS_PER_DAY);
+    if (time < 0) {
+      --date;
+      time += DateTimeUtil.MILLIS_PER_DAY;
+    }
+    unixDateToString(buf, date);
     buf.append(' ');
-    unixTimeToString(buf, (int) (timestamp % 86400000));
+    unixTimeToString(buf, time);
     return buf.toString();
   }
 
@@ -1040,12 +1056,22 @@ public class SqlFunctions {
 
   /** SQL {@code CURRENT_TIME} function. */
   public static int currentTime(DataContext root) {
-    return (int) (currentTimestamp(root) % 86400000);
+    int time = (int) (currentTimestamp(root) % DateTimeUtil.MILLIS_PER_DAY);
+    if (time < 0) {
+      time += DateTimeUtil.MILLIS_PER_DAY;
+    }
+    return time;
   }
 
   /** SQL {@code CURRENT_DATE} function. */
   public static int currentDate(DataContext root) {
-    return (int) (currentTimestamp(root) / 86400000);
+    final long timestamp = currentTimestamp(root);
+    int date = (int) (timestamp / DateTimeUtil.MILLIS_PER_DAY);
+    final int time = (int) (timestamp % DateTimeUtil.MILLIS_PER_DAY);
+    if (time < 0) {
+      --date;
+    }
+    return date;
   }
 
   /** SQL {@code LOCAL_TIMESTAMP} function. */

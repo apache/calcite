@@ -17,14 +17,15 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+
 import net.hydromatic.linq4j.function.Function0;
 import net.hydromatic.optiq.runtime.ColumnMetaData;
 import net.hydromatic.optiq.runtime.Cursor;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Utility methods, mainly concerning error-handling.
@@ -68,7 +69,7 @@ public class Helper {
             public Cursor apply() {
               return new Cursor() {
                 public List<Accessor> createAccessors(
-                    List<ColumnMetaData> types) {
+                    List<ColumnMetaData> types, Calendar localCalendar) {
                   assert types.isEmpty();
                   return Collections.emptyList();
                 }

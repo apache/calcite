@@ -48,7 +48,7 @@ public class ObjectEnumeratorCursor extends AbstractCursor {
     enumerator.close();
   }
 
-  class ObjectEnumeratorGetter implements Getter {
+  class ObjectEnumeratorGetter extends AbstractGetter {
     public ObjectEnumeratorGetter(int field) {
       assert field == 0;
     }
@@ -57,10 +57,6 @@ public class ObjectEnumeratorCursor extends AbstractCursor {
       Object o = enumerator.current();
       wasNull[0] = (o == null);
       return o;
-    }
-
-    public boolean wasNull() {
-      return wasNull[0];
     }
   }
 }
