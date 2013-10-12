@@ -3763,6 +3763,12 @@ public abstract class SqlOperatorBaseTest {
                 currentTimeString(LOCAL_TZ).substring(11)
                 + "[0-9][0-9]:[0-9][0-9]"),
             "VARCHAR(30) NOT NULL");
+        tester.checkScalar(
+            "LOCALTIME",
+            Pattern.compile(
+                currentTimeString(LOCAL_TZ).substring(11)
+                + "[0-9][0-9]:[0-9][0-9]"),
+            "TIME(0) NOT NULL");
     }
 
     @Test public void testLocalTimestampFunc() {
@@ -3790,6 +3796,12 @@ public abstract class SqlOperatorBaseTest {
                 currentTimeString(LOCAL_TZ)
                 + "[0-9][0-9]:[0-9][0-9]"),
             "VARCHAR(30) NOT NULL");
+        tester.checkScalar(
+            "LOCALTIMESTAMP",
+            Pattern.compile(
+                currentTimeString(LOCAL_TZ)
+                + "[0-9][0-9]:[0-9][0-9]"),
+            "TIMESTAMP(0) NOT NULL");
     }
 
     @Test public void testCurrentTimeFunc() {
@@ -3811,6 +3823,12 @@ public abstract class SqlOperatorBaseTest {
                 currentTimeString(CURRENT_TZ).substring(11)
                 + "[0-9][0-9]:[0-9][0-9]"),
             "VARCHAR(30) NOT NULL");
+        tester.checkScalar(
+            "CURRENT_TIME",
+            Pattern.compile(
+                currentTimeString(CURRENT_TZ).substring(11)
+                + "[0-9][0-9]:[0-9][0-9]"),
+            "TIME(0) NOT NULL");
     }
 
     @Test public void testCurrentTimestampFunc() {
@@ -3836,6 +3854,12 @@ public abstract class SqlOperatorBaseTest {
                 currentTimeString(CURRENT_TZ)
                 + "[0-9][0-9]:[0-9][0-9]"),
                 "VARCHAR(30) NOT NULL");
+        tester.checkScalar(
+            "CURRENT_TIMESTAMP",
+            Pattern.compile(
+                currentTimeString(CURRENT_TZ)
+                + "[0-9][0-9]:[0-9][0-9]"),
+                "TIMESTAMP(0) NOT NULL");
     }
 
     /**
@@ -3878,6 +3902,10 @@ public abstract class SqlOperatorBaseTest {
             "CAST(CURRENT_DATE AS VARCHAR(30))",
             currentTimeString(LOCAL_TZ).substring(0, 10),
             "VARCHAR(30) NOT NULL");
+        tester.checkScalar(
+            "CURRENT_DATE",
+            currentTimeString(LOCAL_TZ).substring(0, 10),
+            "DATE NOT NULL");
     }
 
     @Test public void testSubstringFunction() {

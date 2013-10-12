@@ -33,10 +33,13 @@ public interface Cursor extends Closeable {
   /**
    * Creates a list of accessors, one per column.
    *
+   *
    * @param types List of column types, per {@link java.sql.Types}.
+   * @param localCalendar Calendar in local timezone
    * @return List of column accessors
    */
-  List<Accessor> createAccessors(List<ColumnMetaData> types);
+  List<Accessor> createAccessors(List<ColumnMetaData> types,
+      Calendar localCalendar);
 
   /**
    * Moves to the next row.
@@ -59,6 +62,8 @@ public interface Cursor extends Closeable {
    * Accessor of a column value.
    */
   interface Accessor {
+    boolean wasNull();
+
     String getString();
 
     boolean getBoolean();
@@ -81,12 +86,6 @@ public interface Cursor extends Closeable {
 
     byte[] getBytes();
 
-    Date getDate();
-
-    Time getTime();
-
-    Timestamp getTimestamp();
-
     InputStream getAsciiStream();
 
     InputStream getUnicodeStream();
@@ -107,11 +106,11 @@ public interface Cursor extends Closeable {
 
     Array getArray();
 
-    Date getDate(Calendar cal);
+    Date getDate(Calendar calendar);
 
-    Time getTime(Calendar cal);
+    Time getTime(Calendar calendar);
 
-    Timestamp getTimestamp(Calendar cal);
+    Timestamp getTimestamp(Calendar calendar);
 
     URL getURL();
 

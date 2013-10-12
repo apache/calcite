@@ -38,7 +38,10 @@ public enum ConnectionProperty {
   /** Specifies whether Spark should be used as the engine for processing that
    * cannot be pushed to the source system. If false (the default), Optiq
    * generates code that implements the Enumerable interface. */
-  SPARK("spark", Type.BOOLEAN, "false");
+  SPARK("spark", Type.BOOLEAN, "false"),
+
+  /** Timezone, for example 'gmt-3'. Default is the JVM's time zone. */
+  TIMEZONE("timezone", Type.STRING, null);
 
   private final String camelName;
   private final Type type;

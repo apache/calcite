@@ -879,7 +879,7 @@ public class JdbcTest {
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"hire_date\" from \"employee\" where \"employee_id\" = 1")
-        .returns("hire_date=1994-12-01T08:00:00Z\n");
+        .returns("hire_date=1994-12-01 00:00:00\n");
   }
 
   @Test public void testValues() {
@@ -1682,6 +1682,162 @@ public class JdbcTest {
     resultSet.close();
     statement.close();
     connection.close();
+  }
+
+  /** Test for timestamps and time zones, based on pgsql TimezoneTest. */
+  @Test public void testGetTimestamp() throws Exception {
+    OptiqAssert.assertThat()
+        .with(
+            new OptiqAssert.ConnectionFactory() {
+                public OptiqConnection createConnection() throws Exception {
+                    Class.forName("net.hydromatic.optiq.jdbc.Driver");
+                    final Properties info = new Properties();
+                    info.setProperty("timezone", "GMT+1:00");
+                    return (OptiqConnection) DriverManager.getConnection(
+                        "jdbc:optiq:", info);
+                }
+            })
+        .doWithConnection(
+            new Function1<OptiqConnection, Void>() {
+              public Void apply(OptiqConnection connection) {
+                try {
+                  checkGetTimestamp(connection);
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+  }
+
+  private void checkGetTimestamp(Connection con) throws SQLException {
+    Statement statement = con.createStatement();
+
+    // Not supported yet. We set timezone using connect-string parameters.
+    //statement.executeUpdate("alter session set timezone = 'gmt-3'");
+
+    ResultSet rs = statement.executeQuery(
+        "SELECT * FROM (VALUES(\n"
+        + " TIMESTAMP '1970-01-01 00:00:00',\n"
+        + " /* TIMESTAMP '2005-01-01 15:00:00 +0300', */\n"
+        + " TIMESTAMP '2005-01-01 15:00:00',\n"
+        + " TIME '15:00:00',\n"
+        + " /* TIME '15:00:00 +0300', */\n"
+        + " DATE '2005-01-01'\n"
+        + ")) AS t(ts0, /* tstz, */ ts, t, /* tz, */ d)");
+    assertTrue(rs.next());
+
+    TimeZone UTC   = TimeZone.getTimeZone("UTC");    // +0000 always
+    TimeZone GMT03 = TimeZone.getTimeZone("GMT+03"); // +0300 always
+    TimeZone GMT05 = TimeZone.getTimeZone("GMT-05"); // -0500 always
+    TimeZone GMT13 = TimeZone.getTimeZone("GMT+13"); // +1000 always
+
+    Calendar cUTC   = Calendar.getInstance(UTC);
+    Calendar cGMT03 = Calendar.getInstance(GMT03);
+    Calendar cGMT05 = Calendar.getInstance(GMT05);
+    Calendar cGMT13 = Calendar.getInstance(GMT13);
+
+    Timestamp ts;
+    String s;
+    int c = 1;
+
+    // timestamp: 1970-01-01 00:00:00
+    ts = rs.getTimestamp(c);                     // Convert timestamp to +0100
+    assertEquals(-3600000L,      ts.getTime());  // 1970-01-01 00:00:00 +0100
+    ts = rs.getTimestamp(c, cUTC);               // Convert timestamp to UTC
+    assertEquals(0L,             ts.getTime());  // 1970-01-01 00:00:00 +0000
+    ts = rs.getTimestamp(c, cGMT03);             // Convert timestamp to +0300
+    assertEquals(-10800000L,     ts.getTime());  // 1970-01-01 00:00:00 +0300
+    ts = rs.getTimestamp(c, cGMT05);             // Convert timestamp to -0500
+    assertEquals(18000000L,      ts.getTime());  // 1970-01-01 00:00:00 -0500
+    ts = rs.getTimestamp(c, cGMT13);             // Convert timestamp to +1300
+    assertEquals(-46800000,      ts.getTime());  // 1970-01-01 00:00:00 +1300
+    s = rs.getString(c);
+    assertEquals("1970-01-01 00:00:00", s);
+    ++c;
+
+    if (false) {
+      // timestamptz: 2005-01-01 15:00:00+03
+      ts = rs.getTimestamp(c);                      // Represents an instant in
+                                                    // time, TZ is irrelevant.
+      assertEquals(1104580800000L, ts.getTime());   // 2005-01-01 12:00:00 UTC
+      ts = rs.getTimestamp(c, cUTC);                // TZ irrelevant, as above
+      assertEquals(1104580800000L, ts.getTime());   // 2005-01-01 12:00:00 UTC
+      ts = rs.getTimestamp(c, cGMT03);              // TZ irrelevant, as above
+      assertEquals(1104580800000L, ts.getTime());   // 2005-01-01 12:00:00 UTC
+      ts = rs.getTimestamp(c, cGMT05);              // TZ irrelevant, as above
+      assertEquals(1104580800000L, ts.getTime());   // 2005-01-01 12:00:00 UTC
+      ts = rs.getTimestamp(c, cGMT13);              // TZ irrelevant, as above
+      assertEquals(1104580800000L, ts.getTime());   // 2005-01-01 12:00:00 UTC
+      ++c;
+    }
+
+    // timestamp: 2005-01-01 15:00:00
+    ts = rs.getTimestamp(c);                     // Convert timestamp to +0100
+    assertEquals(1104588000000L, ts.getTime());  // 2005-01-01 15:00:00 +0100
+    ts = rs.getTimestamp(c, cUTC);               // Convert timestamp to UTC
+    assertEquals(1104591600000L, ts.getTime());  // 2005-01-01 15:00:00 +0000
+    ts = rs.getTimestamp(c, cGMT03);             // Convert timestamp to +0300
+    assertEquals(1104580800000L, ts.getTime());  // 2005-01-01 15:00:00 +0300
+    ts = rs.getTimestamp(c, cGMT05);             // Convert timestamp to -0500
+    assertEquals(1104609600000L, ts.getTime());  // 2005-01-01 15:00:00 -0500
+    ts = rs.getTimestamp(c, cGMT13);             // Convert timestamp to +1300
+    assertEquals(1104544800000L, ts.getTime());  // 2005-01-01 15:00:00 +1300
+    s = rs.getString(c);
+    assertEquals("2005-01-01 15:00:00", s);
+    ++c;
+
+    // time: 15:00:00
+    ts = rs.getTimestamp(c);
+    assertEquals(50400000L, ts.getTime());        // 1970-01-01 15:00:00 +0100
+    ts = rs.getTimestamp(c, cUTC);
+    assertEquals(54000000L, ts.getTime());        // 1970-01-01 15:00:00 +0000
+    ts = rs.getTimestamp(c, cGMT03);
+    assertEquals(43200000L, ts.getTime());        // 1970-01-01 15:00:00 +0300
+    ts = rs.getTimestamp(c, cGMT05);
+    assertEquals(72000000L, ts.getTime());        // 1970-01-01 15:00:00 -0500
+    ts = rs.getTimestamp(c, cGMT13);
+    assertEquals(7200000L, ts.getTime());         // 1970-01-01 15:00:00 +1300
+    s = rs.getString(c);
+    assertEquals("15:00:00", s);
+    ++c;
+
+    if (false) {
+      // timetz: 15:00:00+03
+      ts = rs.getTimestamp(c);
+      assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
+                                                // 1970-01-01 13:00:00 +0100
+      ts = rs.getTimestamp(c, cUTC);
+      assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
+                                                // 1970-01-01 12:00:00 +0000
+      ts = rs.getTimestamp(c, cGMT03);
+      assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
+                                                // 1970-01-01 15:00:00 +0300
+      ts = rs.getTimestamp(c, cGMT05);
+      assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
+                                                // 1970-01-01 07:00:00 -0500
+      ts = rs.getTimestamp(c, cGMT13);
+      assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
+                                                // 1970-01-02 01:00:00 +1300
+      ++c;
+    }
+
+    // date: 2005-01-01
+    ts = rs.getTimestamp(c);
+    assertEquals(1104534000000L, ts.getTime()); // 2005-01-01 00:00:00 +0100
+    ts = rs.getTimestamp(c, cUTC);
+    assertEquals(1104537600000L, ts.getTime()); // 2005-01-01 00:00:00 +0000
+    ts = rs.getTimestamp(c, cGMT03);
+    assertEquals(1104526800000L, ts.getTime()); // 2005-01-01 00:00:00 +0300
+    ts = rs.getTimestamp(c, cGMT05);
+    assertEquals(1104555600000L, ts.getTime()); // 2005-01-01 00:00:00 -0500
+    ts = rs.getTimestamp(c, cGMT13);
+    assertEquals(1104490800000L, ts.getTime()); // 2005-01-01 00:00:00 +1300
+    s = rs.getString(c);
+    assertEquals("2005-01-01", s);              // 2005-01-01 00:00:00 +0100
+    ++c;
+
+    assertTrue(!rs.next());
   }
 
   public static class HrSchema {

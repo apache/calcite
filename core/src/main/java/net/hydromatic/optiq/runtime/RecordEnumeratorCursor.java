@@ -56,7 +56,7 @@ public class RecordEnumeratorCursor<E> extends AbstractCursor {
     enumerator.close();
   }
 
-  class RecordEnumeratorGetter implements Getter {
+  class RecordEnumeratorGetter extends AbstractGetter {
     protected final Field field;
 
     public RecordEnumeratorGetter(Field field) {
@@ -72,10 +72,6 @@ public class RecordEnumeratorCursor<E> extends AbstractCursor {
       }
       wasNull[0] = (o == null);
       return o;
-    }
-
-    public boolean wasNull() {
-      return wasNull[0];
     }
   }
 }

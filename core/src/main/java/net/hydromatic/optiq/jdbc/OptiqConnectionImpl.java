@@ -56,28 +56,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
 
   final ParameterExpression rootExpression =
       Expressions.parameter(DataContext.class, "root");
-  final MutableSchema rootSchema =
-      new MapSchema(null, this, typeFactory, "", rootExpression) {
-        // Store the time at which the query started executing. The SQL
-        // standard says that functions such as CURRENTTIMESTAMP return the
-        // same value throughout the query.
-        final long time = System.currentTimeMillis();
-        final long localOffset =
-            Calendar.getInstance().getTimeZone().getOffset(time);
-        final long currentOffset = localOffset;
-        private final ImmutableMap<Object, Object> map =
-            ImmutableMap.builder()
-                .put("utcTimestamp", time)
-                .put("currentTimestamp", time + currentOffset)
-                .put("localTimestamp", time + localOffset)
-                .build();
-
-        @Override
-        public synchronized Object get(String name) {
-          return map.get(name);
-        }
-      };
-
+  final MutableSchema rootSchema;
   final UnregisteredDriver driver;
   final net.hydromatic.optiq.jdbc.Factory factory;
   final Function0<OptiqPrepare> prepareFactory;
@@ -113,6 +92,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
     this.info = info;
     this.metaData = factory.newDatabaseMetaData(this);
     this.holdability = metaData.getResultSetHoldability();
+    this.rootSchema = new RootSchema(this);
     this.informationSchema = metaData.meta.createInformationSchema();
   }
 
@@ -488,6 +468,45 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
 
     public void addStatement(OptiqServerStatement statement) {
       statementList.add(statement);
+    }
+  }
+
+  private static class RootSchema extends MapSchema {
+    private final ImmutableMap<Object, Object> map;
+
+    RootSchema(OptiqConnectionImpl connection) {
+      super(
+          null,
+          connection,
+          connection.typeFactory,
+          "",
+          connection.rootExpression);
+
+      // Store the time at which the query started executing. The SQL
+      // standard says that functions such as CURRENTTIMESTAMP return the
+      // same value throughout the query.
+      final long time = System.currentTimeMillis();
+      final String timeZoneName =
+          ConnectionProperty.TIMEZONE.getString(connection.getProperties());
+      final TimeZone timeZone =
+          timeZoneName == null
+              ? TimeZone.getDefault()
+              : TimeZone.getTimeZone(timeZoneName);
+      final long localOffset = timeZone.getOffset(time);
+      final long currentOffset = localOffset;
+
+      map = ImmutableMap.builder()
+          .put("utcTimestamp", time)
+          .put("currentTimestamp", time + currentOffset)
+          .put("localTimestamp", time + localOffset)
+          .put("timeZone", timeZone)
+          .build();
+    }
+
+    @Override
+    public synchronized Object get(String name) {
+      System.out.println(map);
+      return map.get(name);
     }
   }
 }

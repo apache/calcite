@@ -28,8 +28,6 @@ import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.Hook;
 
-import net.hydromatic.optiq.runtime.SqlFunctions;
-
 import org.apache.commons.dbcp.BasicDataSource;
 
 import org.eigenbase.util.Pair;
@@ -353,13 +351,14 @@ public class OptiqAssert {
 
   static String toString(ResultSet resultSet) throws SQLException {
     final StringBuilder buf = new StringBuilder();
+    final ResultSetMetaData metaData = resultSet.getMetaData();
     while (resultSet.next()) {
-      int n = resultSet.getMetaData().getColumnCount();
+      int n = metaData.getColumnCount();
       if (n > 0) {
         for (int i = 1;; i++) {
-          buf.append(resultSet.getMetaData().getColumnLabel(i))
+          buf.append(metaData.getColumnLabel(i))
               .append("=")
-              .append(str(resultSet, i));
+              .append(resultSet.getString(i));
           if (i == n) {
             break;
           }
@@ -380,7 +379,7 @@ public class OptiqAssert {
         for (int i = 1;; i++) {
           buf.append(resultSet.getMetaData().getColumnLabel(i))
               .append("=")
-              .append(str(resultSet, i));
+              .append(resultSet.getString(i));
           if (i == n) {
             break;
           }
@@ -391,33 +390,6 @@ public class OptiqAssert {
       buf.setLength(0);
     }
     return list;
-  }
-
-  private static String str(ResultSet resultSet, int i) throws SQLException {
-    final int columnType = resultSet.getMetaData().getColumnType(i);
-    switch (columnType) {
-    case Types.DATE:
-      // Avoid differences between SQL datetime formats and Java datetime
-      // formats, and in particular automatic offset into local timezone, by
-      // going straight from int to String, avoiding java.sql.Date, Time and
-      // Timestamp.
-      final int date = resultSet.getInt(i);
-      return date == 0 && resultSet.wasNull()
-          ? "null"
-          : SqlFunctions.unixDateToString(date);
-    case Types.TIME:
-      final int time = resultSet.getInt(i);
-      return time == 0 && resultSet.wasNull()
-          ? "null"
-          : SqlFunctions.unixTimeToString(time);
-    case Types.TIMESTAMP:
-      final long timestamp = resultSet.getLong(i);
-      return timestamp == 0 && resultSet.wasNull()
-          ? "null"
-          : SqlFunctions.unixTimestampToString(timestamp);
-    default:
-      return String.valueOf(resultSet.getObject(i));
-    }
   }
 
   /** Calls a non-static method via reflection. Useful for testing methods that

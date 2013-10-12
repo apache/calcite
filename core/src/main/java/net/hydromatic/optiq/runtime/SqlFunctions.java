@@ -1008,9 +1008,15 @@ public class SqlFunctions {
   /** Helper for CAST({timestamp} AS VARCHAR(n)). */
   public static String unixTimestampToString(long timestamp) {
     final StringBuilder buf = new StringBuilder(17);
-    unixDateToString(buf, (int) (timestamp / DateTimeUtil.MILLIS_PER_DAY));
+    int date = (int) (timestamp / DateTimeUtil.MILLIS_PER_DAY);
+    int time = (int) (timestamp % DateTimeUtil.MILLIS_PER_DAY);
+    if (time < 0) {
+      --date;
+      time += DateTimeUtil.MILLIS_PER_DAY;
+    }
+    unixDateToString(buf, date);
     buf.append(' ');
-    unixTimeToString(buf, (int) (timestamp % DateTimeUtil.MILLIS_PER_DAY));
+    unixTimeToString(buf, time);
     return buf.toString();
   }
 
@@ -1042,12 +1048,22 @@ public class SqlFunctions {
 
   /** SQL {@code CURRENT_TIME} function. */
   public static int currentTime(DataContext root) {
-    return (int) (currentTimestamp(root) % DateTimeUtil.MILLIS_PER_DAY);
+    int time = (int) (currentTimestamp(root) % DateTimeUtil.MILLIS_PER_DAY);
+    if (time < 0) {
+      time += DateTimeUtil.MILLIS_PER_DAY;
+    }
+    return time;
   }
 
   /** SQL {@code CURRENT_DATE} function. */
   public static int currentDate(DataContext root) {
-    return (int) (currentTimestamp(root) / DateTimeUtil.MILLIS_PER_DAY);
+    final long timestamp = currentTimestamp(root);
+    int date = (int) (timestamp / DateTimeUtil.MILLIS_PER_DAY);
+    final int time = (int) (timestamp % DateTimeUtil.MILLIS_PER_DAY);
+    if (time < 0) {
+      --date;
+    }
+    return date;
   }
 
   /** SQL {@code LOCAL_TIMESTAMP} function. */
