@@ -205,6 +205,23 @@ public final class Schemas {
       public OptiqPrepare.SparkHandler spark() {
         return OptiqPrepare.Dummy.getSparkHandler();
       }
+
+      public DataContext createDataContext() {
+        // Create a dummy DataContext that has no variables.
+        return new DataContext() {
+          public Schema getRootSchema() {
+            return connection.getRootSchema();
+          }
+
+          public JavaTypeFactory getTypeFactory() {
+            return schema.getTypeFactory();
+          }
+
+          public Object get(String name) {
+            return null;
+          }
+        };
+      }
     };
   }
 }

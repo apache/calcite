@@ -67,10 +67,6 @@ class SplunkTable<T>
     return schema.queryProvider;
   }
 
-  public DataContext getDataContext() {
-    return schema;
-  }
-
   public Type getElementType() {
     return elementType;
   }

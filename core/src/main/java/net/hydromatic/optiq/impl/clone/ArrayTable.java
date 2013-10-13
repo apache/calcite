@@ -67,10 +67,6 @@ class ArrayTable<T>
     assert relDataType.getFieldCount() == columns.size();
   }
 
-  public DataContext getDataContext() {
-    return schema;
-  }
-
   public RelDataType getRowType() {
     return relDataType;
   }

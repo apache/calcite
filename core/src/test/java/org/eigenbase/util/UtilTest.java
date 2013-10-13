@@ -1042,6 +1042,17 @@ public class UtilTest {
                 Mappings.create(MappingType.PartialSurjection, 4, 4)));
     }
 
+    /** Unit test for {@link Util#toCamelCase(String)}. */
+    @Test public void testToCamelCase() {
+        assertEquals("myJdbcDriver", Util.toCamelCase("MY_JDBC_DRIVER"));
+        assertEquals("myJdbcDriver", Util.toCamelCase("MY_JDBC__DRIVER"));
+        assertEquals("myJdbcDriver", Util.toCamelCase("my_jdbc_driver"));
+        assertEquals("abCdefGHij", Util.toCamelCase("ab_cdEf_g_Hij"));
+        assertEquals("JdbcDriver", Util.toCamelCase("_JDBC_DRIVER"));
+        assertEquals("", Util.toCamelCase("_"));
+        assertEquals("", Util.toCamelCase(""));
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     /**

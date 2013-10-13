@@ -52,10 +52,6 @@ class ListTable<T>
     this.list = list;
   }
 
-  public DataContext getDataContext() {
-    return schema;
-  }
-
   public RelDataType getRowType() {
     return relDataType;
   }

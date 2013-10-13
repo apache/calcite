@@ -85,7 +85,7 @@ public class OptiqAssert {
 
         @Override
         public AssertQuery query(String sql) {
-          return ASD(sql);
+          return NopAssertQuery.of(sql);
         }
 
         @Override
@@ -114,51 +114,6 @@ public class OptiqAssert {
           return this;
         }
       };
-
-  /** Returns an implementation of {@link AssertQuery} that does nothing. */
-  private static AssertQuery ASD(final String sql) {
-    return new AssertQuery(null, sql) {
-      @Override
-      protected Connection createConnection() throws Exception {
-        throw new AssertionError("disabled");
-      }
-
-      @Override
-      public AssertQuery returns(String expected) {
-        return this;
-      }
-
-      @Override
-      public AssertQuery returns(Function1<ResultSet, Void> checker) {
-        return this;
-      }
-
-      @Override
-      public AssertQuery throws_(String message) {
-        return this;
-      }
-
-      @Override
-      public AssertQuery runs() {
-        return this;
-      }
-
-      @Override
-      public AssertQuery explainContains(String expected) {
-        return this;
-      }
-
-      @Override
-      public AssertQuery planContains(String expected) {
-        return this;
-      }
-
-      @Override
-      public AssertQuery planHasSql(String expected) {
-        return this;
-      }
-    };
-  }
 
   public static AssertThat assertThat() {
     return new AssertThat(Config.REGULAR);
@@ -882,6 +837,58 @@ public class OptiqAssert {
 
     /** Configuration that loads Spark. */
     SPARK,
+  }
+
+  /** Implementation of {@link AssertQuery} that does nothing. */
+  private static class NopAssertQuery extends AssertQuery {
+    private NopAssertQuery(String sql) {
+      super(null, sql);
+    }
+
+    /** Returns an implementation of {@link AssertQuery} that does nothing. */
+    static AssertQuery of(final String sql) {
+      return new NopAssertQuery(sql);
+    }
+
+    @Override
+    protected Connection createConnection() throws Exception {
+      throw new AssertionError("disabled");
+    }
+
+    @Override
+    public AssertQuery returns(String expected) {
+      return this;
+    }
+
+    @Override
+    public AssertQuery returns(Function1<ResultSet, Void> checker) {
+      return this;
+    }
+
+    @Override
+    public AssertQuery throws_(String message) {
+      return this;
+    }
+
+    @Override
+    public AssertQuery runs() {
+      return this;
+    }
+
+    @Override
+    public AssertQuery explainContains(String expected) {
+      return this;
+    }
+
+    @Override
+    public AssertQuery planContains(String expected) {
+      return this;
+    }
+
+    @Override
+    public AssertQuery planHasSql(String expected) {
+      return this;
+    }
   }
 }
 

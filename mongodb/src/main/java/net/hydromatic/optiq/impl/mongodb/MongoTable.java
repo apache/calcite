@@ -61,10 +61,6 @@ public class MongoTable extends AbstractQueryable<Object>
     return schema.getQueryProvider();
   }
 
-  public MongoSchema getDataContext() {
-    return schema;
-  }
-
   public Class getElementType() {
     return Object[].class;
   }

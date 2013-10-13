@@ -131,10 +131,6 @@ public class MapSchema implements MutableSchema {
     return name;
   }
 
-  public Object get(String name) {
-    return parentSchema.get(name);
-  }
-
   public JavaTypeFactory getTypeFactory() {
     return typeFactory;
   }
@@ -207,7 +203,7 @@ public class MapSchema implements MutableSchema {
     Expression call =
         Expressions.call(
             getExpression(),
-            BuiltinMethod.GET_SUB_SCHEMA.method,
+            BuiltinMethod.SCHEMA_GET_SUB_SCHEMA.method,
             Expressions.constant(name));
     //noinspection unchecked
     if (type != null && !type.isAssignableFrom(Schema.class)) {

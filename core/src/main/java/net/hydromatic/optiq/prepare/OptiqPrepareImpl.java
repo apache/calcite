@@ -416,7 +416,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           new OptiqCatalogReader(
               Schemas.root(schema),
               butLast(materialization.materializedTable.path()),
-              schema.getTypeFactory());
+              context.getTypeFactory());
       final OptiqPreparingStmt preparingStmt =
           new OptiqPreparingStmt(context, catalogReader,
               catalogReader.getTypeFactory(),
@@ -686,7 +686,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
         @Override
         public Object bind() {
-          return bindable.bind(schema);
+          DataContext dataContext = context.createDataContext();
+          return bindable.bind(dataContext);
         }
 
         @Override

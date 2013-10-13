@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.function.Function0;
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.runtime.*;
 
 import java.io.InputStream;
@@ -73,8 +74,8 @@ public class OptiqResultSet implements ResultSet {
     for (ColumnMetaData column : columnMetaDataList) {
       columnNameMap.put(column.label, columnNameMap.size());
     }
-    final TimeZone timeZone =
-        (TimeZone) statement.connection.rootSchema.get("timeZone");
+    final DataContext dataContext = statement.connection.createDataContext();
+    final TimeZone timeZone = DataContext.Variable.TIME_ZONE.get(dataContext);
     this.localCalendar = Calendar.getInstance(timeZone);
   }
 

@@ -109,7 +109,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
                 ImmutableList.<String>of(),
                 call.targetExpression));
 
-      case DATA_CONTEXT_GET_TABLE:
+      case SCHEMA_GET_TABLE:
         return new TableAccessRel(
             cluster,
             new OptiqPrepareImpl.RelOptTableImpl(

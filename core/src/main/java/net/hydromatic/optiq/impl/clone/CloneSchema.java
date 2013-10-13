@@ -94,7 +94,7 @@ public class CloneSchema extends MapSchema {
         rowType,
         Expressions.call(
             schema.getExpression(),
-            BuiltinMethod.DATA_CONTEXT_GET_TABLE.method,
+            BuiltinMethod.SCHEMA_GET_TABLE.method,
             Expressions.constant(name),
             Expressions.constant(Types.toClass(elementType))),
         loader.representationValues,

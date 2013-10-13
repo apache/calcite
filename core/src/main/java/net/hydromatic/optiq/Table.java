@@ -28,8 +28,6 @@ import org.eigenbase.reltype.RelDataType;
  * @see TableFunction
  */
 public interface Table<T> extends Queryable<T> {
-  DataContext getDataContext();
-
   RelDataType getRowType();
 
   /** Returns a provider of statistics about this table. */

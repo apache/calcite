@@ -28,6 +28,7 @@ import net.hydromatic.optiq.runtime.*;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -492,7 +493,7 @@ public class Meta {
     public NamedFieldGetter(Class clazz, String... names) {
       for (String name : names) {
         final int index = fields.size();
-        final String fieldName = uncamel(name);
+        final String fieldName = Util.toCamelCase(name);
         final Field field;
         try {
           field = clazz.getField(fieldName);
@@ -517,25 +518,6 @@ public class Meta {
 
     private Pair<Integer, String> lookupType(Class<?> type) {
       return MAP.get(type);
-    }
-
-    private String uncamel(String name) {
-      StringBuilder buf = new StringBuilder();
-      int nextUpper = -1;
-      for (int i = 0; i < name.length(); i++) {
-        char c = name.charAt(i);
-        if (c == '_') {
-          nextUpper = i + 1;
-          continue;
-        }
-        if (nextUpper == i) {
-          c = Character.toUpperCase(c);
-        } else {
-          c = Character.toLowerCase(c);
-        }
-        buf.append(c);
-      }
-      return buf.toString();
     }
 
     Object get(Object o, int columnIndex) {
@@ -589,10 +571,6 @@ public class Meta {
       this.tableName = tableName;
       this.clazz = clazz;
       this.connection = connection;
-    }
-
-    public DataContext getDataContext() {
-      return schema;
     }
 
     public RelDataType getRowType() {

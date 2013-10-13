@@ -59,10 +59,6 @@ public abstract class AbstractTable<T>
     return schema.getQueryProvider();
   }
 
-  public DataContext getDataContext() {
-    return schema;
-  }
-
   // Default implementation. Override if you have statistics.
   public Statistic getStatistic() {
     return Statistics.UNKNOWN;
@@ -79,7 +75,7 @@ public abstract class AbstractTable<T>
   public Expression getExpression() {
     return Expressions.call(
         schema.getExpression(),
-        BuiltinMethod.DATA_CONTEXT_GET_TABLE.method,
+        BuiltinMethod.SCHEMA_GET_TABLE.method,
         Expressions.<Expression>list()
             .append(Expressions.constant(tableName))
             .appendIf(

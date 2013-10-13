@@ -2198,7 +2198,28 @@ public class Util
         };
     }
 
-    //~ Inner Classes ----------------------------------------------------------
+  /** Converts an underscore-separated name into a camelCase name.
+   * For example, {@code uncamel("MY_JDBC_DRIVER")} returns "myJdbcDriver". */
+  public static String toCamelCase(String name) {
+    StringBuilder buf = new StringBuilder();
+    int nextUpper = -1;
+    for (int i = 0; i < name.length(); i++) {
+      char c = name.charAt(i);
+      if (c == '_') {
+        nextUpper = i + 1;
+        continue;
+      }
+      if (nextUpper == i) {
+        c = Character.toUpperCase(c);
+      } else {
+        c = Character.toLowerCase(c);
+      }
+      buf.append(c);
+    }
+    return buf.toString();
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
 
     /**
      * Exception used to interrupt a tree walk of any kind.

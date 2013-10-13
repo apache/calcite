@@ -19,20 +19,14 @@ package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.linq4j.expressions.ClassDeclaration;
 import net.hydromatic.linq4j.function.Function0;
 
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.*;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.*;
-import org.eigenbase.relopt.volcano.VolcanoPlanner;
-import org.eigenbase.util.Pair;
-
-import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
 import java.util.*;
 
@@ -432,6 +426,10 @@ public abstract class OptiqStatement
 
     public Schema getRootSchema() {
       return connection.getRootSchema();
+    }
+
+    public DataContext createDataContext() {
+      return connection.createDataContext();
     }
 
     public List<String> getDefaultSchemaPath() {

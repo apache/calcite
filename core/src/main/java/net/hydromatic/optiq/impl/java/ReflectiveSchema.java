@@ -112,7 +112,7 @@ public class ReflectiveSchema
   }
 
   /** Returns the wrapped object. (May not appear to be used, but is used in
-   * generated code via {@link BuiltinMethod#GET_TARGET}.) */
+   * generated code via {@link BuiltinMethod#REFLECTIVE_SCHEMA_GET_TARGET}.) */
   public Object getTarget() {
     return target;
   }
@@ -195,7 +195,7 @@ public class ReflectiveSchema
             Types.castIfNecessary(
                 ReflectiveSchema.class,
                 getExpression()),
-            BuiltinMethod.GET_TARGET.method));
+            BuiltinMethod.REFLECTIVE_SCHEMA_GET_TARGET.method));
   }
 
   /** Returns a table based on a particular field of this schema. If the
@@ -272,10 +272,6 @@ public class ReflectiveSchema
       super(schema.getQueryProvider(), elementType, expression);
       this.schema = schema;
       this.relDataType = relDataType;
-    }
-
-    public DataContext getDataContext() {
-      return schema;
     }
 
     public RelDataType getRowType() {

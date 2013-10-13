@@ -56,6 +56,9 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
 
   final ParameterExpression rootExpression =
       Expressions.parameter(DataContext.class, "root");
+  final Expression rootSchemaExpression =
+      Expressions.call(rootExpression,
+          BuiltinMethod.DATA_CONTEXT_GET_ROOT_SCHEMA.method);
   final MutableSchema rootSchema;
   final UnregisteredDriver driver;
   final net.hydromatic.optiq.jdbc.Factory factory;
@@ -446,6 +449,10 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
     return iface.isInstance(this);
   }
 
+  public DataContext createDataContext() {
+    return new DataContextImpl(this, (RootSchema) rootSchema);
+  }
+
   static class OptiqQueryable<T>
       extends BaseQueryable<T> {
     public OptiqQueryable(
@@ -480,7 +487,7 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
           connection,
           connection.typeFactory,
           "",
-          connection.rootExpression);
+          connection.rootSchemaExpression);
 
       // Store the time at which the query started executing. The SQL
       // standard says that functions such as CURRENTTIMESTAMP return the
@@ -503,10 +510,53 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
           .build();
     }
 
-    @Override
     public synchronized Object get(String name) {
-      System.out.println(map);
       return map.get(name);
+    }
+
+    public Schema getRootSchema() {
+      return this;
+    }
+  }
+
+  static class DataContextImpl implements DataContext {
+    private final ImmutableMap<Object, Object> map;
+    private final RootSchema rootSchema;
+
+    DataContextImpl(OptiqConnectionImpl connection, RootSchema rootSchema) {
+      this.rootSchema = rootSchema;
+
+      // Store the time at which the query started executing. The SQL
+      // standard says that functions such as CURRENTTIMESTAMP return the
+      // same value throughout the query.
+      final long time = System.currentTimeMillis();
+      final String timeZoneName =
+          ConnectionProperty.TIMEZONE.getString(connection.getProperties());
+      final TimeZone timeZone =
+          timeZoneName == null
+              ? TimeZone.getDefault()
+              : TimeZone.getTimeZone(timeZoneName);
+      final long localOffset = timeZone.getOffset(time);
+      final long currentOffset = localOffset;
+
+      map = ImmutableMap.builder()
+          .put("utcTimestamp", time)
+          .put("currentTimestamp", time + currentOffset)
+          .put("localTimestamp", time + localOffset)
+          .put("timeZone", timeZone)
+          .build();
+    }
+
+    public synchronized Object get(String name) {
+      return map.get(name);
+    }
+
+    public Schema getRootSchema() {
+      return rootSchema;
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+      return rootSchema.getTypeFactory();
     }
   }
 }

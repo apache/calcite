@@ -1043,7 +1043,7 @@ public class SqlFunctions {
 
   /** SQL {@code CURRENT_TIMESTAMP} function. */
   public static long currentTimestamp(DataContext root) {
-    return (Long) root.get("currentTimestamp");
+    return DataContext.Variable.CURRENT_TIMESTAMP.get(root);
   }
 
   /** SQL {@code CURRENT_TIME} function. */
@@ -1068,7 +1068,7 @@ public class SqlFunctions {
 
   /** SQL {@code LOCAL_TIMESTAMP} function. */
   public static long localTimestamp(DataContext root) {
-    return (Long) root.get("localTimestamp");
+    return DataContext.Variable.LOCAL_TIMESTAMP.get(root);
   }
 
   /** SQL {@code LOCAL_TIME} function. */

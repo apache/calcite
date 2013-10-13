@@ -17,9 +17,10 @@
 */
 package net.hydromatic.optiq;
 
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.QueryProvider;
+import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
+
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import com.google.common.collect.Multimap;
 
@@ -56,7 +57,7 @@ import java.util.*;
  * <p>A schema may be nested within another schema; see
  * {@link Schema#getSubSchema(String)}.</p>
  */
-public interface Schema extends DataContext {
+public interface Schema {
   /**
    * Returns the parent schema, or null if this schema has no parent.
    */
@@ -80,7 +81,7 @@ public interface Schema extends DataContext {
   Collection<TableFunctionInSchema> getTableFunctions(String name);
 
   /**
-   * Returns a table with the given name, or null.
+   * Returns a table with a given name and element type, or null if not found.
    *
    * @param name Table name
    * @param elementType Element type
@@ -94,9 +95,16 @@ public interface Schema extends DataContext {
 
   Multimap<String, TableFunctionInSchema> getTableFunctions();
 
+  /**
+   * Returns a sub-schema with a given name, or null.
+   */
+  Schema getSubSchema(String name);
+
   Collection<String> getSubSchemaNames();
 
   Map<String, TableInSchema> getTables();
+
+  JavaTypeFactory getTypeFactory();
 
   abstract class ObjectInSchema {
     public final Schema schema;

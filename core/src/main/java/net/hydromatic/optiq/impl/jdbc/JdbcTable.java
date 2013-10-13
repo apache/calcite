@@ -75,10 +75,6 @@ class JdbcTable extends AbstractQueryable<Object[]>
     return schema.queryProvider;
   }
 
-  public DataContext getDataContext() {
-    return schema;
-  }
-
   public Type getElementType() {
     return Object[].class;
   }
@@ -86,7 +82,7 @@ class JdbcTable extends AbstractQueryable<Object[]>
   public Expression getExpression() {
     return Expressions.call(
         schema.getExpression(),
-        BuiltinMethod.DATA_CONTEXT_GET_TABLE.method,
+        BuiltinMethod.SCHEMA_GET_TABLE.method,
         Expressions.constant(tableName),
         Expressions.constant(getElementType()));
   }
