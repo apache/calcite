@@ -18,7 +18,6 @@
 package net.hydromatic.optiq.impl.spark;
 
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
-import net.hydromatic.optiq.rules.java.EnumerableRel;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.convert.ConverterRule;
