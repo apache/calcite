@@ -37,6 +37,26 @@
           </excludes>
         </configuration>
       </plugin>
+
+      <!-- Parent module has the same plugin and does the work of
+           generating -sources.jar for each project. But without the
+           plugin declared here, IDEs don't know the sources are
+           available. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>2.2.1</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>jar-no-fork</goal>
+              <goal>test-jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>
