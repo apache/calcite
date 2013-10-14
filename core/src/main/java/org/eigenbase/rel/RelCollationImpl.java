@@ -41,20 +41,22 @@ public class RelCollationImpl
      * columns.
      */
     public static final RelCollation EMPTY =
-        new RelCollationImpl(ImmutableList.<RelFieldCollation>of());
+        RelCollationTraitDef.INSTANCE.canonize(
+            new RelCollationImpl(ImmutableList.<RelFieldCollation>of()));
 
     /**
      * A collation that cannot be replicated by applying a sort. The only
      * implementation choice is to apply operations that preserve order.
      */
     public static final RelCollation PRESERVE =
-        new RelCollationImpl(
-            ImmutableList.<RelFieldCollation>of(new RelFieldCollation(-1)))
-        {
-            public String toString() {
-                return "PRESERVE";
-            }
-        };
+        RelCollationTraitDef.INSTANCE.canonize(
+            new RelCollationImpl(
+                ImmutableList.<RelFieldCollation>of(new RelFieldCollation(-1)))
+            {
+                public String toString() {
+                    return "PRESERVE";
+                }
+            });
 
     //~ Instance fields --------------------------------------------------------
 

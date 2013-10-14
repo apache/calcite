@@ -102,7 +102,7 @@ public abstract class RelTraitDef<T extends RelTrait>
      *
      * @return a canonical RelTrait.
      */
-    public final RelTrait canonize(RelTrait trait)
+    public final T canonize(T trait)
     {
         assert getTraitClass().isInstance(trait)
             : getClass().getName()
@@ -114,7 +114,8 @@ public abstract class RelTraitDef<T extends RelTrait>
             if (canonicalTraitRef != null) {
                 // Make sure the canonical trait didn't disappear between
                 // containsKey and get.
-                RelTrait canonicalTrait = canonicalTraitRef.get();
+                @SuppressWarnings("unchecked")
+                T canonicalTrait = (T) canonicalTraitRef.get();
                 if (canonicalTrait != null) {
                     // Make sure the canonical trait didn't disappear between
                     // WeakHashMap.get() and WeakReference.get()
