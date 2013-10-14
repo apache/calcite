@@ -1043,7 +1043,8 @@ public class SqlFunctions {
 
   /** SQL {@code CURRENT_TIMESTAMP} function. */
   public static long currentTimestamp(DataContext root) {
-    return DataContext.Variable.CURRENT_TIMESTAMP.get(root);
+    // Cast required for JDK 1.6.
+    return (Long) DataContext.Variable.CURRENT_TIMESTAMP.get(root);
   }
 
   /** SQL {@code CURRENT_TIME} function. */
@@ -1068,7 +1069,8 @@ public class SqlFunctions {
 
   /** SQL {@code LOCAL_TIMESTAMP} function. */
   public static long localTimestamp(DataContext root) {
-    return DataContext.Variable.LOCAL_TIMESTAMP.get(root);
+    // Cast required for JDK 1.6.
+    return (Long) DataContext.Variable.LOCAL_TIMESTAMP.get(root);
   }
 
   /** SQL {@code LOCAL_TIME} function. */
