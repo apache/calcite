@@ -1684,6 +1684,57 @@ public class JdbcTest {
     connection.close();
   }
 
+  /** Tests that CURRENT_TIMESTAMP gives different values each time a statement
+   * is executed. */
+  @Test public void testCurrentTimestamp() throws Exception {
+    OptiqAssert.assertThat()
+        .with(
+            new OptiqAssert.ConnectionFactory() {
+              public OptiqConnection createConnection() throws Exception {
+                Class.forName("net.hydromatic.optiq.jdbc.Driver");
+                final Properties info = new Properties();
+                info.setProperty("timezone", "GMT+1:00");
+                return (OptiqConnection) DriverManager.getConnection(
+                    "jdbc:optiq:", info);
+              }
+            })
+        .doWithConnection(
+            new Function1<OptiqConnection, Void>() {
+              public Void apply(OptiqConnection connection) {
+                try {
+                  final PreparedStatement statement =
+                      connection.prepareStatement("VALUES CURRENT_TIMESTAMP");
+                  ResultSet resultSet;
+
+                  resultSet = statement.executeQuery();
+                  assertTrue(resultSet.next());
+                  String s0 = resultSet.getString(1);
+                  assertFalse(resultSet.next());
+
+                  try {
+                    Thread.sleep(1000);
+                  } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                  }
+
+                  resultSet = statement.executeQuery();
+                  assertTrue(resultSet.next());
+                  String s1 = resultSet.getString(1);
+                  assertFalse(resultSet.next());
+
+                  assertTrue(
+                      "\n"
+                      + "s0=" + s0 + "\n"
+                      + "s1=" + s1 + "\n",
+                      s0.compareTo(s1) < 0);
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+  }
+
   /** Test for timestamps and time zones, based on pgsql TimezoneTest. */
   @Test public void testGetTimestamp() throws Exception {
     OptiqAssert.assertThat()

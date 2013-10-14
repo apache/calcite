@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.Typed;
 
 import org.eigenbase.rel.*;
@@ -368,7 +369,7 @@ public abstract class Prepare {
       return rel;
     }
 
-    public abstract Object bind();
+    public abstract Bindable getBindable();
   }
 
   /**
@@ -404,7 +405,7 @@ public abstract class Prepare {
      *
      * @return producer of rows resulting from execution
      */
-    Object bind();
+    Bindable getBindable();
   }
 
   /**
@@ -458,7 +459,7 @@ public abstract class Prepare {
       return rootRel;
     }
 
-    public abstract Object bind();
+    public abstract Bindable getBindable();
   }
 
   /** Describes that a given SQL query is materialized by a given table.

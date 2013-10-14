@@ -19,9 +19,8 @@ package net.hydromatic.optiq.materialize;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.Schemas;
+
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.prepare.Prepare;
@@ -29,9 +28,8 @@ import net.hydromatic.optiq.prepare.Prepare;
 import org.eigenbase.reltype.RelDataType;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.sql.Connection;
+import java.util.*;
 
 /**
  * Manages the collection of materialized tables known to the system,
@@ -42,6 +40,9 @@ public class MaterializationService {
       new MaterializationService();
 
   private final MaterializationActor actor = new MaterializationActor();
+
+  private MaterializationService() {
+  }
 
   /** Defines a new materialization. Returns its key. */
   public MaterializationKey defineMaterialization(final Schema schema,
@@ -71,11 +72,17 @@ public class MaterializationService {
                   }
 
                   public Iterator<Object> iterator() {
-                    return prepareResult.iterator();
+                    final DataContext dataContext =
+                        Schemas.createDataContext(
+                            (Connection) schema.getQueryProvider());
+                    return prepareResult.iterator(dataContext);
                   }
 
                   public Enumerator<Object> enumerator() {
-                    return prepareResult.enumerator();
+                    final DataContext dataContext =
+                        Schemas.createDataContext(
+                            (Connection) schema.getQueryProvider());
+                    return prepareResult.enumerator(dataContext);
                   }
             });
         ((MutableSchema) schema).addTable(materializedTable);

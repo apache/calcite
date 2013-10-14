@@ -17,10 +17,7 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.linq4j.RawEnumerable;
+import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.ClassDeclaration;
 import net.hydromatic.linq4j.function.Function0;
 
@@ -171,42 +168,43 @@ public interface OptiqPrepare {
     public final List<Parameter> parameterList;
     public final RelDataType rowType;
     public final List<ColumnMetaData> columnList;
-    private final RawEnumerable<T> enumerable;
+    private final int maxRowCount;
+    private final Bindable<T> bindable;
     public final Class resultClazz;
 
     public PrepareResult(String sql,
         List<Parameter> parameterList,
         RelDataType rowType,
         List<ColumnMetaData> columnList,
-        RawEnumerable<T> enumerable,
+        int maxRowCount,
+        Bindable<T> bindable,
         Class resultClazz) {
       super();
       this.sql = sql;
       this.parameterList = parameterList;
       this.rowType = rowType;
       this.columnList = columnList;
-      this.enumerable = enumerable;
+      this.maxRowCount = maxRowCount;
+      this.bindable = bindable;
       this.resultClazz = resultClazz;
     }
 
-    public Enumerator<T> enumerator() {
-      return enumerable.enumerator();
-    }
-
-    public Iterator<T> iterator() {
-      if (enumerable instanceof Iterable) {
-        @SuppressWarnings("unchecked") final Iterable<T> iterable =
-            (Iterable) enumerable;
-        return iterable.iterator();
+    private Enumerable<T> getEnumerable(DataContext dataContext) {
+      Enumerable<T> enumerable = bindable.bind(dataContext);
+      if (maxRowCount >= 0) {
+        // Apply limit. In JDBC 0 means "no limit". But for us, -1 means
+        // "no limit", and 0 is a valid limit.
+        enumerable = enumerable.take(maxRowCount);
       }
-      return Linq4j.enumeratorIterator(enumerable.enumerator());
+      return enumerable;
     }
 
-    /** Returns the executable object. You may use this method to access the
-     * result of the preparation, but if you need to execute it please call
-     * {@link #enumerator()} or {@link #iterator()}. */
-    public Object getExecutable() {
-      return enumerable;
+    public Enumerator<T> enumerator(DataContext dataContext) {
+      return getEnumerable(dataContext).enumerator();
+    }
+
+    public Iterator<T> iterator(DataContext dataContext) {
+      return getEnumerable(dataContext).iterator();
     }
   }
 

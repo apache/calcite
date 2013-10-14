@@ -141,8 +141,8 @@ public class Meta {
       return connection.driver.factory.newResultSet(
           connection.createStatement(),
           columnGetter.columnNames,
-          new Function0<Cursor>() {
-            public Cursor apply() {
+          new Function1<DataContext, Cursor>() {
+            public Cursor apply(DataContext dataContext) {
               return columnGetter.cursor(
                   ((Enumerable) enumerable).enumerator());
             }

@@ -244,7 +244,12 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         ImmutableList.<Parameter>of(),
         x,
         getColumnMetaDataList(typeFactory, x, x, origins),
-        Linq4j.asEnumerable(list),
+        -1,
+        new Bindable<T>() {
+          public Enumerable<T> bind(DataContext dataContext) {
+            return Linq4j.asEnumerable(list);
+          }
+        },
         Integer.class);
   }
 
@@ -324,13 +329,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     final List<List<String>> originList = preparedResult.getFieldOrigins();
     final List<ColumnMetaData> columns =
         getColumnMetaDataList(typeFactory, x, jdbcType, originList);
-    Enumerable<T> enumerable =
-        (Enumerable<T>) preparedResult.bind();
-    if (maxRowCount >= 0) {
-      // Apply limit. In JDBC 0 means "no limit". But for us, -1 means
-      // "no limit", and 0 is a valid limit.
-      enumerable = enumerable.take(maxRowCount);
-    }
     Class resultClazz = null;
     if (preparedResult instanceof Typed) {
       resultClazz = (Class) ((Typed) preparedResult).getElementType();
@@ -340,7 +338,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         parameters,
         jdbcType,
         columns,
-        enumerable,
+        maxRowCount,
+        preparedResult.getBindable(),
         resultClazz);
   }
 
@@ -684,13 +683,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           throw new UnsupportedOperationException();
         }
 
-        @Override
-        public Object bind() {
-          DataContext dataContext = context.createDataContext();
-          return bindable.bind(dataContext);
+        public Bindable getBindable() {
+          return bindable;
         }
 
-        @Override
         public Type getElementType() {
           return ((Typed) bindable).getElementType();
         }
@@ -745,9 +741,13 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
 
     @Override
-    public Object bind() {
+    public Bindable getBindable() {
       final String explanation = getCode();
-      return Linq4j.singletonEnumerable(explanation);
+      return new Bindable() {
+        public Enumerable bind(DataContext dataContext) {
+          return Linq4j.singletonEnumerable(explanation);
+        }
+      };
     }
   }
 

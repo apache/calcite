@@ -20,6 +20,7 @@ package net.hydromatic.optiq.jdbc;
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.function.Function0;
+import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.Schema;
@@ -370,11 +371,11 @@ public abstract class OptiqStatement
     return openResultSet;
   }
 
-  private static Function0<Cursor> getCursorFactory(
+  private static Function1<DataContext, Cursor> getCursorFactory(
       final OptiqPrepare.PrepareResult prepareResult) {
-    return new Function0<Cursor>() {
-      public Cursor apply() {
-        Enumerator<?> enumerator = prepareResult.enumerator();
+    return new Function1<DataContext, Cursor>() {
+      public Cursor apply(DataContext dataContext) {
+        Enumerator<?> enumerator = prepareResult.enumerator(dataContext);
         //noinspection unchecked
         return prepareResult.columnList.size() == 1
             ? new ObjectEnumeratorCursor((Enumerator) enumerator)
@@ -408,7 +409,7 @@ public abstract class OptiqStatement
     return new ContextImpl(connection);
   }
 
-  protected <T> OptiqPrepare.PrepareResult prepare(Queryable<T> queryable) {
+  protected <T> OptiqPrepare.PrepareResult<T> prepare(Queryable<T> queryable) {
     final OptiqPrepare prepare = connection.prepareFactory.apply();
     return prepare.prepareQueryable(createPrepareContext(), queryable);
   }

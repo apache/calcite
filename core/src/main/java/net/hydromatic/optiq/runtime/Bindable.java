@@ -18,12 +18,13 @@
 package net.hydromatic.optiq.runtime;
 
 import net.hydromatic.linq4j.Enumerable;
+import net.hydromatic.linq4j.RawEnumerable;
 import net.hydromatic.optiq.DataContext;
 
 /**
  * Statement that can be bound to a {@link DataContext} and then executed.
  */
-public interface Bindable {
+public interface Bindable<T> {
   /**
    * Executes this statement and returns an enumerable which will yield rows.
    * The {@code environment} parameter provides the values in the root of the
@@ -32,7 +33,7 @@ public interface Bindable {
    * @param dataContext Environment that provides tables
    * @return Enumerable over rows
    */
-  Enumerable bind(DataContext dataContext);
+  Enumerable<T> bind(DataContext dataContext);
 }
 
 // End Bindable.java

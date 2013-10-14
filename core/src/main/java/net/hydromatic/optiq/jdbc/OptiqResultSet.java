@@ -17,7 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.linq4j.function.Function0;
+import net.hydromatic.linq4j.function.Function1;
+
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.runtime.*;
 
@@ -36,7 +37,7 @@ import java.util.*;
 public class OptiqResultSet implements ResultSet {
   private final OptiqStatement statement;
   private final List<ColumnMetaData> columnMetaDataList;
-  private final Function0<Cursor> cursorFactory;
+  private final Function1<DataContext, Cursor> cursorFactory;
   private final ResultSetMetaData resultSetMetaData;
   private final Calendar localCalendar;
 
@@ -61,7 +62,7 @@ public class OptiqResultSet implements ResultSet {
       OptiqStatement statement,
       List<ColumnMetaData> columnMetaDataList,
       ResultSetMetaData resultSetMetaData,
-      Function0<Cursor> cursorFactory) {
+      Function1<DataContext, Cursor> cursorFactory) {
     this.statement = statement;
     this.columnMetaDataList = columnMetaDataList;
     this.cursorFactory = cursorFactory;
@@ -152,7 +153,8 @@ public class OptiqResultSet implements ResultSet {
     statement.connection.driver.handler.onStatementExecute(
         statement, resultSink);
 
-    this.cursor = cursorFactory.apply();
+    final DataContext dataContext = statement.connection.createDataContext();
+    this.cursor = cursorFactory.apply(dataContext);
     this.accessorList =
         cursor.createAccessors(columnMetaDataList, localCalendar);
     accessorMap.clear();

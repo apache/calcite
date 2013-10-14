@@ -18,6 +18,9 @@
 package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.function.Function0;
+import net.hydromatic.linq4j.function.Function1;
+
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.runtime.ColumnMetaData;
 import net.hydromatic.optiq.runtime.Cursor;
 
@@ -93,7 +96,7 @@ class FactoryJdbc41 implements Factory {
   public OptiqResultSet newResultSet(
       OptiqStatement statement,
       List<ColumnMetaData> columnMetaDataList,
-      Function0<Cursor> cursorFactory) {
+      Function1<DataContext, Cursor> cursorFactory) {
     final ResultSetMetaData metaData =
         newResultSetMetaData(statement, columnMetaDataList);
     return new OptiqResultSet(

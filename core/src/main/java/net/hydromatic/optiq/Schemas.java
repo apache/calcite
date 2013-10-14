@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -160,6 +161,10 @@ public final class Schemas {
     }
   }
 
+  public static DataContext createDataContext(Connection schema) {
+    return new DummyDataContext((OptiqConnection) schema);
+  }
+
   /** Parses and validates a SQL query. For use within Optiq only. */
   public static OptiqPrepare.ParseResult parse(final Schema schema,
       final List<String> schemaPath, final String sql) {
@@ -208,21 +213,30 @@ public final class Schemas {
 
       public DataContext createDataContext() {
         // Create a dummy DataContext that has no variables.
-        return new DataContext() {
-          public Schema getRootSchema() {
-            return connection.getRootSchema();
-          }
-
-          public JavaTypeFactory getTypeFactory() {
-            return schema.getTypeFactory();
-          }
-
-          public Object get(String name) {
-            return null;
-          }
-        };
+        return new DummyDataContext(connection);
       }
     };
+  }
+
+  /** Dummy data context that has no variables. */
+  private static class DummyDataContext implements DataContext {
+    private final OptiqConnection connection;
+
+    public DummyDataContext(OptiqConnection connection) {
+      this.connection = connection;
+    }
+
+    public Schema getRootSchema() {
+      return connection.getRootSchema();
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+      return connection.getTypeFactory();
+    }
+
+    public Object get(String name) {
+      return null;
+    }
   }
 }
 
