@@ -67,10 +67,6 @@ public class CsvTable extends AbstractQueryable<Object[]>
     return schema.getQueryProvider();
   }
 
-  public DataContext getDataContext() {
-    return schema;
-  }
-
   public Class getElementType() {
     return Object[].class;
   }
