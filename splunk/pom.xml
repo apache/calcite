@@ -3,12 +3,12 @@
   <parent>
     <groupId>net.hydromatic</groupId>
     <artifactId>optiq-parent</artifactId>
-    <version>0.4.15</version>
+    <version>0.4.16-SNAPSHOT</version>
   </parent>
 
   <artifactId>optiq-splunk</artifactId>
   <packaging>jar</packaging>
-  <version>0.4.15</version>
+  <version>0.4.16-SNAPSHOT</version>
   <name>optiq-splunk</name>
   <description>Splunk adapter for Optiq; also a JDBC driver for Splunk.</description>
 
@@ -16,7 +16,7 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.4.15</version>
+      <version>0.4.16-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>net.sf.opencsv</groupId>
