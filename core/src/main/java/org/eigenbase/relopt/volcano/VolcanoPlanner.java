@@ -1162,12 +1162,13 @@ SUBSET_LOOP:
                         if (input instanceof RelSubset) {
                             final Iterator<RelNode> rels =
                                 inputSubset.getRels().iterator();
-                            assert rels.hasNext();
-                            input = rels.next();
-                            assert inputSubset.getTraitSet().equals(
-                                input.getTraitSet());
-                            assert inputSet.rels.contains(input);
-                            assert inputSet.subsets.contains(inputSubset);
+                            if (rels.hasNext()) {
+                                input = rels.next();
+                                assert inputSubset.getTraitSet().equals(
+                                    input.getTraitSet());
+                                assert inputSet.rels.contains(input);
+                                assert inputSet.subsets.contains(inputSubset);
+                            }
                         }
                     }
                     Double importance = relImportances.get(rel);

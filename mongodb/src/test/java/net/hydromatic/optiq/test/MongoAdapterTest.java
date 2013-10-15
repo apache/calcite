@@ -203,9 +203,8 @@ public class MongoAdapterTest {
             "STATE=AL; CITY=ACMAR\n"
             + "STATE=AL; CITY=ADAMSVILLE\n")
         .explainContains(
-            "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], STATE=[$t3], CITY=[$t0])\n"
-            + "  MongoToEnumerableConverter\n"
-            + "    MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project ...}>]])");
+            "PLAN=MongoToEnumerableConverter\n"
+            + "  MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{state: 1, city: 1}, {$project ...}>]])");
   }
 
   @Test public void testFilter() {
