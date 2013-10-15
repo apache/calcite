@@ -109,6 +109,20 @@ public class MongoAdapterTest {
     return true;
   }
 
+  @Test public void testSort() {
+      OptiqAssert.assertThat()
+      .enable(enabled())
+      .with(ZIPS)
+      .query("select * from zips order by state")
+//      .returns("EXPR$0=29467\n")
+      .explainContains("Bacon");
+//          "PLAN=EnumerableAggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
+//          + "  EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], $f0=[$t5])\n"
+//          + "    MongoToEnumerableConverter\n"
+//          + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project ...}>]])");
+      ;
+  }
+
   @Test public void testUnionPlan() {
     OptiqAssert.assertThat()
         .enable(enabled())

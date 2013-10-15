@@ -170,6 +170,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(SwapJoinRule.instance);
     planner.addRule(PushJoinThroughJoinRule.RIGHT);
     planner.addRule(PushJoinThroughJoinRule.LEFT);
+    planner.addRule(PushProjectPastSortRule.INSTANCE);
     planner.addRule(WindowedAggSplitterRule.INSTANCE);
     context.spark().registerRules(planner);
     return planner;

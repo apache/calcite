@@ -112,6 +112,22 @@ public class MongoToEnumerableConverter
               Expressions.call(
                   table, "aggregate", fields, ops));
     }
+
+//    // Add sorting to the enumerable
+//    if (mongoImplementor.sort.size() > 0) {
+//        final Expression sortOps =
+//            list.append(
+//                "sortOps",
+//                constantArrayList(Pair.right(mongoImplementor.sort)));
+//        enumerable =
+//            list.append(
+//                "sortedEnumerable",
+//                Expressions.call(
+//                    enumerable,
+//                    "sort",
+//                    sortOps));
+//    }
+
     list.add(
         Expressions.return_(null, enumerable));
     final PhysType physType =
