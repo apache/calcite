@@ -18,14 +18,14 @@
 package net.hydromatic.linq4j.expressions;
 
 import net.hydromatic.linq4j.Linq4j;
+import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Functions;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.AbstractList;
 import java.util.List;
 
 /**
@@ -156,40 +156,31 @@ public class ConstantExpression extends Expression {
     }
     if (value.getClass().isArray()) {
       writer.append("new ").append(value.getClass().getComponentType());
-      list(writer, new AbstractList<Object>() {
-        public Object get(int index) {
-          return Array.get(value, index);
-        }
-
-        public int size() {
-          return Array.getLength(value);
-        }
-      }, "[] {\n", ",\n", "}");
+      list(writer, Primitive.asList(value), "[] {\n", ",\n", "}");
       return writer;
     }
     Constructor constructor = matchingConstructor(value);
     if (constructor != null) {
       final Field[] fields = value.getClass().getFields();
       writer.append("new ").append(value.getClass());
-      list(writer, new AbstractList<Object>() {
-        public Object get(int index) {
-          try {
-            return fields[index].get(value);
-          } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-          }
-        }
-
-        public int size() {
-          return fields.length;
-        }
-      }, "(\n", ",\n", ")");
+      list(writer,
+          Functions.adapt(fields,
+              new Function1<Field, Object>() {
+                public Object apply(Field field) {
+                  try {
+                    return field.get(value);
+                  } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                  }
+                }
+              }),
+          "(\n", ",\n", ")");
       return writer;
     }
     return writer.append(value);
   }
 
-  private static void list(ExpressionWriter writer, List<Object> list,
+  private static void list(ExpressionWriter writer, List list,
       String begin, String sep, String end) {
     writer.begin(begin);
     for (int i = 0; i < list.size(); i++) {

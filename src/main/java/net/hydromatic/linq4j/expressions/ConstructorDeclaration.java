@@ -17,9 +17,11 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Functions;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.AbstractList;
 import java.util.List;
 
 /**
@@ -52,18 +54,20 @@ public class ConstructorDeclaration extends MemberDeclaration {
     if (!modifiers.isEmpty()) {
       writer.append(' ');
     }
-    writer.append(resultType).list("(", ", ", ")", new AbstractList<String>() {
-      public String get(int index) {
-        ParameterExpression parameter = parameters.get(index);
-        final String modifiers = Modifier.toString(parameter.modifier);
-        return modifiers + (modifiers.isEmpty() ? "" : " ")
-               + Types.className(parameter.getType()) + " " + parameter.name;
-      }
-
-      public int size() {
-        return parameters.size();
-      }
-    }).append(' ').append(body);
+    writer
+        .append(resultType)
+        .list("(", ", ", ")",
+            Functions.adapt(parameters,
+                new Function1<ParameterExpression, String>() {
+                  public String apply(ParameterExpression parameter) {
+                    final String modifiers =
+                        Modifier.toString(parameter.modifier);
+                    return modifiers + (modifiers.isEmpty() ? "" : " ")
+                        + Types.className(parameter.getType()) + " "
+                        + parameter.name;
+                  }
+                }))
+        .append(' ').append(body);
     writer.newlineAndIndent();
   }
 }

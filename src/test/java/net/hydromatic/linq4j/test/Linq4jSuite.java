@@ -18,6 +18,7 @@
 package net.hydromatic.linq4j.test;
 
 import net.hydromatic.linq4j.expressions.TypeTest;
+import net.hydromatic.linq4j.function.FunctionTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -31,6 +32,7 @@ import org.junit.runners.Suite;
     PrimitiveTest.class,
     Linq4jTest.class,
     ExpressionTest.class,
+    FunctionTest.class,
     TypeTest.class
 })
 public class Linq4jSuite {
