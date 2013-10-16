@@ -60,6 +60,8 @@ public abstract class FilterRelBase
     {
         super(cluster, traits, child);
         this.condition = condition;
+
+        assert RexUtil.isFlat(condition) : condition;
     }
 
     //~ Methods ----------------------------------------------------------------

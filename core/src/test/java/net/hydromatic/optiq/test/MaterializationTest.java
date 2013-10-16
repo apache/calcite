@@ -357,7 +357,7 @@ public class MaterializationTest {
                         SqlStdOperatorTable.notOperator,
                         i4))));
     checkSatisfiable(e8,
-        "AND(AND(AND(AND(=($0, 0), $2), $3), NOT(AND($2, $3, $4))), NOT($4))");
+        "AND(=($0, 0), $2, $3, NOT(AND($2, $3, $4)), NOT($4))");
   }
 
   private void checkNotSatisfiable(RexNode e) {

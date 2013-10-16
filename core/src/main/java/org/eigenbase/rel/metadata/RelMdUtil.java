@@ -445,10 +445,7 @@ public class RelMdUtil
 
         double artificialSel = 1.0;
 
-        List<RexNode> predList = new ArrayList<RexNode>();
-        RelOptUtil.decomposeConjunction(predicate, predList);
-
-        for (RexNode pred : predList) {
+        for (RexNode pred : RelOptUtil.conjunctions(predicate)) {
             if ((pred instanceof RexCall)
                 && (((RexCall) pred).getOperator()
                     == SqlStdOperatorTable.isNotNullOperator))
@@ -547,7 +544,7 @@ public class RelMdUtil
             }
         }
 
-        return RexUtil.andRexNodeList(rexBuilder, unionList);
+        return RexUtil.composeConjunction(rexBuilder, unionList, true);
     }
 
     /**
@@ -565,11 +562,9 @@ public class RelMdUtil
         RexNode pred1,
         RexNode pred2)
     {
-        List<RexNode> list1 = new ArrayList<RexNode>();
-        List<RexNode> list2 = new ArrayList<RexNode>();
+        List<RexNode> list1 = RelOptUtil.conjunctions(pred1);
+        List<RexNode> list2 = RelOptUtil.conjunctions(pred2);
         List<RexNode> minusList = new ArrayList<RexNode>();
-        RelOptUtil.decomposeConjunction(pred1, list1);
-        RelOptUtil.decomposeConjunction(pred2, list2);
 
         for (RexNode rex1 : list1) {
             boolean add = true;
@@ -584,7 +579,7 @@ public class RelMdUtil
             }
         }
 
-        return RexUtil.andRexNodeList(rexBuilder, minusList);
+        return RexUtil.composeConjunction(rexBuilder, minusList, true);
     }
 
     /**
@@ -729,8 +724,7 @@ public class RelMdUtil
             List<RexNode> leftFilters = new ArrayList<RexNode>();
             List<RexNode> rightFilters = new ArrayList<RexNode>();
             List<RexNode> joinFilters = new ArrayList<RexNode>();
-            List<RexNode> predList = new ArrayList<RexNode>();
-            RelOptUtil.decomposeConjunction(predicate, predList);
+            List<RexNode> predList = RelOptUtil.conjunctions(predicate);
 
             RelOptUtil.classifyFilters(
                 joinRel,
@@ -743,8 +737,10 @@ public class RelMdUtil
                 rightFilters);
 
             RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
-            leftPred = RexUtil.andRexNodeList(rexBuilder, leftFilters);
-            rightPred = RexUtil.andRexNodeList(rexBuilder, rightFilters);
+            leftPred =
+                RexUtil.composeConjunction(rexBuilder, leftFilters, true);
+            rightPred =
+                RexUtil.composeConjunction(rexBuilder, rightFilters, true);
         }
 
         distRowCount =

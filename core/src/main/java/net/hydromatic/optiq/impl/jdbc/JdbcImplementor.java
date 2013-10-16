@@ -34,6 +34,8 @@ import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.*;
 
 /**
@@ -174,10 +176,25 @@ public class JdbcImplementor {
           return op.createCall(POS, valueNode, new SqlNodeList(whenList, POS),
               new SqlNodeList(thenList, POS), elseNode);
         }
+        if (op instanceof SqlBinaryOperator && nodeList.size() > 2) {
+          // In RexNode trees, OR and AND have any number of children;
+          // SqlCall requires exactly 2. So, convert to a left-deep binary tree.
+          return createLeftCall(op, nodeList);
+        }
         return op.createCall(new SqlNodeList(nodeList, POS));
       } else {
         throw new AssertionError(rex);
       }
+    }
+
+    private SqlNode createLeftCall(SqlOperator op, List<SqlNode> nodeList) {
+      if (nodeList.size() == 2) {
+        return op.createCall(new SqlNodeList(nodeList, POS));
+      }
+      final List<SqlNode> butLast = nodeList.subList(0, nodeList.size() - 1);
+      final SqlNode last = nodeList.get(nodeList.size() - 1);
+      final SqlNode call = createLeftCall(op, butLast);
+      return op.createCall(new SqlNodeList(ImmutableList.of(call, last), POS));
     }
 
     private SqlNode toSql(RelDataType type) {

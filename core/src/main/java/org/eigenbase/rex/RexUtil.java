@@ -28,6 +28,10 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.*;
 
+import net.hydromatic.linq4j.function.*;
+
+import com.google.common.collect.ImmutableList;
+
 /**
  * Utility methods concerning row-expressions.
  *
@@ -37,6 +41,27 @@ import org.eigenbase.util.mapping.*;
  */
 public class RexUtil
 {
+    private static final Predicate1<RexNode> NOT_ALWAYS_TRUE_PREDICATE =
+        new Predicate1<RexNode>() {
+            public boolean apply(RexNode e) {
+                return !e.isAlwaysTrue();
+            }
+        };
+
+    private static final Predicate1<RexNode> NOT_ALWAYS_FALSE_PREDICATE =
+        new Predicate1<RexNode>() {
+            public boolean apply(RexNode e) {
+                return !e.isAlwaysFalse();
+            }
+        };
+
+    private static final Predicate1<RexNode> IS_FLAT_PREDICATE =
+        new Predicate1<RexNode>() {
+            public boolean apply(RexNode v1) {
+                return isFlat(v1);
+            }
+        };
+
     //~ Methods ----------------------------------------------------------------
 
     /**
@@ -512,13 +537,11 @@ public class RexUtil
     {
         return typeFactory.createStructType(
             new RelDataTypeFactory.FieldInfo() {
-                public int getFieldCount()
-                {
+                public int getFieldCount() {
                     return exprs.size();
                 }
 
-                public String getFieldName(int index)
-                {
+                public String getFieldName(int index) {
                     if (names == null) {
                         return "$f" + index;
                     }
@@ -529,8 +552,7 @@ public class RexUtil
                     return name;
                 }
 
-                public RelDataType getFieldType(int index)
-                {
+                public RelDataType getFieldType(int index) {
                     return exprs.get(index).getType();
                 }
             });
@@ -626,58 +648,46 @@ public class RexUtil
         return true;
     }
 
-    /**
-     * Creates an AND expression from a list of RexNodes
-     *
-     * @param rexList list of RexNodes
-     *
-     * @return AND'd expression
-     */
-    public static RexNode andRexNodeList(
-        RexBuilder rexBuilder,
-        List<RexNode> rexList)
+    /** Converts a collection of expressions into an AND.
+     * If there are zero expressions, returns TRUE.
+     * If there is one expression, returns just that expression.
+     * Removes expressions that always evaluate to TRUE. */
+    public static RexNode composeConjunction(
+        RexBuilder rexBuilder, List<RexNode> nodes, boolean nullOnEmpty)
     {
-        if (rexList.isEmpty()) {
-            return null;
+        List<RexNode> nodes2 = filter(nodes, NOT_ALWAYS_TRUE_PREDICATE);
+        switch (nodes2.size()) {
+        case 0:
+            return nullOnEmpty
+                ? null
+                : rexBuilder.makeLiteral(true);
+        case 1:
+            return nodes2.get(0);
+        default:
+            return rexBuilder.makeCall(
+                SqlStdOperatorTable.andOperator, nodes2);
         }
-
-        // create a right-deep tree to allow short-circuiting during
-        // expression evaluation
-        RexNode andExpr = rexList.get(rexList.size() - 1);
-        for (int i = rexList.size() - 2; i >= 0; i--) {
-            andExpr =
-                rexBuilder.makeCall(
-                    SqlStdOperatorTable.andOperator,
-                    rexList.get(i),
-                    andExpr);
-        }
-        return andExpr;
     }
 
-    /**
-     * Creates an OR expression from a list of RexNodes
-     *
-     * @param rexList list of RexNodes
-     *
-     * @return OR'd expression
-     */
-    public static RexNode orRexNodeList(
-        RexBuilder rexBuilder,
-        List<RexNode> rexList)
+    /** Converts a collection of expressions into an OR.
+     * If there are zero expressions, returns FALSE.
+     * If there is one expression, returns just that expression.
+     * Removes expressions that always evaluate to FALSE. */
+    public static RexNode composeDisjunction(
+        RexBuilder rexBuilder, List<RexNode> nodes, boolean nullOnEmpty)
     {
-        if (rexList.isEmpty()) {
-            return null;
+        List<RexNode> nodes2 = filter(nodes, NOT_ALWAYS_FALSE_PREDICATE);
+        switch (nodes2.size()) {
+        case 0:
+            return nullOnEmpty
+                ? null
+                : rexBuilder.makeLiteral(false);
+        case 1:
+            return nodes2.get(0);
+        default:
+            return rexBuilder.makeCall(
+                SqlStdOperatorTable.orOperator, nodes2);
         }
-
-        RexNode orExpr = rexList.get(rexList.size() - 1);
-        for (int i = rexList.size() - 2; i >= 0; i--) {
-            orExpr =
-                rexBuilder.makeCall(
-                    SqlStdOperatorTable.orOperator,
-                    rexList.get(i),
-                    orExpr);
-        }
-        return orExpr;
     }
 
     /**
@@ -849,6 +859,152 @@ public class RexUtil
         if (expr != null) {
             expr.accept(visitor);
         }
+    }
+
+    /** Converts a list of operands into a list that is flat with respect to
+     * the given operator. The operands are assumed to be flat already. */
+    static List<? extends RexNode> flatten(
+        List<? extends RexNode> exprs, SqlOperator op)
+    {
+        if (isFlat(exprs, op)) {
+            return exprs;
+        }
+        final List<RexNode> list = new ArrayList<RexNode>();
+        flattenRecurse(list, exprs, op);
+        return list;
+    }
+
+    /** Returns whether a call to {@code op} with {@code exprs} as arguments
+     * would be considered "flat".
+     *
+     * <p>For example, {@code isFlat([w, AND[x, y], z, AND)} returns false;
+     * <p>{@code isFlat([w, x, y, z], AND)} returns true.</p>
+     */
+    private static boolean isFlat(
+        List<? extends RexNode> exprs, final SqlOperator op)
+    {
+        return !isAssociative(op)
+            || !exists(
+                exprs,
+                new Predicate1<RexNode>() {
+                    public boolean apply(RexNode expr) {
+                        return isCallTo(expr, op);
+                    }
+                });
+    }
+
+    /** Returns false if the expression can be optimized by flattening
+     * calls to an associative operator such as AND and OR. */
+    public static boolean isFlat(RexNode expr) {
+        if (!(expr instanceof RexCall)) {
+            return true;
+        }
+        final RexCall call = (RexCall) expr;
+        return isFlat(call.getOperands(), call.getOperator())
+            && all(call.getOperands(), IS_FLAT_PREDICATE);
+    }
+
+    private static void flattenRecurse(
+        List<RexNode> list, List<? extends RexNode> exprs, SqlOperator op)
+    {
+        for (RexNode expr : exprs) {
+            if (expr instanceof RexCall
+                && ((RexCall) expr).getOperator() == op)
+            {
+                flattenRecurse(list, ((RexCall) expr).getOperands(), op);
+            } else {
+                list.add(expr);
+            }
+        }
+    }
+
+    /** Returns whether an operator is associative. AND is associative,
+     * which means that "(x AND y) and z" is equivalent to "x AND (y AND z)".
+     * We might well flatten the tree, and write "AND(x, y, z)". */
+    private static boolean isAssociative(SqlOperator op) {
+        return op.getKind() == SqlKind.AND
+            || op.getKind() == SqlKind.OR;
+    }
+
+    /** Returns a list that contains only elements of {@code list} that match
+     * {@code predicate}. Avoids allocating a list if all elements match or no
+     * elements match. */
+    public static <E> List<E> filter(List<E> list, Predicate1<E> predicate) {
+        Bug.upgrade("move to linq4j in linq4j-0.1.11");
+        sniff: {
+            int hitCount = 0, missCount = 0;
+            for (E e : list) {
+                if (predicate.apply(e)) {
+                    if (missCount > 0) {
+                        break sniff;
+                    }
+                    ++hitCount;
+                } else {
+                    if (hitCount > 0) {
+                        break sniff;
+                    }
+                    ++missCount;
+                }
+            }
+            if (hitCount == 0) {
+                return ImmutableList.of();
+            }
+            if (missCount == 0) {
+                return list;
+            }
+        }
+        final List<E> list2 = new ArrayList<E>(list.size());
+        for (E e : list) {
+            if (predicate.apply(e)) {
+                list2.add(e);
+            }
+        }
+        return list2;
+    }
+
+    /** Returns whether there is an element in {@code list} for which
+     * {@code predicate} is true. */
+    public static <E> boolean exists(
+        List<? extends E> list, Predicate1<E> predicate)
+    {
+        for (E e : list) {
+            if (predicate.apply(e)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Returns whether {@code predicate} is true for all elements of
+     * {@code list}. */
+    public static <E> boolean all(
+        List<? extends E> list, Predicate1<E> predicate)
+    {
+        for (E e : list) {
+            if (!predicate.apply(e)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Returns a list generated by applying a function to each index between
+     * 0 and {@code size} - 1. */
+    public static <E> List<E> generate(
+        final int size,
+        final Function1<Integer, E> fn)
+    {
+        if (size < 0) {
+            throw new IllegalArgumentException();
+        }
+        return new AbstractList<E>() {
+            public int size() {
+                return size;
+            }
+            public E get(int index) {
+                return fn.apply(index);
+            }
+        };
     }
 
     //~ Inner Classes ----------------------------------------------------------

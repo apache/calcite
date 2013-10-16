@@ -1476,4 +1476,19 @@ SortRel(offset=[10])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testMultiAnd">
+        <Resource name="sql">
+            <![CDATA[select * from emp
+where deptno < 10
+and deptno > 5
+and (deptno = 8 or empno < 100)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  FilterRel(condition=[AND(<($7, 10), >($7, 5), OR(=($7, 8), <($0, 100)))])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

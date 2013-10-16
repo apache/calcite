@@ -37,7 +37,7 @@ import org.eigenbase.stat.*;
  *
  * <ol>
  * <li>Add a static method <code>getXyz</code> specification to this class.
- * <li>Add unit tests to {@link org.eigenbase.test.RelMetadataTest}.
+ * <li>Add unit tests to {@code org.eigenbase.test.RelMetadataTest}.
  * <li>Write a new provider class <code>RelMdXyz</code> in this package. Follow
  * the pattern from an existing class such as {@link RelMdColumnOrigins},
  * overloading on all of the logical relational expressions to which the query

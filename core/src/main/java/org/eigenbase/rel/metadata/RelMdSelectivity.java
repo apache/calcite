@@ -144,8 +144,9 @@ public class RelMdSelectivity
             predicate,
             pushable,
             notPushable);
-        RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
-        RexNode childPred = RexUtil.andRexNodeList(rexBuilder, pushable);
+        final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+        RexNode childPred =
+            RexUtil.composeConjunction(rexBuilder, pushable, true);
 
         Double selectivity =
             RelMetadataQuery.getSelectivity(
@@ -154,7 +155,8 @@ public class RelMdSelectivity
         if (selectivity == null) {
             return null;
         } else {
-            RexNode pred = RexUtil.andRexNodeList(rexBuilder, notPushable);
+            RexNode pred =
+                RexUtil.composeConjunction(rexBuilder, notPushable, true);
             return selectivity * RelMdUtil.guessSelectivity(pred);
         }
     }
@@ -168,8 +170,9 @@ public class RelMdSelectivity
             predicate,
             pushable,
             notPushable);
-        RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
-        RexNode childPred = RexUtil.andRexNodeList(rexBuilder, pushable);
+        final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+        RexNode childPred =
+            RexUtil.composeConjunction(rexBuilder, pushable, true);
 
         RexNode modifiedPred;
         if (childPred == null) {
@@ -184,7 +187,8 @@ public class RelMdSelectivity
         if (selectivity == null) {
             return null;
         } else {
-            RexNode pred = RexUtil.andRexNodeList(rexBuilder, notPushable);
+            RexNode pred =
+                RexUtil.composeConjunction(rexBuilder, notPushable, true);
             return selectivity * RelMdUtil.guessSelectivity(pred);
         }
     }

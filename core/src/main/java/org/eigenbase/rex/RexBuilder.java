@@ -240,6 +240,20 @@ public class RexBuilder
     }
 
     /**
+     * Creates a call with an array of arguments.
+     *
+     * <p>This is the fundamental method called by all of the other <code>
+     * makeCall</code> methods. If you derive a class from {@link RexBuilder},
+     * this is the only method you need to override.</p>
+     */
+    public RexNode makeFlatCall(
+        SqlOperator op,
+        List<? extends RexNode> exprs)
+    {
+        return makeCall(op, RexUtil.flatten(exprs, op));
+    }
+
+    /**
      * Derives the return type of a call to an operator.
      *
      * @param op the operator being called

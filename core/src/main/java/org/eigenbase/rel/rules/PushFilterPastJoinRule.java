@@ -178,7 +178,8 @@ public class PushFilterPastJoinRule
             }
             joinFilter = rexBuilder.makeLiteral(true);
         } else {
-            joinFilter = RexUtil.andRexNodeList(rexBuilder, joinFilters);
+            joinFilter =
+                RexUtil.composeConjunction(rexBuilder, joinFilters, true);
         }
         RelNode newJoinRel =
             new JoinRel(
@@ -213,15 +214,12 @@ public class PushFilterPastJoinRule
         RelNode rel,
         List<RexNode> filters)
     {
-        RelNode newRel;
-
-        if (filters.size() == 0) {
-            newRel = rel;
-        } else {
-            RexNode andFilters = RexUtil.andRexNodeList(rexBuilder, filters);
-            newRel = CalcRel.createFilter(rel, andFilters);
+        RexNode andFilters =
+            RexUtil.composeConjunction(rexBuilder, filters, false);
+        if (andFilters.isAlwaysTrue()) {
+            return rel;
         }
-        return newRel;
+        return CalcRel.createFilter(rel, andFilters);
     }
 }
 

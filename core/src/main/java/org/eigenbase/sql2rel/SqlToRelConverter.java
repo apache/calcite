@@ -41,6 +41,7 @@ import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.prepare.Prepare;
 
 import net.hydromatic.linq4j.Ord;
+import net.hydromatic.linq4j.function.Function1;
 
 import com.google.common.collect.ImmutableList;
 
@@ -1176,12 +1177,12 @@ public class SqlToRelConverter
      * @return converted expression
      */
     private RexNode convertInToOr(
-        Blackboard bb,
-        RexNode [] leftKeys,
+        final Blackboard bb,
+        final RexNode [] leftKeys,
         SqlNodeList valuesList,
         boolean isNotIn)
     {
-        RexNode result = null;
+        List<RexNode> comparisons = new ArrayList<RexNode>();
         for (SqlNode rightVals : valuesList) {
             RexNode rexComparison = null;
             if (leftKeys.length == 1) {
@@ -1192,41 +1193,31 @@ public class SqlToRelConverter
                         bb.convertExpression(rightVals));
             } else {
                 assert (rightVals instanceof SqlCall);
-                SqlCall call = (SqlCall) rightVals;
+                final SqlCall call = (SqlCall) rightVals;
                 assert ((call.getOperator() instanceof SqlRowOperator)
                     && (call.getOperands().length == leftKeys.length));
-                for (int i = 0; i < leftKeys.length; i++) {
-                    RexNode equi =
-                        rexBuilder.makeCall(
-                            SqlStdOperatorTable.equalsOperator,
-                            leftKeys[i],
-                            bb.convertExpression(call.getOperands()[i]));
-                    if (rexComparison == null) {
-                        rexComparison = equi;
-                    } else {
-                        rexComparison =
-                            rexBuilder.makeCall(
-                                SqlStdOperatorTable.andOperator,
-                                rexComparison,
-                                equi);
-                    }
-                }
+                rexComparison =
+                    RexUtil.composeConjunction(
+                        rexBuilder,
+                        RexUtil.generate(
+                            leftKeys.length,
+                            new Function1<Integer, RexNode>() {
+                                public RexNode apply(Integer i) {
+                                    return rexBuilder.makeCall(
+                                        SqlStdOperatorTable.equalsOperator,
+                                        leftKeys[i],
+                                        bb.convertExpression(
+                                            call.getOperands()[i]));
+                                }
+                            }),
+                        false);
             }
-
-            if (result == null) {
-                result = rexComparison;
-            } else {
-                // TODO jvs 1-May-2006: Generalize
-                // RexUtil.andRexNodeList and use that.
-                result =
-                    rexBuilder.makeCall(
-                        SqlStdOperatorTable.orOperator,
-                        result,
-                        rexComparison);
-            }
+            comparisons.add(rexComparison);
         }
 
-        assert (result != null);
+        RexNode result =
+            RexUtil.composeDisjunction(rexBuilder, comparisons, true);
+        assert result != null;
 
         if (isNotIn) {
             result =
@@ -1285,7 +1276,7 @@ public class SqlToRelConverter
                         rightInputOffset + key.i)));
         }
 
-        return RexUtil.andRexNodeList(rexBuilder, joinConditions);
+        return RexUtil.composeConjunction(rexBuilder, joinConditions, true);
     }
 
     /**

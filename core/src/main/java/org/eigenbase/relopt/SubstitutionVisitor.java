@@ -272,8 +272,8 @@ public class SubstitutionVisitor {
         // Example #2. x AND y AND NOT (x AND y)        - not satisfiable
         // Example #3. x AND y AND NOT (x AND y AND z)  - may be satisfiable
         for (RexNode notDisjunction : notDisjunctions) {
-            final List<RexNode> disjunctions2 = new ArrayList<RexNode>();
-            RelOptUtil.decomposeConjunction(notDisjunction, disjunctions2);
+            final List<RexNode> disjunctions2 =
+                RelOptUtil.conjunctions(notDisjunction);
             if (containsAll(disjunctions, disjunctions2)) {
                 return false;
             }
@@ -302,8 +302,7 @@ public class SubstitutionVisitor {
      * </ul>
      */
     public static RexNode simplify(RexBuilder rexBuilder, RexNode e) {
-        final List<RexNode> disjunctions = new ArrayList<RexNode>();
-        RelOptUtil.decomposeConjunction(e, disjunctions);
+        final List<RexNode> disjunctions = RelOptUtil.conjunctions(e);
         final List<RexNode> notDisjunctions = new ArrayList<RexNode>();
         for (int i = 0; i < disjunctions.size(); i++) {
             final RexNode disjunction = disjunctions.get(i);
@@ -335,8 +334,8 @@ public class SubstitutionVisitor {
         // Example #2. x AND y AND NOT (x AND y)        - not satisfiable
         // Example #3. x AND y AND NOT (x AND y AND z)  - may be satisfiable
         for (RexNode notDisjunction : notDisjunctions) {
-            final List<RexNode> disjunctions2 = new ArrayList<RexNode>();
-            RelOptUtil.decomposeConjunction(notDisjunction, disjunctions2);
+            final List<RexNode> disjunctions2 =
+                RelOptUtil.conjunctions(notDisjunction);
             if (containsAll(disjunctions, disjunctions2)) {
                 return rexBuilder.makeLiteral(false);
             }
@@ -348,7 +347,7 @@ public class SubstitutionVisitor {
                     SqlStdOperatorTable.notOperator,
                     notDisjunction));
         }
-        return RelOptUtil.composeConjunction(rexBuilder, disjunctions);
+        return RexUtil.composeConjunction(rexBuilder, disjunctions, false);
     }
 
     /** Creates the expression {@code e1 AND NOT e2}. */

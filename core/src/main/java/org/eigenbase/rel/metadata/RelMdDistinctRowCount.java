@@ -171,10 +171,9 @@ public class RelMdDistinctRowCount
             predicate,
             pushable,
             notPushable);
+        final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
         RexNode childPreds =
-            RexUtil.andRexNodeList(
-                rel.getCluster().getRexBuilder(),
-                pushable);
+            RexUtil.composeConjunction(rexBuilder, pushable, true);
 
         // set the bits as they correspond to the child input
         BitSet childKey = new BitSet();
@@ -191,9 +190,7 @@ public class RelMdDistinctRowCount
             return distinctRowCount;
         } else {
             RexNode preds =
-                RexUtil.andRexNodeList(
-                    rel.getCluster().getRexBuilder(),
-                    notPushable);
+                RexUtil.composeConjunction(rexBuilder, notPushable, true);
             return distinctRowCount * RelMdUtil.guessSelectivity(preds);
         }
     }
@@ -227,12 +224,13 @@ public class RelMdDistinctRowCount
             predicate,
             pushable,
             notPushable);
-        RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+        final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
 
         // get the distinct row count of the child input, passing in the
         // columns and filters that only reference the child; convert the
         // filter to reference the children projection expressions
-        RexNode childPred = RexUtil.andRexNodeList(rexBuilder, pushable);
+        RexNode childPred =
+            RexUtil.composeConjunction(rexBuilder, pushable, true);
         RexNode modifiedPred;
         if (childPred == null) {
             modifiedPred = null;
@@ -249,9 +247,7 @@ public class RelMdDistinctRowCount
             return null;
         } else if (!notPushable.isEmpty()) {
             RexNode preds =
-                RexUtil.andRexNodeList(
-                    rel.getCluster().getRexBuilder(),
-                    notPushable);
+                RexUtil.composeConjunction(rexBuilder, notPushable, true);
             distinctRowCount *= RelMdUtil.guessSelectivity(preds);
         }
 

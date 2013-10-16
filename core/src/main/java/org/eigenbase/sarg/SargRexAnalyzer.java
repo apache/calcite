@@ -59,8 +59,6 @@ public class SargRexAnalyzer
 
     private List<SargExpr> exprStack;
 
-    private List<RexNode> rexCFList;
-
     private List<RexNode> nonSargFilterList;
 
     private List<SargBinding> sargBindingList;
@@ -201,32 +199,26 @@ public class SargRexAnalyzer
      */
     private void recomposeConjunction()
     {
-        SargBinding currBinding, nextBinding;
-        RexInputRef currRef, nextRef;
-        SargExpr currSargExpr, nextSargExpr;
-        RexNode currAndNode;
-        boolean recomp;
-        ListIterator iter;
-
         for (int i = 0; i < sargBindingList.size(); i++) {
-            currBinding = sargBindingList.get(i);
-            currRef = currBinding.getInputRef();
-            currSargExpr = currBinding.getExpr();
-            currAndNode = sarg2RexMap.get(currSargExpr);
+            final SargBinding currBinding = sargBindingList.get(i);
+            final RexInputRef currRef = currBinding.getInputRef();
+            SargExpr currSargExpr = currBinding.getExpr();
+            RexNode currAndNode = sarg2RexMap.get(currSargExpr);
 
             // don't need this anymore
             // will be have new mapping put back if currSargExpr remain
             // unchanged.
             sarg2RexMap.remove(currSargExpr);
-            recomp = false;
+            boolean recomp = false;
 
             // search the rest of the list to find SargExpr on the same col.
-            iter = sargBindingList.listIterator(i + 1);
+            ListIterator<SargBinding> iter =
+                sargBindingList.listIterator(i + 1);
 
             while (iter.hasNext()) {
-                nextBinding = (SargBinding) iter.next();
-                nextRef = nextBinding.getInputRef();
-                nextSargExpr = nextBinding.getExpr();
+                final SargBinding nextBinding = iter.next();
+                final RexInputRef nextRef = nextBinding.getInputRef();
+                final SargExpr nextSargExpr = nextBinding.getExpr();
 
                 if (nextRef.getIndex() == currRef.getIndex()) {
                     // build new SargExpr
@@ -254,7 +246,7 @@ public class SargRexAnalyzer
             }
 
             if (recomp) {
-                assert (!simpleMode);
+                assert !simpleMode;
                 if (!testDynamicParamSupport(currSargExpr)) {
                     // Oops, we can't actually support the conjunction we
                     // recomposed.  Toss it.  (We could do a better job by at
@@ -285,16 +277,13 @@ public class SargRexAnalyzer
      */
     public List<SargBinding> analyzeAll(RexNode rexPredicate)
     {
-        rexCFList = new ArrayList<RexNode>();
         sargBindingList = new ArrayList<SargBinding>();
         sarg2RexMap = new HashMap<SargExpr, RexNode>();
         nonSargFilterList = new ArrayList<RexNode>();
 
-        SargBinding sargBinding;
-
         // Flatten out the RexNode tree into a list of terms that
         // are AND'ed together
-        RelOptUtil.decomposeConjunction(rexPredicate, rexCFList);
+        final List<RexNode> rexCFList = RelOptUtil.conjunctions(rexPredicate);
 
         // In simple mode, each input ref can only be referenced once, so
         // keep a list of them.  We also only allow one non-point expression.
@@ -302,7 +291,7 @@ public class SargRexAnalyzer
         boolean rangeFound = false;
 
         for (RexNode rexPred : rexCFList) {
-            sargBinding = analyze(rexPred);
+            final SargBinding sargBinding = analyze(rexPred);
             if (sargBinding != null) {
                 if (simpleMode) {
                     RexInputRef inputRef = sargBinding.getInputRef();

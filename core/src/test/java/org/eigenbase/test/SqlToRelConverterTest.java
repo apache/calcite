@@ -74,6 +74,16 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
+    /** Tests that AND(x, AND(y, z)) gets flattened to AND(x, y, z). */
+    @Test public void testMultiAnd() {
+        check(
+            "select * from emp\n"
+            + "where deptno < 10\n"
+            + "and deptno > 5\n"
+            + "and (deptno = 8 or empno < 100)",
+            "${plan}");
+    }
+
     @Test public void testJoinOn() {
         check(
             "SELECT * FROM emp JOIN dept on emp.deptno = dept.deptno",

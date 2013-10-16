@@ -273,9 +273,8 @@ public abstract class RelOptUtil
 
         if ((conditions != null) && (conditions.size() > 0)) {
             RexNode conditionExp =
-                RexUtil.andRexNodeList(
-                    cluster.getRexBuilder(),
-                    conditions);
+                RexUtil.composeConjunction(
+                    cluster.getRexBuilder(), conditions, true);
 
             ret = CalcRel.createFilter(ret, conditionExp);
         }
@@ -676,20 +675,8 @@ public abstract class RelOptUtil
             rightKeys,
             nonEquiList);
 
-        List<RexNode> residualList = new ArrayList<RexNode>();
-        residualList.addAll(nonEquiList);
-
-        // Convert the remainders into a list that are AND'ed together.
-        switch (residualList.size()) {
-        case 0:
-            return left.getCluster().getRexBuilder().makeLiteral(true);
-        case 1:
-            return residualList.get(0);
-        default:
-            return RexUtil.andRexNodeList(
-                left.getCluster().getRexBuilder(),
-                residualList);
-        }
+        return RexUtil.composeConjunction(
+            left.getCluster().getRexBuilder(), nonEquiList, false);
     }
 
     /**
@@ -764,16 +751,8 @@ public abstract class RelOptUtil
             nonEquiList);
 
         // Convert the remainders into a list that are AND'ed together.
-        switch (nonEquiList.size()) {
-        case 0:
-            return null;
-        case 1:
-            return nonEquiList.get(0);
-        default:
-            return RexUtil.andRexNodeList(
-                leftRel.getCluster().getRexBuilder(),
-                nonEquiList);
-        }
+        return RexUtil.composeConjunction(
+            leftRel.getCluster().getRexBuilder(), nonEquiList, true);
     }
 
     public static RexNode splitCorrelatedFilterCondition(
@@ -791,16 +770,8 @@ public abstract class RelOptUtil
             nonEquiList);
 
         // Convert the remainders into a list that are AND'ed together.
-        switch (nonEquiList.size()) {
-        case 0:
-            return null;
-        case 1:
-            return nonEquiList.get(0);
-        default:
-            return RexUtil.andRexNodeList(
-                filterRel.getCluster().getRexBuilder(),
-                nonEquiList);
-        }
+        return RexUtil.composeConjunction(
+            filterRel.getCluster().getRexBuilder(), nonEquiList, true);
     }
 
     public static RexNode splitCorrelatedFilterCondition(
@@ -820,16 +791,8 @@ public abstract class RelOptUtil
             extractCorrelatedFieldAccess);
 
         // Convert the remainders into a list that are AND'ed together.
-        switch (nonEquiList.size()) {
-        case 0:
-            return null;
-        case 1:
-            return nonEquiList.get(0);
-        default:
-            return RexUtil.andRexNodeList(
-                filterRel.getCluster().getRexBuilder(),
-                nonEquiList);
-        }
+        return RexUtil.composeConjunction(
+            filterRel.getCluster().getRexBuilder(), nonEquiList, true);
     }
 
     private static void splitJoinCondition(
@@ -1895,30 +1858,6 @@ public abstract class RelOptUtil
         return left;
     }
 
-    /** Combines a collection of predicates using AND. Returns TRUE if the
-     * collection is empty. */
-    public static RexNode composeConjunction(
-        RexBuilder rexBuilder,
-        List<RexNode> nodes)
-    {
-        RexNode node = null;
-        for (RexNode node1 : nodes) {
-            if (node1.isAlwaysTrue()) {
-                continue;
-            }
-            if (node == null) {
-                node = node1;
-            } else {
-                node =
-                    rexBuilder.makeCall(
-                        SqlStdOperatorTable.andOperator,
-                        node,
-                        node1);
-            }
-        }
-        return node == null ? rexBuilder.makeLiteral(true) : node;
-    }
-
     /**
      * Adjusts key values in a list by some fixed amount.
      *
@@ -2315,8 +2254,7 @@ public abstract class RelOptUtil
         // between the ProjectRel and the MultiJoinRel, the projection needs
         // to include those filter references.
         BitSet inputRefs = InputFinder.bits(
-            project.getProjects(),
-            multiJoin.getPostJoinFilter());
+            project.getProjects(), multiJoin.getPostJoinFilter());
 
         // create new copies of the bitmaps
         List<RelNode> multiJoinInputs = multiJoin.getInputs();

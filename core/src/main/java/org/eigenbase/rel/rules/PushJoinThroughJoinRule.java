@@ -24,8 +24,7 @@ import org.eigenbase.rel.JoinRel;
 import org.eigenbase.rel.JoinRelType;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.*;
-import org.eigenbase.rex.RexNode;
-import org.eigenbase.rex.RexPermuteInputsShuttle;
+import org.eigenbase.rex.*;
 import org.eigenbase.util.Util;
 import org.eigenbase.util.mapping.MappingType;
 import org.eigenbase.util.mapping.Mappings;
@@ -148,9 +147,9 @@ public class PushJoinThroughJoinRule extends RelOptRule {
                 0, 0, aCount);
         new RexPermuteInputsShuttle(bottomBottomMapping, relA, relC)
             .visitList(bottomNonIntersecting, newBottomList);
+        final RexBuilder rexBuilder = cluster.getRexBuilder();
         RexNode newBottomCondition =
-            RelOptUtil.composeConjunction(
-                cluster.getRexBuilder(), newBottomList);
+            RexUtil.composeConjunction(rexBuilder, newBottomList, false);
         final JoinRel newBottomJoin =
             new JoinRel(
                 cluster, relA, relC, newBottomCondition,
@@ -170,9 +169,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         new RexPermuteInputsShuttle(topMapping, newBottomJoin, relB)
             .visitList(bottomIntersecting, newTopList);
         RexNode newTopCondition =
-            RelOptUtil.composeConjunction(
-                cluster.getRexBuilder(),
-                newTopList);
+            RexUtil.composeConjunction(rexBuilder, newTopList, false);
         @SuppressWarnings("SuspiciousNameCombination")
         final JoinRel newTopJoin =
             new JoinRel(
@@ -259,9 +256,9 @@ public class PushJoinThroughJoinRule extends RelOptRule {
                 cCount, aCount, bCount);
         new RexPermuteInputsShuttle(bottomBottomMapping, relC, relB)
             .visitList(bottomNonIntersecting, newBottomList);
+        final RexBuilder rexBuilder = cluster.getRexBuilder();
         RexNode newBottomCondition =
-            RelOptUtil.composeConjunction(
-                cluster.getRexBuilder(), newBottomList);
+            RexUtil.composeConjunction(rexBuilder, newBottomList, false);
         final JoinRel newBottomJoin =
             new JoinRel(
                 cluster, relC, relB, newBottomCondition,
@@ -281,8 +278,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         new RexPermuteInputsShuttle(topMapping, newBottomJoin, relA)
             .visitList(bottomIntersecting, newTopList);
         RexNode newTopCondition =
-            RelOptUtil.composeConjunction(
-                cluster.getRexBuilder(), newTopList);
+            RexUtil.composeConjunction(rexBuilder, newTopList, false);
         @SuppressWarnings("SuspiciousNameCombination")
         final JoinRel newTopJoin =
             new JoinRel(

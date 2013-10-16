@@ -686,7 +686,7 @@ public class StandardConvertletTable
         {
             ensureSameType(cx, exprs);
         }
-        return rexBuilder.makeCall(op, exprs);
+        return rexBuilder.makeFlatCall(op, exprs);
     }
 
     private List<Integer> elseArgs(int count) {
@@ -711,6 +711,7 @@ public class StandardConvertletTable
                     public RelDataType get(int index) {
                         return exprs.get(index).getType();
                     }
+
                     public int size() {
                         return exprs.size();
                     }
