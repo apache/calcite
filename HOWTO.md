@@ -3,6 +3,39 @@
 Here's some miscellaneous documentation about using Optiq and its various
 adapters.
 
+# Tracing
+
+To enable tracing, add the following flags to the java command line:
+
+```
+-Doptiq.debug=true -Djava.util.logging.config.file=core/src/test/resources/logging.properties
+```
+
+The first flag causes Optiq to print the Java code it generates
+(to execute queries) to stdout. It is especially useful if you are debugging
+mysterious problems like this:
+
+```
+Exception in thread "main" java.lang.ClassCastException: Integer cannot be cast to Long
+  at Baz$1$1.current(Unknown Source)
+```
+
+The second flag specifies a config file for
+the <a href="http://docs.oracle.com/javase/7/docs/api/java/util/logging/package-summary.html">java.util.logging</a>
+framework. Put the following into core/src/test/resources/logging.properties:
+
+```properties
+handlers= java.util.logging.ConsoleHandler
+.level= INFO
+org.eigenbase.relopt.RelOptPlanner.level=FINER
+java.util.logging.ConsoleHandler.level=ALL
+```
+
+The line org.eigenbase.relopt.RelOptPlanner.level=FINER tells the planner to produce
+fairly verbose outout. You can modify the file to enable other loggers, or to change levels.
+For instance, if you change FINER to FINEST the planner will give you an account of the
+planning process so detailed that it might fill up your hard drive.
+
 # CSV adapter
 
 See <a href="https://github.com/julianhyde/optiq-csv/TUTORIAL.csv">optiq-csv
