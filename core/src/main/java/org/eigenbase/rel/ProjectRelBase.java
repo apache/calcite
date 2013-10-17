@@ -25,8 +25,11 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import net.hydromatic.linq4j.Ord;
+import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Functions;
 
 import com.google.common.collect.ImmutableList;
 
@@ -153,6 +156,28 @@ public abstract class ProjectRelBase
         }
         if (collationList == null) {
             assert !fail;
+            return false;
+        }
+        if (!Util.isDistinct(rowType.getFieldNames())) {
+            assert !fail;
+            return false;
+        }
+        if (false && !Util.isDistinct(
+                Functions.adapt(
+                    exps,
+                    new Function1<RexNode, Object>() {
+                        public Object apply(RexNode a0) {
+                            return a0.toString();
+                        }
+                    })))
+        {
+            // Projecting the same expression twice is usually a bad idea,
+            // because it may create expressions downstream which are equivalent
+            // but which look different. We can't ban duplicate projects,
+            // because we need to allow
+            //
+            //  SELECT a, b FROM c UNION SELECT x, x FROM z
+            assert !fail : exps;
             return false;
         }
         return true;

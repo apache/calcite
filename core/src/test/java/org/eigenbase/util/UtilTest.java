@@ -1053,6 +1053,16 @@ public class UtilTest {
         assertEquals("", Util.toCamelCase(""));
     }
 
+    /** Unit test for {@link Util#isDistinct(java.util.List)}. */
+    @Test public void testDistinct() {
+        assertTrue(Util.isDistinct(Collections.emptyList()));
+        assertTrue(Util.isDistinct(Arrays.asList("a")));
+        assertTrue(Util.isDistinct(Arrays.asList("a", "b", "c")));
+        assertFalse(Util.isDistinct(Arrays.asList("a", "b", "a")));
+        assertTrue(Util.isDistinct(Arrays.asList("a", "b", null)));
+        assertFalse(Util.isDistinct(Arrays.asList("a", null, "b", null)));
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     /**
