@@ -404,6 +404,42 @@ public class Functions {
   }
 
   /**
+   * Returns a function of arity 0 that does nothing.
+   *
+   * @param <R> Return type
+   * @return Function that does nothing.
+   */
+  public static <R> Function0<R> ignore0() {
+    //noinspection unchecked
+    return Ignore.INSTANCE;
+  }
+
+  /**
+   * Returns a function of arity 1 that does nothing.
+   *
+   * @param <R> Return type
+   * @param <T0> Type of parameter 0
+   * @return Function that does nothing.
+   */
+  public static <R, T0> Function1<R, T0> ignore1() {
+    //noinspection unchecked
+    return Ignore.INSTANCE;
+  }
+
+  /**
+   * Returns a function of arity 2 that does nothing.
+   *
+   * @param <R> Return type
+   * @param <T0> Type of parameter 0
+   * @param <T1> Type of parameter 1
+   * @return Function that does nothing.
+   */
+  public static <R, T0, T1> Function2<R, T0, T1> ignore2() {
+    //noinspection unchecked
+    return Ignore.INSTANCE;
+  }
+
+  /**
    * Returns a {@link Comparator} that handles null values.
    *
    * @param nullsFirst Whether nulls come before all other values
@@ -528,6 +564,23 @@ public class Functions {
       //noinspection unchecked
       return -o1.compareTo(o2);
     }
+  }
+
+  private static final class Ignore<R, T0, T1>
+      implements Function0<R>, Function1<T0, R>, Function2<T0, T1, R> {
+    public R apply() {
+      return null;
+    }
+
+    public R apply(T0 p0) {
+      return null;
+    }
+
+    public R apply(T0 p0, T1 p1) {
+      return null;
+    }
+
+    static final Ignore INSTANCE = new Ignore();
   }
 }
 
