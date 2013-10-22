@@ -71,6 +71,35 @@ public class CsvTest {
     connection.close();
   }
 
+  /** Tests an inline schema with a non-existent directory. */
+  @Test public void testBadDirectory() throws SQLException {
+    Properties info = new Properties();
+    info.put("model",
+        "inline:"
+        + "{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       type: 'custom',\n"
+        + "       name: 'bad',\n"
+        + "       factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',\n"
+        + "       operand: {\n"
+        + "         directory: '/does/not/exist'\n"
+        + "       }\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}");
+
+    Connection connection =
+        DriverManager.getConnection("jdbc:optiq:", info);
+    // must print "directory ... not found" to stdout, but not fail
+    ResultSet tables =
+        connection.getMetaData().getTables(null, null, null, null);
+    tables.next();
+    tables.close();
+    connection.close();
+  }
+
   /**
    * Reads from a table.
    */

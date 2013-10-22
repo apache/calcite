@@ -67,6 +67,10 @@ public class CsvSchema extends MapSchema {
             return name.endsWith(".csv");
           }
         });
+    if (files == null) {
+      System.out.println("directory " + directoryFile + " not found");
+      files = new File[0];
+    }
     for (File file : files) {
       String tableName = file.getName();
       if (tableName.endsWith(".csv")) {
