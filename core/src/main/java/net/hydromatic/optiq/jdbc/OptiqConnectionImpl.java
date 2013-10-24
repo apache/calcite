@@ -63,8 +63,8 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
   final UnregisteredDriver driver;
   final net.hydromatic.optiq.jdbc.Factory factory;
   final Function0<OptiqPrepare> prepareFactory;
-  private final String url;
-  private final Properties info;
+  final String url;
+  final Properties info;
   private String schema;
   private final OptiqDatabaseMetaData metaData;
   final Helper helper = Helper.INSTANCE;

@@ -33,15 +33,39 @@ import org.eigenbase.util.Util;
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.sql.*;
 import java.sql.Types;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Helper for implementing the {@code getXxx} methods such as
  * {@link OptiqDatabaseMetaData#getTables}.
  */
 public class Meta {
+  private static final Map<Class, Pair<Integer, String>> MAP =
+      ImmutableMap.<Class, Pair<Integer, String>>builder()
+          .put(boolean.class, Pair.of(Types.BOOLEAN, "BOOLEAN"))
+          .put(Boolean.class, Pair.of(Types.BOOLEAN, "BOOLEAN"))
+          .put(byte.class, Pair.of(Types.TINYINT, "TINYINT"))
+          .put(Byte.class, Pair.of(Types.TINYINT, "TINYINT"))
+          .put(short.class, Pair.of(Types.SMALLINT, "SMALLINT"))
+          .put(Short.class, Pair.of(Types.SMALLINT, "SMALLINT"))
+          .put(int.class, Pair.of(Types.INTEGER, "INTEGER"))
+          .put(Integer.class, Pair.of(Types.INTEGER, "INTEGER"))
+          .put(long.class, Pair.of(Types.BIGINT, "BIGINT"))
+          .put(Long.class, Pair.of(Types.BIGINT, "BIGINT"))
+          .put(float.class, Pair.of(Types.FLOAT, "FLOAT"))
+          .put(Float.class, Pair.of(Types.FLOAT, "FLOAT"))
+          .put(double.class, Pair.of(Types.DOUBLE, "DOUBLE"))
+          .put(Double.class, Pair.of(Types.DOUBLE, "DOUBLE"))
+          .put(String.class, Pair.of(Types.VARCHAR, "VARCHAR"))
+          .put(java.sql.Date.class, Pair.of(Types.DATE, "DATE"))
+          .put(Time.class, Pair.of(Types.TIME, "TIME"))
+          .put(Timestamp.class, Pair.of(Types.TIMESTAMP, "TIMESTAMP"))
+          .build();
+
   final OptiqConnectionImpl connection;
 
   public Meta(OptiqConnectionImpl connection) {
@@ -49,25 +73,108 @@ public class Meta {
   }
 
   static <T extends Named> Predicate1<T> namedMatcher(final String pattern) {
+    if (pattern == null || pattern.equals("%")) {
+      return Functions.truePredicate1();
+    }
+    final Pattern regex = likeToRegex(pattern);
     return new Predicate1<T>() {
       public boolean apply(T v1) {
-        return matches(v1.getName(), pattern);
+        return regex.matcher(v1.getName()).matches();
       }
     };
   }
 
   static Predicate1<String> matcher(final String pattern) {
+    if (pattern == null || pattern.equals("%")) {
+      return Functions.truePredicate1();
+    }
+    final Pattern regex = likeToRegex(pattern);
     return new Predicate1<String>() {
       public boolean apply(String v1) {
-        return matches(v1, pattern);
+        return regex.matcher(v1).matches();
       }
     };
   }
 
-  public static boolean matches(String element, String pattern) {
-    return pattern == null
-        || pattern.equals("%")
-        || element.equals(pattern); // TODO: better wildcard
+  /** Converts a LIKE-style pattern (where '%' represents a wild-card, escaped
+   * using '\') to a Java regex. */
+  public static Pattern likeToRegex(String pattern) {
+    StringBuilder buf = new StringBuilder("^");
+    char[] charArray = pattern.toCharArray();
+    int slash = -2;
+    for (int i = 0; i < charArray.length; i++) {
+      char c = charArray[i];
+      if (slash == i - 1) {
+        buf.append('[').append(c).append(']');
+      } else {
+        switch (c) {
+        case '\\':
+          slash = i;
+          break;
+        case '%':
+          buf.append(".*");
+          break;
+        case '[':
+          buf.append("\\[");
+          break;
+        case ']':
+          buf.append("\\]");
+          break;
+        default:
+          buf.append('[').append(c).append(']');
+        }
+      }
+    }
+    buf.append("$");
+    return Pattern.compile(buf.toString());
+  }
+
+  static ColumnMetaData columnMetaData(String name, int index, Class<?> type) {
+    Pair<Integer, String> pair = MAP.get(type);
+    ColumnMetaData.Rep rep =
+        ColumnMetaData.Rep.VALUE_MAP.get(type);
+    return new ColumnMetaData(
+        index, false, true, false, false,
+        Primitive.is(type)
+            ? DatabaseMetaData.columnNullable
+            : DatabaseMetaData.columnNoNulls,
+        true, -1, name, name, null,
+        0, 0, null, null, pair.left, pair.right, true,
+        false, false, null, rep);
+  }
+
+  static List<ColumnMetaData> fieldMetaData(Class clazz) {
+    final List<ColumnMetaData> list = new ArrayList<ColumnMetaData>();
+    for (Field field : clazz.getFields()) {
+      if (Modifier.isPublic(field.getModifiers())
+          && !Modifier.isStatic(field.getModifiers())) {
+        list.add(
+            columnMetaData(Util.camelToUpper(field.getName()),
+                list.size() + 1, field.getType()));
+      }
+    }
+    return list;
+  }
+
+  /** Creates an empty result set. Useful for JDBC metadata methods that are
+   * not implemented or which query entities that are not supported (e.g.
+   * triggers in Lingual). */
+  public static <E> ResultSet createEmptyResultSet(OptiqConnection connection,
+      final Class<E> clazz) {
+    try {
+      final OptiqConnectionImpl connection1 = (OptiqConnectionImpl) connection;
+      return connection1.driver.factory.newResultSet(
+          connection1.createStatement(),
+          fieldMetaData(clazz),
+          new Function1<DataContext, Cursor>() {
+            public Cursor apply(DataContext dataContext) {
+              return new RecordEnumeratorCursor<E>(Linq4j.<E>emptyEnumerator(),
+                  clazz);
+            }
+          }).execute();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /** Creates the data dictionary, also called the information schema. It is a
@@ -243,6 +350,19 @@ public class Meta {
             "IS_GENERATEDCOLUMN"));
   }
 
+  Enumerable<MetaCatalog> catalogs() {
+    return Linq4j.asEnumerable(
+        Arrays.asList(
+            new MetaCatalog(connection.getCatalog())));
+  }
+
+  Enumerable<MetaTableType> tableTypes() {
+    return Linq4j.asEnumerable(
+        Arrays.asList(
+            new MetaTableType("TABLE"),
+            new MetaTableType("VIEW")));
+  }
+
   Enumerable<MetaSchema> schemas(String catalog) {
     Collection<String> schemaNames =
         connection.rootSchema.getSubSchemaNames();
@@ -255,7 +375,16 @@ public class Meta {
                     connection.getCatalog(),
                     name);
               }
-            });
+            })
+        .orderBy(
+            new Function1<MetaSchema, Comparable>() {
+              public Comparable apply(MetaSchema metaSchema) {
+                return (Comparable) FlatLists.of(
+                    Util.first(metaSchema.tableCatalog, ""),
+                    metaSchema.tableSchem);
+              }
+            }
+        );
   }
 
   Enumerable<MetaTable> tables(final MetaSchema schema) {
@@ -265,7 +394,7 @@ public class Meta {
               public MetaTable apply(Schema.TableInSchema tableInSchema) {
                 return new MetaTable(
                     tableInSchema.getTable(Object.class),
-                    schema.catalogName, schema.schemaName,
+                    schema.tableCatalog, schema.tableSchem,
                     tableInSchema.name, tableInSchema.tableType.name());
               }
             });
@@ -294,8 +423,8 @@ public class Meta {
                     a0.right.apply(Collections.emptyList());
                 return new MetaTable(
                     table,
-                    schema.catalogName,
-                    schema.schemaName,
+                    schema.tableCatalog,
+                    schema.tableSchem,
                     a0.left,
                     Schema.TableType.VIEW.name());
               }
@@ -348,6 +477,32 @@ public class Meta {
               }
             }
         );
+  }
+
+  public ResultSet getSchemas(String catalog, String schemaPattern) {
+    return createResultSet(
+        schemas(catalog)
+            .where(Meta.<MetaSchema>namedMatcher(schemaPattern)),
+        new NamedFieldGetter(
+            MetaSchema.class,
+            "TABLE_SCHEM",
+            "TABLE_CATALOG"));
+  }
+
+  public ResultSet getCatalogs() {
+    return createResultSet(
+        catalogs(),
+        new NamedFieldGetter(
+            MetaCatalog.class,
+            "TABLE_CATALOG"));
+  }
+
+  public ResultSet getTableTypes() {
+    return createResultSet(
+        tableTypes(),
+        new NamedFieldGetter(
+            MetaTableType.class,
+            "TABLE_TYPE"));
   }
 
   interface Named {
@@ -444,47 +599,144 @@ public class Meta {
     }
   }
 
-  static class MetaSchema implements Named {
+  public static class MetaSchema implements Named {
     private final Schema optiqSchema;
-    public final String catalogName;
-    public final String schemaName;
+    public final String tableCatalog;
+    public final String tableSchem;
 
     public MetaSchema(
         Schema optiqSchema,
-        String catalogName,
-        String schemaName) {
+        String tableCatalog,
+        String tableSchem) {
       this.optiqSchema = optiqSchema;
-      this.catalogName = catalogName;
-      this.schemaName = schemaName;
+      this.tableCatalog = tableCatalog;
+      this.tableSchem = tableSchem;
     }
 
     public String getName() {
-      return schemaName;
+      return tableSchem;
     }
   }
 
+  public static class MetaCatalog implements Named {
+    public final String tableCatalog;
+
+    public MetaCatalog(
+        String tableCatalog) {
+      this.tableCatalog = tableCatalog;
+    }
+
+    public String getName() {
+      return tableCatalog;
+    }
+  }
+
+  public static class MetaTableType {
+    public final String tableType;
+
+    public MetaTableType(String tableType) {
+      this.tableType = tableType;
+    }
+  }
+
+  public static class MetaProcedure {
+  }
+
+  public static class MetaProcedureColumn {
+  }
+
+  public static class MetaColumnPrivilege {
+  }
+
+  public static class MetaTablePrivilege {
+  }
+
+  public static class MetaBestRowIdentifier {
+  }
+
+  public static class MetaVersionColumn {
+    public final short scope;
+    public final String columnName;
+    public final int dataType;
+    public final String typeName;
+    public final int columnSize;
+    public final int bufferLength;
+    public final short decimalDigits;
+    public final short pseudoColumn;
+
+    MetaVersionColumn(short scope, String columnName, int dataType,
+        String typeName, int columnSize, int bufferLength, short decimalDigits,
+        short pseudoColumn) {
+      this.scope = scope;
+      this.columnName = columnName;
+      this.dataType = dataType;
+      this.typeName = typeName;
+      this.columnSize = columnSize;
+      this.bufferLength = bufferLength;
+      this.decimalDigits = decimalDigits;
+      this.pseudoColumn = pseudoColumn;
+    }
+  }
+
+  public static class MetaPrimaryKey {
+    public final String tableCat;
+    public final String tableSchem;
+    public final String tableName;
+    public final String columnName;
+    public final short keySeq;
+    public final String pkName;
+
+    MetaPrimaryKey(String tableCat, String tableSchem, String tableName,
+        String columnName, short keySeq, String pkName) {
+      this.tableCat = tableCat;
+      this.tableSchem = tableSchem;
+      this.tableName = tableName;
+      this.columnName = columnName;
+      this.keySeq = keySeq;
+      this.pkName = pkName;
+    }
+  }
+
+  public static class MetaImportedKey {
+  }
+
+  public static class MetaExportedKey {
+  }
+
+  public static class MetaCrossReference {
+  }
+
+  public static class MetaTypeInfo {
+  }
+
+  public static class MetaIndexInfo {
+  }
+
+  public static class MetaUdt {
+  }
+
+  public static class MetaSuperType {
+  }
+
+  public static class MetaAttribute {
+  }
+
+  public static class MetaClientInfoProperty {
+  }
+
+  public static class MetaFunction {
+  }
+
+  public static class MetaFunctionColumn {
+  }
+
+  public static class MetaPseudoColumn {
+  }
+
+  public static class MetaSuperTable {
+  }
+
   private static class NamedFieldGetter {
-    private static final Map<Class, Pair<Integer, String>> MAP =
-        ImmutableMap.<Class, Pair<Integer, String>>builder()
-            .put(boolean.class, Pair.of(Types.BOOLEAN, "BOOLEAN"))
-            .put(Boolean.class, Pair.of(Types.BOOLEAN, "BOOLEAN"))
-            .put(byte.class, Pair.of(Types.TINYINT, "TINYINT"))
-            .put(Byte.class, Pair.of(Types.TINYINT, "TINYINT"))
-            .put(short.class, Pair.of(Types.SMALLINT, "SMALLINT"))
-            .put(Short.class, Pair.of(Types.SMALLINT, "SMALLINT"))
-            .put(int.class, Pair.of(Types.INTEGER, "INTEGER"))
-            .put(Integer.class, Pair.of(Types.INTEGER, "INTEGER"))
-            .put(long.class, Pair.of(Types.BIGINT, "BIGINT"))
-            .put(Long.class, Pair.of(Types.BIGINT, "BIGINT"))
-            .put(float.class, Pair.of(Types.FLOAT, "FLOAT"))
-            .put(Float.class, Pair.of(Types.FLOAT, "FLOAT"))
-            .put(double.class, Pair.of(Types.DOUBLE, "DOUBLE"))
-            .put(Double.class, Pair.of(Types.DOUBLE, "DOUBLE"))
-            .put(String.class, Pair.of(Types.VARCHAR, "VARCHAR"))
-            .put(java.sql.Date.class, Pair.of(Types.DATE, "DATE"))
-            .put(Time.class, Pair.of(Types.TIME, "TIME"))
-            .put(Timestamp.class, Pair.of(Types.TIMESTAMP, "TIMESTAMP"))
-            .build();
 
     private final List<Field> fields = new ArrayList<Field>();
     private final List<ColumnMetaData> columnNames =
@@ -500,24 +752,9 @@ public class Meta {
         } catch (NoSuchFieldException e) {
           throw new RuntimeException(e);
         }
-        Pair<Integer, String> pair = lookupType(field.getType());
-        ColumnMetaData.Rep rep =
-            ColumnMetaData.Rep.VALUE_MAP.get(field.getType());
-        columnNames.add(
-            new ColumnMetaData(
-                index, false, true, false, false,
-                Primitive.is(field.getType())
-                    ? DatabaseMetaData.columnNullable
-                    : DatabaseMetaData.columnNoNulls,
-                true, -1, name, name, null,
-                0, 0, null, null, pair.left, pair.right, true,
-                false, false, null, rep));
+        columnNames.add(columnMetaData(name, index, field.getType()));
         fields.add(field);
       }
-    }
-
-    private Pair<Integer, String> lookupType(Class<?> type) {
-      return MAP.get(type);
     }
 
     Object get(Object o, int columnIndex) {

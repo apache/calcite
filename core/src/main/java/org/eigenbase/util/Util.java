@@ -2219,6 +2219,23 @@ public class Util
         return buf.toString();
     }
 
+    /** Converts a camelCase name into an upper-case underscore-separated name.
+     * For example, {@code camelToUpper("myJdbcDriver")} returns
+     * "MY_JDBC_DRIVER". */
+    public static String camelToUpper(String name) {
+        StringBuilder buf = new StringBuilder();
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (Character.isUpperCase(c)) {
+                buf.append('_');
+            } else {
+                c = Character.toUpperCase(c);
+            }
+            buf.append(c);
+        }
+        return buf.toString();
+    }
+
     /** Returns whether the elements of {@code list} are distinct. */
     public static <E> boolean isDistinct(List<E> list) {
         final Map<E, Object> set = new HashMap<E, Object>(list.size());

@@ -365,6 +365,51 @@ public class JdbcTest {
     connection.close();
   }
 
+  /** Tests driver's implementation of {@link DatabaseMetaData#getPrimaryKeys}.
+   * It is empty but it should still have column definitions. */
+  @Test public void testMetaDataPrimaryKeys()
+      throws ClassNotFoundException, SQLException {
+    Connection connection = OptiqAssert.getConnection("hr", "foodmart");
+    DatabaseMetaData metaData = connection.getMetaData();
+    ResultSet resultSet = metaData.getPrimaryKeys(null, null, null);
+    assertFalse(resultSet.next()); // catalog never contains primary keys
+    ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+    assertEquals(6, resultSetMetaData.getColumnCount());
+    assertEquals("TABLE_CAT", resultSetMetaData.getColumnName(1));
+    assertEquals(java.sql.Types.VARCHAR, resultSetMetaData.getColumnType(1));
+    assertEquals("PK_NAME", resultSetMetaData.getColumnName(6));
+    resultSet.close();
+    connection.close();
+  }
+
+  /** Unit test for {@link Meta#likeToRegex(String)}. */
+  @Test public void testLikeToRegex() {
+    checkLikeToRegex(true, "%", "abc");
+    checkLikeToRegex(true, "abc", "abc");
+    checkLikeToRegex(false, "abc", "abcd"); // trailing char fails match
+    checkLikeToRegex(false, "abc", "0abc"); // leading char fails match
+    checkLikeToRegex(false, "abc", "aBc"); // case-sensitive match
+    checkLikeToRegex(true, "a[b]c", "a[b]c"); // nothing special about brackets
+    checkLikeToRegex(true, "a$c", "a$c"); // nothing special about dollar
+    checkLikeToRegex(false, "a$", "a"); // nothing special about dollar
+    checkLikeToRegex(true, "a%c", "ac");
+    checkLikeToRegex(true, "a%c", "abbbc");
+    checkLikeToRegex(false, "a%c", "acccd");
+
+    // escape using back-slash
+    checkLikeToRegex(true, "a\\%c", "a%c");
+    checkLikeToRegex(false, "a\\%c", "abc");
+    checkLikeToRegex(false, "a\\%c", "a\\%c");
+
+    // multiple wild-cards
+    checkLikeToRegex(true, "a%c%d", "abcdaaad");
+    checkLikeToRegex(false, "a%c%d", "abcdc");
+  }
+
+  private void checkLikeToRegex(boolean b, String pattern, String abc) {
+    assertTrue(b == Meta.likeToRegex(pattern).matcher(abc).matches());
+  }
+
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
   @Test public void testResultSetMetaData()
       throws ClassNotFoundException, SQLException {

@@ -1053,6 +1053,15 @@ public class UtilTest {
         assertEquals("", Util.toCamelCase(""));
     }
 
+    /** Unit test for {@link Util#camelToUpper(String)}. */
+    @Test public void testCamelToUpper() {
+        assertEquals("MY_JDBC_DRIVER", Util.camelToUpper("myJdbcDriver"));
+        assertEquals("MY_J_D_B_C_DRIVER", Util.camelToUpper("myJDBCDriver"));
+        assertEquals("AB_CDEF_G_HIJ", Util.camelToUpper("abCdefGHij"));
+        assertEquals("_JDBC_DRIVER", Util.camelToUpper("JdbcDriver"));
+        assertEquals("", Util.camelToUpper(""));
+    }
+
     /** Unit test for {@link Util#isDistinct(java.util.List)}. */
     @Test public void testDistinct() {
         assertTrue(Util.isDistinct(Collections.emptyList()));

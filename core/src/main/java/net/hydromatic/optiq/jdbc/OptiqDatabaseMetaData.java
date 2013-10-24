@@ -17,8 +17,10 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import java.sql.*;
+import org.eigenbase.sql.SqlJdbcFunctionCall;
+import org.eigenbase.sql.parser.SqlParser;
 
+import java.sql.*;
 
 /**
  * Implementation of {@link java.sql.DatabaseMetaData}
@@ -37,19 +39,19 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean allProceduresAreCallable() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean allTablesAreSelectable() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public String getURL() throws SQLException {
-    throw connection.helper.todo();
+    return connection.url;
   }
 
   public String getUserName() throws SQLException {
-    throw connection.helper.todo();
+    return connection.info.getProperty("user");
   }
 
   public boolean isReadOnly() throws SQLException {
@@ -57,19 +59,19 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean nullsAreSortedHigh() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean nullsAreSortedLow() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean nullsAreSortedAtStart() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean nullsAreSortedAtEnd() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public String getDatabaseProductName() throws SQLException {
@@ -97,11 +99,11 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean usesLocalFiles() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean usesLocalFilePerTable() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsMixedCaseIdentifiers() throws SQLException {
@@ -141,27 +143,27 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public String getSQLKeywords() throws SQLException {
-    throw connection.helper.todo();
+    return new SqlParser("").getParserImpl().getMetadata().getJdbcKeywords();
   }
 
   public String getNumericFunctions() throws SQLException {
-    throw connection.helper.todo();
+    return SqlJdbcFunctionCall.getNumericFunctions();
   }
 
   public String getStringFunctions() throws SQLException {
-    throw connection.helper.todo();
+    return SqlJdbcFunctionCall.getStringFunctions();
   }
 
   public String getSystemFunctions() throws SQLException {
-    throw connection.helper.todo();
+    return SqlJdbcFunctionCall.getSystemFunctions();
   }
 
   public String getTimeDateFunctions() throws SQLException {
-    throw connection.helper.todo();
+    return SqlJdbcFunctionCall.getTimeDateFunctions();
   }
 
   public String getSearchStringEscape() throws SQLException {
-    throw connection.helper.todo();
+    return "\\";
   }
 
   public String getExtraNameCharacters() throws SQLException {
@@ -169,232 +171,232 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean supportsAlterTableWithAddColumn() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsAlterTableWithDropColumn() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsColumnAliasing() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean nullPlusNonNullIsNull() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsConvert() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsConvert(
       int fromType, int toType) throws SQLException {
-    throw connection.helper.todo();
+    return false; // TODO: more detail
   }
 
   public boolean supportsTableCorrelationNames() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsDifferentTableCorrelationNames() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsExpressionsInOrderBy() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsOrderByUnrelated() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsGroupBy() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsGroupByUnrelated() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsGroupByBeyondSelect() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsLikeEscapeClause() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsMultipleResultSets() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsMultipleTransactions() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsNonNullableColumns() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsMinimumSQLGrammar() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsCoreSQLGrammar() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsExtendedSQLGrammar() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsANSI92EntryLevelSQL() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsANSI92IntermediateSQL() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsANSI92FullSQL() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsIntegrityEnhancementFacility() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsOuterJoins() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsFullOuterJoins() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsLimitedOuterJoins() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public String getSchemaTerm() throws SQLException {
-    throw connection.helper.todo();
+    return "schema";
   }
 
   public String getProcedureTerm() throws SQLException {
-    throw connection.helper.todo();
+    return "procedure";
   }
 
   public String getCatalogTerm() throws SQLException {
-    throw connection.helper.todo();
+    return "catalog";
   }
 
   public boolean isCatalogAtStart() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public String getCatalogSeparator() throws SQLException {
-    throw connection.helper.todo();
+    return ".";
   }
 
   public boolean supportsSchemasInDataManipulation() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsSchemasInProcedureCalls() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsSchemasInTableDefinitions() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsSchemasInIndexDefinitions() throws SQLException {
-    throw connection.helper.todo();
+    return true; // except that we don't support index definitions
   }
 
   public boolean supportsSchemasInPrivilegeDefinitions() throws SQLException {
-    throw connection.helper.todo();
+    return true; // except that we don't support privilege definitions
   }
 
   public boolean supportsCatalogsInDataManipulation() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsCatalogsInProcedureCalls() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsCatalogsInTableDefinitions() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsCatalogsInIndexDefinitions() throws SQLException {
-    throw connection.helper.todo();
+    return true; // except that we don't support index definitions
   }
 
   public boolean supportsCatalogsInPrivilegeDefinitions() throws SQLException {
-    throw connection.helper.todo();
+    return true; // except that we don't support privilege definitions
   }
 
   public boolean supportsPositionedDelete() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsPositionedUpdate() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsSelectForUpdate() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsStoredProcedures() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsSubqueriesInComparisons() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsSubqueriesInExists() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsSubqueriesInIns() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsSubqueriesInQuantifieds() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsCorrelatedSubqueries() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsUnion() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsUnionAll() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsOpenCursorsAcrossCommit() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsOpenCursorsAcrossRollback() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsOpenStatementsAcrossCommit() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsOpenStatementsAcrossRollback() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public int getMaxBinaryLiteralLength() throws SQLException {
@@ -414,7 +416,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public int getMaxColumnsInIndex() throws SQLException {
-    throw connection.helper.todo();
+    return 0;
   }
 
   public int getMaxColumnsInOrderBy() throws SQLException {
@@ -434,11 +436,11 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public int getMaxCursorNameLength() throws SQLException {
-    throw connection.helper.todo();
+    return 0;
   }
 
   public int getMaxIndexLength() throws SQLException {
-    throw connection.helper.todo();
+    return 0;
   }
 
   public int getMaxSchemaNameLength() throws SQLException {
@@ -458,7 +460,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean doesMaxRowSizeIncludeBlobs() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public int getMaxStatementLength() throws SQLException {
@@ -482,41 +484,41 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public int getDefaultTransactionIsolation() throws SQLException {
-    throw connection.helper.todo();
+    return Connection.TRANSACTION_NONE;
   }
 
   public boolean supportsTransactions() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsTransactionIsolationLevel(int level)
       throws SQLException {
-    throw connection.helper.todo();
+    return level == Connection.TRANSACTION_NONE;
   }
 
   public boolean supportsDataDefinitionAndDataManipulationTransactions()
       throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsDataManipulationTransactionsOnly()
       throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean dataDefinitionCausesTransactionCommit() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean dataDefinitionIgnoredInTransactions() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public ResultSet getProcedures(
       String catalog,
       String schemaPattern,
       String procedureNamePattern) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaProcedure.class);
   }
 
   public ResultSet getProcedureColumns(
@@ -524,7 +526,8 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
       String schemaPattern,
       String procedureNamePattern,
       String columnNamePattern) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection,
+        Meta.MetaProcedureColumn.class);
   }
 
   public ResultSet getTables(
@@ -535,16 +538,21 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
     return meta.getTables(catalog, schemaPattern, tableNamePattern, types);
   }
 
+  public ResultSet getSchemas(
+      String catalog, String schemaPattern) throws SQLException {
+    return meta.getSchemas(catalog, schemaPattern);
+  }
+
   public ResultSet getSchemas() throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return meta.getSchemas(null, null);
   }
 
   public ResultSet getCatalogs() throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return meta.getCatalogs();
   }
 
   public ResultSet getTableTypes() throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return meta.getTableTypes();
   }
 
   public ResultSet getColumns(
@@ -561,14 +569,15 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
       String schema,
       String table,
       String columnNamePattern) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection,
+        Meta.MetaColumnPrivilege.class);
   }
 
   public ResultSet getTablePrivileges(
       String catalog,
       String schemaPattern,
       String tableNamePattern) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaTablePrivilege.class);
   }
 
   public ResultSet getBestRowIdentifier(
@@ -577,27 +586,28 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
       String table,
       int scope,
       boolean nullable) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection,
+        Meta.MetaBestRowIdentifier.class);
   }
 
   public ResultSet getVersionColumns(
       String catalog, String schema, String table) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaVersionColumn.class);
   }
 
   public ResultSet getPrimaryKeys(
       String catalog, String schema, String table) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaPrimaryKey.class);
   }
 
   public ResultSet getImportedKeys(
       String catalog, String schema, String table) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaImportedKey.class);
   }
 
   public ResultSet getExportedKeys(
       String catalog, String schema, String table) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaExportedKey.class);
   }
 
   public ResultSet getCrossReference(
@@ -607,11 +617,11 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
       String foreignCatalog,
       String foreignSchema,
       String foreignTable) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaCrossReference.class);
   }
 
   public ResultSet getTypeInfo() throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaTypeInfo.class);
   }
 
   public ResultSet getIndexInfo(
@@ -620,7 +630,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
       String table,
       boolean unique,
       boolean approximate) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaIndexInfo.class);
   }
 
   public boolean supportsResultSetType(int type) throws SQLException {
@@ -670,7 +680,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean supportsBatchUpdates() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public ResultSet getUDTs(
@@ -678,7 +688,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
       String schemaPattern,
       String typeNamePattern,
       int[] types) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaUdt.class);
   }
 
   public Connection getConnection() throws SQLException {
@@ -686,33 +696,33 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean supportsSavepoints() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsNamedParameters() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsMultipleOpenResults() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public boolean supportsGetGeneratedKeys() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public ResultSet getSuperTypes(
       String catalog,
       String schemaPattern,
       String typeNamePattern) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaSuperType.class);
   }
 
   public ResultSet getSuperTables(
       String catalog,
       String schemaPattern,
       String tableNamePattern) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaSuperTable.class);
   }
 
   public ResultSet getAttributes(
@@ -720,7 +730,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
       String schemaPattern,
       String typeNamePattern,
       String attributeNamePattern) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaAttribute.class);
   }
 
   public boolean supportsResultSetHoldability(int holdability)
@@ -749,44 +759,40 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
   }
 
   public int getSQLStateType() throws SQLException {
-    throw connection.helper.todo();
+    return sqlStateSQL;
   }
 
   public boolean locatorsUpdateCopy() throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean supportsStatementPooling() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public RowIdLifetime getRowIdLifetime() throws SQLException {
-    throw connection.helper.todo();
-  }
-
-  public ResultSet getSchemas(
-      String catalog, String schemaPattern) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return RowIdLifetime.ROWID_UNSUPPORTED;
   }
 
   public boolean supportsStoredFunctionsUsingCallSyntax()
       throws SQLException {
-    throw connection.helper.todo();
+    return true;
   }
 
   public boolean autoCommitFailureClosesAllResultSets() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   public ResultSet getClientInfoProperties() throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection,
+        Meta.MetaClientInfoProperty.class);
   }
 
   public ResultSet getFunctions(
       String catalog,
       String schemaPattern,
       String functionNamePattern) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaFunction.class);
   }
 
   public ResultSet getFunctionColumns(
@@ -794,7 +800,7 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
       String schemaPattern,
       String functionNamePattern,
       String columnNamePattern) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaFunctionColumn.class);
   }
 
   public ResultSet getPseudoColumns(
@@ -802,11 +808,11 @@ class OptiqDatabaseMetaData implements DatabaseMetaData {
       String schemaPattern,
       String tableNamePattern,
       String columnNamePattern) throws SQLException {
-    return connection.helper.createEmptyResultSet(connection);
+    return Meta.createEmptyResultSet(connection, Meta.MetaPseudoColumn.class);
   }
 
   public boolean generatedKeyAlwaysReturned() throws SQLException {
-    throw connection.helper.todo();
+    return false;
   }
 
   // implement Wrapper

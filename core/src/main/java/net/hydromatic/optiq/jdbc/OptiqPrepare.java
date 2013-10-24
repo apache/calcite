@@ -194,7 +194,7 @@ public interface OptiqPrepare {
       if (maxRowCount >= 0) {
         // Apply limit. In JDBC 0 means "no limit". But for us, -1 means
         // "no limit", and 0 is a valid limit.
-        enumerable = enumerable.take(maxRowCount);
+        enumerable = EnumerableDefaults.take(enumerable, maxRowCount);
       }
       return enumerable;
     }

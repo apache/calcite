@@ -310,11 +310,11 @@ public class OptiqResultSet implements ResultSet {
   }
 
   public SQLWarning getWarnings() throws SQLException {
-    throw new UnsupportedOperationException();
+    return null; // no warnings, since warnings are not supported
   }
 
   public void clearWarnings() throws SQLException {
-    throw new UnsupportedOperationException();
+    // no-op since warnings are not supported
   }
 
   public String getCursorName() throws SQLException {

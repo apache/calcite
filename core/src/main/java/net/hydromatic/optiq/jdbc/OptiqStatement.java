@@ -19,7 +19,6 @@ package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.linq4j.function.Function0;
 import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.DataContext;
@@ -179,11 +178,11 @@ public abstract class OptiqStatement
   }
 
   public SQLWarning getWarnings() throws SQLException {
-    return null;
+    return null; // no warnings, since warnings are not supported
   }
 
   public void clearWarnings() throws SQLException {
-    throw new UnsupportedOperationException();
+    // no-op since warnings are not supported
   }
 
   public void setCursorName(String name) throws SQLException {
@@ -206,7 +205,7 @@ public abstract class OptiqStatement
   }
 
   public int getUpdateCount() throws SQLException {
-    throw new UnsupportedOperationException();
+    return -1;
   }
 
   public boolean getMoreResults() throws SQLException {
