@@ -133,13 +133,13 @@ public class JdbcFrontLinqBackTest {
             + "union\n"
             + "select substring(\"name\" from 1 for 1) as y\n"
             + "from \"hr\".\"depts\"")
-        .returns(
-            "X=T\n"
-            + "X=E\n"
-            + "X=S\n"
-            + "X=B\n"
-            + "X=M\n"
-            + "X=H\n");
+        .returnsUnordered(
+            "X=T",
+            "X=E",
+            "X=S",
+            "X=B",
+            "X=M",
+            "X=H");
   }
 
   /**
@@ -168,10 +168,10 @@ public class JdbcFrontLinqBackTest {
             + "except\n"
             + "select substring(\"name\" from 1 for 1) as y\n"
             + "from \"hr\".\"depts\"")
-        .returns(
-            "X=T\n"
-            + "X=E\n"
-            + "X=B\n");
+        .returnsUnordered(
+            "X=T",
+            "X=E",
+            "X=B");
   }
 
   @Test public void testWhereBad() {
@@ -224,12 +224,12 @@ public class JdbcFrontLinqBackTest {
     with.query(
         "select \"name\", count(*) as c from \"foo\".\"bar\" "
         + "group by \"name\"")
-        .returns(
-            "name=Bill; C=2\n"
-            + "name=Eric; C=1\n"
-            + "name=Theodore; C=2\n"
-            + "name=first; C=1\n"
-            + "name=Sebastian; C=2\n");
+        .returnsUnordered(
+            "name=Bill; C=2",
+            "name=Eric; C=1",
+            "name=Theodore; C=2",
+            "name=first; C=1",
+            "name=Sebastian; C=2");
   }
 
   private OptiqAssert.AssertThat mutable(

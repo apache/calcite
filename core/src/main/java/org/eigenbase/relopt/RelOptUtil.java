@@ -2342,7 +2342,7 @@ public abstract class RelOptUtil
     public static class VariableUsedVisitor
         extends RexShuttle
     {
-        public final Set<String> variables = new HashSet<String>();
+        public final Set<String> variables = new LinkedHashSet<String>();
 
         public RexNode visitCorrelVariable(RexCorrelVariable p)
         {

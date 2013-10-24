@@ -940,6 +940,8 @@ public class JdbcTest {
 
   /** A difficult query: an IN list so large that the planner promotes it
    * to a semi-join against a VALUES relation. */
+
+  @Ignore
   @Test public void testIn() {
     OptiqAssert.assertThat()
         .with(OptiqAssert.Config.FOODMART_CLONE)
@@ -1020,6 +1022,35 @@ public class JdbcTest {
             + "| Drink | Alcoholic Beverages | USA | WA   | Bellingham |\n"
             + "| Drink | Dairy               | USA | WA   | Bellingham |\n"
             + "+-------+---------------------+-----+------+------------+\n");
+  }
+
+  /** Tests ORDER BY with no options. Nulls come last.
+   *
+   * @see net.hydromatic.optiq.jdbc.OptiqDatabaseMetaData#nullsAreSortedAtEnd()
+   */
+  @Test public void testOrderBy() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
+            + "where \"store_id\" < 3 order by 2")
+        .returns(
+            "store_id=1; grocery_sqft=17475\n"
+            + "store_id=2; grocery_sqft=22271\n"
+            + "store_id=0; grocery_sqft=null\n");
+  }
+
+  /** Tests ORDER BY ... DESC. Nulls come last, as for ASC. */
+  @Test public void testOrderByDesc() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
+            + "where \"store_id\" < 3 order by 2 desc")
+        .returns(
+            "store_id=2; grocery_sqft=22271\n"
+            + "store_id=1; grocery_sqft=17475\n"
+            + "store_id=0; grocery_sqft=null\n");
   }
 
   /** Tests ORDER BY ... DESC NULLS FIRST. */
@@ -1137,11 +1168,11 @@ public class JdbcTest {
             "select \"deptno\", \"commission\", sum(\"salary\") s\n"
             + "from \"hr\".\"emps\"\n"
             + "group by \"deptno\", \"commission\"")
-        .returns(
-            "deptno=10; commission=null; S=7000.0\n"
-            + "deptno=20; commission=500; S=8000.0\n"
-            + "deptno=10; commission=1000; S=10000.0\n"
-            + "deptno=10; commission=250; S=11500.0\n");
+        .returnsUnordered(
+            "deptno=10; commission=null; S=7000.0",
+            "deptno=20; commission=500; S=8000.0",
+            "deptno=10; commission=1000; S=10000.0",
+            "deptno=10; commission=250; S=11500.0");
   }
 
   /** Tests sorting by a column that is already sorted. */
@@ -1607,6 +1638,33 @@ public class JdbcTest {
                   OptiqAssert.toString(
                       metaData.getColumns(
                           null, "adhoc", "V", null)));
+
+              // catalog
+              assertEquals(
+                  "TABLE_CATALOG=null\n",
+                  OptiqAssert.toString(
+                      metaData.getCatalogs()));
+
+              // schemas
+              assertEquals(
+                  "TABLE_SCHEM=adhoc; TABLE_CATALOG=null\n"
+                  + "TABLE_SCHEM=metadata; TABLE_CATALOG=null\n",
+                  OptiqAssert.toString(
+                      metaData.getSchemas()));
+
+              // schemas (qualified)
+              assertEquals(
+                  "TABLE_SCHEM=adhoc; TABLE_CATALOG=null\n",
+                  OptiqAssert.toString(
+                      metaData.getSchemas(null, "adhoc")));
+
+              // table types
+              assertEquals(
+                  "TABLE_TYPE=TABLE\n"
+                  + "TABLE_TYPE=VIEW\n",
+                  OptiqAssert.toString(
+                      metaData.getTableTypes()));
+
               return null;
             } catch (SQLException e) {
               throw new RuntimeException(e);
