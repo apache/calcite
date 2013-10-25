@@ -247,12 +247,12 @@ public class JavaTypeFactoryImpl
   }
 
   public static class SyntheticRecordType implements Types.RecordType {
-    final List<Types.RecordField> fields =
+    public final List<Types.RecordField> fields =
         new ArrayList<Types.RecordField>();
     final RelDataType relType;
     private final String name;
 
-    private SyntheticRecordType(RelDataType relType, String name) {
+    public SyntheticRecordType(RelDataType relType, String name) {
       this.relType = relType;
       this.name = name;
       assert relType == null
@@ -274,7 +274,7 @@ public class JavaTypeFactoryImpl
     }
   }
 
-  private static class RecordFieldImpl implements Types.RecordField {
+  public static class RecordFieldImpl implements Types.RecordField {
     private final SyntheticRecordType syntheticType;
     private final String name;
     private final Type type;

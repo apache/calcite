@@ -48,6 +48,10 @@ public class JavaRecordType extends RelRecordType {
   @Override public int hashCode() {
     return fieldList.hashCode() ^ clazz.hashCode();
   }
+
+  public Class getClazz() {
+    return clazz;
+  }
 }
 
 // End JavaRecordType.java
