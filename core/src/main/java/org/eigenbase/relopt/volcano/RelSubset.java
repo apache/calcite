@@ -66,11 +66,6 @@ public class RelSubset
     RelNode best;
 
     /**
-     * whether findBestPlan is being called
-     */
-    boolean active;
-
-    /**
      * Timestamp for metadata validity
      */
     long timestamp;
@@ -90,12 +85,23 @@ public class RelSubset
     {
         super(cluster, traits);
         this.set = set;
-        this.bestCost = VolcanoCost.INFINITY;
+        this.bestCost = computeBestCost(cluster.getPlanner());
         this.boosted = false;
         recomputeDigest();
     }
 
     //~ Methods ----------------------------------------------------------------
+
+    private RelOptCost computeBestCost(RelOptPlanner planner) {
+        RelOptCost bestCost = VolcanoCost.INFINITY;
+        for (RelNode rel : getRels()) {
+            final RelOptCost cost = planner.getCost(rel);
+            if (cost.isLt(bestCost)) {
+                bestCost = cost;
+            }
+        }
+        return bestCost;
+    }
 
     public Set<String> getVariablesSet()
     {
@@ -183,7 +189,7 @@ public class RelSubset
     Set<RelNode> getParents() {
         final Set<RelNode> list = new LinkedHashSet<RelNode>();
         for (RelNode parent : set.getParentRels()) {
-            for (RelSubset rel : (List<RelSubset>) (List) parent.getInputs()) {
+            for (RelSubset rel : inputSubsets(parent)) {
                 if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
                     list.add(parent);
                 }
@@ -196,9 +202,35 @@ public class RelSubset
      * of whose inputs is in this subset. */
     Set<RelSubset> getParentSubsets(VolcanoPlanner planner) {
         final Set<RelSubset> list = new LinkedHashSet<RelSubset>();
-        for (RelNode parent : getParents()) {
-            list.add(planner.getSubset(parent));
+        for (RelNode parent : set.getParentRels()) {
+            for (RelSubset rel : inputSubsets(parent)) {
+                if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
+                    list.add(planner.getSubset(parent));
+                }
+            }
         }
+        return list;
+    }
+
+    private static List<RelSubset> inputSubsets(RelNode parent) {
+        //noinspection unchecked
+        return (List<RelSubset>) (List) parent.getInputs();
+    }
+
+    /** Returns a list of relational expressions one of whose children is this
+     * subset. The elements of the list are distinct. */
+    public List<RelNode> getParentRels() {
+        final List<RelNode> list = new ArrayList<RelNode>();
+    parentLoop:
+        for (RelNode parent : set.getParentRels()) {
+            for (RelSubset rel : inputSubsets(parent)) {
+                if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
+                    list.add(parent);
+                    continue parentLoop;
+                }
+            }
+        }
+        assert Util.isDistinct(list);
         return list;
     }
 
@@ -280,6 +312,18 @@ public class RelSubset
         RelNode rel,
         Set<RelSubset> activeSet)
     {
+        for (RelSubset subset : set.subsets) {
+            if (rel.getTraitSet().subsumes(subset.traitSet)) {
+                subset.propagateCostImprovements0(planner, rel, activeSet);
+            }
+        }
+    }
+
+    void propagateCostImprovements0(
+        VolcanoPlanner planner,
+        RelNode rel,
+        Set<RelSubset> activeSet)
+    {
         ++timestamp;
 
         if (!activeSet.add(this)) {
@@ -323,8 +367,7 @@ public class RelSubset
         if (boosted) {
             boosted = false;
 
-            for (RelNode parent : getParents()) {
-                final RelSubset parentSubset = planner.getSubset(parent);
+            for (RelSubset parentSubset : getParentSubsets(planner)) {
                 parentSubset.propagateBoostRemoval(planner);
             }
         }
@@ -352,12 +395,23 @@ public class RelSubset
                     .where(
                         new Predicate1<RelNode>() {
                             public boolean apply(RelNode v1) {
-                                return v1.getTraitSet().equals(traitSet);
+                                return v1.getTraitSet().subsumes(traitSet);
                             }
                         })
                     .iterator();
             }
         };
+    }
+
+    /** As {@link #getRels()} but returns a list. */
+    public List<RelNode> getRelList() {
+        final List<RelNode> list = new ArrayList<RelNode>();
+        for (RelNode rel : set.rels) {
+            if (rel.getTraitSet().subsumes(traitSet)) {
+                list.add(rel);
+            }
+        }
+        return list;
     }
 
     //~ Inner Classes ----------------------------------------------------------

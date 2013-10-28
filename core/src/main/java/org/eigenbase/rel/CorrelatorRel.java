@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
+import com.google.common.collect.ImmutableSet;
 
 /**
  * A <code>CorrelatorRel</code> behaves like a kind of {@link JoinRel}, but
@@ -70,7 +71,7 @@ public final class CorrelatorRel
             right,
             joinCond,
             joinType,
-            Collections.<String>emptySet());
+            ImmutableSet.<String>of());
         this.correlations = correlations;
         assert (joinType == JoinRelType.LEFT)
             || (joinType == JoinRelType.INNER);

@@ -18,7 +18,6 @@
 package org.eigenbase.sql2rel;
 
 import java.math.*;
-
 import java.util.*;
 import java.util.logging.*;
 
@@ -33,6 +32,8 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.Mappings;
+
+import com.google.common.collect.ImmutableSet;
 
 import net.hydromatic.linq4j.Ord;
 
@@ -1955,7 +1956,6 @@ public class RelDecorrelator
             }
 
             // make the new join rel
-            final Set<String> variablesStopped = Collections.emptySet();
             JoinRel joinRel =
                 new JoinRel(
                     corRel.getCluster(),
@@ -1963,7 +1963,7 @@ public class RelDecorrelator
                     rightInputRel,
                     joinCond,
                     joinType,
-                    variablesStopped);
+                    ImmutableSet.<String>of());
 
             RelNode newProjRel =
                 projectJoinOutputWithNullability(
@@ -2264,7 +2264,6 @@ public class RelDecorrelator
                             (RexNode) rexBuilder.makeLiteral(true),
                             "nullIndicator")));
 
-            final Set<String> variablesStopped = Collections.emptySet();
             JoinRel joinRel =
                 new JoinRel(
                     cluster,
@@ -2272,7 +2271,7 @@ public class RelDecorrelator
                     rightInputRel,
                     joinCond,
                     joinType,
-                    variablesStopped);
+                    ImmutableSet.<String>of());
 
             // To the consumer of joinOutputProjRel, nullIndicator is located
             // at the end

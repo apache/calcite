@@ -31,6 +31,7 @@ public enum EnumerableConvention implements Convention {
     return getName();
   }
 
+
   public Class getInterface() {
     return EnumerableRel.class;
   }
@@ -41,6 +42,10 @@ public enum EnumerableConvention implements Convention {
 
   public RelTraitDef getTraitDef() {
     return ConventionTraitDef.instance;
+  }
+
+  public boolean subsumes(RelTrait trait) {
+    return this == trait;
   }
 }
 

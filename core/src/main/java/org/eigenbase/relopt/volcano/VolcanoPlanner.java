@@ -983,7 +983,8 @@ SUBSET_LOOP:
             }
 
             assert traitDef == toTrait.getTraitDef();
-            if (fromTrait == toTrait) {
+//            if (fromTrait.subsumes(toTrait)) {
+            if (fromTrait.equals(toTrait)) {
                 // No need to convert; it's already correct.
                 continue;
             }
@@ -1164,8 +1165,8 @@ SUBSET_LOOP:
                                 inputSubset.getRels().iterator();
                             if (rels.hasNext()) {
                                 input = rels.next();
-                                assert inputSubset.getTraitSet().equals(
-                                    input.getTraitSet());
+                                assert input.getTraitSet().subsumes(
+                                    inputSubset.getTraitSet());
                                 assert inputSet.rels.contains(input);
                                 assert inputSet.subsets.contains(inputSubset);
                             }

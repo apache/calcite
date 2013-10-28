@@ -68,6 +68,11 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation>
             return null;
         }
 
+        if (toCollation.getFieldCollations().isEmpty()) {
+            // An empty sort doesn't make sense.
+            return null;
+        }
+
         // Create a logical sort, then ask the planner to convert its remaining
         // traits (e.g. convert it to an EnumerableSortRel if rel is enumerable
         // convention)

@@ -26,6 +26,7 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.ImmutableIntList;
 
+import com.google.common.collect.ImmutableSet;
 
 /**
  * A SemiJoinRel represents two relational expressions joined according to some
@@ -68,7 +69,7 @@ public final class SemiJoinRel
             right,
             condition,
             JoinRelType.INNER,
-            Collections.<String>emptySet());
+            ImmutableSet.<String>of());
         this.leftKeys = ImmutableIntList.copyOf(leftKeys);
         this.rightKeys = ImmutableIntList.copyOf(rightKeys);
     }

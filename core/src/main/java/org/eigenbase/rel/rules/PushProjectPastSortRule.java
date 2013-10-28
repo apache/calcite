@@ -17,32 +17,19 @@
 */
 package org.eigenbase.rel.rules;
 
-import java.util.*;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
-import org.eigenbase.rex.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
- * PushProjectPastSortRule implements the rule for pushing a {@link ProjectRel}
- * past a {@link SortRel}. The children of the {@link SortRel} will project
- * only the {@link RexInputRef}s referenced in the original {@link ProjectRel}.
+ * Planner rule that pushes a {@link ProjectRel} past a {@link SortRel}.
  */
 public class PushProjectPastSortRule
     extends RelOptRule
 {
     public static final PushProjectPastSortRule INSTANCE =
         new PushProjectPastSortRule();
-
-    //~ Instance fields --------------------------------------------------------
-
-    /**
-     * Expressions that should be preserved in the projection
-     */
-    private PushProjector.ExprCondition preserveExprCondition;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -51,22 +38,7 @@ public class PushProjectPastSortRule
      */
     private PushProjectPastSortRule()
     {
-        this(PushProjector.ExprCondition.FALSE);
-    }
-
-    /**
-     * Creates a PushProjectPastSortRule with an explicit condition whether
-     * to preserve expressions.
-     *
-     * @param preserveExprCondition Condition whether to preserve expressions
-     */
-    public PushProjectPastSortRule(
-        PushProjector.ExprCondition preserveExprCondition)
-    {
-        super(
-            some(
-                ProjectRel.class, any(SortRel.class)));
-        this.preserveExprCondition = preserveExprCondition;
+        super(some(ProjectRel.class, any(SortRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -74,40 +46,22 @@ public class PushProjectPastSortRule
     // implement RelOptRule
     public void onMatch(RelOptRuleCall call)
     {
-        ProjectRel origProj = call.rel(0);
+        ProjectRel project = call.rel(0);
         SortRel sort = call.rel(1);
-
-        if (sort.getClass() != SortRel.class) return;
-
-        if (false) { // TODO: rule can't fire if sort is on a non-trivial
-            // projected expression
+        if (sort.getClass() != SortRel.class) {
             return;
         }
-
-        // locate all fields referenced in the projection
-        PushProjector pushProject =
-            new PushProjector(origProj, null, sort, preserveExprCondition);
-        pushProject.locateAllRefs();
-
-        List<RelNode> newSortInputs = new ArrayList<RelNode>();
-        int [] adjustments = pushProject.getAdjustments();
-
-        // push the projects completely below the Sort; this
-        // is different from pushing below a join, where we decompose
-        // to try to keep expensive expressions above the join,
-        // because UNION ALL does not have any filtering effect,
-        // and it is the only operator this rule currently acts on
-        // be lazy:  produce two ProjectRels, and let another rule
-        // merge them (could probably just clone origProj instead?)
-        ProjectRel p =
-            pushProject.createProjectRefsAndExprs(
-                sort.getChild(), true, false);
-
-        // create a new Sort whose children are the ProjectRels created above
-        SortRel newSortRel =
-            sort.copy(sort.getTraitSet(), ImmutableList.<RelNode>of(p));
-
-        call.transformTo(newSortRel);
+        RelNode newProject =
+            project.copy(
+                project.getTraitSet(), ImmutableList.of(sort.getChild()));
+        final SortRel newSort =
+            sort.copy(
+                sort.getTraitSet(),
+                newProject,
+                sort.getCollation(),
+                sort.offset,
+                sort.fetch);
+        call.transformTo(newSort);
     }
 }
 

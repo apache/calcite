@@ -108,13 +108,9 @@ public class SwapJoinRule
                 join.getLeft(),
                 condition,
                 joinType,
-                Collections.<String>emptySet(),
+                join.getVariablesStopped(),
                 join.isSemiJoinDone(),
                 join.getSystemFieldList());
-        if (!join.getVariablesStopped().isEmpty()) {
-            newJoin.setVariablesStopped(
-                new HashSet<String>(join.getVariablesStopped()));
-        }
         final List<RexNode> exps =
             RelOptUtil.createSwappedJoinExprs(newJoin, join, true);
         return CalcRel.createProject(

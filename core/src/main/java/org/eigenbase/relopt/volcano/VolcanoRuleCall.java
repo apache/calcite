@@ -85,11 +85,12 @@ public class VolcanoRuleCall
     //~ Methods ----------------------------------------------------------------
 
     // implement RelOptRuleCall
-    public void transformTo(RelNode rel)
+    public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv)
     {
         if (tracer.isLoggable(Level.FINE)) {
             tracer.fine(
-                "Transform to: rel#" + rel.getId() + " via " + getRule());
+                "Transform to: rel#" + rel.getId() + " via " + getRule()
+                + (equiv.isEmpty() ? "" : " with equivalences " + equiv));
             if (generatedRelList != null) {
                 generatedRelList.add(rel);
             }
@@ -127,6 +128,13 @@ public class VolcanoRuleCall
                 volcanoPlanner.listener.ruleProductionSucceeded(event);
             }
 
+            // Registering the root relational expression implicitly registers
+            // its descendants. Register any explicit equivalences first, so we
+            // don't register twice and cause churn.
+            for (Map.Entry<RelNode, RelNode> entry : equiv.entrySet()) {
+                volcanoPlanner.ensureRegistered(
+                    entry.getKey(), entry.getValue(), this);
+            }
             volcanoPlanner.ensureRegistered(rel, rels[0], this);
 
             if (volcanoPlanner.listener != null) {
@@ -295,8 +303,8 @@ public class VolcanoRuleCall
             if (ascending) {
                 assert (previousOperand.getParent() == operand);
                 final RelNode childRel = rels[previousOperandOrdinal];
-                RelSet set = volcanoPlanner.getSet(childRel);
-                successors = set.getParentRels();
+                RelSubset subset = volcanoPlanner.getSubset(childRel);
+                successors = subset.getParentRels();
             } else {
                 int parentOrdinal = operand.getParent().ordinalInRule;
                 RelNode parentRel = rels[parentOrdinal];
@@ -304,7 +312,7 @@ public class VolcanoRuleCall
                 if (operand.ordinalInParent < inputs.size()) {
                     RelSubset subset =
                         (RelSubset) inputs.get(operand.ordinalInParent);
-                    successors = subset.set.getRelsFromAllSubsets();
+                    successors = subset.getRelList();
                 } else {
                     // The operand expects parentRel to have a certain number
                     // of inputs and it does not.
@@ -312,8 +320,7 @@ public class VolcanoRuleCall
                 }
             }
 
-            for (int i = 0, n = successors.size(); i < n; i++) {
-                RelNode rel = successors.get(i);
+            for (RelNode rel : successors) {
                 if (!operand.matches(rel)) {
                     continue;
                 }

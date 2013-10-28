@@ -55,6 +55,10 @@ public interface Convention
             return getName();
         }
 
+        public boolean subsumes(RelTrait trait) {
+            return this == trait;
+        }
+
         public Class getInterface() {
             return relClass;
         }

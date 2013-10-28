@@ -61,17 +61,18 @@ public class MergeProjectOntoCalcRule
         // through a filter. Transform the project into an identical calc,
         // which we'll have chance to merge later, after the over is
         // expanded.
+        final RelOptCluster cluster = project.getCluster();
         RexProgram program =
             RexProgram.create(
                 calc.getRowType(),
                 project.getProjects(),
                 null,
                 project.getRowType(),
-                project.getCluster().getRexBuilder());
+                cluster.getRexBuilder());
         if (RexOver.containsOver(program)) {
             CalcRel projectAsCalc =
                 new CalcRel(
-                    project.getCluster(),
+                    cluster,
                     project.getTraitSet(),
                     calc,
                     project.getRowType(),
@@ -82,7 +83,7 @@ public class MergeProjectOntoCalcRule
         }
 
         // Create a program containing the project node's expressions.
-        final RexBuilder rexBuilder = project.getCluster().getRexBuilder();
+        final RexBuilder rexBuilder = cluster.getRexBuilder();
         final RexProgramBuilder progBuilder =
             new RexProgramBuilder(
                 calc.getRowType(),
@@ -101,8 +102,8 @@ public class MergeProjectOntoCalcRule
                 rexBuilder);
         final CalcRel newCalc =
             new CalcRel(
-                calc.getCluster(),
-                calc.getTraitSet(),
+                cluster,
+                project.getTraitSet(),
                 calc.getChild(),
                 project.getRowType(),
                 mergedProgram,

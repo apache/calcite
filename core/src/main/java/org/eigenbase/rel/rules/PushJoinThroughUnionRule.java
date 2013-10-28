@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
+import com.google.common.collect.ImmutableSet;
 
 /**
  * PushJoinThroughUnionRule implements the rule for pushing a
@@ -100,7 +101,7 @@ public class PushJoinThroughUnionRule extends RelOptRule
                     joinRight,
                     joinRel.getCondition(),
                     joinRel.getJoinType(),
-                    Collections.<String>emptySet()));
+                    ImmutableSet.<String>of()));
         }
         UnionRel newUnionRel = new UnionRel(cluster, newUnionInputs, true);
         call.transformTo(newUnionRel);

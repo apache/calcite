@@ -1074,7 +1074,7 @@ public class JavaRules {
           PhysTypeImpl.of(
               implementor.getTypeFactory(),
               getRowType(),
-              pref.prefer(result.format));
+              result.format);
       Expression childExp =
           builder.append(
               "child", result.block);
@@ -1125,10 +1125,11 @@ public class JavaRules {
           sort.getTraitSet().replace(EnumerableConvention.INSTANCE);
       RelNode input = sort.getChild();
       if (!sort.getCollation().getFieldCollations().isEmpty()) {
+        // Create a sort with the same sort key, but no offset or fetch.
         input = sort.copy(
-            sort.getTraitSet().replace(RelCollationImpl.EMPTY),
+            sort.getTraitSet(),
             input,
-            RelCollationImpl.EMPTY,
+            sort.getCollation(),
             null,
             null);
       }
@@ -1175,6 +1176,13 @@ public class JavaRules {
           sole(newInputs),
           offset,
           fetch);
+    }
+
+    @Override
+    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+      return super.explainTerms(pw)
+          .itemIf("offset", offset, offset != null)
+          .itemIf("fetch", fetch, fetch != null);
     }
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

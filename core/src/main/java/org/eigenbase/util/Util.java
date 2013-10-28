@@ -2219,7 +2219,18 @@ public class Util
     return buf.toString();
   }
 
-  //~ Inner Classes ----------------------------------------------------------
+    /** Returns whether the elements of {@code list} are distinct. */
+    public static <E> boolean isDistinct(List<E> list) {
+        final Map<E, Object> set = new HashMap<E, Object>(list.size());
+        for (E e : list) {
+            if (set.put(e, "") != null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    //~ Inner Classes ----------------------------------------------------------
 
     /**
      * Exception used to interrupt a tree walk of any kind.
@@ -2238,117 +2249,6 @@ public class Util
         {
             return node;
         }
-    }
-
-    // Experimental support for functional programming follows...
-
-    /**
-     * Function of arity 0.
-     *
-     * @param <R> Result type.
-     */
-    interface Function0<R> {
-        /**
-         * Applies the function.
-         *
-         * @return Result value.
-         */
-        R apply();
-    }
-
-    /**
-     * Function of arity 1.
-     *
-     * @param <R> Result type.
-     * @param <T0> Type of parameter 0.
-     */
-    public interface Function1<R, T0> {
-        /**
-         * Applies the function.
-         *
-         * @param p0 Parameter 0.
-         * @return Result value.
-         */
-        R apply(T0 p0);
-    }
-
-    /**
-     * Function of arity 2.
-     *
-     * @param <R> Result type.
-     * @param <T0> Type of parameter 0.
-     * @param <T1> Type of parameter 1.
-     */
-    public interface Function2<R, T0, T1> {
-        /**
-         * Applies the function.
-         *
-         * @param p0 Parameter 0.
-         * @param p1 Parameter 1.
-         * @return Result value.
-         */
-        R apply(T0 p0, T1 p1);
-    }
-
-    @SuppressWarnings({"unchecked"})
-    public static class Functions
-    {
-        /**
-         * Returns a function of arity 0 that does nothing.
-         *
-         * @param <R> Return type
-         * @return Function that does nothing.
-         */
-        public static <R> Function0<R> ignore0() {
-            return Ignore.INSTANCE;
-        }
-
-        /**
-         * Returns a function of arity 1 that does nothing.
-         *
-         * @param <R> Return type
-         * @param <T0> Type of parameter 0
-         * @return Function that does nothing.
-         */
-        public static <R, T0> Function1<R, T0> ignore1() {
-            return Ignore.INSTANCE;
-        }
-
-        /**
-         * Returns a function of arity 2 that does nothing.
-         *
-         * @param <R> Return type
-         * @param <T0> Type of parameter 0
-         * @param <T1> Type of parameter 1
-         * @return Function that does nothing.
-         */
-        public static <R, T0, T1> Function2<R, T0, T1> ignore2() {
-            return Ignore.INSTANCE;
-        }
-    }
-
-    private static final class Ignore<R, T0, T1>
-        implements
-        Function0<R>,
-        Function1<R, T0>,
-        Function2<R, T0, T1>
-    {
-        public R apply()
-        {
-            return null;
-        }
-
-        public R apply(T0 p0)
-        {
-            return null;
-        }
-
-        public R apply(T0 p0, T1 p1)
-        {
-            return null;
-        }
-
-        static final Ignore INSTANCE = new Ignore();
     }
 
     private static class SpaceList extends CopyOnWriteArrayList<String> {

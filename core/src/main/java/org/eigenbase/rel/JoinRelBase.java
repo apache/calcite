@@ -27,7 +27,7 @@ import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
-
+import com.google.common.collect.ImmutableSet;
 
 /**
  * <code>JoinRelBase</code> is an abstract base class for implementations of
@@ -41,10 +41,10 @@ public abstract class JoinRelBase
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected RexNode condition;
+    protected final RexNode condition;
     protected RelNode left;
     protected RelNode right;
-    protected Set<String> variablesStopped = Collections.emptySet();
+    protected final ImmutableSet<String> variablesStopped;
 
     /**
      * Values must be of enumeration {@link JoinRelType}, except that {@link
@@ -80,7 +80,7 @@ public abstract class JoinRelBase
         this.left = left;
         this.right = right;
         this.condition = condition;
-        this.variablesStopped = variablesStopped;
+        this.variablesStopped = ImmutableSet.copyOf(variablesStopped);
         assert joinType != null;
         assert condition != null;
         this.joinType = joinType;
@@ -186,11 +186,6 @@ public abstract class JoinRelBase
         return estimateJoinedRows(this, condition);
     }
 
-    public void setVariablesStopped(Set<String> set)
-    {
-        variablesStopped = set;
-    }
-
     public Set<String> getVariablesStopped()
     {
         return variablesStopped;
@@ -212,14 +207,6 @@ public abstract class JoinRelBase
                 "systemFields",
                 getSystemFieldList(),
                 !getSystemFieldList().isEmpty());
-    }
-
-    public void registerStoppedVariable(String name)
-    {
-        if (variablesStopped.isEmpty()) {
-            variablesStopped = new HashSet<String>();
-        }
-        variablesStopped.add(name);
     }
 
     public void replaceInput(

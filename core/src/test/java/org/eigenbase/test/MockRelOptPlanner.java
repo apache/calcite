@@ -221,7 +221,7 @@ public class MockRelOptPlanner
         }
 
         // implement RelOptRuleCall
-        public void transformTo(RelNode rel)
+        public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv)
         {
             transformationResult = rel;
         }

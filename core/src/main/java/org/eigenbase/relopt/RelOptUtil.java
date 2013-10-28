@@ -29,6 +29,10 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.*;
+import org.eigenbase.util.mapping.MappingType;
+import org.eigenbase.util.mapping.Mappings;
+
+import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
 
@@ -238,6 +242,36 @@ public abstract class RelOptUtil
             + Util.lineSeparator
             + "expression is " + newRel.toString();
         throw Util.newInternal(s);
+    }
+
+    /** Returns a permutation describing where output fields come from. In
+     * the returned map, value of {@code map.getTargetOpt(i)} is {@code n} if
+     * field {@code i} projects input field {@code n}, -1 if it is an
+     * expression. */
+    public static Mappings.TargetMapping permutation(
+        List<RexNode> nodes,
+        RelDataType inputRowType)
+    {
+        final Mappings.TargetMapping mapping =
+            Mappings.create(
+                MappingType.PartialFunction,
+                nodes.size(),
+                inputRowType.getFieldCount());
+        for (Ord<RexNode> node : Ord.zip(nodes)) {
+            if (node.e instanceof RexInputRef) {
+                mapping.set(
+                    node.i,
+                    ((RexInputRef) node.e).getIndex());
+            } else if (node.e.isA(RexKind.Cast)) {
+                RexNode operand = ((RexCall) node.e).getOperands().get(0);
+                if (operand instanceof RexInputRef) {
+                    mapping.set(
+                        node.i,
+                        ((RexInputRef) operand).getIndex());
+                }
+            }
+        }
+        return mapping;
     }
 
     /**

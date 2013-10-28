@@ -24,7 +24,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.trace.*;
 
 import com.google.common.collect.ImmutableList;
-
+import com.google.common.collect.ImmutableMap;
 
 /**
  * A <code>RelOptRuleCall</code> is an invocation of a {@link RelOptRule} with a
@@ -188,15 +188,32 @@ public abstract class RelOptRuleCall
     }
 
     /**
-     * Called by the rule whenever it finds a match. The implementation of this
-     * method will guarantee that the original relational expression (e.g.,
+     * Registers that a rule has produced an equivalent relational expression.
+     *
+     * <p>Called by the rule whenever it finds a match. The implementation of
+     * this method guarantees that the original relational expression (that is,
      * <code>this.rels[0]</code>) has its traits propagated to the new
      * relational expression (<code>rel</code>) and its unregistered children.
      * Any trait not specifically set in the RelTraitSet returned by <code>
      * rel.getTraits()</code> will be copied from <code>
      * this.rels[0].getTraitSet()</code>.
+     *
+     * @param rel Relational expression equivalent to the root relational
+     *            expression of the rule call, {@code call.rels(0)}
+     * @param equiv Map of other equivalences
      */
-    public abstract void transformTo(RelNode rel);
+    public abstract void transformTo(RelNode rel, Map<RelNode, RelNode> equiv);
+
+    /**
+     * Registers that a rule has produced an equivalent relational expression,
+     * but no other equivalences.
+     *
+     * @param rel Relational expression equivalent to the root relational
+     *            expression of the rule call, {@code call.rels(0)}
+     */
+    public final void transformTo(RelNode rel) {
+        transformTo(rel, ImmutableMap.<RelNode, RelNode>of());
+    }
 }
 
 // End RelOptRuleCall.java

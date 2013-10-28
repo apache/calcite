@@ -19,6 +19,7 @@ package net.hydromatic.optiq.test;
 
 import net.hydromatic.optiq.impl.clone.ArrayTableTest;
 
+import net.hydromatic.optiq.util.PartiallyOrderedSetTest;
 import net.hydromatic.optiq.util.graph.DirectedGraphTest;
 
 import org.eigenbase.relopt.RelOptUtilTest;
@@ -40,6 +41,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
     ArrayTableTest.class,
     ArrayQueueTest.class,
+    PartiallyOrderedSetTest.class,
     DirectedGraphTest.class,
     ReflectVisitorTest.class,
     RelOptUtilTest.class,

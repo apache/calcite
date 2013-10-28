@@ -19,6 +19,7 @@ package org.eigenbase.rel;
 
 import java.util.*;
 
+import org.eigenbase.relopt.RelTrait;
 import org.eigenbase.relopt.RelTraitDef;
 import org.eigenbase.reltype.*;
 
@@ -97,11 +98,28 @@ public class RelCollationImpl
 
     public boolean equals(Object obj)
     {
+        if (this == obj) {
+            return true;
+        }
         if (obj instanceof RelCollationImpl) {
             RelCollationImpl that = (RelCollationImpl) obj;
             return this.fieldCollations.equals(that.fieldCollations);
         }
         return false;
+    }
+
+    public boolean subsumes(RelTrait trait) {
+        return this == trait
+            || trait instanceof RelCollationImpl
+            && isPrefix(
+                fieldCollations,
+                ((RelCollationImpl) trait).fieldCollations);
+    }
+
+    private static <E> boolean isPrefix(List<E> list0, List<E> list1) {
+        return list0.equals(list1)
+            || list0.size() > list1.size()
+            && list0.subList(0, list1.size()).equals(list1);
     }
 
     public String toString()
@@ -114,12 +132,13 @@ public class RelCollationImpl
      */
     public static List<RelCollation> createSingleton(int fieldIndex)
     {
-        return Collections.singletonList(
+        return ImmutableList.of(
             of(
-                new RelFieldCollation(
-                    fieldIndex,
-                    RelFieldCollation.Direction.Ascending,
-                    RelFieldCollation.NullDirection.UNSPECIFIED)));
+                ImmutableList.of(
+                    new RelFieldCollation(
+                        fieldIndex,
+                        RelFieldCollation.Direction.Ascending,
+                        RelFieldCollation.NullDirection.UNSPECIFIED))));
     }
 
     /**

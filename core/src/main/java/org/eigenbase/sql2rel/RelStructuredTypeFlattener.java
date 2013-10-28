@@ -29,6 +29,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.Mappings;
 
+import net.hydromatic.linq4j.function.Function1;
 
 // TODO jvs 10-Feb-2005:  factor out generic rewrite helper, with the
 // ability to map between old and new rels and field ordinals.  Also,
@@ -271,7 +272,7 @@ public class RelStructuredTypeFlattener
     private Mappings.TargetMapping getNewForOldInputMapping(RelNode oldRel) {
         final RelNode newRel = getNewForOldRel(oldRel);
         return Mappings.target(
-            new Util.Function1<Integer, Integer>() {
+            new Function1<Integer, Integer>() {
                 public Integer apply(Integer oldInput) {
                     return getNewForOldInput(oldInput);
                 }

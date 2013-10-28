@@ -30,6 +30,8 @@ import org.eigenbase.util.Util;
 import org.eigenbase.util.mapping.MappingType;
 import org.eigenbase.util.mapping.Mappings;
 
+import com.google.common.collect.ImmutableSet;
+
 /**
  * Rule that pushes the right input of a join into through the left input of
  * the join, provided that the left input is also a join.
@@ -154,7 +156,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final JoinRel newBottomJoin =
             new JoinRel(
                 cluster, relA, relC, newBottomCondition,
-                JoinRelType.INNER, Collections.<String>emptySet());
+                JoinRelType.INNER, ImmutableSet.<String>of());
 
         // target: | A       | C      | B |
         // source: | A       | B | C      |
@@ -177,7 +179,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final JoinRel newTopJoin =
             new JoinRel(
                 cluster, newBottomJoin, relB, newTopCondition,
-                JoinRelType.INNER, Collections.<String>emptySet());
+                JoinRelType.INNER, ImmutableSet.<String>of());
 
       assert !Mappings.isIdentity(topMapping);
         final RelNode newProject =
@@ -265,7 +267,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final JoinRel newBottomJoin =
             new JoinRel(
                 cluster, relC, relB, newBottomCondition,
-                JoinRelType.INNER, Collections.<String>emptySet());
+                JoinRelType.INNER, ImmutableSet.<String>of());
 
         // target: | C      | B | A       |
         // source: | A       | B | C      |
@@ -287,7 +289,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final JoinRel newTopJoin =
             new JoinRel(
                 cluster, newBottomJoin, relA, newTopCondition,
-                JoinRelType.INNER, Collections.<String>emptySet());
+                JoinRelType.INNER, ImmutableSet.<String>of());
 
         final RelNode newProject =
             CalcRel.createProject(newTopJoin, Mappings.asList(topMapping));

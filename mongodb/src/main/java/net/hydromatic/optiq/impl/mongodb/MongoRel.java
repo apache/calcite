@@ -36,17 +36,11 @@ public interface MongoRel extends RelNode {
   class Implementor {
     final List<Pair<String, String>> list =
         new ArrayList<Pair<String, String>>();
-    final List<Pair<String, Integer>> sort =
-        new ArrayList<Pair<String, Integer>>();
 
     MongoTable table;
 
     public void add(String findOp, String aggOp) {
       list.add(Pair.of(findOp, aggOp));
-    }
-
-    public void sort(String fieldOp, Integer sortOp) {
-      sort.add(Pair.of(fieldOp, sortOp));
     }
 
     public void visitChild(int ordinal, RelNode input) {

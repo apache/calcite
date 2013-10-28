@@ -77,7 +77,7 @@ public class MongoRules {
           new ArrayList<Pair<String, String>>(table.ops);
       final String findString =
           Util.toString(itemFinder.items, "{", ", ", "}");
-      final String aggregateString = "{$project ...}";
+      final String aggregateString = "{$project: " + findString + "}";
       ops.add(Pair.of(findString, aggregateString));
       final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
       final RelDataType rowType =
@@ -179,93 +179,98 @@ public class MongoRules {
    * Rule to convert an {@link org.eigenbase.rel.SortRel} to an
    * {@link MongoSortRel}.
    */
-   private static class MongoSortRule
-       extends MongoConverterRule {
-     private MongoSortRule() {
-       super(
-           SortRel.class,
-           Convention.NONE,
-           MongoRel.CONVENTION,
-           "MongoSortRule");
-     }
-
-     public RelNode convert(RelNode rel) {
-//       System.out.print("CONVERT-------!");
-       final SortRel sort = (SortRel) rel;
-       // TODO: if (sort.fetch != null || sort.offset != null) return;
-       final RelTraitSet traitSet =
-           sort.getTraitSet().replace(out);
-       return new MongoSortRel(
-           rel.getCluster(),
-           traitSet,
-           convert(sort.getChild(), traitSet.replace(RelCollationImpl.EMPTY)),
-           sort.getCollation());
-     }
-   }
-
-   public static class MongoSortRel
-       extends SortRel
-       implements MongoRel
-   {
-     public MongoSortRel(
-         RelOptCluster cluster,
-         RelTraitSet traitSet,
-         RelNode child,
-         RelCollation collation)
-     {
-       super(cluster, traitSet, child, collation);
-       assert getConvention() == MongoRel.CONVENTION;
-       assert getConvention() == child.getConvention();
-     }
-
-     @Override
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
-        return super.computeSelfCost(planner).multiplyBy(0.1);
+  private static class MongoSortRule
+      extends MongoConverterRule {
+    private MongoSortRule() {
+      super(
+          SortRel.class,
+          Convention.NONE,
+          MongoRel.CONVENTION,
+          "MongoSortRule");
     }
 
-     @Override
-     public MongoSortRel copy(
-         RelTraitSet traitSet,
-         RelNode newInput,
-         RelCollation collation)
-     {
-       return new MongoSortRel(
-           getCluster(),
-           traitSet,
-           newInput,
-           collation);
-     }
+    public RelNode convert(RelNode rel) {
+      final SortRel sort = (SortRel) rel;
+      final RelTraitSet traitSet =
+          sort.getTraitSet().replace(out)
+              .replace(sort.getCollation());
+      return new MongoSortRel(
+          rel.getCluster(),
+          traitSet,
+          convert(sort.getChild(), traitSet.replace(RelCollationImpl.EMPTY)),
+          sort.getCollation());
+    }
+  }
 
-     public void implement(Implementor implementor) {
-         for (int i = 0; i < collation.getFieldCollations().size(); i++) {
-             final RelFieldCollation fieldCollation =
-                 collation.getFieldCollations().get(i);
-             final String name =
-                 getRowType().getFieldList().get(i).getName();
+  public static class MongoSortRel
+      extends SortRel
+      implements MongoRel {
+    public MongoSortRel(
+        RelOptCluster cluster,
+        RelTraitSet traitSet,
+        RelNode child,
+        RelCollation collation) {
+      super(cluster, traitSet, child, collation);
+      assert getConvention() == MongoRel.CONVENTION;
+      assert getConvention() == child.getConvention();
+    }
 
-             switch (fieldCollation.getDirection()) {
-             case Descending:
-             case StrictlyDescending:
-               implementor.sort(name, -1);
-               break;
-             case Ascending:
-             case StrictlyAscending:
-               implementor.sort(name, 1);
-               break;
-             }
-//             switch (collation.nullDirection) {
-//             case FIRST:
- //
-//               break;
-//             case LAST:
- //
-//               break;
-//             }
-         }
-     }
+    @Override
+    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+      return super.computeSelfCost(planner).multiplyBy(0.1);
+    }
 
+    @Override
+    public MongoSortRel copy(
+        RelTraitSet traitSet,
+        RelNode newInput,
+        RelCollation collation) {
+      return new MongoSortRel(
+          getCluster(),
+          traitSet,
+          newInput,
+          collation);
+    }
 
-   }
+    public void implement(Implementor implementor) {
+      implementor.visitChild(0, getChild());
+      final List<String> keys = new ArrayList<String>();
+      for (int i = 0; i < collation.getFieldCollations().size(); i++) {
+        final RelFieldCollation fieldCollation =
+            collation.getFieldCollations().get(i);
+        final String name =
+            getRowType().getFieldList().get(i).getName();
+
+        keys.add(name + ": " + direction(fieldCollation));
+        if (false)
+          // TODO:
+          switch (fieldCollation.nullDirection) {
+          case FIRST:
+            break;
+          case LAST:
+            break;
+          }
+      }
+      implementor.add(null,
+          "{$sort: " + Util.toString(keys, "{", ", ", "}") + "}");
+      if (fetch != null || offset != null) {
+        // TODO: generate calls to DBCursor.skip() and limit(int).
+        throw new UnsupportedOperationException();
+      }
+    }
+
+    private int direction(RelFieldCollation fieldCollation) {
+      switch (fieldCollation.getDirection()) {
+      case Descending:
+      case StrictlyDescending:
+        return -1;
+      case Ascending:
+      case StrictlyAscending:
+      default:
+        return 1;
+      }
+    }
+  }
 
 /*
   private static class MongoJoinRule extends MongoConverterRule {
