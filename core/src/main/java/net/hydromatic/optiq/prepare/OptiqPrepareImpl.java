@@ -47,7 +47,6 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
-import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
@@ -170,6 +169,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(SwapJoinRule.instance);
     planner.addRule(PushJoinThroughJoinRule.RIGHT);
     planner.addRule(PushJoinThroughJoinRule.LEFT);
+    planner.addRule(PushSortPastProjectRule.INSTANCE);
     planner.addRule(WindowedAggSplitterRule.INSTANCE);
     context.spark().registerRules(planner);
     return planner;
@@ -467,17 +467,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     private SqlValidator sqlValidator;
     private final EnumerableRel.Prefer prefer;
 
-    @Deprecated
-    public OptiqPreparingStmt(CatalogReader catalogReader,
-        RelDataTypeFactory typeFactory,
-        Schema schema,
-        EnumerableRel.Prefer prefer,
-        RelOptPlanner planner) {
-      this(null, catalogReader, typeFactory, schema, prefer, planner,
-          EnumerableConvention.INSTANCE);
-      Bug.upgrade("remove before 0.4.14, then assert context not null");
-    }
-
     public OptiqPreparingStmt(Context context,
         CatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
@@ -486,6 +475,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         RelOptPlanner planner,
         Convention resultConvention) {
       super(catalogReader, resultConvention);
+      assert context != null;
       this.context = context;
       this.schema = schema;
       this.prefer = prefer;

@@ -21,6 +21,7 @@ import java.util.*;
 
 import org.eigenbase.util.*;
 
+import net.hydromatic.linq4j.function.Function1;
 
 /**
  * Utility functions related to mappings.
@@ -284,7 +285,7 @@ public abstract class Mappings
     }
 
     public static TargetMapping target(
-        Util.Function1<Integer, Integer> function,
+        Function1<Integer, Integer> function,
         int sourceCount,
         int targetCount)
     {
@@ -552,8 +553,7 @@ public abstract class Mappings
             StringBuilder buf = new StringBuilder();
             buf.append("[");
             int i = 0;
-            for (final Iterator<IntPair> iter = iterator(); iter.hasNext();) {
-                IntPair pair = iter.next();
+            for (IntPair pair : this) {
                 if (i++ > 0) {
                     buf.append(", ");
                 }

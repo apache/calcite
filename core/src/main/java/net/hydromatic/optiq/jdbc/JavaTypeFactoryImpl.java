@@ -29,6 +29,7 @@ import net.hydromatic.optiq.runtime.ByteString;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -250,8 +251,7 @@ public class JavaTypeFactoryImpl
       this.relType = relType;
       this.name = name;
       assert relType == null
-             || new HashSet<String>(relType.getFieldNames()).size()
-                == relType.getFieldNames().size()
+             || Util.isDistinct(relType.getFieldNames())
           : "field names not distinct: " + relType;
     }
 

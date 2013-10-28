@@ -24,6 +24,7 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * <code>ProjectRel</code> is a relational expression which computes a set of
@@ -71,7 +72,7 @@ public final class ProjectRel
     }
 
     /**
-     * Creates a ProjectRel.
+     * Creates a ProjectRel, deriving a trait set.
      *
      * @param cluster Cluster this relational expression belongs to
      * @param child input relational expression
@@ -79,6 +80,10 @@ public final class ProjectRel
      * @param rowType output row type
      * @param flags values as in {@link ProjectRelBase.Flags}
      * @param collationList List of sort keys
+     *
+     * @deprecated Use constructor without explicit collation-list;
+     * collations can be derived from the trait-set;
+     * this constructor will be removed after optiq-0.4.16.
      */
     public ProjectRel(
         RelOptCluster cluster,
@@ -88,12 +93,43 @@ public final class ProjectRel
         int flags,
         final List<RelCollation> collationList)
     {
-        super(
+        this(
             cluster,
             cluster.traitSetOf(
                 collationList.isEmpty()
                     ? RelCollationImpl.EMPTY
                     : collationList.get(0)),
+            child,
+            exps,
+            rowType,
+            flags,
+            collationList);
+        Bug.upgrade("remove after optiq-0.4.16");
+    }
+
+    /**
+     * Creates a ProjectRel.
+     *
+     * @param cluster Cluster this relational expression belongs to
+     * @param traitSet traits of this rel
+     * @param child input relational expression
+     * @param exps List of expressions for the input columns
+     * @param rowType output row type
+     * @param flags values as in {@link ProjectRelBase.Flags}
+     * @param collationList List of sort keys
+     */
+    public ProjectRel(
+        RelOptCluster cluster,
+        RelTraitSet traitSet,
+        RelNode child,
+        List<RexNode> exps,
+        RelDataType rowType,
+        int flags,
+        final List<RelCollation> collationList)
+    {
+        super(
+            cluster,
+            traitSet,
             child,
             exps,
             rowType,
@@ -107,11 +143,15 @@ public final class ProjectRel
         assert traitSet.containsIfApplicable(Convention.NONE);
         return new ProjectRel(
             getCluster(),
+            traitSet,
             sole(inputs),
             getProjects(),
             rowType,
             getFlags(),
-            collationList);
+            ImmutableList.of(
+                Util.first(
+                    traitSet.getTrait(RelCollationTraitDef.INSTANCE),
+                    RelCollationImpl.EMPTY)));
     }
 
     /**

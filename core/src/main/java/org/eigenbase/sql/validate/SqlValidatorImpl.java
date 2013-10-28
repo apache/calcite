@@ -3067,10 +3067,8 @@ public class SqlValidatorImpl
     {
         // For large lists, it's more efficient to build a set to do a quick
         // check for duplicates before we do an O(n^2) search.
-        if ((list.size() > 10)
-            && (new HashSet<T>(list).size() == list.size()))
-        {
-            return -1;
+        if (list.size() > 10 && Util.isDistinct(list)) {
+          return -1;
         }
         for (int i = 1; i < list.size(); i++) {
             final T e0 = list.get(i);

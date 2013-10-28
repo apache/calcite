@@ -26,6 +26,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Rule to remove distinct aggregates from a {@link AggregateRel}.
@@ -365,17 +366,14 @@ public final class RemoveDistinctAggregateRule
         }
 
         // Join in the new 'select distinct' relation.
-        final Set<String> variablesStopped = Collections.emptySet();
-        final RelNode join =
+        return
             new JoinRel(
                 aggregate.getCluster(),
                 left,
                 distinctAgg,
                 condition,
                 JoinRelType.INNER,
-                variablesStopped);
-
-        return join;
+                ImmutableSet.<String>of());
     }
 
     private static void rewriteAggCalls(

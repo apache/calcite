@@ -91,12 +91,13 @@ public class MongoToEnumerableConverter
         list.append("fields", constantArrayList(getRowType().getFieldNames()));
     final Expression table =
         list.append("table", mongoImplementor.table.getExpression());
-    final Expression enumerable;
+    Expression enumerable;
     if (aggCount == 0 && findCount <= 2) {
       enumerable =
           list.append("enumerable",
               Expressions.call(
-                  table, "find",
+                  table,
+                  "find",
                   Expressions.constant(filter, String.class),
                   Expressions.constant(project, String.class),
                   rowType.getFieldCount() == 1

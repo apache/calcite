@@ -30,6 +30,20 @@ import java.util.Properties;
 
 /**
  * Tests for the {@link net.hydromatic.optiq.impl.mongodb} package.
+ *
+ * <p>Before calling this test, you need to populate MongoDB with the "zips"
+ * data set (as described in HOWTO.md)
+ * and "foodmart" data set, as follows:</p>
+ *
+ * <blockquote><pre>
+ * JAR=~/.m2/repository/pentaho/mondrian-data-foodmart-json/0.2/mondrian-data-foodmart-json-0.2.jar
+ * mkdir /tmp/foodmart
+ * cd /tmp/foodmart
+ * jar xvf $JAR
+ * for i in *.json; do
+ *   mongoimport --db foodmart --collection ${i/.json/} --file $i
+ * done
+ * </pre></blockquote>
  */
 public class MongoAdapterTest {
   public static final String MONGO_FOODMART_SCHEMA =
@@ -109,6 +123,40 @@ public class MongoAdapterTest {
     return true;
   }
 
+  @Test public void testSort() {
+      OptiqAssert.assertThat()
+          .enable(enabled())
+          .with(ZIPS)
+          .query("select * from zips order by state")
+          .returnsCount(29467)
+          .explainContains(
+              "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[ITEM($t1, $t5)], expr#7=[CAST($t6):FLOAT NOT NULL], expr#8=[1], expr#9=[ITEM($t1, $t8)], expr#10=[CAST($t9):FLOAT NOT NULL], CITY=[$t0], LONGITUDE=[$t7], LATITUDE=[$t10], POP=[$t2], STATE=[$t3], ID=[$t4])\n"
+              + "  MongoToEnumerableConverter\n"
+              + "    MongoSortRel(sort0=[$3], dir0=[Ascending])\n"
+              + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
+  }
+
+  @Test public void testFilterSort() {
+      OptiqAssert.assertThat()
+          .enable(enabled())
+          .with(ZIPS)
+          .query(
+              "select * from zips\n"
+              + "where city = 'SPRINGFIELD' and id between 20000 and 30000\n"
+              + "order by state")
+          .returns(
+              "CITY=SPRINGFIELD; LONGITUDE=-81.249855; LATITUDE=33.534264; POP=2184; STATE=SC; ID=29146\n"
+              + "CITY=SPRINGFIELD; LONGITUDE=-77.186584; LATITUDE=38.779716; POP=16811; STATE=VA; ID=22150\n"
+              + "CITY=SPRINGFIELD; LONGITUDE=-77.23702; LATITUDE=38.744858; POP=32161; STATE=VA; ID=22153\n"
+              + "CITY=SPRINGFIELD; LONGITUDE=-78.69502; LATITUDE=39.462997; POP=1321; STATE=WV; ID=26763\n")
+          // ideal plan would have MongoSortRel, not EnumerableSortRel
+          .explainContains(
+              "PLAN=EnumerableSortRel(sort0=[$4], dir0=[Ascending])\n"
+              + "  EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[ITEM($t1, $t5)], expr#7=[CAST($t6):FLOAT NOT NULL], expr#8=[1], expr#9=[ITEM($t1, $t8)], expr#10=[CAST($t9):FLOAT NOT NULL], expr#11=['SPRINGFIELD'], expr#12=[=($t0, $t11)], expr#13=[20000], expr#14=[>=($t4, $t13)], expr#15=[30000], expr#16=[<=($t4, $t15)], expr#17=[AND($t14, $t16)], expr#18=[AND($t12, $t17)], CITY=[$t0], LONGITUDE=[$t7], LATITUDE=[$t10], POP=[$t2], STATE=[$t3], ID=[$t4], $condition=[$t18])\n"
+              + "    MongoToEnumerableConverter\n"
+              + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
+  }
+
   @Test public void testUnionPlan() {
     OptiqAssert.assertThat()
         .enable(enabled())
@@ -119,16 +167,14 @@ public class MongoAdapterTest {
             + "select * from \"sales_fact_1998\"")
         .explainContains(
             "PLAN=EnumerableUnionRel(all=[true])\n"
-            + "  EnumerableCalcRel(expr#0=[{inputs}], product_id=[$t0])\n"
-            + "    MongoToEnumerableConverter\n"
-            + "      MongoTableScan(table=[[_foodmart, sales_fact_1997]], ops=[[<{product_id: 1}, {$project ...}>]])\n"
-            + "  EnumerableCalcRel(expr#0=[{inputs}], product_id=[$t0])\n"
-            + "    MongoToEnumerableConverter\n"
-            + "      MongoTableScan(table=[[_foodmart, sales_fact_1998]], ops=[[<{product_id: 1}, {$project ...}>]])")
+            + "  MongoToEnumerableConverter\n"
+            + "    MongoTableScan(table=[[_foodmart, sales_fact_1997]], ops=[[<{product_id: 1}, {$project: {product_id: 1}}>]])\n"
+            + "  MongoToEnumerableConverter\n"
+            + "    MongoTableScan(table=[[_foodmart, sales_fact_1998]], ops=[[<{product_id: 1}, {$project: {product_id: 1}}>]])")
         .limit(2)
         .returns(
-            "product_id=337.0\n"
-            + "product_id=1512.0\n");
+            "product_id=337\n"
+            + "product_id=1512\n");
   }
 
   @Test public void testFilterUnionPlan() {
@@ -153,7 +199,7 @@ public class MongoAdapterTest {
         .explainContains(
             "PLAN=EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=['CA'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
             + "  MongoToEnumerableConverter\n"
-            + "    MongoTableScan(table=[[_foodmart, warehouse]], ops=[[<{warehouse_id: 1, warehouse_state_province: 1}, {$project ...}>]])")
+            + "    MongoTableScan(table=[[_foodmart, warehouse]], ops=[[<{warehouse_id: 1, warehouse_state_province: 1}, {$project: {warehouse_id: 1, warehouse_state_province: 1}}>]])")
         .returns(
             "warehouse_id=6.0; warehouse_state_province=CA\n"
             + "warehouse_id=7.0; warehouse_state_province=CA\n"
@@ -190,7 +236,7 @@ public class MongoAdapterTest {
             "PLAN=EnumerableAggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
             + "  EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], $f0=[$t5])\n"
             + "    MongoToEnumerableConverter\n"
-            + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project ...}>]])");
+            + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
   }
 
   @Test public void testProject() {
@@ -204,7 +250,7 @@ public class MongoAdapterTest {
             + "STATE=AL; CITY=ADAMSVILLE\n")
         .explainContains(
             "PLAN=MongoToEnumerableConverter\n"
-            + "  MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{state: 1, city: 1}, {$project ...}>]])");
+            + "  MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{state: 1, city: 1}, {$project: {state: 1, city: 1}}>]])");
   }
 
   @Test public void testFilter() {
@@ -219,7 +265,7 @@ public class MongoAdapterTest {
         .explainContains(
             "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=['CA'], expr#6=[=($t3, $t5)], STATE=[$t3], CITY=[$t0], $condition=[$t6])\n"
             + "  MongoToEnumerableConverter\n"
-            + "    MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project ...}>]])");
+            + "    MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
   }
 
   public void _testFoodmartQueries() {

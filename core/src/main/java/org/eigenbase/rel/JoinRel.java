@@ -141,7 +141,7 @@ public final class JoinRel
             right,
             conditionExpr,
             this.joinType,
-            new HashSet<String>(this.variablesStopped),
+            this.variablesStopped,
             this.semiJoinDone,
             systemFieldList);
     }

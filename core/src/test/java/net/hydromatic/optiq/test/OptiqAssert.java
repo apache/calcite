@@ -150,6 +150,20 @@ public class OptiqAssert {
     };
   }
 
+  static Function1<ResultSet, Void> checkResultCount(final int expected) {
+    return new Function1<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final int count = OptiqAssert.countRows(resultSet);
+          assertEquals(expected, count);
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
+  }
+
   /** Checks that the result of the second and subsequent executions is the same
    * as the first.
    *
@@ -323,6 +337,14 @@ public class OptiqAssert {
       buf.append("\n");
     }
     return buf.toString();
+  }
+
+  static int countRows(ResultSet resultSet) throws SQLException {
+    int n = 0;
+    while (resultSet.next()) {
+      ++n;
+    }
+    return n;
   }
 
   static Collection<String> toStringList(ResultSet resultSet,
@@ -677,6 +699,10 @@ public class OptiqAssert {
 
     public AssertQuery returns(String expected) {
       return returns(checkResult(expected));
+    }
+
+    public AssertQuery returnsCount(int expectedCount) {
+      return returns(checkResultCount(expectedCount));
     }
 
     public AssertQuery returns(Function1<ResultSet, Void> checker) {

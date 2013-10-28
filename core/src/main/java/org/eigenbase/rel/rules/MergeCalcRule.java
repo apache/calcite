@@ -17,12 +17,9 @@
 */
 package org.eigenbase.rel.rules;
 
-import java.util.*;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
-
 
 /**
  * Planner rule which merges a {@link CalcRel} onto a {@link CalcRel}. The
@@ -69,8 +66,8 @@ public class MergeCalcRule
                 topCalc.getCluster().getRexBuilder());
         final CalcRel newCalc =
             new CalcRel(
-                bottomCalc.getCluster(),
-                bottomCalc.getTraitSet(),
+                topCalc.getCluster(),
+                topCalc.getTraitSet(),
                 bottomCalc.getChild(),
                 topCalc.getRowType(),
                 mergedProgram,

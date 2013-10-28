@@ -86,6 +86,10 @@ public class SortRel
 
         assert traits.containsIfApplicable(collation)
             : "traits=" + traits + ", collation=" + collation;
+        assert !(fetch == null
+            && offset == null
+            && collation.getFieldCollations().isEmpty())
+            : "trivial sort";
         ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
         for (RelFieldCollation field : collation.getFieldCollations()) {
             int index = field.getFieldIndex();

@@ -1158,6 +1158,11 @@ public class JdbcTest {
             "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
             + "where \"store_id\" < 10\n"
             + "order by 1 fetch first 5 rows only")
+        .explainContains(
+            "PLAN=EnumerableLimitRel(fetch=[5])\n"
+            + "  EnumerableSortRel(sort0=[$0], dir0=[Ascending])\n"
+            + "    EnumerableCalcRel(expr#0..23=[{inputs}], expr#24=[10], expr#25=[<($t0, $t24)], store_id=[$t0], grocery_sqft=[$t16], $condition=[$t25])\n"
+            + "      EnumerableTableAccessRel(table=[[foodmart2, store]])\n")
         .returns(
             "store_id=0; grocery_sqft=null\n"
             + "store_id=1; grocery_sqft=17475\n"

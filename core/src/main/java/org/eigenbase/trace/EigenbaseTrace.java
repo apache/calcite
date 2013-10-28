@@ -22,11 +22,12 @@ import java.util.logging.*;
 
 import org.eigenbase.rel.RelImplementorImpl;
 import org.eigenbase.relopt.*;
-import org.eigenbase.util.Util;
+import org.eigenbase.util.Bug;
 import org.eigenbase.util.property.*;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
+import net.hydromatic.linq4j.function.Function2;
 
 /**
  * Contains all of the {@link java.util.logging.Logger tracers} used within
@@ -63,14 +64,19 @@ public abstract class EigenbaseTrace
      */
     public static final Logger parserTracer = getParserTracer();
 
-    private static final ThreadLocal<Util.Function2<Void, File, String>>
+    private static final ThreadLocal<Function2<Void, File, String>>
         DYNAMIC_HANDLER =
-        new ThreadLocal<Util.Function2<Void, File, String>>()
+        new ThreadLocal<Function2<Void, File, String>>()
         {
             @Override
-            protected Util.Function2<Void, File, String> initialValue()
+            protected Function2<Void, File, String> initialValue()
             {
-                return Util.Functions.ignore2();
+                return new Function2<Void, File, String>() {
+                    public String apply(Void v1, File v2) {
+                        Bug.upgrade("remove when upgrade to linq4j-0.1.11");
+                        return null;
+                    }
+                };
             }
         };
 
@@ -161,8 +167,7 @@ public abstract class EigenbaseTrace
      * It exists for unit-testing.
      * The handler is never null; the default handler does nothing.
      */
-    public static ThreadLocal<Util.Function2<Void, File, String>>
-    getDynamicHandler()
+    public static ThreadLocal<Function2<Void, File, String>> getDynamicHandler()
     {
         return DYNAMIC_HANDLER;
     }

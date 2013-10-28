@@ -347,9 +347,14 @@ public class RexProgram
 
     /**
      * Creates a copy of this program.
+     *
+     * @deprecated Method not necessary because RexProgram is immutable
      */
     public RexProgram copy()
     {
+        if (Bug.upgrade("remove after optiq-0.4.16")) {
+            return this;
+        }
         return new RexProgram(
             inputRowType,
             exprs,

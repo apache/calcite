@@ -240,6 +240,10 @@ public class VolcanoPlannerTraitTest {
             return ordinal;
         }
 
+        public boolean subsumes(RelTrait trait) {
+            return equals(true);
+        }
+
         public String toString()
         {
             return description;

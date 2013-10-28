@@ -19,6 +19,7 @@ package org.eigenbase.relopt;
 
 import java.util.*;
 
+import org.eigenbase.util.Pair;
 
 /**
  * RelTraitSet represents an ordered set of {@link RelTrait}s.
@@ -174,6 +175,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
             return null;
         }
 
+        //noinspection unchecked
         return (T) trait.getTraitDef().canonize(trait);
     }
 
@@ -191,6 +193,32 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
             return Arrays.equals(traits, other.traits);
         }
         return false;
+    }
+
+    /**
+     * Returns whether this trait set subsumes another trait set.
+     *
+     * <p>For that to happen, each trait subsumes the corresponding trait in the
+     * other set. In particular, each trait set subsumes itself, because each
+     * trait subsumes itself.</p>
+     *
+     * <p>Intuitively, if a relational expression is needed that has trait set
+     * S, and trait set S1 subsumes S, then a relational expression R in S1
+     * meets that need. For example, if we need a relational expression that has
+     * trait set S = {enumerable convention, sorted on [C1 asc]}, and R
+     * has {enumerable convention, sorted on [C1 asc, C2]}</p>
+     *
+     * @param that another RelTraitSet
+     *
+     * @return whether this trait set subsumes other trait set
+     */
+    public boolean subsumes(RelTraitSet that) {
+        for (Pair<RelTrait, RelTrait> pair : Pair.zip(traits, that.traits)) {
+            if (!pair.left.subsumes(pair.right)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

@@ -44,23 +44,37 @@ public interface RelTrait
      *
      * @return the RelTraitDef that defines this RelTrait
      */
-    abstract RelTraitDef getTraitDef();
+    RelTraitDef getTraitDef();
 
     /**
      * See <a href="#EqualsHashCodeNote">note about equals() and hashCode()</a>.
      */
-    abstract int hashCode();
+    int hashCode();
 
     /**
      * See <a href="#EqualsHashCodeNote">note about equals() and hashCode()</a>.
      */
-    abstract boolean equals(Object o);
+    boolean equals(Object o);
+
+    /**
+     * Returns whether this trait subsumes a given trait.
+     *
+     * <p>Must form a partial order: must be reflective (t subsumes t),
+     * anti-symmetric (if t1 subsumes t2 and t1 != t2 then t2 does not subsume
+     * t1),
+     * and transitive (if t1 subsumes t2 and t2 subsumes t3, then t1 subsumes
+     * t3)</p>
+     *
+     * <p>May traits cannot be substituted, in which case, this method should
+     * return {@code equals(trait)}.</p>
+     */
+    boolean subsumes(RelTrait trait);
 
     /**
      * Returns a succinct name for this trait. The planner may use this String
      * to describe the trait.
      */
-    abstract String toString();
+    String toString();
 }
 
 // End RelTrait.java

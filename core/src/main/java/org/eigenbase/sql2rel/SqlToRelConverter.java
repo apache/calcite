@@ -44,6 +44,7 @@ import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.function.Function1;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Converts a SQL parse tree (consisting of {@link org.eigenbase.sql.SqlNode}
@@ -2046,7 +2047,7 @@ public class SqlToRelConverter
             rightRel,
             joinCond,
             joinType,
-            Collections.<String>emptySet());
+            ImmutableSet.<String>of());
     }
 
     /**
@@ -3305,7 +3306,7 @@ public class SqlToRelConverter
                     relNode,
                     rexBuilder.makeLiteral(true),
                     JoinRelType.INNER,
-                    Collections.<String>emptySet());
+                    ImmutableSet.<String>of());
         }
         return ret;
     }
