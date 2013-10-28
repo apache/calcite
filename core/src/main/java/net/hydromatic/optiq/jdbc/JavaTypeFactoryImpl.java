@@ -17,6 +17,9 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import java.sql.Time;
+import java.sql.Timestamp;
+
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.expressions.Types;
@@ -128,11 +131,14 @@ public class JavaTypeFactoryImpl
       case CHAR:
         return String.class;
       case DATE:
+        return Date.class;
       case TIME:
+        return Time.class;
       case INTEGER:
       case INTERVAL_YEAR_MONTH:
         return type.isNullable() ? Integer.class : int.class;
       case TIMESTAMP:
+        return Timestamp.class;
       case BIGINT:
       case INTERVAL_DAY_TIME:
         return type.isNullable() ? Long.class : long.class;

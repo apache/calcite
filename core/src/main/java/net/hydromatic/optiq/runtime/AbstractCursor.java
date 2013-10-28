@@ -101,6 +101,8 @@ public abstract class AbstractCursor implements Cursor {
         return new DateFromIntAccessor(getter, localCalendar);
       case JAVA_SQL_DATE:
         return new DateAccessor(getter, localCalendar);
+      case JAVA_UTIL_DATE:
+        return new DateAccessor(getter, localCalendar);
       default:
         throw new AssertionError("bad " + type.representation);
       }
