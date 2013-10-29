@@ -273,8 +273,12 @@ public class SplunkPushDownRule
       return rel;
     }
     return new ProjectRel(
-        proj.getCluster(), rel, proj.getProjects(), proj.getRowType(),
-        proj.getFlags(), proj.getCollationList());
+        proj.getCluster(),
+        proj.getCluster().traitSetOf(
+            proj.getCollationList().isEmpty()
+                ? RelCollationImpl.EMPTY
+                : proj.getCollationList().get(0)),
+        rel, proj.getProjects(), proj.getRowType(), proj.getFlags());
   }
 
   // TODO: use StringBuilder instead of String

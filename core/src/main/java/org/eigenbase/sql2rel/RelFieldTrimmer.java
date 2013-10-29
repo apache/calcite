@@ -302,11 +302,11 @@ public class RelFieldTrimmer
                     Collections.singletonList("DUMMY"));
             ProjectRel newProject = new ProjectRel(
                 project.getCluster(),
+                project.getCluster().traitSetOf(RelCollationImpl.EMPTY),
                 newInput,
                 Collections.<RexNode>singletonList(expr),
                 newRowType,
-                project.getFlags(),
-                Collections.<RelCollation>emptyList());
+                project.getFlags());
             return new TrimResult(newProject, mapping);
         }
 
@@ -348,11 +348,14 @@ public class RelFieldTrimmer
         } else {
             newProject = new ProjectRel(
                 project.getCluster(),
+                project.getCluster().traitSetOf(
+                    newCollations.isEmpty()
+                        ? RelCollationImpl.EMPTY
+                        : newCollations.get(0)),
                 newInput,
                 newProjectExprList,
                 newRowType,
-                project.getFlags(),
-                newCollations);
+                project.getFlags());
             assert newProject.getClass() == project.getClass();
         }
         return new TrimResult(newProject, mapping);

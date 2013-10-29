@@ -24,8 +24,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
 
-import com.google.common.collect.ImmutableList;
-
 /**
  * <code>ProjectRel</code> is a relational expression which computes a set of
  * 'select expressions' from its input relational expression.
@@ -61,14 +59,14 @@ public final class ProjectRel
     {
         this(
             cluster,
+            cluster.traitSetOf(RelCollationImpl.EMPTY),
             child,
             exps,
             RexUtil.createStructType(
                 cluster.getTypeFactory(),
                 exps,
                 fieldNames),
-            flags,
-            Collections.<RelCollation>emptyList());
+            flags);
     }
 
     /**
@@ -102,8 +100,7 @@ public final class ProjectRel
             child,
             exps,
             rowType,
-            flags,
-            collationList);
+            flags);
         Bug.upgrade("remove after optiq-0.4.16");
     }
 
@@ -116,7 +113,32 @@ public final class ProjectRel
      * @param exps List of expressions for the input columns
      * @param rowType output row type
      * @param flags values as in {@link ProjectRelBase.Flags}
+     */
+    public ProjectRel(
+        RelOptCluster cluster,
+        RelTraitSet traitSet,
+        RelNode child,
+        List<RexNode> exps,
+        RelDataType rowType,
+        int flags)
+    {
+        super(cluster, traitSet, child, exps, rowType, flags);
+    }
+
+    /**
+     * Creates a ProjectRel.
+     *
+     * @param cluster Cluster this relational expression belongs to
+     * @param traitSet traits of this rel
+     * @param child input relational expression
+     * @param exps List of expressions for the input columns
+     * @param rowType output row type
+     * @param flags values as in {@link ProjectRelBase.Flags}
      * @param collationList List of sort keys
+     *
+     * @deprecated Use constructor without explicit collation-list;
+     * collations can be derived from the trait-set;
+     * this constructor will be removed after optiq-0.4.16.
      */
     public ProjectRel(
         RelOptCluster cluster,
@@ -147,11 +169,7 @@ public final class ProjectRel
             sole(inputs),
             getProjects(),
             rowType,
-            getFlags(),
-            ImmutableList.of(
-                Util.first(
-                    traitSet.getTrait(RelCollationTraitDef.INSTANCE),
-                    RelCollationImpl.EMPTY)));
+            getFlags());
     }
 
     /**

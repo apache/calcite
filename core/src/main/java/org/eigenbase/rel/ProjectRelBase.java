@@ -24,6 +24,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
+import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
@@ -47,14 +48,14 @@ public abstract class ProjectRelBase
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected List<RexNode> exps;
+    protected final ImmutableList<RexNode> exps;
 
     /**
      * Values defined in {@link Flags}.
      */
     protected int flags;
 
-    protected final List<RelCollation> collationList;
+    protected final ImmutableList<RelCollation> collationList;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -68,6 +69,9 @@ public abstract class ProjectRelBase
      * @param rowType output row type
      * @param flags values as in {@link Flags}
      * @param collationList List of sort keys
+     *
+     * @deprecated Use the other constructor, without collation list;
+     * this constructor will be removed after optiq-0.4.16.
      */
     protected ProjectRelBase(
         RelOptCluster cluster,
@@ -78,15 +82,44 @@ public abstract class ProjectRelBase
         int flags,
         final List<RelCollation> collationList)
     {
+        this(cluster, traits, child, exps, rowType, flags);
+        assert traitSet.containsIfApplicable(
+            collationList.isEmpty()
+            ? RelCollationImpl.EMPTY
+            : collationList.get(0))
+            : collationList;
+        Bug.upgrade("remove after optiq-0.4.16");
+    }
+
+    /**
+     * Creates a Project.
+     *
+     * @param cluster Cluster this relational expression belongs to
+     * @param traits traits of this rel
+     * @param child input relational expression
+     * @param exps List of expressions for the input columns
+     * @param rowType output row type
+     * @param flags values as in {@link Flags}
+     */
+    protected ProjectRelBase(
+        RelOptCluster cluster,
+        RelTraitSet traits,
+        RelNode child,
+        List<RexNode> exps,
+        RelDataType rowType,
+        int flags)
+    {
         super(cluster, traits, child);
         assert rowType != null;
-        assert collationList != null;
         this.exps = ImmutableList.copyOf(exps);
         this.rowType = rowType;
         this.flags = flags;
+        final RelCollation collation =
+            traits.getTrait(RelCollationTraitDef.INSTANCE);
         this.collationList =
-            collationList.isEmpty() ? Collections.<RelCollation>emptyList()
-            : collationList;
+            collation == null
+                ? ImmutableList.<RelCollation>of()
+                : ImmutableList.of(collation);
         assert isValid(true);
     }
 
@@ -155,6 +188,13 @@ public abstract class ProjectRelBase
             }
         }
         if (collationList == null) {
+            assert !fail;
+            return false;
+        }
+        if (!collationList.isEmpty()
+            && collationList.get(0)
+            != traitSet.getTrait(RelCollationTraitDef.INSTANCE))
+        {
             assert !fail;
             return false;
         }

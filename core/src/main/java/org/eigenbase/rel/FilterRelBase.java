@@ -38,7 +38,7 @@ public abstract class FilterRelBase
 {
     //~ Instance fields --------------------------------------------------------
 
-    private final RexNode condition;
+    protected final RexNode condition;
 
     //~ Constructors -----------------------------------------------------------
 

@@ -26,6 +26,8 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.runtime.FlatLists;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -99,7 +101,7 @@ public abstract class JoinRelBase
 
     public List<RelNode> getInputs()
     {
-        return Arrays.asList(left, right);
+        return FlatLists.of(left, right);
     }
 
     public JoinRelType getJoinType()

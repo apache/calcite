@@ -86,9 +86,9 @@ public class MongoRules {
           new MongoTableScan(cluster, table.getTraitSet(), table.getTable(),
               table.mongoTable, rowType, ops);
       final ProjectRel newProject =
-          new ProjectRel(cluster, newTable, newProjects,
-              project.getRowType(), ProjectRel.Flags.Boxed,
-              Collections.<RelCollation>emptyList());
+          new ProjectRel(cluster, cluster.traitSetOf(RelCollationImpl.EMPTY),
+              newTable, newProjects,
+              project.getRowType(), ProjectRel.Flags.Boxed);
       call.transformTo(newProject);
     }
   }

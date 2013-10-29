@@ -643,10 +643,14 @@ public class SubstitutionVisitor {
             final ProjectRel newProject =
                 new ProjectRel(
                     in.target.getCluster(),
-                    in.target, newProjects,
+                    in.target.getCluster().traitSetOf(
+                        in.query.getCollationList().isEmpty()
+                        ? RelCollationImpl.EMPTY
+                            : in.query.getCollationList().get(0)),
+                    in.target,
+                    newProjects,
                     in.query.getRowType(),
-                    in.query.getFlags(),
-                    in.query.getCollationList());
+                    in.query.getFlags());
             final RelNode newProject2 =
                 RemoveTrivialProjectRule.strip(newProject);
             return in.result(newProject2);

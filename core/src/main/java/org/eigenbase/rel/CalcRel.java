@@ -173,7 +173,7 @@ public final class CalcRel
         } else {
             final RelDataType rowType =
                 RexUtil.createStructType(
-                    child.getCluster().getTypeFactory(),
+                    cluster.getTypeFactory(),
                     exprs,
                     fieldNames);
             if (optimize
@@ -186,12 +186,15 @@ public final class CalcRel
             }
             return
                 new ProjectRel(
-                    child.getCluster(),
+                    cluster,
+                    cluster.traitSetOf(
+                        collationList.isEmpty()
+                            ? RelCollationImpl.EMPTY
+                            : collationList.get(0)),
                     child,
                     exprs,
                     rowType,
-                    ProjectRelBase.Flags.Boxed,
-                    collationList);
+                    ProjectRelBase.Flags.Boxed);
         }
     }
 

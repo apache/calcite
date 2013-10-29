@@ -22,8 +22,6 @@ import java.util.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 
-import net.hydromatic.optiq.runtime.FlatLists;
-
 import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
@@ -41,7 +39,7 @@ public abstract class SetOpRel
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected List<RelNode> inputs;
+    protected ImmutableList<RelNode> inputs;
     public final boolean all;
 
     //~ Constructors -----------------------------------------------------------
@@ -75,7 +73,7 @@ public abstract class SetOpRel
     public void replaceInput(int ordinalInParent, RelNode p) {
         final List<RelNode> newInputs = new ArrayList<RelNode>(inputs);
         newInputs.set(ordinalInParent, p);
-        inputs = FlatLists.of(newInputs);
+        inputs = ImmutableList.copyOf(newInputs);
         recomputeDigest();
     }
 

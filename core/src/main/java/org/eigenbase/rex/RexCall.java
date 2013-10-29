@@ -229,7 +229,7 @@ public class RexCall
 
     public List<RexNode> getOperands()
     {
-        return ImmutableList.copyOf(operands);
+        return operands;
     }
 
     public SqlOperator getOperator()

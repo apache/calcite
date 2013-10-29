@@ -725,12 +725,12 @@ public class SqlToRelConverter
             bb.setRoot(
                 new ProjectRel(
                     cluster,
+                    cluster.traitSetOf(RelCollationImpl.PRESERVE),
                     bb.root,
                     exprs,
                     cluster.getTypeFactory().createStructType(
                         rowType.getFieldList().subList(0, fieldCount)),
-                    ProjectRelBase.Flags.Boxed,
-                    Collections.singletonList(RelCollationImpl.PRESERVE)),
+                    ProjectRelBase.Flags.Boxed),
                 false);
         }
     }
