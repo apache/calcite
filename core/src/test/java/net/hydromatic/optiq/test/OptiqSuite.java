@@ -36,12 +36,18 @@ import org.junit.runners.Suite;
 
 /**
  * Optiq test suite.
+ *
+ * <p>Tests are sorted by approximate running time. The suite runs the fastest
+ * tests first, so that regressions can be discovered as fast as possible.
+ * Most unit tests run very quickly, and are scheduled before system tests
+ * (which are slower but more likely to break because they have more
+ * dependencies). Slow unit tests that don't break often are scheduled last.</p>
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+    // very fast tests (under 0.1s)
     ArrayTableTest.class,
     ArrayQueueTest.class,
-    PartiallyOrderedSetTest.class,
     DirectedGraphTest.class,
     ReflectVisitorTest.class,
     RelOptUtilTest.class,
@@ -50,37 +56,43 @@ import org.junit.runners.Suite;
     FilteratorTest.class,
     OptionsListTest.class,
     ConnectStringParserTest.class,
-    SqlParserTest.class,
-    SqlValidatorTest.class,
+    PermutationTestCase.class,
+    SqlFunctionsTest.class,
+    SqlTypeNameTest.class,
+    ModelTest.class,
     SqlValidatorFeatureTest.class,
-    SqlAdvisorTest.class,
-    SqlPrettyWriterTest.class,
-    RexProgramTest.class,
-    RexTransformerTest.class,
-    RelMetadataTest.class,
     VolcanoPlannerTraitTest.class,
     VolcanoPlannerTest.class,
+    SargTest.class,
+    SqlPrettyWriterTest.class,
+    RexProgramTest.class,
+
+    // medium tests (above 0.1s)
+    SqlParserTest.class,
+    SqlValidatorTest.class,
+    SqlAdvisorTest.class,
+    RexTransformerTest.class,
+    RelMetadataTest.class,
     HepPlannerTest.class,
     RelOptRulesTest.class,
     MaterializationTest.class,
-    SargTest.class,
     SqlLimitsTest.class,
-    PermutationTestCase.class,
-    ReflectiveSchemaTest.class,
     LinqFrontJdbcBackTest.class,
     JdbcFrontLinqBackTest.class,
-    JdbcFrontJdbcBackLinqMiddleTest.class,
     JdbcFrontJdbcBackTest.class,
     SqlToRelConverterTest.class,
-    SqlFunctionsTest.class,
-    SqlTypeNameTest.class,
     SqlOperatorTest.class,
-    OptiqSqlOperatorTest.class,
-    ModelTest.class,
-    RexProgramTest.class,
     RexTransformerTest.class,
+
+    // slow tests (above 1s)
     JdbcAdapterTest.class,
-    JdbcTest.class
+    JdbcFrontJdbcBackLinqMiddleTest.class,
+    OptiqSqlOperatorTest.class,
+    ReflectiveSchemaTest.class,
+    JdbcTest.class,
+
+    // slow tests that don't break often
+    PartiallyOrderedSetTest.class
 })
 public class OptiqSuite {
 }
