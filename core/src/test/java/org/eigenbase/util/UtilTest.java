@@ -1072,6 +1072,38 @@ public class UtilTest {
         assertFalse(Util.isDistinct(Arrays.asList("a", null, "b", null)));
     }
 
+    /** Unit test for {@link org.eigenbase.util.JsonBuilder}. */
+    @Test public void testJsonBuilder() {
+        JsonBuilder builder = new JsonBuilder();
+        Map<String, Object> map = builder.map();
+        map.put("foo", 1);
+        map.put("baz", true);
+        map.put("bar", "can't");
+        List<Object> list = builder.list();
+        map.put("list", list);
+        list.add(2);
+        list.add(3);
+        list.add(builder.list());
+        list.add(builder.map());
+        list.add(null);
+        map.put("nullValue", null);
+        assertEquals(
+            "{\n"
+            + "  foo: 1,\n"
+            + "  baz: true,\n"
+            + "  bar: \"can't\",\n"
+            + "  list: [\n"
+            + "    2,\n"
+            + "    3,\n"
+            + "    [],\n"
+            + "    {},\n"
+            + "    null\n"
+            + "  ],\n"
+            + "  nullValue: null\n"
+            + "}",
+            builder.toJsonString(map));
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     /**

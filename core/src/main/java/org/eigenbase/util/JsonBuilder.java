@@ -71,7 +71,9 @@ public class JsonBuilder {
 
     /** Appends a JSON object to a string builder. */
     private void append(StringBuilder buf, int indent, Object o) {
-        if (o instanceof Map) {
+        if (o == null) {
+            buf.append("null");
+        } else if (o instanceof Map) {
             //noinspection unchecked
             appendMap(buf, indent, (Map) o);
         } else if (o instanceof List) {
