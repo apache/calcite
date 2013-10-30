@@ -18,10 +18,12 @@
 package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.expressions.*;
+
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.*;
+import net.hydromatic.optiq.runtime.Hook;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.convert.ConverterRelImpl;
@@ -71,6 +73,7 @@ public class JdbcToEnumerableConverter
     if (OptiqPrepareImpl.DEBUG) {
       System.out.println("[" + sql + "]");
     }
+    Hook.QUERY_PLAN.run(sql);
     final Expression sqlLiteral =
         list.append("sql", Expressions.constant(sql));
     final List<Primitive> primitives = new ArrayList<Primitive>();

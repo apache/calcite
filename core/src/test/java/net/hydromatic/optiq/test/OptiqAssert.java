@@ -804,6 +804,32 @@ public class OptiqAssert {
       }
     }
 
+    /** Runs the query and applies a checker to the generated third-party
+     * queries. The checker should throw to fail the test if it does not see
+     * what it wants. This method can be used to check whether a particular
+     * MongoDB or SQL query is generated, for instance. */
+    public AssertQuery queryContains(Function1<List, Void> predicate1) {
+      final List list = new ArrayList();
+      final Hook.Closeable hook = Hook.QUERY_PLAN.add(
+          new Function1<Object, Object>() {
+            public Object apply(Object a0) {
+              list.add(a0);
+              return null;
+            }
+          });
+      try {
+        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+            null, null);
+        predicate1.apply(list);
+        return this;
+      } catch (Exception e) {
+        throw new RuntimeException(
+            "exception while executing [" + sql + "]", e);
+      } finally {
+        hook.close();
+      }
+    }
+
     /** Sets a limit on the number of rows returned. -1 means no limit. */
     public AssertQuery limit(int limit) {
       this.limit = limit;

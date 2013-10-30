@@ -18,10 +18,15 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.Ord;
+import net.hydromatic.linq4j.function.Function1;
+
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.eigenbase.util.Pair;
 
+import com.google.common.collect.ImmutableList;
+
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.DriverManager;
@@ -123,6 +128,19 @@ public class MongoAdapterTest {
     return true;
   }
 
+  /** Returns a function that checks that a particular MongoDB pipeline is
+   * generated to implement a query. */
+  private static Function1<List, Void> mongoChecker(final String... strings) {
+    return new Function1<List, Void>() {
+      public Void apply(List actual) {
+        if (!actual.contains(ImmutableList.copyOf(strings))) {
+          Assert.fail("expected MongoDB query not found; actual: " + actual);
+        }
+        return null;
+      }
+    };
+  }
+
   @Test public void testSort() {
       OptiqAssert.assertThat()
           .enable(enabled())
@@ -142,19 +160,19 @@ public class MongoAdapterTest {
           .with(ZIPS)
           .query(
               "select * from zips\n"
-              + "where city = 'SPRINGFIELD' and id between 20000 and 30000\n"
+              + "where city = 'SPRINGFIELD' and id between '20000' and '30000'\n"
               + "order by state")
           .returns(
               "CITY=SPRINGFIELD; LONGITUDE=-81.249855; LATITUDE=33.534264; POP=2184; STATE=SC; ID=29146\n"
               + "CITY=SPRINGFIELD; LONGITUDE=-77.186584; LATITUDE=38.779716; POP=16811; STATE=VA; ID=22150\n"
               + "CITY=SPRINGFIELD; LONGITUDE=-77.23702; LATITUDE=38.744858; POP=32161; STATE=VA; ID=22153\n"
               + "CITY=SPRINGFIELD; LONGITUDE=-78.69502; LATITUDE=39.462997; POP=1321; STATE=WV; ID=26763\n")
-          // ideal plan would have MongoSortRel, not EnumerableSortRel
           .explainContains(
-              "PLAN=EnumerableSortRel(sort0=[$4], dir0=[Ascending])\n"
-              + "  EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[ITEM($t1, $t5)], expr#7=[CAST($t6):FLOAT NOT NULL], expr#8=[1], expr#9=[ITEM($t1, $t8)], expr#10=[CAST($t9):FLOAT NOT NULL], expr#11=['SPRINGFIELD'], expr#12=[=($t0, $t11)], expr#13=[20000], expr#14=[>=($t4, $t13)], expr#15=[30000], expr#16=[<=($t4, $t15)], expr#17=[AND($t14, $t16)], expr#18=[AND($t12, $t17)], CITY=[$t0], LONGITUDE=[$t7], LATITUDE=[$t10], POP=[$t2], STATE=[$t3], ID=[$t4], $condition=[$t18])\n"
-              + "    MongoToEnumerableConverter\n"
-              + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
+              "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], expr#6=[ITEM($t1, $t5)], expr#7=[CAST($t6):FLOAT NOT NULL], expr#8=[1], expr#9=[ITEM($t1, $t8)], expr#10=[CAST($t9):FLOAT NOT NULL], CITY=[$t0], LONGITUDE=[$t7], LATITUDE=[$t10], POP=[$t2], STATE=[$t3], ID=[$t4])\n"
+              + "  MongoToEnumerableConverter\n"
+              + "    MongoSortRel(sort0=[$3], dir0=[Ascending])\n"
+              + "      MongoFilterRel(condition=[AND(=($0, 'SPRINGFIELD'), >=($4, '20000'), <=($4, '30000'))])\n"
+              + "        MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
   }
 
   @Test public void testUnionPlan() {
@@ -190,6 +208,26 @@ public class MongoAdapterTest {
         .runs();
   }
 
+  /** Tests that we don't generate multiple constraints on the same column.
+   * MongoDB doesn't like it. If there is an '=', it supersedes all other
+   * operators. */
+  @Test public void testFilterRedundant() {
+    OptiqAssert.assertThat()
+        .enable(enabled())
+        .with(ZIPS)
+        .query(
+            "select * from zips where state > 'CA' and state < 'AZ' and state = 'OK'")
+        .runs()
+        .queryContains(
+            mongoChecker(
+                "{$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}",
+                "{\n"
+                + "  $match: {\n"
+                + "    state: \"OK\"\n"
+                + "  }\n"
+                + "}"));
+  }
+
   @Test public void testSelectWhere() {
     OptiqAssert.assertThat()
         .enable(enabled())
@@ -197,14 +235,22 @@ public class MongoAdapterTest {
         .query(
             "select * from \"warehouse\" where \"warehouse_state_province\" = 'CA'")
         .explainContains(
-            "PLAN=EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=['CA'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-            + "  MongoToEnumerableConverter\n"
+            "PLAN=MongoToEnumerableConverter\n"
+            + "  MongoFilterRel(condition=[=($1, 'CA')])\n"
             + "    MongoTableScan(table=[[_foodmart, warehouse]], ops=[[<{warehouse_id: 1, warehouse_state_province: 1}, {$project: {warehouse_id: 1, warehouse_state_province: 1}}>]])")
         .returns(
-            "warehouse_id=6.0; warehouse_state_province=CA\n"
-            + "warehouse_id=7.0; warehouse_state_province=CA\n"
-            + "warehouse_id=14.0; warehouse_state_province=CA\n"
-            + "warehouse_id=24.0; warehouse_state_province=CA\n");
+            "warehouse_id=6; warehouse_state_province=CA\n"
+            + "warehouse_id=7; warehouse_state_province=CA\n"
+            + "warehouse_id=14; warehouse_state_province=CA\n"
+            + "warehouse_id=24; warehouse_state_province=CA\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {warehouse_id: 1, warehouse_state_province: 1}}",
+                "{\n"
+                + "  $match: {\n"
+                + "    warehouse_state_province: \"CA\"\n"
+                + "  }\n"
+                + "}"));
   }
 
   @Test public void testInPlan() {
@@ -215,14 +261,18 @@ public class MongoAdapterTest {
             "select \"store_id\", \"store_name\" from \"store\"\n"
             + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
         .returns(
-            "store_id=1.0; store_name=Store 1\n"
-            + "store_id=3.0; store_name=Store 3\n"
-            + "store_id=7.0; store_name=Store 7\n"
-            + "store_id=10.0; store_name=Store 10\n"
-            + "store_id=11.0; store_name=Store 11\n"
-            + "store_id=15.0; store_name=Store 15\n"
-            + "store_id=16.0; store_name=Store 16\n"
-            + "store_id=24.0; store_name=Store 24\n");
+            "store_id=1; store_name=Store 1\n"
+            + "store_id=3; store_name=Store 3\n"
+            + "store_id=7; store_name=Store 7\n"
+            + "store_id=10; store_name=Store 10\n"
+            + "store_id=11; store_name=Store 11\n"
+            + "store_id=15; store_name=Store 15\n"
+            + "store_id=16; store_name=Store 16\n"
+            + "store_id=24; store_name=Store 24\n")
+        .queryContains(
+            mongoChecker(
+                "{$project: {store_id: 1, store_name: 1}}",
+                "{\n  $match: {\n    $or: [\n      {\n        store_name: \"Store 1\"\n      },\n      {\n        store_name: \"Store 10\"\n      },\n      {\n        store_name: \"Store 11\"\n      },\n      {\n        store_name: \"Store 15\"\n      },\n      {\n        store_name: \"Store 16\"\n      },\n      {\n        store_name: \"Store 24\"\n      },\n      {\n        store_name: \"Store 3\"\n      },\n      {\n        store_name: \"Store 7\"\n      }\n    ]\n  }\n}"));
   }
 
   /** Query based on the "mongo-zips" model. */
@@ -263,9 +313,10 @@ public class MongoAdapterTest {
             "STATE=CA; CITY=LOS ANGELES\n"
             + "STATE=CA; CITY=LOS ANGELES\n")
         .explainContains(
-            "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=['CA'], expr#6=[=($t3, $t5)], STATE=[$t3], CITY=[$t0], $condition=[$t6])\n"
+            "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], STATE=[$t3], CITY=[$t0])\n"
             + "  MongoToEnumerableConverter\n"
-            + "    MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
+            + "    MongoFilterRel(condition=[=($3, 'CA')])\n"
+            + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
   }
 
   public void _testFoodmartQueries() {

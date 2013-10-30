@@ -20,12 +20,16 @@ package net.hydromatic.optiq.impl.splunk;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.impl.splunk.search.SplunkConnection;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.*;
+import net.hydromatic.optiq.runtime.Hook;
 
 import org.eigenbase.rel.TableAccessRelBase;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
+
+import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Constructor;
 import java.util.*;
@@ -107,6 +111,17 @@ public class SplunkTableAccessRel
           List.class);
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    Map map = ImmutableMap.builder()
+        .put("search", search)
+        .put("earliest", earliest)
+        .put("latest", latest)
+        .put("fieldList", fieldList)
+        .build();
+    if (OptiqPrepareImpl.DEBUG) {
+      System.out.println("Splunk: " + map);
+    }
+    Hook.QUERY_PLAN.run(map);
+
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),

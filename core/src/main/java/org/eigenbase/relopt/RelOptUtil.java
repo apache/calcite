@@ -1780,7 +1780,8 @@ public abstract class RelOptUtil
     }
 
     /**
-     * Decompose a rex predicate into list of RexNodes that are AND'ed together
+     * Decomposes a predicate into a list of expressions that are AND'ed
+     * together.
      *
      * @param rexPredicate predicate to be analyzed
      * @param rexList list of decomposed RexNodes
@@ -1847,13 +1848,47 @@ public abstract class RelOptUtil
     }
 
     /**
-     * Returns condition decomposed by AND.
+     * Decomposes a predicate into a list of expressions that are OR'ed
+     * together.
+     *
+     * @param rexPredicate predicate to be analyzed
+     * @param rexList list of decomposed RexNodes
+     */
+    public static void decomposeDisjunction(
+        RexNode rexPredicate,
+        List<RexNode> rexList)
+    {
+        if (rexPredicate == null || rexPredicate.isAlwaysFalse()) {
+            return;
+        }
+        if (rexPredicate.isA(RexKind.Or)) {
+            for (RexNode operand : ((RexCall) rexPredicate).getOperands()) {
+              decomposeDisjunction(operand, rexList);
+            }
+        } else {
+          rexList.add(rexPredicate);
+        }
+    }
+
+    /**
+     * Returns a condition decomposed by AND.
      *
      * <p>For example, {@code conjunctions(TRUE)} returns the empty list.</p>
      */
     public static List<RexNode> conjunctions(RexNode rexPredicate) {
         final List<RexNode> list = new ArrayList<RexNode>();
         decomposeConjunction(rexPredicate, list);
+        return list;
+    }
+
+    /**
+     * Returns a condition decomposed by OR.
+     *
+     * <p>For example, {@code disjunctions(FALSE)} returns the empty list.</p>
+     */
+    public static List<RexNode> disjunctions(RexNode rexPredicate) {
+        final List<RexNode> list = new ArrayList<RexNode>();
+        decomposeDisjunction(rexPredicate, list);
         return list;
     }
 

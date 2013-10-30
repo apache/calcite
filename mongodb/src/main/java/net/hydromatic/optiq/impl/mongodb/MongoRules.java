@@ -42,9 +42,12 @@ public class MongoRules {
 
   public static RelOptRule[] RULES = {
       new PushProjectOntoMongoRule(),
-      new MongoSortRule()
+      new MongoSortRule(),
+      new MongoFilterRule(),
   };
 
+  /** Rule that combines a {@link ProjectRel} with a {@link MongoTableScan},
+   * creating a new table scan with a list of columns to be projected. */
   private static class PushProjectOntoMongoRule extends RelOptRule {
     private PushProjectOntoMongoRule() {
       super(
@@ -69,9 +72,6 @@ public class MongoRules {
             cluster.getRexBuilder().ensureType(rex.getType(), rex2, true);
         newProjects.add(rex3);
       }
-      System.out.println("map=" + itemFinder.map
-          + "\n projects=" + newProjects
-          + "\n items=" + itemFinder.items);
 
       final List<Pair<String, String>> ops =
           new ArrayList<Pair<String, String>>(table.ops);
@@ -174,9 +174,8 @@ public class MongoRules {
     }
   }
 
-
   /**
-   * Rule to convert an {@link org.eigenbase.rel.SortRel} to an
+   * Rule to convert a {@link org.eigenbase.rel.SortRel} to a
    * {@link MongoSortRel}.
    */
   private static class MongoSortRule
@@ -202,234 +201,31 @@ public class MongoRules {
     }
   }
 
-  public static class MongoSortRel
-      extends SortRel
-      implements MongoRel {
-    public MongoSortRel(
-        RelOptCluster cluster,
-        RelTraitSet traitSet,
-        RelNode child,
-        RelCollation collation) {
-      super(cluster, traitSet, child, collation);
-      assert getConvention() == MongoRel.CONVENTION;
-      assert getConvention() == child.getConvention();
+  /**
+   * Rule to convert a {@link org.eigenbase.rel.FilterRel} to a
+   * {@link MongoFilterRel}.
+   */
+  private static class MongoFilterRule extends MongoConverterRule {
+    private MongoFilterRule() {
+      super(
+          FilterRel.class,
+          Convention.NONE,
+          MongoRel.CONVENTION,
+          "MongoFilterRule");
     }
 
-    @Override
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      return super.computeSelfCost(planner).multiplyBy(0.1);
-    }
-
-    @Override
-    public MongoSortRel copy(
-        RelTraitSet traitSet,
-        RelNode newInput,
-        RelCollation collation) {
-      return new MongoSortRel(
-          getCluster(),
+    public RelNode convert(RelNode rel) {
+      final FilterRel filter = (FilterRel) rel;
+      final RelTraitSet traitSet = filter.getTraitSet().replace(out);
+      return new MongoFilterRel(
+          rel.getCluster(),
           traitSet,
-          newInput,
-          collation);
-    }
-
-    public void implement(Implementor implementor) {
-      implementor.visitChild(0, getChild());
-      final List<String> keys = new ArrayList<String>();
-      for (int i = 0; i < collation.getFieldCollations().size(); i++) {
-        final RelFieldCollation fieldCollation =
-            collation.getFieldCollations().get(i);
-        final String name =
-            getRowType().getFieldList().get(i).getName();
-
-        keys.add(name + ": " + direction(fieldCollation));
-        if (false)
-          // TODO:
-          switch (fieldCollation.nullDirection) {
-          case FIRST:
-            break;
-          case LAST:
-            break;
-          }
-      }
-      implementor.add(null,
-          "{$sort: " + Util.toString(keys, "{", ", ", "}") + "}");
-      if (fetch != null || offset != null) {
-        // TODO: generate calls to DBCursor.skip() and limit(int).
-        throw new UnsupportedOperationException();
-      }
-    }
-
-    private int direction(RelFieldCollation fieldCollation) {
-      switch (fieldCollation.getDirection()) {
-      case Descending:
-      case StrictlyDescending:
-        return -1;
-      case Ascending:
-      case StrictlyAscending:
-      default:
-        return 1;
-      }
+          convert(filter.getChild(), traitSet),
+          filter.getCondition());
     }
   }
 
 /*
-  private static class MongoJoinRule extends MongoConverterRule {
-    private MongoJoinRule(MongoConvention out) {
-      super(
-          JoinRel.class,
-          Convention.NONE,
-          out,
-          "MongoJoinRule");
-    }
-
-    @Override
-    public RelNode convert(RelNode rel) {
-      JoinRel join = (JoinRel) rel;
-      List<RelNode> newInputs = new ArrayList<RelNode>();
-      for (RelNode input : join.getInputs()) {
-        if (!(input.getConvention() == getOutTrait())) {
-          input =
-              convert(
-                  input,
-                  input.getTraitSet()
-                      .replace(out));
-        }
-        newInputs.add(input);
-      }
-      try {
-        return new MongoJoinRel(
-            join.getCluster(),
-            join.getTraitSet().replace(out),
-            newInputs.get(0),
-            newInputs.get(1),
-            join.getCondition(),
-            join.getJoinType(),
-            join.getVariablesStopped());
-      } catch (InvalidRelException e) {
-        tracer.warning(e.toString());
-        return null;
-      }
-    }
-  }
-
-  public static class MongoJoinRel
-      extends JoinRelBase
-      implements MongoRel {
-    final ImmutableIntList leftKeys;
-    final ImmutableIntList rightKeys;
-
-    protected MongoJoinRel(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        RelNode left,
-        RelNode right,
-        RexNode condition,
-        JoinRelType joinType,
-        Set<String> variablesStopped)
-        throws InvalidRelException {
-      super(
-          cluster, traits, left, right, condition, joinType,
-          variablesStopped);
-      final List<Integer> leftKeys = new ArrayList<Integer>();
-      final List<Integer> rightKeys = new ArrayList<Integer>();
-      RexNode remaining =
-          RelOptUtil.splitJoinCondition(
-              left, right, condition, leftKeys, rightKeys);
-      if (!remaining.isAlwaysTrue()) {
-        throw new InvalidRelException(
-            "MongoJoinRel only supports equi-join");
-      }
-      this.leftKeys = ImmutableIntList.of(leftKeys);
-      this.rightKeys = ImmutableIntList.of(rightKeys);
-    }
-
-    @Override
-    public MongoJoinRel copy(
-        RelTraitSet traitSet,
-        RexNode conditionExpr,
-        RelNode left,
-        RelNode right) {
-      try {
-        return new MongoJoinRel(
-            getCluster(),
-            traitSet,
-            left,
-            right,
-            conditionExpr,
-            joinType,
-            variablesStopped);
-      } catch (InvalidRelException e) {
-        // Semantic error not possible. Must be a bug. Convert to
-        // internal error.
-        throw new AssertionError(e);
-      }
-    }
-
-    @Override
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      // We always "build" the
-      double rowCount = RelMetadataQuery.getRowCount(this);
-
-      return planner.makeCost(rowCount, 0, 0);
-    }
-
-    @Override
-    public double getRows() {
-      final boolean leftKey = left.isKey(Util.bitSetOf(leftKeys));
-      final boolean rightKey = right.isKey(Util.bitSetOf(rightKeys));
-      final double leftRowCount = left.getRows();
-      final double rightRowCount = right.getRows();
-      if (leftKey && rightKey) {
-        return Math.min(leftRowCount, rightRowCount);
-      }
-      if (leftKey) {
-        return rightRowCount;
-      }
-      if (rightKey) {
-        return leftRowCount;
-      }
-      return leftRowCount * rightRowCount;
-    }
-
-    public SqlString implement(MongoImplementor implementor) {
-      final SqlBuilder buf = new SqlBuilder(implementor.dialect);
-      buf.append("SELECT ");
-      int i = 0;
-      List<String> fields = getRowType().getFieldNames();
-      for (Ord<RelNode> input : Ord.zip(getInputs())) {
-        String t = "t" + input.i;
-        final List<String> inFields =
-            input.e.getRowType().getFieldNames();
-        for (String inField : inFields) {
-          buf.append(i > 0 ? ", " : "");
-          buf.identifier(t, inField);
-          alias(buf, inField, fields.get(i));
-          i++;
-        }
-      }
-      buf.append(" FROM ");
-      for (Ord<RelNode> input : Ord.zip(getInputs())) {
-        if (input.i > 0) {
-          implementor.newline(buf)
-              .append("JOIN ");
-        }
-        implementor.subquery(buf, input.i, input.e, "t" + input.i);
-      }
-      final List<String> leftFields =
-          getInput(0).getRowType().getFieldNames();
-      final List<String> rightFields =
-          getInput(1).getRowType().getFieldNames();
-      for (Ord<Pair<Integer, Integer>> pair
-          : Ord.zip(Pair.zip(leftKeys, rightKeys))) {
-        implementor.newline(buf)
-            .append(pair.i == 0 ? "ON " : "AND ")
-            .identifier("t0", leftFields.get(pair.e.left))
-            .append(" = ")
-            .identifier("t1", rightFields.get(pair.e.right));
-      }
-      return buf.toSqlString();
-    }
-  }
 
   /**
    * Rule to convert a {@link CalcRel} to an
@@ -879,81 +675,6 @@ public class MongoRules {
 
     public SqlString implement(MongoImplementor implementor) {
       return setOpSql(this, implementor, " minus ");
-    }
-  }
-
-  public static class MongoTableModificationRule extends MongoConverterRule {
-    private MongoTableModificationRule(MongoConvention out) {
-      super(
-          TableModificationRel.class,
-          Convention.NONE,
-          out,
-          "MongoTableModificationRule");
-    }
-
-    @Override
-    public RelNode convert(RelNode rel) {
-      final TableModificationRel modify =
-          (TableModificationRel) rel;
-      final ModifiableTable modifiableTable =
-          modify.getTable().unwrap(ModifiableTable.class);
-      if (modifiableTable == null
-          || modifiableTable.getExpression() == null) {
-        return null;
-      }
-      final RelTraitSet traitSet =
-          modify.getTraitSet().replace(out);
-      return new MongoTableModificationRel(
-          modify.getCluster(), traitSet,
-          modify.getTable(),
-          modify.getCatalogReader(),
-          convert(modify.getChild(), traitSet),
-          modify.getOperation(),
-          modify.getUpdateColumnList(),
-          modify.isFlattened());
-    }
-  }
-
-  public static class MongoTableModificationRel
-      extends TableModificationRelBase
-      implements MongoRel {
-    private final Expression expression;
-
-    public MongoTableModificationRel(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        RelOptTable table,
-        Prepare.CatalogReader catalogReader,
-        RelNode child,
-        Operation operation,
-        List<String> updateColumnList,
-        boolean flattened) {
-      super(
-          cluster, traits, table, catalogReader, child, operation,
-          updateColumnList, flattened);
-      assert child.getConvention() instanceof MongoConvention;
-      assert getConvention() instanceof MongoConvention;
-      final ModifiableTable modifiableTable =
-          table.unwrap(ModifiableTable.class);
-      if (modifiableTable == null) {
-        throw new AssertionError(); // TODO: user error in validator
-      }
-      this.expression = modifiableTable.getExpression();
-      if (expression == null) {
-        throw new AssertionError(); // TODO: user error in validator
-      }
-    }
-
-    @Override
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new MongoTableModificationRel(
-          getCluster(), traitSet, getTable(), getCatalogReader(),
-          sole(inputs), getOperation(), getUpdateColumnList(),
-          isFlattened());
-    }
-
-    public SqlString implement(MongoImplementor implementor) {
-      throw new AssertionError(); // TODO:
     }
   }
 

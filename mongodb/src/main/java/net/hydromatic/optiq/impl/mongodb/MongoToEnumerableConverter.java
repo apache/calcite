@@ -18,11 +18,13 @@
 package net.hydromatic.optiq.impl.mongodb;
 
 import net.hydromatic.linq4j.expressions.*;
-
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
+
 import net.hydromatic.optiq.BuiltinMethod;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.*;
+import net.hydromatic.optiq.runtime.Hook;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.convert.ConverterRelImpl;
@@ -105,13 +107,18 @@ public class MongoToEnumerableConverter
                       ? Expressions.constant(null, List.class)
                       : fields));
     } else {
+      List<String> opList = Pair.right(mongoImplementor.list);
       final Expression ops =
           list.append("ops",
-              constantArrayList(Pair.right(mongoImplementor.list)));
+              constantArrayList(opList));
       enumerable =
           list.append("enumerable",
               Expressions.call(
                   table, "aggregate", fields, ops));
+      if (OptiqPrepareImpl.DEBUG) {
+        System.out.println("Mongo: " + opList);
+      }
+      Hook.QUERY_PLAN.run(opList);
     }
     list.add(
         Expressions.return_(null, enumerable));

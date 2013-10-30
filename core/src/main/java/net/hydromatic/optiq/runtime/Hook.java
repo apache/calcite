@@ -31,7 +31,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public enum Hook {
   /** Called with the generated Java plan, just before it is compiled by
    * Janino. */
-  JAVA_PLAN;
+  JAVA_PLAN,
+
+  /** Called with a query that has been generated to send to a back-end system.
+   * The query might be a SQL string (for the JDBC adapter), a list of Mongo
+   * pipeline expressions (for the MongoDB adapter), et cetera. */
+  QUERY_PLAN;
 
   private final List<Function1<Object, Object>> handlers =
       new CopyOnWriteArrayList<Function1<Object, Object>>();
