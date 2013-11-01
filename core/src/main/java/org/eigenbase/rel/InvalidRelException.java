@@ -35,16 +35,44 @@ package org.eigenbase.rel;
  * checking is removed from the rule, which means less code for the author of
  * the rule to maintain.</p>
  */
+
 public class InvalidRelException extends Exception {
+
+  /**
+   * Indicates whether optiq is being run in a context where the container provides Rel
+   * operations. If the container does then logging should reflect that the Rel requires
+   * is a fall-through and not necessarily unresolvable.
+   */
+  public static String DEFAULT_REL_PROVIDER = "optiq" ;
+  public static String FALLBACK_REL_PROVIDER = System.getProperties().getProperty("optiq.container.rel", DEFAULT_REL_PROVIDER);
+
+
     /** Creates an InvalidRelException. */
     public InvalidRelException(String message) {
-        super(message);
+        super(getContextErrorMessage(message));
     }
 
     /** Creates an InvalidRelException with a cause. */
     public InvalidRelException(String message, Throwable cause) {
-        super(message, cause);
+        super(getContextErrorMessage(message), cause);
     }
+
+    /**
+     * Translates the error message into information appropriate to whether there are alternative means of
+     * resolving this.
+     * @param errorMessage the basic error condition
+     * @return description of how it can or can't be managed
+     */
+    static String getContextErrorMessage( String errorMessage ) {
+        String errorString;
+        if (!DEFAULT_REL_PROVIDER.equals( FALLBACK_REL_PROVIDER )) {
+            errorString = "passing %s to " + FALLBACK_REL_PROVIDER + " for resolution";
+        } else {
+            errorString = "%s not supported";
+        }
+        return String.format(errorString, errorMessage);
+    }
+
 }
 
 // End InvalidRelException.java

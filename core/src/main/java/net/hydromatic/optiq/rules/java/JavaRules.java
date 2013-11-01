@@ -733,12 +733,12 @@ public class JavaRules {
       for (AggregateCall aggCall : aggCalls) {
         if (aggCall.isDistinct()) {
           throw new InvalidRelException(
-              "distinct aggregation not supported");
+              "distinct aggregation");
         }
         final Aggregation aggregation = aggCall.getAggregation();
         if (!SUPPORTED_AGGREGATIONS.contains(aggregation)) {
           throw new InvalidRelException(
-              "aggregation " + aggregation + " not supported");
+              "aggregation " + aggregation);
         }
       }
     }
