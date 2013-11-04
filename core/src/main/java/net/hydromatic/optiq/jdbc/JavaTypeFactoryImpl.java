@@ -17,9 +17,6 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import java.sql.Time;
-import java.sql.Timestamp;
-
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.expressions.Types;
@@ -37,6 +34,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.*;
 
 /**
@@ -52,6 +51,10 @@ public class JavaTypeFactoryImpl
   private final Map<List<Pair<Type, Boolean>>, SyntheticRecordType>
       syntheticTypes =
       new HashMap<List<Pair<Type, Boolean>>, SyntheticRecordType>();
+
+  /** Creates a JavaTypeFactoryImpl. */
+  public JavaTypeFactoryImpl() {
+  }
 
   public RelDataType createStructType(Class type) {
     List<RelDataTypeField> list = new ArrayList<RelDataTypeField>();
@@ -105,7 +108,8 @@ public class JavaTypeFactoryImpl
   }
 
   public Type getJavaClass(RelDataType type) {
-    switch (type.getSqlTypeName()) {
+    SqlTypeName sqlTypeName = type.getSqlTypeName();
+    switch (sqlTypeName) {
     case ROW:
       assert type instanceof RelRecordType;
       if (type instanceof JavaRecordType) {
@@ -126,43 +130,50 @@ public class JavaTypeFactoryImpl
       return getJavaClass(type.getFieldList().get(0).getType());
     }
     if (type instanceof BasicSqlType || type instanceof IntervalSqlType) {
-      switch (type.getSqlTypeName()) {
-      case VARCHAR:
-      case CHAR:
-        return String.class;
-      case DATE:
-        return Date.class;
-      case TIME:
-        return Time.class;
-      case INTEGER:
-      case INTERVAL_YEAR_MONTH:
-        return type.isNullable() ? Integer.class : int.class;
-      case TIMESTAMP:
-        return Timestamp.class;
-      case BIGINT:
-      case INTERVAL_DAY_TIME:
-        return type.isNullable() ? Long.class : long.class;
-      case SMALLINT:
-        return type.isNullable() ? Short.class : short.class;
-      case TINYINT:
-        return type.isNullable() ? Byte.class : byte.class;
-      case DECIMAL:
-        return BigDecimal.class;
-      case BOOLEAN:
-        return type.isNullable() ? Boolean.class : boolean.class;
-      case DOUBLE:
-        return type.isNullable() ? Double.class : double.class;
-      case REAL:
-      case FLOAT:
-        return type.isNullable() ? Float.class : float.class;
-      case BINARY:
-      case VARBINARY:
-        return ByteString.class;
-      case ANY:
-        return Object.class;
-      }
+      return getJavaType(sqlTypeName, type.isNullable());
     }
     return null;
+  }
+
+  /** Returns the Java type to hold a scalar value of a given SQL type. */
+  public Type getJavaType(SqlTypeName sqlTypeName, boolean nullable) {
+    switch (sqlTypeName) {
+    case VARCHAR:
+    case CHAR:
+      return String.class;
+    case DATE:
+      return Date.class;
+    case TIME:
+      return Time.class;
+    case INTEGER:
+    case INTERVAL_YEAR_MONTH:
+      return nullable ? Integer.class : int.class;
+    case TIMESTAMP:
+      return Timestamp.class;
+    case BIGINT:
+    case INTERVAL_DAY_TIME:
+      return nullable ? Long.class : long.class;
+    case SMALLINT:
+      return nullable ? Short.class : short.class;
+    case TINYINT:
+      return nullable ? Byte.class : byte.class;
+    case DECIMAL:
+      return BigDecimal.class;
+    case BOOLEAN:
+      return nullable ? Boolean.class : boolean.class;
+    case DOUBLE:
+      return nullable ? Double.class : double.class;
+    case REAL:
+    case FLOAT:
+      return nullable ? Float.class : float.class;
+    case BINARY:
+    case VARBINARY:
+      return ByteString.class;
+    case ANY:
+      return Object.class;
+    default:
+      return null;
+    }
   }
 
   public RelDataType toSql(RelDataType type) {

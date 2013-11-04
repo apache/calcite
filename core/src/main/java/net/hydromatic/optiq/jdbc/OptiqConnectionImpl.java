@@ -29,6 +29,8 @@ import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
+import org.eigenbase.sql.type.SqlTypeName;
+
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.*;
@@ -44,7 +46,20 @@ import java.util.concurrent.Executor;
  * <p>Abstract to allow newer versions of JDBC to add methods.</p>
  */
 abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
-  public final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
+  public final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl() {
+    @Override
+    public Type getJavaType(SqlTypeName sqlTypeName, boolean nullable) {
+      switch (sqlTypeName) {
+      case DATE:
+      case TIME:
+        return nullable ? Integer.class : int.class;
+      case TIMESTAMP:
+        return nullable ? Long.class : long.class;
+      default:
+        return super.getJavaType(sqlTypeName, nullable);
+      }
+    }
+  };
 
   private boolean autoCommit;
   private boolean closed;
