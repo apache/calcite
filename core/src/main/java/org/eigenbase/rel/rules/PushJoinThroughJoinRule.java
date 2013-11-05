@@ -19,17 +19,12 @@ package org.eigenbase.rel.rules;
 
 import java.util.*;
 
-import org.eigenbase.rel.CalcRel;
-import org.eigenbase.rel.JoinRel;
-import org.eigenbase.rel.JoinRelType;
-import org.eigenbase.rel.RelNode;
+import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.Util;
 import org.eigenbase.util.mapping.MappingType;
 import org.eigenbase.util.mapping.Mappings;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Rule that pushes the right input of a join into through the left input of
@@ -56,16 +51,22 @@ import com.google.common.collect.ImmutableSet;
  */
 public class PushJoinThroughJoinRule extends RelOptRule {
     public static final RelOptRule RIGHT =
-        new PushJoinThroughJoinRule("PushJoinThroughJoinRule:right", true);
+        new PushJoinThroughJoinRule(
+            "PushJoinThroughJoinRule:right", true, JoinRel.class);
     public static final RelOptRule LEFT =
-        new PushJoinThroughJoinRule("PushJoinThroughJoinRule:left", false);
+        new PushJoinThroughJoinRule(
+            "PushJoinThroughJoinRule:left", false, JoinRel.class);
 
     private final boolean right;
 
-    private PushJoinThroughJoinRule(String description, boolean right) {
+    public PushJoinThroughJoinRule(
+        String description,
+        boolean right,
+        Class<? extends JoinRelBase> clazz)
+    {
         super(
             some(
-                JoinRel.class, any(JoinRel.class), any(RelNode.class)),
+                clazz, any(clazz), any(RelNode.class)),
             description);
         this.right = right;
     }
@@ -80,8 +81,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
     }
 
     private void onMatchRight(RelOptRuleCall call) {
-        final JoinRel topJoin = call.rel(0);
-        final JoinRel bottomJoin = call.rel(1);
+        final JoinRelBase topJoin = call.rel(0);
+        final JoinRelBase bottomJoin = call.rel(1);
         final RelNode relC = call.rel(2);
         final RelNode relA = bottomJoin.getLeft();
         final RelNode relB = bottomJoin.getRight();
@@ -152,10 +153,9 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final RexBuilder rexBuilder = cluster.getRexBuilder();
         RexNode newBottomCondition =
             RexUtil.composeConjunction(rexBuilder, newBottomList, false);
-        final JoinRel newBottomJoin =
-            new JoinRel(
-                cluster, relA, relC, newBottomCondition,
-                JoinRelType.INNER, ImmutableSet.<String>of());
+        final JoinRelBase newBottomJoin =
+            bottomJoin.copy(
+                bottomJoin.getTraitSet(), newBottomCondition, relA, relC);
 
         // target: | A       | C      | B |
         // source: | A       | B | C      |
@@ -173,10 +173,9 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         RexNode newTopCondition =
             RexUtil.composeConjunction(rexBuilder, newTopList, false);
         @SuppressWarnings("SuspiciousNameCombination")
-        final JoinRel newTopJoin =
-            new JoinRel(
-                cluster, newBottomJoin, relB, newTopCondition,
-                JoinRelType.INNER, ImmutableSet.<String>of());
+        final JoinRelBase newTopJoin =
+            topJoin.copy(
+                topJoin.getTraitSet(), newTopCondition, newBottomJoin, relB);
 
       assert !Mappings.isIdentity(topMapping);
         final RelNode newProject =
@@ -188,8 +187,8 @@ public class PushJoinThroughJoinRule extends RelOptRule {
     /** Similar to {@link #onMatch}, but swaps the upper sibling with the left
      * of the two lower siblings, rather than the right. */
     private void onMatchLeft(RelOptRuleCall call) {
-        final JoinRel topJoin = call.rel(0);
-        final JoinRel bottomJoin = call.rel(1);
+        final JoinRelBase topJoin = call.rel(0);
+        final JoinRelBase bottomJoin = call.rel(1);
         final RelNode relC = call.rel(2);
         final RelNode relA = bottomJoin.getLeft();
         final RelNode relB = bottomJoin.getRight();
@@ -261,10 +260,9 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final RexBuilder rexBuilder = cluster.getRexBuilder();
         RexNode newBottomCondition =
             RexUtil.composeConjunction(rexBuilder, newBottomList, false);
-        final JoinRel newBottomJoin =
-            new JoinRel(
-                cluster, relC, relB, newBottomCondition,
-                JoinRelType.INNER, ImmutableSet.<String>of());
+        final JoinRelBase newBottomJoin =
+            bottomJoin.copy(
+                bottomJoin.getTraitSet(), newBottomCondition, relC, relB);
 
         // target: | C      | B | A       |
         // source: | A       | B | C      |
@@ -282,10 +280,9 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         RexNode newTopCondition =
             RexUtil.composeConjunction(rexBuilder, newTopList, false);
         @SuppressWarnings("SuspiciousNameCombination")
-        final JoinRel newTopJoin =
-            new JoinRel(
-                cluster, newBottomJoin, relA, newTopCondition,
-                JoinRelType.INNER, ImmutableSet.<String>of());
+        final JoinRelBase newTopJoin =
+            topJoin.copy(
+                topJoin.getTraitSet(), newTopCondition, newBottomJoin, relA);
 
         final RelNode newProject =
             CalcRel.createProject(newTopJoin, Mappings.asList(topMapping));

@@ -49,7 +49,11 @@ public class SwapJoinRule
      */
     private SwapJoinRule()
     {
-        super(any(JoinRel.class));
+        this(JoinRel.class);
+    }
+
+    public SwapJoinRule(Class<? extends JoinRelBase> clazz) {
+        super(any(clazz));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -59,7 +63,7 @@ public class SwapJoinRule
      * modify <code>join</code>. Returns null if the join cannot be swapped (for
      * example, because it is an outer join).
      */
-    public static RelNode swap(JoinRel join)
+    public static RelNode swap(JoinRelBase join)
     {
         return swap(join, false);
     }
@@ -70,7 +74,7 @@ public class SwapJoinRule
      *
      * @return swapped join if swapping possible; else null
      */
-    public static RelNode swap(JoinRel join, boolean swapOuterJoins)
+    public static RelNode swap(JoinRelBase join, boolean swapOuterJoins)
     {
         JoinRelType joinType = join.getJoinType();
         switch (joinType) {
@@ -100,17 +104,12 @@ public class SwapJoinRule
         // join, and one for the swapped join, and no more.  This
         // doesn't prevent us from seeing any new combinations assuming
         // that the planner tries the desired order (semijoins after swaps).
-
-        JoinRel newJoin =
-            new JoinRel(
-                join.getCluster(),
-                join.getRight(),
-                join.getLeft(),
+        JoinRelBase newJoin =
+            join.copy(
+                join.getTraitSet(),
                 condition,
-                joinType,
-                join.getVariablesStopped(),
-                join.isSemiJoinDone(),
-                join.getSystemFieldList());
+                join.getRight(),
+                join.getLeft());
         final List<RexNode> exps =
             RelOptUtil.createSwappedJoinExprs(newJoin, join, true);
         return CalcRel.createProject(
@@ -122,7 +121,7 @@ public class SwapJoinRule
 
     public void onMatch(final RelOptRuleCall call)
     {
-        JoinRel join = call.rel(0);
+        JoinRelBase join = call.rel(0);
 
         if (!join.getSystemFieldList().isEmpty()) {
             // FIXME Enable this rule for joins with system fields
@@ -136,9 +135,9 @@ public class SwapJoinRule
 
         // The result is either a Project or, if the project is trivial, a
         // raw Join.
-        final JoinRel newJoin =
-            (swapped instanceof JoinRel) ? (JoinRel) swapped
-            : (JoinRel) swapped.getInput(0);
+        final JoinRelBase newJoin =
+            (swapped instanceof JoinRelBase) ? (JoinRelBase) swapped
+            : (JoinRelBase) swapped.getInput(0);
 
         call.transformTo(swapped);
 

@@ -2243,7 +2243,7 @@ public abstract class RelOptUtil
      */
     public static List<RexNode> createSwappedJoinExprs(
         RelNode newJoin,
-        JoinRel origJoin,
+        JoinRelBase origJoin,
         boolean origOrder)
     {
         final List<RelDataTypeField> newJoinFields =
