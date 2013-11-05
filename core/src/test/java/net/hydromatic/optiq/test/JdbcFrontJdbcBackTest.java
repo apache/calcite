@@ -20,6 +20,7 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.ResultSet;
@@ -47,6 +48,7 @@ public class JdbcFrontJdbcBackTest {
             + "day=2; week_day=Monday\n");
   }
 
+  @Ignore
   @Test public void testTables() throws Exception {
     assertThat()
         .with(OptiqAssert.Config.JDBC_FOODMART2)

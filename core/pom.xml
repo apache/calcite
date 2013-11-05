@@ -19,10 +19,9 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.15</version>
         <configuration>
-          <excludes>
-            <exclude>net/hydromatic/**/*.java</exclude>
-            <exclude>org/eigenbase/**/*.java</exclude>
-          </excludes>
+          <includes>
+            <include>net/hydromatic/optiq/test/OptiqSuite.java</include>
+          </includes>
         </configuration>
       </plugin>
       <plugin>

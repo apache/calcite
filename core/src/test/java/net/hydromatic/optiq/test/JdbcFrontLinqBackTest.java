@@ -25,6 +25,7 @@ import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -145,6 +146,7 @@ public class JdbcFrontLinqBackTest {
   /**
    * Tests INTERSECT.
    */
+  @Ignore
   @Test public void testIntersect() {
     assertThat()
         .query(
@@ -160,6 +162,7 @@ public class JdbcFrontLinqBackTest {
   /**
    * Tests EXCEPT.
    */
+  @Ignore
   @Test public void testExcept() {
     assertThat()
         .query(

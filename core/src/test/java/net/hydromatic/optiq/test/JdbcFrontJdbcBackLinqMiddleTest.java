@@ -182,6 +182,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "C=4222; state_province=CA\n");
   }
 
+  @Ignore
   @Test public void testDistinctCount() {
     // Complicating factors:
     // Composite GROUP BY key
