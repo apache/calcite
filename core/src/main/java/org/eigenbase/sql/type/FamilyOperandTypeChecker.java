@@ -76,6 +76,11 @@ public class FamilyOperandTypeChecker
                 callBinding.getScope(),
                 node);
         SqlTypeName typeName = type.getSqlTypeName();
+
+        /* Pass type checking for operators if its of type 'ANY' */
+        if (typeName.getFamily() == SqlTypeFamily.ANY)
+            return true;
+
         if (!family.getTypeNames().contains(typeName)) {
             if (throwOnFailure) {
                 throw callBinding.newValidationSignatureError();

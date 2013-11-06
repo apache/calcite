@@ -1322,6 +1322,12 @@ public abstract class SqlTypeUtil
         if (family1 == family2) {
             return true;
         }
+
+        /* If one of the operators is of type 'ANY', return true */
+        if (family1 == SqlTypeFamily.ANY ||
+            family2 == SqlTypeFamily.ANY)
+            return true;
+
         return false;
     }
 

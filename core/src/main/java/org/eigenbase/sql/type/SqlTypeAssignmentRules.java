@@ -305,6 +305,11 @@ public class SqlTypeAssignmentRules
         rule.add(SqlTypeName.CHAR);
         rule.add(SqlTypeName.VARCHAR);
         coerceRules.put(SqlTypeName.TIMESTAMP, rule);
+
+        /* Any is assignable from Any */
+        rule = new HashSet<SqlTypeName>();
+        rule.add(SqlTypeName.ANY);
+        rules.put(SqlTypeName.ANY, rule);
     }
 
     //~ Methods ----------------------------------------------------------------
