@@ -245,6 +245,11 @@ public class JdbcTest {
 
   /** Tests {@link java.sql.Statement#closeOnCompletion()}. */
   @Test public void testStatementCloseOnCompletion() throws Exception {
+    String javaVersion = System.getProperty("java.version");
+    if (javaVersion.compareTo("1.7") < 0) {
+      // Statement.closeOnCompletion was introduced in JDK 1.7.
+      return;
+    }
     final Driver driver = new Driver();
     OptiqConnection connection = (OptiqConnection)
         driver.connect("jdbc:optiq:", new Properties());

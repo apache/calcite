@@ -54,11 +54,11 @@ public class OptiqAssert {
   private static final DateFormat UTC_TIMESTAMP_FORMAT;
   static {
     final TimeZone utc = TimeZone.getTimeZone("UTC");
-    UTC_DATE_FORMAT = new SimpleDateFormat("YYYY-MM-dd");
+    UTC_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     UTC_DATE_FORMAT.setTimeZone(utc);
     UTC_TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
     UTC_TIME_FORMAT.setTimeZone(utc);
-    UTC_TIMESTAMP_FORMAT = new SimpleDateFormat("YYYY-MM-dd'T'HH:mm:ss'Z'");
+    UTC_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
     UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
   }
 
