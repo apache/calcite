@@ -69,11 +69,12 @@ public class JdbcTest {
       "     {\n"
       + "       type: 'jdbc',\n"
       + "       name: 'foodmart',\n"
+      + "       jdbcDriver: '" + OptiqAssert.JDBC_DRIVER + "',\n"
       + "       jdbcUser: 'foodmart',\n"
       + "       jdbcPassword: 'foodmart',\n"
-      + "       jdbcUrl: 'jdbc:mysql://localhost',\n"
-      + "       jdbcCatalog: 'foodmart',\n"
-      + "       jdbcSchema: null\n"
+      + "       jdbcUrl: '" + OptiqAssert.JDBC_URL + "',\n"
+      + "       jdbcCatalog: null,\n"
+      + "       jdbcSchema: 'foodmart'\n"
       + "     }\n";
 
   public static final String FOODMART_MODEL =

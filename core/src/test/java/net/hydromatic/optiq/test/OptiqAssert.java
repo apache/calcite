@@ -47,6 +47,8 @@ import static org.junit.Assert.*;
  * Fluid DSL for testing Optiq connections and queries.
  */
 public class OptiqAssert {
+  public static final String JDBC_URL = "jdbc:hsqldb:res:foodmart";
+  public static final String JDBC_DRIVER = "org.hsqldb.jdbcDriver";
   private static final DateFormat UTC_DATE_FORMAT;
   private static final DateFormat UTC_TIME_FORMAT;
   private static final DateFormat UTC_TIMESTAMP_FORMAT;
@@ -454,12 +456,12 @@ public class OptiqAssert {
       boolean withClone)
       throws ClassNotFoundException, SQLException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
-    Class.forName("com.mysql.jdbc.Driver");
     Connection connection = DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     BasicDataSource dataSource = new BasicDataSource();
-    dataSource.setUrl("jdbc:mysql://localhost");
+    dataSource.setDriverClassName(JDBC_DRIVER);
+    dataSource.setUrl(JDBC_URL);
     dataSource.setUsername("foodmart");
     dataSource.setPassword("foodmart");
 
@@ -467,8 +469,8 @@ public class OptiqAssert {
         JdbcSchema.create(
             optiqConnection.getRootSchema(),
             dataSource,
-            "foodmart",
             null,
+            "foodmart",
             "foodmart");
     if (withClone) {
       CloneSchema.create(
@@ -777,8 +779,11 @@ public class OptiqAssert {
 
     public AssertQuery planHasSql(String expected) {
       return planContains(
-          "getDataSource(), \"" + expected.replaceAll("\n", "\\\\n")
-              + "\"");
+          "getDataSource(), \""
+          + expected.replace("\\", "\\\\")
+              .replace("\"", "\\\"")
+              .replaceAll("\n", "\\\\n")
+          + "\"");
     }
 
     private void ensurePlan() {

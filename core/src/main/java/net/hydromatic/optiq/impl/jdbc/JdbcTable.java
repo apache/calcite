@@ -126,7 +126,7 @@ class JdbcTable extends AbstractQueryable<Object[]>
                 SqlParserPos.ZERO),
             tableName(), null, null, null, null, null, null, null,
             SqlParserPos.ZERO);
-      final SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.DUMMY);
+    final SqlPrettyWriter writer = new SqlPrettyWriter(schema.dialect);
     node.unparse(writer, 0, 0);
     return writer.toSqlString();
   }

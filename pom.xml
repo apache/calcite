@@ -149,6 +149,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>hsqldb</groupId>
+      <artifactId>hsqldb</artifactId>
+      <version>1.8.0.10</version>
+    </dependency>
+    <dependency>
       <groupId>sqlline</groupId>
       <artifactId>sqlline</artifactId>
       <version>1.1.2</version>
@@ -158,6 +163,12 @@
       <groupId>pentaho</groupId>
       <artifactId>mondrian-data-foodmart-queries</artifactId>
       <version>0.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>pentaho</groupId>
+      <artifactId>mondrian-data-foodmart-hsqldb</artifactId>
+      <version>0.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

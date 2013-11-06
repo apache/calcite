@@ -151,6 +151,7 @@ public class ModelHandler {
     dataSource.setUrl(jsonJdbcSchema.jdbcUrl);
     dataSource.setUsername(jsonJdbcSchema.jdbcUser);
     dataSource.setPassword(jsonJdbcSchema.jdbcPassword);
+    dataSource.setDriverClassName(jsonJdbcSchema.jdbcDriver);
     return dataSource;
   }
 

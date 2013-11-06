@@ -97,7 +97,7 @@ public class ModelTest {
         + "       name: 'FoodMart',\n"
         + "       jdbcUser: 'foodmart',\n"
         + "       jdbcPassword: 'foodmart',\n"
-        + "       jdbcUrl: 'jdbc:mysql://localhost',\n"
+        + "       jdbcUrl: '" + OptiqAssert.JDBC_URL + "',\n"
         + "       jdbcCatalog: 'foodmart',\n"
         + "       jdbcSchema: ''\n"
         + "     }\n"
