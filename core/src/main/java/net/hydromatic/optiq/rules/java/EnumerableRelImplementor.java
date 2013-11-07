@@ -358,9 +358,8 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     }
 
     @Override
-    public Expression visit(
-        NewArrayExpression newArrayExpression,
-        List<Expression> expressions) {
+    public Expression visit(NewArrayExpression newArrayExpression,
+        int dimension, Expression bound, List<Expression> expressions) {
       Type type = newArrayExpression.type;
       for (;;) {
         final Type componentType = Types.getComponentType(type);
@@ -370,9 +369,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         type = componentType;
       }
       types.add(type);
-      return super.visit(
-          newArrayExpression,
-          expressions);
+      return super.visit(newArrayExpression, dimension, bound, expressions);
     }
   }
 }

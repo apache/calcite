@@ -30,8 +30,6 @@ import org.eigenbase.util.mapping.*;
 
 import net.hydromatic.linq4j.function.*;
 
-import com.google.common.collect.ImmutableList;
-
 /**
  * Utility methods concerning row-expressions.
  *
@@ -655,7 +653,8 @@ public class RexUtil
     public static RexNode composeConjunction(
         RexBuilder rexBuilder, List<RexNode> nodes, boolean nullOnEmpty)
     {
-        List<RexNode> nodes2 = filter(nodes, NOT_ALWAYS_TRUE_PREDICATE);
+        List<RexNode> nodes2 =
+            Functions.filter(nodes, NOT_ALWAYS_TRUE_PREDICATE);
         switch (nodes2.size()) {
         case 0:
             return nullOnEmpty
@@ -676,7 +675,8 @@ public class RexUtil
     public static RexNode composeDisjunction(
         RexBuilder rexBuilder, List<RexNode> nodes, boolean nullOnEmpty)
     {
-        List<RexNode> nodes2 = filter(nodes, NOT_ALWAYS_FALSE_PREDICATE);
+        List<RexNode> nodes2 =
+            Functions.filter(nodes, NOT_ALWAYS_FALSE_PREDICATE);
         switch (nodes2.size()) {
         case 0:
             return nullOnEmpty
@@ -924,42 +924,6 @@ public class RexUtil
     private static boolean isAssociative(SqlOperator op) {
         return op.getKind() == SqlKind.AND
             || op.getKind() == SqlKind.OR;
-    }
-
-    /** Returns a list that contains only elements of {@code list} that match
-     * {@code predicate}. Avoids allocating a list if all elements match or no
-     * elements match. */
-    public static <E> List<E> filter(List<E> list, Predicate1<E> predicate) {
-        Bug.upgrade("move to linq4j in linq4j-0.1.11");
-        sniff: {
-            int hitCount = 0, missCount = 0;
-            for (E e : list) {
-                if (predicate.apply(e)) {
-                    if (missCount > 0) {
-                        break sniff;
-                    }
-                    ++hitCount;
-                } else {
-                    if (hitCount > 0) {
-                        break sniff;
-                    }
-                    ++missCount;
-                }
-            }
-            if (hitCount == 0) {
-                return ImmutableList.of();
-            }
-            if (missCount == 0) {
-                return list;
-            }
-        }
-        final List<E> list2 = new ArrayList<E>(list.size());
-        for (E e : list) {
-            if (predicate.apply(e)) {
-                list2.add(e);
-            }
-        }
-        return list2;
     }
 
     /** Returns whether there is an element in {@code list} for which

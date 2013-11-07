@@ -22,12 +22,12 @@ import java.util.logging.*;
 
 import org.eigenbase.rel.RelImplementorImpl;
 import org.eigenbase.relopt.*;
-import org.eigenbase.util.Bug;
 import org.eigenbase.util.property.*;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
 import net.hydromatic.linq4j.function.Function2;
+import net.hydromatic.linq4j.function.Functions;
 
 /**
  * Contains all of the {@link java.util.logging.Logger tracers} used within
@@ -71,12 +71,7 @@ public abstract class EigenbaseTrace
             @Override
             protected Function2<Void, File, String> initialValue()
             {
-                return new Function2<Void, File, String>() {
-                    public String apply(Void v1, File v2) {
-                        Bug.upgrade("remove when upgrade to linq4j-0.1.11");
-                        return null;
-                    }
-                };
+                return Functions.ignore2();
             }
         };
 

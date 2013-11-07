@@ -860,6 +860,14 @@ public class SqlFunctions {
         : (Short) cannotConvert(o, short.class);
   }
 
+  public static int toInt(java.util.Date v) {
+    return (int) (v.getTime() / DateTimeUtil.MILLIS_PER_DAY);
+  }
+
+  public static int toInt(java.sql.Time v) {
+    return (int) (v.getTime() % DateTimeUtil.MILLIS_PER_DAY);
+  }
+
   public static int toInt(String s) {
     return Integer.parseInt(s.trim());
   }
@@ -873,6 +881,10 @@ public class SqlFunctions {
         : o instanceof Number ? toInt((Number) o)
         : o instanceof String ? toInt((String) o)
         : (Integer) cannotConvert(o, int.class);
+  }
+
+  public static long toLong(Timestamp v) {
+    return v.getTime();
   }
 
   public static long toLong(String s) {

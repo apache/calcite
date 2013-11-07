@@ -24,12 +24,17 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.*;
 import net.hydromatic.optiq.runtime.Hook;
+import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.convert.ConverterRelImpl;
 import org.eigenbase.relopt.*;
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlDialect;
 
+import java.lang.reflect.Modifier;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -74,17 +79,50 @@ public class JdbcToEnumerableConverter
       System.out.println("[" + sql + "]");
     }
     Hook.QUERY_PLAN.run(sql);
-    final Expression sqlLiteral =
+    final Expression sql_ =
         list.append("sql", Expressions.constant(sql));
+    final int fieldCount = getRowType().getFieldCount();
+    BlockBuilder builder = new BlockBuilder();
+    final ParameterExpression resultSet_ =
+        Expressions.parameter(Modifier.FINAL, ResultSet.class,
+            builder.newName("resultSet"));
     final List<Primitive> primitives = new ArrayList<Primitive>();
-    for (int i = 0; i < getRowType().getFieldCount(); i++) {
-      final Primitive primitive = Primitive.ofBoxOr(physType.fieldClass(i));
-      primitives.add(primitive != null ? primitive : Primitive.OTHER);
+    if (fieldCount == 1) {
+      final ParameterExpression value_ =
+          Expressions.parameter(Object.class, builder.newName("value"));
+      builder.add(Expressions.declare(0, value_, null));
+      generateGet(physType, builder, resultSet_, 0, value_);
+      builder.add(Expressions.return_(null, value_));
+    } else {
+      final Expression values_ =
+          builder.append("values",
+              Expressions.newArrayBounds(Object.class, 1,
+                  Expressions.constant(fieldCount)));
+      for (int i = 0; i < fieldCount; i++) {
+        generateGet(physType, builder, resultSet_, i,
+            Expressions.arrayIndex(values_, Expressions.constant(i)));
+      }
+      builder.add(
+          Expressions.return_(null, values_));
     }
-    final Expression primitivesLiteral =
-        list.append("primitives",
-            Expressions.constant(
-                primitives.toArray(new Primitive[primitives.size()])));
+    final ParameterExpression e_ =
+        Expressions.parameter(SQLException.class, builder.newName("e"));
+    final Expression rowBuilderFactory_ =
+        list.append("rowBuilderFactory",
+            Expressions.lambda(
+                Expressions.block(
+                    Expressions.return_(null,
+                        Expressions.lambda(
+                            Expressions.block(
+                                Expressions.tryCatch(
+                                    builder.toBlock(),
+                                    Expressions.catch_(
+                                        e_,
+                                        Expressions.throw_(
+                                            Expressions.new_(
+                                                RuntimeException.class,
+                                                e_)))))))),
+                resultSet_));
     final Expression enumerable =
         list.append(
             "enumerable",
@@ -95,11 +133,54 @@ public class JdbcToEnumerableConverter
                         jdbcConvention.jdbcSchema.getExpression(),
                         JdbcSchema.class),
                     BuiltinMethod.JDBC_SCHEMA_DATA_SOURCE.method),
-                sqlLiteral,
-                primitivesLiteral));
+                sql_,
+                rowBuilderFactory_));
     list.add(
         Expressions.return_(null, enumerable));
     return implementor.result(physType, list.toBlock());
+  }
+
+  private void generateGet(PhysType physType, BlockBuilder builder,
+      ParameterExpression resultSet_, int i, Expression target) {
+    final Primitive primitive = Primitive.ofBoxOr(physType.fieldClass(i));
+    final Expression source;
+    final RelDataType fieldType =
+        physType.getRowType().getFieldList().get(i).getType();
+    switch (fieldType.getSqlTypeName()) {
+    case DATE:
+      source = Expressions.call(
+          BuiltinMethod.DATE_TO_INT.method,
+          Expressions.call(
+              resultSet_, "getDate", Expressions.constant(i + 1)));
+      break;
+    case TIME:
+      source = Expressions.call(
+          BuiltinMethod.TIME_TO_INT.method,
+          Expressions.call(
+              resultSet_, "getTime", Expressions.constant(i + 1)));
+      break;
+    case TIMESTAMP:
+      source = Expressions.call(
+          BuiltinMethod.TIMESTAMP_TO_LONG.method,
+          Expressions.call(
+              resultSet_, "getTimestamp", Expressions.constant(i + 1)));
+      break;
+    default:
+      source = Expressions.call(
+          resultSet_, jdbcGetMethod(primitive), Expressions.constant(i + 1));
+    }
+    builder.add(
+        Expressions.statement(
+            Expressions.assign(
+                target, source)));
+    // TODO: add 'if ...' if nullable
+  }
+
+  /** E,g, {@code jdbcGetMethod(int)} returns "getInt". */
+  private String jdbcGetMethod(Primitive primitive) {
+    return primitive == null
+        ? "getObject"
+        : "get" + SqlFunctions.initcap(primitive.primitiveName);
   }
 
   private String generateSql(SqlDialect dialect) {

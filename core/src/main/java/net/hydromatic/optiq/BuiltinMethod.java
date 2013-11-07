@@ -28,6 +28,8 @@ import net.hydromatic.optiq.runtime.*;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.*;
 import javax.sql.DataSource;
 
@@ -46,7 +48,7 @@ public enum BuiltinMethod {
   DATA_CONTEXT_GET_ROOT_SCHEMA(DataContext.class, "getRootSchema"),
   JDBC_SCHEMA_DATA_SOURCE(JdbcSchema.class, "getDataSource"),
   RESULT_SET_ENUMERABLE_OF(ResultSetEnumerable.class, "of", DataSource.class,
-      String.class, Primitive[].class),
+      String.class, Function1.class),
   JOIN(ExtendedEnumerable.class, "join", Enumerable.class, Function1.class,
       Function1.class, Function2.class),
   SELECT(ExtendedEnumerable.class, "select", Function1.class),
@@ -145,7 +147,11 @@ public enum BuiltinMethod {
   LOCAL_TIME(SqlFunctions.class, "localTime", DataContext.class),
   BOOLEAN_TO_STRING(SqlFunctions.class, "toString", boolean.class),
   ROUND_LONG(SqlFunctions.class, "round", long.class, long.class),
-  ROUND_INT(SqlFunctions.class, "round", int.class, int.class);
+  ROUND_INT(SqlFunctions.class, "round", int.class, int.class),
+  DATE_TO_INT(SqlFunctions.class, "toInt", java.util.Date.class),
+  TIME_TO_INT(SqlFunctions.class, "toInt", Time.class),
+  TIMESTAMP_TO_LONG(SqlFunctions.class, "toInt", Timestamp.class),
+  ;
 
   public final Method method;
   public final Constructor constructor;
