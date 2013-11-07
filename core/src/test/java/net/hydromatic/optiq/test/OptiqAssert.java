@@ -47,8 +47,10 @@ import static org.junit.Assert.*;
  * Fluid DSL for testing Optiq connections and queries.
  */
 public class OptiqAssert {
-  public static final String JDBC_URL = "jdbc:hsqldb:res:foodmart";
-  public static final String JDBC_DRIVER = "org.hsqldb.jdbcDriver";
+  // Change the following line to run the test suite against a different
+  // database.
+  public static final ConnectionSpec CONNECTION_SPEC = ConnectionSpec.HSQLDB;
+
   private static final DateFormat UTC_DATE_FORMAT;
   private static final DateFormat UTC_TIME_FORMAT;
   private static final DateFormat UTC_TIMESTAMP_FORMAT;
@@ -460,10 +462,10 @@ public class OptiqAssert {
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     BasicDataSource dataSource = new BasicDataSource();
-    dataSource.setDriverClassName(JDBC_DRIVER);
-    dataSource.setUrl(JDBC_URL);
-    dataSource.setUsername("FOODMART");
-    dataSource.setPassword("FOODMART");
+    dataSource.setDriverClassName(CONNECTION_SPEC.driver);
+    dataSource.setUrl(CONNECTION_SPEC.url);
+    dataSource.setUsername(CONNECTION_SPEC.username);
+    dataSource.setPassword(CONNECTION_SPEC.password);
 
     JdbcSchema foodmart =
         JdbcSchema.create(
@@ -697,6 +699,10 @@ public class OptiqAssert {
 
     protected Connection createConnection() throws Exception {
       return connectionFactory.createConnection();
+    }
+
+    public AssertQuery enable(boolean enabled) {
+      return enabled ? this : NopAssertQuery.of(sql);
     }
 
     public AssertQuery returns(String expected) {
@@ -946,6 +952,33 @@ public class OptiqAssert {
     public AssertQuery planHasSql(String expected) {
       return this;
     }
+  }
+
+  /** Information necessary to create a JDBC connection. Specify one to run
+   * tests against a different database. (hsqldb is the default.) */
+  public static class ConnectionSpec {
+    public final String url;
+    public final String username;
+    public final String password;
+    public final String driver;
+
+    public ConnectionSpec(String url, String username, String password,
+        String driver) {
+      this.url = url;
+      this.username = username;
+      this.password = password;
+      this.driver = driver;
+    }
+
+    public static final ConnectionSpec HSQLDB =
+        new ConnectionSpec(
+            "jdbc:hsqldb:res:foodmart", "FOODMART", "FOODMART",
+            "org.hsqldb.jdbcDriver");
+
+    public static final ConnectionSpec MYSQL =
+        new ConnectionSpec(
+            "jdbc:mysql://localhost/foodmart", "foodmart", "foodmart",
+            "com.mysql.jdbc.Driver");
   }
 }
 

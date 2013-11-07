@@ -53,9 +53,11 @@ final class JdbcUtils {
         List key = Arrays.asList(productName, productVersion);
         SqlDialect dialect = map.get(key);
         if (dialect == null) {
+          final SqlDialect.DatabaseProduct product =
+              SqlDialect.getProduct(productName, productVersion);
           dialect =
               new SqlDialect(
-                  SqlDialect.getProduct(productName, productVersion),
+                  product,
                   productName,
                   metaData.getIdentifierQuoteString());
           map.put(key, dialect);

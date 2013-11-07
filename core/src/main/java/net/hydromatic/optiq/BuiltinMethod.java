@@ -28,6 +28,7 @@ import net.hydromatic.optiq.runtime.*;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.*;
@@ -87,6 +88,12 @@ public enum BuiltinMethod {
   ENUMERABLE_FOREACH(Enumerable.class, "foreach", Function1.class),
   TYPED_GET_ELEMENT_TYPE(Typed.class, "getElementType"),
   BINDABLE_BIND(Bindable.class, "bind", DataContext.class),
+  RESULT_SET_GET_DATE2(ResultSet.class, "getDate", int.class, Calendar.class),
+  RESULT_SET_GET_TIME2(ResultSet.class, "getTime", int.class, Calendar.class),
+  RESULT_SET_GET_TIMESTAMP2(ResultSet.class, "getTimestamp", int.class,
+      Calendar.class),
+  TIME_ZONE_GET_OFFSET(TimeZone.class, "getOffset", long.class),
+  LONG_VALUE(Number.class, "longValue"),
   COMPARATOR_COMPARE(Comparator.class, "compare", Object.class, Object.class),
   COLLECTIONS_REVERSE_ORDER(Collections.class, "reverseOrder"),
   COLLECTIONS_EMPTY_LIST(Collections.class, "emptyList"),

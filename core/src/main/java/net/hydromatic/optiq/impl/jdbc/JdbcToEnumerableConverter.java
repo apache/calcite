@@ -31,6 +31,7 @@ import org.eigenbase.rel.convert.ConverterRelImpl;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlDialect;
+import org.eigenbase.sql.type.SqlTypeName;
 
 import java.lang.reflect.Modifier;
 import java.sql.ResultSet;
@@ -68,7 +69,7 @@ public class JdbcToEnumerableConverter
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Generate:
     //   ResultSetEnumerable.of(schema.getDataSource(), "select ...")
-    final BlockBuilder list = new BlockBuilder();
+    final BlockBuilder builder0 = new BlockBuilder(false);
     final JdbcRel child = (JdbcRel) getChild();
     final PhysType physType =
         PhysTypeImpl.of(
@@ -82,38 +83,48 @@ public class JdbcToEnumerableConverter
     }
     Hook.QUERY_PLAN.run(sql);
     final Expression sql_ =
-        list.append("sql", Expressions.constant(sql));
+        builder0.append("sql", Expressions.constant(sql));
     final int fieldCount = getRowType().getFieldCount();
     BlockBuilder builder = new BlockBuilder();
     final ParameterExpression resultSet_ =
         Expressions.parameter(Modifier.FINAL, ResultSet.class,
             builder.newName("resultSet"));
+    CalendarPolicy calendarPolicy =
+        CalendarPolicy.of(jdbcConvention.jdbcSchema.dialect);
     final Expression calendar_;
-    switch (CalendarPolicy.current()) {
-    case NONE:
-      calendar_ = null;
-      break;
-    case NULL:
-    calendar_ =
-        Expressions.convert_(Expressions.constant(null), Calendar.class);
-      break;
-    default:
+    switch (calendarPolicy) {
+    case LOCAL:
       calendar_ =
-          Expressions.call(
-              Calendar.class,
-              "getInstance",
+          builder0.append("calendar",
+              Expressions.call(
+                  Calendar.class,
+                  "getInstance",
+                  Expressions.convert_(
+                      Expressions.call(
+                          implementor.getRootExpression(),
+                          "get",
+                          Expressions.constant("timeZone")),
+                      TimeZone.class)));
+      break;
+    case SHIFT:
+      calendar_ =
+          builder0.append("timeZone",
               Expressions.convert_(
                   Expressions.call(
                       implementor.getRootExpression(),
                       "get",
                       Expressions.constant("timeZone")),
                   TimeZone.class));
+      break;
+    default:
+      calendar_ = null;
     }
     if (fieldCount == 1) {
       final ParameterExpression value_ =
           Expressions.parameter(Object.class, builder.newName("value"));
       builder.add(Expressions.declare(0, value_, null));
-      generateGet(physType, builder, resultSet_, 0, value_, calendar_);
+      generateGet(physType, builder, resultSet_, 0, value_, calendar_,
+          calendarPolicy);
       builder.add(Expressions.return_(null, value_));
     } else {
       final Expression values_ =
@@ -123,7 +134,7 @@ public class JdbcToEnumerableConverter
       for (int i = 0; i < fieldCount; i++) {
         generateGet(physType, builder, resultSet_, i,
             Expressions.arrayIndex(values_, Expressions.constant(i)),
-            calendar_);
+            calendar_, calendarPolicy);
       }
       builder.add(
           Expressions.return_(null, values_));
@@ -131,7 +142,7 @@ public class JdbcToEnumerableConverter
     final ParameterExpression e_ =
         Expressions.parameter(SQLException.class, builder.newName("e"));
     final Expression rowBuilderFactory_ =
-        list.append("rowBuilderFactory",
+        builder0.append("rowBuilderFactory",
             Expressions.lambda(
                 Expressions.block(
                     Expressions.return_(null,
@@ -147,7 +158,7 @@ public class JdbcToEnumerableConverter
                                                 e_)))))))),
                 resultSet_));
     final Expression enumerable =
-        list.append(
+        builder0.append(
             "enumerable",
             Expressions.call(
                 BuiltinMethod.RESULT_SET_ENUMERABLE_OF.method,
@@ -158,38 +169,50 @@ public class JdbcToEnumerableConverter
                     BuiltinMethod.JDBC_SCHEMA_DATA_SOURCE.method),
                 sql_,
                 rowBuilderFactory_));
-    list.add(
+    builder0.add(
         Expressions.return_(null, enumerable));
-    return implementor.result(physType, list.toBlock());
+    return implementor.result(physType, builder0.toBlock());
   }
 
   private void generateGet(PhysType physType, BlockBuilder builder,
       ParameterExpression resultSet_, int i, Expression target,
-      Expression calendar_) {
+      Expression calendar_, CalendarPolicy calendarPolicy) {
     final Primitive primitive = Primitive.ofBoxOr(physType.fieldClass(i));
-    final Expression source;
     final RelDataType fieldType =
         physType.getRowType().getFieldList().get(i).getType();
     final List<Expression> dateTimeArgs = new ArrayList<Expression>();
     dateTimeArgs.add(Expressions.constant(i + 1));
-    if (calendar_ != null) {
+    SqlTypeName sqlTypeName = fieldType.getSqlTypeName();
+    switch (calendarPolicy) {
+    case LOCAL:
       dateTimeArgs.add(calendar_);
+      break;
+    case NULL:
+      dateTimeArgs.add(Expressions.constant(null));
+      break;
+    case DIRECT:
+      sqlTypeName = SqlTypeName.ANY;
+      break;
     }
-    switch (fieldType.getSqlTypeName()) {
+    final Expression source;
+    switch (sqlTypeName) {
     case DATE:
       source = Expressions.call(
           BuiltinMethod.DATE_TO_INT.method,
-          Expressions.call(resultSet_, "getDate", dateTimeArgs));
+          Expressions.call(resultSet_,
+              BuiltinMethod.RESULT_SET_GET_DATE2.method, dateTimeArgs));
       break;
     case TIME:
       source = Expressions.call(
           BuiltinMethod.TIME_TO_INT.method,
-          Expressions.call(resultSet_, "getTime", dateTimeArgs));
+          Expressions.call(resultSet_,
+              BuiltinMethod.RESULT_SET_GET_TIME2.method, dateTimeArgs));
       break;
     case TIMESTAMP:
       source = Expressions.call(
           BuiltinMethod.TIMESTAMP_TO_LONG.method,
-          Expressions.call(resultSet_, "getTimestamp", dateTimeArgs));
+          Expressions.call(resultSet_,
+              BuiltinMethod.RESULT_SET_GET_TIMESTAMP2.method, dateTimeArgs));
       break;
     default:
       source = Expressions.call(
@@ -199,6 +222,29 @@ public class JdbcToEnumerableConverter
         Expressions.statement(
             Expressions.assign(
                 target, source)));
+    switch (calendarPolicy) {
+    case SHIFT:
+      switch (sqlTypeName) {
+      case TIMESTAMP:
+        builder.add(
+            Expressions.statement(
+                Expressions.assign(
+                    target,
+                    Expressions.add(
+                        Expressions.convert_(
+                            target,
+                            Long.class),
+                        Expressions.call(
+                            calendar_,
+                            BuiltinMethod.TIME_ZONE_GET_OFFSET.method,
+                            Expressions.call(
+                                Expressions.convert_(
+                                    target,
+                                    Long.class),
+                                BuiltinMethod.LONG_VALUE.method))))));
+        break;
+      }
+    }
     // TODO: add 'if ...' if nullable
   }
 
@@ -223,11 +269,19 @@ public class JdbcToEnumerableConverter
   private enum CalendarPolicy {
     NONE,
     NULL,
-    LOCAL;
+    LOCAL,
+    DIRECT,
+    SHIFT;
 
-    static CalendarPolicy current() {
-      // NULL works for hsqldb-2.3; nothing worked for hsqldb-1.8.
-      return NULL;
+    static CalendarPolicy of(SqlDialect dialect) {
+      switch (dialect.getDatabaseProduct()) {
+      case MYSQL:
+        return SHIFT;
+      case HSQLDB:
+      default:
+        // NULL works for hsqldb-2.3; nothing worked for hsqldb-1.8.
+        return NULL;
+      }
     }
   }
 }

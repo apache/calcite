@@ -35,13 +35,14 @@ public class JdbcAdapterTest {
             + "  JdbcUnionRel(all=[true])\n"
             + "    JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
             + "    JdbcTableScan(table=[[foodmart, sales_fact_1998]])")
+        .runs()
+        .enable(OptiqAssert.CONNECTION_SPEC.url.startsWith("jdbc:hsqldb:"))
         .planHasSql(
             "SELECT *\n"
             + "FROM \"foodmart\".\"sales_fact_1997\"\n"
             + "UNION ALL\n"
             + "SELECT *\n"
-            + "FROM \"foodmart\".\"sales_fact_1998\"")
-        .runs();
+            + "FROM \"foodmart\".\"sales_fact_1998\"");
   }
 
   @Test public void testFilterUnionPlan() {
@@ -53,6 +54,8 @@ public class JdbcAdapterTest {
             + "  union all\n"
             + "  select * from \"sales_fact_1998\")\n"
             + "where \"product_id\" = 1")
+        .runs()
+        .enable(OptiqAssert.CONNECTION_SPEC.url.startsWith("jdbc:hsqldb:"))
         .planHasSql(
             "SELECT *\n"
             + "FROM \"foodmart\".\"sales_fact_1997\"\n"
@@ -60,8 +63,7 @@ public class JdbcAdapterTest {
             + "UNION ALL\n"
             + "SELECT *\n"
             + "FROM \"foodmart\".\"sales_fact_1998\"\n"
-            + "WHERE \"product_id\" = 1")
-        .runs();
+            + "WHERE \"product_id\" = 1");
   }
 
   @Test public void testInPlan() {
@@ -70,6 +72,8 @@ public class JdbcAdapterTest {
         .query(
             "select \"store_id\", \"store_name\" from \"store\"\n"
             + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
+        .runs()
+        .enable(OptiqAssert.CONNECTION_SPEC.url.startsWith("jdbc:hsqldb:"))
         .planHasSql(
             "SELECT \"store_id\", \"store_name\"\n"
             + "FROM \"foodmart\".\"store\"\n"

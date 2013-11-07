@@ -147,6 +147,10 @@ public class ModelHandler {
   }
 
   private DataSource dataSource(JsonJdbcSchema jsonJdbcSchema) {
+    if (jsonJdbcSchema.jdbcUrl.startsWith("jdbc:hsqldb:")) {
+      // Prevent hsqldb from screwing up java.util.logging.
+      System.setProperty("hsqldb.reconfig_logging", "false");
+    }
     BasicDataSource dataSource = new BasicDataSource();
     dataSource.setUrl(jsonJdbcSchema.jdbcUrl);
     dataSource.setUsername(jsonJdbcSchema.jdbcUser);
