@@ -25,23 +25,41 @@ import java.util.List;
  * new array.
  */
 public class NewArrayExpression extends Expression {
+  public final int dimension;
+  public final Expression bound;
   public final List<Expression> expressions;
 
-  public NewArrayExpression(Type type, List<Expression> expressions) {
-    super(ExpressionType.NewArrayInit, Types.arrayType(type));
+  public NewArrayExpression(Type type, int dimension, Expression bound,
+      List<Expression> expressions) {
+    super(ExpressionType.NewArrayInit, Types.arrayType(type, dimension));
+    this.dimension = dimension;
+    this.bound = bound;
     this.expressions = expressions;
   }
 
   @Override
   public Expression accept(Visitor visitor) {
-    List<Expression> expressions = Expressions.acceptExpressions(
-        this.expressions, visitor);
-    return visitor.visit(this, expressions);
+    List<Expression> expressions =
+        this.expressions == null
+            ? null
+            : Expressions.acceptExpressions(this.expressions, visitor);
+    Expression bound = Expressions.accept(this.bound, visitor);
+    return visitor.visit(this, dimension, bound, expressions);
   }
 
   @Override
   void accept(ExpressionWriter writer, int lprec, int rprec) {
-    writer.append("new ").append(type).list(" {\n", ",\n", "}", expressions);
+    writer.append("new ").append(Types.getComponentTypeN(type));
+    for (int i = 0; i < dimension; i++) {
+      if (i == 0 && bound != null) {
+        writer.append('[').append(bound).append(']');
+      } else {
+        writer.append("[]");
+      }
+    }
+    if (expressions != null) {
+      writer.list(" {\n", ",\n", "}", expressions);
+    }
   }
 }
 

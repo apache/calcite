@@ -332,6 +332,7 @@ public class ExpressionTest {
                     paramX, "length", Collections.<Expression>emptyList()),
                 Arrays.asList(paramX))));
 
+    // 1-dimensional array with initializer
     assertEquals(
         "new String[] {\n"
         + "  \"foo\",\n"
@@ -340,10 +341,48 @@ public class ExpressionTest {
         Expressions.toString(
             Expressions.newArrayInit(
                 String.class,
-                Arrays.<Expression>asList(
-                    Expressions.constant("foo"),
-                    Expressions.constant(null),
-                    Expressions.constant("bar\"baz")))));
+                Expressions.constant("foo"),
+                Expressions.constant(null),
+                Expressions.constant("bar\"baz"))));
+
+    // 2-dimensional array with initializer
+    assertEquals(
+        "new String[][] {\n"
+        + "  new String[] {\n"
+        + "    \"foo\",\n"
+        + "    \"bar\"},\n"
+        + "  null,\n"
+        + "  new String[] {\n"
+        + "    null}}",
+        Expressions.toString(
+            Expressions.newArrayInit(
+                String.class,
+                2,
+                Expressions.constant(new String[] {"foo", "bar"}),
+                Expressions.constant(null),
+                Expressions.constant(new String[] {null}))));
+
+    // 1-dimensional array
+    assertEquals(
+        "new String[x + 1]",
+        Expressions.toString(
+            Expressions.newArrayBounds(
+                String.class,
+                1,
+                Expressions.add(
+                    Expressions.parameter(0, int.class, "x"),
+                    Expressions.constant(1)))));
+
+    // 3-dimensional array
+    assertEquals(
+        "new String[x + 1][][]",
+        Expressions.toString(
+            Expressions.newArrayBounds(
+                String.class,
+                3,
+                Expressions.add(
+                    Expressions.parameter(0, int.class, "x"),
+                    Expressions.constant(1)))));
 
     assertEquals(
         "(int) ((String) (Object) \"foo\").length()",
@@ -648,6 +687,95 @@ public class ExpressionTest {
         + "  while (x < 5) {\n"
         + "    ++y;\n"
         + "  }\n"
+        + "}\n",
+        Expressions.toString(node));
+  }
+
+  @Test public void testWriteTryCatchFinally() {
+    final ParameterExpression cce_ =
+        Expressions.parameter(Modifier.FINAL, ClassCastException.class, "cce");
+    final ParameterExpression re_ =
+        Expressions.parameter(0, RuntimeException.class, "re");
+    Node node =
+        Expressions.tryCatchFinally(
+            Expressions.block(
+                Expressions.return_(null,
+                    Expressions.call(
+                        Expressions.constant("foo"),
+                        "length"))),
+            Expressions.statement(
+                Expressions.call(
+                    Expressions.constant("foo"),
+                    "toUpperCase")),
+        Expressions.catch_(cce_,
+            Expressions.return_(null, Expressions.constant(null))),
+        Expressions.catch_(re_,
+            Expressions.throw_(
+                Expressions.new_(IndexOutOfBoundsException.class))));
+    assertEquals(
+        "try {\n"
+        + "  return \"foo\".length();\n"
+        + "} catch (final ClassCastException cce) {\n"
+        + "  return null;\n"
+        + "} catch (RuntimeException re) {\n"
+        + "  throw new IndexOutOfBoundsException();\n"
+        + "} finally {\n"
+        + "  \"foo\".toUpperCase();\n"
+        + "}\n",
+        Expressions.toString(node));
+  }
+
+  @Test public void testWriteTryFinally() {
+    final ParameterExpression cce_ =
+        Expressions.parameter(Modifier.FINAL, ClassCastException.class, "cce");
+    final ParameterExpression re_ =
+        Expressions.parameter(0, RuntimeException.class, "re");
+    Node node =
+        Expressions.ifThen(
+            Expressions.constant(true),
+        Expressions.tryFinally(
+            Expressions.block(
+                Expressions.return_(null,
+                    Expressions.call(
+                        Expressions.constant("foo"),
+                        "length"))),
+            Expressions.statement(
+                Expressions.call(
+                    Expressions.constant("foo"),
+                    "toUpperCase"))));
+    assertEquals(
+        "if (true) {\n"
+        + "  try {\n"
+        + "    return \"foo\".length();\n"
+        + "  } finally {\n"
+        + "    \"foo\".toUpperCase();\n"
+        + "  }\n"
+        + "}\n",
+        Expressions.toString(node));
+  }
+
+  @Test public void testWriteTryCatch() {
+    final ParameterExpression cce_ =
+        Expressions.parameter(Modifier.FINAL, ClassCastException.class, "cce");
+    final ParameterExpression re_ =
+        Expressions.parameter(0, RuntimeException.class, "re");
+    Node node =
+        Expressions.tryCatch(
+            Expressions.block(
+                Expressions.return_(null,
+                    Expressions.call(Expressions.constant("foo"), "length"))),
+            Expressions.catch_(cce_,
+                Expressions.return_(null, Expressions.constant(null))),
+            Expressions.catch_(re_,
+                Expressions.return_(null,
+                    Expressions.call(re_, "toString"))));
+    assertEquals(
+        "try {\n"
+        + "  return \"foo\".length();\n"
+        + "} catch (final ClassCastException cce) {\n"
+        + "  return null;\n"
+        + "} catch (RuntimeException re) {\n"
+        + "  return re.toString();\n"
         + "}\n",
         Expressions.toString(node));
   }

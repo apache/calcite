@@ -17,6 +17,7 @@
 */
 package net.hydromatic.linq4j.expressions;
 
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 
 /**
@@ -50,6 +51,19 @@ public class ParameterExpression extends Expression {
   @Override
   void accept(ExpressionWriter writer, int lprec, int rprec) {
     writer.append(name);
+  }
+
+  String declString() {
+    return declString(type);
+  }
+
+  String declString(Type type) {
+    final String modifiers = Modifier.toString(modifier);
+    return modifiers
+        + (modifiers.isEmpty() ? "" : " ")
+        + Types.className(type)
+        + " "
+        + name;
   }
 }
 

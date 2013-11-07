@@ -21,6 +21,14 @@ package net.hydromatic.linq4j.expressions;
  * Represents a catch statement in a try block.
  */
 public class CatchBlock {
+  public final ParameterExpression parameter;
+  public final Statement body;
+
+  public CatchBlock(ParameterExpression parameter,
+      Statement body) {
+    this.parameter = parameter;
+    this.body = body;
+  }
 }
 
 // End CatchBlock.java

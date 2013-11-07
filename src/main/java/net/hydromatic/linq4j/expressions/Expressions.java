@@ -444,36 +444,9 @@ public class Expressions {
    * reference to the caught Exception object for use in the handler
    * body.
    */
-  public static CatchBlock catch_(ParameterExpression expression0,
-      Expression expression1) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates a CatchBlock representing a catch statement.
-   */
-  public static CatchBlock catch_(Type type, Expression expression) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates a CatchBlock representing a catch statement with an
-   * Exception filter and a reference to the caught Exception
-   * object.
-   */
-  public static CatchBlock catch_(ParameterExpression expression0,
-      Expression expression1, Expression expression2) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates a CatchBlock representing a catch statement with an
-   * Exception filter but no reference to the caught Exception
-   * object.
-   */
-  public static CatchBlock catch_(Type type, Expression expression0,
-      Expression expression1) {
-    throw Extensions.todo();
+  public static CatchBlock catch_(ParameterExpression parameter,
+      Statement statement) {
+    return new CatchBlock(parameter, statement);
   }
 
   /**
@@ -1811,8 +1784,13 @@ public class Expressions {
    */
   public static BinaryExpression multiplyAssignChecked(Expression left,
       Expression right, Method method, LambdaExpression lambdaExpression) {
-    return makeBinary(ExpressionType.MultiplyAssignChecked, left, right, false,
-        method, lambdaExpression);
+    return makeBinary(
+        ExpressionType.MultiplyAssignChecked,
+        left,
+        right,
+        false,
+        method,
+        lambdaExpression);
   }
 
   /**
@@ -1986,18 +1964,9 @@ public class Expressions {
    * Creates a NewArrayExpression that represents creating an array
    * that has a specified rank.
    */
-  public static NewArrayExpression newArrayBounds(Type type,
-      Iterable<? extends Expression> expressions) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates a NewArrayExpression that represents creating an array
-   * that has a specified rank, using varargs.
-   */
-  public static NewArrayExpression newArrayBounds(Type type,
-      Expression... expressions) {
-    return newArrayBounds(type, toList(expressions));
+  public static NewArrayExpression newArrayBounds(Type type, int dimension,
+      Expression bound) {
+    return new NewArrayExpression(type, dimension, bound, null);
   }
 
   /**
@@ -2009,7 +1978,7 @@ public class Expressions {
    */
   public static NewArrayExpression newArrayInit(Type type,
       Iterable<? extends Expression> expressions) {
-    return new NewArrayExpression(type, toList(expressions));
+    return new NewArrayExpression(type, 1, null, toList(expressions));
   }
 
   /**
@@ -2021,7 +1990,31 @@ public class Expressions {
    */
   public static NewArrayExpression newArrayInit(Type type,
       Expression... expressions) {
-    return newArrayInit(type, toList(expressions));
+    return new NewArrayExpression(type, 1, null, toList(expressions));
+  }
+
+  /**
+   * Creates a NewArrayExpression that represents creating a
+   * n-dimensional array and initializing it from a list of
+   * elements.
+   *
+   * @param type Element type of the array.
+   */
+  public static NewArrayExpression newArrayInit(Type type, int dimension,
+      Iterable<? extends Expression> expressions) {
+    return new NewArrayExpression(type, dimension, null, toList(expressions));
+  }
+
+  /**
+   * Creates a NewArrayExpression that represents creating an
+   * n-dimensional array and initializing it from a list of
+   * elements, using varargs.
+   *
+   * @param type Element type of the array.
+   */
+  public static NewArrayExpression newArrayInit(Type type, int dimension,
+      Expression... expressions) {
+    return new NewArrayExpression(type, dimension, null, toList(expressions));
   }
 
   /**
@@ -2732,19 +2725,10 @@ public class Expressions {
   }
 
   /**
-   * Creates a UnaryExpression that represents a throwing of an
-   * exception.
+   * Creates a statement that represents the throwing of an exception.
    */
-  public static UnaryExpression throw_(Expression expression) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates a UnaryExpression that represents a throwing of an
-   * exception with a given type.
-   */
-  public static UnaryExpression throw_(Expression expression, Type type) {
-    throw Extensions.todo();
+  public static ThrowStatement throw_(Expression expression) {
+    return new ThrowStatement(expression);
   }
 
   /**
@@ -2752,52 +2736,46 @@ public class Expressions {
    * number of catch statements and neither a fault nor finally
    * block.
    */
-  public static TryStatement tryCatch(Expression body,
+  public static TryStatement tryCatch(Statement body,
+      Iterable<? extends CatchBlock> handlers) {
+    return new TryStatement(body, toList(handlers), null);
+  }
+
+  /**
+   * Creates a TryExpression representing a try block with any
+   * number of catch statements and neither a fault nor finally
+   * block, with varargs.
+   */
+  public static TryStatement tryCatch(Statement body,
       CatchBlock... handlers) {
-    throw Extensions.todo();
+    return new TryStatement(body, toList(handlers), null);
   }
 
   /**
    * Creates a TryExpression representing a try block with any
    * number of catch statements and a finally block.
    */
-  public static TryStatement tryCatchFinally(Expression body,
-      CatchBlock... handlers) {
-    throw Extensions.todo();
+  public static TryStatement tryCatchFinally(Statement body,
+      Iterable<? extends CatchBlock> handlers, Statement finally_) {
+    return new TryStatement(body, toList(handlers), finally_);
   }
 
   /**
-   * Creates a TryExpression representing a try block with a fault
-   * block and no catch statements.
+   * Creates a TryExpression representing a try block with any
+   * number of catch statements and a finally block, with varargs.
    */
-  public static TryStatement tryFault(Expression body, Expression fault) {
-    throw Extensions.todo();
+  public static TryStatement tryCatchFinally(Statement body, Statement finally_,
+      CatchBlock... handlers) {
+    return new TryStatement(body, toList(handlers), finally_);
   }
 
   /**
    * Creates a TryExpression representing a try block with a
    * finally block and no catch statements.
    */
-  public static TryStatement tryFinally(Expression body, Expression fault) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates a Type object that represents a generic System.Action
-   * delegate type that has specific type arguments.
-   */
-  public static boolean tryGetActionType(Class[] typeArgs,
-      Class[] outActionType) {
-    throw Extensions.todo();
-  }
-
-  /**
-   * Creates a Type object that represents a generic System.Func
-   * delegate type that has specific type arguments. The last type
-   * argument specifies the return type of the created delegate.
-   */
-  public static boolean tryGetFuncType(Class[] typeArgs, Class[] outFuncType) {
-    throw Extensions.todo();
+  public static TryStatement tryFinally(Statement body, Statement finally_) {
+    return new TryStatement(body, Collections.<CatchBlock>emptyList(),
+        finally_);
   }
 
   /**

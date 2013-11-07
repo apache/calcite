@@ -17,15 +17,10 @@
 */
 package net.hydromatic.linq4j.function;
 
-import net.hydromatic.linq4j.expressions.Types;
-
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.*;
-
-import static org.junit.Assert.assertEquals;
-
 
 /**
  * Test for {@link Functions}.

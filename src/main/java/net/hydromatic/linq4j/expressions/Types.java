@@ -198,6 +198,16 @@ public class Types {
     return null; // not an array type
   }
 
+  static Type getComponentTypeN(Type type) {
+    for (;;) {
+      final Type oldType = type;
+      type = getComponentType(type);
+      if (type == null) {
+        return oldType;
+      }
+    }
+  }
+
   /**
    * Boxes a type, if it is primitive, and returns the type name.
    * The type is abbreviated if it is in the "java.lang" package.
@@ -505,6 +515,13 @@ public class Types {
     // REVIEW: Is there a way to do this without creating an instance? We
     //  just need the inverse of Class.getComponentType().
     return Array.newInstance(toClass(type), 0).getClass();
+  }
+
+  static Type arrayType(Type type, int dimension) {
+    for (int i = 0; i < dimension; i++) {
+      type = arrayType(type);
+    }
+    return type;
   }
 
   static Type arrayType(Type type) {

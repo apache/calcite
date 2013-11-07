@@ -58,6 +58,10 @@ public class Visitor {
     return forStatement;
   }
 
+  public Statement visit(ThrowStatement throwStatement) {
+    return throwStatement;
+  }
+
   public DeclarationStatement visit(DeclarationStatement declarationStatement,
       ParameterExpression parameter, Expression initializer) {
     return declarationStatement.parameter == parameter
@@ -143,12 +147,21 @@ public class Visitor {
     return invocationExpression;
   }
 
-  public Expression visit(NewArrayExpression newArrayExpression,
-      List<Expression> expressions) {
-    return expressions.equals(newArrayExpression.expressions)
+  static <T> boolean eq(T t0, T t1) {
+    return t0 == t1 || t0 != null && t1 != null && t0.equals(t1);
+  }
+
+  public Expression visit(NewArrayExpression newArrayExpression, int dimension,
+      Expression bound, List<Expression> expressions) {
+    return eq(expressions, newArrayExpression.expressions)
+        && eq(bound, newArrayExpression.bound)
         ? newArrayExpression
-        : Expressions.newArrayInit(Types.getComponentType(
-            newArrayExpression.type), expressions);
+        : expressions == null
+        ? Expressions.newArrayBounds(
+            Types.getComponentTypeN(newArrayExpression.type), dimension, bound)
+        : Expressions.newArrayInit(
+            Types.getComponentTypeN(newArrayExpression.type),
+            dimension, expressions);
   }
 
   public Expression visit(ListInitExpression listInitExpression) {

@@ -124,16 +124,14 @@ public final class FunctionExpression<F extends Function<?>>
     List<String> boxBridgeArgs = new ArrayList<String>();
     for (ParameterExpression parameterExpression : parameterList) {
       final Type parameterType = parameterExpression.getType();
-      final String parameterTypeName = Types.className(parameterType);
-      final String parameterBoxTypeName = Types.boxClassName(parameterType);
-      params.add(parameterTypeName + " " + parameterExpression.name);
-
-      bridgeParams.add("Object " + parameterExpression.name);
+      final Type parameterBoxType = Types.box(parameterType);
+      final String parameterBoxTypeName = Types.className(parameterBoxType);
+      params.add(parameterExpression.declString());
+      bridgeParams.add(parameterExpression.declString(Object.class));
       bridgeArgs.add("(" + parameterBoxTypeName + ") "
           + parameterExpression.name);
 
-      boxBridgeParams.add(parameterBoxTypeName + " "
-          + parameterExpression.name);
+      boxBridgeParams.add(parameterExpression.declString(parameterBoxType));
       boxBridgeArgs.add(parameterExpression.name
           + (Primitive.is(parameterType)
           ? "." + Primitive.of(parameterType).primitiveName + "Value()"

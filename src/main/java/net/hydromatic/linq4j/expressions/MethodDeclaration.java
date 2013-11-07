@@ -57,13 +57,7 @@ public class MethodDeclaration extends MemberDeclaration {
     writer.append(resultType).append(' ').append(name).list("(", ", ", ")",
         new AbstractList<String>() {
           public String get(int index) {
-            ParameterExpression parameter = parameters.get(index);
-            final String modifiers = Modifier.toString(parameter.modifier);
-            return modifiers
-                   + (modifiers.isEmpty() ? "" : " ")
-                   + Types.className(parameter.getType())
-                   + " "
-                   + parameter.name;
+            return parameters.get(index).declString();
           }
 
           public int size() {

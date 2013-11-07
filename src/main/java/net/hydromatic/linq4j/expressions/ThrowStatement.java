@@ -17,22 +17,15 @@
 */
 package net.hydromatic.linq4j.expressions;
 
-import java.util.List;
-
 /**
- * Represents a {@code try ... catch ... finally} block.
+ * Represents a {@code throw} statement.
  */
-public class TryStatement extends Statement {
-  public final Statement body;
-  public final List<CatchBlock> catchBlocks;
-  public final Statement finally_;
+public class ThrowStatement extends Statement {
+  public final Expression expression;
 
-  public TryStatement(Statement body, List<CatchBlock> catchBlocks,
-      Statement finally_) {
-    super(ExpressionType.Try, body.getType());
-    this.body = body;
-    this.catchBlocks = catchBlocks;
-    this.finally_ = finally_;
+  public ThrowStatement(Expression expression) {
+    super(ExpressionType.Throw, Void.TYPE);
+    this.expression = expression;
   }
 
   @Override
@@ -42,17 +35,8 @@ public class TryStatement extends Statement {
 
   @Override
   void accept0(ExpressionWriter writer) {
-    writer.append("try ").append(Blocks.toBlock(body));
-    for (CatchBlock catchBlock : catchBlocks) {
-      writer.backUp();
-      writer.append(" catch (").append(catchBlock.parameter.declString())
-          .append(") ").append(Blocks.toBlock(catchBlock.body));
-    }
-    if (finally_ != null) {
-      writer.backUp();
-      writer.append(" finally ").append(Blocks.toBlock(finally_));
-    }
+    writer.append("throw ").append(expression).append(';').newlineAndIndent();
   }
 }
 
-// End TryStatement.java
+// End ThrowStatement.java

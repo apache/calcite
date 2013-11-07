@@ -188,6 +188,13 @@ class ExpressionWriter {
     return this;
   }
 
+  public void backUp() {
+    if (buf.lastIndexOf("\n") == buf.length() - 1) {
+      buf.delete(buf.length() - 1, buf.length());
+      indentPending = false;
+    }
+  }
+
   private static class Indent extends ArrayList<String> {
     public Indent(int initialCapacity) {
       super(initialCapacity);
