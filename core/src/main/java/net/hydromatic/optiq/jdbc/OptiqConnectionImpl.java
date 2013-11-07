@@ -514,10 +514,6 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
     public synchronized Object get(String name) {
       return map.get(name);
     }
-
-    public Schema getRootSchema() {
-      return this;
-    }
   }
 
   static class DataContextImpl implements DataContext {

@@ -462,8 +462,8 @@ public class OptiqAssert {
     BasicDataSource dataSource = new BasicDataSource();
     dataSource.setDriverClassName(JDBC_DRIVER);
     dataSource.setUrl(JDBC_URL);
-    dataSource.setUsername("foodmart");
-    dataSource.setPassword("foodmart");
+    dataSource.setUsername("FOODMART");
+    dataSource.setPassword("FOODMART");
 
     JdbcSchema foodmart =
         JdbcSchema.create(

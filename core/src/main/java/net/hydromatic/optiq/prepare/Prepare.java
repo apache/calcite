@@ -40,7 +40,6 @@ import java.util.logging.Logger;
  * the process of preparing and executing SQL expressions.
  */
 public abstract class Prepare {
-  public static final String connectionVariable = "connection";
   protected static final Logger tracer = EigenbaseTrace.getStatementTracer();
   protected final CatalogReader catalogReader;
   protected String queryString = null;

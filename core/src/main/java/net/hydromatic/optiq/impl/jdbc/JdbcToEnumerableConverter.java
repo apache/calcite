@@ -36,7 +36,9 @@ import java.lang.reflect.Modifier;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.TimeZone;
 
 /**
  * Relational expression representing a scan of a table in a JDBC data source.
@@ -86,12 +88,32 @@ public class JdbcToEnumerableConverter
     final ParameterExpression resultSet_ =
         Expressions.parameter(Modifier.FINAL, ResultSet.class,
             builder.newName("resultSet"));
-    final List<Primitive> primitives = new ArrayList<Primitive>();
+    final Expression calendar_;
+    switch (CalendarPolicy.current()) {
+    case NONE:
+      calendar_ = null;
+      break;
+    case NULL:
+    calendar_ =
+        Expressions.convert_(Expressions.constant(null), Calendar.class);
+      break;
+    default:
+      calendar_ =
+          Expressions.call(
+              Calendar.class,
+              "getInstance",
+              Expressions.convert_(
+                  Expressions.call(
+                      implementor.getRootExpression(),
+                      "get",
+                      Expressions.constant("timeZone")),
+                  TimeZone.class));
+    }
     if (fieldCount == 1) {
       final ParameterExpression value_ =
           Expressions.parameter(Object.class, builder.newName("value"));
       builder.add(Expressions.declare(0, value_, null));
-      generateGet(physType, builder, resultSet_, 0, value_);
+      generateGet(physType, builder, resultSet_, 0, value_, calendar_);
       builder.add(Expressions.return_(null, value_));
     } else {
       final Expression values_ =
@@ -100,7 +122,8 @@ public class JdbcToEnumerableConverter
                   Expressions.constant(fieldCount)));
       for (int i = 0; i < fieldCount; i++) {
         generateGet(physType, builder, resultSet_, i,
-            Expressions.arrayIndex(values_, Expressions.constant(i)));
+            Expressions.arrayIndex(values_, Expressions.constant(i)),
+            calendar_);
       }
       builder.add(
           Expressions.return_(null, values_));
@@ -141,29 +164,32 @@ public class JdbcToEnumerableConverter
   }
 
   private void generateGet(PhysType physType, BlockBuilder builder,
-      ParameterExpression resultSet_, int i, Expression target) {
+      ParameterExpression resultSet_, int i, Expression target,
+      Expression calendar_) {
     final Primitive primitive = Primitive.ofBoxOr(physType.fieldClass(i));
     final Expression source;
     final RelDataType fieldType =
         physType.getRowType().getFieldList().get(i).getType();
+    final List<Expression> dateTimeArgs = new ArrayList<Expression>();
+    dateTimeArgs.add(Expressions.constant(i + 1));
+    if (calendar_ != null) {
+      dateTimeArgs.add(calendar_);
+    }
     switch (fieldType.getSqlTypeName()) {
     case DATE:
       source = Expressions.call(
           BuiltinMethod.DATE_TO_INT.method,
-          Expressions.call(
-              resultSet_, "getDate", Expressions.constant(i + 1)));
+          Expressions.call(resultSet_, "getDate", dateTimeArgs));
       break;
     case TIME:
       source = Expressions.call(
           BuiltinMethod.TIME_TO_INT.method,
-          Expressions.call(
-              resultSet_, "getTime", Expressions.constant(i + 1)));
+          Expressions.call(resultSet_, "getTime", dateTimeArgs));
       break;
     case TIMESTAMP:
       source = Expressions.call(
           BuiltinMethod.TIMESTAMP_TO_LONG.method,
-          Expressions.call(
-              resultSet_, "getTimestamp", Expressions.constant(i + 1)));
+          Expressions.call(resultSet_, "getTimestamp", dateTimeArgs));
       break;
     default:
       source = Expressions.call(
@@ -190,6 +216,19 @@ public class JdbcToEnumerableConverter
     final JdbcImplementor.Result result =
         jdbcImplementor.visitChild(0, getChild());
     return result.asQuery().toSqlString(dialect).getSql();
+  }
+
+  /** Whether this JDBC driver needs you to pass a Calendar object to methods
+   * such as {@link ResultSet#getTimestamp(int, java.util.Calendar)}. */
+  private enum CalendarPolicy {
+    NONE,
+    NULL,
+    LOCAL;
+
+    static CalendarPolicy current() {
+      // NULL works for hsqldb-2.3; nothing worked for hsqldb-1.8.
+      return NULL;
+    }
   }
 }
 

@@ -238,7 +238,7 @@ class ColumnLoader<T> {
    * {@link java.sql.Date} and {@link java.sql.Time} values to
    * {@link Integer}. */
   private static List wrap(List list, RelDataType type) {
-//    if (type.isNullable()) {
+    if (type.isNullable()) {
       switch (type.getSqlTypeName()) {
       case TIMESTAMP:
         return Functions.adapt(list, TIMESTAMP_TO_LONG);
@@ -247,7 +247,7 @@ class ColumnLoader<T> {
       case DATE:
         return Functions.adapt(list, DATE_TO_INT);
       }
-//    }
+    }
     return list;
   }
 

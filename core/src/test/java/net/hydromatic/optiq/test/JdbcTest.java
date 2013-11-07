@@ -70,8 +70,8 @@ public class JdbcTest {
       + "       type: 'jdbc',\n"
       + "       name: 'foodmart',\n"
       + "       jdbcDriver: '" + OptiqAssert.JDBC_DRIVER + "',\n"
-      + "       jdbcUser: 'foodmart',\n"
-      + "       jdbcPassword: 'foodmart',\n"
+      + "       jdbcUser: 'FOODMART',\n"
+      + "       jdbcPassword: 'FOODMART',\n"
       + "       jdbcUrl: '" + OptiqAssert.JDBC_URL + "',\n"
       + "       jdbcCatalog: null,\n"
       + "       jdbcSchema: 'foodmart'\n"
@@ -930,6 +930,15 @@ public class JdbcTest {
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"hire_date\" from \"employee\" where \"employee_id\" = 1")
+        .returns("hire_date=1994-12-01 00:00:00\n");
+  }
+
+  /** Similar to {@link #testNullableTimestamp} but directly off JDBC. */
+  @Test public void testNullableTimestamp2() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .query(
+            "select \"hire_date\" from \"foodmart\".\"employee\" where \"employee_id\" = 1")
         .returns("hire_date=1994-12-01 00:00:00\n");
   }
 

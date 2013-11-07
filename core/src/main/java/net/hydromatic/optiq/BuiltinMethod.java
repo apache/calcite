@@ -150,7 +150,7 @@ public enum BuiltinMethod {
   ROUND_INT(SqlFunctions.class, "round", int.class, int.class),
   DATE_TO_INT(SqlFunctions.class, "toInt", java.util.Date.class),
   TIME_TO_INT(SqlFunctions.class, "toInt", Time.class),
-  TIMESTAMP_TO_LONG(SqlFunctions.class, "toInt", Timestamp.class),
+  TIMESTAMP_TO_LONG(SqlFunctions.class, "toLong", Timestamp.class),
   ;
 
   public final Method method;
