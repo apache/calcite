@@ -91,6 +91,13 @@ public class ConventionTraitDef
                 (Convention) converterRule.getInTrait();
             final Convention outConvention =
                 (Convention) converterRule.getOutTrait();
+
+            if ( conversionData.conversionGraph.vertexSet().size() == 0 )
+              conversionData.conversionGraph.addVertex( inConvention );
+
+            if ( !conversionData.conversionGraph.vertexSet().contains( outConvention ))
+              conversionData.conversionGraph.addVertex( outConvention );
+
             conversionData.conversionGraph.addEdge(inConvention, outConvention);
 
             conversionData.mapArcToConverterRule.putMulti(

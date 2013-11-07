@@ -51,16 +51,16 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return Collections.unmodifiableSet(edges);
   }
 
-  public E addEdge(V vertex, V targetVertex) {
-    final VertexInfo<V, E> info = vertexMap.get(vertex);
+  public E addEdge(V fromVertex, V toVertex) {
+    final VertexInfo<V, E> info = vertexMap.get(fromVertex);
     if (info == null) {
-      throw new IllegalArgumentException("no vertex " + vertex);
+      throw new IllegalArgumentException("no origin vertex registered for edge " + fromVertex + "->" + toVertex + " in " + vertexMap.keySet());
     }
-    final VertexInfo<V, E> info2 = vertexMap.get(targetVertex);
+    final VertexInfo<V, E> info2 = vertexMap.get(toVertex);
     if (info2 == null) {
-      throw new IllegalArgumentException("no vertex " + targetVertex);
+      throw new IllegalArgumentException("no destination vertex registered for edge " + fromVertex + "->" + toVertex  + " in " + vertexMap.keySet());
     }
-    final E edge = edgeFactory.createEdge(vertex, targetVertex);
+    final E edge = edgeFactory.createEdge(fromVertex, toVertex);
     if (edges.add(edge)) {
       info.outEdges.add(edge);
       return edge;
