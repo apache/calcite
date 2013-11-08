@@ -156,8 +156,17 @@ public enum BuiltinMethod {
   ROUND_LONG(SqlFunctions.class, "round", long.class, long.class),
   ROUND_INT(SqlFunctions.class, "round", int.class, int.class),
   DATE_TO_INT(SqlFunctions.class, "toInt", java.util.Date.class),
+  DATE_TO_INT_OPTIONAL(SqlFunctions.class, "toIntOptional",
+      java.util.Date.class),
   TIME_TO_INT(SqlFunctions.class, "toInt", Time.class),
-  TIMESTAMP_TO_LONG(SqlFunctions.class, "toLong", Timestamp.class),
+  TIME_TO_INT_OPTIONAL(SqlFunctions.class, "toIntOptional", Time.class),
+  TIMESTAMP_TO_LONG(SqlFunctions.class, "toLong", java.util.Date.class),
+  TIMESTAMP_TO_LONG_OFFSET(SqlFunctions.class, "toLong", java.util.Date.class,
+      TimeZone.class),
+  TIMESTAMP_TO_LONG_OPTIONAL(SqlFunctions.class, "toLongOptional",
+      Timestamp.class),
+  TIMESTAMP_TO_LONG_OPTIONAL_OFFSET(SqlFunctions.class, "toLongOptional",
+      Timestamp.class, TimeZone.class),
   ;
 
   public final Method method;

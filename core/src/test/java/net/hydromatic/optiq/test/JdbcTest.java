@@ -926,20 +926,21 @@ public class JdbcTest {
   /** There was a bug representing a nullable timestamp using a {@link Long}
    * internally. */
   @Test public void testNullableTimestamp() {
-    OptiqAssert.assertThat()
-        .with(OptiqAssert.Config.FOODMART_CLONE)
-        .query(
-            "select \"hire_date\" from \"employee\" where \"employee_id\" = 1")
-        .returns("hire_date=1994-12-01 00:00:00\n");
+    checkNullableTimestamp(OptiqAssert.Config.FOODMART_CLONE);
   }
 
   /** Similar to {@link #testNullableTimestamp} but directly off JDBC. */
   @Test public void testNullableTimestamp2() {
+    checkNullableTimestamp(OptiqAssert.Config.JDBC_FOODMART);
+  }
+
+  private void checkNullableTimestamp(OptiqAssert.Config config) {
     OptiqAssert.assertThat()
-        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .with(config)
         .query(
-            "select \"hire_date\" from \"foodmart\".\"employee\" where \"employee_id\" = 1")
-        .returns("hire_date=1994-12-01 00:00:00\n");
+            "select \"hire_date\", \"end_date\", \"birth_date\" from \"foodmart\".\"employee\" where \"employee_id\" = 1")
+        .returns(
+            "hire_date=1994-12-01 00:00:00; end_date=null; birth_date=1961-08-26\n");
   }
 
   @Test public void testValues() {
