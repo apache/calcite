@@ -37,12 +37,7 @@ class SqlItemOperator extends SqlSpecialOperator {
             SqlTypeStrategies.family(SqlTypeFamily.ANY));
 
     public SqlItemOperator() {
-        super("ITEM", SqlKind.OTHER_FUNCTION, 4, true, null, null, null);
-    }
-
-    @Override
-    public int getRightPrec() {
-        return 100;
+        super("ITEM", SqlKind.OTHER_FUNCTION, 100, true, null, null, null);
     }
 
     @Override

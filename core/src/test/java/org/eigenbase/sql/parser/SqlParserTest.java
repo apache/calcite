@@ -2471,7 +2471,7 @@ public class SqlParserTest {
         checkExp("a member of b", "(`A` MEMBER OF `B`)");
         checkExp(
             "a member of multiset[b]",
-            "(`A` MEMBER OF (MULTISET [`B`]))");
+            "(`A` MEMBER OF (MULTISET[`B`]))");
     }
 
     @Test public void testSubMultisetrOf() {
@@ -2484,13 +2484,13 @@ public class SqlParserTest {
     }
 
     @Test public void testMultiset() {
-        checkExp("multiset[1]", "(MULTISET [1])");
-        checkExp("multiset[1,2.3]", "(MULTISET [1, 2.3])");
-        checkExp("multiset[1,    '2']", "(MULTISET [1, '2'])");
-        checkExp("multiset[ROW(1,2)]", "(MULTISET [(ROW(1, 2))])");
+        checkExp("multiset[1]", "(MULTISET[1])");
+        checkExp("multiset[1,2.3]", "(MULTISET[1, 2.3])");
+        checkExp("multiset[1,    '2']", "(MULTISET[1, '2'])");
+        checkExp("multiset[ROW(1,2)]", "(MULTISET[(ROW(1, 2))])");
         checkExp(
             "multiset[ROW(1,2),ROW(3,4)]",
-            "(MULTISET [(ROW(1, 2)), (ROW(3, 4))])");
+            "(MULTISET[(ROW(1, 2)), (ROW(3, 4))])");
 
         checkExp(
             "multiset(select*from T)",
@@ -2523,40 +2523,47 @@ public class SqlParserTest {
     @Test public void testMultisetMixed() {
         checkExp(
             "multiset[1] MULTISET union b",
-            "((MULTISET [1]) MULTISET UNION `B`)");
+            "((MULTISET[1]) MULTISET UNION `B`)");
         checkExp(
             "a MULTISET union b multiset intersect c multiset except d multiset union e",
             "(((`A` MULTISET UNION (`B` MULTISET INTERSECT `C`)) MULTISET EXCEPT `D`) MULTISET UNION `E`)");
     }
 
-    @Test public void testMapElement() {
-        checkExp("a['foo']", "`A` ['foo']");
-        checkExp("a['x' || 'y']", "`A` [('x' || 'y')]");
-        checkExp("a['foo'] ['bar']", "`A` ['foo'] ['bar']");
-        checkExp("a['foo']['bar']", "`A` ['foo'] ['bar']");
+    @Test public void testMapItem() {
+        checkExp("a['foo']", "`A`['foo']");
+        checkExp("a['x' || 'y']", "`A`[('x' || 'y')]");
+        checkExp("a['foo'] ['bar']", "`A`['foo']['bar']");
+        checkExp("a['foo']['bar']", "`A`['foo']['bar']");
+    }
+
+    @Test public void testMapItemPrecedence() {
+        checkExp("1 + a['foo'] * 3", "(1 + (`A`['foo'] * 3))");
+        checkExp("1 * a['foo'] + 3", "((1 * `A`['foo']) + 3)");
+        checkExp("a['foo']['bar']", "`A`['foo']['bar']");
+        checkExp("a[b['foo' || 'bar']]", "`A`[`B`[('foo' || 'bar')]]");
     }
 
     @Test public void testArrayElement() {
-        checkExp("a[1]", "`A` [1]");
-        checkExp("a[b[1]]", "`A` [`B` [1]]");
-        checkExp("a[b[1 + 2] + 3]", "`A` [(`B` [(1 + 2)] + 3)]");
+        checkExp("a[1]", "`A`[1]");
+        checkExp("a[b[1]]", "`A`[`B`[1]]");
+        checkExp("a[b[1 + 2] + 3]", "`A`[(`B`[(1 + 2)] + 3)]");
     }
 
     @Test public void testArrayValueConstructor() {
-        checkExp("array[1, 2]", "(ARRAY [1, 2])");
-        checkExp("array [1, 2]", "(ARRAY [1, 2])"); // with space
+        checkExp("array[1, 2]", "(ARRAY[1, 2])");
+        checkExp("array [1, 2]", "(ARRAY[1, 2])"); // with space
 
         // parser allows empty array; validator will reject it
-        checkExp("array[]", "(ARRAY [])");
+        checkExp("array[]", "(ARRAY[])");
         checkExp(
             "array[(1, 'a'), (2, 'b')]",
-            "(ARRAY [(ROW(1, 'a')), (ROW(2, 'b'))])");
+            "(ARRAY[(ROW(1, 'a')), (ROW(2, 'b'))])");
     }
 
     @Test public void testMapValueConstructor() {
-        checkExp("map[1, 'x', 2, 'y']", "(MAP [1, 'x', 2, 'y'])");
-        checkExp("map [1, 'x', 2, 'y']", "(MAP [1, 'x', 2, 'y'])");
-        checkExp("map[]", "(MAP [])");
+        checkExp("map[1, 'x', 2, 'y']", "(MAP[1, 'x', 2, 'y'])");
+        checkExp("map [1, 'x', 2, 'y']", "(MAP[1, 'x', 2, 'y'])");
+        checkExp("map[]", "(MAP[])");
     }
 
     /**
@@ -5142,7 +5149,7 @@ public class SqlParserTest {
     @Test public void testMultisetCast() {
         checkExp(
             "cast(multiset[1] as double multiset)",
-            "CAST((MULTISET [1]) AS DOUBLE MULTISET)");
+            "CAST((MULTISET[1]) AS DOUBLE MULTISET)");
     }
 
     @Test public void testAddCarets() {

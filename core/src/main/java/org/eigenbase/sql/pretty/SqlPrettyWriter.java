@@ -891,6 +891,7 @@ public class SqlPrettyWriter
         return !(s.equals(",")
             || s.equals(".")
             || s.equals(")")
+            || s.equals("[")
             || s.equals("]")
             || s.equals(""));
     }
