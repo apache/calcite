@@ -47,9 +47,19 @@ import static org.junit.Assert.*;
  * Fluid DSL for testing Optiq connections and queries.
  */
 public class OptiqAssert {
-  // Change the following line to run the test suite against a different
-  // database.
-  public static final ConnectionSpec CONNECTION_SPEC = ConnectionSpec.HSQLDB;
+  /** Which database to use for tests that require a JDBC data source. By
+   * default the test suite runs against the embedded hsqldb database.
+   *
+   * <p>We recommend that casual users use hsqldb, and frequent Optiq developers
+   * use MySQL. The test suite runs faster against the MySQL database (mainly
+   * because of the 0.1s versus 6s startup time). You have to populate MySQL
+   * manually with the foodmart data set, otherwise there will be test failures.
+   * To run against MySQL, specify '-Doptiq.test.db=mysql' on the java command
+   * line.</p> */
+  public static final ConnectionSpec CONNECTION_SPEC =
+      "mysql".equals(System.getProperty("optiq.test.db"))
+          ? ConnectionSpec.MYSQL
+          : ConnectionSpec.HSQLDB;
 
   private static final DateFormat UTC_DATE_FORMAT;
   private static final DateFormat UTC_TIME_FORMAT;

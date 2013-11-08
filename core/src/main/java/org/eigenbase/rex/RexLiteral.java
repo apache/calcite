@@ -165,6 +165,7 @@ public class RexLiteral
         assert type != null;
         assert value == null || valueMatchesType(value, typeName, true);
         assert (value == null) == type.isNullable();
+        assert typeName != SqlTypeName.ANY;
         this.value = value;
         this.type = type;
         this.typeName = typeName;
@@ -232,6 +233,10 @@ public class RexLiteral
         case SYMBOL:
             return (value instanceof EnumeratedValues.Value)
                 || (value instanceof Enum);
+        case ANY:
+            // Literal of type ANY is not legal. "CAST(2 AS ANY)" remains
+            // an integer literal surrounded by a cast function.
+            return false;
         default:
             throw Util.unexpected(typeName);
         }

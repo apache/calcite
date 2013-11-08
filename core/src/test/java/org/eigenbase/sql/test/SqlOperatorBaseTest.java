@@ -2768,6 +2768,11 @@ public abstract class SqlOperatorBaseTest {
         }
     }
 
+    @Test public void testPlusOperatorAny() {
+        tester.setFor(SqlStdOperatorTable.plusOperator);
+        tester.checkScalar("1+CAST(2 AS ANY)", "3", "ANY NOT NULL");
+    }
+
     @Test public void testPlusIntervalOperator() {
         tester.setFor(SqlStdOperatorTable.plusOperator);
         tester.checkScalar(

@@ -1288,15 +1288,10 @@ public abstract class SqlTypeUtil
             if (n != type2.getFieldCount()) {
                 return false;
             }
-            for (int i = 0; i < n; ++i) {
-                RelDataTypeField field1 =
-                    (RelDataTypeField) type1.getFieldList().get(i);
-                RelDataTypeField field2 =
-                    (RelDataTypeField) type2.getFieldList().get(i);
-                if (!isComparable(
-                        field1.getType(),
-                        field2.getType()))
-                {
+            for (Pair<RelDataTypeField, RelDataTypeField> pair
+                : Pair.zip(type1.getFieldList(), type2.getFieldList()))
+            {
+                if (!isComparable(pair.left.getType(), pair.right.getType())) {
                     return false;
                 }
             }
@@ -1323,10 +1318,12 @@ public abstract class SqlTypeUtil
             return true;
         }
 
-        /* If one of the operators is of type 'ANY', return true */
-        if (family1 == SqlTypeFamily.ANY ||
-            family2 == SqlTypeFamily.ANY)
+        // If one of the operators is of type 'ANY', return true.
+        if (family1 == SqlTypeFamily.ANY
+            || family2 == SqlTypeFamily.ANY)
+        {
             return true;
+        }
 
         return false;
     }

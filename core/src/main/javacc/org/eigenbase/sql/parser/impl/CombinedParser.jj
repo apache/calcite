@@ -3475,7 +3475,8 @@ SqlIdentifier TypeName() :
             typeName = new SqlIdentifier(
                 SqlTypeName.INTEGER.name(),pos);
         }
-        | (
+        |
+        (
             <BINARY>
             {
                 typeName = new SqlIdentifier(
@@ -3523,6 +3524,11 @@ SqlIdentifier TypeName() :
         {
             typeName = new SqlIdentifier(
                 SqlTypeName.FLOAT.name(),pos);
+        }
+        | <ANY>
+        {
+            typeName = new SqlIdentifier(
+                SqlTypeName.ANY.name(),pos);
         }
         |   typeName = CollectionsTypeName()
         |   typeName = CompoundIdentifier()

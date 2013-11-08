@@ -136,6 +136,9 @@ public class RexToLixTranslator {
       Expression operand) {
     Expression convert = null;
     switch (targetType.getSqlTypeName()) {
+    case ANY:
+      convert = operand;
+      break;
     case BOOLEAN:
       switch (sourceType.getSqlTypeName()) {
       case CHAR:

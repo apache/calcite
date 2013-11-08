@@ -85,6 +85,8 @@ public enum SqlTypeFamily
 
     MAP(SqlTypeName.MAP),
 
+    NULL(SqlTypeName.NULL),
+
     ANY(SqlTypeName.allTypes),
 
     CURSOR(SqlTypeName.CURSOR),
@@ -156,7 +158,7 @@ public enum SqlTypeFamily
         sqlTypeToFamily[SqlTypeName.TIMESTAMP.ordinal()] = TIMESTAMP;
         sqlTypeToFamily[SqlTypeName.INTERVAL_YEAR_MONTH.ordinal()] =
             INTERVAL_YEAR_MONTH;
-        sqlTypeToFamily[SqlTypeName.NULL.ordinal()] = ANY;
+        sqlTypeToFamily[SqlTypeName.NULL.ordinal()] = NULL;
         sqlTypeToFamily[SqlTypeName.ANY.ordinal()] = ANY;
         sqlTypeToFamily[SqlTypeName.INTERVAL_DAY_TIME.ordinal()] =
             INTERVAL_DAY_TIME;
