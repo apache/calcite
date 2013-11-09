@@ -219,8 +219,8 @@ public class RelSubset
 
     /** Returns a list of relational expressions one of whose children is this
      * subset. The elements of the list are distinct. */
-    public List<RelNode> getParentRels() {
-        final List<RelNode> list = new ArrayList<RelNode>();
+    public Collection<RelNode> getParentRels() {
+        final Set<RelNode> list = new LinkedHashSet<RelNode>();
     parentLoop:
         for (RelNode parent : set.getParentRels()) {
             for (RelSubset rel : inputSubsets(parent)) {
@@ -230,7 +230,6 @@ public class RelSubset
                 }
             }
         }
-        assert Util.isDistinct(list);
         return list;
     }
 

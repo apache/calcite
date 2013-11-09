@@ -48,6 +48,9 @@ class RelSet
     //~ Instance fields --------------------------------------------------------
 
     final List<RelNode> rels = new ArrayList<RelNode>();
+    /** Relational expressions that have a subset in this set as a child. This
+     * is a multi-set. If multiple relational expressions in this set have the
+     * same parent, there will be multiple entries. */
     final List<RelNode> parents = new ArrayList<RelNode>();
     final List<RelSubset> subsets = new ArrayList<RelSubset>();
 

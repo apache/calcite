@@ -797,6 +797,34 @@ public class JdbcTest {
   public static final List<Pair<String, String>> FOODMART_QUERIES =
       querify(queries);
 
+  /** Unit test for self-join. Left and right children of the join are the same
+   * relational expression. */
+  @Test public void testSelfJoin() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.JDBC_FOODMART2)
+        .query(
+            "select count(*) as c from (\n"
+            + "  select 1 from \"foodmart\".\"employee\" as e1\n"
+            + "  join \"foodmart\".\"employee\" as e2 using (\"position_title\"))")
+        .returns("C=247149\n");
+  }
+
+  /** Self-join on different columns, select a different column, and sort and
+   * limit on yet another column. */
+  @Test public void testSelfJoinDifferentColumns() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.JDBC_FOODMART2)
+        .query(
+            "select e1.\"full_name\"\n"
+            + "  from \"foodmart\".\"employee\" as e1\n"
+            + "  join \"foodmart\".\"employee\" as e2 on e1.\"first_name\" = e2.\"last_name\"\n"
+            + "order by e1.\"last_name\" limit 3")
+        .returns(
+            "full_name=James Aguilar\n"
+            + "full_name=Carol Amyotte\n"
+            + "full_name=Terry Anderson\n");
+  }
+
   /** Test case for
    * <a href="https://github.com/julianhyde/optiq/issues/35">issue #35</a>. */
   @Ignore

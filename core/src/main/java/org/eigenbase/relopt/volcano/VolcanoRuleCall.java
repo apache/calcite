@@ -299,7 +299,7 @@ public class VolcanoRuleCall
                 getRule().operands.get(previousOperandOrdinal);
             RelOptRuleOperand operand = getRule().operands.get(operandOrdinal);
 
-            List<RelNode> successors;
+            Collection<RelNode> successors;
             if (ascending) {
                 assert (previousOperand.getParent() == operand);
                 final RelNode childRel = rels[previousOperandOrdinal];
