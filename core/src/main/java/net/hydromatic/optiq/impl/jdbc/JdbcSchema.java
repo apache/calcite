@@ -24,6 +24,8 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
+import org.apache.commons.dbcp.BasicDataSource;
+
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlDialect;
@@ -157,6 +159,21 @@ public class JdbcSchema implements Schema {
   /** Returns a suitable SQL dialect for the given data source. */
   public static SqlDialect createDialect(DataSource dataSource) {
     return JdbcUtils.DialectPool.INSTANCE.get(dataSource);
+  }
+
+  /** Creates a JDBC data source with the given specification. */
+  public static DataSource dataSource(String url, String driverClassName,
+      String username, String password) {
+    if (url.startsWith("jdbc:hsqldb:")) {
+      // Prevent hsqldb from screwing up java.util.logging.
+      System.setProperty("hsqldb.reconfig_logging", "false");
+    }
+    BasicDataSource dataSource = new BasicDataSource();
+    dataSource.setUrl(url);
+    dataSource.setUsername(username);
+    dataSource.setPassword(password);
+    dataSource.setDriverClassName(driverClassName);
+    return dataSource;
   }
 
   public Schema getParentSchema() {

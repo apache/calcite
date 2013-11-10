@@ -23,8 +23,6 @@ import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
-import org.apache.commons.dbcp.BasicDataSource;
-
 import org.eigenbase.util.Pair;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -34,7 +32,6 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
-import javax.sql.DataSource;
 
 import static org.eigenbase.util.Stacks.*;
 
@@ -115,7 +112,11 @@ public class ModelHandler {
     JdbcSchema schema =
         JdbcSchema.create(
             currentMutableSchema("jdbc schema"),
-            dataSource(jsonSchema),
+            JdbcSchema.dataSource(
+                jsonSchema.jdbcUrl,
+                jsonSchema.jdbcDriver,
+                jsonSchema.jdbcUser,
+                jsonSchema.jdbcPassword),
             jsonSchema.jdbcCatalog,
             jsonSchema.jdbcSchema,
             jsonSchema.name);
@@ -144,19 +145,6 @@ public class ModelHandler {
       throw new RuntimeException("Error instantiating " + jsonMaterialization,
           e);
     }
-  }
-
-  private DataSource dataSource(JsonJdbcSchema jsonJdbcSchema) {
-    if (jsonJdbcSchema.jdbcUrl.startsWith("jdbc:hsqldb:")) {
-      // Prevent hsqldb from screwing up java.util.logging.
-      System.setProperty("hsqldb.reconfig_logging", "false");
-    }
-    BasicDataSource dataSource = new BasicDataSource();
-    dataSource.setUrl(jsonJdbcSchema.jdbcUrl);
-    dataSource.setUsername(jsonJdbcSchema.jdbcUser);
-    dataSource.setPassword(jsonJdbcSchema.jdbcPassword);
-    dataSource.setDriverClassName(jsonJdbcSchema.jdbcDriver);
-    return dataSource;
   }
 
   public void visit(JsonCustomTable jsonTable) {

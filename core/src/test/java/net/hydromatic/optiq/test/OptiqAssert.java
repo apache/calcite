@@ -28,8 +28,6 @@ import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.Hook;
 
-import org.apache.commons.dbcp.BasicDataSource;
-
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
@@ -471,16 +469,14 @@ public class OptiqAssert {
     Connection connection = DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
-    BasicDataSource dataSource = new BasicDataSource();
-    dataSource.setDriverClassName(CONNECTION_SPEC.driver);
-    dataSource.setUrl(CONNECTION_SPEC.url);
-    dataSource.setUsername(CONNECTION_SPEC.username);
-    dataSource.setPassword(CONNECTION_SPEC.password);
-
     JdbcSchema foodmart =
         JdbcSchema.create(
             optiqConnection.getRootSchema(),
-            dataSource,
+            JdbcSchema.dataSource(
+                CONNECTION_SPEC.url,
+                CONNECTION_SPEC.driver,
+                CONNECTION_SPEC.username,
+                CONNECTION_SPEC.password),
             null,
             "foodmart",
             "foodmart");

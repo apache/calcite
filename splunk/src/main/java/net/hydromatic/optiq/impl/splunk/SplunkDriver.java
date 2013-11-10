@@ -23,8 +23,6 @@ import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.impl.splunk.search.SplunkConnection;
 import net.hydromatic.optiq.jdbc.*;
 
-import org.apache.commons.dbcp.BasicDataSource;
-
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -100,14 +98,10 @@ public class SplunkDriver extends UnregisteredDriver {
       } catch (ClassNotFoundException e) {
         throw new SQLException(e);
       }
-      BasicDataSource dataSource = new BasicDataSource();
-      dataSource.setUrl("jdbc:mysql://localhost");
-      dataSource.setUsername("foodmart");
-      dataSource.setPassword("foodmart");
-
       JdbcSchema.create(
           optiqConnection.getRootSchema(),
-          dataSource,
+          JdbcSchema.dataSource("jdbc:mysql://localhost", null, "foodmart",
+              "foodmart"),
           "foodmart",
           "",
           mysqlSchemaName);
