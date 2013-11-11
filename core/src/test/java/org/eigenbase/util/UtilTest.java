@@ -27,6 +27,7 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.test.*;
+import org.eigenbase.util.mapping.Mapping;
 import org.eigenbase.util.mapping.MappingType;
 import org.eigenbase.util.mapping.Mappings;
 
@@ -1040,6 +1041,41 @@ public class UtilTest {
         assertFalse(
             Mappings.isIdentity(
                 Mappings.create(MappingType.PartialSurjection, 4, 4)));
+    }
+
+    /** Unit test for {@link Mappings#createShiftMapping}. */
+    @Test public void testMappingsCreateShiftMapping() {
+        assertEquals(
+            "[6:3, 7:4, 15:10, 16:11, 17:12]",
+            Mappings.createShiftMapping(
+                20,
+                3, 6, 2,
+                10, 15, 3).toString());
+
+        // no triples makes for a mapping with 0 targets, 20 sources, but still
+        // valid
+        Mappings.TargetMapping mapping =
+            Mappings.createShiftMapping(
+                20);
+        assertEquals("[]", mapping.toString());
+        assertEquals(20, mapping.getSourceCount());
+        assertEquals(0, mapping.getTargetCount());
+    }
+
+    /** Unit test for {@link Mappings#append}. */
+    @Test public void testMappingsAppend() {
+        assertTrue(
+            Mappings.isIdentity(
+                Mappings.append(
+                    Mappings.createIdentity(3),
+                    Mappings.createIdentity(2))));
+        Mapping mapping0 = Mappings.create(MappingType.PartialSurjection, 5, 3);
+        mapping0.set(0, 2);
+        mapping0.set(3, 1);
+        mapping0.set(4, 0);
+        assertEquals(
+            "[0:2, 3:1, 4:0, 5:3, 6:4]",
+            Mappings.append(mapping0, Mappings.createIdentity(2)).toString());
     }
 
     /** Unit test for {@link Util#toCamelCase(String)}. */

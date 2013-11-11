@@ -30,6 +30,7 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.*;
@@ -56,7 +57,8 @@ public class JdbcSchema implements Schema {
   private final Expression expression;
   public final SqlDialect dialect;
   final JdbcConvention convention;
-  private Map<String, TableInSchemaImpl> allTables;
+  private boolean mapComplete;
+  private ImmutableMap<String, TableInSchemaImpl> tableMap = ImmutableMap.of();
 
   /**
    * Creates a JDBC schema.
@@ -206,14 +208,16 @@ public class JdbcSchema implements Schema {
   }
 
   public Map<String, TableInSchema> getTables() {
-    if (allTables == null) {
-      allTables = computeTables();
+    if (!mapComplete) {
+      mapComplete = true;
+      tableMap = computeTables();
     }
     //noinspection unchecked
-    return (Map) allTables;
+    return (Map) tableMap;
   }
 
-  private Map<String, TableInSchemaImpl> computeTables() {
+  private ImmutableMap<String, TableInSchemaImpl> computeTables() {
+    final ImmutableMap<String, TableInSchemaImpl> prevTableMap = tableMap;
     Connection connection = null;
     ResultSet resultSet = null;
     try {
@@ -228,10 +232,15 @@ public class JdbcSchema implements Schema {
           ImmutableMap.builder();
       while (resultSet.next()) {
         final String name = resultSet.getString(3);
+        TableInSchemaImpl prevTable = prevTableMap.get(name);
+        if (prevTable != null) {
+          builder.put(name, prevTable);
+          continue;
+        }
         final String tableTypeName = resultSet.getString(4);
         final TableType tableType =
             Util.enumVal(TableType.class, tableTypeName);
-        builder.put(name, new TableInSchemaImpl(name, tableType));
+        builder.put(name, new TableInSchemaImpl(name, tableType, null));
       }
       return builder.build();
     } catch (SQLException e) {
@@ -244,19 +253,32 @@ public class JdbcSchema implements Schema {
 
   public <T> Table<T> getTable(String name, Class<T> elementType) {
     assert elementType != null;
-    if (allTables != null) {
-      TableInSchemaImpl tableInSchema = allTables.get(name);
-      if (tableInSchema != null
-          && tableInSchema.table != null) {
-        //noinspection unchecked
-        return tableInSchema.table;
+    TableInSchemaImpl tableInSchema = tableMap.get(name);
+    if (tableInSchema != null) {
+      if (tableInSchema.table == null) {
+        Pair<JdbcTable, TableType> pair = computeTable(name);
+        tableInSchema.table = pair.left;
       }
+      //noinspection unchecked
+      return tableInSchema.table;
     }
+    if (mapComplete) {
+      // The map is complete, and didn't contain a table with this name, so
+      // the table must not exist.
+      return null;
+    }
+    Pair<JdbcTable, TableType> pair = computeTable(name);
+    if (pair == null) {
+      return null;
+    }
+    tableInSchema = new TableInSchemaImpl(name, pair.right, pair.left);
+    tableMap = ImmutableMap.<String, TableInSchemaImpl>builder()
+        .putAll(tableMap).put(name, tableInSchema).build();
     //noinspection unchecked
-    return computeTable(name);
+    return tableInSchema.table;
   }
 
-  private Table computeTable(String name) {
+  private Pair<JdbcTable, TableType> computeTable(String name) {
     Connection connection = null;
     ResultSet resultSet = null;
     try {
@@ -273,10 +295,14 @@ public class JdbcSchema implements Schema {
       final String catalogName = resultSet.getString(1);
       final String schemaName = resultSet.getString(2);
       final String tableName = resultSet.getString(3);
+      final String tableTypeName = resultSet.getString(4);
       resultSet.close();
       final RelDataType type =
           getRelDataType(connection, catalogName, schemaName, tableName);
-      return new JdbcTable(type, this, name);
+      JdbcTable table = new JdbcTable(type, this, name);
+      final TableType tableType =
+          Util.enumVal(TableType.class, tableTypeName);
+      return Pair.of(table, tableType);
     } catch (SQLException e) {
       throw new RuntimeException(
           "Exception while reading definition of table '" + name + "'",
@@ -367,16 +393,18 @@ public class JdbcSchema implements Schema {
   }
 
   private class TableInSchemaImpl extends TableInSchema {
-    // Populated on first use, since gathering columns is quite expensive.
+    // May be populated on first use, since gathering columns is expensive.
     Table table;
 
-    public TableInSchemaImpl(String name, TableType tableType) {
+    public TableInSchemaImpl(String name, TableType tableType, Table table) {
       super(JdbcSchema.this, name, tableType);
+      this.table = table;
     }
 
     public <E> Table<E> getTable(Class<E> elementType) {
       if (table == null) {
         table = JdbcSchema.this.getTable(name, elementType);
+        assert table != null;
       }
       //noinspection unchecked
       return table;

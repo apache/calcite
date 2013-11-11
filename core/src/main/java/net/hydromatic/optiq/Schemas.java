@@ -24,15 +24,14 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.sql.Connection;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * Utility functions for schemas.
@@ -221,9 +220,12 @@ public final class Schemas {
   /** Dummy data context that has no variables. */
   private static class DummyDataContext implements DataContext {
     private final OptiqConnection connection;
+    private final ImmutableMap<String, Object> map;
 
     public DummyDataContext(OptiqConnection connection) {
       this.connection = connection;
+      this.map =
+          ImmutableMap.<String, Object>of("timeZone", TimeZone.getDefault());
     }
 
     public Schema getRootSchema() {
@@ -235,7 +237,7 @@ public final class Schemas {
     }
 
     public Object get(String name) {
-      return null;
+      return map.get(name);
     }
   }
 }

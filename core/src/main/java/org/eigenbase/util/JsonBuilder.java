@@ -81,7 +81,9 @@ public class JsonBuilder {
             appendList(buf, indent, (List) o);
         } else if (o instanceof String) {
             buf.append('"')
-                .append(((String) o).replace("\"", "\\\\"))
+                .append(
+                    ((String) o).replace("\"", "\\\"")
+                        .replace("\n", "\\n"))
                 .append('"');
         } else {
             assert o instanceof Number || o instanceof Boolean;

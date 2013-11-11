@@ -55,7 +55,7 @@ public class OptiqAssert {
    * To run against MySQL, specify '-Doptiq.test.db=mysql' on the java command
    * line.</p> */
   public static final ConnectionSpec CONNECTION_SPEC =
-      "mysql".equals(System.getProperty("optiq.test.db"))
+      Util.first(System.getProperty("optiq.test.db"), "hsqldb").equals("mysql")
           ? ConnectionSpec.MYSQL
           : ConnectionSpec.HSQLDB;
 

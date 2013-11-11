@@ -57,19 +57,21 @@ public class FrameworksTest {
         Frameworks.withPlanner(new Frameworks.PlannerAction<RelNode>() {
           public RelNode apply(RelOptCluster cluster,
               RelOptSchema relOptSchema,
-              Schema schema)
-          {
+              Schema schema) {
             final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
-            final RelDataType stringType = typeFactory.createJavaType(String.class);
-            final RelDataType integerType = typeFactory.createJavaType(Integer.class);
-            final RelDataType rowType = typeFactory.createStructType(Arrays.asList(
-                Pair.of("s", stringType),
-                Pair.of("i", integerType)));
+            final RelDataType stringType =
+                typeFactory.createJavaType(String.class);
+            final RelDataType integerType =
+                typeFactory.createJavaType(Integer.class);
+            final RelDataType rowType =
+                typeFactory.createStructType(
+                    Arrays.asList(
+                        Pair.of("s", stringType),
+                        Pair.of("i", integerType)));
             final Table table = new AbstractTable(schema,
                 String.class,
                 rowType,
-                "myTable")
-            {
+                "myTable") {
               public Enumerator enumerator() {
                 return Linq4j.enumerator(strings);
               }
@@ -79,22 +81,24 @@ public class FrameworksTest {
             final RelOptAbstractTable relOptTable = new RelOptAbstractTable(
                 relOptSchema,
                 "myTable",
-                table.getRowType())
-            {
+                table.getRowType()) {
             };
-            final JavaRules.EnumerableTableAccessRel tableRel = new JavaRules.EnumerableTableAccessRel(
-                cluster,
-                cluster.traitSetOf(EnumerableConvention.INSTANCE),
-                relOptTable,
-                schema.getExpression(),
-                Object[].class);
+            final JavaRules.EnumerableTableAccessRel tableRel =
+                new JavaRules.EnumerableTableAccessRel(
+                    cluster,
+                    cluster.traitSetOf(EnumerableConvention.INSTANCE),
+                    relOptTable,
+                    schema.getExpression(),
+                    Object[].class);
 
             // "WHERE i > 1"
             final RexBuilder rexBuilder = cluster.getRexBuilder();
-            final RexNode condition = rexBuilder.makeCall(SqlStdOperatorTable.greaterThanOperator,
-                rexBuilder.makeFieldAccess(rexBuilder.makeRangeReference(table.getRowType()),
-                    "i"),
-                rexBuilder.makeExactLiteral(BigDecimal.ONE));
+            final RexNode condition =
+                rexBuilder.makeCall(SqlStdOperatorTable.greaterThanOperator,
+                    rexBuilder.makeFieldAccess(
+                        rexBuilder.makeRangeReference(table.getRowType()),
+                        "i"),
+                    rexBuilder.makeExactLiteral(BigDecimal.ONE));
             final FilterRel filterRel = new FilterRel(cluster,
                 tableRel,
                 condition);

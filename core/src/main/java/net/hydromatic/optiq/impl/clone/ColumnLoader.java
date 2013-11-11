@@ -24,6 +24,7 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
@@ -76,15 +77,25 @@ class ColumnLoader<T> {
   private final JavaTypeFactory typeFactory;
   public final int sortField;
 
-  /** Creates a column loader, and performs the load. */
-  ColumnLoader(
-      JavaTypeFactory typeFactory,
+  /** Creates a column loader, and performs the load.
+   *
+   * @param typeFactory Type factory
+   * @param sourceTable Source data
+   * @param elementType Logical row type
+   * @param repList Physical row types, or null if not known */
+  ColumnLoader(JavaTypeFactory typeFactory,
       Enumerable<T> sourceTable,
-      RelDataType elementType) {
+      RelDataType elementType,
+      List<ColumnMetaData.Rep> repList) {
     this.typeFactory = typeFactory;
+    if (repList == null) {
+      repList =
+          Collections.nCopies(elementType.getFieldCount(),
+              ColumnMetaData.Rep.OBJECT);
+    }
     sourceTable.into(list);
     final int[] sorts = {-1};
-    load(elementType, sorts);
+    load(elementType, repList, sorts);
     this.sortField = sorts[0];
   }
 
@@ -154,7 +165,8 @@ class ColumnLoader<T> {
     return list.size();
   }
 
-  private void load(final RelDataType elementType, int[] sort) {
+  private void load(final RelDataType elementType,
+      List<ColumnMetaData.Rep> repList, int[] sort) {
     final List<Type> types =
         new AbstractList<Type>() {
           final List<RelDataTypeField> fields =
@@ -187,6 +199,7 @@ class ColumnLoader<T> {
               };
       final List<?> list2 =
           wrap(
+              repList.get(pair.i),
               sliceList,
               elementType.getFieldList().get(pair.i).getType());
       final Class clazz = pair.e instanceof Class
@@ -237,16 +250,30 @@ class ColumnLoader<T> {
    * value needs to be converted to a {@link Long}. Similarly
    * {@link java.sql.Date} and {@link java.sql.Time} values to
    * {@link Integer}. */
-  private static List wrap(List list, RelDataType type) {
-    if (type.isNullable()) {
-      switch (type.getSqlTypeName()) {
-      case TIMESTAMP:
+  private static List wrap(ColumnMetaData.Rep rep, List list,
+      RelDataType type) {
+    switch (type.getSqlTypeName()) {
+    case TIMESTAMP:
+      switch (rep) {
+      case OBJECT:
+      case JAVA_SQL_TIMESTAMP:
         return Functions.adapt(list, TIMESTAMP_TO_LONG);
-      case TIME:
+      }
+      break;
+    case TIME:
+      switch (rep) {
+      case OBJECT:
+      case JAVA_SQL_TIME:
         return Functions.adapt(list, TIME_TO_INT);
-      case DATE:
+      }
+      break;
+    case DATE:
+      switch (rep) {
+      case OBJECT:
+      case JAVA_SQL_DATE:
         return Functions.adapt(list, DATE_TO_INT);
       }
+      break;
     }
     return list;
   }

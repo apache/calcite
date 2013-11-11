@@ -23,7 +23,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.Util;
-import org.eigenbase.util.mapping.MappingType;
 import org.eigenbase.util.mapping.Mappings;
 
 /**
@@ -137,7 +136,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         // target: | A       | C      |
         // source: | A       | B | C      |
         final Mappings.TargetMapping bottomMapping =
-            createShiftMapping(
+            Mappings.createShiftMapping(
                 aCount + bCount + cCount,
                 0, 0, aCount,
                 aCount, aCount + bCount, cCount);
@@ -145,7 +144,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         new RexPermuteInputsShuttle(bottomMapping, relA, relC)
             .visitList(nonIntersecting, newBottomList);
         final Mappings.TargetMapping bottomBottomMapping =
-            createShiftMapping(
+            Mappings.createShiftMapping(
                 aCount + bCount,
                 0, 0, aCount);
         new RexPermuteInputsShuttle(bottomBottomMapping, relA, relC)
@@ -160,7 +159,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         // target: | A       | C      | B |
         // source: | A       | B | C      |
         final Mappings.TargetMapping topMapping =
-            createShiftMapping(
+            Mappings.createShiftMapping(
                 aCount + bCount + cCount,
                 0, 0, aCount,
                 aCount + cCount, aCount, bCount,
@@ -243,7 +242,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         // target: | C      | B |
         // source: | A       | B | C      |
         final Mappings.TargetMapping bottomMapping =
-            createShiftMapping(
+            Mappings.createShiftMapping(
                 aCount + bCount + cCount,
                 cCount, aCount, bCount,
                 0, aCount + bCount, cCount);
@@ -251,7 +250,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         new RexPermuteInputsShuttle(bottomMapping, relC, relB)
             .visitList(nonIntersecting, newBottomList);
         final Mappings.TargetMapping bottomBottomMapping =
-            createShiftMapping(
+            Mappings.createShiftMapping(
                 aCount + bCount + cCount,
                 0, aCount + bCount, cCount,
                 cCount, aCount, bCount);
@@ -267,7 +266,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         // target: | C      | B | A       |
         // source: | A       | B | C      |
         final Mappings.TargetMapping topMapping =
-            createShiftMapping(
+            Mappings.createShiftMapping(
                 aCount + bCount + cCount,
                 cCount + bCount, 0, aCount,
                 cCount, aCount, bCount,
@@ -306,34 +305,6 @@ public class PushJoinThroughJoinRule extends RelOptRule {
                 nonIntersecting.add(node);
             }
         }
-    }
-
-    static Mappings.TargetMapping createShiftMapping(
-        int sourceCount, int... ints)
-    {
-        int targetCount = 0;
-        assert ints.length % 3 == 0;
-        for (int i = 0; i < ints.length; i += 3) {
-            final int length = ints[i + 2];
-            targetCount += length;
-        }
-        final Mappings.TargetMapping mapping =
-            Mappings.create(
-                MappingType.InverseSurjection,
-                sourceCount, // aCount + bCount + cCount,
-                targetCount); // cCount + bCount
-
-        for (int i = 0; i < ints.length; i += 3) {
-            final int target = ints[i];
-            final int source = ints[i + 1];
-            final int length = ints[i + 2];
-            assert source + length <= sourceCount;
-            for (int j = 0; j < length; j++) {
-                assert mapping.getTargetOpt(source + j) == -1;
-                mapping.set(source + j, target + j);
-            }
-        }
-        return mapping;
     }
 }
 

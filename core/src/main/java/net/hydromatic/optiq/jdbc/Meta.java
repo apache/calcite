@@ -588,6 +588,7 @@ public class Meta {
         String tableName,
         String tableType) {
       this.optiqTable = optiqTable;
+      assert optiqTable != null;
       this.tableCat = tableCat;
       this.tableSchem = tableSchem;
       this.tableName = tableName;

@@ -91,7 +91,7 @@ public abstract class Mappings
      * @param fieldCount Number of sources/targets
      * @return Identity mapping
      */
-    public static Mapping createIdentity(int fieldCount)
+    public static IdentityMapping createIdentity(int fieldCount)
     {
         return new Mappings.IdentityMapping(fieldCount);
     }
@@ -312,6 +312,94 @@ public abstract class Mappings
             }
         }
         return true;
+    }
+
+    /** Creates a mapping that consists of a set of contiguous ranges.
+     *
+     * <p>For example,</p>
+     *
+     * <pre>createShiftMapping(60,
+     *     100, 0, 3,
+     *     200, 50, 5);
+     * </pre>
+     *
+     * <p>creates</p>
+     *
+     * <table>
+     *   <tr><th>Source</th><th>Target</th></tr>
+     *   <tr><td>0</td><td>100</td></tr>
+     *   <tr><td>1</td><td>101</td></tr>
+     *   <tr><td>2</td><td>102</td></tr>
+     *   <tr><td>3</td><td>-1</td></tr>
+     *   <tr><td>...</td><td>-1</td></tr>
+     *   <tr><td>50</td><td>200</td></tr>
+     *   <tr><td>51</td><td>201</td></tr>
+     *   <tr><td>52</td><td>202</td></tr>
+     *   <tr><td>53</td><td>203</td></tr>
+     *   <tr><td>54</td><td>204</td></tr>
+     *   <tr><td>55</td><td>-1</td></tr>
+     *   <tr><td>...</td><td>-1</td></tr>
+     *   <tr><td>59</td><td>-1</td></tr>
+     * </table></p>
+     *
+     * @param sourceCount Maximum value of {@code source}
+     * @param ints Collection of ranges, each {@code (target, source, count)}
+     * @return Mapping that maps from source ranges to target ranges
+     */
+    public static TargetMapping createShiftMapping(
+        int sourceCount, int... ints)
+    {
+        int targetCount = 0;
+        assert ints.length % 3 == 0;
+        for (int i = 0; i < ints.length; i += 3) {
+            final int target = ints[i];
+            final int length = ints[i + 2];
+            final int top = target + length;
+            targetCount = Math.max(targetCount, top);
+        }
+        final TargetMapping mapping =
+            create(
+                MappingType.InverseSurjection,
+                sourceCount, // aCount + bCount + cCount,
+                targetCount); // cCount + bCount
+
+        for (int i = 0; i < ints.length; i += 3) {
+            final int target = ints[i];
+            final int source = ints[i + 1];
+            final int length = ints[i + 2];
+            assert source + length <= sourceCount;
+            for (int j = 0; j < length; j++) {
+                assert mapping.getTargetOpt(source + j) == -1;
+                mapping.set(source + j, target + j);
+            }
+        }
+        return mapping;
+    }
+
+    /** Creates a mapping by appending two mappings. */
+    public static TargetMapping append(
+        TargetMapping mapping0,
+        TargetMapping mapping1)
+    {
+        final int s0 = mapping0.getSourceCount();
+        final int s1 = mapping1.getSourceCount();
+        final int t0 = mapping0.getTargetCount();
+        final int t1 = mapping1.getTargetCount();
+        final TargetMapping mapping =
+            create(MappingType.InverseSurjection, s0 + s1, t0 + t1);
+        for (int s = 0; s < s0; s++) {
+          int t = mapping0.getTargetOpt(s);
+          if (t >= 0) {
+            mapping.set(s, t);
+          }
+        }
+        for (int s = 0; s < s1; s++) {
+            int t = mapping1.getTargetOpt(s);
+            if (t >= 0) {
+                mapping.set(s0 + s, t0 + t);
+            }
+        }
+        return mapping;
     }
 
     //~ Inner Interfaces -------------------------------------------------------

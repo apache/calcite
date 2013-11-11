@@ -31,6 +31,7 @@ public class TableInSchemaImpl extends Schema.TableInSchema {
   public TableInSchemaImpl(
       Schema schema, String name, Schema.TableType tableType, Table table) {
     super(schema, name, tableType);
+    assert table != null;
     this.table = table;
   }
 

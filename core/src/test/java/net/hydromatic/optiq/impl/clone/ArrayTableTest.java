@@ -19,7 +19,9 @@ package net.hydromatic.optiq.impl.clone;
 
 import net.hydromatic.linq4j.Enumerable;
 import net.hydromatic.linq4j.Linq4j;
+
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
+import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
@@ -27,6 +29,7 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.junit.Assert.*;
 
@@ -295,7 +298,7 @@ public class ArrayTableTest {
                 new Object[]{150, 10, "Sebastian"},
                 new Object[]{160, 10, "Theodore"}));
     final ColumnLoader<Object[]> loader =
-        new ColumnLoader<Object[]>(typeFactory, enumerable, rowType);
+        new ColumnLoader<Object[]>(typeFactory, enumerable, rowType, null);
     checkColumn(
         loader.representationValues.get(0),
         ArrayTable.RepresentationType.BIT_SLICED_PRIMITIVE_ARRAY,
@@ -328,7 +331,7 @@ public class ArrayTableTest {
                 new Object[]{30, 150, "Sebastian"},
                 new Object[]{10, 160, "Theodore"}));
     final ColumnLoader<Object[]> loader =
-        new ColumnLoader<Object[]>(typeFactory, enumerable, rowType);
+        new ColumnLoader<Object[]>(typeFactory, enumerable, rowType, null);
     // Note that values have been sorted with {20, 200, Eric} last because the
     // value 200 is the highest value of empid, the unique column.
     checkColumn(

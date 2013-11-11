@@ -24,10 +24,12 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
+import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
 
 import java.lang.reflect.Type;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -77,15 +79,17 @@ public class CloneSchema extends MapSchema {
 
   private <T> Table<T> createCloneTable(Table<T> sourceTable, String name) {
     final TableInSchema tableInSchema =
-        createCloneTable(this, name, sourceTable.getRowType(), sourceTable);
+        createCloneTable(this, name, sourceTable.getRowType(), null,
+            sourceTable);
     addTable(tableInSchema);
     return tableInSchema.getTable(null);
   }
 
   public static <T> TableInSchema createCloneTable(MutableSchema schema,
-      String name, RelDataType rowType, Enumerable<T> source) {
+      String name, RelDataType rowType, List<ColumnMetaData.Rep> repList,
+      Enumerable<T> source) {
     final ColumnLoader loader =
-        new ColumnLoader<T>(schema.getTypeFactory(), source, rowType);
+        new ColumnLoader<T>(schema.getTypeFactory(), source, rowType, repList);
     final Type elementType = source instanceof Queryable
         ? ((Queryable) source).getElementType()
         : Object.class;

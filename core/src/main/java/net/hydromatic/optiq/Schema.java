@@ -148,7 +148,17 @@ public interface Schema {
   }
 
   enum TableType {
-    TABLE, VIEW, SYSTEM_TABLE, LOCAL_TEMPORARY,
+    /** A regular table. */
+    TABLE,
+    /** A relation whose contents are calculated by evaluating a SQL
+     * expression. */
+    VIEW,
+    /** A table maintained by the system. Data dictionary tables, such as the
+     * "TABLES" and "COLUMNS" table in the "metamodel" schema, examples of
+     * system tables. */
+    SYSTEM_TABLE,
+    /** A table that is only visible to one connection. */
+    LOCAL_TEMPORARY,
   }
 }
 

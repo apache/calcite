@@ -29,7 +29,7 @@ public interface TableFunction<T> {
    *
    * @return Parameters; never null
    */
-  List<Parameter> getParameters();
+  List<net.hydromatic.optiq.Parameter> getParameters();
 
   /**
    * Returns the record type of the table yielded by this function when

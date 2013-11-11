@@ -215,7 +215,7 @@ public class PullUpProjectsAboveJoinRule
             CalcRel.createProject(
                 newJoinRel,
                 newProjExprs,
-                Pair.right(projects));
+                joinRel.getRowType().getFieldNames());
 
         call.transformTo(newProjRel);
     }

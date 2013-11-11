@@ -20,10 +20,13 @@ package net.hydromatic.optiq.materialize;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 
+import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Functions;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.prepare.Prepare;
+import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
 
@@ -55,9 +58,16 @@ public class MaterializationService {
       if (materializedTable == null) {
         final OptiqPrepare.PrepareResult<Object> prepareResult =
             Schemas.prepare(schema, viewSchemaPath, viewSql);
+        rowType = prepareResult.rowType;
         materializedTable =
             CloneSchema.createCloneTable((MutableSchema) schema, tableName,
                 prepareResult.rowType,
+                Functions.adapt(prepareResult.columnList,
+                    new Function1<ColumnMetaData, ColumnMetaData.Rep>() {
+                      public ColumnMetaData.Rep apply(ColumnMetaData column) {
+                        return column.representation;
+                      }
+                    }),
                 new AbstractQueryable<Object>() {
                   public Type getElementType() {
                     return prepareResult.resultClazz;
