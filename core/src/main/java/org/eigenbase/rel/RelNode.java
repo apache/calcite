@@ -334,6 +334,15 @@ public interface RelNode
      * @return Whether the given columns are a key or a superset of a key
      */
     boolean isKey(BitSet columns);
+
+    /**
+     * Accepts a visit from a shuttle.
+     *
+     * @param shuttle Shuttle
+     * @return A copy of this node incorporating changes made by the shuttle to
+     *   this node's children
+     */
+    RelNode accept(RelShuttle shuttle);
 }
 
 // End RelNode.java

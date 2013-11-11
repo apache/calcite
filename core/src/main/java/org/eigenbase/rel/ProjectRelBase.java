@@ -199,7 +199,7 @@ public abstract class ProjectRelBase
             return false;
         }
         if (!Util.isDistinct(rowType.getFieldNames())) {
-            assert !fail;
+            assert !fail : rowType;
             return false;
         }
         if (false && !Util.isDistinct(

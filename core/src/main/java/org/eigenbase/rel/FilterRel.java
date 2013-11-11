@@ -56,13 +56,16 @@ public final class FilterRel
 
     //~ Methods ----------------------------------------------------------------
 
-
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         assert traitSet.containsIfApplicable(Convention.NONE);
         return new FilterRel(
             getCluster(),
             sole(inputs),
             getCondition());
+    }
+
+    @Override public RelNode accept(RelShuttle shuttle) {
+        return shuttle.visit(this);
     }
 }
 

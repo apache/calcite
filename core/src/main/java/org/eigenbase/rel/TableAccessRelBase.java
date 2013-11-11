@@ -154,6 +154,10 @@ public abstract class TableAccessRelBase
             nameList,
             ProjectRel.Flags.Boxed);
     }
+
+    @Override public RelNode accept(RelShuttle shuttle) {
+        return shuttle.visit(this);
+    }
 }
 
 // End TableAccessRelBase.java

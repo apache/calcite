@@ -102,7 +102,7 @@ public class SortRel
 
     //~ Methods ----------------------------------------------------------------
 
-    public SortRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override public SortRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
         return copy(traitSet, sole(inputs), collation);
     }
 
@@ -129,6 +129,10 @@ public class SortRel
             newCollation,
             offset,
             fetch);
+    }
+
+    @Override public RelNode accept(RelShuttle shuttle) {
+        return shuttle.visit(this);
     }
 
     @Override public List<RexNode> getChildExps() {

@@ -48,8 +48,7 @@ public final class IntersectRel extends IntersectRelBase {
 
     //~ Methods ----------------------------------------------------------------
 
-    @Override
-    public IntersectRel copy(
+    @Override public IntersectRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {
         assert traitSet.containsIfApplicable(Convention.NONE);
@@ -57,6 +56,10 @@ public final class IntersectRel extends IntersectRelBase {
             getCluster(),
             inputs,
             all);
+    }
+
+    @Override public RelNode accept(RelShuttle shuttle) {
+        return shuttle.visit(this);
     }
 }
 

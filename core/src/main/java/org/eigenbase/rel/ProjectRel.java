@@ -161,7 +161,7 @@ public final class ProjectRel
 
     //~ Methods ----------------------------------------------------------------
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         assert traitSet.containsIfApplicable(Convention.NONE);
         return new ProjectRel(
             getCluster(),
@@ -170,6 +170,10 @@ public final class ProjectRel
             getProjects(),
             rowType,
             getFlags());
+    }
+
+    @Override public RelNode accept(RelShuttle shuttle) {
+        return shuttle.visit(this);
     }
 
     /**

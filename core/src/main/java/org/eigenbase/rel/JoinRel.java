@@ -127,8 +127,7 @@ public final class JoinRel
 
     //~ Methods ----------------------------------------------------------------
 
-    @Override
-    public JoinRel copy(
+    @Override public JoinRel copy(
         RelTraitSet traitSet,
         RexNode conditionExpr,
         RelNode left,
@@ -144,6 +143,10 @@ public final class JoinRel
             this.variablesStopped,
             this.semiJoinDone,
             systemFieldList);
+    }
+
+    @Override public RelNode accept(RelShuttle shuttle) {
+        return shuttle.visit(this);
     }
 
     public RelOptPlanWriter explainTerms(RelOptPlanWriter pw)

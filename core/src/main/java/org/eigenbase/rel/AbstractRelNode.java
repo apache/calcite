@@ -281,6 +281,12 @@ public abstract class AbstractRelNode
         }
     }
 
+    public RelNode accept(RelShuttle shuttle) {
+        // Call fall-back method. Specific logical types (such as ProjectRel
+        // and JoinRel) have their own RelShuttle.visit methods.
+        return shuttle.visit(this);
+    }
+
     public RelOptCost computeSelfCost(RelOptPlanner planner)
     {
         // by default, assume cost is proportional to number of rows

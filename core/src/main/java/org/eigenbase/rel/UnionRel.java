@@ -58,6 +58,11 @@ public final class UnionRel
             inputs,
             all);
     }
+
+    @Override
+    public RelNode accept(RelShuttle shuttle) {
+        return shuttle.visit(this);
+    }
 }
 
 // End UnionRel.java

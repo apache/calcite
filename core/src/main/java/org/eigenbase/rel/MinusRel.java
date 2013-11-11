@@ -49,8 +49,7 @@ public final class MinusRel extends MinusRelBase {
 
     //~ Methods ----------------------------------------------------------------
 
-    @Override
-    public MinusRel copy(
+    @Override public MinusRel copy(
         RelTraitSet traitSet, List<RelNode> inputs, boolean all)
     {
         assert traitSet.containsIfApplicable(Convention.NONE);
@@ -58,6 +57,10 @@ public final class MinusRel extends MinusRelBase {
             getCluster(),
             inputs,
             all);
+    }
+
+    @Override public RelNode accept(RelShuttle shuttle) {
+        return shuttle.visit(this);
     }
 }
 

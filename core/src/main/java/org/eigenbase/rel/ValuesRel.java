@@ -67,6 +67,11 @@ public class ValuesRel
             rowType,
             tuples);
     }
+
+    @Override
+    public RelNode accept(RelShuttle shuttle) {
+        return shuttle.visit(this);
+    }
 }
 
 // End ValuesRel.java

@@ -72,7 +72,7 @@ public final class TableAccessRel
             table);
     }
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         assert traitSet.comprises(Convention.NONE);
         assert inputs.isEmpty();
         return this;
