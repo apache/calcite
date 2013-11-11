@@ -16,12 +16,12 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.4.13-SNAPSHOT</version>
+      <version>0.4.12.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.4.13-SNAPSHOT</version>
+        <version>0.4.12.1-SNAPSHOT</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
