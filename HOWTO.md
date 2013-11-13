@@ -100,3 +100,60 @@ sqlline> !quit
 Closing: net.hydromatic.optiq.jdbc.FactoryJdbc41$OptiqConnectionJdbc41
 $
 ```
+
+# Implementing adapters
+
+New adapters can be created by implementing `OptiqPrepare.Context`:
+
+```java
+import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.OptiqPrepare;
+public class AdapterContext implements OptiqPrepare.Context {
+
+    @Override
+    public JavaTypeFactory getTypeFactory() {
+        // adapter implementation
+        return typeFactory;
+    }
+
+    @Override
+    public Schema getRootSchema() {
+        // adapter implementation
+        return rootSchema;
+    }
+
+}
+```
+
+## Testing adapter in Java
+
+The example below shows how SQL query can be submitted to `OptiqPrepare` with a custom context (`AdapterContext` in this case). Optiq prepares and implements the query execution, using the resources provided by the `Context`. `OptiqPrepare.PrepareResult` provides access to the underlying enumerable and methods for enumeration. The enumerable itself can naturally be some adapter specific implementation.
+
+```java
+import net.hydromatic.optiq.jdbc.OptiqPrepare;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import org.junit.Test;
+
+public class AdapterContextTest {
+
+    @Test
+    public void testSelectAllFromTable() {
+        AdapterContext ctx = new AdapterContext();
+        String sql = "SELECT * FROM TABLENAME";
+        Type elementType = Object[].class;
+        OptiqPrepare.PrepareResult<Object> prepared = new OptiqPrepareImpl()
+                .prepareSql(ctx, sql, null, elementType, -1);
+        Object enumerable = prepared.getExecutable();
+        // etc.
+    }
+
+}
+```
+
+## JavaTypeFactory
+
+When Optiq compares `Type` instances, it requires them to be the same object. If there are two distinct `Type` instances that refer to the same Java type, Optiq may fail to recognize that they match.
+It is recommended to
+-   Use a single instance of `JavaTypeFactory` within the optiq context
+-   Store the `Type` instances so that the same object is always returned for the same `Type`.
