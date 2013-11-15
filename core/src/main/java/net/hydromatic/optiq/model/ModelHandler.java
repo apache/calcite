@@ -82,6 +82,22 @@ public class ModelHandler {
     final MapSchema schema = MapSchema.create(parentSchema, jsonSchema.name);
     schema.initialize();
     populateSchema(jsonSchema, schema);
+    if (schema.getName().equals("mat")) {
+      // Inject by hand a Star Table. Later we'll add a JSON model element.
+      final List<Table> tables = new ArrayList<Table>();
+      final String[] tableNames = {
+          "sales_fact_1997", "time_by_day", "product", "product_class"
+      };
+      final Schema schema2 = parentSchema.getSubSchema("foodmart");
+      for (String tableName : tableNames) {
+        tables.add(schema2.getTable(tableName, Object.class));
+      }
+      final String tableName = "star";
+      schema.addTable(
+          new TableInSchemaImpl(
+              schema, tableName, Schema.TableType.STAR,
+              StarTable.of(schema, tableName, tables)));
+    }
   }
 
   private void populateSchema(JsonSchema jsonSchema, Schema schema) {

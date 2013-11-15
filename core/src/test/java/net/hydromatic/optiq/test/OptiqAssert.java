@@ -28,8 +28,7 @@ import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.Hook;
 
-import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
+import org.eigenbase.util.*;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -547,26 +546,32 @@ public class OptiqAssert {
     public AssertThat withMaterializations(
         String model, String... materializations) {
       assert materializations.length % 2 == 0;
-      final StringBuilder buf = new StringBuilder("materializations: [\n");
+      final JsonBuilder builder = new JsonBuilder();
+      final List<Object> list = builder.list();
       for (int i = 0; i < materializations.length; i++) {
         String table = materializations[i++];
-        buf.append("    {\n")
-            .append("      table: '").append(table).append("',\n")
-            .append("      view: '").append(table).append("v',\n");
+        final Map<String, Object> map = builder.map();
+        map.put("table", table);
+        map.put("view", table + "v");
         String sql = materializations[i];
         final String sql2 = sql
-            .replaceAll("`", "\"")
-            .replaceAll("'", "''");
-        buf.append("      sql: '").append(sql2)
-            .append("'\n")
-            .append(i >= materializations.length - 1 ? "}\n" : "},\n");
+            .replaceAll("`", "\"");
+        map.put("sql", sql2);
+        list.add(map);
       }
-      buf.append("  ],\n");
+      final String buf =
+          "materializations: " + builder.toJsonString(list);
       final String model2;
-      if (model.contains("jdbcSchema: ")) {
-        model2 = model.replace("jdbcSchema: ", buf + "jdbcSchema: ");
+      if (model.contains("defaultSchema: 'foodmart'")) {
+        model2 = model.replace("]",
+            ", { name: 'mat', "
+                + buf
+                + "}\n"
+        + "]");
       } else if (model.contains("type: ")) {
-        model2 = model.replace("type: ", buf + "type: ");
+        model2 = model.replace("type: ",
+            buf + ",\n"
+            + "type: ");
       } else {
         throw new AssertionError("do not know where to splice");
       }

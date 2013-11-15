@@ -84,11 +84,18 @@ public class MaterializationTest {
   /** Checks that a given query can use a materialized view with a given
    * definition. */
   private void checkMaterialize(String materialize, String query) {
+    checkMaterialize(materialize, query, JdbcTest.HR_MODEL);
+  }
+
+  /** Checks that a given query can use a materialized view with a given
+   * definition. */
+  private void checkMaterialize(String materialize, String query,
+      String model) {
     try {
       Prepare.TRIM = true;
       OptiqAssert.assertThat()
           .with(OptiqAssert.Config.REGULAR)
-          .withMaterializations(JdbcTest.HR_MODEL, "m0", materialize)
+          .withMaterializations(model, "m0", materialize)
           .query(query)
           .enableMaterializations(true)
           .explainContains(
@@ -102,12 +109,13 @@ public class MaterializationTest {
 
   /** Checks that a given query CAN NOT use a materialized view with a given
    * definition. */
-  private void checkNoMaterialize(String materialize, String query) {
+  private void checkNoMaterialize(String materialize, String query,
+      String model) {
     try {
       Prepare.TRIM = true;
       OptiqAssert.assertThat()
           .with(OptiqAssert.Config.REGULAR)
-          .withMaterializations(JdbcTest.HR_MODEL, "m0", materialize)
+          .withMaterializations(model, "m0", materialize)
           .query(query)
           .enableMaterializations(true)
           .explainContains(
@@ -156,7 +164,8 @@ public class MaterializationTest {
   @Test public void testFilterQueryOnProjectView4() {
     checkNoMaterialize(
         "select \"deptno\" - 10 as \"x\", \"empid\" + 1, \"name\" from \"emps\"",
-        "select \"name\" from \"emps\" where \"deptno\" + 10 = 20");
+        "select \"name\" from \"emps\" where \"deptno\" + 10 = 20",
+        JdbcTest.HR_MODEL);
   }
 
   @Test public void testFilterQueryOnFilterView() {
@@ -370,6 +379,72 @@ public class MaterializationTest {
     assertTrue(SubstitutionVisitor.mayBeSatisfiable(e));
     final RexNode simple = SubstitutionVisitor.simplify(rexBuilder, e);
     assertEquals(s, simple.toString());
+  }
+
+  /** Tests a complicated star-join query on a complicated materialized
+   * star-join query. Some of the features:
+   *
+   * 1. query joins in different order;
+   * 2. query's join conditions are in where clause;
+   * 3. query does not use all join tables (safe to omit them because they are
+   *    many-to-mandatory-one joins);
+   * 4. query is at higher granularity, therefore needs to roll up;
+   * 5. query has a condition on one of the materialization's grouping columns.
+   */
+  @Ignore
+  @Test public void testFilterGroupQueryOnStar() {
+    checkMaterialize(
+        "select p.\"product_name\", t.\"the_year\", sum(f.\"unit_sales\") as \"sum_unit_sales\", count(*) as \"c\"\n"
+        + "from \"foodmart\".\"sales_fact_1997\" as f\n"
+        + "join (\n"
+        + "    select \"time_id\", \"the_year\", \"the_month\"\n"
+        + "    from \"foodmart\".\"time_by_day\") as t\n"
+        + "  on f.\"time_id\" = t.\"time_id\"\n"
+        + "join \"foodmart\".\"product\" as p\n"
+        + "  on f.\"product_id\" = p.\"product_id\"\n"
+        + "join \"foodmart\".\"product_class\" as pc"
+        + "  on p.\"product_class_id\" = pc.\"product_class_id\"\n"
+        + "group by t.\"the_year\",\n"
+        + " t.\"the_month\",\n"
+        + " pc.\"product_department\",\n"
+        + " pc.\"product_category\",\n"
+        + " p.\"product_name\"",
+        "select t.\"the_month\", count(*) as x\n"
+        + "from (\n"
+        + "  select \"time_id\", \"the_year\", \"the_month\"\n"
+        + "  from \"foodmart\".\"time_by_day\") as t,\n"
+        + " \"foodmart\".\"sales_fact_1997\" as f\n"
+        + "where t.\"the_year\" = 1997\n"
+        + "and t.\"time_id\" = f.\"time_id\"\n"
+        + "group by t.\"the_year\",\n"
+        + " t.\"the_month\"\n",
+        JdbcTest.FOODMART_MODEL);
+  }
+
+  /** Simpler than {@link #testFilterGroupQueryOnStar()}, tests a query on a
+   * materialization that is just a join. */
+  @Ignore
+  @Test public void testQueryOnStar() {
+    String q =
+        "select *\n"
+        + "from \"foodmart\".\"sales_fact_1997\" as f\n"
+        + "join \"foodmart\".\"time_by_day\" as t on f.\"time_id\" = t.\"time_id\"\n"
+        + "join \"foodmart\".\"product\" as p on f.\"product_id\" = p.\"product_id\"\n"
+        + "join \"foodmart\".\"product_class\" as pc on p.\"product_class_id\" = pc.\"product_class_id\"\n";
+    checkMaterialize(
+        q, q + "where t.\"month_of_year\" = 10", JdbcTest.FOODMART_MODEL);
+  }
+
+  /** A materialization that is a join of a union cannot at present be converted
+   * to a star table and therefore cannot be recognized. This test checks that
+   * nothing unpleasant happens. */
+  @Ignore
+  @Test public void testJoinOnUnionMaterialization() {
+    String q =
+        "select *\n"
+        + "from (select * from \"emps\" union all select * from \"emps\")\n"
+        + "join \"depts\" using (\"deptno\")";
+    checkNoMaterialize(q, q, JdbcTest.HR_MODEL);
   }
 }
 

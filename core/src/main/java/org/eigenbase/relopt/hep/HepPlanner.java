@@ -113,7 +113,7 @@ public class HepPlanner
         return root;
     }
 
-    public void addMaterialization(RelNode tableRel, RelNode queryRel) {
+    public void addMaterialization(RelOptMaterialization materialization) {
         // ignore - this planner does not support materializations
     }
 

@@ -34,7 +34,6 @@ import net.hydromatic.linq4j.function.Functions;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * <code>ProjectRelBase</code> is an abstract base class for implementations of
  * {@link ProjectRel}.

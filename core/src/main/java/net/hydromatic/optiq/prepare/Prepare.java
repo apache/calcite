@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.impl.StarTable;
 import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.Typed;
 
@@ -89,8 +90,9 @@ public abstract class Prepare {
 
     planner.setRoot(rootRel);
     for (Materialization materialization : materializations) {
-      planner.addMaterialization(materialization.tableRel,
-          materialization.queryRel);
+      planner.addMaterialization(
+          new RelOptMaterialization(materialization.tableRel,
+              materialization.queryRel, materialization.starRelOptTable));
     }
 
     RelTraitSet desiredTraits = getDesiredRootTraitSet(rootRel);
@@ -474,6 +476,8 @@ public abstract class Prepare {
     RelNode tableRel;
     /** Relational expression for the query to populate the table. */
     RelNode queryRel;
+    /** Star table identified. */
+    private RelOptTable starRelOptTable;
 
     public Materialization(Schema.TableInSchema materializedTable,
         String sql) {
@@ -481,6 +485,13 @@ public abstract class Prepare {
       assert sql != null;
       this.materializedTable = materializedTable;
       this.sql = sql;
+    }
+
+    public void materialize(RelNode queryRel,
+        RelOptTable starRelOptTable) {
+      this.queryRel = queryRel;
+      this.starRelOptTable = starRelOptTable;
+      assert starRelOptTable.unwrap(StarTable.class) != null;
     }
   }
 }

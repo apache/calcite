@@ -139,12 +139,8 @@ public interface RelOptPlanner
      * optimized uses (or can be rewritten to use) {@code queryRel} as a
      * sub-expression then it can be optimized by using {@code tableRel}
      * instead.</p>
-     *
-     * @param tableRel Relational expression representing the table holding
-     * the materialization
-     * @param queryRel Relational expression representing the query
      */
-    void addMaterialization(RelNode tableRel, RelNode queryRel);
+    void addMaterialization(RelOptMaterialization materialization);
 
     /**
      * Finds the most efficient expression to implement this query.

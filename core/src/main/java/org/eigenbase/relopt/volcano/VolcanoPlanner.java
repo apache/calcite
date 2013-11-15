@@ -169,8 +169,8 @@ public class VolcanoPlanner
      */
     private boolean locked;
 
-    private final List<Materialization> materializations =
-        new ArrayList<Materialization>();
+    private final List<RelOptMaterialization> materializations =
+        new ArrayList<RelOptMaterialization>();
 
     final Map<RelNode, Provenance> provenanceMap =
         new HashMap<RelNode, Provenance>();
@@ -247,11 +247,11 @@ public class VolcanoPlanner
         return root;
     }
 
-    public void addMaterialization(RelNode tableRel, RelNode queryRel) {
-        materializations.add(new Materialization(tableRel, queryRel));
+    public void addMaterialization(RelOptMaterialization materialization) {
+        materializations.add(materialization);
     }
 
-    private void useMaterialization(Materialization materialization) {
+    private void useMaterialization(RelOptMaterialization materialization) {
         // Try to rewrite the original root query in terms of the materialized
         // query. If that is possible, register the remnant query as equivalent
         // to the root.
@@ -274,8 +274,15 @@ public class VolcanoPlanner
     }
 
     private RelNode substitute(
-        RelNode root, Materialization materialization)
+        RelNode root, RelOptMaterialization materialization)
     {
+        // First, if the materialization is in terms of a star table, rewrite
+        // the query in terms of the star table.
+        if (materialization.starTable != null) {
+            root = RelOptMaterialization.tryUseStar(
+                root, materialization.starRelOptTable);
+        }
+
         return new SubstitutionVisitor(materialization.queryRel, root)
             .go(materialization.tableRel);
     }
@@ -289,7 +296,7 @@ public class VolcanoPlanner
         // and therefore we can deduce T2 uses Emps.
         DirectedGraph<List<String>, DefaultEdge> usesGraph =
             DefaultDirectedGraph.create();
-        for (Materialization materialization : materializations) {
+        for (RelOptMaterialization materialization : materializations) {
             if (materialization.table != null) {
                 for (RelOptTable usedTable
                     : findTables(materialization.queryRel))
@@ -311,7 +318,7 @@ public class VolcanoPlanner
         final Graphs.FrozenGraph<List<String>, DefaultEdge> frozenGraph =
             Graphs.makeImmutable(usesGraph);
         final Set<RelOptTable> queryTables = findTables(originalRoot);
-        for (Materialization materialization : materializations) {
+        for (RelOptMaterialization materialization : materializations) {
             if (materialization.table != null) {
                 if (usesTable(materialization.table, queryTables, frozenGraph))
                 {
@@ -1768,18 +1775,6 @@ SUBSET_LOOP:
                     getOperand0(),
                     rels);
             volcanoPlanner.ruleQueue.addMatch(match);
-        }
-    }
-
-    private static class Materialization {
-        private final RelNode tableRel;
-        private final RelOptTable table;
-        private final RelNode queryRel;
-
-        public Materialization(RelNode tableRel, RelNode queryRel) {
-            this.tableRel = tableRel;
-            this.table = tableRel.getTable();
-            this.queryRel = queryRel;
         }
     }
 

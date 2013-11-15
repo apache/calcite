@@ -26,7 +26,6 @@ import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.*;
 
-
 /**
  * A relational expression which computes project expressions and also filters.
  *
@@ -80,7 +79,7 @@ public final class CalcRel
             traitSet,
             sole(inputs),
             rowType,
-            program.copy(),
+            program,
             getCollationList());
     }
 
@@ -115,10 +114,23 @@ public final class CalcRel
             child, Pair.left(projectList), Pair.right(projectList), optimize);
     }
 
+    /**
+     * Creates a relational expression that projects the given fields of the
+     * input.
+     *
+     * <p>Optimizes if the fields are the identity projection.</p>
+     *
+     * @param child Input relational expression
+     * @param posList Source of each projected field
+     * @return Relational expression that projects given fields
+     */
     public static RelNode createProject(
         final RelNode child,
         final List<Integer> posList)
     {
+        if (isIdentity(posList, child.getRowType().getFieldCount())) {
+          return child;
+        }
         return CalcRel.createProject(
             child,
             new AbstractList<RexNode>() {
@@ -133,6 +145,19 @@ public final class CalcRel
                 }
             },
             null);
+    }
+
+    private static boolean isIdentity(List<Integer> list, int count) {
+        if (list.size() != count) {
+            return false;
+        }
+        for (int i = 0; i < count; i++) {
+            final Integer o = list.get(i);
+            if (o == null || o != i) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

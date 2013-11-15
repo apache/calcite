@@ -417,12 +417,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               Schemas.root(schema),
               butLast(materialization.materializedTable.path()),
               context.getTypeFactory());
-      final OptiqPreparingStmt preparingStmt =
-          new OptiqPreparingStmt(context, catalogReader,
-              catalogReader.getTypeFactory(),
-              schema, EnumerableRel.Prefer.ANY, planner,
-              EnumerableConvention.INSTANCE);
-      preparingStmt.populate(materialization);
+      final OptiqMaterializer materializer =
+          new OptiqMaterializer(context, catalogReader, schema, planner);
+      materializer.populate(materialization);
     } catch (Exception e) {
       throw new RuntimeException("While populating materialization "
           + materialization.materializedTable.path(), e);
@@ -458,11 +455,11 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     return action.apply(cluster, catalogReader, context.getRootSchema());
   }
 
-  private static class OptiqPreparingStmt extends Prepare {
+  static class OptiqPreparingStmt extends Prepare {
     private final RelOptPlanner planner;
     private final RexBuilder rexBuilder;
     private final Context context;
-    private final Schema schema;
+    protected final Schema schema;
     private int expansionDepth;
     private SqlValidator sqlValidator;
     private final EnumerableRel.Prefer prefer;
@@ -696,30 +693,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           new Class[]{Bindable.class, Typed.class},
           getClass().getClassLoader());
     }
-
-    /** Populates a materialization record, converting a table path
-     * (essentially a list of strings, like ["hr", "sales"]) into a table object
-     * that can be used in the planning process. */
-    void populate(Materialization materialization) {
-      SqlParser parser = new SqlParser(materialization.sql);
-      SqlNode node;
-      try {
-        node = parser.parseStmt();
-      } catch (SqlParseException e) {
-        throw new RuntimeException("parse failed", e);
-      }
-
-      SqlToRelConverter sqlToRelConverter2 =
-          getSqlToRelConverter(getSqlValidator(), catalogReader);
-
-      materialization.queryRel =
-          sqlToRelConverter2.convertQuery(node, true, true);
-
-      RelOptTable table =
-          catalogReader.getTable(materialization.materializedTable.path());
-      materialization.tableRel =
-          table.toRel(sqlToRelConverter2.makeToRelContext());
-    }
   }
 
   private static class OptiqPreparedExplain extends Prepare.PreparedExplain {
@@ -746,7 +719,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     private final RelOptSchema schema;
     private final RelDataType rowType;
     private final List<String> names;
-    private final Table table;
+    final Table table;
     private final Expression expression;
 
     RelOptTableImpl(
