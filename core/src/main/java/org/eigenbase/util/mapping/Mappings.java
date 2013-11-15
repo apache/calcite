@@ -402,6 +402,104 @@ public abstract class Mappings
         return mapping;
     }
 
+    /** Creates a mapping by merging two mappings. There must be no clashes. */
+    public static TargetMapping merge(
+        TargetMapping mapping0,
+        TargetMapping mapping1)
+    {
+        final int s0 = mapping0.getSourceCount();
+        final int s1 = mapping1.getSourceCount();
+        assert s0 == s1;
+        final int t0 = mapping0.getTargetCount();
+        final int t1 = mapping1.getTargetCount();
+        final TargetMapping mapping =
+            create(MappingType.InverseSurjection, s0, Math.max(t0, t1));
+        for (int s = 0; s < s0; s++) {
+          int t = mapping0.getTargetOpt(s);
+          if (t >= 0) {
+            mapping.set(s, t);
+            assert mapping1.getTargetOpt(s) < 0;
+          } else {
+            t = mapping1.getTargetOpt(s);
+            if (t >= 0) {
+              mapping.set(s, t);
+            }
+          }
+        }
+        return mapping;
+    }
+
+    /** Returns a mapping that shifts a given mapping's source by a given
+     * offset.
+     *
+     * <p>For example, given {@code mapping} with sourceCount=2, targetCount=8,
+     * and (source, target) entries {[0: 5], [1: 7]}, offsetSource(mapping, 3)
+     * returns a mapping with sourceCount=5, targetCount=8,
+     * and (source, target) entries {[3: 5], [4: 7]}.
+     *
+     * @param mapping Input mapping
+     * @param offset Offset to be applied to each source
+     * @param sourceCount New source count; must be at least {@code mapping}'s
+     * source count plus {@code offset}
+     * @return Shifted mapping
+     */
+    public static TargetMapping offsetSource(
+        final TargetMapping mapping, final int offset, final int sourceCount)
+    {
+        if (sourceCount < mapping.getSourceCount() + offset) {
+            throw new IllegalArgumentException("new source count too low");
+        }
+        return target(
+            new Function1<Integer, Integer>() {
+                public Integer apply(Integer source) {
+                    int source2 = source - offset;
+                    return source2 < 0 || source2 >= mapping.getSourceCount()
+                        ? null
+                        : mapping.getTargetOpt(source2);
+                }
+            },
+            sourceCount,
+            mapping.getTargetCount());
+    }
+
+    /** Returns a mapping that shifts a given mapping's source and target by a
+     * given offset.
+     *
+     * <p>For example, given {@code mapping} with sourceCount=2, targetCount=8,
+     * and (source, target) entries {[0: 5], [1: 7]}, offsetSource(mapping, 3)
+     * returns a mapping with sourceCount=5, targetCount=8,
+     * and (source, target) entries {[3: 8], [4: 10]}.
+     *
+     * @param mapping Input mapping
+     * @param offset Offset to be applied to each source
+     * @param sourceCount New source count; must be at least {@code mapping}'s
+     * source count plus {@code offset}
+     * @return Shifted mapping
+     */
+    public static TargetMapping offset(
+        final TargetMapping mapping, final int offset, final int sourceCount)
+    {
+        if (sourceCount < mapping.getSourceCount() + offset) {
+            throw new IllegalArgumentException("new source count too low");
+        }
+        return target(
+            new Function1<Integer, Integer>() {
+                public Integer apply(Integer source) {
+                    final int source2 = source - offset;
+                    if (source2 < 0 || source2 >= mapping.getSourceCount()) {
+                        return null;
+                    }
+                    int target = mapping.getTargetOpt(source2);
+                    if (target < 0) {
+                        return null;
+                    }
+                    return target + offset;
+                }
+            },
+            sourceCount,
+            mapping.getTargetCount() + offset);
+    }
+
     //~ Inner Interfaces -------------------------------------------------------
 
     /**
@@ -585,15 +683,6 @@ public abstract class Mappings
             }
             return true;
         }
-    }
-
-    public static abstract class FiniteAbstractMapping
-        extends AbstractMapping
-    {
-        public Iterator<IntPair> iterator()
-        {
-            return new FunctionMappingIter(this);
-        }
 
         /**
          * Returns a string representation of this mapping.
@@ -639,7 +728,10 @@ public abstract class Mappings
         public String toString()
         {
             StringBuilder buf = new StringBuilder();
-            buf.append("[");
+            buf.append("[size=").append(size())
+                .append(", sourceCount=").append(getSourceCount())
+                .append(", targetCount=").append(getTargetCount())
+                .append(", elements=[");
             int i = 0;
             for (IntPair pair : this) {
                 if (i++ > 0) {
@@ -647,8 +739,17 @@ public abstract class Mappings
                 }
                 buf.append(pair.source).append(':').append(pair.target);
             }
-            buf.append("]");
+            buf.append("]]");
             return buf.toString();
+        }
+    }
+
+    public static abstract class FiniteAbstractMapping
+        extends AbstractMapping
+    {
+        public Iterator<IntPair> iterator()
+        {
+            return new FunctionMappingIter(this);
         }
 
         public int hashCode()
@@ -1404,7 +1505,7 @@ public abstract class Mappings
             }
             if ((target >= targetCount) && (targetCount >= 0)) {
                 throw new IllegalArgumentException(
-                    "Target must be less than " + targetCount);
+                    "Target must be less than target count, " + targetCount);
             }
             targets[source] = target;
         }

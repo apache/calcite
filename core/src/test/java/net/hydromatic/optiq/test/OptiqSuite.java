@@ -18,7 +18,6 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.optiq.impl.clone.ArrayTableTest;
-
 import net.hydromatic.optiq.util.PartiallyOrderedSetTest;
 import net.hydromatic.optiq.util.graph.DirectedGraphTest;
 
@@ -28,8 +27,8 @@ import org.eigenbase.relopt.volcano.VolcanoPlannerTraitTest;
 import org.eigenbase.sql.parser.SqlParserTest;
 import org.eigenbase.sql.test.*;
 import org.eigenbase.test.*;
-
 import org.eigenbase.util.*;
+import org.eigenbase.util.mapping.MappingTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -52,6 +51,7 @@ import org.junit.runners.Suite;
     ReflectVisitorTest.class,
     RelOptUtilTest.class,
     UtilTest.class,
+    MappingTest.class,
     EigenbaseResourceTest.class,
     FilteratorTest.class,
     OptionsListTest.class,
