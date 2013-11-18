@@ -24,7 +24,6 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * Takes a tree of {@link RexNode} objects and transforms it into another in one
  * sense equivalent tree. Nodes in tree will be modified and hence tree will not
@@ -111,10 +110,10 @@ public class RexTransformer
         }
 
         Boolean directlyUnderIs = null;
-        if (node.isA(RexKind.IsTrue)) {
+        if (node.isA(SqlKind.IS_TRUE)) {
             directlyUnderIs = Boolean.TRUE;
             isParentsCount++;
-        } else if (node.isA(RexKind.IsFalse)) {
+        } else if (node.isA(SqlKind.IS_FALSE)) {
             directlyUnderIs = Boolean.FALSE;
             isParentsCount++;
         }

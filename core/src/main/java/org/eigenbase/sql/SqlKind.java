@@ -17,16 +17,48 @@
 */
 package org.eigenbase.sql;
 
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Set;
-
 
 /**
  * Enumerates the possible types of {@link SqlNode}.
  *
+ * <p>The values are immutable, canonical constants, so you can use Kinds to
+ * find particular types of expressions quickly. To identity a call to a common
+ * operator such as '=', use {@link org.eigenbase.sql.SqlNode#isA}:
+ *
+ * <blockquote>
+ * <pre>exp.{@link org.eigenbase.sql.SqlNode#isA isA}({@link #EQUALS})</pre>
+ * </blockquote>
+ *
  * <p>Only commonly-used nodes have their own type; other nodes are of type
  * {@link #OTHER}. Some of the values, such as {@link #SET_QUERY}, represent
  * aggregates.</p>
+ *
+ * <p>To identify a category of expressions, you can use
+ * {@link org.eigenbase.sql.SqlNode#isA} with
+ * an aggregate SqlKind. The following expression will return <code>true</code>
+ * for calls to '=' and '&gt;=', but <code>false</code> for the constant '5', or
+ * a call to '+':</p>
+ *
+ * <blockquote>
+ * <pre>exp.{@link org.eigenbase.sql.SqlNode#isA isA}({@link #COMPARISON SqlKind.Comparison})</pre>
+ * </blockquote>
+ *
+ * To quickly choose between a number of options, use a switch statement:
+ *
+ * <blockquote>
+ * <pre>switch (exp.getKind()) {
+ * case {@link #EQUALS}:
+ *     ...;
+ * case {@link #NOT_EQUALS}:
+ *     ...;
+ * default:
+ *     throw {@link org.eigenbase.util.Util#unexpected Util.unexpected}(exp.getKind());
+ * }</pre>
+ * </blockquote>
+ * </p>
  *
  * @author jhyde
  * @version $Id$
@@ -39,12 +71,14 @@ public enum SqlKind
     // the basics
 
     /**
-     * Other
+     * Expression not covered by any other {@link SqlKind} value.
+     *
+     * @see #OTHER_FUNCTION
      */
     OTHER,
 
     /**
-     * SELECT statement or sub-query
+     * SELECT statement or sub-query.
      */
     SELECT,
 
@@ -64,7 +98,7 @@ public enum SqlKind
     IDENTIFIER,
 
     /**
-     * Literal
+     * A literal.
      */
     LITERAL,
 
@@ -96,12 +130,16 @@ public enum SqlKind
     UPDATE,
 
     /**
-     * Dynamic Param
+     * A dynamic parameter.
      */
     DYNAMIC_PARAM,
 
     /**
-     * ORDER BY clause
+     * ORDER BY clause.
+     *
+     * @see #DESCENDING
+     * @see #NULLS_FIRST
+     * @see #NULLS_LAST
      */
     ORDER_BY,
 
@@ -124,7 +162,6 @@ public enum SqlKind
      * AS operator
      */
     AS,
-
 
     /**
      * OVER operator
@@ -149,69 +186,73 @@ public enum SqlKind
     // binary operators
 
     /**
-     * Times
+     * The arithmetic multiplication operator, "*".
      */
     TIMES,
 
     /**
-     * Divide
+     * The arithmetic division operator, "/".
      */
     DIVIDE,
 
     /**
-     * Plus
+     * The arithmetic plus operator, "+".
+     *
+     * @see #PLUS_PREFIX
      */
     PLUS,
 
     /**
-     * Minus
+     * The arithmetic minus operator, "-".
+     *
+     * @see #MINUS_PREFIX
      */
     MINUS,
 
     // comparison operators
 
     /**
-     * In
+     * The "IN" operator.
      */
     IN,
 
     /**
-     * LessThan
+     * The less-than operator, "&lt;".
      */
     LESS_THAN,
 
     /**
-     * Greater Than
+     * The greater-than operator, "&gt;".
      */
     GREATER_THAN,
 
     /**
-     * Less Than Or Equal
+     * The less-than-or-equal operator, "&lt;=".
      */
     LESS_THAN_OR_EQUAL,
 
     /**
-     * Greater Than Or Equal
+     * The greater-than-or-equal operator, "&gt;=".
      */
     GREATER_THAN_OR_EQUAL,
 
     /**
-     * Equals
+     * The equals operator, "=".
      */
     EQUALS,
 
     /**
-     * Not Equals
+     * The not-equals operator, "&#33;=" or "&lt;&gt;".
      */
     NOT_EQUALS,
 
     /**
-     * Or
+     * The logical "OR" operator.
      */
     OR,
 
     /**
-     * And
+     * The logical "AND" operator.
      */
     AND,
 
@@ -223,54 +264,58 @@ public enum SqlKind
     DOT,
 
     /**
-     * Overlaps
+     * The "OVERLAPS" operator.
      */
     OVERLAPS,
 
     /**
-     * Like
+     * The "LIKE" operator.
      */
     LIKE,
 
     /**
-     * Similar
+     * The "SIMILAR" operator.
      */
     SIMILAR,
 
     /**
-     * Between
+     * The "BETWEEN" operator.
      */
     BETWEEN,
 
     /**
-     * CASE
+     * A "CASE" expression.
      */
     CASE,
 
     // prefix operators
 
     /**
-     * Not
+     * The logical "NOT" operator.
      */
     NOT,
 
     /**
-     * PlusPrefix
+     * The unary plus operator, as in "+1".
+     *
+     * @see #PLUS
      */
     PLUS_PREFIX,
 
     /**
-     * MinusPrefix
+     * The unary minus operator, as in "-1".
+     *
+     * @see #MINUS
      */
     MINUS_PREFIX,
 
     /**
-     * Exists
+     * The "EXISTS" operator.
      */
     EXISTS,
 
     /**
-     * Values
+     * The "VALUES" operator.
      */
     VALUES,
 
@@ -314,55 +359,64 @@ public enum SqlKind
     NULLS_LAST,
 
     /**
-     * IS TRUE operator.
+     * The "IS TRUE" operator.
      */
     IS_TRUE,
 
     /**
-     * IS FALSE operator.
+     * The "IS FALSE" operator.
      */
     IS_FALSE,
 
     /**
-     * IS UNKNOWN operator.
+     * The "IS UNKNOWN" operator.
      */
     IS_UNKNOWN,
 
     /**
-     * IS NULL operator.
+     * The "IS NULL" operator.
      */
     IS_NULL,
 
     /**
-     * PRECEDING
+     * The "PRECEDING" qualifier of an interval end-point in a window
+     * specification.
      */
     PRECEDING,
 
     /**
-     * FOLLOWING
+     * The "FOLLOWING" qualifier of an interval end-point in a window
+     * specification.
      */
     FOLLOWING,
+
+    /**
+     * The field access operator, ".". (Only used at the RexNode level; at
+     * SqlNode level, a field-access is part of an identifier.)
+     */
+    FIELD_ACCESS,
 
     // functions
 
     /**
-     * ROW function.
+     * The row-constructor function. May be explicit or implicit:
+     * {@code VALUES 1, ROW (2)}.
      */
     ROW,
 
     /**
      * The non-standard constructor used to pass a
-     * COLUMN_LIST parameter to a UDX.
+     * COLUMN_LIST parameter to a user-defined transform.
      */
     COLUMN_LIST,
 
     /**
-     * CAST operator.
+     * The "CAST" operator.
      */
     CAST,
 
     /**
-     * TRIM function.
+     * The "TRIM" function.
      */
     TRIM,
 
@@ -372,22 +426,22 @@ public enum SqlKind
     JDBC_FN,
 
     /**
-     * Multiset Value Constructor.
+     * The MULTISET value constructor.
      */
     MULTISET_VALUE_CONSTRUCTOR,
 
     /**
-     * Multiset Query Constructor.
+     * The MULTISET query constructor.
      */
     MULTISET_QUERY_CONSTRUCTOR,
 
     /**
-     * Unnest
+     * The "UNNEST" operator.
      */
     UNNEST,
 
     /**
-     * Lateral
+     * The "LATERAL" qualifier to relations in the FROM clause.
      */
     LATERAL,
 
@@ -427,17 +481,20 @@ public enum SqlKind
     // internal operators (evaluated in validator) 200-299
 
     /**
-     * LiteralChain operator (for composite string literals)
+     * Literal chain operator (for composite string literals).
+     * An internal operator that does not appear in SQL syntax.
      */
     LITERAL_CHAIN,
 
     /**
-     * Escape operator (always part of LIKE or SIMILAR TO expression)
+     * Escape operator (always part of LIKE or SIMILAR TO expression).
+     * An internal operator that does not appear in SQL syntax.
      */
     ESCAPE,
 
     /**
-     * Reinterpret operator (a reinterpret cast)
+     * The internal REINTERPRET operator (meaning a reinterpret cast).
+     * An internal operator that does not appear in SQL syntax.
      */
     REINTERPRET;
 
@@ -533,7 +590,7 @@ public enum SqlKind
     /**
      * Category consisting of regular and special functions.
      *
-     * <p>Consists of regular functions {@link #OTHER_FUNCTION} and specical
+     * <p>Consists of regular functions {@link #OTHER_FUNCTION} and special
      * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #JDBC_FN}.
      */
     public static final Set<SqlKind> FUNCTION =
@@ -565,11 +622,10 @@ public enum SqlKind
      * EXPLICIT_TABLE }.
      *
      * @param category Category
-     * @return Whether this kind belongs to the given cateogry
+     * @return Whether this kind belongs to the given category
      */
-    public final boolean belongsTo(Set<SqlKind> category)
-    {
-        return category.contains(this);
+    public final boolean belongsTo(Collection<SqlKind> category) {
+      return category.contains(this);
     }
 }
 

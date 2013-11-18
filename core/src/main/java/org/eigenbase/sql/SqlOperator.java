@@ -72,7 +72,7 @@ public abstract class SqlOperator
      * See {@link SqlKind}. It's possible to have a name that doesn't match the
      * kind
      */
-    private final SqlKind kind;
+    public final SqlKind kind;
 
     /**
      * The precedence with which this operator binds to the expression to the

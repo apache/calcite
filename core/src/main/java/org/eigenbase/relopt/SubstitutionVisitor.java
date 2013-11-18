@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.RemoveTrivialProjectRule;
 import org.eigenbase.rex.*;
+import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.util.Pair;
 
@@ -250,7 +251,7 @@ public class SubstitutionVisitor {
         // always false.
         for (RexNode disjunction : disjunctions) {
             switch (disjunction.getKind()) {
-            case Literal:
+            case LITERAL:
                 if (!RexLiteral.booleanValue(disjunction)) {
                     return false;
                 }
@@ -258,7 +259,7 @@ public class SubstitutionVisitor {
         }
         for (RexNode disjunction : notDisjunctions) {
             switch (disjunction.getKind()) {
-            case Literal:
+            case LITERAL:
                 if (RexLiteral.booleanValue(disjunction)) {
                     return false;
                 }
@@ -306,15 +307,15 @@ public class SubstitutionVisitor {
         final List<RexNode> notDisjunctions = new ArrayList<RexNode>();
         for (int i = 0; i < disjunctions.size(); i++) {
             final RexNode disjunction = disjunctions.get(i);
-            final RexKind kind = disjunction.getKind();
+            final SqlKind kind = disjunction.getKind();
             switch (kind) {
-            case Not:
+            case NOT:
                 notDisjunctions.add(
                     ((RexCall) disjunction).getOperands().get(0));
                 disjunctions.remove(i);
                 --i;
                 break;
-            case Literal:
+            case LITERAL:
                 if (!RexLiteral.booleanValue(disjunction)) {
                     return disjunction; // false
                 } else {

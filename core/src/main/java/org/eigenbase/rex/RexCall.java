@@ -21,7 +21,6 @@ import java.util.*;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -53,7 +52,6 @@ public class RexCall
     private final SqlOperator op;
     public final ImmutableList<RexNode> operands;
     private final RelDataType type;
-    private final RexKind kind;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -68,106 +66,13 @@ public class RexCall
         this.type = type;
         this.op = op;
         this.operands = ImmutableList.copyOf(operands);
-        this.kind = sqlKindToRexKind(op.getKind());
-        assert this.kind != null : op;
+        assert op.getKind() != null : op;
         this.digest = computeDigest(true);
 
         assert op.validRexOperands(operands.size(), true) : this;
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Returns the {@link RexKind} corresponding to a {@link SqlKind}. Fails if
-     * there is none. Never returns null.
-     */
-    static RexKind sqlKindToRexKind(SqlKind kind)
-    {
-        switch (kind) {
-        case EQUALS:
-            return RexKind.Equals;
-        case IDENTIFIER:
-            return RexKind.Identifier;
-        case LITERAL:
-            return RexKind.Literal;
-        case DYNAMIC_PARAM:
-            return RexKind.DynamicParam;
-        case TIMES:
-            return RexKind.Times;
-        case DIVIDE:
-            return RexKind.Divide;
-        case PLUS:
-            return RexKind.Plus;
-        case MINUS:
-            return RexKind.Minus;
-        case LESS_THAN:
-            return RexKind.LessThan;
-        case GREATER_THAN:
-            return RexKind.GreaterThan;
-        case LESS_THAN_OR_EQUAL:
-            return RexKind.LessThanOrEqual;
-        case GREATER_THAN_OR_EQUAL:
-            return RexKind.GreaterThanOrEqual;
-        case NOT_EQUALS:
-            return RexKind.NotEquals;
-        case OR:
-            return RexKind.Or;
-        case AND:
-            return RexKind.And;
-        case NOT:
-            return RexKind.Not;
-        case IS_TRUE:
-            return RexKind.IsTrue;
-        case IS_FALSE:
-            return RexKind.IsFalse;
-        case IS_NULL:
-            return RexKind.IsNull;
-        case IS_UNKNOWN:
-            return RexKind.IsNull;
-        case PLUS_PREFIX:
-            return RexKind.Plus;
-        case MINUS_PREFIX:
-            return RexKind.MinusPrefix;
-        case VALUES:
-            return RexKind.Values;
-        case ROW:
-            return RexKind.Row;
-        case CAST:
-            return RexKind.Cast;
-        case TRIM:
-            return RexKind.Trim;
-        case OTHER_FUNCTION:
-            return RexKind.Other;
-        case CASE:
-            return RexKind.Other;
-        case OTHER:
-            return RexKind.Other;
-        case LIKE:
-            return RexKind.Like;
-        case SIMILAR:
-            return RexKind.Similar;
-        case MULTISET_QUERY_CONSTRUCTOR:
-            return RexKind.MultisetQueryConstructor;
-        case ARRAY_VALUE_CONSTRUCTOR:
-            return RexKind.ArrayValueConstructor;
-        case MAP_VALUE_CONSTRUCTOR:
-            return RexKind.MapValueConstructor;
-        case NEW_SPECIFICATION:
-            return RexKind.NewSpecification;
-        case REINTERPRET:
-            return RexKind.Reinterpret;
-        case COLUMN_LIST:
-            return RexKind.Row;
-        case DESCENDING:
-            return RexKind.Descending;
-        case NULLS_FIRST:
-            return RexKind.NullsFirst;
-        case NULLS_LAST:
-             return RexKind.NullsLast;
-        default:
-            throw Util.unexpected(kind);
-        }
-    }
 
     protected String computeDigest(boolean withType)
     {
@@ -204,7 +109,7 @@ public class RexCall
         // operand and needs to be printed out.  But special-casing it here is
         // ugly.
         return computeDigest(
-            isA(RexKind.Cast) || isA(RexKind.NewSpecification));
+            isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION));
     }
 
     public <R> R accept(RexVisitor<R> visitor)
@@ -222,9 +127,9 @@ public class RexCall
         return new RexCall(type, op, operands);
     }
 
-    public RexKind getKind()
+    public SqlKind getKind()
     {
-        return kind;
+        return op.kind;
     }
 
     public List<RexNode> getOperands()

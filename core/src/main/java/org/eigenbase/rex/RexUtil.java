@@ -181,7 +181,7 @@ public class RexUtil
             }
         }
         if (allowCast) {
-            if (node.isA(RexKind.Cast)) {
+            if (node.isA(SqlKind.CAST)) {
                 RexCall call = (RexCall) node;
                 if (isNullLiteral(call.operands.get(0), false)) {
                     // node is "CAST(NULL as type)"
@@ -202,7 +202,7 @@ public class RexUtil
     {
         /* Checks to see if the RexNode is null */
         return RexLiteral.isNullLiteral(node)
-            || ((node.getKind() == RexKind.Cast)
+            || ((node.getKind() == SqlKind.CAST)
                 && isNull(((RexCall) node).operands.get(0)));
     }
 
@@ -312,11 +312,11 @@ public class RexUtil
 
         boolean localCheck = true;
         switch (call.getKind()) {
-        case Reinterpret:
-        case IsNull:
+        case REINTERPRET:
+        case IS_NULL:
             localCheck = false;
             break;
-        case Cast:
+        case CAST:
             RelDataType lhsType = call.getType();
             RelDataType rhsType = call.operands.get(0).getType();
             if (rhsType.getSqlTypeName() == SqlTypeName.NULL) {
@@ -389,7 +389,7 @@ public class RexUtil
 
     public static boolean canReinterpretOverflow(RexCall call)
     {
-        assert (call.isA(RexKind.Reinterpret)) : "call is not a reinterpret";
+        assert call.isA(SqlKind.REINTERPRET) : "call is not a reinterpret";
         return call.operands.size() > 1;
     }
 

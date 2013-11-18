@@ -768,7 +768,7 @@ public class ReduceDecimalsRule
         public RexNode expand(RexCall call)
         {
             List<RexNode> operands = call.operands;
-            assert call.isA(RexKind.Cast);
+            assert call.isA(SqlKind.CAST);
             assert operands.size() == 1;
             assert !RexLiteral.isNullLiteral(operands.get(0));
 
@@ -902,15 +902,15 @@ public class ReduceDecimalsRule
             }
 
             analyzeOperands(operands);
-            if (call.isA(RexKind.Plus)) {
+            if (call.isA(SqlKind.PLUS)) {
                 return expandPlusMinus(call, operands);
-            } else if (call.isA(RexKind.Minus)) {
+            } else if (call.isA(SqlKind.MINUS)) {
                 return expandPlusMinus(call, operands);
-            } else if (call.isA(RexKind.Divide)) {
+            } else if (call.isA(SqlKind.DIVIDE)) {
                 return expandDivide(call, operands);
-            } else if (call.isA(RexKind.Times)) {
+            } else if (call.isA(SqlKind.TIMES)) {
                 return expandTimes(call, operands);
-            } else if (call.isA(RexKind.Comparison)) {
+            } else if (call.isA(SqlKind.COMPARISON)) {
                 return expandComparison(call, operands);
             } else if (call.getOperator() == SqlStdOperatorTable.modFunc) {
                 return expandMod(call, operands);
@@ -1327,8 +1327,8 @@ public class ReduceDecimalsRule
 
         public boolean canExpand(RexCall call)
         {
-            return call.isA(RexKind.Reinterpret)
-                && call.operands.get(0).isA(RexKind.Reinterpret);
+            return call.isA(SqlKind.REINTERPRET)
+                && call.operands.get(0).isA(SqlKind.REINTERPRET);
         }
 
         public RexNode expand(RexCall call)

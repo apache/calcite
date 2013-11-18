@@ -618,17 +618,17 @@ public class RelStructuredTypeFlattener
                             field.getType()));
                     flattenedFieldNames.add(fieldName);
                 }
-            } else if (isConstructor(exp) || exp.isA(RexKind.Cast)) {
+            } else if (isConstructor(exp) || exp.isA(SqlKind.CAST)) {
                 // REVIEW jvs 27-Feb-2005:  for cast, see corresponding note
                 // in RewriteRexShuttle
                 RexCall call = (RexCall) exp;
-                if (exp.isA(RexKind.NewSpecification)) {
+                if (exp.isA(SqlKind.NEW_SPECIFICATION)) {
                     // For object constructors, prepend a FALSE null
                     // indicator.
                     flattenedExps.add(
                         rexBuilder.makeLiteral(false));
                     flattenedFieldNames.add(fieldName);
-                } else if (exp.isA(RexKind.Cast)) {
+                } else if (exp.isA(SqlKind.CAST)) {
                     if (RexLiteral.isNullLiteral(
                             ((RexCall) exp).operands.get(0)))
                     {
@@ -699,7 +699,7 @@ public class RelStructuredTypeFlattener
         }
         RexCall call = (RexCall) rexNode;
         return call.getOperator().getName().equalsIgnoreCase("row")
-            || (call.isA(RexKind.NewSpecification));
+            || (call.isA(SqlKind.NEW_SPECIFICATION));
     }
 
     public void rewriteRel(TableAccessRel rel)
@@ -807,13 +807,13 @@ public class RelStructuredTypeFlattener
                     return new RexInputRef(iInput, fieldType);
                 } else if (refExp instanceof RexCorrelVariable) {
                     return fieldAccess;
-                } else if (refExp.isA(RexKind.Cast)) {
+                } else if (refExp.isA(SqlKind.CAST)) {
                     // REVIEW jvs 27-Feb-2005:  what about a cast between
                     // different user-defined types (once supported)?
                     RexCall cast = (RexCall) refExp;
                     refExp = cast.getOperands().get(0);
                 }
-                if (refExp.isA(RexKind.NewSpecification)) {
+                if (refExp.isA(SqlKind.NEW_SPECIFICATION)) {
                   return ((RexCall) refExp).operands
                       .get(fieldAccess.getField().getIndex());
                 }
@@ -827,14 +827,14 @@ public class RelStructuredTypeFlattener
         // override RexShuttle
         public RexNode visitCall(RexCall rexCall)
         {
-            if (rexCall.isA(RexKind.Cast)) {
+            if (rexCall.isA(SqlKind.CAST)) {
                 RexNode input = rexCall.getOperands().get(0).accept(this);
                 RelDataType targetType = removeDistinct(rexCall.getType());
                 return rexBuilder.makeCast(
                     targetType,
                     input);
             }
-            if (!rexCall.isA(RexKind.Comparison)) {
+            if (!rexCall.isA(SqlKind.COMPARISON)) {
                 return super.visitCall(rexCall);
             }
             RexNode lhs = rexCall.getOperands().get(0);

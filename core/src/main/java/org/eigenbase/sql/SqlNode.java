@@ -25,7 +25,6 @@ import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A <code>SqlNode</code> is a SQL parse tree. It may be an {@link SqlOperator
  * operator}, {@link SqlLiteral literal}, {@link SqlIdentifier identifier}, and
@@ -114,7 +113,7 @@ public abstract class SqlNode
 
     public static SqlNode [] cloneArray(SqlNode [] nodes)
     {
-        SqlNode [] clones = (SqlNode []) nodes.clone();
+        SqlNode [] clones = nodes.clone();
         for (int i = 0; i < clones.length; i++) {
             SqlNode node = clones[i];
             if (node != null) {

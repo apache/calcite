@@ -560,7 +560,7 @@ public class RexProgram
             RexLocalRef inputRef = (RexLocalRef) expr;
             return isNull(exprs.get(inputRef.index));
         }
-        if (expr.getKind() == RexKind.Cast) {
+        if (expr.getKind() == SqlKind.CAST) {
             return isNull(((RexCall) expr).operands.get(0));
         }
         return false;

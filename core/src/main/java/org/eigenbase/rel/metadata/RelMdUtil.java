@@ -18,7 +18,6 @@
 package org.eigenbase.rel.metadata;
 
 import java.math.*;
-
 import java.util.*;
 
 import org.eigenbase.rel.*;
@@ -31,6 +30,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.Util;
 import org.eigenbase.util14.*;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * RelMdUtil provides utility methods used by the metadata provider methods.
@@ -457,9 +457,9 @@ public class RelMdUtil
                     == RelMdUtil.artificialSelectivityFunc))
             {
                 artificialSel *= RelMdUtil.getSelectivityValue(pred);
-            } else if (pred.isA(RexKind.Equals)) {
+            } else if (pred.isA(SqlKind.EQUALS)) {
                 sel *= .15;
-            } else if (pred.isA(RexKind.Comparison)) {
+            } else if (pred.isA(SqlKind.COMPARISON)) {
                 sel *= .5;
             } else {
                 sel *= .25;
@@ -802,10 +802,11 @@ public class RelMdUtil
         {
             Double distinctRowCount;
             Double rowCount = RelMetadataQuery.getRowCount(rel);
-            if (call.isA(RexKind.MinusPrefix)) {
+            if (call.isA(SqlKind.MINUS_PREFIX)) {
                 distinctRowCount =
                     cardOfProjExpr(rel, call.getOperands().get(0));
-            } else if (call.isA(RexKind.Plus) || call.isA(RexKind.Minus)) {
+            } else if (call.isA(ImmutableList.of(SqlKind.PLUS, SqlKind.MINUS)))
+            {
                 Double card0 = cardOfProjExpr(rel, call.getOperands().get(0));
                 if (card0 == null) {
                     return null;
@@ -815,7 +816,9 @@ public class RelMdUtil
                     return null;
                 }
                 distinctRowCount = Math.max(card0, card1);
-            } else if (call.isA(RexKind.Times) || call.isA(RexKind.Divide)) {
+            } else if (call.isA(
+                    ImmutableList.of(SqlKind.TIMES, SqlKind.DIVIDE)))
+            {
                 distinctRowCount =
                     NumberUtil.multiply(
                         cardOfProjExpr(rel, call.getOperands().get(0)),

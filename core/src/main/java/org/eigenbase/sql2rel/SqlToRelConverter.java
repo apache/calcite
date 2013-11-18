@@ -1468,7 +1468,7 @@ public class SqlToRelConverter
                 (SqlLiteral) sqlNode);
 
         if (!(literalExpr instanceof RexLiteral)) {
-            assert (literalExpr.isA(RexKind.Cast));
+            assert literalExpr.isA(SqlKind.CAST);
             RexNode child = ((RexCall) literalExpr).getOperands().get(0);
             assert RexLiteral.isNullLiteral(child);
 

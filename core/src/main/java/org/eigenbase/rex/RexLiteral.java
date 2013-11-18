@@ -491,9 +491,9 @@ public class RexLiteral
         return type;
     }
 
-    public RexKind getKind()
+    public SqlKind getKind()
     {
-        return RexKind.Literal;
+        return SqlKind.LITERAL;
     }
 
     /**

@@ -17,7 +17,10 @@
 */
 package org.eigenbase.rex;
 
+import java.util.Collection;
+
 import org.eigenbase.reltype.*;
+import org.eigenbase.sql.SqlKind;
 
 /**
  * Row expression.
@@ -37,10 +40,6 @@ import org.eigenbase.reltype.*;
  */
 public abstract class RexNode
 {
-    //~ Static fields/initializers ---------------------------------------------
-
-    public static final RexNode [] EMPTY_ARRAY = new RexNode[0];
-
     //~ Instance fields --------------------------------------------------------
 
     protected String digest;
@@ -69,21 +68,24 @@ public abstract class RexNode
         return false;
     }
 
-    public boolean isA(RexKind kind)
+    public boolean isA(SqlKind kind)
     {
-        return (getKind() == kind) || kind.includes(getKind());
+        return getKind() == kind;
+    }
+
+    public boolean isA(Collection<SqlKind> kinds)
+    {
+        return getKind().belongsTo(kinds);
     }
 
     /**
      * Returns the kind of node this is.
      *
-     * @return A {@link RexKind} value, never null
-     *
-     * @post return != null
+     * @return A {@link org.eigenbase.sql.SqlKind} value, never null
      */
-    public RexKind getKind()
+    public SqlKind getKind()
     {
-        return RexKind.Other;
+        return SqlKind.OTHER;
     }
 
     public String toString()

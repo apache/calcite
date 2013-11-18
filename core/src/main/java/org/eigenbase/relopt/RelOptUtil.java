@@ -262,7 +262,7 @@ public abstract class RelOptUtil
                 mapping.set(
                     node.i,
                     ((RexInputRef) node.e).getIndex());
-            } else if (node.e.isA(RexKind.Cast)) {
+            } else if (node.e.isA(SqlKind.CAST)) {
                 RexNode operand = ((RexCall) node.e).getOperands().get(0);
                 if (operand instanceof RexInputRef) {
                     mapping.set(
@@ -635,7 +635,7 @@ public abstract class RelOptUtil
         int [] joinFieldOrdinals)
     {
         RexNode joinExp = joinRel.getCondition();
-        if (joinExp.getKind() != RexKind.Equals) {
+        if (joinExp.getKind() != SqlKind.EQUALS) {
             return false;
         }
         RexCall binaryExpression = (RexCall) joinExp;
@@ -1793,7 +1793,7 @@ public abstract class RelOptUtil
         if (rexPredicate == null || rexPredicate.isAlwaysTrue()) {
             return;
         }
-        if (rexPredicate.isA(RexKind.And)) {
+        if (rexPredicate.isA(SqlKind.AND)) {
             for (RexNode operand : ((RexCall) rexPredicate).getOperands()) {
                 decomposeConjunction(operand, rexList);
             }
@@ -1829,12 +1829,12 @@ public abstract class RelOptUtil
             return;
         }
         switch (rexPredicate.getKind()) {
-        case And:
+        case AND:
             for (RexNode operand : ((RexCall) rexPredicate).getOperands()) {
                 decomposeConjunction(operand, rexList, notList);
             }
             break;
-        case Not:
+        case NOT:
             final RexNode e = ((RexCall) rexPredicate).getOperands().get(0);
             if (e.isAlwaysFalse()) {
                 return;
@@ -1861,7 +1861,7 @@ public abstract class RelOptUtil
         if (rexPredicate == null || rexPredicate.isAlwaysFalse()) {
             return;
         }
-        if (rexPredicate.isA(RexKind.Or)) {
+        if (rexPredicate.isA(SqlKind.OR)) {
             for (RexNode operand : ((RexCall) rexPredicate).getOperands()) {
               decomposeDisjunction(operand, rexList);
             }

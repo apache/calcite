@@ -127,17 +127,17 @@ public class MongoFilterRel
 
     private Void translateMatch2(RexNode node) {
       switch (node.getKind()) {
-      case Equals:
+      case EQUALS:
         return translateOp(null, ((RexCall) node).getOperands());
-      case LessThan:
+      case LESS_THAN:
         return translateOp("$lt", ((RexCall) node).getOperands());
-      case LessThanOrEqual:
+      case LESS_THAN_OR_EQUAL:
         return translateOp("$lte", ((RexCall) node).getOperands());
-      case NotEquals:
+      case NOT_EQUALS:
         return translateOp("$ne", ((RexCall) node).getOperands());
-      case GreaterThan:
+      case GREATER_THAN:
         return translateOp("$gt", ((RexCall) node).getOperands());
-      case GreaterThanOrEqual:
+      case GREATER_THAN_OR_EQUAL:
         return translateOp("$gte", ((RexCall) node).getOperands());
       default:
         throw new AssertionError("cannot translate " + node);

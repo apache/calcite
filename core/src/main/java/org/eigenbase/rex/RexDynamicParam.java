@@ -18,7 +18,7 @@
 package org.eigenbase.rex;
 
 import org.eigenbase.reltype.*;
-
+import org.eigenbase.sql.SqlKind;
 
 /**
  * Dynamic parameter reference in a row-expression.
@@ -56,9 +56,9 @@ public class RexDynamicParam
         return new RexDynamicParam(type, index);
     }
 
-    public RexKind getKind()
+    public SqlKind getKind()
     {
-        return RexKind.DynamicParam;
+        return SqlKind.DYNAMIC_PARAM;
     }
 
     public int getIndex()

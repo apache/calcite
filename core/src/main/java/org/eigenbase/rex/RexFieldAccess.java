@@ -18,7 +18,7 @@
 package org.eigenbase.rex;
 
 import org.eigenbase.reltype.*;
-
+import org.eigenbase.sql.SqlKind;
 
 /**
  * Access to a field of a row-expression.
@@ -86,9 +86,9 @@ public class RexFieldAccess
         return new RexFieldAccess(expr, field);
     }
 
-    public RexKind getKind()
+    public SqlKind getKind()
     {
-        return RexKind.FieldAccess;
+        return SqlKind.FIELD_ACCESS;
     }
 
     public <R> R accept(RexVisitor<R> visitor)
