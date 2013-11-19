@@ -198,12 +198,16 @@ public class RexUtil
      * For Example:<br>
      * isNull(CAST(CAST(NULL as INTEGER) AS VARCHAR(1))) returns true
      */
-    public static boolean isNull(RexNode node)
+    public static boolean isNull(RexNode expr)
     {
-        /* Checks to see if the RexNode is null */
-        return RexLiteral.isNullLiteral(node)
-            || ((node.getKind() == SqlKind.CAST)
-                && isNull(((RexCall) node).operands.get(0)));
+        switch (expr.getKind()) {
+        case LITERAL:
+            return ((RexLiteral) expr).getValue2() == null;
+        case CAST:
+            return isNull(((RexCall) expr).operands.get(0));
+        default:
+            return false;
+        }
     }
 
     /**

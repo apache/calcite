@@ -23,7 +23,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Validates the parse tree of a SQL statement, and provides semantic
  * information about the parse tree.
@@ -703,6 +702,15 @@ public interface SqlValidator
      *     object
      */
     List<List<String>> getFieldOrigins(SqlNode sqlQuery);
+
+    /**
+     * Returns a record type that contains the name and type of each parameter.
+     * Returns a record type with no fields if there are no parameters.
+     *
+     * @param sqlQuery Query
+     * @return Record type
+     */
+    RelDataType getParameterRowType(SqlNode sqlQuery);
 
     /**
      * Returns the scope of an OVER or VALUES node.

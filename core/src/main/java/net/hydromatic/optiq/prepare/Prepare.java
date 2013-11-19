@@ -50,16 +50,18 @@ public abstract class Prepare {
   protected final Convention resultConvention;
   protected EigenbaseTimingTracer timingTracer;
   protected List<List<String>> fieldOrigins;
+  protected RelDataType parameterRowType;
 
   public static boolean TRIM = false; // temporary. for testing.
 
-  public Prepare(CatalogReader catalogReader, Convention resultConvention) {
+    public Prepare(CatalogReader catalogReader, Convention resultConvention) {
     this.catalogReader = catalogReader;
     this.resultConvention = resultConvention;
   }
 
   protected abstract PreparedResult createPreparedExplanation(
       RelDataType resultType,
+      RelDataType parameterRowType,
       RelNode rootRel,
       boolean explainAsXml,
       SqlExplainLevel detailLevel);
@@ -172,6 +174,8 @@ public abstract class Prepare {
     fieldOrigins = validator.getFieldOrigins(sqlQuery);
     assert fieldOrigins.size() == resultType.getFieldCount();
 
+    parameterRowType = validator.getParameterRowType(sqlQuery);
+
     // Display logical plans before view expansion, plugging in physical
     // storage and decorrelation
     if (sqlExplain != null) {
@@ -181,10 +185,10 @@ public abstract class Prepare {
       switch (explainDepth) {
       case Type:
         return createPreparedExplanation(
-            resultType, null, explainAsXml, detailLevel);
+            resultType, parameterRowType, null, explainAsXml, detailLevel);
       case Logical:
         return createPreparedExplanation(
-            null, rootRel, explainAsXml, detailLevel);
+            null, parameterRowType, rootRel, explainAsXml, detailLevel);
       default:
       }
     }
@@ -209,7 +213,7 @@ public abstract class Prepare {
       default:
         rootRel = optimize(rootRel.getRowType(), rootRel, materializations);
         return createPreparedExplanation(
-            null, rootRel, explainAsXml, detailLevel);
+            null, parameterRowType, rootRel, explainAsXml, detailLevel);
       }
     }
 
@@ -330,16 +334,19 @@ public abstract class Prepare {
   public static abstract class PreparedExplain
       implements PreparedResult {
     private final RelDataType rowType;
+    private final RelDataType parameterRowType;
     private final RelNode rel;
     private final boolean asXml;
     private final SqlExplainLevel detailLevel;
 
     public PreparedExplain(
         RelDataType rowType,
+        RelDataType parameterRowType,
         RelNode rel,
         boolean asXml,
         SqlExplainLevel detailLevel) {
       this.rowType = rowType;
+      this.parameterRowType = parameterRowType;
       this.rel = rel;
       this.asXml = asXml;
       this.detailLevel = detailLevel;
@@ -351,6 +358,10 @@ public abstract class Prepare {
       } else {
         return RelOptUtil.dumpPlan("", rel, asXml, detailLevel);
       }
+    }
+
+    public RelDataType getParameterRowType() {
+      return parameterRowType;
     }
 
     public boolean isDml() {
@@ -402,6 +413,11 @@ public abstract class Prepare {
     List<List<String>> getFieldOrigins();
 
     /**
+     * Returns a record type whose fields are the parameters of this statement.
+     */
+    RelDataType getParameterRowType();
+
+    /**
      * Executes the prepared result.
      *
      * @return producer of rows resulting from execution
@@ -415,6 +431,7 @@ public abstract class Prepare {
   public static abstract class PreparedResultImpl
       implements PreparedResult, Typed {
     protected final RelNode rootRel;
+    protected final RelDataType parameterRowType;
     protected final RelDataType rowType;
     protected final boolean isDml;
     protected final TableModificationRel.Operation tableModOp;
@@ -422,11 +439,17 @@ public abstract class Prepare {
 
     public PreparedResultImpl(
         RelDataType rowType,
+        RelDataType parameterRowType,
         List<List<String>> fieldOrigins,
         RelNode rootRel,
         TableModificationRel.Operation tableModOp,
         boolean isDml) {
+      assert rowType != null;
+      assert parameterRowType != null;
+      assert fieldOrigins != null;
+      assert rootRel != null;
       this.rowType = rowType;
+      this.parameterRowType = parameterRowType;
       this.fieldOrigins = fieldOrigins;
       this.rootRel = rootRel;
       this.tableModOp = tableModOp;
@@ -443,6 +466,10 @@ public abstract class Prepare {
 
     public List<List<String>> getFieldOrigins() {
       return fieldOrigins;
+    }
+
+    public RelDataType getParameterRowType() {
+      return parameterRowType;
     }
 
     /**

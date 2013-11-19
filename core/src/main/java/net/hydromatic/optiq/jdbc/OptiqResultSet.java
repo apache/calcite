@@ -75,7 +75,9 @@ public class OptiqResultSet implements ResultSet {
     for (ColumnMetaData column : columnMetaDataList) {
       columnNameMap.put(column.label, columnNameMap.size());
     }
-    final DataContext dataContext = statement.connection.createDataContext();
+    final List<Object> parameterValues = statement.getParameterValues();
+    final DataContext dataContext =
+        statement.connection.createDataContext(parameterValues);
     final TimeZone timeZone = DataContext.Variable.TIME_ZONE.get(dataContext);
     this.localCalendar = Calendar.getInstance(timeZone);
   }
@@ -153,7 +155,9 @@ public class OptiqResultSet implements ResultSet {
     statement.connection.driver.handler.onStatementExecute(
         statement, resultSink);
 
-    final DataContext dataContext = statement.connection.createDataContext();
+    final DataContext dataContext =
+        statement.connection.createDataContext(
+            statement.getParameterValues());
     this.cursor = cursorFactory.apply(dataContext);
     this.accessorList =
         cursor.createAccessors(columnMetaDataList, localCalendar);

@@ -20,6 +20,7 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.BuiltinMethod;
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.ByteString;
 import net.hydromatic.optiq.runtime.SqlFunctions;
@@ -281,20 +282,19 @@ public class RexToLixTranslator {
     if (nullAs == RexImpTable.NullAs.NULL && !expr.getType().isNullable()) {
       nullAs = RexImpTable.NullAs.NOT_POSSIBLE;
     }
-    if (expr instanceof RexInputRef) {
+    switch (expr.getKind()) {
+    case INPUT_REF:
       final int index = ((RexInputRef) expr).getIndex();
       Expression x = inputGetter.field(list, index);
       return list.append(
           "v",
           nullAs.handle(
               list.append("v", x)));
-    }
-    if (expr instanceof RexLocalRef) {
+    case LOCAL_REF:
       return translate(
           program.getExprList().get(((RexLocalRef) expr).getIndex()),
           nullAs);
-    }
-    if (expr instanceof RexLiteral) {
+    case LITERAL:
       return translateLiteral(
           expr,
           nullifyType(
@@ -303,21 +303,33 @@ public class RexToLixTranslator {
                   && nullAs != RexImpTable.NullAs.NOT_POSSIBLE),
           typeFactory,
           nullAs);
-    }
-    if (expr instanceof RexCall) {
-      final RexCall call = (RexCall) expr;
-      final SqlOperator operator = call.getOperator();
-      RexImpTable.CallImplementor implementor =
-          RexImpTable.INSTANCE.get(operator);
-      if (implementor != null) {
-        return implementor.implement(this, call, nullAs);
-      }
-    }
-    switch (expr.getKind()) {
+    case DYNAMIC_PARAM:
+      return translateParameter((RexDynamicParam) expr, nullAs);
     default:
+      if (expr instanceof RexCall) {
+        final RexCall call = (RexCall) expr;
+        final SqlOperator operator = call.getOperator();
+        RexImpTable.CallImplementor implementor =
+            RexImpTable.INSTANCE.get(operator);
+        if (implementor != null) {
+          return implementor.implement(this, call, nullAs);
+        }
+      }
       throw new RuntimeException(
           "cannot translate expression " + expr);
     }
+  }
+
+  /** Translates a parameter. */
+  private Expression translateParameter(RexDynamicParam expr,
+      RexImpTable.NullAs nullAs) {
+    return nullAs.handle(
+        convert(
+            Expressions.call(
+                Expressions.variable(DataContext.class, "root"),
+                BuiltinMethod.DATA_CONTEXT_GET.method,
+                Expressions.constant("?" + expr.getIndex())),
+            typeFactory.getJavaClass(expr.getType())));
   }
 
   /** Translates a literal.

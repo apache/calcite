@@ -553,17 +553,17 @@ public class RexProgram
      */
     public boolean isNull(RexNode expr)
     {
-        if (RexLiteral.isNullLiteral(expr)) {
-            return true;
-        }
-        if (expr instanceof RexLocalRef) {
+        switch (expr.getKind()) {
+        case LITERAL:
+            return ((RexLiteral) expr).getValue2() == null;
+        case LOCAL_REF:
             RexLocalRef inputRef = (RexLocalRef) expr;
             return isNull(exprs.get(inputRef.index));
-        }
-        if (expr.getKind() == SqlKind.CAST) {
+        case CAST:
             return isNull(((RexCall) expr).operands.get(0));
+        default:
+            return false;
         }
-        return false;
     }
 
     /**

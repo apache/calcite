@@ -391,10 +391,27 @@ public enum SqlKind
     FOLLOWING,
 
     /**
-     * The field access operator, ".". (Only used at the RexNode level; at
-     * SqlNode level, a field-access is part of an identifier.)
+     * The field access operator, ".".
+     *
+     * <p>(Only used at the RexNode level; at
+     * SqlNode level, a field-access is part of an identifier.)</p>
      */
     FIELD_ACCESS,
+
+    /**
+     * Reference to an input field.
+     *
+     * <p>(Only used at the RexNode level.)</p>
+     */
+    INPUT_REF,
+
+    /**
+     * Reference to a sub-expression computed within the current relational
+     * operator.
+     *
+     * <p>(Only used at the RexNode level.)</p>
+     */
+    LOCAL_REF,
 
     // functions
 

@@ -4092,6 +4092,30 @@ public class SqlValidatorImpl
         return null;
     }
 
+    public RelDataType getParameterRowType(SqlNode sqlQuery) {
+        // NOTE: We assume that bind variables occur in depth-first tree
+        // traversal in the same order that they occurred in the SQL text.
+        final List<RelDataType> types = new ArrayList<RelDataType>();
+        sqlQuery.accept(
+            new SqlShuttle() {
+                @Override public SqlNode visit(SqlDynamicParam param) {
+                    RelDataType type = getValidatedNodeType(param);
+                    types.add(type);
+                    return param;
+                }
+            });
+        return typeFactory.createStructType(
+            new AbstractList<Map.Entry<String, RelDataType>>() {
+                @Override public Map.Entry<String, RelDataType> get(int index) {
+                    return Pair.of("?" + index, types.get(index));
+                }
+
+                @Override public int size() {
+                    return types.size();
+                }
+            });
+    }
+
     public void validateColumnListParams(
         SqlFunction function,
         RelDataType [] argTypes,

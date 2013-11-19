@@ -20,6 +20,7 @@ package org.eigenbase.rex;
 import java.util.List;
 
 import org.eigenbase.reltype.*;
+import org.eigenbase.sql.SqlKind;
 import org.eigenbase.util.Pair;
 
 /**
@@ -97,6 +98,10 @@ public class RexInputRef
         return Pair.of(
             (RexNode) new RexInputRef(index, field.getType()),
             field.getName());
+    }
+
+    @Override public SqlKind getKind() {
+        return SqlKind.INPUT_REF;
     }
 
     public RexInputRef clone()

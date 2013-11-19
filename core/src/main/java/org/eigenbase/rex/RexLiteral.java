@@ -491,8 +491,7 @@ public class RexLiteral
         return type;
     }
 
-    public SqlKind getKind()
-    {
+    @Override public SqlKind getKind() {
         return SqlKind.LITERAL;
     }
 

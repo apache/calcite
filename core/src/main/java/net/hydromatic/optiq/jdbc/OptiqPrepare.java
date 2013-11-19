@@ -25,6 +25,7 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.runtime.Bindable;
+import net.hydromatic.optiq.runtime.ByteString;
 import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.rel.RelNode;
@@ -222,6 +223,8 @@ public interface OptiqPrepare {
 
     Object value;
 
+    /** Value that means the parameter has been set to null.
+     * If {@link #value} is null, parameter has not been set. */
     public static final Object DUMMY_VALUE = new Object();
 
     public Parameter(
@@ -242,31 +245,42 @@ public interface OptiqPrepare {
     }
 
     public void setByte(byte o) {
+      this.value = o;
     }
 
     public void setValue(char o) {
+      this.value = o;
     }
 
     public void setShort(short o) {
+      this.value = o;
     }
 
     public void setInt(int o) {
+      this.value = o;
     }
 
     public void setValue(long o) {
+      this.value = o;
     }
 
     public void setValue(byte[] o) {
+      this.value = o == null ? DUMMY_VALUE : new ByteString(o);
     }
 
     public void setBoolean(boolean o) {
+      this.value = o;
     }
 
     public void setValue(Object o) {
+      this.value = wrap(o);
+    }
+
+    private static Object wrap(Object o) {
       if (o == null) {
-        o = DUMMY_VALUE;
+        return DUMMY_VALUE;
       }
-      this.value = o;
+      return o;
     }
 
     public boolean isSet() {
@@ -274,15 +288,18 @@ public interface OptiqPrepare {
     }
 
     public void setRowId(RowId x) {
+      this.value = wrap(x);
     }
 
-    public void setNString(String value) {
+    public void setNString(String o) {
+      this.value = wrap(o);
     }
 
     public void setNCharacterStream(Reader value, long length) {
     }
 
     public void setNClob(NClob value) {
+      this.value = wrap(value);
     }
 
     public void setClob(Reader reader, long length) {
@@ -295,6 +312,7 @@ public interface OptiqPrepare {
     }
 
     public void setSQLXML(SQLXML xmlObject) {
+      this.value = wrap(xmlObject);
     }
 
     public void setAsciiStream(InputStream x, long length) {
@@ -331,39 +349,49 @@ public interface OptiqPrepare {
     }
 
     public void setTimestamp(Timestamp x) {
+      this.value = wrap(x);
     }
 
     public void setTime(Time x) {
+      this.value = wrap(x);
     }
 
     public void setFloat(float x) {
+      this.value = wrap(x);
     }
 
     public void setDouble(double x) {
+      this.value = wrap(x);
     }
 
     public void setBigDecimal(BigDecimal x) {
+      this.value = wrap(x);
     }
 
     public void setString(String x) {
+      this.value = wrap(x);
     }
 
     public void setBytes(byte[] x) {
+      this.value = x == null ? DUMMY_VALUE : wrap(x);
     }
 
     public void setDate(Date x, Calendar cal) {
     }
 
     public void setDate(Date x) {
+      this.value = wrap(x);
     }
 
     public void setObject(Object x, int targetSqlType) {
     }
 
     public void setObject(Object x) {
+      this.value = wrap(x);
     }
 
     public void setNull(int sqlType) {
+      this.value = DUMMY_VALUE;
     }
 
     public void setTime(Time x, Calendar cal) {

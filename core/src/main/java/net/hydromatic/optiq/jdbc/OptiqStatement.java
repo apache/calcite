@@ -413,6 +413,10 @@ public abstract class OptiqStatement
     return prepare.prepareQueryable(createPrepareContext(), queryable);
   }
 
+  List<Object> getParameterValues() {
+    return Collections.emptyList();
+  }
+
   private static class ContextImpl implements OptiqPrepare.Context {
     private final OptiqConnectionImpl connection;
 
@@ -429,7 +433,7 @@ public abstract class OptiqStatement
     }
 
     public DataContext createDataContext() {
-      return connection.createDataContext();
+      return connection.createDataContext(Collections.emptyList());
     }
 
     public List<String> getDefaultSchemaPath() {

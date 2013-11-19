@@ -24,7 +24,9 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 /**
  * Implementation of {@link java.sql.PreparedStatement}
@@ -289,6 +291,17 @@ abstract class OptiqPreparedStatement
         getParameter(param); // forces param range check
     Util.discard(paramDef);
     return ParameterMetaData.parameterModeIn;
+  }
+
+  @Override
+  List<Object> getParameterValues() {
+    final List<Object> list = new ArrayList<Object>();
+    for (OptiqPrepare.Parameter parameter : prepareResult.parameterList) {
+      list.add(parameter.value == OptiqPrepare.Parameter.DUMMY_VALUE
+          ? null
+          : parameter.value);
+    }
+    return list;
   }
 
   // Helper classes

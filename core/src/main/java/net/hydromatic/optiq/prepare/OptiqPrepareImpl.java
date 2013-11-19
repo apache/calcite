@@ -324,8 +324,21 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           preparingStmt.prepareQueryable(queryable, x);
     }
 
-    // TODO: parameters
-    final List<Parameter> parameters = Collections.emptyList();
+    final List<Parameter> parameters = new ArrayList<Parameter>();
+    final RelDataType parameterRowType = preparedResult.getParameterRowType();
+    for (RelDataTypeField field : parameterRowType.getFieldList()) {
+        RelDataType type = field.getType();
+        parameters.add(
+            new Parameter(
+                false,
+                getPrecision(type),
+                getScale(type),
+                getTypeOrdinal(type),
+                getTypeName(type),
+                getClassName(type),
+                field.getName()));
+    }
+
     RelDataType jdbcType = makeStruct(typeFactory, x);
     final List<List<String>> originList = preparedResult.getFieldOrigins();
     final List<ColumnMetaData> columns =
@@ -353,18 +366,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       final RelDataTypeField field = pair.e;
       RelDataType type = field.getType();
       List<String> origins = originList.get(pair.i);
-      SqlTypeName sqlTypeName = type.getSqlTypeName();
-      final String typeName;
-      switch (sqlTypeName) {
-      case INTERVAL_YEAR_MONTH:
-      case INTERVAL_DAY_TIME:
-        // e.g. "INTERVAL_MONTH" or "INTERVAL_YEAR_MONTH"
-        typeName = "INTERVAL_"
-            + type.getIntervalQualifier().toString().replace(' ', '_');
-        break;
-      default:
-        typeName = sqlTypeName.getName();
-      }
       Class clazz =
           (Class) typeFactory.getJavaClass(
               x.isStruct()
@@ -387,24 +388,53 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               field.getName(),
               origins == null ? null : origins.get(2),
               origins == null ? null : origins.get(0),
-              type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
-                  ? 0
-                  : type.getPrecision(),
-              type.getScale() == RelDataType.SCALE_NOT_SPECIFIED
-                  ? 0
-                  : type.getScale(),
+              getPrecision(type),
+              getScale(type),
               origins == null ? null : origins.get(1),
               null,
-              sqlTypeName.getJdbcOrdinal(),
-              typeName,
+              getTypeOrdinal(type),
+              getTypeName(type),
               true,
               false,
               false,
-              null,
+              getClassName(type),
               rep));
     }
     return columns;
   }
+
+  private int getTypeOrdinal(RelDataType type) {
+    return type.getSqlTypeName().getJdbcOrdinal();
+  }
+
+  private static String getClassName(RelDataType type) {
+    return null;
+  }
+
+  private static int getScale(RelDataType type) {
+    return type.getScale() == RelDataType.SCALE_NOT_SPECIFIED
+        ? 0
+        : type.getScale();
+  }
+
+  private static int getPrecision(RelDataType type) {
+    return type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+        ? 0
+        : type.getPrecision();
+  }
+
+    private static String getTypeName(RelDataType type) {
+      SqlTypeName sqlTypeName = type.getSqlTypeName();
+      switch (sqlTypeName) {
+      case INTERVAL_YEAR_MONTH:
+      case INTERVAL_DAY_TIME:
+        // e.g. "INTERVAL_MONTH" or "INTERVAL_YEAR_MONTH"
+        return "INTERVAL_"
+            + type.getIntervalQualifier().toString().replace(' ', '_');
+      default:
+        return sqlTypeName.getName();
+      }
+    }
 
   protected void populateMaterializations(Context context,
       RelOptPlanner planner, Prepare.Materialization materialization) {
@@ -507,6 +537,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       final RelDataType jdbcType =
           makeStruct(rexBuilder.getTypeFactory(), resultType);
       fieldOrigins = Collections.nCopies(jdbcType.getFieldCount(), null);
+      parameterRowType =
+          rexBuilder.getTypeFactory().createStructType(
+              ImmutableList.<Pair<String, RelDataType>>of());
 
       // Structured type flattening, view expansion, and plugging in
       // physical storage.
@@ -615,11 +648,12 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     @Override
     protected PreparedResult createPreparedExplanation(
         RelDataType resultType,
+        RelDataType parameterRowType,
         RelNode rootRel,
         boolean explainAsXml,
         SqlExplainLevel detailLevel) {
       return new OptiqPreparedExplain(
-          resultType, rootRel, explainAsXml, detailLevel);
+          resultType, parameterRowType, rootRel, explainAsXml, detailLevel);
     }
 
     @Override
@@ -663,6 +697,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
       return new PreparedResultImpl(
           resultType,
+          parameterRowType,
           fieldOrigins,
           rootRel,
           mapTableModOp(isDml, sqlKind),
@@ -698,10 +733,11 @@ public class OptiqPrepareImpl implements OptiqPrepare {
   private static class OptiqPreparedExplain extends Prepare.PreparedExplain {
     public OptiqPreparedExplain(
         RelDataType resultType,
+        RelDataType parameterRowType,
         RelNode rootRel,
         boolean explainAsXml,
         SqlExplainLevel detailLevel) {
-      super(resultType, rootRel, explainAsXml, detailLevel);
+      super(resultType, parameterRowType, rootRel, explainAsXml, detailLevel);
     }
 
     @Override

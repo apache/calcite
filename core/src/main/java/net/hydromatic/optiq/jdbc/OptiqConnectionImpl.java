@@ -149,7 +149,8 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
       OptiqStatement statement = createStatement();
       OptiqPrepare.PrepareResult<T> enumerable =
           statement.prepare(queryable);
-      final DataContext dataContext = createDataContext();
+      final DataContext dataContext =
+          createDataContext(Collections.emptyList());
       return enumerable.enumerator(dataContext);
     } catch (SQLException e) {
       throw new RuntimeException(e);
@@ -450,8 +451,8 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
     return iface.isInstance(this);
   }
 
-  public DataContext createDataContext() {
-    return new DataContextImpl(this, (RootSchema) rootSchema);
+  public DataContext createDataContext(List<Object> parameterValues) {
+    return new DataContextImpl(this, (RootSchema) rootSchema, parameterValues);
   }
 
   static class OptiqQueryable<T>
@@ -520,7 +521,8 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
     private final ImmutableMap<Object, Object> map;
     private final RootSchema rootSchema;
 
-    DataContextImpl(OptiqConnectionImpl connection, RootSchema rootSchema) {
+    DataContextImpl(OptiqConnectionImpl connection, RootSchema rootSchema,
+        List<Object> parameterValues) {
       this.rootSchema = rootSchema;
 
       // Store the time at which the query started executing. The SQL
@@ -536,16 +538,27 @@ abstract class OptiqConnectionImpl implements OptiqConnection, QueryProvider {
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
 
-      map = ImmutableMap.builder()
-          .put("utcTimestamp", time)
+      ImmutableMap.Builder<Object, Object> builder = ImmutableMap.builder();
+      builder.put("utcTimestamp", time)
           .put("currentTimestamp", time + currentOffset)
           .put("localTimestamp", time + localOffset)
-          .put("timeZone", timeZone)
-          .build();
+          .put("timeZone", timeZone);
+      for (Ord<Object> value : Ord.zip(parameterValues)) {
+        Object e = value.e;
+        if (e == null) {
+          e = OptiqPrepare.Parameter.DUMMY_VALUE;
+        }
+        builder.put("?" + value.i, e);
+      }
+      map = builder.build();
     }
 
     public synchronized Object get(String name) {
-      return map.get(name);
+      Object o = map.get(name);
+      if (o == OptiqPrepare.Parameter.DUMMY_VALUE) {
+        return null;
+      }
+      return o;
     }
 
     public Schema getRootSchema() {

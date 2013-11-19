@@ -1493,6 +1493,50 @@ public class JdbcTest {
             });
   }
 
+  /** Tests a {@link PreparedStatement} with parameters. */
+  @Test public void testPreparedStatement() throws Exception {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .doWithConnection(
+            new Function1<OptiqConnection, Object>() {
+              public Object apply(OptiqConnection connection) {
+                try {
+                  final PreparedStatement preparedStatement =
+                      connection.prepareStatement(
+                          "select \"deptno\", \"name\" from \"hr\".\"emps\"\n"
+                          + "where \"deptno\" < ? and \"name\" like ?");
+
+                  // execute with both vars null - no results
+                  ResultSet resultSet = preparedStatement.executeQuery();
+                  assertFalse(resultSet.next());
+
+                  // execute with ?0=15, ?1='%' - 3 rows
+                  preparedStatement.setInt(1, 15);
+                  preparedStatement.setString(2, "%");
+                  resultSet = preparedStatement.executeQuery();
+                  assertEquals(
+                      "deptno=10; name=Bill\n"
+                      + "deptno=10; name=Sebastian\n"
+                      + "deptno=10; name=Theodore\n",
+                      OptiqAssert.toString(resultSet));
+
+                  // execute with ?0=15 (from last bind), ?1='%r%' - 1 row
+                  preparedStatement.setString(2, "%r%");
+                  resultSet = preparedStatement.executeQuery();
+                  assertEquals(
+                      "deptno=10; name=Theodore\n",
+                      OptiqAssert.toString(resultSet));
+
+                  resultSet.close();
+                  preparedStatement.close();
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+  }
+
   /** Tests a JDBC connection that provides a model (a single schema based on
    * a JDBC database). */
   @Test public void testModel() {
