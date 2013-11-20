@@ -15,27 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.impl.splunk;
+package net.hydromatic.avatica.test;
 
-import net.hydromatic.avatica.DriverVersion;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
 /**
- * Version information for Optiq JDBC Driver for Splunk.
+ * Avatica test suite.
  */
-class SplunkDriverVersion extends DriverVersion {
-  /** Creates an OptiqDriverVersion. */
-  SplunkDriverVersion() {
-    super(
-        "Optiq JDBC Driver for Splunk",
-        "0.2",
-        "Optiq-Splunk",
-        "0.2",
-        true,
-        0,
-        1,
-        0,
-        1);
-  }
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+    ConnectStringParserTest.class
+})
+public class AvaticaSuite {
 }
 
-// End SplunkDriverVersion.java
+// End AvaticaSuite.java

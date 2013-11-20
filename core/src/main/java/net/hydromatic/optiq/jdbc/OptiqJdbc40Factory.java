@@ -15,27 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.impl.splunk;
-
-import net.hydromatic.avatica.DriverVersion;
+package net.hydromatic.optiq.jdbc;
 
 /**
- * Version information for Optiq JDBC Driver for Splunk.
+ * Implementation of {@link net.hydromatic.avatica.AvaticaFactory}
+ * for Optiq and JDBC 4.0 (corresponds to JDK 1.6).
  */
-class SplunkDriverVersion extends DriverVersion {
-  /** Creates an OptiqDriverVersion. */
-  SplunkDriverVersion() {
-    super(
-        "Optiq JDBC Driver for Splunk",
-        "0.2",
-        "Optiq-Splunk",
-        "0.2",
-        true,
-        0,
-        1,
-        0,
-        1);
+public class OptiqJdbc40Factory extends OptiqJdbc41Factory {
+  /** Creates a JDBC factory. */
+  public OptiqJdbc40Factory() {
+    super(4, 0);
   }
 }
 
-// End SplunkDriverVersion.java
+// End OptiqJdbc40Factory.java

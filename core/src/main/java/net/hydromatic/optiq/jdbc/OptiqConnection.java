@@ -75,6 +75,11 @@ public interface OptiqConnection extends Connection, QueryProvider {
 
   // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
   String getSchema() throws SQLException;
+
+  /** Returns a view onto this connection's configuration properties. Code
+   * within Optiq should use this view rather than calling
+   * {@link java.util.Properties#getProperty(String)}. */
+  ConnectionConfig config();
 }
 
 // End OptiqConnection.java

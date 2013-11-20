@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.runtime;
+package net.hydromatic.avatica;
 
 import java.io.*;
 import java.math.BigDecimal;

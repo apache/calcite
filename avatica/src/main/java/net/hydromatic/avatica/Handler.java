@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
+package net.hydromatic.avatica;
 
 import java.sql.SQLException;
 
@@ -27,7 +27,7 @@ import java.sql.SQLException;
  * need to achieve special effects.</p>
  */
 public interface Handler {
-  /** Called by Optiq server when a connection is being created.
+  /** Called by container when a connection is being created.
    *
    * <p>If the implementation of this method throws, the connection
    * will not be created.</p>
@@ -35,9 +35,9 @@ public interface Handler {
    * @param connection Connection
    * @throws SQLException on error
    */
-  void onConnectionInit(OptiqConnection connection) throws SQLException;
+  void onConnectionInit(AvaticaConnection connection) throws SQLException;
 
-  /** Called by Optiq server when a connection is being closed.
+  /** Called by container when a connection is being closed.
    *
    * <p>If the implementation of this method throws, the call to
    * {@link java.sql.Connection#close} that triggered this method will throw an
@@ -45,9 +45,9 @@ public interface Handler {
    *
    * @param connection Connection
    */
-  void onConnectionClose(OptiqConnection connection) throws RuntimeException;
+  void onConnectionClose(AvaticaConnection connection) throws RuntimeException;
 
-  /** Called by Optiq server when a statement is being executed.
+  /** Called by container when a statement is being executed.
    *
    * <p>If the session would like the statement results stored in a temporary
    * table, {@code resultSink} is not null.
@@ -56,15 +56,15 @@ public interface Handler {
    * this method returns).</p>
    *
    * @param statement Statement
-   * @param resultSink Place to put result of query. Null if Optiq does not
+   * @param resultSink Place to put result of query. Null if container does not
    *                   want results stored to a temporary table
    * @throws RuntimeException on error
    */
   void onStatementExecute(
-      OptiqStatement statement,
+      AvaticaStatement statement,
       ResultSink resultSink) throws RuntimeException;
 
-  /** Called by Optiq server when a statement is being closed.
+  /** Called by container when a statement is being closed.
    *
    * <p>This method is called after marking the statement closed, and after
    * closing any open {@link java.sql.ResultSet} objects.</p>
@@ -76,7 +76,7 @@ public interface Handler {
    * @param statement Statement
    * @throws RuntimeException on error
    */
-  void onStatementClose(OptiqStatement statement) throws RuntimeException;
+  void onStatementClose(AvaticaStatement statement) throws RuntimeException;
 
   interface ResultSink {
     /** Registers a temporary table. */

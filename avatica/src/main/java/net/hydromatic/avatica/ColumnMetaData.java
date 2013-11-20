@@ -15,12 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.runtime;
-
-import com.google.common.collect.ImmutableMap;
+package net.hydromatic.avatica;
 
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -145,11 +145,11 @@ public class ColumnMetaData {
     public static final Map<Class, Rep> VALUE_MAP;
 
     static {
-      ImmutableMap.Builder<Class, Rep> builder = ImmutableMap.builder();
+      Map<Class, Rep> builder = new HashMap<Class, Rep>();
       for (Rep rep : values()) {
         builder.put(rep.clazz, rep);
       }
-      VALUE_MAP = builder.build();
+      VALUE_MAP = Collections.unmodifiableMap(builder);
     }
 
     Rep(Class clazz) {

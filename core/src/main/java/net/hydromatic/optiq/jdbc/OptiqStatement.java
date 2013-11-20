@@ -17,438 +17,67 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.avatica.AvaticaResultSet;
+import net.hydromatic.avatica.AvaticaStatement;
 
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.runtime.*;
+import net.hydromatic.linq4j.Queryable;
+
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import java.sql.*;
-import java.util.*;
 
 /**
  * Implementation of {@link java.sql.Statement}
  * for the Optiq engine.
  */
 public abstract class OptiqStatement
-    implements Statement, OptiqServerStatement
+    extends AvaticaStatement
+    implements OptiqServerStatement
 {
-  final OptiqConnectionImpl connection;
-  private boolean closed;
-
-  /**
-   * Support for {@link #closeOnCompletion()} method.
-   */
-  protected boolean closeOnCompletion;
-
-  /**
-   * Current result set, or null if the statement is not executing anything.
-   * Any method which modifies this member must synchronize
-   * on the OptiqStatement.
-   */
-  OptiqResultSet openResultSet;
-
-  private int queryTimeoutMillis;
-  final int resultSetType;
-  final int resultSetConcurrency;
-  final int resultSetHoldability;
-  private int fetchSize;
-  private int fetchDirection;
-  private int maxRowCount;
-
   OptiqStatement(
       OptiqConnectionImpl connection,
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) {
-    assert connection != null;
-    this.resultSetType = resultSetType;
-    this.resultSetConcurrency = resultSetConcurrency;
-    this.resultSetHoldability = resultSetHoldability;
-    this.connection = connection;
-    this.closed = false;
+    super(connection, resultSetType, resultSetConcurrency,
+        resultSetHoldability);
   }
 
   // implement Statement
 
   public ResultSet executeQuery(String sql) throws SQLException {
-    OptiqPrepare.PrepareResult x = parseQuery(sql);
+    OptiqPrepare.PrepareResult x = getConnection().parseQuery(sql,
+        createPrepareContext(),
+        maxRowCount <= 0 ? -1 : maxRowCount);
     return executeQueryInternal(x);
   }
 
-  public int executeUpdate(String sql) throws SQLException {
-    ResultSet resultSet = executeQuery(sql);
-    if (resultSet.getMetaData().getColumnCount() != 1) {
-      throw new SQLException("expected one result column");
-    }
-    if (!resultSet.next()) {
-      throw new SQLException("expected one row, got zero");
-    }
-    int result = resultSet.getInt(1);
-    if (resultSet.next()) {
-      throw new SQLException("expected one row, got two or more");
-    }
-    resultSet.close();
-    return result;
+  public OptiqConnectionImpl getConnection() {
+    return (OptiqConnectionImpl) connection;
   }
 
-  public synchronized void close() throws SQLException {
-    try {
-      close_();
-    } catch (RuntimeException e) {
-      throw connection.helper.createException("While closing statement", e);
-    }
+  public OptiqConnectionImpl.ContextImpl createPrepareContext() {
+    return new OptiqConnectionImpl.ContextImpl(getConnection());
   }
 
-  private void close_() {
+  protected <T> OptiqPrepare.PrepareResult<T> prepare(Queryable<T> queryable) {
+    final OptiqPrepare prepare = getConnection().prepareFactory.apply();
+    return prepare.prepareQueryable(createPrepareContext(), queryable);
+  }
+
+  @Override
+  protected void close_() {
     if (!closed) {
       closed = true;
-      connection.server.removeStatement(this);
+      ((OptiqConnectionImpl) connection).server.removeStatement(this);
       if (openResultSet != null) {
-        OptiqResultSet c = openResultSet;
+        AvaticaResultSet c = openResultSet;
         openResultSet = null;
         c.close();
       }
       // If onStatementClose throws, this method will throw an exception (later
       // converted to SQLException), but this statement still gets closed.
       connection.driver.handler.onStatementClose(this);
-    }
-  }
-
-  public int getMaxFieldSize() throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public void setMaxFieldSize(int max) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public int getMaxRows() throws SQLException {
-    return maxRowCount;
-  }
-
-  public void setMaxRows(int maxRowCount) throws SQLException {
-    if (maxRowCount < 0) {
-      throw connection.helper.createException(
-          "illegal maxRows value: " + maxRowCount);
-    }
-    this.maxRowCount = maxRowCount;
-  }
-
-  public void setEscapeProcessing(boolean enable) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public int getQueryTimeout() throws SQLException {
-    long timeoutSeconds = getQueryTimeoutMillis() / 1000;
-    if (timeoutSeconds > Integer.MAX_VALUE) {
-      return Integer.MAX_VALUE;
-    }
-    if (timeoutSeconds == 0 && getQueryTimeoutMillis() > 0) {
-      // Don't return timeout=0 if e.g. timeoutMillis=500. 0 is special.
-      return 1;
-    }
-    return (int) timeoutSeconds;
-  }
-
-  int getQueryTimeoutMillis() {
-    return queryTimeoutMillis;
-  }
-
-  public void setQueryTimeout(int seconds) throws SQLException {
-    if (seconds < 0) {
-      throw connection.helper.createException(
-          "illegal timeout value " + seconds);
-    }
-    setQueryTimeoutMillis(seconds * 1000);
-  }
-
-  void setQueryTimeoutMillis(int millis) {
-    this.queryTimeoutMillis = millis;
-  }
-
-  public synchronized void cancel() throws SQLException {
-    if (openResultSet != null) {
-      openResultSet.cancel();
-    }
-  }
-
-  public SQLWarning getWarnings() throws SQLException {
-    return null; // no warnings, since warnings are not supported
-  }
-
-  public void clearWarnings() throws SQLException {
-    // no-op since warnings are not supported
-  }
-
-  public void setCursorName(String name) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public boolean execute(String sql) throws SQLException {
-    OptiqPrepare.PrepareResult x = parseQuery(sql);
-    return executeInternal(x);
-  }
-
-  public ResultSet getResultSet() throws SQLException {
-    // NOTE: result set becomes visible in this member while
-    // executeQueryInternal is still in progress, and before it has
-    // finished executing. Its internal state may not be ready for API
-    // calls. JDBC never claims to be thread-safe! (Except for calls to the
-    // cancel method.) It is not possible to synchronize, because it would
-    // block 'cancel'.
-    return openResultSet;
-  }
-
-  public int getUpdateCount() throws SQLException {
-    return -1;
-  }
-
-  public boolean getMoreResults() throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public void setFetchDirection(int direction) throws SQLException {
-    this.fetchDirection = direction;
-  }
-
-  public int getFetchDirection() {
-    return fetchDirection;
-  }
-
-  public void setFetchSize(int rows) throws SQLException {
-    this.fetchSize = rows;
-  }
-
-  public int getFetchSize() {
-    return fetchSize;
-  }
-
-  public int getResultSetConcurrency() throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public int getResultSetType() throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public void addBatch(String sql) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public void clearBatch() throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public int[] executeBatch() throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public OptiqConnectionImpl getConnection() {
-    return connection;
-  }
-
-  public boolean getMoreResults(int current) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public ResultSet getGeneratedKeys() throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public int executeUpdate(
-      String sql, int autoGeneratedKeys) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public int executeUpdate(
-      String sql, int columnIndexes[]) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public int executeUpdate(
-      String sql, String columnNames[]) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public boolean execute(
-      String sql, int autoGeneratedKeys) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public boolean execute(
-      String sql, int columnIndexes[]) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public boolean execute(
-      String sql, String columnNames[]) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public int getResultSetHoldability() throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public boolean isClosed() throws SQLException {
-    return closed;
-  }
-
-  public void setPoolable(boolean poolable) throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  public boolean isPoolable() throws SQLException {
-    throw new UnsupportedOperationException();
-  }
-
-  // implement Wrapper
-
-  public <T> T unwrap(Class<T> iface) throws SQLException {
-    if (iface.isInstance(this)) {
-      return iface.cast(this);
-    }
-    throw connection.helper.createException(
-        "does not implement '" + iface + "'");
-  }
-
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
-    return iface.isInstance(this);
-  }
-
-  /**
-   * Executes a parsed statement.
-   *
-   * @param query Parsed statement
-   * @return as specified by {@link Statement#execute(String)}
-   * @throws SQLException if a database error occurs
-   */
-  protected boolean executeInternal(
-      OptiqPrepare.PrepareResult query) throws SQLException {
-    ResultSet resultSet = executeQueryInternal(query);
-    return true;
-  }
-
-  /**
-   * Executes a parsed query, closing any previously open result set.
-   *
-   * @param query Parsed query
-   * @return Result set
-   * @throws SQLException if a database error occurs
-   */
-  protected ResultSet executeQueryInternal(
-      OptiqPrepare.PrepareResult query) throws SQLException {
-    // Close the previous open CellSet, if there is one.
-    synchronized (this) {
-      if (openResultSet != null) {
-        final OptiqResultSet cs = openResultSet;
-        openResultSet = null;
-        try {
-          cs.close();
-        } catch (Exception e) {
-          throw connection.helper.createException(
-              "Error while closing previous result set", e);
-        }
-      }
-
-      openResultSet =
-          connection.factory.newResultSet(
-              this, query.columnList, getCursorFactory(query));
-    }
-    // Release the monitor before executing, to give another thread the
-    // opportunity to call cancel.
-    try {
-      openResultSet.execute();
-    } catch (Exception e) {
-      throw connection.helper.createException(
-          "exception while executing query", e);
-    }
-    return openResultSet;
-  }
-
-  private static Function1<DataContext, Cursor> getCursorFactory(
-      final OptiqPrepare.PrepareResult prepareResult) {
-    return new Function1<DataContext, Cursor>() {
-      public Cursor apply(DataContext dataContext) {
-        Enumerator<?> enumerator = prepareResult.enumerator(dataContext);
-        //noinspection unchecked
-        return prepareResult.columnList.size() == 1
-            ? new ObjectEnumeratorCursor((Enumerator) enumerator)
-            : prepareResult.resultClazz != null
-                && !prepareResult.resultClazz.isArray()
-                ? new RecordEnumeratorCursor(
-                    (Enumerator) enumerator, prepareResult.resultClazz)
-                : new ArrayEnumeratorCursor((Enumerator) enumerator);
-      }
-    };
-  }
-
-  /**
-   * Called by each child result set when it is closed.
-   *
-   * @param resultSet Result set or cell set
-   */
-  void onResultSetClose(ResultSet resultSet) {
-    if (closeOnCompletion) {
-      close_();
-    }
-  }
-
-  protected <T> OptiqPrepare.PrepareResult<T> parseQuery(String sql) {
-    final OptiqPrepare prepare = connection.prepareFactory.apply();
-    return prepare.prepareSql(createPrepareContext(), sql, null, Object[].class,
-        maxRowCount <= 0 ? -1 : maxRowCount);
-  }
-
-  public ContextImpl createPrepareContext() {
-    return new ContextImpl(connection);
-  }
-
-  protected <T> OptiqPrepare.PrepareResult<T> prepare(Queryable<T> queryable) {
-    final OptiqPrepare prepare = connection.prepareFactory.apply();
-    return prepare.prepareQueryable(createPrepareContext(), queryable);
-  }
-
-  List<Object> getParameterValues() {
-    return Collections.emptyList();
-  }
-
-  private static class ContextImpl implements OptiqPrepare.Context {
-    private final OptiqConnectionImpl connection;
-
-    public ContextImpl(OptiqConnectionImpl connection) {
-      this.connection = connection;
-    }
-
-    public JavaTypeFactory getTypeFactory() {
-      return connection.typeFactory;
-    }
-
-    public Schema getRootSchema() {
-      return connection.getRootSchema();
-    }
-
-    public DataContext createDataContext() {
-      return connection.createDataContext(Collections.emptyList());
-    }
-
-    public List<String> getDefaultSchemaPath() {
-      final String schemaName = connection.getSchema();
-      return schemaName == null
-          ? Collections.<String>emptyList()
-          : Collections.singletonList(schemaName);
-    }
-
-    public ConnectionProperty.ConnectionConfig config() {
-      return ConnectionProperty.connectionConfig(connection.getProperties());
-    }
-
-    public OptiqPrepare.SparkHandler spark() {
-      return OptiqPrepare.Dummy.getSparkHandler();
     }
   }
 }

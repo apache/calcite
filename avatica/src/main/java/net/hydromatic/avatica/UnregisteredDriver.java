@@ -15,11 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
-
-import net.hydromatic.linq4j.function.Function0;
-
-import org.eigenbase.util14.ConnectStringParser;
+package net.hydromatic.avatica;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -29,7 +25,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 /**
- * Implementation of Optiq JDBC driver that does not register itself.
+ * Implementation of JDBC driver that does not register itself.
  *
  * <p>You can easily create a "vanity driver" that recognizes its own
  * URL prefix as a sub-class of this class. Per the JDBC specification it
@@ -38,22 +34,22 @@ import java.util.logging.Logger;
  * <p>Derived classes must implement {@link #createDriverVersion()} and
  * {@link #getConnectStringPrefix()}, and may override
  * {@link #createFactory()}.</p>
+ *
+ * <p>The provider must implement:</p>
+ * <ul>
+ *   <li>{@link AvaticaStatement#parseQuery(String)}</li>
+ *   <li>{@link AvaticaResultSet#execute()}</li>
+ * </ul>
  */
 public abstract class UnregisteredDriver implements java.sql.Driver {
   final DriverVersion version;
-  final Factory factory;
-  final Function0<OptiqPrepare> prepareFactory;
-  final Handler handler;
+  final AvaticaFactory factory;
+  public final Handler handler;
 
   protected UnregisteredDriver() {
     this.factory = createFactory();
-    this.prepareFactory = createPrepareFactory();
     this.version = createDriverVersion();
     this.handler = createHandler();
-  }
-
-  protected Function0<OptiqPrepare> createPrepareFactory() {
-    return OptiqPrepare.DEFAULT_FACTORY;
   }
 
   /**
@@ -69,7 +65,7 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
    *
    * @return JDBC object factory
    */
-  protected Factory createFactory() {
+  protected AvaticaFactory createFactory() {
     return instantiateFactory(getFactoryClassName(JdbcVersion.current()));
   }
 
@@ -85,12 +81,12 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
   protected String getFactoryClassName(JdbcVersion jdbcVersion) {
     switch (jdbcVersion) {
     case JDBC_30:
-      return "net.hydromatic.optiq.jdbc.FactoryJdbc3Impl";
+      return "net.hydromatic.avatica.AvaticaFactoryJdbc3Impl";
     case JDBC_40:
-      return "net.hydromatic.optiq.jdbc.FactoryJdbc4Impl";
+      return "net.hydromatic.avatica.AvaticaFactoryJdbc4Impl";
     case JDBC_41:
     default:
-      return "net.hydromatic.optiq.jdbc.FactoryJdbc41";
+      return "net.hydromatic.avatica.AvaticaFactoryJdbc41";
     }
   }
 
@@ -101,10 +97,10 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
   protected abstract DriverVersion createDriverVersion();
 
   /** Helper method for creating factories. */
-  protected static Factory instantiateFactory(String factoryClassName) {
+  protected static AvaticaFactory instantiateFactory(String factoryClassName) {
     try {
       final Class<?> clazz = Class.forName(factoryClassName);
-      return (Factory) clazz.newInstance();
+      return (AvaticaFactory) clazz.newInstance();
     } catch (ClassNotFoundException e) {
       throw new RuntimeException(e);
     } catch (IllegalAccessException e) {
@@ -122,8 +118,8 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
     assert url.startsWith(prefix);
     final String urlSuffix = url.substring(prefix.length());
     final Properties info2 = ConnectStringParser.parse(urlSuffix, info);
-    final OptiqConnectionImpl connection =
-        factory.newConnection(this, factory, prepareFactory, url, info2);
+    final AvaticaConnection connection =
+        factory.newConnection(this, factory, url, info2);
     handler.onConnectionInit(connection);
     return connection;
   }
@@ -195,7 +191,7 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
     } catch (SQLException e) {
       System.out.println(
           "Error occurred while registering JDBC driver "
-              + this + ": " + e.toString());
+          + this + ": " + e.toString());
     }
   }
 

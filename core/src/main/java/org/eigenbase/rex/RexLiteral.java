@@ -31,7 +31,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
-import net.hydromatic.optiq.runtime.ByteString;
+import net.hydromatic.avatica.ByteString;
 
 /**
  * Constant value in a row-expression.

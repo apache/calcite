@@ -29,7 +29,7 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.DateTimeUtil;
 
-import net.hydromatic.optiq.runtime.ByteString;
+import net.hydromatic.avatica.ByteString;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import com.google.common.collect.ImmutableList;

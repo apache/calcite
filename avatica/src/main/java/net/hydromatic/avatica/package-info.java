@@ -15,16 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
 
 /**
- * Implementation of {@link Factory} for JDBC 4.0 (corresponds to JDK 1.6).
+ * Avatica JDBC framework.
  */
-public class FactoryJdbc4Impl extends FactoryJdbc41 {
-  /** Creates a JDBC factory. */
-  FactoryJdbc4Impl() {
-    super(4, 0);
-  }
-}
+package net.hydromatic.avatica;
 
-// End FactoryJdbc4Impl.java
+// End package-info.java

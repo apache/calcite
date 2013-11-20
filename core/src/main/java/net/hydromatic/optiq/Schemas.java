@@ -202,17 +202,12 @@ public final class Schemas {
         return schemaPath;
       }
 
-      public ConnectionProperty.ConnectionConfig config() {
-        return ConnectionProperty.connectionConfig(connection.getProperties());
+      public ConnectionConfig config() {
+        return connection.config();
       }
 
       public OptiqPrepare.SparkHandler spark() {
         return OptiqPrepare.Dummy.getSparkHandler();
-      }
-
-      public DataContext createDataContext() {
-        // Create a dummy DataContext that has no variables.
-        return new DummyDataContext(connection);
       }
     };
   }

@@ -17,6 +17,10 @@
 */
 package net.hydromatic.optiq.prepare;
 
+import net.hydromatic.avatica.AvaticaParameter;
+import net.hydromatic.avatica.ColumnMetaData;
+import net.hydromatic.avatica.Helper;
+
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.Function1;
@@ -24,7 +28,6 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.jdbc.Helper;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.materialize.MaterializationService;
 import net.hydromatic.optiq.rules.java.*;
@@ -242,7 +245,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         Collections.nCopies(x.getFieldCount(), origin);
     return new PrepareResult<T>(
         sql,
-        ImmutableList.<Parameter>of(),
+        ImmutableList.<AvaticaParameter>of(),
         x,
         getColumnMetaDataList(typeFactory, x, x, origins),
         -1,
@@ -324,12 +327,12 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           preparingStmt.prepareQueryable(queryable, x);
     }
 
-    final List<Parameter> parameters = new ArrayList<Parameter>();
+    final List<AvaticaParameter> parameters = new ArrayList<AvaticaParameter>();
     final RelDataType parameterRowType = preparedResult.getParameterRowType();
     for (RelDataTypeField field : parameterRowType.getFieldList()) {
         RelDataType type = field.getType();
         parameters.add(
-            new Parameter(
+            new AvaticaParameter(
                 false,
                 getPrecision(type),
                 getScale(type),

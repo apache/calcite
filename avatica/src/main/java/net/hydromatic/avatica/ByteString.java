@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.runtime;
+package net.hydromatic.avatica;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -24,8 +24,9 @@ import java.util.Arrays;
  * Collection of bytes.
  *
  * <p>ByteString is to bytes what {@link String} is to chars: It is immutable,
- * implements equality (hashCode and equals), comparison (compareTo) and
- * serialization correctly.</p>
+ * implements equality ({@link #hashCode} and {@link #equals}),
+ * comparison ({@link #compareTo}) and
+ * {@link Serializable serialization} correctly.</p>
  */
 public class ByteString implements Comparable<ByteString>, Serializable {
   private final byte[] bytes;

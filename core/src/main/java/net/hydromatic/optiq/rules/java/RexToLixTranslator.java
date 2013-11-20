@@ -17,12 +17,13 @@
 */
 package net.hydromatic.optiq.rules.java;
 
+import net.hydromatic.avatica.ByteString;
+
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.runtime.ByteString;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;

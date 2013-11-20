@@ -17,16 +17,17 @@
 */
 package net.hydromatic.optiq.materialize;
 
+import net.hydromatic.avatica.ColumnMetaData;
+
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
-
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
+
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.prepare.Prepare;
-import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
 

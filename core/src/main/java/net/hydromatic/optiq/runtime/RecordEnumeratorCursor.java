@@ -22,7 +22,7 @@ import net.hydromatic.linq4j.Enumerator;
 import java.lang.reflect.Field;
 
 /**
- * Implementation of {@link net.hydromatic.optiq.runtime.Cursor} on top of an
+ * Implementation of {@link net.hydromatic.avatica.Cursor} on top of an
  * {@link net.hydromatic.linq4j.Enumerator} that
  * returns a record for each row. The record is a synthetic class whose fields
  * are all public.

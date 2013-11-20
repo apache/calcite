@@ -15,27 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.impl.splunk;
+package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.avatica.DriverVersion;
-
-/**
- * Version information for Optiq JDBC Driver for Splunk.
- */
-class SplunkDriverVersion extends DriverVersion {
-  /** Creates an OptiqDriverVersion. */
-  SplunkDriverVersion() {
-    super(
-        "Optiq JDBC Driver for Splunk",
-        "0.2",
-        "Optiq-Splunk",
-        "0.2",
-        true,
-        0,
-        1,
-        0,
-        1);
-  }
+/** Interface for reading connection properties within Optiq code. There is
+ * a method for every property. At some point there will be similar config
+ * classes for system and statement properties. */
+public interface ConnectionConfig {
+  boolean autoTemp();
+  boolean materializationsEnabled();
+  String model();
+  String schema();
+  boolean spark();
 }
 
-// End SplunkDriverVersion.java
+// End ConnectionConfig.java

@@ -15,70 +15,62 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
-
-import net.hydromatic.linq4j.function.Function0;
-import net.hydromatic.linq4j.function.Function1;
-
-import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.runtime.ColumnMetaData;
-import net.hydromatic.optiq.runtime.Cursor;
+package net.hydromatic.avatica;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
+import java.util.TimeZone;
 
 /**
  * Factory for JDBC objects.
  *
  * <p>There is an implementation for each supported JDBC version.</p>
  */
-interface Factory {
+public interface AvaticaFactory {
   int getJdbcMajorVersion();
 
   int getJdbcMinorVersion();
 
-  OptiqConnectionImpl newConnection(
+  AvaticaConnection newConnection(
       UnregisteredDriver driver,
-      Factory factory,
-      Function0<OptiqPrepare> prepareFactory,
+      AvaticaFactory factory,
       String url,
       Properties info);
 
-  OptiqStatement newStatement(
-      OptiqConnectionImpl connection,
+  AvaticaStatement newStatement(
+      AvaticaConnection connection,
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability);
 
-  OptiqPreparedStatement newPreparedStatement(
-      OptiqConnectionImpl connection,
-      String sql,
+  AvaticaPreparedStatement newPreparedStatement(
+      AvaticaConnection connection,
+      AvaticaPrepareResult prepareResult,
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException;
 
   /**
    * Creates a result set. You will then need to call
-   * {@link net.hydromatic.optiq.jdbc.OptiqResultSet#execute()} on it.
+   * {@link AvaticaResultSet#execute()} on it.
    *
    * @param statement Statement
-   * @param columnMetaDataList Metadata for each column
-   * @param cursorFactory Called on execute to create a cursor
+   * @param prepareResult Prepared statement
    * @return Result set
    */
-  OptiqResultSet newResultSet(
-      OptiqStatement statement,
-      List<ColumnMetaData> columnMetaDataList,
-      Function1<DataContext, Cursor> cursorFactory);
+  AvaticaResultSet newResultSet(
+      AvaticaStatement statement,
+      AvaticaPrepareResult prepareResult,
+      TimeZone timeZone);
 
-  OptiqDatabaseMetaData newDatabaseMetaData(
-      OptiqConnectionImpl connection);
+  AvaticaDatabaseMetaData newDatabaseMetaData(
+      AvaticaConnection connection);
 
   ResultSetMetaData newResultSetMetaData(
-      OptiqStatement statement,
-      List<ColumnMetaData> prepareResult);
+      AvaticaStatement statement,
+      List<ColumnMetaData> columnMetaDataList);
 }
 
-// End Factory.java
+// End AvaticaFactory.java

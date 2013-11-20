@@ -15,27 +15,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.impl.splunk;
+package net.hydromatic.avatica;
 
-import net.hydromatic.avatica.DriverVersion;
+import java.sql.SQLException;
 
 /**
- * Version information for Optiq JDBC Driver for Splunk.
+ * Utility methods, mainly concerning error-handling.
  */
-class SplunkDriverVersion extends DriverVersion {
-  /** Creates an OptiqDriverVersion. */
-  SplunkDriverVersion() {
-    super(
-        "Optiq JDBC Driver for Splunk",
-        "0.2",
-        "Optiq-Splunk",
-        "0.2",
-        true,
-        0,
-        1,
-        0,
-        1);
+public class Helper {
+  public static final Helper INSTANCE = new Helper();
+
+  private Helper() {
+  }
+
+  public RuntimeException todo() {
+    return new RuntimeException("todo: implement this method");
+  }
+
+  public RuntimeException wrap(String message, Exception e) {
+    return new RuntimeException(message, e);
+  }
+
+  public SQLException createException(String message, Exception e) {
+    return new SQLException(message, e);
+  }
+
+  public SQLException createException(String message) {
+    return new SQLException(message);
+  }
+
+  public SQLException toSQLException(SQLException exception) {
+    return exception;
   }
 }
 
-// End SplunkDriverVersion.java
+// End Helper.java

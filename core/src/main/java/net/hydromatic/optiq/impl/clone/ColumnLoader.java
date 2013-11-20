@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.impl.clone;
 
+import net.hydromatic.avatica.ColumnMetaData;
+
 import net.hydromatic.linq4j.Enumerable;
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.Primitive;
@@ -24,7 +26,6 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;

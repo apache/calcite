@@ -21,7 +21,6 @@ import net.hydromatic.linq4j.Enumerable;
 import net.hydromatic.linq4j.Linq4j;
 
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
-import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
@@ -29,7 +28,6 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 import static org.junit.Assert.*;
 

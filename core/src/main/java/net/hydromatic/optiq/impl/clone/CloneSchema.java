@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.impl.clone;
 
+import net.hydromatic.avatica.ColumnMetaData;
+
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 
@@ -24,7 +26,6 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
-import net.hydromatic.optiq.runtime.ColumnMetaData;
 
 import org.eigenbase.reltype.RelDataType;
 

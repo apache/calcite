@@ -20,7 +20,7 @@ package net.hydromatic.optiq.runtime;
 import net.hydromatic.linq4j.Enumerator;
 
 /**
- * Implementation of {@link Cursor} on top of an
+ * Implementation of {@link net.hydromatic.avatica.Cursor} on top of an
  * {@link net.hydromatic.linq4j.Enumerator} that
  * returns an array of {@link Object} for each row.
  */

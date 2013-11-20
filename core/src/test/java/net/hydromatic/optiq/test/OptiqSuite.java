@@ -55,7 +55,6 @@ import org.junit.runners.Suite;
     EigenbaseResourceTest.class,
     FilteratorTest.class,
     OptionsListTest.class,
-    ConnectStringParserTest.class,
     PermutationTestCase.class,
     SqlFunctionsTest.class,
     SqlTypeNameTest.class,

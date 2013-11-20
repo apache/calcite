@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.test;
 
+import net.hydromatic.avatica.ByteString;
+
 import net.hydromatic.optiq.runtime.*;
 
 import org.junit.Test;

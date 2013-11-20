@@ -17,6 +17,9 @@
 */
 package net.hydromatic.optiq.impl.splunk;
 
+import net.hydromatic.avatica.DriverVersion;
+import net.hydromatic.avatica.UnregisteredDriver;
+
 import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;

@@ -6,19 +6,11 @@
     <version>0.4.16-SNAPSHOT</version>
   </parent>
 
-  <artifactId>optiq-core</artifactId>
+  <artifactId>optiq-avatica</artifactId>
   <packaging>jar</packaging>
   <version>0.4.16-SNAPSHOT</version>
-  <name>optiq-core</name>
-  <description>Core Optiq APIs and engine.</description>
-
-  <dependencies>
-    <dependency>
-      <groupId>net.hydromatic</groupId>
-      <artifactId>optiq-avatica</artifactId>
-      <version>0.4.16-SNAPSHOT</version>
-    </dependency>
-  </dependencies>
+  <name>optiq-avatica</name>
+  <description>JDBC driver framework.</description>
 
   <build>
     <plugins>
@@ -27,30 +19,10 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.15</version>
         <configuration>
-          <includes>
-            <include>net/hydromatic/optiq/test/OptiqSuite.java</include>
-          </includes>
+          <excludes>
+            <exclude>net/hydromatic/**/AvaticaTest.java</exclude>
+          </excludes>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>javacc-maven-plugin</artifactId>
-        <version>2.4</version>
-        <executions>
-          <execution>
-            <id>javacc</id>
-            <goals>
-              <goal>javacc</goal>
-            </goals>
-            <configuration>
-              <includes>
-                <include>**/CombinedParser.jj</include>
-              </includes>
-              <lookAhead>2</lookAhead>
-              <isStatic>false</isStatic>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
 
       <!-- Parent module has the same plugin and does the work of
@@ -73,16 +45,5 @@
         </executions>
       </plugin>
     </plugins>
-
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-      </resource>
-      <resource>
-        <directory>src/main/resources/version</directory>
-        <filtering>true</filtering>
-      </resource>
-    </resources>
   </build>
-
 </project>

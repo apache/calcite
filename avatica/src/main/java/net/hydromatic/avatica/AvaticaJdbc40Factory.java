@@ -15,35 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
-
-import java.sql.SQLException;
+package net.hydromatic.avatica;
 
 /**
- * Implementation of {@link Handler} that does nothing for each callback.
- * It is recommended implementations of {@code Handler} use this as a base
- * class, to ensure forward compatibility.
+ * Implementation of {@link AvaticaFactory}
+ * for JDBC 4.0 (corresponds to JDK 1.6).
  */
-public class HandlerImpl implements Handler {
-  public void onConnectionInit(OptiqConnection connection)
-      throws SQLException {
-    // nothing
-  }
-
-  public void onConnectionClose(OptiqConnection connection)
-      throws RuntimeException {
-    // nothing
-  }
-
-  public void onStatementExecute(
-      OptiqStatement statement, ResultSink resultSink) throws RuntimeException {
-    // nothing
-  }
-
-  public void onStatementClose(OptiqStatement statement)
-      throws RuntimeException {
-    // nothing
+public class AvaticaJdbc40Factory extends AvaticaJdbc41Factory {
+  /** Creates a JDBC factory. */
+  AvaticaJdbc40Factory() {
+    super(4, 0);
   }
 }
 
-// End HandlerImpl.java
+// End AvaticaJdbc40Factory.java

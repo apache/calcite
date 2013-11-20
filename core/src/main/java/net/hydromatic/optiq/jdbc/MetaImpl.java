@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.avatica.*;
+
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.*;
@@ -27,9 +29,12 @@ import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.runtime.*;
 
 import org.eigenbase.reltype.*;
+import org.eigenbase.sql.SqlJdbcFunctionCall;
+import org.eigenbase.sql.parser.SqlParser;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Field;
@@ -41,9 +46,9 @@ import java.util.regex.Pattern;
 
 /**
  * Helper for implementing the {@code getXxx} methods such as
- * {@link OptiqDatabaseMetaData#getTables}.
+ * {@link net.hydromatic.avatica.AvaticaDatabaseMetaData#getTables}.
  */
-public class Meta {
+public class MetaImpl implements Meta {
   private static final Map<Class, Pair<Integer, String>> MAP =
       ImmutableMap.<Class, Pair<Integer, String>>builder()
           .put(boolean.class, Pair.of(Types.BOOLEAN, "BOOLEAN"))
@@ -68,12 +73,12 @@ public class Meta {
 
   final OptiqConnectionImpl connection;
 
-  public Meta(OptiqConnectionImpl connection) {
+  public MetaImpl(OptiqConnectionImpl connection) {
     this.connection = connection;
   }
 
-  static <T extends Named> Predicate1<T> namedMatcher(final String pattern) {
-    if (pattern == null || pattern.equals("%")) {
+  static <T extends Named> Predicate1<T> namedMatcher(final Pat pattern) {
+    if (pattern.s == null || pattern.s.equals("%")) {
       return Functions.truePredicate1();
     }
     final Pattern regex = likeToRegex(pattern);
@@ -84,8 +89,8 @@ public class Meta {
     };
   }
 
-  static Predicate1<String> matcher(final String pattern) {
-    if (pattern == null || pattern.equals("%")) {
+  static Predicate1<String> matcher(final Pat pattern) {
+    if (pattern.s == null || pattern.s.equals("%")) {
       return Functions.truePredicate1();
     }
     final Pattern regex = likeToRegex(pattern);
@@ -98,9 +103,9 @@ public class Meta {
 
   /** Converts a LIKE-style pattern (where '%' represents a wild-card, escaped
    * using '\') to a Java regex. */
-  public static Pattern likeToRegex(String pattern) {
+  public static Pattern likeToRegex(Pat pattern) {
     StringBuilder buf = new StringBuilder("^");
-    char[] charArray = pattern.toCharArray();
+    char[] charArray = pattern.s.toCharArray();
     int slash = -2;
     for (int i = 0; i < charArray.length; i++) {
       char c = charArray[i];
@@ -156,27 +161,6 @@ public class Meta {
     return list;
   }
 
-  /** Creates an empty result set. Useful for JDBC metadata methods that are
-   * not implemented or which query entities that are not supported (e.g.
-   * triggers in Lingual). */
-  public static <E> ResultSet createEmptyResultSet(OptiqConnection connection,
-      final Class<E> clazz) {
-    try {
-      final OptiqConnectionImpl connection1 = (OptiqConnectionImpl) connection;
-      return connection1.driver.factory.newResultSet(
-          connection1.createStatement(),
-          fieldMetaData(clazz),
-          new Function1<DataContext, Cursor>() {
-            public Cursor apply(DataContext dataContext) {
-              return new RecordEnumeratorCursor<E>(Linq4j.<E>emptyEnumerator(),
-                  clazz);
-            }
-          }).execute();
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   /** Creates the data dictionary, also called the information schema. It is a
    * schema called "metadata" that contains tables "TABLES", "COLUMNS" etc. */
   MapSchema createInformationSchema() {
@@ -199,8 +183,8 @@ public class Meta {
                             MetaSchema, Enumerable<MetaTable>>() {
                           public Enumerable<MetaTable> apply(
                               MetaSchema a0) {
-                            return tablesAndTableFunctions(a0,
-                                Functions.<String>truePredicate1());
+                            return tablesAndTableFunctions(
+                                a0, Functions.<String>truePredicate1());
                           }
                         })
                     .enumerator();
@@ -241,43 +225,87 @@ public class Meta {
     return mapSchema;
   }
 
-  private ResultSet createResultSet(
-      final Enumerable<?> enumerable,
-      final NamedFieldGetter columnGetter) {
+  /** Creates an empty result set. Useful for JDBC metadata methods that are
+   * not implemented or which query entities that are not supported (e.g.
+   * triggers in Lingual). */
+  public static <E> ResultSet createEmptyResultSet(
+      OptiqConnectionImpl connection,
+      final Class<E> clazz) {
+    return createResultSet(
+        connection,
+        fieldMetaData(clazz),
+        new RecordEnumeratorCursor<E>(Linq4j.<E>emptyEnumerator(), clazz));
+  }
+
+  private static <E> ResultSet createResultSet(OptiqConnectionImpl connection,
+      final List<ColumnMetaData> columnList,
+      final Cursor cursor) {
     try {
-      return connection.driver.factory.newResultSet(
+      return connection.factory.newResultSet(
           connection.createStatement(),
-          columnGetter.columnNames,
-          new Function1<DataContext, Cursor>() {
-            public Cursor apply(DataContext dataContext) {
-              return columnGetter.cursor(
-                  ((Enumerable) enumerable).enumerator());
+          new OptiqPrepare.PrepareResult<E>("",
+              ImmutableList.<AvaticaParameter>of(), null,
+              columnList, -1, null, Object.class) {
+            @Override
+            public Cursor createCursor(DataContext dataContext) {
+              return cursor;
             }
-          }).execute();
+          },
+          connection.getTimeZone()).execute();
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
   }
 
-  ResultSet getTables(
+  private static ResultSet createResultSet(
+      OptiqConnectionImpl connection,
+      final Enumerable<?> enumerable,
+      final NamedFieldGetter columnGetter) {
+    //noinspection unchecked
+    return createResultSet(connection, columnGetter.columnNames,
+        columnGetter.cursor(((Enumerable) enumerable).enumerator()));
+  }
+
+  public String getSqlKeywords() {
+    return new SqlParser("").getParserImpl().getMetadata().getJdbcKeywords();
+  }
+
+  public String getNumericFunctions() {
+    return SqlJdbcFunctionCall.getNumericFunctions();
+  }
+
+  public String getStringFunctions() {
+    return SqlJdbcFunctionCall.getStringFunctions();
+  }
+
+  public String getSystemFunctions() {
+    return SqlJdbcFunctionCall.getSystemFunctions();
+  }
+
+  public String getTimeDateFunctions() {
+    return SqlJdbcFunctionCall.getTimeDateFunctions();
+  }
+
+  public ResultSet getTables(
       String catalog,
-      final String schemaPattern,
-      final String tableNamePattern,
-      String[] types) throws SQLException {
+      final Pat schemaPattern,
+      final Pat tableNamePattern,
+      final List<String> typeList) {
     final Predicate1<MetaTable> typeFilter;
-    if (types == null) {
+    if (typeList == null) {
       typeFilter = Functions.truePredicate1();
     } else {
-      final List<String> typeList = Arrays.asList(types);
       typeFilter = new Predicate1<MetaTable>() {
         public boolean apply(MetaTable v1) {
           return typeList.contains(v1.tableType);
         }
       };
     }
+    final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     return createResultSet(
+        connection,
         schemas(catalog)
-            .where(Meta.<MetaSchema>namedMatcher(schemaPattern))
+            .where(schemaMatcher)
             .selectMany(
                 new Function1<MetaSchema, Enumerable<MetaTable>>() {
                   public Enumerable<MetaTable> apply(MetaSchema a0) {
@@ -300,15 +328,18 @@ public class Meta {
             "REF_GENERATION"));
   }
 
-  ResultSet getColumns(
+  public ResultSet getColumns(
       String catalog,
-      String schemaPattern,
-      String tableNamePattern,
-      String columnNamePattern) {
+      Pat schemaPattern,
+      Pat tableNamePattern,
+      Pat columnNamePattern) {
     final Predicate1<String> tableNameMatcher = matcher(tableNamePattern);
-    return createResultSet(
+    final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
+    final Predicate1<MetaColumn> columnMatcher =
+        namedMatcher(columnNamePattern);
+    return createResultSet(connection,
         schemas(catalog)
-            .where(Meta.<MetaSchema>namedMatcher(schemaPattern))
+            .where(schemaMatcher)
             .selectMany(
                 new Function1<MetaSchema, Enumerable<MetaTable>>() {
                   public Enumerable<MetaTable> apply(MetaSchema a0) {
@@ -322,7 +353,7 @@ public class Meta {
                     return columns(a0);
                   }
                 })
-            .where(Meta.<MetaColumn>namedMatcher(columnNamePattern)),
+            .where(columnMatcher),
         new NamedFieldGetter(
             MetaColumn.class,
             "TABLE_CAT",
@@ -479,10 +510,12 @@ public class Meta {
         );
   }
 
-  public ResultSet getSchemas(String catalog, String schemaPattern) {
+  public ResultSet getSchemas(String catalog, Pat schemaPattern) {
+    final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     return createResultSet(
+        connection,
         schemas(catalog)
-            .where(Meta.<MetaSchema>namedMatcher(schemaPattern)),
+            .where(schemaMatcher),
         new NamedFieldGetter(
             MetaSchema.class,
             "TABLE_SCHEM",
@@ -491,6 +524,7 @@ public class Meta {
 
   public ResultSet getCatalogs() {
     return createResultSet(
+        connection,
         catalogs(),
         new NamedFieldGetter(
             MetaCatalog.class,
@@ -499,10 +533,150 @@ public class Meta {
 
   public ResultSet getTableTypes() {
     return createResultSet(
+        connection,
         tableTypes(),
         new NamedFieldGetter(
             MetaTableType.class,
             "TABLE_TYPE"));
+  }
+
+  public ResultSet getProcedures(
+      String catalog,
+      Pat schemaPattern,
+      Pat procedureNamePattern) {
+    return createEmptyResultSet(connection, MetaProcedure.class);
+  }
+
+  public ResultSet getProcedureColumns(
+      String catalog,
+      Pat schemaPattern,
+      Pat procedureNamePattern,
+      Pat columnNamePattern) {
+    return createEmptyResultSet(connection, MetaProcedureColumn.class);
+  }
+
+  public ResultSet getColumnPrivileges(
+      String catalog,
+      String schema,
+      String table,
+      Pat columnNamePattern) {
+    return createEmptyResultSet(connection, MetaColumnPrivilege.class);
+  }
+
+  public ResultSet getTablePrivileges(
+      String catalog,
+      Pat schemaPattern,
+      Pat tableNamePattern) {
+    return createEmptyResultSet(connection, MetaTablePrivilege.class);
+  }
+
+  public ResultSet getBestRowIdentifier(
+      String catalog,
+      String schema,
+      String table,
+      int scope,
+      boolean nullable) {
+    return createEmptyResultSet(connection, MetaBestRowIdentifier.class);
+  }
+
+  public ResultSet getVersionColumns(
+      String catalog, String schema, String table) {
+    return createEmptyResultSet(connection, MetaVersionColumn.class);
+  }
+
+  public ResultSet getPrimaryKeys(
+      String catalog, String schema, String table) {
+    return createEmptyResultSet(connection, MetaPrimaryKey.class);
+  }
+
+  public ResultSet getImportedKeys(
+      String catalog, String schema, String table) {
+    return createEmptyResultSet(connection, MetaImportedKey.class);
+  }
+
+  public ResultSet getExportedKeys(
+      String catalog, String schema, String table) {
+    return createEmptyResultSet(connection, MetaExportedKey.class);
+  }
+
+  public ResultSet getCrossReference(
+      String parentCatalog,
+      String parentSchema,
+      String parentTable,
+      String foreignCatalog,
+      String foreignSchema,
+      String foreignTable) {
+    return createEmptyResultSet(connection, MetaCrossReference.class);
+  }
+
+  public ResultSet getTypeInfo() {
+    return createEmptyResultSet(connection, MetaTypeInfo.class);
+  }
+
+  public ResultSet getIndexInfo(
+      String catalog,
+      String schema,
+      String table,
+      boolean unique,
+      boolean approximate) {
+    return createEmptyResultSet(connection, MetaIndexInfo.class);
+  }
+
+  public ResultSet getUDTs(
+      String catalog,
+      Pat schemaPattern,
+      Pat typeNamePattern,
+      int[] types) {
+    return createEmptyResultSet(connection, MetaUdt.class);
+  }
+
+  public ResultSet getSuperTypes(
+      String catalog,
+      Pat schemaPattern,
+      Pat typeNamePattern) {
+    return createEmptyResultSet(connection, MetaSuperType.class);
+  }
+
+  public ResultSet getSuperTables(
+      String catalog,
+      Pat schemaPattern,
+      Pat tableNamePattern) {
+    return createEmptyResultSet(connection, MetaSuperTable.class);
+  }
+
+  public ResultSet getAttributes(
+      String catalog,
+      Pat schemaPattern,
+      Pat typeNamePattern,
+      Pat attributeNamePattern) {
+    return createEmptyResultSet(connection, MetaAttribute.class);
+  }
+
+  public ResultSet getClientInfoProperties() {
+    return createEmptyResultSet(connection, MetaClientInfoProperty.class);
+  }
+
+  public ResultSet getFunctions(
+      String catalog,
+      Pat schemaPattern,
+      Pat functionNamePattern) {
+    return createEmptyResultSet(connection, MetaFunction.class);
+  }
+
+  public ResultSet getFunctionColumns(
+      String catalog,
+      Pat schemaPattern,
+      Pat functionNamePattern,
+      Pat columnNamePattern) {
+    return createEmptyResultSet(connection, MetaFunctionColumn.class);
+  }
+
+  public ResultSet getPseudoColumns(
+      String catalog,
+      Pat schemaPattern,
+      Pat tableNamePattern,
+      Pat columnNamePattern) {
+    return createEmptyResultSet(connection, MetaPseudoColumn.class);
   }
 
   interface Named {
@@ -738,7 +912,6 @@ public class Meta {
   }
 
   private static class NamedFieldGetter {
-
     private final List<Field> fields = new ArrayList<Field>();
     private final List<ColumnMetaData> columnNames =
         new ArrayList<ColumnMetaData>();
@@ -841,4 +1014,4 @@ public class Meta {
   }
 }
 
-// End Meta.java
+// End MetaImpl.java

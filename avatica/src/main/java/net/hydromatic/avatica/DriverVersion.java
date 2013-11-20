@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
+package net.hydromatic.avatica;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +25,7 @@ import java.util.Properties;
  * Driver version information.
  *
  * <p>Each driver implementation must provide an instance of this class, in
- * order to implement {@link Driver#createDriverVersion()}.</p>
+ * order to implement {@link UnregisteredDriver#createDriverVersion()}.</p>
  *
  * <p>There are two typical ways for a driver to instantiate its version
  * information:</p>
@@ -86,7 +86,7 @@ public class DriverVersion {
    * @return A populated driver version object, never null
    */
   public static DriverVersion load(
-      Class<Driver> driverClass,
+      Class<? extends UnregisteredDriver> driverClass,
       String resourceName,
       String driverName,
       String driverVersion,

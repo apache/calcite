@@ -17,6 +17,10 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.avatica.*;
+
+import net.hydromatic.linq4j.function.Function0;
+
 import net.hydromatic.optiq.model.ModelHandler;
 
 import java.io.IOException;
@@ -28,13 +32,37 @@ import java.sql.SQLException;
 public class Driver extends UnregisteredDriver {
   public static final String CONNECT_STRING_PREFIX = "jdbc:optiq:";
 
+  final Function0<OptiqPrepare> prepareFactory;
+
   static {
     new Driver().register();
+  }
+
+  public Driver() {
+    super();
+    this.prepareFactory = createPrepareFactory();
+  }
+
+  protected Function0<OptiqPrepare> createPrepareFactory() {
+    return OptiqPrepare.DEFAULT_FACTORY;
   }
 
   @Override
   protected String getConnectStringPrefix() {
     return CONNECT_STRING_PREFIX;
+  }
+
+  @Override
+  protected String getFactoryClassName(JdbcVersion jdbcVersion) {
+    switch (jdbcVersion) {
+    case JDBC_30:
+      return "net.hydromatic.optiq.jdbc.OptiqJdbc3Factory";
+    case JDBC_40:
+      return "net.hydromatic.optiq.jdbc.OptiqJdbc40Factory";
+    case JDBC_41:
+    default:
+      return "net.hydromatic.optiq.jdbc.OptiqJdbc41Factory";
+    }
   }
 
   protected DriverVersion createDriverVersion() {
@@ -51,11 +79,12 @@ public class Driver extends UnregisteredDriver {
   protected Handler createHandler() {
     return new HandlerImpl() {
       @Override
-      public void onConnectionInit(OptiqConnection connection)
+      public void onConnectionInit(AvaticaConnection connection_)
           throws SQLException {
+        final OptiqConnectionImpl connection =
+            (OptiqConnectionImpl) connection_;
         super.onConnectionInit(connection);
-        final String model =
-            OptiqConnectionImpl.configOf(connection).model();
+        final String model = connection.config().model();
         if (model != null) {
           try {
             new ModelHandler(connection, model);

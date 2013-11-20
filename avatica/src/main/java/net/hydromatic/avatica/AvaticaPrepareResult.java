@@ -15,38 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
+package net.hydromatic.avatica;
 
-import java.sql.SQLException;
+import java.util.List;
 
 /**
- * Utility methods, mainly concerning error-handling.
+ * Result of preparing a statement.
  */
-public class Helper {
-  public static final Helper INSTANCE = new Helper();
-
-  private Helper() {
-  }
-
-  public RuntimeException todo() {
-    return new RuntimeException("todo: implement this method");
-  }
-
-  public RuntimeException wrap(String message, Exception e) {
-    return new RuntimeException(message, e);
-  }
-
-  public SQLException createException(String message, Exception e) {
-    return new SQLException(message, e);
-  }
-
-  public SQLException createException(String message) {
-    return new SQLException(message);
-  }
-
-  public SQLException toSQLException(SQLException exception) {
-    return exception;
-  }
+public interface AvaticaPrepareResult {
+  List<ColumnMetaData> getColumnList();
+  String getSql();
+  List<AvaticaParameter> getParameterList();
 }
 
-// End Helper.java
+// End AvaticaPrepareResult.java

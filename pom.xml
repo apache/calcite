@@ -77,6 +77,7 @@
   </scm>
 
   <modules>
+    <module>avatica</module>
     <module>core</module>
     <module>mongodb</module>
     <module>splunk</module>

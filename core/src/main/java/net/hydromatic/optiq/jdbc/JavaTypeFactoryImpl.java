@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import net.hydromatic.avatica.ByteString;
+
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.Primitive;
 import net.hydromatic.linq4j.expressions.Types;
@@ -24,7 +26,6 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.runtime.ByteString;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.*;

@@ -24,7 +24,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
-import net.hydromatic.optiq.runtime.ByteString;
+import net.hydromatic.avatica.ByteString;
 
 /**
  * SargEndpoint represents an endpoint of a ({@link SargInterval}).

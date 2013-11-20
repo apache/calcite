@@ -15,9 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
-
-import net.hydromatic.optiq.runtime.ColumnMetaData;
+package net.hydromatic.avatica;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -25,15 +23,15 @@ import java.util.List;
 
 /**
  * Implementation of {@link ResultSetMetaData}
- * for the Optiq engine.
+ * for the Avatica framework.
  */
-class OptiqResultSetMetaData implements ResultSetMetaData {
-  final OptiqStatement statement;
+public class AvaticaResultSetMetaData implements ResultSetMetaData {
+  final AvaticaStatement statement;
   final Object query;
   final List<ColumnMetaData> columnMetaDataList;
 
-  OptiqResultSetMetaData(
-      OptiqStatement statement,
+  public AvaticaResultSetMetaData(
+      AvaticaStatement statement,
       Object query,
       List<ColumnMetaData> columnMetaDataList) {
     this.statement = statement;
@@ -146,4 +144,4 @@ class OptiqResultSetMetaData implements ResultSetMetaData {
   }
 }
 
-// End OptiqResultSetMetaData.java
+// End AvaticaResultSetMetaData.java

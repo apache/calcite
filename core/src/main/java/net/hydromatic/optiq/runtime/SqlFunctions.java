@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.runtime;
 
+import net.hydromatic.avatica.ByteString;
+
 import net.hydromatic.optiq.DataContext;
 
 import org.eigenbase.util14.DateTimeUtil;

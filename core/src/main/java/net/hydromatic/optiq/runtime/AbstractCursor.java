@@ -17,6 +17,10 @@
 */
 package net.hydromatic.optiq.runtime;
 
+import net.hydromatic.avatica.ByteString;
+import net.hydromatic.avatica.ColumnMetaData;
+import net.hydromatic.avatica.Cursor;
+
 import org.eigenbase.util.Util;
 import org.eigenbase.util14.DateTimeUtil;
 
@@ -655,7 +659,7 @@ public abstract class AbstractCursor implements Cursor {
 
   /**
    * Accessor that assumes that the underlying value is an array of
-   * {@link ByteString} values;
+   * {@link net.hydromatic.avatica.ByteString} values;
    * corresponds to {@link java.sql.Types#BINARY}
    * and {@link java.sql.Types#VARBINARY}.
    */

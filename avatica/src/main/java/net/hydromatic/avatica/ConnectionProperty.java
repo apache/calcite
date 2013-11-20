@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.jdbc;
+package net.hydromatic.avatica;
 
 import java.util.*;
 
@@ -116,43 +116,9 @@ public enum ConnectionProperty {
     return map;
   }
 
-  public static ConnectionConfig connectionConfig(final Properties properties) {
-    return new ConnectionConfig() {
-      public boolean autoTemp() {
-        return AUTO_TEMP.getBoolean(properties);
-      }
-
-      public boolean materializationsEnabled() {
-        return MATERIALIZATIONS_ENABLED.getBoolean(properties);
-      }
-
-      public String model() {
-        return MODEL.getString(properties);
-      }
-
-      public String schema() {
-        return SCHEMA.getString(properties);
-      }
-
-      public boolean spark() {
-        return SPARK.getBoolean(properties);
-      }
-    };
-  }
   enum Type {
     BOOLEAN,
     STRING
-  }
-
-  /** Interface for reading connection properties within Optiq code. There is
-   * a method for every property. At some point there will be similar config
-   * classes for system and statement properties. */
-  public interface ConnectionConfig {
-    boolean autoTemp();
-    boolean materializationsEnabled();
-    String model();
-    String schema();
-    boolean spark();
   }
 }
 
