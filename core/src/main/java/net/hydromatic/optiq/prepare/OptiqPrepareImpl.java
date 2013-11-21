@@ -408,15 +408,11 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               true,
               type.getPrecision(),
               field.getName(),
-              origins == null ? null : origins.get(2),
-              origins == null ? null : origins.get(0),
-              type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
-                  ? 0
-                  : type.getPrecision(),
-              type.getScale() == RelDataType.SCALE_NOT_SPECIFIED
-                  ? 0
-                  : type.getScale(),
-              origins == null ? null : origins.get(1),
+              origin(origins, 2),
+              origin(origins, 0),
+              getPrecision(type),
+              getScale(type),
+              origin(origins, 1),
               null,
               sqlTypeName.getJdbcOrdinal(),
               typeName,
@@ -432,8 +428,44 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     return columns;
   }
 
-  protected void populateMaterializations(RelOptPlanner planner,
-      Prepare.Materialization materialization) {
+  private static String origin(List<String> origins, int zx) {
+    return origins == null || zx >= origins.size() ? null : origins.get(zx);
+  }
+
+  private int getTypeOrdinal(RelDataType type) {
+    return type.getSqlTypeName().getJdbcOrdinal();
+  }
+
+  private static String getClassName(RelDataType type) {
+    return null;
+  }
+
+  private static int getScale(RelDataType type) {
+    return type.getScale() == RelDataType.SCALE_NOT_SPECIFIED
+        ? 0
+        : type.getScale();
+  }
+
+  private static int getPrecision(RelDataType type) {
+    return type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+        ? 0
+        : type.getPrecision();
+  }
+
+    private static String getTypeName(RelDataType type) {
+      SqlTypeName sqlTypeName = type.getSqlTypeName();
+      switch (sqlTypeName) {
+      case INTERVAL_YEAR_MONTH:
+      case INTERVAL_DAY_TIME:
+        // e.g. "INTERVAL_MONTH" or "INTERVAL_YEAR_MONTH"
+        return "INTERVAL_"
+            + type.getIntervalQualifier().toString().replace(' ', '_');
+      default:
+        return sqlTypeName.getName();
+      }
+    }
+
+  protected void populateMaterializations(RelOptPlanner planner, Prepare.Materialization materialization) {
     // REVIEW: initialize queryRel and tableRel inside MaterializationService,
     // not here?
     try {

@@ -78,7 +78,13 @@ import org.junit.runners.Suite;
     RexProgramTest.class,
     RexTransformerTest.class,
     JdbcAdapterTest.class,
-    JdbcTest.class
+    JdbcFrontJdbcBackLinqMiddleTest.class,
+    OptiqSqlOperatorTest.class,
+    ReflectiveSchemaTest.class,
+    JdbcTest.class,
+
+    // test cases
+    TableInRootSchemaTest.class
 })
 public class OptiqSuite {
 }
