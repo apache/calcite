@@ -64,9 +64,9 @@ public abstract class AvaticaStatement
 
   // implement Statement
 
-
   public ResultSet executeQuery(String sql) throws SQLException {
-    throw new UnsupportedOperationException(); // TODO:
+    AvaticaPrepareResult x = connection.meta.prepare(this, sql);
+    return executeQueryInternal(x);
   }
 
   public int executeUpdate(String sql) throws SQLException {
@@ -115,7 +115,7 @@ public abstract class AvaticaStatement
     throw new UnsupportedOperationException();
   }
 
-  public int getMaxRows() throws SQLException {
+  public int getMaxRows() {
     return maxRowCount;
   }
 
@@ -178,12 +178,9 @@ public abstract class AvaticaStatement
   }
 
   public boolean execute(String sql) throws SQLException {
-    AvaticaPrepareResult x = parseQuery(sql);
+    AvaticaPrepareResult x = connection.meta.prepare(this, sql);
     return executeInternal(x);
   }
-
-  /** Prepares a query for execution. */
-  protected /*abstract*/ AvaticaPrepareResult parseQuery(String sql) {throw new UnsupportedOperationException();}
 
   public ResultSet getResultSet() throws SQLException {
     // NOTE: result set becomes visible in this member while

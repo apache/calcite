@@ -37,8 +37,8 @@ import java.util.logging.Logger;
  *
  * <p>The provider must implement:</p>
  * <ul>
- *   <li>{@link AvaticaStatement#parseQuery(String)}</li>
- *   <li>{@link AvaticaResultSet#execute()}</li>
+ *   <li>{@link net.hydromatic.avatica.Meta#prepare(AvaticaStatement, String)}</li>
+ *   <li>{@link net.hydromatic.avatica.Meta#createCursor(AvaticaResultSet)}</li>
  * </ul>
  */
 public abstract class UnregisteredDriver implements java.sql.Driver {

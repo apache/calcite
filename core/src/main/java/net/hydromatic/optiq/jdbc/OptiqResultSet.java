@@ -17,9 +17,7 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.avatica.AvaticaResultSet;
-import net.hydromatic.avatica.AvaticaStatement;
-import net.hydromatic.avatica.Handler;
+import net.hydromatic.avatica.*;
 
 import net.hydromatic.optiq.DataContext;
 
@@ -54,27 +52,18 @@ public class OptiqResultSet extends AvaticaResultSet {
     connection.driver.handler.onStatementExecute(
         statement, resultSink);
 
-    final DataContext dataContext =
-        getOptiqConnection().createDataContext(
-            statement.getParameterValues());
-    this.cursor =
-        ((OptiqPrepare.PrepareResult) prepareResult).createCursor(dataContext);
-    this.accessorList =
-        cursor.createAccessors(columnMetaDataList, localCalendar);
-    accessorMap.clear();
-    for (Map.Entry<String, Integer> entry : columnNameMap.entrySet()) {
-      accessorMap.put(entry.getKey(), accessorList.get(entry.getValue()));
-    }
+    super.execute();
     return this;
   }
 
-  private OptiqConnectionImpl getOptiqConnection() {
-    return (OptiqConnectionImpl) statement.getConnection();
+  // do not make public
+  OptiqPrepare.PrepareResult getPrepareResult() {
+    return (OptiqPrepare.PrepareResult) prepareResult;
   }
 
-  @Override
-  public OptiqStatement getStatement() throws SQLException {
-    return (OptiqStatement) statement;
+  // do not make public
+  OptiqConnectionImpl getOptiqConnection() {
+    return (OptiqConnectionImpl) statement.getConnection();
   }
 }
 

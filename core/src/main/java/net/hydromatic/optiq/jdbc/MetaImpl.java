@@ -27,6 +27,7 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.runtime.*;
+import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.SqlJdbcFunctionCall;
@@ -677,6 +678,23 @@ public class MetaImpl implements Meta {
       Pat tableNamePattern,
       Pat columnNamePattern) {
     return createEmptyResultSet(connection, MetaPseudoColumn.class);
+  }
+
+  public Cursor createCursor(AvaticaResultSet resultSet_) {
+    OptiqResultSet resultSet = (OptiqResultSet) resultSet_;
+    final DataContext dataContext =
+        connection.createDataContext(
+            resultSet.getStatement().getParameterValues());
+    OptiqPrepare.PrepareResult prepareResult = resultSet.getPrepareResult();
+    return prepareResult.createCursor(dataContext);
+  }
+
+  public AvaticaPrepareResult prepare(AvaticaStatement statement_, String sql) {
+    OptiqStatement statement = (OptiqStatement) statement_;
+    int maxRowCount = statement.getMaxRows();
+    return connection.parseQuery(sql,
+        statement.createPrepareContext(),
+        maxRowCount <= 0 ? -1 : maxRowCount);
   }
 
   interface Named {

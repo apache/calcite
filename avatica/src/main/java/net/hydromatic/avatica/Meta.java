@@ -18,12 +18,14 @@
 package net.hydromatic.avatica;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 
 /**
  * Command handler for getting various metadata. Should be implemented by each
  * driver.
+ *
+ * <p>Also holds other abstract methods that are not related to metadata
+ * that each provider must implement. This is not ideal.</p>
  */
 public interface Meta {
   String getSqlKeywords();
@@ -152,6 +154,11 @@ public interface Meta {
       Pat schemaPattern,
       Pat tableNamePattern,
       Pat columnNamePattern);
+
+  /** Creates a cursor for a result set. */
+  Cursor createCursor(AvaticaResultSet resultSet);
+
+  AvaticaPrepareResult prepare(AvaticaStatement statement, String sql);
 
   /** Wrapper to remind API calls that a parameter is a pattern (allows '%' and
    * '_' wildcards, per the JDBC spec) rather than a string to be matched

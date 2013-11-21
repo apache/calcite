@@ -29,7 +29,7 @@ import java.util.*;
  * Implementation of {@link java.sql.ResultSet}
  * for the Avatica engine.
  */
-public /*abstract*/ class AvaticaResultSet implements ResultSet {
+public class AvaticaResultSet implements ResultSet {
   protected final AvaticaStatement statement;
   protected final AvaticaPrepareResult prepareResult;
   protected final List<ColumnMetaData> columnMetaDataList;
@@ -132,7 +132,16 @@ public /*abstract*/ class AvaticaResultSet implements ResultSet {
    * constructor occurs while the statement is locked, to make sure that
    * execute/cancel don't happen at the same time.</p>
    */
-  public /*abstract*/ AvaticaResultSet execute() {throw new UnsupportedOperationException();}
+  public AvaticaResultSet execute() {
+    this.cursor = statement.connection.meta.createCursor(this);
+    this.accessorList =
+        cursor.createAccessors(columnMetaDataList, localCalendar);
+    accessorMap.clear();
+    for (Map.Entry<String, Integer> entry : columnNameMap.entrySet()) {
+      accessorMap.put(entry.getKey(), accessorList.get(entry.getValue()));
+    }
+    return this;
+  }
 
   public boolean next() throws SQLException {
     // TODO: for timeout, see IteratorResultSet.next
@@ -604,7 +613,7 @@ public /*abstract*/ class AvaticaResultSet implements ResultSet {
     throw new UnsupportedOperationException();
   }
 
-  public Statement getStatement() throws SQLException {
+  public AvaticaStatement getStatement() {
     return statement;
   }
 

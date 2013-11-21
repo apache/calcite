@@ -17,14 +17,11 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.avatica.AvaticaResultSet;
-import net.hydromatic.avatica.AvaticaStatement;
+import net.hydromatic.avatica.*;
 
 import net.hydromatic.linq4j.Queryable;
 
 import net.hydromatic.optiq.server.OptiqServerStatement;
-
-import java.sql.*;
 
 /**
  * Implementation of {@link java.sql.Statement}
@@ -45,14 +42,7 @@ public abstract class OptiqStatement
 
   // implement Statement
 
-  public ResultSet executeQuery(String sql) throws SQLException {
-    OptiqPrepare.PrepareResult x = getConnection().parseQuery(sql,
-        createPrepareContext(),
-        maxRowCount <= 0 ? -1 : maxRowCount);
-    return executeQueryInternal(x);
-  }
-
-  public OptiqConnectionImpl getConnection() {
+  @Override public OptiqConnectionImpl getConnection() {
     return (OptiqConnectionImpl) connection;
   }
 
