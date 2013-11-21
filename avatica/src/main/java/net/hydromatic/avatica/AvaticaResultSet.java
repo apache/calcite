@@ -38,11 +38,7 @@ public class AvaticaResultSet implements ResultSet {
 
   protected Cursor cursor;
   protected List<Cursor.Accessor> accessorList;
-  protected final Map<String, Cursor.Accessor> accessorMap =
-      new HashMap<String, Cursor.Accessor>();
-  protected final Map<String, Integer> columnNameMap =
-      new HashMap<String, Integer>();
-  private int row = -1;
+  private int row;
   private boolean afterLast;
   private int fetchDirection;
   private int fetchSize;
@@ -66,18 +62,44 @@ public class AvaticaResultSet implements ResultSet {
     this.fetchSize = statement.getFetchSize();
     this.fetchDirection = statement.getFetchDirection();
     this.resultSetMetaData = resultSetMetaData;
-    for (ColumnMetaData column : columnMetaDataList) {
-      columnNameMap.put(column.label, columnNameMap.size());
-    }
     this.localCalendar = Calendar.getInstance(timeZone);
   }
 
-  private Cursor.Accessor getAccessor(int columnIndex) {
-    return accessorList.get(columnIndex);
+  private int findColumn0(String columnLabel) throws SQLException {
+    for (ColumnMetaData columnMetaData : columnMetaDataList) {
+      // Per JDBC 3.0 specification, match is case-insensitive and if there is
+      // more than one column with a particular name, take the first.
+      if (columnMetaData.label.equalsIgnoreCase(columnLabel)) {
+        return columnMetaData.ordinal; // 0-based
+      }
+    }
+    throw new SQLException("column '" + columnLabel + "' not found");
   }
 
-  private Cursor.Accessor getAccessor(String columnLabel) {
-    return accessorMap.get(columnLabel);
+  /**
+   * Returns the accessor for column with a given index.
+   *
+   * @param columnIndex 1-based column index
+   * @return Accessor
+   * @throws SQLException if index is not valid
+   */
+  private Cursor.Accessor getAccessor(int columnIndex) throws SQLException {
+    try {
+      return accessorList.get(columnIndex - 1);
+    } catch (IndexOutOfBoundsException e) {
+      throw new SQLException("invalid column ordinal: " + columnIndex);
+    }
+  }
+
+  /**
+   * Returns the accessor for column with a given label.
+   *
+   * @param columnLabel Column label
+   * @return Accessor
+   * @throws SQLException if there is no column with that label
+   */
+  private Cursor.Accessor getAccessor(String columnLabel) throws SQLException {
+    return accessorList.get(findColumn0(columnLabel));
   }
 
   public void close() {
@@ -131,15 +153,15 @@ public class AvaticaResultSet implements ResultSet {
    * <p>Note that execute cannot occur in the constructor, because the
    * constructor occurs while the statement is locked, to make sure that
    * execute/cancel don't happen at the same time.</p>
+   *
+   * @see net.hydromatic.avatica.AvaticaConnection.Trojan#execute(AvaticaResultSet)
    */
-  public AvaticaResultSet execute() {
+  protected AvaticaResultSet execute() {
     this.cursor = statement.connection.meta.createCursor(this);
     this.accessorList =
         cursor.createAccessors(columnMetaDataList, localCalendar);
-    accessorMap.clear();
-    for (Map.Entry<String, Integer> entry : columnNameMap.entrySet()) {
-      accessorMap.put(entry.getKey(), accessorList.get(entry.getValue()));
-    }
+    this.row = -1;
+    this.afterLast = false;
     return this;
   }
 
@@ -154,73 +176,77 @@ public class AvaticaResultSet implements ResultSet {
     }
   }
 
+  public int findColumn(String columnLabel) throws SQLException {
+    return findColumn0(columnLabel) + 1;
+  }
+
   public boolean wasNull() throws SQLException {
     return cursor.wasNull();
   }
 
   public String getString(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getString();
+    return getAccessor(columnIndex).getString();
   }
 
   public boolean getBoolean(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getBoolean();
+    return getAccessor(columnIndex).getBoolean();
   }
 
   public byte getByte(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getByte();
+    return getAccessor(columnIndex).getByte();
   }
 
   public short getShort(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getShort();
+    return getAccessor(columnIndex).getShort();
   }
 
   public int getInt(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getInt();
+    return getAccessor(columnIndex).getInt();
   }
 
   public long getLong(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getLong();
+    return getAccessor(columnIndex).getLong();
   }
 
   public float getFloat(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getFloat();
+    return getAccessor(columnIndex).getFloat();
   }
 
   public double getDouble(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getDouble();
+    return getAccessor(columnIndex).getDouble();
   }
 
   public BigDecimal getBigDecimal(
       int columnIndex, int scale) throws SQLException {
-    return getAccessor(columnIndex - 1).getBigDecimal(scale);
+    return getAccessor(columnIndex).getBigDecimal(scale);
   }
 
   public byte[] getBytes(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getBytes();
+    return getAccessor(columnIndex).getBytes();
   }
 
   public Date getDate(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getDate(localCalendar);
+    return getAccessor(columnIndex).getDate(localCalendar);
   }
 
   public Time getTime(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getTime(localCalendar);
+    return getAccessor(columnIndex).getTime(localCalendar);
   }
 
   public Timestamp getTimestamp(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getTimestamp(localCalendar);
+    return getAccessor(columnIndex).getTimestamp(localCalendar);
   }
 
   public InputStream getAsciiStream(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getAsciiStream();
+    return getAccessor(columnIndex).getAsciiStream();
   }
 
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getUnicodeStream();
+    return getAccessor(columnIndex).getUnicodeStream();
   }
 
   public InputStream getBinaryStream(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getBinaryStream();
+    return getAccessor(columnIndex).getBinaryStream();
   }
 
   public String getString(String columnLabel) throws SQLException {
@@ -305,23 +331,15 @@ public class AvaticaResultSet implements ResultSet {
   }
 
   public Object getObject(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getObject();
+    return getAccessor(columnIndex).getObject();
   }
 
   public Object getObject(String columnLabel) throws SQLException {
     return getAccessor(columnLabel).getObject();
   }
 
-  public int findColumn(String columnLabel) throws SQLException {
-    final Integer integer = columnNameMap.get(columnLabel);
-    if (integer == null) {
-      throw new SQLException("column '" + columnLabel + "' not found");
-    }
-    return integer;
-  }
-
   public Reader getCharacterStream(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getCharacterStream();
+    return getAccessor(columnIndex).getCharacterStream();
   }
 
   public Reader getCharacterStream(String columnLabel) throws SQLException {
@@ -329,7 +347,7 @@ public class AvaticaResultSet implements ResultSet {
   }
 
   public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getBigDecimal();
+    return getAccessor(columnIndex).getBigDecimal();
   }
 
   public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
@@ -619,23 +637,23 @@ public class AvaticaResultSet implements ResultSet {
 
   public Object getObject(
       int columnIndex, Map<String, Class<?>> map) throws SQLException {
-    return getAccessor(columnIndex - 1).getObject(map);
+    return getAccessor(columnIndex).getObject(map);
   }
 
   public Ref getRef(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getRef();
+    return getAccessor(columnIndex).getRef();
   }
 
   public Blob getBlob(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getBlob();
+    return getAccessor(columnIndex).getBlob();
   }
 
   public Clob getClob(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getClob();
+    return getAccessor(columnIndex).getClob();
   }
 
   public Array getArray(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getArray();
+    return getAccessor(columnIndex).getArray();
   }
 
   public Object getObject(
@@ -660,7 +678,7 @@ public class AvaticaResultSet implements ResultSet {
   }
 
   public Date getDate(int columnIndex, Calendar cal) throws SQLException {
-    return getAccessor(columnIndex - 1).getDate(cal);
+    return getAccessor(columnIndex).getDate(cal);
   }
 
   public Date getDate(String columnLabel, Calendar cal) throws SQLException {
@@ -668,7 +686,7 @@ public class AvaticaResultSet implements ResultSet {
   }
 
   public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-    return getAccessor(columnIndex - 1).getTime(cal);
+    return getAccessor(columnIndex).getTime(cal);
   }
 
   public Time getTime(String columnLabel, Calendar cal) throws SQLException {
@@ -677,7 +695,7 @@ public class AvaticaResultSet implements ResultSet {
 
   public Timestamp getTimestamp(
       int columnIndex, Calendar cal) throws SQLException {
-    return getAccessor(columnIndex - 1).getTimestamp(cal);
+    return getAccessor(columnIndex).getTimestamp(cal);
   }
 
   public Timestamp getTimestamp(
@@ -686,7 +704,7 @@ public class AvaticaResultSet implements ResultSet {
   }
 
   public URL getURL(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getURL();
+    return getAccessor(columnIndex).getURL();
   }
 
   public URL getURL(String columnLabel) throws SQLException {
@@ -769,7 +787,7 @@ public class AvaticaResultSet implements ResultSet {
   }
 
   public NClob getNClob(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getNClob();
+    return getAccessor(columnIndex).getNClob();
   }
 
   public NClob getNClob(String columnLabel) throws SQLException {
@@ -777,7 +795,7 @@ public class AvaticaResultSet implements ResultSet {
   }
 
   public SQLXML getSQLXML(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getSQLXML();
+    return getAccessor(columnIndex).getSQLXML();
   }
 
   public SQLXML getSQLXML(String columnLabel) throws SQLException {
@@ -795,7 +813,7 @@ public class AvaticaResultSet implements ResultSet {
   }
 
   public String getNString(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getNString();
+    return getAccessor(columnIndex).getNString();
   }
 
   public String getNString(String columnLabel) throws SQLException {
@@ -803,7 +821,7 @@ public class AvaticaResultSet implements ResultSet {
   }
 
   public Reader getNCharacterStream(int columnIndex) throws SQLException {
-    return getAccessor(columnIndex - 1).getNCharacterStream();
+    return getAccessor(columnIndex).getNCharacterStream();
   }
 
   public Reader getNCharacterStream(String columnLabel) throws SQLException {
@@ -954,7 +972,7 @@ public class AvaticaResultSet implements ResultSet {
   }
 
   public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-    return getAccessor(columnIndex - 1).getObject(type);
+    return getAccessor(columnIndex).getObject(type);
   }
 
   public <T> T getObject(

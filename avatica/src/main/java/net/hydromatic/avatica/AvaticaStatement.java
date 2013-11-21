@@ -350,8 +350,10 @@ public abstract class AvaticaStatement
    *
    * <p>The default implementation returns the empty list, because non-prepared
    * statements have no parameters.</p>
+   *
+   * @see net.hydromatic.avatica.AvaticaConnection.Trojan#getParameterValues(AvaticaStatement)
    */
-  public List<Object> getParameterValues() {
+  protected List<Object> getParameterValues() {
     return Collections.emptyList();
   }
 }

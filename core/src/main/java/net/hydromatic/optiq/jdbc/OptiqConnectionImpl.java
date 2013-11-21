@@ -57,6 +57,9 @@ abstract class OptiqConnectionImpl
   final Function0<OptiqPrepare> prepareFactory;
   final OptiqServer server = new OptiqServerImpl();
 
+  // must be package-protected
+  static final Trojan TROJAN = createTrojan();
+
   /**
    * Creates an OptiqConnectionImpl.
    *
@@ -209,6 +212,16 @@ abstract class OptiqConnectionImpl
 
   public DataContext createDataContext(List<Object> parameterValues) {
     return new DataContextImpl(this, (RootSchema) rootSchema, parameterValues);
+  }
+
+  // do not make public
+  UnregisteredDriver getDriver() {
+    return driver;
+  }
+
+  // do not make public
+  AvaticaFactory getFactory() {
+    return factory;
   }
 
   static class OptiqQueryable<T>

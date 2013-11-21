@@ -61,7 +61,7 @@ public abstract class AvaticaPreparedStatement
             this, prepareResult.getColumnList());
   }
 
-  @Override public List<Object> getParameterValues() {
+  @Override protected List<Object> getParameterValues() {
     final List<Object> list = new ArrayList<Object>();
     for (AvaticaParameter parameter : prepareResult.getParameterList()) {
       list.add(parameter.value == AvaticaParameter.DUMMY_VALUE
@@ -237,16 +237,6 @@ public abstract class AvaticaPreparedStatement
   }
 
   // implement ParameterMetaData
-
-  // not JDBC
-  public String getParameterName(int index) throws SQLException {
-    return getParameter(index).name;
-  }
-
-  // not JDBC
-  public boolean isSet(int index) throws SQLException {
-    return getParameter(index).isSet();
-  }
 
   protected AvaticaParameter getParameter(int param) throws SQLException {
     try {

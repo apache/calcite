@@ -19,8 +19,6 @@ package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.avatica.*;
 
-import net.hydromatic.optiq.DataContext;
-
 import java.sql.*;
 import java.util.*;
 
@@ -37,8 +35,7 @@ public class OptiqResultSet extends AvaticaResultSet {
     super(statement, prepareResult, resultSetMetaData, timeZone);
   }
 
-  @Override
-  public OptiqResultSet execute() {
+  @Override protected OptiqResultSet execute() {
     // Call driver's callback. It is permitted to throw a RuntimeException.
     OptiqConnectionImpl connection = getOptiqConnection();
     final boolean autoTemp = connection.config().autoTemp();
@@ -49,7 +46,7 @@ public class OptiqResultSet extends AvaticaResultSet {
         }
       };
     }
-    connection.driver.handler.onStatementExecute(
+    connection.getDriver().handler.onStatementExecute(
         statement, resultSink);
 
     super.execute();

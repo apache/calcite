@@ -59,7 +59,8 @@ public abstract class OptiqStatement
   protected void close_() {
     if (!closed) {
       closed = true;
-      ((OptiqConnectionImpl) connection).server.removeStatement(this);
+      final OptiqConnectionImpl connection1 = (OptiqConnectionImpl) connection;
+      connection1.server.removeStatement(this);
       if (openResultSet != null) {
         AvaticaResultSet c = openResultSet;
         openResultSet = null;
@@ -67,7 +68,7 @@ public abstract class OptiqStatement
       }
       // If onStatementClose throws, this method will throw an exception (later
       // converted to SQLException), but this statement still gets closed.
-      connection.driver.handler.onStatementClose(this);
+      connection1.getDriver().handler.onStatementClose(this);
     }
   }
 }

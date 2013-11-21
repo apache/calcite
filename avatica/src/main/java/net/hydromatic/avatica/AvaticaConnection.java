@@ -36,8 +36,8 @@ public abstract class AvaticaConnection implements Connection {
   private int networkTimeout;
   private String catalog;
 
-  public final UnregisteredDriver driver;
-  public final AvaticaFactory factory;
+  protected final UnregisteredDriver driver;
+  protected final AvaticaFactory factory;
   final String url;
   protected final Properties info;
   protected final Meta meta;
@@ -393,6 +393,31 @@ public abstract class AvaticaConnection implements Connection {
           "exception while executing query", e);
     }
     return statement.openResultSet;
+  }
+
+  // do not make public
+  protected static Trojan createTrojan() {
+    return new Trojan();
+  }
+
+  /** A way to call package-protected methods. But only a sub-class of
+   * connection can create one. */
+  public static class Trojan {
+    // must be private
+    private Trojan() {
+    }
+
+    /** A means for anyone who has a trojan to call the protected method
+     * {@link net.hydromatic.avatica.AvaticaResultSet#execute()}. */
+    public ResultSet execute(AvaticaResultSet resultSet) {
+      return resultSet.execute();
+    }
+
+    /** A means for anyone who has a trojan to call the protected method
+     * {@link net.hydromatic.avatica.AvaticaStatement#getParameterValues()}. */
+    public List<Object> getParameterValues(AvaticaStatement statement) {
+      return statement.getParameterValues();
+    }
   }
 }
 

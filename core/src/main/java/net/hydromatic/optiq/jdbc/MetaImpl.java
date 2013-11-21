@@ -27,7 +27,6 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.runtime.*;
-import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.SqlJdbcFunctionCall;
@@ -242,7 +241,7 @@ public class MetaImpl implements Meta {
       final List<ColumnMetaData> columnList,
       final Cursor cursor) {
     try {
-      return connection.factory.newResultSet(
+      final AvaticaResultSet resultSet = connection.getFactory().newResultSet(
           connection.createStatement(),
           new OptiqPrepare.PrepareResult<E>("",
               ImmutableList.<AvaticaParameter>of(), null,
@@ -252,7 +251,8 @@ public class MetaImpl implements Meta {
               return cursor;
             }
           },
-          connection.getTimeZone()).execute();
+          connection.getTimeZone());
+      return OptiqConnectionImpl.TROJAN.execute(resultSet);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -684,7 +684,8 @@ public class MetaImpl implements Meta {
     OptiqResultSet resultSet = (OptiqResultSet) resultSet_;
     final DataContext dataContext =
         connection.createDataContext(
-            resultSet.getStatement().getParameterValues());
+            OptiqConnectionImpl.TROJAN.getParameterValues(
+                resultSet.getStatement()));
     OptiqPrepare.PrepareResult prepareResult = resultSet.getPrepareResult();
     return prepareResult.createCursor(dataContext);
   }
