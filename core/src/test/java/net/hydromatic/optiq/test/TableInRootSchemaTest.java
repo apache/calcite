@@ -31,6 +31,7 @@ import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.TranslatableTable;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.AbstractTable;
 import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
@@ -43,8 +44,9 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Pair;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
+import java.sql.*;
 
 public class TableInRootSchemaTest {
   /** Test case for issue 85, "Adding a table to the root schema causes breakage
@@ -64,6 +66,16 @@ public class TableInRootSchemaTest {
         "A=foo; EXPR$1=8\n"
         + "A=bar; EXPR$1=4\n",
         equalTo(OptiqAssert.toString(resultSet)));
+
+    final ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+    assertThat(resultSetMetaData.getColumnName(1), equalTo("A"));
+    assertThat(resultSetMetaData.getTableName(1), equalTo("SAMPLE"));
+    assertThat(resultSetMetaData.getSchemaName(1), nullValue());
+    // Per JDBC, column name should be null. But DBUnit requires every column
+    // to have a name, so the driver uses the label.
+    assertThat(resultSetMetaData.getColumnName(2), equalTo("EXPR$1"));
+    assertThat(resultSetMetaData.getTableName(2), nullValue());
+    assertThat(resultSetMetaData.getSchemaName(2), nullValue());
     resultSet.close();
     statement.close();
     connection.close();

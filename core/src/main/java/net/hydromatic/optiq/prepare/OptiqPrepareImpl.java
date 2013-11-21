@@ -408,8 +408,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               true,
               type.getPrecision(),
               field.getName(),
-              origin(origins, 2),
               origin(origins, 0),
+              origin(origins, 2),
               getPrecision(type),
               getScale(type),
               origin(origins, 1),
@@ -428,8 +428,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     return columns;
   }
 
-  private static String origin(List<String> origins, int zx) {
-    return origins == null || zx >= origins.size() ? null : origins.get(zx);
+  private static String origin(List<String> origins, int offsetFromEnd) {
+    return origins == null || offsetFromEnd >= origins.size()
+        ? null
+        : origins.get(origins.size() - 1 - offsetFromEnd);
   }
 
   private int getTypeOrdinal(RelDataType type) {
