@@ -389,11 +389,11 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               true,
               type.getPrecision(),
               field.getName(),
-              origins == null ? null : origins.get(2),
-              origins == null ? null : origins.get(0),
+              origin(origins, 2),
+              origin(origins, 0),
               getPrecision(type),
               getScale(type),
-              origins == null ? null : origins.get(1),
+              origin(origins, 1),
               null,
               getTypeOrdinal(type),
               getTypeName(type),
@@ -404,6 +404,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
               rep));
     }
     return columns;
+  }
+
+  private static String origin(List<String> origins, int zx) {
+    return origins == null || zx >= origins.size() ? null : origins.get(zx);
   }
 
   private int getTypeOrdinal(RelDataType type) {

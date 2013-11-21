@@ -90,6 +90,9 @@ import org.junit.runners.Suite;
     ReflectiveSchemaTest.class,
     JdbcTest.class,
 
+    // test cases
+    TableInRootSchemaTest.class,
+
     // slow tests that don't break often
     PartiallyOrderedSetTest.class
 })
