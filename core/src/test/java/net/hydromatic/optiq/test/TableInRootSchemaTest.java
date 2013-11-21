@@ -34,7 +34,6 @@ import org.eigenbase.util.Pair;
 
 import org.junit.Test;
 
-import java.io.PrintStream;
 import java.sql.*;
 import java.util.*;
 
@@ -59,6 +58,16 @@ public class TableInRootSchemaTest {
         "A=foo; EXPR$1=8\n"
         + "A=bar; EXPR$1=4\n",
         equalTo(OptiqAssert.toString(resultSet)));
+
+    final ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+    assertThat(resultSetMetaData.getColumnName(1), equalTo("A"));
+    assertThat(resultSetMetaData.getTableName(1), equalTo("SAMPLE"));
+    assertThat(resultSetMetaData.getSchemaName(1), nullValue());
+    // Per JDBC, column name should be null. But DBUnit requires every column
+    // to have a name, so the driver uses the label.
+    assertThat(resultSetMetaData.getColumnName(2), equalTo("EXPR$1"));
+    assertThat(resultSetMetaData.getTableName(2), nullValue());
+    assertThat(resultSetMetaData.getSchemaName(2), nullValue());
     resultSet.close();
     statement.close();
     connection.close();
@@ -143,15 +152,6 @@ public class TableInRootSchemaTest {
 
     public Enumerator<Object[]> enumerator() {
       return enumeratorImpl(null);
-    }
-
-    /** Returns an enumerable over a given projection of the fields. */
-    public Enumerable<Object[]> project(final int[] fields) {
-      return new AbstractEnumerable<Object[]>() {
-        public Enumerator<Object[]> enumerator() {
-          return enumeratorImpl(fields);
-        }
-      };
     }
 
     private Enumerator<Object[]> enumeratorImpl(final int[] fields) {
