@@ -32,6 +32,7 @@ import net.hydromatic.linq4j.expressions.Primitive;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Abstract base for implementations of {@link RelDataTypeFactory}.
@@ -75,7 +76,8 @@ public abstract class RelDataTypeFactoryImpl
     // implement RelDataTypeFactory
     public RelDataType createJoinType(RelDataType [] types)
     {
-        final RelDataType [] flattenedTypes = getTypeArray(types);
+        final List<RelDataType> flattenedTypes =
+            getTypeArray(ImmutableList.copyOf(types));
         return canonize(
             new RelCrossType(
                 flattenedTypes,
@@ -326,7 +328,8 @@ public abstract class RelDataTypeFactoryImpl
     /**
      * Returns an array of the fields in an array of types.
      */
-    private static List<RelDataTypeField> getFieldArray(RelDataType[] types) {
+    private static List<RelDataTypeField> getFieldArray(List<RelDataType> types)
+    {
         ArrayList<RelDataTypeField> fieldList =
             new ArrayList<RelDataTypeField>();
         for (RelDataType type : types) {
@@ -338,24 +341,22 @@ public abstract class RelDataTypeFactoryImpl
     /**
      * Returns an array of all atomic types in an array.
      */
-    private static RelDataType [] getTypeArray(RelDataType [] types)
+    private static List<RelDataType> getTypeArray(List<RelDataType> types)
     {
-        ArrayList<RelDataType> typeList = new ArrayList<RelDataType>();
-        getTypeArray(types, typeList);
-        return typeList.toArray(
-            new RelDataType[typeList.size()]);
+        List<RelDataType> flatTypes = new ArrayList<RelDataType>();
+        getTypeArray(types, flatTypes);
+        return flatTypes;
     }
 
     private static void getTypeArray(
-        RelDataType [] types,
-        ArrayList<RelDataType> typeList)
+        List<RelDataType> inTypes,
+        List<RelDataType> flatTypes)
     {
-        for (int i = 0; i < types.length; i++) {
-            RelDataType type = types[i];
-            if (type instanceof RelCrossType) {
-                getTypeArray(((RelCrossType) type).types, typeList);
+        for (RelDataType inType : inTypes) {
+            if (inType instanceof RelCrossType) {
+                getTypeArray(((RelCrossType) inType).types, flatTypes);
             } else {
-                typeList.add(type);
+                flatTypes.add(inType);
             }
         }
     }
@@ -369,13 +370,12 @@ public abstract class RelDataTypeFactoryImpl
     {
         if (type instanceof RelCrossType) {
             final RelCrossType crossType = (RelCrossType) type;
-            for (int i = 0; i < crossType.types.length; i++) {
-                addFields(crossType.types[i], fieldList);
+            for (RelDataType type1 : crossType.types) {
+                addFields(type1, fieldList);
             }
         } else {
             List<RelDataTypeField> fields = type.getFieldList();
-            for (int j = 0; j < fields.size(); j++) {
-                RelDataTypeField field = fields.get(j);
+            for (RelDataTypeField field : fields) {
                 fieldList.add(field);
             }
         }

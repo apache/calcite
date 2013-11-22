@@ -101,6 +101,17 @@ public class SqlToRelConverterTest
         check("SELECT * FROM emp JOIN dept USING (deptno)", "${plan}");
     }
 
+    /** Test case for <a href="https://github.com/julianhyde/optiq/issues/74">
+     * JOIN ... USING fails in 3-way join with
+     * UnsupportedOperationException</a>. */
+    @Test public void testJoinUsingThreeWay() {
+        check(
+            "select *\n"
+            + "from emp as e\n"
+            + "join dept as d using (deptno)\n"
+            + "join emp as e2 using (empno)", "${plan}");
+    }
+
     @Test public void testJoinUsingCompound() {
         check(
             "SELECT * FROM emp LEFT JOIN ("

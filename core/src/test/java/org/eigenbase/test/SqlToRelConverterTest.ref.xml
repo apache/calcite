@@ -1491,4 +1491,22 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJoinUsingThreeWay">
+        <Resource name="sql">
+            <![CDATA[select *
+from emp as e
+join dept as d using (deptno)
+join emp as e2 using (empno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10], EMPNO0=[$11], ENAME0=[$12], JOB0=[$13], MGR0=[$14], HIREDATE0=[$15], SAL0=[$16], COMM0=[$17], DEPTNO1=[$18], SLACKER0=[$19])
+  JoinRel(condition=[=($0, $11)], joinType=[inner])
+    JoinRel(condition=[=($7, $9)], joinType=[inner])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

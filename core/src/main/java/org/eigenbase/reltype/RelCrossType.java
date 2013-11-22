@@ -19,6 +19,9 @@ package org.eigenbase.reltype;
 
 import java.util.List;
 
+import net.hydromatic.linq4j.Ord;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Type of the cartesian product of two or more sets of records.
@@ -34,74 +37,44 @@ public class RelCrossType
 {
     //~ Instance fields --------------------------------------------------------
 
-    public final RelDataType [] types;
+    public final ImmutableList<RelDataType> types;
 
     //~ Constructors -----------------------------------------------------------
 
     /**
      * Creates a cartesian product type. This should only be called from a
      * factory method.
-     *
-     * @pre types != null
-     * @pre types.length >= 1
-     * @pre !(types[i] instanceof CrossType)
      */
     public RelCrossType(
-        RelDataType [] types,
+        List<RelDataType> types,
         List<RelDataTypeField> fields)
     {
         super(fields);
-        this.types = types;
-        assert (types != null);
-        assert (types.length >= 1);
+        this.types = ImmutableList.copyOf(types);
+        assert types != null;
+        assert types.size() >= 1;
         for (RelDataType type : types) {
-            assert (!(type instanceof RelCrossType));
+            assert !(type instanceof RelCrossType);
         }
         computeDigest();
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    public boolean isStruct()
-    {
+    @Override public boolean isStruct() {
         return false;
     }
 
-    public RelDataTypeField getField(String fieldName)
-    {
-        throw new UnsupportedOperationException(
-            "not applicable to a join type");
-    }
-
-    public int getFieldOrdinal(String fieldName)
-    {
-        throw new UnsupportedOperationException(
-            "not applicable to a join type");
-    }
-
-    public List<RelDataTypeField> getFieldList()
-    {
-        throw new UnsupportedOperationException(
-            "not applicable to a join type");
-    }
-
-    public RelDataType [] getTypes()
-    {
-        return types;
-    }
-
-    protected void generateTypeString(StringBuilder sb, boolean withDetail)
-    {
+    protected void generateTypeString(StringBuilder sb, boolean withDetail) {
         sb.append("CrossType(");
-        for (int i = 0; i < types.length; i++) {
-            if (i > 0) {
+        for (Ord<RelDataType> type : Ord.zip(types)) {
+            if (type.i > 0) {
                 sb.append(", ");
             }
-            RelDataType type = types[i];
             if (withDetail) {
-                sb.append(type.getFullTypeString());
+                sb.append(type.e.getFullTypeString());
             } else {
-                sb.append(type.toString());
+                sb.append(type.e.toString());
             }
         }
         sb.append(")");

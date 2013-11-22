@@ -5049,6 +5049,20 @@ public class SqlValidatorTest
             "ambig");
     }
 
+    @Test public void testJoinUsingThreeWay() {
+        check(
+            "select *\n"
+            + "from emp as e\n"
+            + "join dept as d using (deptno)\n"
+            + "join emp as e2 using (empno)");
+        checkFails(
+            "select *\n"
+            + "from emp as e\n"
+            + "join dept as d using (deptno)\n"
+            + "join dept as d2 using (^deptno^)",
+            "Column name 'DEPTNO' in USING clause is not unique on one side of join");
+    }
+
     @Test public void testWhere() {
         checkFails(
             "select * from emp where ^sal^",
