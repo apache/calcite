@@ -23,67 +23,60 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * PushFilterPastJoinRule implements the rule for pushing filters above and
  * within a join node into the join node and/or its children nodes.
  */
-public class PushFilterPastJoinRule
+public abstract class PushFilterPastJoinRule
     extends RelOptRule
 {
-    public static final PushFilterPastJoinRule instance =
-        new PushFilterPastJoinRule();
+    public static final PushFilterPastJoinRule FILTER_ON_JOIN =
+        new PushFilterPastJoinRule(
+            some(FilterRel.class, any(JoinRel.class)),
+            "PushFilterPastJoinRule:filter")
+        {
+            @Override
+            public void onMatch(RelOptRuleCall call) {
+                FilterRel filter = call.rel(0);
+                JoinRel join = call.rel(1);
+                perform(call, filter, join);
+            }
+        };
+
+    public static final PushFilterPastJoinRule JOIN =
+        new PushFilterPastJoinRule(
+            any(JoinRel.class),
+            "PushFilterPastJoinRule:no-filter")
+        {
+            @Override
+            public void onMatch(RelOptRuleCall call) {
+                JoinRel join = call.rel(0);
+                perform(call, null, join);
+            }
+        };
 
     //~ Constructors -----------------------------------------------------------
 
     /**
-     * Creates a PushFilterPastJoinRule.
-     */
-    private PushFilterPastJoinRule()
-    {
-        super(
-            some(
-                FilterRel.class, any(JoinRel.class)));
-    }
-
-    /**
      * Creates a PushFilterPastJoinRule with an explicit root operand.
      */
-    public PushFilterPastJoinRule(
+    private PushFilterPastJoinRule(
         RelOptRuleOperand operand,
         String id)
     {
-        // This rule is fired for either of the following two patterns:
-        //
-        // RelOptRuleOperand(
-        //     FilterRel.class,
-        //     new RelOptRuleOperand(JoinRel.class, ANY))
-        //
-        // RelOptRuleOperand(JoinRel.class, null)
-        //
         super(operand, "PushFilterRule: " + id);
     }
 
     //~ Methods ----------------------------------------------------------------
 
-    // implement RelOptRule
-    public void onMatch(RelOptRuleCall call)
+    protected void perform(RelOptRuleCall call, FilterRel filter, JoinRel join)
     {
-        FilterRel filterRel;
-        JoinRel joinRel;
-
-        if (call.rels.length == 1) {
-            filterRel = null;
-            joinRel = call.rel(0);
-        } else {
-            filterRel = call.rel(0);
-            joinRel = call.rel(1);
-        }
-
         final List<RexNode> joinFilters =
-            RelOptUtil.conjunctions(joinRel.getCondition());
+            RelOptUtil.conjunctions(join.getCondition());
 
-        if (filterRel == null) {
+        if (filter == null) {
             // There is only the joinRel
             // make sure it does not match a cartesian product joinRel
             // (with "true" condition) otherwise this rule will be applied
@@ -102,9 +95,9 @@ public class PushFilterPastJoinRule
         }
 
         final List<RexNode> aboveFilters =
-            filterRel != null
-                ? RelOptUtil.conjunctions(filterRel.getCondition())
-                : Collections.<RexNode>emptyList();
+            filter != null
+                ? RelOptUtil.conjunctions(filter.getCondition())
+                : ImmutableList.<RexNode>of();
 
         List<RexNode> leftFilters = new ArrayList<RexNode>();
         List<RexNode> rightFilters = new ArrayList<RexNode>();
@@ -120,11 +113,11 @@ public class PushFilterPastJoinRule
         // generating side.
         boolean filterPushed = false;
         if (RelOptUtil.classifyFilters(
-                joinRel,
+                join,
                 aboveFilters,
-                (joinRel.getJoinType() == JoinRelType.INNER),
-                !joinRel.getJoinType().generatesNullsOnLeft(),
-                !joinRel.getJoinType().generatesNullsOnRight(),
+                (join.getJoinType() == JoinRelType.INNER),
+                !join.getJoinType().generatesNullsOnLeft(),
+                !join.getJoinType().generatesNullsOnRight(),
                 joinFilters,
                 leftFilters,
                 rightFilters))
@@ -136,11 +129,11 @@ public class PushFilterPastJoinRule
         // pushed down if it does not affect the non-matching set, i.e. it is
         // not on the side which is preserved.
         if (RelOptUtil.classifyFilters(
-                joinRel,
+                join,
                 joinFilters,
                 false,
-                !joinRel.getJoinType().generatesNullsOnRight(),
-                !joinRel.getJoinType().generatesNullsOnLeft(),
+                !join.getJoinType().generatesNullsOnRight(),
+                !join.getJoinType().generatesNullsOnLeft(),
                 joinFilters,
                 leftFilters,
                 rightFilters))
@@ -154,16 +147,16 @@ public class PushFilterPastJoinRule
 
         // create FilterRels on top of the children if any filters were
         // pushed to them
-        RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
+        RexBuilder rexBuilder = join.getCluster().getRexBuilder();
         RelNode leftRel =
             createFilterOnRel(
                 rexBuilder,
-                joinRel.getLeft(),
+                join.getLeft(),
                 leftFilters);
         RelNode rightRel =
             createFilterOnRel(
                 rexBuilder,
-                joinRel.getRight(),
+                join.getRight(),
                 rightFilters);
 
         // create the new join node referencing the new children and
@@ -183,14 +176,14 @@ public class PushFilterPastJoinRule
         }
         RelNode newJoinRel =
             new JoinRel(
-                joinRel.getCluster(),
+                join.getCluster(),
                 leftRel,
                 rightRel,
                 joinFilter,
-                joinRel.getJoinType(),
+                join.getJoinType(),
                 Collections.<String>emptySet(),
-                joinRel.isSemiJoinDone(),
-                joinRel.getSystemFieldList());
+                join.isSemiJoinDone(),
+                join.getSystemFieldList());
 
         // create a FilterRel on top of the join if needed
         RelNode newRel =

@@ -166,7 +166,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(TableAccessRule.instance);
     planner.addRule(MergeProjectRule.instance);
     planner.addRule(PushFilterPastProjectRule.instance);
-    planner.addRule(PushFilterPastJoinRule.instance);
+    planner.addRule(PushFilterPastJoinRule.FILTER_ON_JOIN);
     planner.addRule(RemoveDistinctAggregateRule.instance);
     planner.addRule(ReduceAggregatesRule.instance);
     planner.addRule(SwapJoinRule.instance);

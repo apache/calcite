@@ -21,7 +21,6 @@ import org.eigenbase.rel.rules.*;
 
 import org.junit.Test;
 
-
 /**
  * Unit test for rules in {@link org.eigenbase.rel} and subpackages.
  *
@@ -82,7 +81,7 @@ public class RelOptRulesTest
 
     @Test public void testPushFilterThroughOuterJoin() {
         checkPlanning(
-            PushFilterPastJoinRule.instance,
+            PushFilterPastJoinRule.FILTER_ON_JOIN,
             "select 1 from sales.dept d left outer join sales.emp e"
             + " on d.deptno = e.deptno"
             + " where d.name = 'Charlie'");
