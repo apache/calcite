@@ -27,8 +27,9 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
-import org.eigenbase.util.Util;
 import org.eigenbase.util14.*;
+
+import net.hydromatic.optiq.util.BitSets;
 
 import com.google.common.collect.ImmutableList;
 
@@ -328,7 +329,7 @@ public class RelMdUtil
         BitSet rightMask,
         int nFieldsOnLeft)
     {
-        for (int bit : Util.toIter(groupKey)) {
+        for (int bit : BitSets.toIter(groupKey)) {
             if (bit < nFieldsOnLeft) {
                 leftMask.set(bit);
             } else {
@@ -596,7 +597,7 @@ public class RelMdUtil
         BitSet childKey)
     {
         List<AggregateCall> aggCalls = aggRel.getAggCallList();
-        for (int bit : Util.toIter(groupKey)) {
+        for (int bit : BitSets.toIter(groupKey)) {
             if (bit < aggRel.getGroupCount()) {
                 // group by column
                 childKey.set(bit);
@@ -626,7 +627,7 @@ public class RelMdUtil
         BitSet baseCols,
         BitSet projCols)
     {
-        for (int bit : Util.toIter(groupKey)) {
+        for (int bit : BitSets.toIter(groupKey)) {
             final RexNode e = projExprs.get(bit);
             if (e instanceof RexInputRef) {
                 baseCols.set(((RexInputRef) e).getIndex());

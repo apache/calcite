@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableSet;
 
 import net.hydromatic.linq4j.Ord;
 
+import net.hydromatic.optiq.util.BitSets;
 
 /**
  * RelDecorrelator replaces all correlated expressions(corExp) in a relational
@@ -469,7 +470,7 @@ public class RelDecorrelator
             new AggregateRel(
                 rel.getCluster(),
                 newProjectRel,
-                Util.bitSetBetween(0, newGroupKeyCount),
+                BitSets.range(newGroupKeyCount),
                 newAggCalls);
 
         mapOldToNewRel.put(rel, newAggregateRel);
@@ -2193,7 +2194,7 @@ public class RelDecorrelator
                 }
 
                 int nFields = leftInputRel.getRowType().getFieldCount();
-                BitSet allCols = Util.bitSetBetween(0, nFields);
+                BitSet allCols = BitSets.range(nFields);
 
                 // leftInputRel contains unique keys
                 // i.e. each row is distinct and can group by on all the left
@@ -2351,7 +2352,7 @@ public class RelDecorrelator
             }
 
             BitSet groupSet =
-                Util.bitSetBetween(0, groupCount);
+                BitSets.range(groupCount);
             AggregateRel newAggRel =
                 new AggregateRel(
                     cluster,
@@ -2360,7 +2361,7 @@ public class RelDecorrelator
                     newAggCalls);
 
             List<RexNode> newAggOutputProjExprList = new ArrayList<RexNode>();
-            for (int i : Util.toIter(groupSet)) {
+            for (int i : BitSets.toIter(groupSet)) {
                 newAggOutputProjExprList.add(
                     rexBuilder.makeInputRef(
                         newAggRel.getRowType().getFieldList().get(i).getType(),

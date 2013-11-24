@@ -31,6 +31,7 @@ import org.eigenbase.test.*;
 import org.junit.Test;
 
 import net.hydromatic.optiq.runtime.FlatLists;
+import net.hydromatic.optiq.util.BitSets;
 
 import static org.junit.Assert.*;
 
@@ -513,7 +514,7 @@ public class UtilTest {
     }
 
     /**
-     * Tests the method {@link Util#toIter(java.util.BitSet)}.
+     * Tests the method {@link net.hydromatic.optiq.util.BitSets#toIter(java.util.BitSet)}.
      */
     @Test public void testToIterBitSet() {
         BitSet bitSet = new BitSet();
@@ -538,7 +539,7 @@ public class UtilTest {
         final String expected, BitSet bitSet)
     {
         StringBuilder buf = new StringBuilder();
-        for (int i : Util.toIter(bitSet)) {
+        for (int i : BitSets.toIter(bitSet)) {
             if (buf.length() > 0) {
                 buf.append(", ");
             }
@@ -548,37 +549,41 @@ public class UtilTest {
     }
 
     /**
-     * Tests the method {@link Util#toList(java.util.BitSet)}.
+     * Tests the method {@link net.hydromatic.optiq.util.BitSets#toList(java.util.BitSet)}.
      */
     @Test public void testToListBitSet() {
         BitSet bitSet = new BitSet(10);
-        assertEquals(Util.toList(bitSet), Collections.<Integer>emptyList());
+        assertEquals(BitSets.toList(bitSet), Collections.<Integer>emptyList());
         bitSet.set(5);
-        assertEquals(Util.toList(bitSet), Arrays.asList(5));
+        assertEquals(BitSets.toList(bitSet), Arrays.asList(5));
         bitSet.set(3);
-        assertEquals(Util.toList(bitSet), Arrays.asList(3, 5));
+        assertEquals(BitSets.toList(bitSet), Arrays.asList(3, 5));
     }
 
     /**
-     * Tests the method {@link Util#bitSetOf(int...)}.
+     * Tests the method {@link net.hydromatic.optiq.util.BitSets#of(int...)}.
      */
     @Test public void testBitSetOf() {
         assertEquals(
-            Util.toList(Util.bitSetOf(0, 4, 2)), Arrays.asList(0, 2, 4));
+            BitSets.toList(BitSets.of(0, 4, 2)),
+            Arrays.asList(0, 2, 4));
         assertEquals(
-            Util.toList(Util.bitSetOf()), Collections.<Integer>emptyList());
+            BitSets.toList(BitSets.of()),
+            Collections.<Integer>emptyList());
     }
 
     /**
-     * Tests the method {@link Util#bitSetBetween(int, int)}.
+     * Tests the method {@link net.hydromatic.optiq.util.BitSets#range(int, int)}.
      */
     @Test public void testBitSetBetween() {
         assertEquals(
-            Util.toList(Util.bitSetBetween(0, 4)), Arrays.asList(0, 1, 2, 3));
+            BitSets.toList(BitSets.range(0, 4)),
+            Arrays.asList(0, 1, 2, 3));
         assertEquals(
-            Util.toList(Util.bitSetBetween(1, 4)), Arrays.asList(1, 2, 3));
+            BitSets.toList(BitSets.range(1, 4)),
+            Arrays.asList(1, 2, 3));
         assertEquals(
-            Util.toList(Util.bitSetBetween(2, 2)),
+            BitSets.toList(BitSets.range(2, 2)),
             Collections.<Integer>emptyList());
     }
 
@@ -943,35 +948,16 @@ public class UtilTest {
     }
 
     /** Unit test for
-     * {@link Util#isSupersetOf(java.util.BitSet, java.util.BitSet)}. */
-    @Test public void testIsSupersetOf() {
-        assertTrue(
-            Util.isSupersetOf(
-                Util.bitSetBetween(0, 5),
-                Util.bitSetBetween(2, 4)));
-        assertTrue(
-            Util.isSupersetOf(
-                Util.bitSetBetween(0, 5),
-                Util.bitSetOf(4)));
-        assertFalse(
-            Util.isSupersetOf(
-                Util.bitSetBetween(0, 5), Util.bitSetOf(14)));
-        assertFalse(
-            Util.isSupersetOf(
-                Util.bitSetBetween(20, 25), Util.bitSetOf(14)));
-        final BitSet empty = Util.bitSetOf();
-        assertTrue(
-            Util.isSupersetOf(
-                Util.bitSetBetween(20, 25),
-                empty));
-        assertTrue(
-            Util.isSupersetOf(
-                empty,
-                empty));
-        assertTrue(
-            Util.isSupersetOf(
-                Util.bitSetOf(1, 4, 7),
-                Util.bitSetOf(1, 4, 7)));
+     * {@link net.hydromatic.optiq.util.BitSets#contains(java.util.BitSet, java.util.BitSet)}. */
+    @Test public void testContains() {
+        assertTrue(BitSets.contains(BitSets.range(0, 5), BitSets.range(2, 4)));
+        assertTrue(BitSets.contains(BitSets.range(0, 5), BitSets.of(4)));
+        assertFalse(BitSets.contains(BitSets.range(0, 5), BitSets.of(14)));
+        assertFalse(BitSets.contains(BitSets.range(20, 25), BitSets.of(14)));
+        final BitSet empty = BitSets.of();
+        assertTrue(BitSets.contains(BitSets.range(20, 25), empty));
+        assertTrue(BitSets.contains(empty, empty));
+        assertTrue(BitSets.contains(BitSets.of(1, 4, 7), BitSets.of(1, 4, 7)));
     }
 
     /** Unit test for {@link IntegerIntervalSet}. */

@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.prepare.Prepare;
+import net.hydromatic.optiq.util.BitSets;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
@@ -190,8 +191,8 @@ public class JdbcRules {
 
     @Override
     public double getRows() {
-      final boolean leftKey = left.isKey(Util.bitSetOf(leftKeys));
-      final boolean rightKey = right.isKey(Util.bitSetOf(rightKeys));
+      final boolean leftKey = left.isKey(BitSets.of(leftKeys));
+      final boolean rightKey = right.isKey(BitSets.of(rightKeys));
       final double leftRowCount = left.getRows();
       final double rightRowCount = right.getRows();
       if (leftKey && rightKey) {
@@ -412,7 +413,7 @@ public class JdbcRules {
           x.builder(this, JdbcImplementor.Clause.GROUP_BY);
       List<SqlNode> groupByList = Expressions.list();
       final List<SqlNode> selectList = new ArrayList<SqlNode>();
-      for (int group : Util.toIter(groupSet)) {
+      for (int group : BitSets.toIter(groupSet)) {
         final SqlNode field = builder.context.field(group);
         addSelect(selectList, field, getRowType());
         groupByList.add(field);

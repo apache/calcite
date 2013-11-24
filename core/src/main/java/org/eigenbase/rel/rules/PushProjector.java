@@ -25,12 +25,12 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
 
 import net.hydromatic.linq4j.Ord;
 
-import com.google.common.collect.ImmutableList;
+import net.hydromatic.optiq.util.BitSets;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * PushProjector is a utility class used to perform operations used in push
@@ -90,7 +90,7 @@ public class PushProjector
      * case where the projection is being pushed past a join. Not used
      * otherwise.
      */
-    BitSet rightBitmap;
+    final BitSet rightBitmap;
 
     /**
      * Number of fields in the RelNode that the projection is being pushed past,
@@ -207,23 +207,17 @@ public class PushProjector
                 joinRel.getRight().getRowType().getFieldList();
             nFields = leftFields.size();
             nFieldsRight = rightFields.size();
-            childBitmap = new BitSet(nFields);
-            rightBitmap = new BitSet(nFieldsRight);
             nSysFields = joinRel.getSystemFieldList().size();
-            RelOptUtil.setRexInputBitmap(
-                childBitmap,
-                nSysFields,
-                nFields + nSysFields);
-            RelOptUtil.setRexInputBitmap(
-                rightBitmap,
-                nFields + nSysFields,
-                nChildFields);
+            childBitmap =
+                BitSets.range(nSysFields, nFields + nSysFields);
+            rightBitmap =
+                BitSets.range(nFields + nSysFields, nChildFields);
         } else {
             nFields = nChildFields;
             nFieldsRight = 0;
-            childBitmap = new BitSet(nChildFields);
+            childBitmap = BitSets.range(nChildFields);
+            rightBitmap = null;
             nSysFields = 0;
-            RelOptUtil.setRexInputBitmap(childBitmap, 0, nChildFields);
         }
         assert nChildFields == nSysFields + nFields + nFieldsRight;
 
@@ -267,7 +261,11 @@ public class PushProjector
 
             // even though there is no projection, this is the same as
             // selecting all fields
-            RelOptUtil.setRexInputBitmap(projRefs, 0, nChildFields);
+            if (nChildFields > 0) {
+                // Calling with nChildFields == 0 should be safe but hits
+                // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6222207
+                projRefs.set(0, nChildFields);
+            }
             nProject = nChildFields;
         } else if (
             (projRefs.cardinality() == nChildFields)
@@ -330,17 +328,33 @@ public class PushProjector
      */
     public boolean locateAllRefs()
     {
-        new InputSpecialOpFinder(
-            projRefs,
-            childBitmap,
-            rightBitmap,
-            preserveExprCondition,
-            childPreserveExprs,
-            rightPreserveExprs).apply(origProjExprs, origFilter);
+        RexUtil.apply(
+            new InputSpecialOpFinder(
+                projRefs,
+                childBitmap,
+                rightBitmap,
+                preserveExprCondition,
+                childPreserveExprs,
+                rightPreserveExprs),
+            origProjExprs,
+            origFilter);
+
+        // The system fields of each child are always used by the join, even if
+        // they are not projected out of it.
+        projRefs.set(
+            nSysFields,
+            nSysFields + nSysFields,
+            true);
+        projRefs.set(
+            nSysFields + nFields,
+            nSysFields + nFields + nSysFields,
+            true);
+
+        // Count how many fields are projected.
         nSystemProject = 0;
         nProject = 0;
         nRightProject = 0;
-        for (int bit : Util.toIter(projRefs)) {
+        for (int bit : BitSets.toIter(projRefs)) {
             if (bit < nSysFields) {
                 nSystemProject++;
             } else if (bit < nSysFields + nFields) {
@@ -479,11 +493,7 @@ public class PushProjector
         int [] adjustments = new int[nChildFields];
         int newIdx = 0;
         int rightOffset = childPreserveExprs.size();
-        for (
-            int pos = projRefs.nextSetBit(0);
-            pos >= 0;
-            pos = projRefs.nextSetBit(pos + 1))
-        {
+        for (int pos : BitSets.toIter(projRefs)) {
             adjustments[pos] = -(pos - newIdx);
             if (pos >= nSysFields + nFields) {
                 adjustments[pos] += rightOffset;
@@ -497,7 +507,6 @@ public class PushProjector
      * Clones an expression tree and walks through it, adjusting each
      * RexInputRef index by some amount, and converting expressions that need to
      * be preserved to field references.
-     *
      *
      * @param rex the expression
      * @param destFields fields that the new expressions will be referencing
@@ -527,7 +536,9 @@ public class PushProjector
      * Creates a new projection based on the original projection, adjusting all
      * input refs using an adjustment array passed in. If there was no original
      * projection, create a new one that selects every field from the underlying
-     * rel
+     * rel.
+     *
+     * <p>If the resulting projection would be trivial, return the child.
      *
      * @param projChild child of the new project
      * @param adjustments array indicating how much each input reference should
@@ -614,10 +625,10 @@ public class PushProjector
                 // it only references expressions on the right
                 final BitSet exprArgs = RelOptUtil.InputFinder.bits(call);
                 if (exprArgs.cardinality() > 0) {
-                    if (RelOptUtil.contains(leftFields, exprArgs)) {
+                    if (BitSets.contains(leftFields, exprArgs)) {
                         addExpr(preserveLeft, call);
                         return true;
-                    } else if (RelOptUtil.contains(rightFields, exprArgs)) {
+                    } else if (BitSets.contains(rightFields, exprArgs)) {
                         assert (preserveRight != null);
                         addExpr(preserveRight, call);
                         return true;
@@ -635,15 +646,6 @@ public class PushProjector
         {
             rexRefs.set(inputRef.getIndex());
             return null;
-        }
-
-        /**
-         * Applies this visitor to an array of expressions and an optional
-         * single expression.
-         */
-        public void apply(List<RexNode> exprs, RexNode expr)
-        {
-            RexProgram.apply(this, exprs, expr);
         }
 
         /**

@@ -24,9 +24,9 @@ import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
-import org.eigenbase.util.Util;
 import org.eigenbase.util14.*;
 
+import net.hydromatic.optiq.util.BitSets;
 
 /**
  * RelMdDistinctRowCount supplies a default implementation of {@link
@@ -167,7 +167,7 @@ public class RelMdDistinctRowCount
         List<RexNode> notPushable = new ArrayList<RexNode>();
         List<RexNode> pushable = new ArrayList<RexNode>();
         RelOptUtil.splitFilters(
-            rel.getGroupCount(),
+            rel.getGroupSet(),
             predicate,
             pushable,
             notPushable);
@@ -220,7 +220,7 @@ public class RelMdDistinctRowCount
         List<RexNode> notPushable = new ArrayList<RexNode>();
         List<RexNode> pushable = new ArrayList<RexNode>();
         RelOptUtil.splitFilters(
-            rel.getRowType().getFieldCount(),
+            BitSets.range(rel.getRowType().getFieldCount()),
             predicate,
             pushable,
             notPushable);
@@ -258,7 +258,7 @@ public class RelMdDistinctRowCount
         }
 
         // multiply by the cardinality of the non-child projection expressions
-        for (int bit : Util.toIter(projCols)) {
+        for (int bit : BitSets.toIter(projCols)) {
             Double subRowCount =
                 RelMdUtil.cardOfProjExpr(rel, projExprs.get(bit));
             if (subRowCount == null) {

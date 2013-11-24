@@ -25,6 +25,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
 
+import net.hydromatic.optiq.util.BitSets;
 
 /**
  * RelMdSelectivity supplies a default implementation of {@link
@@ -140,7 +141,7 @@ public class RelMdSelectivity
         List<RexNode> notPushable = new ArrayList<RexNode>();
         List<RexNode> pushable = new ArrayList<RexNode>();
         RelOptUtil.splitFilters(
-            rel.getGroupCount(),
+            rel.getGroupSet(),
             predicate,
             pushable,
             notPushable);
@@ -166,7 +167,7 @@ public class RelMdSelectivity
         List<RexNode> notPushable = new ArrayList<RexNode>();
         List<RexNode> pushable = new ArrayList<RexNode>();
         RelOptUtil.splitFilters(
-            rel.getRowType().getFieldCount(),
+            BitSets.range(rel.getRowType().getFieldCount()),
             predicate,
             pushable,
             notPushable);

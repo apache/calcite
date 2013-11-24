@@ -34,6 +34,8 @@ import org.eigenbase.util.mapping.Mappings;
 
 import net.hydromatic.linq4j.Ord;
 
+import net.hydromatic.optiq.util.BitSets;
+
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -67,17 +69,17 @@ public abstract class RelOptUtil
      * Returns a set of distinct variables set by <code>rel0</code> and used by
      * <code>rel1</code>.
      */
-    public static String [] getVariablesSetAndUsed(
+    public static List<String> getVariablesSetAndUsed(
         RelNode rel0,
         RelNode rel1)
     {
         Set<String> set = getVariablesSet(rel0);
         if (set.size() == 0) {
-            return Util.emptyStringArray;
+            return ImmutableList.of();
         }
         Set<String> used = getVariablesUsed(rel1);
         if (used.size() == 0) {
-            return Util.emptyStringArray;
+            return ImmutableList.of();
         }
         List<String> result = new ArrayList<String>();
         for (String s : set) {
@@ -85,10 +87,7 @@ public abstract class RelOptUtil
                 result.add(s);
             }
         }
-        if (result.size() == 0) {
-            return Util.emptyStringArray;
-        }
-        return result.toArray(new String[result.size()]);
+        return result;
     }
 
     /**
@@ -352,7 +351,7 @@ public abstract class RelOptUtil
                 new AggregateRel(
                     ret.getCluster(),
                     ret,
-                    Util.bitSetOf(),
+                    BitSets.of(),
                     Collections.singletonList(aggCall));
         }
 
@@ -421,14 +420,14 @@ public abstract class RelOptUtil
                     new AggregateRel(
                         ret.getCluster(),
                         ret,
-                        Util.bitSetBetween(0, newProjFieldCount - 1),
+                        BitSets.range(newProjFieldCount - 1),
                         Collections.singletonList(aggCall));
             } else {
                 ret =
                     new AggregateRel(
                         ret.getCluster(),
                         ret,
-                        Util.bitSetBetween(0, ret.getRowType().getFieldCount()),
+                        BitSets.range(ret.getRowType().getFieldCount()),
                         Collections.<AggregateCall>emptyList());
             }
         }
@@ -556,7 +555,9 @@ public abstract class RelOptUtil
         }
         List<RexNode> castExps =
             RexUtil.generateCastExpressions(
-                rel.getCluster().getRexBuilder(), castRowType, rowType);
+                rel.getCluster().getRexBuilder(),
+                castRowType,
+                rowType);
         if (rename) {
             // Use names and types from castRowType.
             return CalcRel.createProject(
@@ -607,7 +608,7 @@ public abstract class RelOptUtil
         return new AggregateRel(
             rel.getCluster(),
             rel,
-            Util.bitSetOf(),
+            BitSets.of(),
             aggCalls);
     }
 
@@ -622,12 +623,11 @@ public abstract class RelOptUtil
     public static RelNode createDistinctRel(
         RelNode rel)
     {
-        List<AggregateCall> aggCalls = Collections.emptyList();
         return new AggregateRel(
             rel.getCluster(),
             rel,
-            Util.bitSetBetween(0, rel.getRowType().getFieldCount()),
-            aggCalls);
+            BitSets.range(rel.getRowType().getFieldCount()),
+            ImmutableList.<AggregateCall>of());
     }
 
     public static boolean analyzeSimpleEquiJoin(
@@ -1945,38 +1945,6 @@ public abstract class RelOptUtil
     }
 
     /**
-     * Sets a bit in a bitmap for each RexInputRef in a RelNode
-     *
-     * @param bitmap bitmap to be set
-     * @param start starting bit to set, corresponding to first field in the
-     * RelNode
-     * @param end the bit one beyond the last to be set
-     */
-    public static void setRexInputBitmap(BitSet bitmap, int start, int end)
-    {
-        for (int i = start; i < end; i++) {
-            bitmap.set(i);
-        }
-    }
-
-    /**
-     * Returns true if all bits set in the second parameter are also set in the
-     * first
-     *
-     * @param x containing bitmap
-     * @param y bitmap to be checked
-     *
-     * @return true if all bits in the second parameter are set in the first
-     */
-    public static boolean contains(BitSet x, BitSet y)
-    {
-        BitSet tmp = new BitSet();
-        tmp.or(y);
-        tmp.andNot(x);
-        return tmp.isEmpty();
-    }
-
-    /**
      * Classifies filters according to where they should be processed. They
      * either stay where they are, are pushed to the join (if they originated
      * from above the join), or are pushed to one of the children. Filters that
@@ -2007,20 +1975,23 @@ public abstract class RelOptUtil
         RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
         boolean filterPushed = false;
         List<RelDataTypeField> joinFields = joinRel.getRowType().getFieldList();
-        int nTotalFields = joinFields.size();
-
-        int nFieldsLeft =
-            joinRel.getInputs().get(0).getRowType().getFieldCount();
-        BitSet leftBitmap = new BitSet(nFieldsLeft);
-        BitSet rightBitmap = new BitSet(nTotalFields - nFieldsLeft);
+        final int nTotalFields = joinFields.size();
+        final int nSysFields = 0; // joinRel.getSystemFieldList().size();
+        final List<RelDataTypeField> leftFields =
+            joinRel.getInputs().get(0).getRowType().getFieldList();
+        final int nFieldsLeft = leftFields.size();
+        final List<RelDataTypeField> rightFields =
+            joinRel.getInputs().get(1).getRowType().getFieldList();
+        final int nFieldsRight = rightFields.size();
+        assert nTotalFields == nSysFields + nFieldsLeft + nFieldsRight;
 
         // set the reference bitmaps for the left and right children
-        RelOptUtil.setRexInputBitmap(leftBitmap, 0, nFieldsLeft);
-        RelOptUtil.setRexInputBitmap(rightBitmap, nFieldsLeft, nTotalFields);
+        BitSet leftBitmap =
+            BitSets.range(nSysFields, nSysFields + nFieldsLeft);
+        BitSet rightBitmap =
+            BitSets.range(nSysFields + nFieldsLeft, nTotalFields);
 
         ListIterator<RexNode> filterIter = filters.listIterator();
-        List<RelDataTypeField> rightFields =
-            joinRel.getInputs().get(1).getRowType().getFieldList();
         while (filterIter.hasNext()) {
             RexNode filter = filterIter.next();
 
@@ -2032,12 +2003,26 @@ public abstract class RelOptUtil
             // filters can be pushed to the left child if the left child
             // does not generate NULLs and the only columns referenced in
             // the filter originate from the left child
-            if (pushLeft && RelOptUtil.contains(leftBitmap, filterBitmap)) {
+            if (pushLeft && BitSets.contains(leftBitmap, filterBitmap)) {
                 filterPushed = true;
 
                 // ignore filters that always evaluate to true
                 if (!filter.isAlwaysTrue()) {
-                    leftFilters.add(filter);
+                    // adjust the field references in the filter to reflect
+                    // that fields in the left now shift over by the number
+                    // of system fields
+                    final RexNode shiftedFilter =
+                        shiftFilter(
+                            nSysFields,
+                            nSysFields + nFieldsLeft,
+                            -nSysFields,
+                            rexBuilder,
+                            joinFields,
+                            nTotalFields,
+                            leftFields,
+                            filter);
+
+                    leftFilters.add(shiftedFilter);
                 }
                 filterIter.remove();
 
@@ -2046,7 +2031,7 @@ public abstract class RelOptUtil
                 // the filter originate from the right child
             } else if (
                 pushRight
-                && RelOptUtil.contains(rightBitmap, filterBitmap))
+                && BitSets.contains(rightBitmap, filterBitmap))
             {
                 filterPushed = true;
                 if (!filter.isAlwaysTrue()) {
@@ -2056,20 +2041,17 @@ public abstract class RelOptUtil
                     // child, the types of the source should match the dest
                     // so we don't need to explicitly pass the destination
                     // fields to RexInputConverter
-                    int [] adjustments = new int[nTotalFields];
-                    for (int i = 0; i < nFieldsLeft; i++) {
-                        adjustments[i] = 0;
-                    }
-                    for (int i = nFieldsLeft; i < nTotalFields; i++) {
-                        adjustments[i] = -nFieldsLeft;
-                    }
-                    rightFilters.add(
-                        filter.accept(
-                            new RelOptUtil.RexInputConverter(
-                                rexBuilder,
-                                joinFields,
-                                rightFields,
-                                adjustments)));
+                    final RexNode shilftedFilter =
+                        shiftFilter(
+                            nSysFields + nFieldsLeft,
+                            nTotalFields,
+                            -(nSysFields + nFieldsLeft),
+                            rexBuilder,
+                            joinFields,
+                            nTotalFields,
+                            rightFields,
+                            filter);
+                    rightFilters.add(shilftedFilter);
                 }
                 filterIter.remove();
 
@@ -2088,11 +2070,33 @@ public abstract class RelOptUtil
         return filterPushed;
     }
 
+    private static RexNode shiftFilter(
+        int start,
+        int end,
+        int offset,
+        RexBuilder rexBuilder,
+        List<RelDataTypeField> joinFields,
+        int nTotalFields,
+        List<RelDataTypeField> rightFields,
+        RexNode filter)
+    {
+        int [] adjustments = new int[nTotalFields];
+        for (int i = start; i < end; i++) {
+            adjustments[i] = offset;
+        }
+        return filter.accept(
+            new RexInputConverter(
+                rexBuilder,
+                joinFields,
+                rightFields,
+                adjustments));
+    }
+
     /**
      * Splits a filter into two lists, depending on whether or not the filter
      * only references its child input
      *
-     * @param nChildFields number of fields in the child
+     * @param childBitmap Fields in the child
      * @param predicate filters that will be split
      * @param pushable returns the list of filters that can be pushed to the
      * child input
@@ -2100,18 +2104,16 @@ public abstract class RelOptUtil
      * the child input
      */
     public static void splitFilters(
-        int nChildFields,
+        BitSet childBitmap,
         RexNode predicate,
         List<RexNode> pushable,
         List<RexNode> notPushable)
     {
         // for each filter, if the filter only references the child inputs,
         // then it can be pushed
-        BitSet childBitmap = new BitSet(nChildFields);
-        RelOptUtil.setRexInputBitmap(childBitmap, 0, nChildFields);
         for (RexNode filter : conjunctions(predicate)) {
             BitSet filterRefs = RelOptUtil.InputFinder.bits(filter);
-            if (contains(childBitmap, filterRefs)) {
+            if (BitSets.contains(childBitmap, filterRefs)) {
                 pushable.add(filter);
             } else {
                 notPushable.add(filter);

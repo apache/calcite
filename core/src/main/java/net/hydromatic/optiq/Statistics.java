@@ -17,7 +17,7 @@
 */
 package net.hydromatic.optiq;
 
-import org.eigenbase.util.Util;
+import net.hydromatic.optiq.util.BitSets;
 
 import java.util.*;
 
@@ -46,7 +46,7 @@ public class Statistics {
 
       public boolean isKey(BitSet columns) {
         for (BitSet key : keys) {
-          if (Util.isSupersetOf(columns, key)) {
+          if (BitSets.contains(columns, key)) {
             return true;
           }
         }

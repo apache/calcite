@@ -28,6 +28,8 @@ import org.eigenbase.util.Util;
 
 import net.hydromatic.linq4j.Ord;
 
+import net.hydromatic.optiq.util.BitSets;
+
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
@@ -286,7 +288,7 @@ public final class WindowRel extends WindowRelBase {
         // Look up or create a window.
         RelCollation orderKeys = getCollation(aggWindow.orderKeys);
         BitSet groupSet =
-            Util.bitSetOf(getProjectOrdinals(aggWindow.partitionKeys));
+            BitSets.of(getProjectOrdinals(aggWindow.partitionKeys));
 
         WindowKey windowKey =
             new WindowKey(

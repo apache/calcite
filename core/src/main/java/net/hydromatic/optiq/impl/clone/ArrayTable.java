@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Primitive;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.util.BitSets;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.*;
@@ -75,7 +76,7 @@ class ArrayTable<T>
     final ArrayList<BitSet> keys = new ArrayList<BitSet>();
     for (Ord<Column> ord : Ord.zip(columns)) {
       if (ord.e.cardinality == size) {
-        keys.add(Util.bitSetOf(ord.i));
+        keys.add(BitSets.of(ord.i));
       }
     }
     return Statistics.of(size, keys);

@@ -29,6 +29,8 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.linq4j.Ord;
 
+import net.hydromatic.optiq.util.BitSets;
+
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -171,7 +173,7 @@ public abstract class AggregateRelBase
 
                     public RelDataTypeField get(int index) {
                         return getChild().getRowType().getFieldList().get(
-                            Util.toList(groupSet).get(index));
+                            BitSets.toList(groupSet).get(index));
                     }
                 },
 

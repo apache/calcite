@@ -26,6 +26,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.*;
 
+import net.hydromatic.optiq.util.BitSets;
 
 /**
  * PullConstantsThroughAggregatesRule removes constant expressions from the
@@ -81,7 +82,7 @@ public class PullConstantsThroughAggregatesRule
         final int groupCount = aggregate.getGroupSet().cardinality();
         IntList constantList = new IntList();
         Map<Integer, RexNode> constants = new HashMap<Integer, RexNode>();
-        for (int i : Util.toIter(aggregate.getGroupSet())) {
+        for (int i : BitSets.toIter(aggregate.getGroupSet())) {
             final RexLocalRef ref = program.getProjectList().get(i);
             if (program.isConstant(ref)) {
                 constantList.add(i);
@@ -117,7 +118,8 @@ public class PullConstantsThroughAggregatesRule
                 new AggregateRel(
                     aggregate.getCluster(),
                     child,
-                    Util.bitSetBetween(0, newGroupCount), newAggCalls);
+                    BitSets.range(newGroupCount),
+                    newAggCalls);
         } else {
             // Create the mapping from old field positions to new field
             // positions.
@@ -168,7 +170,8 @@ public class PullConstantsThroughAggregatesRule
                 new AggregateRel(
                     aggregate.getCluster(),
                     project,
-                    Util.bitSetBetween(0, newGroupCount), newAggCalls);
+                    BitSets.range(newGroupCount),
+                    newAggCalls);
         }
 
         // Create a projection back again.

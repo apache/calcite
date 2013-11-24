@@ -22,8 +22,9 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
-import org.eigenbase.util.Util;
 import org.eigenbase.util.mapping.Mappings;
+
+import net.hydromatic.optiq.util.BitSets;
 
 /**
  * Rule that pushes the right input of a join into through the left input of
@@ -96,7 +97,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final int aCount = relA.getRowType().getFieldCount();
         final int bCount = relB.getRowType().getFieldCount();
         final int cCount = relC.getRowType().getFieldCount();
-        final BitSet bBitSet = Util.bitSetBetween(aCount, aCount + bCount);
+        final BitSet bBitSet = BitSets.range(aCount, aCount + bCount);
 
         // becomes
         //
@@ -202,7 +203,7 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         final int aCount = relA.getRowType().getFieldCount();
         final int bCount = relB.getRowType().getFieldCount();
         final int cCount = relC.getRowType().getFieldCount();
-        final BitSet aBitSet = Util.bitSetBetween(0, aCount);
+        final BitSet aBitSet = BitSets.range(aCount);
 
         // becomes
         //

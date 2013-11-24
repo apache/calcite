@@ -23,7 +23,8 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
-import org.eigenbase.util.Util;
+
+import net.hydromatic.optiq.util.BitSets;
 
 /**
  * <code>TableAccessRelBase</code> is an abstract base class for implementations
@@ -117,7 +118,7 @@ public abstract class TableAccessRelBase
         Set<RelDataTypeField> extraFields)
     {
         final int fieldCount = getRowType().getFieldCount();
-        if (fieldsUsed.equals(Util.bitSetBetween(0, fieldCount))
+        if (fieldsUsed.equals(BitSets.range(fieldCount))
             && extraFields.isEmpty())
         {
             return this;
@@ -128,7 +129,7 @@ public abstract class TableAccessRelBase
         final List<RelDataTypeField> fields = getRowType().getFieldList();
 
         // Project the subset of fields.
-        for (int i : Util.toIter(fieldsUsed)) {
+        for (int i : BitSets.toIter(fieldsUsed)) {
             RelDataTypeField field = fields.get(i);
             exprList.add(
                 rexBuilder.makeInputRef(

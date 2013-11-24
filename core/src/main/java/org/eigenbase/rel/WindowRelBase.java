@@ -258,9 +258,7 @@ public abstract class WindowRelBase
      * enough that it gets visited by a {@link org.eigenbase.rex.RexVisitor},
      * but it also has some extra data members.
      */
-    public static class RexWinAggCall
-        extends RexCall
-    {
+    public static class RexWinAggCall extends RexCall {
         /**
          * Ordinal of this aggregate within its partition.
          */
@@ -282,6 +280,11 @@ public abstract class WindowRelBase
         {
             super(type, aggFun, operands);
             this.ordinal = ordinal;
+        }
+
+        @Override
+        public RexCall clone(RelDataType type, List<RexNode> operands) {
+            throw new UnsupportedOperationException();
         }
     }
 }

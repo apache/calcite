@@ -22,8 +22,8 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.rex.*;
-import org.eigenbase.util.Util;
 
+import net.hydromatic.optiq.util.BitSets;
 
 /**
  * RelMdUniqueKeys supplies a default implementation of {@link
@@ -110,7 +110,7 @@ public class RelMdUniqueKeys
                 BitSet colMask = itChild.next();
                 BitSet tmpMask = new BitSet();
                 boolean completeKeyProjected = true;
-                for (int bit : Util.toIter(colMask)) {
+                for (int bit : BitSets.toIter(colMask)) {
                     if (mapInToOutPos.containsKey(bit)) {
                         tmpMask.set(mapInToOutPos.get(bit));
                     } else {
@@ -157,7 +157,7 @@ public class RelMdUniqueKeys
             while (itRight.hasNext()) {
                 BitSet colMask = itRight.next();
                 BitSet tmpMask = new BitSet();
-                for (int bit : Util.toIter(colMask)) {
+                for (int bit : BitSets.toIter(colMask)) {
                     tmpMask.set(bit + nFieldsOnLeft);
                 }
                 rightSet.add(tmpMask);

@@ -23,6 +23,8 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.linq4j.function.Function1;
 
+import net.hydromatic.optiq.util.BitSets;
+
 /**
  * Utility functions related to mappings.
  *
@@ -169,7 +171,7 @@ public abstract class Mappings
     public static BitSet apply(Mapping mapping, BitSet bitSet)
     {
         final BitSet newBitSet = new BitSet();
-        for (int source : Util.toIter(bitSet)) {
+        for (int source : BitSets.toIter(bitSet)) {
             final int target = mapping.getTarget(source);
             newBitSet.set(target);
         }

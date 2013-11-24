@@ -39,6 +39,7 @@ import org.eigenbase.util14.*;
 
 import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.prepare.Prepare;
+import net.hydromatic.optiq.util.BitSets;
 
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.function.Function1;
@@ -655,7 +656,7 @@ public class SqlToRelConverter
         rel =
             createAggregate(
                 bb,
-                Util.bitSetBetween(0, rel.getRowType().getFieldCount()),
+                BitSets.range(rel.getRowType().getFieldCount()),
                 aggCalls);
 
         bb.setRoot(
@@ -2399,7 +2400,7 @@ public class SqlToRelConverter
             bb.setRoot(
                 createAggregate(
                     bb,
-                    Util.bitSetBetween(0, aggConverter.groupExprs.size()),
+                    BitSets.range(aggConverter.groupExprs.size()),
                     aggConverter.getAggCalls()),
                 false);
 

@@ -31,6 +31,8 @@ import org.eigenbase.util.mapping.*;
 
 import net.hydromatic.linq4j.Ord;
 
+import net.hydromatic.optiq.util.BitSets;
+
 /**
  * Transformer that walks over a tree of relational expressions, replacing each
  * {@link RelNode} with a 'slimmed down' relational expression that projects
@@ -99,7 +101,7 @@ public class RelFieldTrimmer
     public RelNode trim(RelNode root)
     {
         final int fieldCount = root.getRowType().getFieldCount();
-        final BitSet fieldsUsed = Util.bitSetBetween(0, fieldCount);
+        final BitSet fieldsUsed = BitSets.range(fieldCount);
         final Set<RelDataTypeField> extraFields = Collections.emptySet();
         final TrimResult trimResult =
             dispatchTrimFields(root, fieldsUsed, extraFields);
@@ -128,8 +130,7 @@ public class RelFieldTrimmer
             // MedMdrJoinRule cannot handle Join of Project of
             // MedMdrClassExtentRel, only naked MedMdrClassExtentRel.
             // So, disable trimming.
-            fieldsUsed =
-                Util.bitSetBetween(0, input.getRowType().getFieldCount());
+            fieldsUsed = BitSets.range(input.getRowType().getFieldCount());
         }
         return dispatchTrimFields(input, fieldsUsed, extraFields);
     }
@@ -520,7 +521,7 @@ public class RelFieldTrimmer
 
             // Compute required mapping.
             BitSet inputFieldsUsed = new BitSet(inputFieldCount);
-            for (int bit : Util.toIter(fieldsUsedPlus)) {
+            for (int bit : BitSets.toIter(fieldsUsedPlus)) {
                 if (bit >= offset && bit < offset + inputFieldCount) {
                     inputFieldsUsed.set(bit - offset);
                 }
@@ -696,7 +697,7 @@ public class RelFieldTrimmer
         // Compute which input fields are used.
         BitSet inputFieldsUsed = new BitSet();
         // 1. group fields are always used
-        for (int i : Util.toIter(aggregate.getGroupSet())) {
+        for (int i : BitSets.toIter(aggregate.getGroupSet())) {
             inputFieldsUsed.set(i);
         }
         // 2. agg functions
@@ -717,8 +718,7 @@ public class RelFieldTrimmer
         // If the input is unchanged, and we need to project all columns,
         // there's nothing to do.
         if (input == newInput
-            && fieldsUsed.equals(
-                Util.bitSetBetween(0, rowType.getFieldCount())))
+            && fieldsUsed.equals(BitSets.range(rowType.getFieldCount())))
         {
             return new TrimResult(
                 aggregate,
@@ -809,7 +809,7 @@ public class RelFieldTrimmer
 
         // We want all fields from the child.
         final int inputFieldCount = input.getRowType().getFieldCount();
-        BitSet inputFieldsUsed = Util.bitSetBetween(0, inputFieldCount);
+        BitSet inputFieldsUsed = BitSets.range(inputFieldCount);
 
         // Create input with trimmed columns.
         final Set<RelDataTypeField> inputExtraFields = Collections.emptySet();
@@ -853,7 +853,7 @@ public class RelFieldTrimmer
 
         for (RelNode input : tabFun.getInputs()) {
             final int inputFieldCount = input.getRowType().getFieldCount();
-            BitSet inputFieldsUsed = Util.bitSetBetween(0, inputFieldCount);
+            BitSet inputFieldsUsed = BitSets.range(inputFieldCount);
 
             // Create input with trimmed columns.
             final Set<RelDataTypeField> inputExtraFields =
@@ -892,11 +892,11 @@ public class RelFieldTrimmer
         // because zero-column records are illegal. Give them the last field,
         // which is unlikely to be a system field.
         if (fieldsUsed.isEmpty()) {
-            fieldsUsed = Util.bitSetBetween(fieldCount - 1, fieldCount);
+            fieldsUsed = BitSets.range(fieldCount - 1, fieldCount);
         }
 
         // If all fields are used, return unchanged.
-        if (fieldsUsed.equals(Util.bitSetBetween(0, fieldCount))) {
+        if (fieldsUsed.equals(BitSets.range(fieldCount))) {
             Mapping mapping = Mappings.createIdentity(fieldCount);
             return new TrimResult(values, mapping);
         }
@@ -904,7 +904,7 @@ public class RelFieldTrimmer
         List<List<RexLiteral>> newTuples = new ArrayList<List<RexLiteral>>();
         for (List<RexLiteral> tuple : values.getTuples()) {
             List<RexLiteral> newTuple = new ArrayList<RexLiteral>();
-            for (int field : Util.toIter(fieldsUsed)) {
+            for (int field : BitSets.toIter(fieldsUsed)) {
                 newTuple.add(tuple.get(field));
             }
             newTuples.add(newTuple);
@@ -926,7 +926,7 @@ public class RelFieldTrimmer
                 fieldCount,
                 fieldsUsed.cardinality());
         int i = 0;
-        for (int field : Util.toIter(fieldsUsed)) {
+        for (int field : BitSets.toIter(fieldsUsed)) {
             mapping.set(field, i++);
         }
         return mapping;
@@ -942,7 +942,7 @@ public class RelFieldTrimmer
         Set<RelDataTypeField> extraFields)
     {
         final int fieldCount = tableAccessRel.getRowType().getFieldCount();
-        if (fieldsUsed.equals(Util.bitSetBetween(0, fieldCount))
+        if (fieldsUsed.equals(BitSets.range(fieldCount))
             && extraFields.isEmpty())
         {
             return trimFields(

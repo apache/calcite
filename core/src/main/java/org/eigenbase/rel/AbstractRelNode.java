@@ -18,7 +18,6 @@
 package org.eigenbase.rel;
 
 import java.io.*;
-
 import java.util.*;
 import java.util.logging.*;
 
@@ -30,8 +29,9 @@ import org.eigenbase.sql.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
-import com.google.common.collect.ImmutableList;
+import net.hydromatic.optiq.util.BitSets;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * Base class for every relational expression ({@link RelNode}).
@@ -164,7 +164,7 @@ public abstract class AbstractRelNode
 
     public boolean isDistinct()
     {
-        return isKey(Util.bitSetBetween(0, getRowType().getFieldCount()));
+        return isKey(BitSets.range(getRowType().getFieldCount()));
     }
 
     public boolean isKey(BitSet columns) {

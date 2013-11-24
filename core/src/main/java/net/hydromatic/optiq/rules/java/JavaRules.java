@@ -22,6 +22,7 @@ import net.hydromatic.optiq.ModifiableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.runtime.SortedMultiMap;
+import net.hydromatic.optiq.util.BitSets;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
@@ -211,8 +212,8 @@ public class JavaRules {
 
     @Override
     public double getRows() {
-      final boolean leftKey = left.isKey(Util.bitSetOf(leftKeys));
-      final boolean rightKey = right.isKey(Util.bitSetOf(rightKeys));
+      final boolean leftKey = left.isKey(BitSets.of(leftKeys));
+      final boolean rightKey = right.isKey(BitSets.of(rightKeys));
       final double leftRowCount = left.getRows();
       final double rightRowCount = right.getRows();
       if (leftKey && rightKey) {
@@ -820,9 +821,9 @@ public class JavaRules {
       final List<Expression> keyExpressions = Expressions.list();
       PhysType keyPhysType =
           inputPhysType.project(
-              Util.toList(groupSet), JavaRowFormat.LIST);
+              BitSets.toList(groupSet), JavaRowFormat.LIST);
       final int keyArity = groupSet.cardinality();
-      for (int groupKey : Util.toIter(groupSet)) {
+      for (int groupKey : BitSets.toIter(groupSet)) {
         keyExpressions.add(
             inputPhysType.fieldReference(parameter, groupKey));
       }
@@ -830,7 +831,9 @@ public class JavaRules {
           builder.append(
               "keySelector",
               inputPhysType.generateSelector(
-                  parameter, Util.toList(groupSet), keyPhysType.getFormat()));
+                  parameter,
+                  BitSets.toList(groupSet),
+                  keyPhysType.getFormat()));
 
       final List<RexImpTable.AggImplementor2> implementors =
           EnumUtil.getImplementors(aggCalls);
@@ -1912,7 +1915,9 @@ public class JavaRules {
               Expressions.declare(
                   0, "key",
                   inputPhysType.selector(
-                      v_, Util.toList(window.groupSet), JavaRowFormat.CUSTOM));
+                      v_,
+                      BitSets.toList(window.groupSet),
+                      JavaRowFormat.CUSTOM));
           builder2.add(declare);
           final ParameterExpression key_ = declare.parameter;
           builder2.add(

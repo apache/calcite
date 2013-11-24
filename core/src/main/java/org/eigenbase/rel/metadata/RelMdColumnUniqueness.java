@@ -21,12 +21,11 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
-import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
-import org.eigenbase.util.Util;
 
+import net.hydromatic.optiq.util.BitSets;
 
 /**
  * RelMdColumnUniqueness supplies a default implementation of {@link
@@ -107,7 +106,7 @@ public class RelMdColumnUniqueness
 
         List<RexNode> projExprs = rel.getProjects();
         BitSet childColumns = new BitSet();
-        for (int bit : Util.toIter(columns)) {
+        for (int bit : BitSets.toIter(columns)) {
             RexNode projExpr = projExprs.get(bit);
             if (projExpr instanceof RexInputRef) {
                 childColumns.set(((RexInputRef) projExpr).getIndex());
@@ -171,7 +170,7 @@ public class RelMdColumnUniqueness
         BitSet leftColumns = new BitSet();
         BitSet rightColumns = new BitSet();
         int nLeftColumns = left.getRowType().getFieldCount();
-        for (int bit : Util.toIter(columns)) {
+        for (int bit : BitSets.toIter(columns)) {
             if (bit < nLeftColumns) {
                 leftColumns.set(bit);
             } else {
@@ -266,7 +265,7 @@ public class RelMdColumnUniqueness
             for (int i = 0; i < rel.getGroupCount(); i++) {
                 groupKey.set(i);
             }
-            return RelOptUtil.contains(columns, groupKey);
+            return BitSets.contains(columns, groupKey);
         } else {
             // interpret an empty set as asking whether the aggregation is full
             // table (in which case it returns at most one row);

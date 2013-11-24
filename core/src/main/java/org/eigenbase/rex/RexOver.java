@@ -23,7 +23,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Call to an aggregate function over a window.
  *
@@ -147,6 +146,10 @@ public class RexOver
             return true;
         }
         return false;
+    }
+
+    @Override public RexCall clone(RelDataType type, List<RexNode> operands) {
+        throw new UnsupportedOperationException();
     }
 
     //~ Inner Classes ----------------------------------------------------------

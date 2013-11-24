@@ -22,8 +22,8 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.rex.*;
-import org.eigenbase.util.Util;
 
+import net.hydromatic.optiq.util.BitSets;
 
 /**
  * RelMdPopulationSize supplies a default implementation of {@link
@@ -127,7 +127,7 @@ public class RelMdPopulationSize
             return population;
         }
 
-        for (int bit : Util.toIter(projCols)) {
+        for (int bit : BitSets.toIter(projCols)) {
             Double subRowCount =
                 RelMdUtil.cardOfProjExpr(rel, projExprs.get(bit));
             if (subRowCount == null) {

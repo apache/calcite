@@ -26,6 +26,9 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.optiq.util.BitSets;
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -96,7 +99,7 @@ public final class RemoveDistinctAggregateRule
         final List<RexInputRef> refs = new ArrayList<RexInputRef>();
         final List<String> fieldNames = aggregate.getRowType().getFieldNames();
         final BitSet groupSet = aggregate.getGroupSet();
-        for (int i : Util.toIter(groupSet)) {
+        for (int i : BitSets.toIter(groupSet)) {
             refs.add(RexInputRef.of(i, aggFields));
         }
 
@@ -462,7 +465,7 @@ public final class RemoveDistinctAggregateRule
         final RelNode child = aggregate.getChild();
         final List<RelDataTypeField> childFields =
             child.getRowType().getFieldList();
-        for (int i : Util.toIter(aggregate.getGroupSet())) {
+        for (int i : BitSets.toIter(aggregate.getGroupSet())) {
             sourceOf.put(i, projects.size());
             projects.add(RexInputRef.of2(i, childFields));
         }
@@ -482,8 +485,8 @@ public final class RemoveDistinctAggregateRule
             new AggregateRel(
                 aggregate.getCluster(),
                 project,
-                Util.bitSetBetween(0, projects.size()),
-                Collections.<AggregateCall>emptyList());
+                BitSets.range(projects.size()),
+                ImmutableList.<AggregateCall>of());
         return distinct;
     }
 }
