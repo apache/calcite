@@ -2388,6 +2388,25 @@ public abstract class RelOptUtil
         return parent.copy(parent.getTraitSet(), inputs);
     }
 
+    /** Creates a {@link org.eigenbase.rel.ProjectRel} that projects particular
+     * fields of its input, according to a mapping. */
+    public static ProjectRel project(
+        RelNode child,
+        Mappings.TargetMapping mapping)
+    {
+        List<RexNode> nodes = new ArrayList<RexNode>();
+        List<String> names = new ArrayList<String>();
+        final List<RelDataTypeField> fields = child.getRowType().getFieldList();
+        for (int i = 0; i < mapping.getTargetCount(); i++) {
+            int source = mapping.getSourceOpt(i);
+            RelDataTypeField field = fields.get(source);
+            nodes.add(new RexInputRef(source, field.getType()));
+            names.add(field.getName());
+        }
+        return new ProjectRel(
+            child.getCluster(), child, nodes, names, ProjectRel.Flags.Boxed);
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     private static class VariableSetVisitor

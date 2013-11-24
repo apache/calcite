@@ -1509,4 +1509,20 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJoinOnExpression">
+        <Resource name="sql">
+            <![CDATA[SELECT * FROM emp JOIN dept on emp.deptno + 1 = dept.deptno - 2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$10], NAME=[$11])
+    JoinRel(condition=[=($9, $12)], joinType=[inner])
+      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, 1)])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      ProjectRel(DEPTNO=[$0], NAME=[$1], $f2=[-($0, 2)])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

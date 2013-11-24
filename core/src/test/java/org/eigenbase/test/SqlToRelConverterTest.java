@@ -90,6 +90,12 @@ public class SqlToRelConverterTest
             "${plan}");
     }
 
+    @Test public void testJoinOnExpression() {
+        check(
+            "SELECT * FROM emp JOIN dept on emp.deptno + 1 = dept.deptno - 2",
+            "${plan}");
+    }
+
     @Test public void testJoinOnIn() {
         check(
             "select * from emp join dept\n"

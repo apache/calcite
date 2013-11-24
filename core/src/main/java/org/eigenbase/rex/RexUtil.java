@@ -975,6 +975,17 @@ public class RexUtil
         };
     }
 
+    /** Shifts every {@link RexInputRef} in an expression by {@code offset}. */
+    public static RexNode shift(RexNode node, final int offset) {
+        return node.accept(
+            new RexShuttle() {
+                @Override public RexNode visitInputRef(RexInputRef input) {
+                    return new RexInputRef(
+                        input.getIndex() + offset, input.getType());
+                }
+            });
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     /**

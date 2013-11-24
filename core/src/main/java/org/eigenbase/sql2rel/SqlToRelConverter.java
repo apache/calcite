@@ -35,6 +35,7 @@ import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
+import org.eigenbase.util.mapping.Mappings;
 import org.eigenbase.util14.*;
 
 import net.hydromatic.optiq.ModifiableTable;
@@ -2043,15 +2044,160 @@ public class SqlToRelConverter
             }
         }
 
-        return createJoin(
-            leftRel,
+        final List<RexNode> extraLeftExprs = new ArrayList<RexNode>();
+        final List<RexNode> extraRightExprs = new ArrayList<RexNode>();
+        final int leftCount = leftRel.getRowType().getFieldCount();
+        final int rightCount = rightRel.getRowType().getFieldCount();
+        joinCond = pushDownJoinConditions(
+            joinCond,
+            leftCount,
+            rightCount,
+            extraLeftExprs,
+            extraRightExprs);
+        if (!extraLeftExprs.isEmpty()) {
+            final List<RelDataTypeField> fields =
+                leftRel.getRowType().getFieldList();
+            leftRel = CalcRel.createProject(
+                leftRel,
+                new AbstractList<Pair<RexNode, String>>() {
+                    @Override public int size() {
+                        return leftCount + extraLeftExprs.size();
+                    }
+
+                    @Override public Pair<RexNode, String> get(int index) {
+                        if (index < leftCount) {
+                            RelDataTypeField field = fields.get(index);
+                            return Pair.<RexNode, String>of(
+                                new RexInputRef(index, field.getType()),
+                                field.getName());
+                        } else {
+                            return Pair.<RexNode, String>of(
+                                extraLeftExprs.get(index - leftCount), null);
+                        }
+                    }
+                },
+                true);
+        }
+        if (!extraRightExprs.isEmpty()) {
+            final List<RelDataTypeField> fields =
+                rightRel.getRowType().getFieldList();
+            rightRel = CalcRel.createProject(
+                rightRel,
+                new AbstractList<Pair<RexNode, String>>() {
+                    @Override public int size() {
+                        return rightCount + extraRightExprs.size();
+                    }
+
+                    @Override public Pair<RexNode, String> get(int index) {
+                        if (index < rightCount) {
+                            RelDataTypeField field = fields.get(index);
+                            return Pair.<RexNode, String>of(
+                                new RexInputRef(index, field.getType()),
+                                field.getName());
+                        } else {
+                            return Pair.of(
+                                RexUtil.shift(
+                                    extraRightExprs.get(index - rightCount),
+                                    -leftCount),
+                                null);
+                        }
+                    }
+                },
+                true);
+        }
+        RelNode join = createJoin(leftRel,
             rightRel,
             joinCond,
             joinType,
             ImmutableSet.<String>of());
+        if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
+            Mappings.TargetMapping mapping =
+                Mappings.createShiftMapping(
+                    leftCount + extraLeftExprs.size()
+                    + rightCount + extraRightExprs.size(),
+                    0, 0, leftCount,
+                    leftCount, leftCount + extraLeftExprs.size(), rightCount);
+            return RelOptUtil.project(join, mapping);
+        }
+        return join;
     }
 
-    /**
+    /** Pushes down parts of a join condition. For example, given
+     * "emp JOIN dept ON emp.deptno + 1 = dept.deptno", adds a project above
+     * "emp" that computes the expression
+     * "emp.deptno + 1". The resulting join condition is a simple combination
+     * of AND, equals, and input fields. */
+    private RexNode pushDownJoinConditions(
+        RexNode node,
+        int leftCount,
+        int rightCount,
+        List<RexNode> extraLeftExprs,
+        List<RexNode> extraRightExprs)
+    {
+        switch (node.getKind()) {
+        case AND:
+        case OR:
+        case EQUALS:
+            RexCall call = (RexCall) node;
+            List<RexNode> list = new ArrayList<RexNode>();
+            for (RexNode operand : call.getOperands()) {
+                list.add(
+                    pushDownJoinConditions(
+                        operand,
+                        leftCount,
+                        rightCount,
+                        extraLeftExprs,
+                        extraRightExprs));
+            }
+            if (!list.equals(call.getOperands())) {
+                return call.clone(call.getType(), list);
+            }
+            return call;
+        case INPUT_REF:
+        case LITERAL:
+            return node;
+        default:
+            BitSet bits = RelOptUtil.InputFinder.bits(node);
+            switch (Side.of(bits, leftCount)) {
+            case LEFT:
+                final int index = leftCount + extraLeftExprs.size();
+                extraLeftExprs.add(node);
+                return new RexInputRef(index, node.getType());
+            case RIGHT:
+                final int index2 =
+                    leftCount + extraLeftExprs.size()
+                    + rightCount + extraRightExprs.size();
+                extraRightExprs.add(node);
+                return new RexInputRef(index2, node.getType());
+            case BOTH:
+            case EMPTY:
+            default:
+                return node;
+            }
+        }
+    }
+
+    /** Categorizes whether a bit set contains bits left and right of a
+     * line. */
+    enum Side {
+        LEFT, RIGHT, BOTH, EMPTY;
+
+        static Side of(BitSet bitSet, int middle) {
+            final int firstBit = bitSet.nextSetBit(0);
+            if (firstBit < 0) {
+                return EMPTY;
+            }
+            if (firstBit >= middle) {
+                return RIGHT;
+            }
+            if (bitSet.nextSetBit(middle) < 0) {
+                return LEFT;
+            }
+            return BOTH;
+        }
+    }
+
+  /**
      * Determines whether a subquery is non-correlated. Note that a
      * non-correlated subquery can contain correlated references, provided those
      * references do not reference select statements that are parents of the
