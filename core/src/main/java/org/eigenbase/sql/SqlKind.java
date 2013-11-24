@@ -247,6 +247,16 @@ public enum SqlKind
     NOT_EQUALS,
 
     /**
+     * The is-distinct-from operator.
+     */
+    IS_DISTINCT_FROM,
+
+    /**
+     * The is-not-distinct-from operator.
+     */
+    IS_NOT_DISTINCT_FROM,
+
+    /**
      * The logical "OR" operator.
      */
     OR,

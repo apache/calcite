@@ -24,7 +24,6 @@ import org.eigenbase.sql.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Implementation of {@link org.eigenbase.sql.SqlOperatorTable} containing the
  * standard operators and functions.
@@ -216,7 +215,7 @@ public class SqlStdOperatorTable
     public static final SqlBinaryOperator isDistinctFromOperator =
         new SqlBinaryOperator(
             "IS DISTINCT FROM",
-            SqlKind.OTHER,
+            SqlKind.IS_DISTINCT_FROM,
             30,
             true,
             SqlTypeStrategies.rtiBoolean,
@@ -230,7 +229,7 @@ public class SqlStdOperatorTable
     public static final SqlBinaryOperator isNotDistinctFromOperator =
         new SqlBinaryOperator(
             "IS NOT DISTINCT FROM",
-            SqlKind.OTHER,
+            SqlKind.IS_NOT_DISTINCT_FROM,
             30,
             true,
             SqlTypeStrategies.rtiBoolean,

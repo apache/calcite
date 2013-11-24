@@ -886,20 +886,18 @@ public abstract class RelOptUtil
             RexNode rightKey = null;
             boolean reverse = false;
 
-            SqlOperator operator = call.getOperator();
+            SqlKind kind = call.getKind();
 
             // Only consider range operators if we haven't already seen one
-            if ((operator == SqlStdOperatorTable.equalsOperator)
-                || ((filterNulls != null)
-                    && (operator
-                        == SqlStdOperatorTable.isNotDistinctFromOperator))
-                || ((rangeOp != null) && rangeOp.isEmpty()
-                    && ((operator == SqlStdOperatorTable.greaterThanOperator)
-                        || (operator
-                            == SqlStdOperatorTable.greaterThanOrEqualOperator)
-                        || (operator == SqlStdOperatorTable.lessThanOperator)
-                        || (operator
-                            == SqlStdOperatorTable.lessThanOrEqualOperator))))
+            if ((kind == SqlKind.EQUALS)
+                || (filterNulls != null
+                    && kind == SqlKind.IS_NOT_DISTINCT_FROM)
+                || (rangeOp != null
+                    && rangeOp.isEmpty()
+                    && (kind == SqlKind.GREATER_THAN
+                        || kind == SqlKind.GREATER_THAN_OR_EQUAL
+                        || kind == SqlKind.LESS_THAN
+                        || kind == SqlKind.LESS_THAN_OR_EQUAL)))
             {
                 final List<RexNode> operands = call.getOperands();
                 RexNode op0 = operands.get(0);
@@ -997,7 +995,7 @@ public abstract class RelOptUtil
                     rightKey = rexBuilder.makeLiteral(true);
 
                     // effectively performing an equality comparison
-                    operator = SqlStdOperatorTable.equalsOperator;
+                    kind = SqlKind.EQUALS;
                 } else if (projRefs.nextSetBit(firstLeftField)
                     >= firstRightField)
                 {
@@ -1013,7 +1011,7 @@ public abstract class RelOptUtil
                                 adjustments));
 
                     // effectively performing an equality comparison
-                    operator = SqlStdOperatorTable.equalsOperator;
+                    kind = SqlKind.EQUALS;
                 }
             }
 
@@ -1030,42 +1028,21 @@ public abstract class RelOptUtil
                     rightJoinKeys,
                     rightKey,
                     ((rangeOp != null) && !rangeOp.isEmpty()));
-                if ((filterNulls != null)
-                    && (operator == SqlStdOperatorTable.equalsOperator))
+                if (filterNulls != null
+                    && kind == SqlKind.EQUALS)
                 {
                     // nulls are considered not matching for equality comparison
                     // add the position of the most recently inserted key
                     filterNulls.add(leftJoinKeys.size() - 1);
                 }
-                if ((rangeOp != null)
-                    && (operator != SqlStdOperatorTable.equalsOperator)
-                    && (operator != SqlStdOperatorTable.isDistinctFromOperator))
+                if (rangeOp != null
+                    && kind != SqlKind.EQUALS
+                    && kind != SqlKind.IS_DISTINCT_FROM)
                 {
                     if (reverse) {
-                        if (operator
-                            == SqlStdOperatorTable.greaterThanOperator)
-                        {
-                            operator = SqlStdOperatorTable.lessThanOperator;
-                        } else if (
-                            operator
-                            == SqlStdOperatorTable.greaterThanOrEqualOperator)
-                        {
-                            operator =
-                                SqlStdOperatorTable.lessThanOrEqualOperator;
-                        } else if (
-                            operator
-                            == SqlStdOperatorTable.lessThanOperator)
-                        {
-                            operator = SqlStdOperatorTable.greaterThanOperator;
-                        } else if (
-                            operator
-                            == SqlStdOperatorTable.lessThanOrEqualOperator)
-                        {
-                            operator =
-                                SqlStdOperatorTable.greaterThanOrEqualOperator;
-                        }
+                        kind = reverse(kind);
                     }
-                    rangeOp.add(operator);
+                    rangeOp.add(op(kind, call.getOperator()));
                 }
                 return;
             } // else fall through and add this condition as nonEqui condition
@@ -1075,6 +1052,44 @@ public abstract class RelOptUtil
         // So we fail. Fall through.
         // Add this condition to the list of non-equi-join conditions.
         nonEquiList.add(condition);
+    }
+
+    private static SqlKind reverse(SqlKind kind) {
+        switch (kind) {
+        case GREATER_THAN:
+            return SqlKind.LESS_THAN;
+        case GREATER_THAN_OR_EQUAL:
+            return SqlKind.LESS_THAN_OR_EQUAL;
+        case LESS_THAN:
+            return SqlKind.GREATER_THAN;
+        case LESS_THAN_OR_EQUAL:
+            return SqlKind.GREATER_THAN_OR_EQUAL;
+        default:
+            return kind;
+        }
+    }
+
+    private static SqlOperator op(SqlKind kind, SqlOperator operator) {
+        switch (kind) {
+        case EQUALS:
+            return SqlStdOperatorTable.equalsOperator;
+        case NOT_EQUALS:
+            return SqlStdOperatorTable.notEqualsOperator;
+        case GREATER_THAN:
+            return SqlStdOperatorTable.greaterThanOperator;
+        case GREATER_THAN_OR_EQUAL:
+            return SqlStdOperatorTable.greaterThanOrEqualOperator;
+        case LESS_THAN:
+            return SqlStdOperatorTable.lessThanOperator;
+        case LESS_THAN_OR_EQUAL:
+            return SqlStdOperatorTable.lessThanOrEqualOperator;
+        case IS_DISTINCT_FROM:
+            return SqlStdOperatorTable.isDistinctFromOperator;
+        case IS_NOT_DISTINCT_FROM:
+            return SqlStdOperatorTable.isNotDistinctFromOperator;
+        default:
+            return operator;
+        }
     }
 
     private static void addJoinKey(
