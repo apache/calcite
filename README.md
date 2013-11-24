@@ -185,6 +185,7 @@ For more details, see the <a href="REFERENCE.md">Reference guide</a>.
 * Developers list: http://groups.google.com/group/optiq-dev
 * <a href="HOWTO.md">HOWTO</a>
 * <a href="REFERENCE.md">Reference guide</a>
+* <a href="RELEASE.md">Release notes</a>
 
 ### Presentations
 
