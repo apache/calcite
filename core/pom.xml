@@ -3,12 +3,12 @@
   <parent>
     <groupId>net.hydromatic</groupId>
     <artifactId>optiq-parent</artifactId>
-    <version>0.4.16</version>
+    <version>0.4.17-SNAPSHOT</version>
   </parent>
 
   <artifactId>optiq-core</artifactId>
   <packaging>jar</packaging>
-  <version>0.4.16</version>
+  <version>0.4.17-SNAPSHOT</version>
   <name>optiq-core</name>
   <description>Core Optiq APIs and engine.</description>
 
@@ -16,7 +16,7 @@
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-avatica</artifactId>
-      <version>0.4.16</version>
+      <version>0.4.17-SNAPSHOT</version>
     </dependency>
   </dependencies>
 
