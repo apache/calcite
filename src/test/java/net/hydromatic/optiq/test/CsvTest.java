@@ -216,6 +216,12 @@ public class CsvTest {
       }
     }
   }
+
+  @Test public void testJoinOnString() throws SQLException {
+    checkSql("smart",
+        "select * from emps join depts on emps.name = depts.name",
+        "");
+  }
 }
 
 // End CsvTest.java

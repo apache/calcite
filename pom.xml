@@ -76,18 +76,23 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>[4.8,)</version>
+      <version>4.11</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.4.15</version>
+      <version>0.4.16</version>
+    </dependency>
+    <dependency>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>optiq-avatica</artifactId>
+      <version>0.4.16</version>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>linq4j</artifactId>
-      <version>0.1.10</version>
+      <version>0.1.11</version>
     </dependency>
     <dependency>
       <groupId>net.sf.opencsv</groupId>
