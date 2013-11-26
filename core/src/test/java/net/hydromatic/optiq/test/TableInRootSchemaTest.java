@@ -32,6 +32,8 @@ import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Pair;
 
+import com.google.common.collect.ImmutableMultiset;
+
 import org.junit.Test;
 
 import java.sql.*;
@@ -55,9 +57,10 @@ public class TableInRootSchemaTest {
         statement.executeQuery("select A, SUM(B) from SAMPLE group by A");
 
     assertThat(
-        "A=foo; EXPR$1=8\n"
-        + "A=bar; EXPR$1=4\n",
-        equalTo(OptiqAssert.toString(resultSet)));
+        ImmutableMultiset.of(
+            "A=foo; EXPR$1=8",
+            "A=bar; EXPR$1=4"),
+        equalTo(OptiqAssert.toSet(resultSet)));
 
     final ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
     assertThat(resultSetMetaData.getColumnName(1), equalTo("A"));

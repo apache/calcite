@@ -30,6 +30,9 @@ import net.hydromatic.optiq.runtime.Hook;
 
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Multiset;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.*;
@@ -378,6 +381,12 @@ public class OptiqAssert {
       buf.setLength(0);
     }
     return list;
+  }
+
+  static ImmutableMultiset<String> toSet(ResultSet resultSet)
+      throws SQLException {
+    return ImmutableMultiset.copyOf(
+        toStringList(resultSet, new ArrayList<String>()));
   }
 
   /** Calls a non-static method via reflection. Useful for testing methods that
