@@ -504,6 +504,8 @@ public class PhysTypeImpl implements PhysType {
         return Expressions.lambda(
             Function1.class,
             Expressions.call(
+                List.class,
+                null,
                 BuiltinMethod.ARRAYS_AS_LIST.method,
                 Expressions.newArrayInit(
                     Object.class,
