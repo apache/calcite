@@ -143,12 +143,18 @@ public class JdbcSchema implements Schema {
       MutableSchema parentSchema,
       String name,
       Map<String, Object> operand) {
-    DataSource dataSource = null;
+    DataSource dataSource;
     try {
-      final String dataSource1 = (String) operand.get("dataSource");
-      if (dataSource1 != null) {
-        final Class<?> clazz = Class.forName((String) dataSource1);
+      final String dataSourceName = (String) operand.get("dataSource");
+      if (dataSourceName != null) {
+        final Class<?> clazz = Class.forName((String) dataSourceName);
         dataSource = (DataSource) clazz.newInstance();
+      } else {
+        final String jdbcUrl = (String) operand.get("jdbcUrl");
+        final String jdbcDriver = (String) operand.get("jdbcDriver");
+        final String jdbcUser = (String) operand.get("jdbcUser");
+        final String jdbcPassword = (String) operand.get("jdbcPassword");
+        dataSource = dataSource(jdbcUrl, jdbcDriver, jdbcUser, jdbcPassword);
       }
     } catch (Exception e) {
       throw new RuntimeException("Error while reading dataSource", e);
