@@ -64,9 +64,22 @@ public abstract class AvaticaStatement
 
   // implement Statement
 
+  public boolean execute(String sql) throws SQLException {
+    try {
+      AvaticaPrepareResult x = connection.meta.prepare(this, sql);
+      return executeInternal(x);
+    } catch (RuntimeException e) {
+      throw connection.helper.createException("while executing SQL: " + sql, e);
+    }
+  }
+
   public ResultSet executeQuery(String sql) throws SQLException {
-    AvaticaPrepareResult x = connection.meta.prepare(this, sql);
-    return executeQueryInternal(x);
+    try {
+      AvaticaPrepareResult x = connection.meta.prepare(this, sql);
+      return executeQueryInternal(x);
+    } catch (RuntimeException e) {
+      throw connection.helper.createException("while executing SQL: " + sql, e);
+    }
   }
 
   public int executeUpdate(String sql) throws SQLException {
@@ -175,11 +188,6 @@ public abstract class AvaticaStatement
 
   public void setCursorName(String name) throws SQLException {
     throw new UnsupportedOperationException();
-  }
-
-  public boolean execute(String sql) throws SQLException {
-    AvaticaPrepareResult x = connection.meta.prepare(this, sql);
-    return executeInternal(x);
   }
 
   public ResultSet getResultSet() throws SQLException {
