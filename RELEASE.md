@@ -21,7 +21,7 @@ For a full list of releases, see <a href="https://github.com/julianhyde/optiq/re
 * Handle null timestamps and dates coming out of JDBC adapter.
 * Add <code>jdbcDriver</code> attribute to JDBC schema in model, for drivers that do not auto-register.
 * Allow join rules to match any subclass of JoinRelBase.
-* Push projects, filters and sorts down to MongoDB. (Fixes <a href="https://github.com/julianhyde/optiq/issues/57">#57</a> and <a href="https://github.com/julianhyde/optiq/pull/60">#60</a>.)
+* Push projects, filters and sorts down to MongoDB. (Fixes <a href="https://github.com/julianhyde/optiq/issues/57">#57</a>, <a href="https://github.com/julianhyde/optiq/pull/60">#60</a> and <a href="https://github.com/julianhyde/optiq/issues/72">#72</a>.)
 * Add instructions for loading FoodMart data set into MongoDB, and how to enable tracing.
 * Now runs on JDK 1.8 (still runs on JDK 1.6 and JDK 1.7).
 * Upgrade to junit-4.11 (avoiding the dodgy junit-4.1.12).
