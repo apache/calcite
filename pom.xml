@@ -81,9 +81,6 @@
     <module>core</module>
     <module>mongodb</module>
     <module>splunk</module>
-    <!-- disabled because you need to build spark yourself -->
-    <module>spark</module>
-    <!-- -->
   </modules>
 
   <!-- Dependencies. -->
