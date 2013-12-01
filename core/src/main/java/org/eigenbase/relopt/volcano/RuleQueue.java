@@ -27,7 +27,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Priority queue of relexps whose rules have not been called, and rule-matches
  * which have not yet been acted upon.
@@ -452,23 +451,39 @@ class RuleQueue
 
         List<VolcanoRuleMatch> matchList = phaseMatchList.list;
 
-        Collections.sort(matchList, ruleMatchImportanceComparator);
-
+        VolcanoRuleMatch match;
         if (tracer.isLoggable(Level.FINEST)) {
+            Collections.sort(matchList, ruleMatchImportanceComparator);
+            match = matchList.remove(0);
+
             StringBuilder b = new StringBuilder();
             b.append("Sorted rule queue:");
-            for (VolcanoRuleMatch match : matchList) {
-                final double importance = match.computeImportance();
+            for (VolcanoRuleMatch match2 : matchList) {
+                final double importance = match2.computeImportance();
                 b.append("\n");
-                b.append(match);
+                b.append(match2);
                 b.append(" importance ");
                 b.append(importance);
             }
 
             tracer.finest(b.toString());
+        } else {
+            // If we're not tracing, it's not worth the effort of sorting the
+            // list to find the minimum.
+            match = null;
+            int bestPos = -1;
+            int i = -1;
+            for (VolcanoRuleMatch match2 : matchList) {
+                ++i;
+                if (match == null
+                    || ruleMatchImportanceComparator.compare(match2, match) < 0)
+                {
+                    bestPos = i;
+                    match = match2;
+                }
+            }
+            match = matchList.remove(bestPos);
         }
-
-        VolcanoRuleMatch match = matchList.remove(0);
 
         // A rule match's digest is composed of the operand RelNodes' digests,
         // which may have changed if sets have merged since the rule match was
@@ -642,7 +657,7 @@ class RuleQueue
 
             // Use a double-linked list because an array-list does not
             // implement remove(0) efficiently.
-            this.list = new LinkedList<VolcanoRuleMatch>();
+            this.list = new ChunkList<VolcanoRuleMatch>();
             this.names = new HashSet<String>();
             this.matchMap = new MultiMap<RelSubset, VolcanoRuleMatch>();
         }

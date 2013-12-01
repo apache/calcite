@@ -82,6 +82,7 @@ import org.junit.runners.Suite;
     SqlToRelConverterTest.class,
     SqlOperatorTest.class,
     RexTransformerTest.class,
+    ChunkListTest.class,
 
     // slow tests (above 1s)
     JdbcAdapterTest.class,
