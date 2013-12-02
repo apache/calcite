@@ -354,20 +354,33 @@ public abstract class EnumerableDefaults {
 
   /**
    * Returns distinct elements from a sequence by using
-   * the default equality comparer to compare values.
+   * the default {@link EqualityComparer} to compare values.
    */
   public static <TSource> Enumerable<TSource> distinct(
       Enumerable<TSource> enumerable) {
-    throw Extensions.todo();
+    final Enumerator<TSource> os = enumerable.enumerator();
+    final Set<TSource> set = new HashSet<TSource>();
+    while (os.moveNext()) {
+      set.add(os.current());
+    }
+    os.close();
+    return Linq4j.asEnumerable(set);
   }
 
   /**
    * Returns distinct elements from a sequence by using
-   * a specified EqualityComparer<TSource> to compare values.
+   * a specified {@link EqualityComparer} to compare values.
    */
   public static <TSource> Enumerable<TSource> distinct(
-      Enumerable<TSource> enumerable, EqualityComparer comparer) {
-    throw Extensions.todo();
+      Enumerable<TSource> enumerable, EqualityComparer<TSource> comparer) {
+    if (comparer == Functions.identityComparer()) {
+      return distinct(enumerable);
+    }
+    final Set<Wrapped<TSource>> set = new HashSet<Wrapped<TSource>>();
+    Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
+    Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
+    enumerable.select(wrapper).into(set);
+    return Linq4j.asEnumerable(set).select(unwrapper);
   }
 
   /**
@@ -767,8 +780,8 @@ public abstract class EnumerableDefaults {
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
       final Function2<TSource, TInner, TResult> resultSelector) {
-    return join_(outer, inner, outerKeySelector, innerKeySelector,
-        resultSelector, null);
+    return join_(
+        outer, inner, outerKeySelector, innerKeySelector, resultSelector, null);
   }
 
   /**
@@ -786,8 +799,13 @@ public abstract class EnumerableDefaults {
         resultSelector, comparer);
   }
 
-  private static <TSource, TInner, TKey, TResult> Enumerable<TResult> join_(
-      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+  /** Symmetric join algorithm that builds both sides into a look. Powerful
+   * enough to evaluate full outer join but less efficient than {@link #join_}.
+   * Not currently used. */
+  private static <TSource, TInner, TKey, TResult> Enumerable<TResult>
+  joinSymmetric_(
+      final Enumerable<TSource> outer,
+      final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
       final Function2<TSource, TInner, TResult> resultSelector,
@@ -849,6 +867,62 @@ public abstract class EnumerableDefaults {
           }
 
           public void close() {
+          }
+        };
+      }
+    };
+  }
+
+  /** Implementation of join that builds the right input and probes with the
+   * left. */
+  private static <TSource, TInner, TKey, TResult> Enumerable<TResult> join_(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector,
+      final Function2<TSource, TInner, TResult> resultSelector,
+      final EqualityComparer<TKey> comparer) {
+    return new AbstractEnumerable<TResult>() {
+      public Enumerator<TResult> enumerator() {
+        final Lookup<TKey, TInner> innerLookup =
+            comparer == null
+                ? inner.toLookup(innerKeySelector)
+                : inner.toLookup(innerKeySelector, comparer);
+        final Enumerator<TSource> outers = outer.enumerator();
+
+        return new Enumerator<TResult>() {
+          Enumerator<TInner> inners = Linq4j.emptyEnumerator();
+
+          public TResult current() {
+            return resultSelector.apply(outers.current(), inners.current());
+          }
+
+          public boolean moveNext() {
+            for (;;) {
+              if (inners.moveNext()) {
+                return true;
+              }
+              if (!outers.moveNext()) {
+                return false;
+              }
+              final TSource outer = outers.current();
+              final TKey outerKey = outerKeySelector.apply(outer);
+              final Enumerable<TInner> innerEnumerable =
+                  innerLookup.get(outerKey);
+              if (innerEnumerable == null
+                  || !innerEnumerable.any()) {
+                inners = Linq4j.emptyEnumerator();
+              } else {
+                inners = innerEnumerable.enumerator();
+              }
+            }
+          }
+
+          public void reset() {
+            outers.reset();
+          }
+
+          public void close() {
+            outers.close();
           }
         };
       }

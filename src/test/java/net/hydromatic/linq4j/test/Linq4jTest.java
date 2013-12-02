@@ -314,6 +314,44 @@ public class Linq4jTest {
             .toList().toString());
   }
 
+  @SuppressWarnings("UnnecessaryBoxing")
+  @Test public void testIdentityEqualityComparer() {
+    final Integer one = new Integer(1);
+    final Integer one2 = new Integer(1);
+    final Integer two = new Integer(2);
+    final EqualityComparer<Integer> idComparer = Functions.identityComparer();
+    assertTrue(idComparer.equal(one, one));
+    assertTrue(idComparer.equal(one, one2));
+    assertFalse(idComparer.equal(one, two));
+  }
+
+  @Test public void testSelectorEqualityComparer() {
+    final EqualityComparer<Employee> comparer =
+        Functions.selectorComparer(
+            new Function1<Employee, Object>() {
+              public Object apply(Employee a0) {
+                return a0.deptno;
+              }
+            }
+        );
+    assertTrue(comparer.equal(emps[0], emps[0]));
+    assertEquals(comparer.hashCode(emps[0]), comparer.hashCode(emps[0]));
+
+    assertTrue(comparer.equal(emps[0], emps[2]));
+    assertEquals(comparer.hashCode(emps[0]), comparer.hashCode(emps[2]));
+
+    assertFalse(comparer.equal(emps[0], emps[1]));
+    // not 100% guaranteed, but works for this data
+    assertNotEquals(comparer.hashCode(emps[0]), comparer.hashCode(emps[1]));
+
+    assertFalse(comparer.equal(emps[0], null));
+    assertNotEquals(comparer.hashCode(emps[0]), comparer.hashCode(null));
+
+    assertFalse(comparer.equal(null, emps[1]));
+    assertTrue(comparer.equal(null, null));
+    assertEquals(comparer.hashCode(null), comparer.hashCode(null));
+  }
+
   @Test public void testToLookupSelectorComparer() {
     final Lookup<String, Employee> lookup =
         Linq4j.asEnumerable(emps).toLookup(
@@ -518,6 +556,43 @@ public class Linq4jTest {
         3,
         Linq4j.asEnumerable(emps)
             .except(Linq4j.asEnumerable(emps2))
+            .count());
+  }
+
+  @Test public void testDistinct() {
+    final Employee[] emps2 = {
+        new Employee(150, "Theodore", 10),
+        emps[3],
+        emps[0],
+        emps[3],
+    };
+    assertEquals(
+        3,
+        Linq4j.asEnumerable(emps2)
+            .distinct()
+            .count());
+  }
+
+  @Test public void testDistinctWithEqualityComparer() {
+    final Employee[] emps2 = {
+        new Employee(150, "Theodore", 10),
+        emps[3],
+        emps[1],
+        emps[3],
+    };
+    assertEquals(
+        2,
+        Linq4j.asEnumerable(emps2)
+            .distinct(
+                new EqualityComparer<Employee>() {
+                  public boolean equal(Employee v1, Employee v2) {
+                    return v1.deptno == v2.deptno;
+                  }
+
+                  public int hashCode(Employee employee) {
+                    return employee.deptno;
+                  }
+                })
             .count());
   }
 

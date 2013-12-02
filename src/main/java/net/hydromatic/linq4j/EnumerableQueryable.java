@@ -119,7 +119,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
   }
 
   @Override
-  public Queryable<T> distinct(EqualityComparer comparer) {
+  public Queryable<T> distinct(EqualityComparer<T> comparer) {
     return EnumerableDefaults.distinct(getThis(), comparer).asQueryable();
   }
 

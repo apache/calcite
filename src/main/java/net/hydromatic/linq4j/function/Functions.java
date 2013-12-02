@@ -476,6 +476,14 @@ public class Functions {
     return (EqualityComparer) ARRAY_COMPARER;
   }
 
+  /**
+   * Returns an {@link EqualityComparer} that uses a selector function.
+   */
+  public static <T, T2> EqualityComparer<T> selectorComparer(
+      Function1<T, T2> selector) {
+    return new SelectorEqualityComparer<T, T2>(selector);
+  }
+
   private static class ArrayEqualityComparer
       implements EqualityComparer<Object[]> {
     public boolean equal(Object[] v1, Object[] v2) {
@@ -495,6 +503,26 @@ public class Functions {
 
     public int hashCode(Object t) {
       return t == null ? 0x789d : t.hashCode();
+    }
+  }
+
+  private static final class SelectorEqualityComparer<T, T2>
+      implements EqualityComparer<T> {
+    private final Function1<T, T2> selector;
+
+    SelectorEqualityComparer(Function1<T, T2> selector) {
+      this.selector = selector;
+    }
+
+    public boolean equal(T v1, T v2) {
+      return v1 == v2
+          || v1 != null
+          && v2 != null
+          && Linq4j.equals(selector.apply(v1), selector.apply(v2));
+    }
+
+    public int hashCode(T t) {
+      return t == null ? 0x789d : selector.apply(t).hashCode();
     }
   }
 
