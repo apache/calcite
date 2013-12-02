@@ -39,6 +39,7 @@ import javax.sql.DataSource;
  */
 public enum BuiltinMethod {
   QUERYABLE_SELECT(Queryable.class, "select", FunctionExpression.class),
+  QUERYABLE_AS_ENUMERABLE(Queryable.class, "asEnumerable"),
   AS_QUERYABLE(Enumerable.class, "asQueryable"),
   ABSTRACT_ENUMERABLE_CTOR(AbstractEnumerable.class),
   INTO(ExtendedEnumerable.class, "into", Collection.class),

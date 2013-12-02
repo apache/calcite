@@ -1514,6 +1514,31 @@ public class JdbcTest {
             + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n");
   }
 
+  /** Alternative formulation for {@link #testFetchStar()}. */
+  @Test public void testLimitStar() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from \"hr\".\"emps\"\n"
+            + "limit 2")
+        .returns(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n");
+  }
+
+  /** Limit implemented using {@link Queryable#take}. Test case for
+   * <a href="https://github.com/julianhyde/optiq/issues/96">issue #96</a>. */
+  @Test public void testLimitOnQueryableTable() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select * from \"days\"\n"
+            + "limit 2")
+        .returns(
+            "day=1; week_day=Sunday\n"
+            + "day=2; week_day=Monday\n");
+  }
+
   /** Tests composite GROUP BY where one of the columns has NULL values. */
   @Test public void testGroupByNull() {
     OptiqAssert.assertThat()

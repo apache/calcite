@@ -376,25 +376,32 @@ public class JavaRules {
       super(cluster, traitSet, table);
       assert getConvention() instanceof EnumerableConvention;
       this.elementType = elementType;
-      if (Types.isArray(expression.getType())) {
-        if (Types.toClass(expression.getType()).getComponentType()
-            .isPrimitive()) {
-          expression = Expressions.call(
-              BuiltinMethod.AS_LIST.method,
-              expression);
+      final Type type = expression.getType();
+      if (Types.isArray(type)) {
+        if (Types.toClass(type).getComponentType().isPrimitive()) {
+          expression =
+              Expressions.call(
+                  BuiltinMethod.AS_LIST.method,
+                  expression);
         }
         expression =
             Expressions.call(
                 BuiltinMethod.AS_ENUMERABLE.method,
                 expression);
-      } else if (Types.isAssignableFrom(
-          Iterable.class, expression.getType())
-          && !Types.isAssignableFrom(
-              Enumerable.class, expression.getType())) {
+      } else if (Types.isAssignableFrom(Iterable.class, type)
+          && !Types.isAssignableFrom(Enumerable.class, type)) {
         expression =
             Expressions.call(
                 BuiltinMethod.AS_ENUMERABLE2.method,
                 expression);
+      } else if (Types.isAssignableFrom(Queryable.class, type)) {
+        // Queryable extends Enumerable, but it's too "clever", so we call
+        // Queryable.asEnumerable so that operations such as take(int) will be
+        // evaluated directly.
+        expression =
+            Expressions.call(
+                expression,
+                BuiltinMethod.QUERYABLE_AS_ENUMERABLE.method);
       }
       this.expression = expression;
     }
