@@ -186,6 +186,15 @@ public class JavaRules {
         }
       }
 
+      // Cheaper if the smaller number of rows is coming from the RHS.
+      final double rightRowCount = right.getRows();
+      final double leftRowCount = left.getRows();
+      if (rightRowCount > leftRowCount && !Double.isInfinite(rightRowCount)) {
+        rowCount *= rightRowCount / (leftRowCount + 1d);
+      }
+      if (condition.isAlwaysTrue()) {
+        rowCount *= 10d;
+      }
       return planner.makeCost(rowCount, 0, 0);
     }
 

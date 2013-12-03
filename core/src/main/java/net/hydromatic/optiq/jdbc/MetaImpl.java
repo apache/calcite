@@ -34,6 +34,7 @@ import org.eigenbase.sql.parser.SqlParser;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -696,6 +697,13 @@ public class MetaImpl implements Meta {
     return connection.parseQuery(sql,
         statement.createPrepareContext(),
         maxRowCount <= 0 ? -1 : maxRowCount);
+  }
+
+  /** A trojan-horse method, subject to change without notice. */
+  @VisibleForTesting
+  public static DataContext createDataContext(OptiqConnection connection) {
+    return ((OptiqConnectionImpl) connection).createDataContext(
+        ImmutableList.of());
   }
 
   interface Named {

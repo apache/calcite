@@ -29,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.*;
+import java.lang.ref.SoftReference;
 import java.util.*;
 
 /**
@@ -36,8 +37,6 @@ import java.util.*;
  */
 @RunWith(Parameterized.class)
 public class FoodmartTest {
-  private static final Map<Integer, FoodmartQuery> queries =
-      new LinkedHashMap<Integer, FoodmartQuery>();
 
   private static final int[] DISABLED_IDS = {
       58, 83, 202, 204, 205, 206, 207, 209, 211, 231, 247, 275, 309, 383, 384,
@@ -95,17 +94,9 @@ public class FoodmartTest {
 
   @Parameterized.Parameters(name = "{index}: foodmart({0})={1}")
   public static List<Object[]> getSqls() throws IOException {
-    final ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-    mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-
-    final InputStream inputStream = new FoodMartQuery().getQueries();
-    FoodmartRoot root = mapper.readValue(inputStream, FoodmartRoot.class);
+    final String idList = System.getProperty("optiq.ids");
+    final FoodMartQuerySet set = FoodMartQuerySet.instance();
     final List<Object[]> list = new ArrayList<Object[]>();
-      final String idList = System.getProperty("optiq.ids");
-    for (FoodmartQuery query : root.queries) {
-      queries.put(query.id, query);
-    }
     if (idList != null) {
       StringBuilder buf = new StringBuilder();
       for (int disabledId : DISABLED_IDS) {
@@ -113,21 +104,21 @@ public class FoodmartTest {
       }
       buf.setLength(0); // disable disable
       for (Integer id : IntegerIntervalSet.of(idList + buf)) {
-        final FoodmartQuery query1 = queries.get(id);
+        final FoodmartQuery query1 = set.queries.get(id);
         if (query1 != null) {
           list.add(new Object[] {id /*, query1.sql */});
         }
       }
     } else {
-      for (FoodmartQuery query1 : queries.values()) {
+      for (FoodmartQuery query1 : set.queries.values()) {
         list.add(new Object[]{query1.id /*, query1.sql */});
       }
     }
     return list;
   }
 
-  public FoodmartTest(int id) {
-    this.query = queries.get(id);
+  public FoodmartTest(int id) throws IOException {
+    this.query = FoodMartQuerySet.instance().queries.get(id);
     assert query.id == id : id + ":" + query.id;
   }
 
@@ -135,14 +126,49 @@ public class FoodmartTest {
   public void test() {
     try {
       OptiqAssert.assertThat()
-          .withModel(JdbcTest.FOODMART_MODEL)
-          // .with(OptiqAssert.Config.FOODMART_CLONE)
-          .withSchema("foodmart")
+//          .withModel(JdbcTest.FOODMART_MODEL)
+          .with(OptiqAssert.Config.FOODMART_CLONE)
+//          .withSchema("foodmart")
           .query(query.sql)
           .runs();
     } catch (Throwable e) {
       throw new RuntimeException("Test failed, id=" + query.id + ", sql="
           + query.sql, e);
+    }
+  }
+
+  public static class FoodMartQuerySet {
+    private static SoftReference<FoodMartQuerySet> REF;
+
+    final Map<Integer, FoodmartQuery> queries =
+        new LinkedHashMap<Integer, FoodmartQuery>();
+
+    private FoodMartQuerySet() throws IOException {
+      final ObjectMapper mapper = new ObjectMapper();
+      mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
+      mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
+
+      final InputStream inputStream = new FoodMartQuery().getQueries();
+      FoodmartRoot root = mapper.readValue(inputStream, FoodmartRoot.class);
+      for (FoodmartQuery query : root.queries) {
+        queries.put(query.id, query);
+      }
+    }
+
+    /** Returns the singleton instance of the query set. It is backed by a
+     * soft reference, so it may be freed if memory is short and no one is
+     * using it. */
+    public static FoodMartQuerySet instance() throws IOException {
+      SoftReference<FoodMartQuerySet> ref = REF;
+      if (ref != null) {
+        FoodMartQuerySet set = ref.get();
+        if (set != null) {
+          return set;
+        }
+      }
+      final FoodMartQuerySet set = new FoodMartQuerySet();
+      REF = new SoftReference<FoodMartQuerySet>(set);
+      return set;
     }
   }
 

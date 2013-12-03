@@ -20,18 +20,19 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.function.Function1;
 
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcQueryProvider;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
+import net.hydromatic.optiq.jdbc.MetaImpl;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.Hook;
 
 import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.Multiset;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -618,12 +619,26 @@ public class OptiqAssert {
       exceptionChecker.apply(throwable);
     }
 
-    /** Creates a connection and executes a callback. */
+    /** Creates a {@link OptiqConnection} and executes a callback. */
     public <T> AssertThat doWithConnection(Function1<OptiqConnection, T> fn)
         throws Exception {
       Connection connection = connectionFactory.createConnection();
       try {
         T t = fn.apply((OptiqConnection) connection);
+        Util.discard(t);
+        return AssertThat.this;
+      } finally {
+        connection.close();
+      }
+    }
+
+    /** Creates a {@link DataContext} and executes a callback. */
+    public <T> AssertThat doWithDataContext(Function1<DataContext, T> fn)
+        throws Exception {
+      OptiqConnection connection = connectionFactory.createConnection();
+      final DataContext dataContext = MetaImpl.createDataContext(connection);
+      try {
+        T t = fn.apply(dataContext);
         Util.discard(t);
         return AssertThat.this;
       } finally {

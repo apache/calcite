@@ -263,6 +263,8 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
     // Plan should contain 'join'. If it doesn't, maybe int-vs-Integer
     // data type incompatibility has caused it to use a cartesian product
     // instead, and that would be wrong.
+    //
+    // inventory_fact_1997 is on the LHS because it is larger than store.
     assertThat()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(

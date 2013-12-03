@@ -19,7 +19,6 @@ package org.eigenbase.relopt.volcano;
 
 import org.eigenbase.relopt.*;
 
-
 /**
  * <code>VolcanoCost</code> represents the cost of a plan node.
  *
@@ -105,15 +104,22 @@ class VolcanoCost
     public boolean isLe(RelOptCost other)
     {
         VolcanoCost that = (VolcanoCost) other;
+        if (true) {
+            return this == that
+                || this.dRows <= that.dRows;
+        }
         return (this == that)
             || ((this.dRows <= that.dRows)
-//                && (this.dCpu <= that.dCpu)
-//                && (this.dIo <= that.dIo)
-        );
+                && (this.dCpu <= that.dCpu)
+                && (this.dIo <= that.dIo));
     }
 
     public boolean isLt(RelOptCost other)
     {
+        if (true)  {
+            VolcanoCost that = (VolcanoCost) other;
+            return this.dRows < that.dRows;
+        }
         return isLe(other) && !equals(other);
     }
 
