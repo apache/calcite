@@ -268,7 +268,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
         .query(
             "select \"store\".\"store_country\" as \"c0\", sum(\"inventory_fact_1997\".\"supply_time\") as \"m0\" from \"store\" as \"store\", \"inventory_fact_1997\" as \"inventory_fact_1997\" where \"inventory_fact_1997\".\"store_id\" = \"store\".\"store_id\" group by \"store\".\"store_country\"")
         .planContains(
-            "  final net.hydromatic.linq4j.Enumerable _inputEnumerable = root.getRootSchema().getSubSchema(\"foodmart2\").getTable(\"store\", java.lang.Object[].class).asEnumerable().join(root.getRootSchema().getSubSchema(\"foodmart2\").getTable(\"inventory_fact_1997\", java.lang.Object[].class).asEnumerable(), new net.hydromatic.linq4j.function.Function1() {\n");
+            "  final net.hydromatic.linq4j.Enumerable _inputEnumerable1 = left.join(right, new net.hydromatic.linq4j.function.Function1() {\n");
   }
 }
 

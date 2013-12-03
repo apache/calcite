@@ -1539,6 +1539,27 @@ public class JdbcTest {
             + "day=2; week_day=Monday\n");
   }
 
+  /** Limit implemented using {@link Queryable#take}. Test case for
+   * <a href="https://github.com/julianhyde/optiq/issues/70">issue #70</a>. */
+  @Test public void testSelfJoinCount() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .query(
+            "select count(*) as c from \"foodmart\".\"sales_fact_1997\" as p1 join \"foodmart\".\"sales_fact_1997\" as p2 using (\"store_id\")")
+        .returns(
+            "C=749681031\n")
+        .explainContains(
+"EnumerableAggregateRel(group=[{}], C=[COUNT()])\n" +
+    "  EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=[0], DUMMY=[$t2])\n" +
+    "    EnumerableJoinRel(condition=[=($0, $1)], joinType=[inner])\n" +
+    "      JdbcToEnumerableConverter\n" +
+    "        JdbcCalcRel(expr#0..7=[{inputs}], store_id=[$t4])\n" +
+    "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n" +
+    "      JdbcToEnumerableConverter\n" +
+    "        JdbcCalcRel(expr#0..7=[{inputs}], store_id=[$t4])\n" +
+    "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n");
+  }
+
   /** Tests composite GROUP BY where one of the columns has NULL values. */
   @Test public void testGroupByNull() {
     OptiqAssert.assertThat()

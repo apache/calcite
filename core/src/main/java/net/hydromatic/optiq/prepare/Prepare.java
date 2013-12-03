@@ -54,7 +54,7 @@ public abstract class Prepare {
 
   public static boolean TRIM = false; // temporary. for testing.
 
-    public Prepare(CatalogReader catalogReader, Convention resultConvention) {
+  public Prepare(CatalogReader catalogReader, Convention resultConvention) {
     this.catalogReader = catalogReader;
     this.resultConvention = resultConvention;
   }
@@ -292,8 +292,36 @@ public abstract class Prepare {
     final SqlToRelConverter converter =
         getSqlToRelConverter(
             getSqlValidator(), catalogReader);
-    converter.setTrimUnusedFields(TRIM);
+    converter.setTrimUnusedFields(shouldTrim(rootRel));
     return converter.trimUnusedFields(rootRel);
+  }
+
+  private boolean shouldTrim(RelNode rootRel) {
+    // For now, don't trim if there are more than 3 joins. The projects
+    // near the leaves created by trim migrate past joins and seem to
+    // prevent join-reordering.
+    return TRIM || countJoins(rootRel) < 3;
+  }
+
+  /** Returns the number of {@link JoinRelBase} nodes in a tree. */
+  private static int countJoins(RelNode rootRel) {
+    class JoinCounter extends RelVisitor {
+      int joinCount;
+
+      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
+        if (node instanceof JoinRelBase) {
+          ++joinCount;
+        }
+        super.visit(node, ordinal, parent);
+      }
+
+      int run(RelNode node) {
+        go(node);
+        return joinCount;
+      }
+    }
+
+    return new JoinCounter().run(rootRel);
   }
 
   /**
