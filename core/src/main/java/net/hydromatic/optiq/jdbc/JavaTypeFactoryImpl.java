@@ -26,6 +26,7 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
 
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.runtime.Unit;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.*;
@@ -184,6 +185,11 @@ public class JavaTypeFactoryImpl
   }
 
   public Type createSyntheticType(List<Type> types) {
+    if (types.isEmpty()) {
+      // Unit is a pre-defined synthetic type to be used when there are 0
+      // fields. Because all instances are the same, we use a singleton.
+      return Unit.class;
+    }
     final String name =
         "Record" + types.size() + "_" + syntheticTypes.size();
     final SyntheticRecordType syntheticType =
@@ -194,7 +200,8 @@ public class JavaTypeFactoryImpl
               syntheticType,
               "f" + ord.i,
               ord.e,
-              !Primitive.is(ord.e)));
+              !Primitive.is(ord.e),
+              Modifier.PUBLIC));
     }
     return register(syntheticType);
   }
@@ -237,7 +244,8 @@ public class JavaTypeFactoryImpl
               recordField.getName(),
               javaClass,
               recordField.getType().isNullable()
-                  && !Primitive.is(javaClass)));
+                  && !Primitive.is(javaClass),
+              Modifier.PUBLIC));
     }
     return register(syntheticType);
   }
@@ -274,16 +282,19 @@ public class JavaTypeFactoryImpl
     private final String name;
     private final Type type;
     private final boolean nullable;
+    private final int modifiers;
 
     public RecordFieldImpl(
         SyntheticRecordType syntheticType,
         String name,
         Type type,
-        boolean nullable) {
+        boolean nullable,
+        int modifiers) {
       this.syntheticType = syntheticType;
       this.name = name;
       this.type = type;
       this.nullable = nullable;
+      this.modifiers = modifiers;
       assert syntheticType != null;
       assert name != null;
       assert type != null;
@@ -300,7 +311,7 @@ public class JavaTypeFactoryImpl
     }
 
     public int getModifiers() {
-      return Modifier.PUBLIC;
+      return modifiers;
     }
 
     public boolean nullable() {

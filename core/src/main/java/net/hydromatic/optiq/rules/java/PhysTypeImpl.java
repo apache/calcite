@@ -26,6 +26,7 @@ import net.hydromatic.optiq.runtime.Utilities;
 import org.eigenbase.rel.RelCollation;
 import org.eigenbase.rel.RelFieldCollation;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.util.Pair;
 
@@ -70,24 +71,15 @@ public class PhysTypeImpl implements PhysType {
   static PhysType of(
       final JavaTypeFactory typeFactory,
       Type javaRowClass) {
-    final Types.RecordType recordType = (Types.RecordType) javaRowClass;
-    final List<Types.RecordField> recordFields =
-        recordType.getRecordFields();
-    RelDataType rowType =
-        typeFactory.createStructType(
-            new AbstractList<Map.Entry<String, RelDataType>>() {
-              public Map.Entry<String, RelDataType> get(int index) {
-                final Types.RecordField field =
-                    recordFields.get(index);
-                return Pair.of(
-                    field.getName(),
-                    typeFactory.createType(field.getType()));
-              }
-
-              public int size() {
-                return recordFields.size();
-              }
-            });
+    final RelDataTypeFactory.FieldInfoBuilder builder =
+        new RelDataTypeFactory.FieldInfoBuilder();
+    if (javaRowClass instanceof Types.RecordType) {
+      final Types.RecordType recordType = (Types.RecordType) javaRowClass;
+      for (Types.RecordField field : recordType.getRecordFields()) {
+        builder.add(field.getName(), typeFactory.createType(field.getType()));
+      }
+    }
+    RelDataType rowType = typeFactory.createStructType(builder);
     // Do not optimize if there are 0 or 1 fields.
     return new PhysTypeImpl(
         typeFactory, rowType, javaRowClass, JavaRowFormat.CUSTOM);

@@ -1381,13 +1381,18 @@ public class JdbcTest {
             + "EXPR$0=2; EXPR$1=abc\n");
   }
 
+  /** Tests inner join to an inline table ({@code VALUES} clause).
+   *
+   * <p>Also tests that Optiq uses Unit rather than generating class Record0_0
+   * with no fields.</p> */
   @Test public void testInnerJoinValues() {
     OptiqAssert.assertThat()
         .with(OptiqAssert.Config.LINGUAL)
         .query("select empno, desc from sales.emps,\n"
                + "  (SELECT * FROM (VALUES (10, 'SameName')) AS t (id, desc)) as sn\n"
                + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
-        .returns("EMPNO=1; DESC=SameName\n");
+        .returns("EMPNO=1; DESC=SameName\n")
+        .planContains("Unit.INSTANCE");
     }
 
   @Test public void testDistinctCount() {

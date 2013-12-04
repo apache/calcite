@@ -123,7 +123,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     for (Types.RecordField field : type.getRecordFields()) {
       classDeclaration.memberDeclarations.add(
           Expressions.fieldDecl(
-              Modifier.PUBLIC,
+              field.getModifiers(),
               Expressions.parameter(
                   field.getType(), field.getName()),
               null));

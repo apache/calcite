@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.FlatLists;
+import net.hydromatic.optiq.runtime.Unit;
 
 import org.eigenbase.reltype.RelDataType;
 
@@ -44,7 +45,13 @@ public enum JavaRowFormat {
 
     public Expression record(
         Type javaRowClass, List<Expression> expressions) {
-      return Expressions.new_(javaRowClass, expressions);
+      switch (expressions.size()) {
+      case 0:
+        assert javaRowClass == Unit.class;
+        return Expressions.field(null, javaRowClass, "INSTANCE");
+      default:
+        return Expressions.new_(javaRowClass, expressions);
+      }
     }
 
     public MemberExpression field(
