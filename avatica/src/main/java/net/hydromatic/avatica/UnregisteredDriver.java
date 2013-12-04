@@ -83,10 +83,10 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
     case JDBC_30:
       return "net.hydromatic.avatica.AvaticaFactoryJdbc3Impl";
     case JDBC_40:
-      return "net.hydromatic.avatica.AvaticaFactoryJdbc4Impl";
+      return "net.hydromatic.avatica.AvaticaJdbc40Factory";
     case JDBC_41:
     default:
-      return "net.hydromatic.avatica.AvaticaFactoryJdbc41";
+      return "net.hydromatic.avatica.AvaticaJdbc41Factory";
     }
   }
 
