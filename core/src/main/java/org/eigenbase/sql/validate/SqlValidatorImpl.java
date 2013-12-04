@@ -1736,7 +1736,9 @@ public class SqlValidatorImpl
         final boolean includeSystemVars)
     {
         String alias = SqlValidatorUtil.getAlias(exp, -1);
-        String uniqueAlias = SqlValidatorUtil.uniquify(alias, aliases);
+        String uniqueAlias =
+            SqlValidatorUtil.uniquify(
+                alias, aliases, SqlValidatorUtil.EXPR_SUGGESTER);
         if (!alias.equals(uniqueAlias)) {
             exp = SqlValidatorUtil.addAlias(exp, uniqueAlias);
         }

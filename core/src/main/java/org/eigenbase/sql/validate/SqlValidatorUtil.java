@@ -30,7 +30,6 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
-
 /**
  * Utility methods related to validation.
  *
@@ -237,20 +236,22 @@ public class SqlValidatorUtil
      *
      * @param name Suggested name, may not be unique
      * @param nameList Collection of names already used
-     *
+     * @param suggester Base for name when input name is null
      * @return Unique name
      */
-    public static String uniquify(String name, Set<String> nameList)
+    public static String uniquify(
+        String name,
+        Set<String> nameList,
+        Suggester suggester)
     {
-        if (name == null) {
-            name = "EXPR$";
+        if (name != null) {
+            if (nameList.add(name)) {
+                return name;
+            }
         }
-        if (nameList.add(name)) {
-            return name;
-        }
-        String aliasBase = name;
+        final String originalName = name;
         for (int j = 0;; j++) {
-            name = aliasBase + j;
+            name = suggester.apply(originalName, j, nameList.size());
             if (nameList.add(name)) {
                 return name;
             }
@@ -281,13 +282,18 @@ public class SqlValidatorUtil
      * @param nameList List of strings
      * @return List of unique strings
      */
-    public static List<String> uniquify(List<String> nameList)
+    public static List<String> uniquify(List<String> nameList) {
+        return uniquify(nameList, EXPR_SUGGESTER);
+    }
+
+    public static List<String> uniquify(
+        List<String> nameList,
+        Suggester suggester)
     {
         Set<String> used = new LinkedHashSet<String>();
         int changeCount = 0;
-        for (int i = 0; i < nameList.size(); i++) {
-            String name = nameList.get(i);
-            String uniqueName = uniquify(name, used);
+        for (String name : nameList) {
+            String uniqueName = uniquify(name, used, suggester);
             if (!uniqueName.equals(name)) {
                 ++changeCount;
             }
@@ -438,6 +444,24 @@ public class SqlValidatorUtil
             return (SqlNode) intervalQualifier.clone();
         }
     }
+
+    interface Suggester {
+        String apply(String original, int attempt, int size);
+    }
+
+    public static final Suggester EXPR_SUGGESTER =
+        new Suggester() {
+            public String apply(String original, int attempt, int size) {
+                return Util.first(original, "EXPR$") + attempt;
+            }
+        };
+
+    public static final Suggester F_SUGGESTER =
+        new Suggester() {
+            public String apply(String original, int attempt, int size) {
+                return Util.first(original, "$f") + size;
+            }
+        };
 }
 
 // End SqlValidatorUtil.java

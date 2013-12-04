@@ -393,12 +393,9 @@ public class RelStructuredTypeFlattener
 
     public void rewriteRel(CorrelatorRel rel)
     {
-        Iterator oldCorrelations = rel.getCorrelations().iterator();
-        ArrayList<CorrelatorRel.Correlation> newCorrelations =
+        final List<CorrelatorRel.Correlation> newCorrelations =
             new ArrayList<CorrelatorRel.Correlation>();
-        while (oldCorrelations.hasNext()) {
-            CorrelatorRel.Correlation c =
-                (CorrelatorRel.Correlation) oldCorrelations.next();
+        for (CorrelatorRel.Correlation c : rel.getCorrelations()) {
             RelDataType corrFieldType =
                 rel.getLeft().getRowType().getFieldList().get(c.getOffset())
                     .getType();

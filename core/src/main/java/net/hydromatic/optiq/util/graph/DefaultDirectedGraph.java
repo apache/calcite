@@ -38,6 +38,18 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return new DefaultDirectedGraph<V, DefaultEdge>(DefaultEdge.<V>factory());
   }
 
+  @Override
+  public String toString() {
+    StringBuilder buf = new StringBuilder();
+    buf.append("graph(")
+        .append("vertices: ")
+        .append(vertexMap.keySet())
+        .append(", edges: ")
+        .append(edges)
+        .append(")");
+    return buf.toString();
+  }
+
   public boolean addVertex(V vertex) {
     if (vertexMap.containsKey(vertex)) {
       return false;

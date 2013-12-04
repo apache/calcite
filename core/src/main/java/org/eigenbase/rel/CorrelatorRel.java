@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -41,7 +42,7 @@ public final class CorrelatorRel
 {
     //~ Instance fields --------------------------------------------------------
 
-    protected final List<Correlation> correlations;
+    protected final ImmutableList<Correlation> correlations;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -72,7 +73,7 @@ public final class CorrelatorRel
             joinCond,
             joinType,
             ImmutableSet.<String>of());
-        this.correlations = correlations;
+        this.correlations = ImmutableList.copyOf(correlations);
         assert (joinType == JoinRelType.LEFT)
             || (joinType == JoinRelType.INNER);
     }
@@ -112,7 +113,7 @@ public final class CorrelatorRel
         RelNode left,
         RelNode right)
     {
-        assert traitSet.comprises(Convention.NONE);
+        assert traitSet.containsIfApplicable(Convention.NONE);
         return new CorrelatorRel(
             getCluster(),
             left,

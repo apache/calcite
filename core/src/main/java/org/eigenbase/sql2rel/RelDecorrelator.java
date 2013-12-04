@@ -36,6 +36,7 @@ import org.eigenbase.util.mapping.Mappings;
 import com.google.common.collect.ImmutableSet;
 
 import net.hydromatic.linq4j.Ord;
+import net.hydromatic.linq4j.function.Function2;
 
 import net.hydromatic.optiq.util.BitSets;
 
@@ -117,8 +118,7 @@ public class RelDecorrelator
             .addRuleInstance(new AdjustProjectForCountAggregateRule(true))
             .build();
 
-        HepPlanner planner =
-            new HepPlanner(program, true);
+        HepPlanner planner = createPlanner(program);
 
         planner.setRoot(root);
         root = planner.findBestExp();
@@ -139,6 +139,29 @@ public class RelDecorrelator
         }
     }
 
+    private HepPlanner createPlanner(HepProgram program) {
+        // Create a planner with a hook to update the mapping tables when a
+        // node is copied when it is registered.
+        return new HepPlanner(
+            program,
+            true,
+            new Function2<RelNode, RelNode, Void>() {
+                public Void apply(RelNode oldNode, RelNode newNode) {
+                    if (mapRefRelToCorVar.containsKey(oldNode)) {
+                        mapRefRelToCorVar.put(
+                            newNode, mapRefRelToCorVar.get(oldNode));
+                    }
+                    if (oldNode instanceof CorrelatorRel
+                        && newNode instanceof CorrelatorRel
+                        && generatedCorRels.contains(oldNode))
+                    {
+                        generatedCorRels.add((CorrelatorRel) newNode);
+                    }
+                    return null;
+                }
+            });
+    }
+
     public RelNode removeCorrelationViaRule(RelNode root)
     {
         HepProgram program = HepProgram.builder()
@@ -147,10 +170,7 @@ public class RelDecorrelator
             .addRuleInstance(new RemoveCorrelationForScalarAggregateRule())
             .build();
 
-        HepPlanner planner =
-            new HepPlanner(
-                program,
-                true);
+        HepPlanner planner = createPlanner(program);
 
         planner.setRoot(root);
         RelNode newRootRel = planner.findBestExp();
@@ -1767,7 +1787,7 @@ public class RelDecorrelator
                             any(RelNode.class)))));
         }
 
-      public void onMatch(RelOptRuleCall call)
+        public void onMatch(RelOptRuleCall call)
         {
             CorrelatorRel corRel = call.rel(0);
             RelNode leftInputRel = call.rel(1);

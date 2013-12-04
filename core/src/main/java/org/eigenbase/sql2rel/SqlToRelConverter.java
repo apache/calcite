@@ -482,12 +482,9 @@ public class SqlToRelConverter
 
     protected RelDataType uniquifyFields(RelDataType rowType)
     {
-        final List<String> fieldNameList =
-            new ArrayList<String>(rowType.getFieldNames());
-        SqlValidatorUtil.uniquify(fieldNameList);
         return validator.getTypeFactory().createStructType(
             RelOptUtil.getFieldTypeList(rowType),
-            fieldNameList);
+            SqlValidatorUtil.uniquify(rowType.getFieldNames()));
     }
 
     /**
@@ -2105,7 +2102,8 @@ public class SqlToRelConverter
                 },
                 true);
         }
-        RelNode join = createJoin(leftRel,
+        RelNode join = createJoin(
+            leftRel,
             rightRel,
             joinCond,
             joinType,

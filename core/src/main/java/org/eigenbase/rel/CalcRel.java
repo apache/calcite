@@ -23,6 +23,7 @@ import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.sql.validate.SqlValidatorUtil;
 import org.eigenbase.util.*;
 import org.eigenbase.util.mapping.*;
 
@@ -200,7 +201,10 @@ public final class CalcRel
                 RexUtil.createStructType(
                     cluster.getTypeFactory(),
                     exprs,
-                    fieldNames);
+                    fieldNames == null
+                        ? null
+                        : SqlValidatorUtil.uniquify(
+                            fieldNames, SqlValidatorUtil.F_SUGGESTER));
             if (optimize
                 && RemoveTrivialProjectRule.isIdentity(
                     exprs,

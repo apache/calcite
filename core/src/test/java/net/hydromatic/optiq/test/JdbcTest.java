@@ -1916,6 +1916,19 @@ public class JdbcTest {
           .runs();
   }
 
+  @Test public void testExistsCorrelated() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select*from \"hr\".\"emps\" where exists (\n"
+            + " select 1 from \"hr\".\"depts\"\n"
+            + " where \"emps\".\"deptno\"=\"depts\".\"deptno\")")
+        .returnsUnordered(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000",
+            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250");
+  }
+
   /** Tests the TABLES table in the information schema. */
   @Test public void testMetaTables() {
     OptiqAssert.assertThat()
@@ -2183,7 +2196,6 @@ public class JdbcTest {
   }
 
   /** Tests a JDBC connection that provides a model that contains a view. */
-  @Ignore
   @Test public void testModelView() throws Exception {
     final OptiqAssert.AssertThat with = OptiqAssert.assertThat()
         .withModel(

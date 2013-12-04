@@ -603,13 +603,12 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       return rootRel;
     }
 
-    @Override
-    protected RelNode decorrelate(SqlNode query, RelNode rootRel) {
-      return rootRel;
+    @Override protected RelNode decorrelate(SqlToRelConverter sqlToRelConverter,
+        SqlNode query, RelNode rootRel) {
+      return sqlToRelConverter.decorrelate(query, rootRel);
     }
 
-    @Override
-    public RelNode expandView(
+    @Override public RelNode expandView(
         RelDataType rowType,
         String queryString,
         List<String> schemaPath) {

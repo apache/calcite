@@ -194,7 +194,6 @@ public class ReflectiveSchemaTest {
   /**
    * Tests a view with a path.
    */
-  @Ignore
   @Test public void testViewPath() throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =

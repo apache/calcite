@@ -198,7 +198,7 @@ public abstract class Prepare {
     rootRel = flattenTypes(rootRel, true);
 
     // Subquery decorrelation.
-    rootRel = decorrelate(sqlQuery, rootRel);
+    rootRel = decorrelate(sqlToRelConverter, sqlQuery, rootRel);
 
     // Trim unused fields.
     rootRel = trimUnusedFields(rootRel);
@@ -275,9 +275,8 @@ public abstract class Prepare {
       RelNode rootRel,
       boolean restructure);
 
-  protected abstract RelNode decorrelate(
-      SqlNode query,
-      RelNode rootRel);
+  protected abstract RelNode decorrelate(SqlToRelConverter sqlToRelConverter,
+      SqlNode query, RelNode rootRel);
 
   /**
    * Walks over a tree of relational expressions, replacing each
@@ -300,7 +299,7 @@ public abstract class Prepare {
     // For now, don't trim if there are more than 3 joins. The projects
     // near the leaves created by trim migrate past joins and seem to
     // prevent join-reordering.
-    return TRIM || countJoins(rootRel) < 3;
+    return TRIM || countJoins(rootRel) < 2;
   }
 
   /** Returns the number of {@link JoinRelBase} nodes in a tree. */

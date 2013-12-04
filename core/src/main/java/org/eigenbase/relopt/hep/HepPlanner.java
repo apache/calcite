@@ -28,6 +28,9 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.optiq.util.graph.*;
 
+import net.hydromatic.linq4j.function.Function2;
+import net.hydromatic.linq4j.function.Functions;
+
 /**
  * HepPlanner is a heuristic implementation of the {@link RelOptPlanner}
  * interface.
@@ -67,6 +70,8 @@ public class HepPlanner
      */
     private DirectedGraph<HepRelVertex, DefaultEdge> graph;
 
+    private final Function2<RelNode, RelNode, Void> onCopyHook;
+
     //~ Constructors -----------------------------------------------------------
 
     /**
@@ -74,9 +79,8 @@ public class HepPlanner
      *
      * @param program program controlling rule application
      */
-    public HepPlanner(HepProgram program)
-    {
-        this(program, false);
+    public HepPlanner(HepProgram program) {
+        this(program, false, null);
     }
 
     /**
@@ -84,11 +88,19 @@ public class HepPlanner
      * tree(noDAG=true) or allow DAG(noDAG=false).
      *
      * @param program program controlling rule application
+     * @param onCopyHook Function to call when a node is copied
      */
-    public HepPlanner(HepProgram program, boolean noDAG)
+    public HepPlanner(
+        HepProgram program,
+        boolean noDAG,
+        Function2<RelNode, RelNode, Void> onCopyHook)
     {
         this.mainProgram = program;
-
+        if (onCopyHook == null) {
+            this.onCopyHook = Functions.ignore2();
+        } else {
+            this.onCopyHook = onCopyHook;
+        }
         mapDigestToVertex = new HashMap<String, HepRelVertex>();
         graph = DefaultDirectedGraph.create();
 
@@ -565,15 +577,14 @@ public class HepPlanner
             return true;
         }
         int n = childOperands.length;
-        List<RelNode> childRels = rel.getInputs();
+        @SuppressWarnings("unchecked")
+        List<HepRelVertex> childRels = (List) rel.getInputs();
         if (operand.matchAnyChildren) {
             // For each operand, at least one child must match. If
             // matchAnyChildren, usually there's just one operand.
             for (RelOptRuleOperand childOperand : childOperands) {
                 boolean match = false;
-                for (int i = 0; i < childRels.size(); ++i) {
-                    final HepRelVertex childRel =
-                        (HepRelVertex) childRels.get(i);
+                for (HepRelVertex childRel : childRels) {
                     match =
                         matchOperands(
                             childOperand,
@@ -589,8 +600,8 @@ public class HepPlanner
                 }
             }
             List<RelNode> children = new ArrayList<RelNode>(childRels.size());
-            for (RelNode childRel : childRels) {
-                children.add(((HepRelVertex) childRel).getCurrentRel());
+            for (HepRelVertex childRel : childRels) {
+                children.add(childRel.getCurrentRel());
             }
             nodeChildren.put(rel, children);
             return true;
@@ -598,11 +609,13 @@ public class HepPlanner
             if (childRels.size() < n) {
                 return false;
             }
-            for (int i = 0; i < n; ++i) {
+            for (Pair<HepRelVertex, RelOptRuleOperand> pair
+                : Pair.zip(childRels, Arrays.asList(childOperands)))
+            {
                 boolean match =
                     matchOperands(
-                        childOperands[i],
-                        ((HepRelVertex) childRels.get(i)).getCurrentRel(),
+                        pair.right,
+                        pair.left.getCurrentRel(),
                         bindings,
                         nodeChildren);
                 if (!match) {
@@ -741,15 +754,17 @@ public class HepPlanner
 
         // Recursively add children, replacing this rel's inputs
         // with corresponding child vertices.
-        List<? extends RelNode> inputs = rel.getInputs();
-        List<HepRelVertex> newInputs = new ArrayList<HepRelVertex>();
-        for (int i = 0; i < inputs.size(); ++i) {
-            HepRelVertex childVertex = addRelToGraph(inputs.get(i));
+        List<RelNode> inputs = rel.getInputs();
+        List<RelNode> newInputs = new ArrayList<RelNode>();
+        for (RelNode input1 : inputs) {
+            HepRelVertex childVertex = addRelToGraph(input1);
             newInputs.add(childVertex);
         }
 
         if (!Util.equalShallow(inputs, newInputs)) {
-            rel = rel.copy(rel.getTraitSet(), (List) newInputs);
+          RelNode oldRel = rel;
+            rel = rel.copy(rel.getTraitSet(), newInputs);
+          onCopyHook.apply(oldRel, rel);
         }
 
         // try to find equivalent rel only if DAG is allowed

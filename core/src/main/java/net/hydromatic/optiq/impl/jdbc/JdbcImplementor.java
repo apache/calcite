@@ -56,7 +56,9 @@ public class JdbcImplementor {
   public Result result(SqlNode node, Collection<Clause> clauses, RelNode rel) {
     final String alias2 = SqlValidatorUtil.getAlias(node, -1);
     final String alias3 = alias2 != null ? alias2 : "t";
-    final String alias4 = SqlValidatorUtil.uniquify(alias3, aliasSet);
+    final String alias4 =
+        SqlValidatorUtil.uniquify(
+            alias3, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
     final String alias5 = alias2 == null || !alias2.equals(alias4) ? alias4
         : null;
     return new Result(node, clauses, alias5,
