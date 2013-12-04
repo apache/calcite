@@ -828,7 +828,25 @@ public class JavaRules {
       //       accumulatorAdder,
       //       resultSelector);
       //
-      // with a slightly different resultSelector.
+      // with a slightly different resultSelector; or if there are no aggregate
+      // functions
+      //
+      // final Enumerable<Employee> child = <<child impl>>;
+      // Function1<Employee, Integer> keySelector =
+      //     new Function1<Employee, Integer>() {
+      //         public Integer apply(Employee a0) {
+      //             return a0.deptno;
+      //         }
+      //     };
+      // EqualityComparer<Employee> equalityComparer =
+      //     new EqualityComparer<Employee>() {
+      //         boolean equal(Employee a0, Employee a1) {
+      //             return a0.deptno;
+      //         }
+      //     };
+      // return child
+      //     .distinct(equalityComparer);
+
       PhysType inputPhysType = result.physType;
 
       ParameterExpression parameter =
@@ -994,6 +1012,16 @@ public class JavaRules {
                         Expressions.call(accumulatorInitializer, "apply"),
                         accumulatorAdder,
                         resultSelector))));
+      } else if (aggCalls.isEmpty()) {
+        builder.add(
+            Expressions.return_(
+                null,
+                Expressions.call(
+                    childExp,
+                    BuiltinMethod.DISTINCT.method,
+                    Expressions.<Expression>list()
+                        .appendIfNotNull(
+                            keyPhysType.comparer()))));
       } else {
         final Expression resultSelector =
             builder.append(

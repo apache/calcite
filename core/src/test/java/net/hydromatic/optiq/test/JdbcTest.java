@@ -971,56 +971,56 @@ public class JdbcTest {
             + "+-------+---------------------+-----+------+------------+");
   }
 
-    /** Four-way join. Used to take 80 seconds. */
-    @Ignore
-    @Test public void testJoinFiveWay() {
-        OptiqAssert.assertThat()
-            .with(OptiqAssert.Config.FOODMART_CLONE)
-            .query(
-                "select \"store\".\"store_country\" as \"c0\",\n"
-                + " \"time_by_day\".\"the_year\" as \"c1\",\n"
-                + " \"product_class\".\"product_family\" as \"c2\",\n"
-                + " count(\"sales_fact_1997\".\"product_id\") as \"m0\"\n"
-                + "from \"store\" as \"store\",\n"
-                + " \"sales_fact_1997\" as \"sales_fact_1997\",\n"
-                + " \"time_by_day\" as \"time_by_day\",\n"
-                + " \"product_class\" as \"product_class\",\n"
-                + " \"product\" as \"product\"\n"
-                + "where \"sales_fact_1997\".\"store_id\" = \"store\".\"store_id\"\n"
-                + "and \"store\".\"store_country\" = 'USA'\n"
-                + "and \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\"\n"
-                + "and \"time_by_day\".\"the_year\" = 1997\n"
-                + "and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
-                + "and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\"\n"
-                + "group by \"store\".\"store_country\",\n"
-                + " \"time_by_day\".\"the_year\",\n"
-                + " \"product_class\".\"product_family\"")
-            .explainContains(
-                "EnumerableAggregateRel(group=[{0, 1, 2}], m0=[COUNT($3)])\n"
-                + "  EnumerableCalcRel(expr#0..61=[{inputs}], c0=[$t19], c1=[$t4], c2=[$t46], product_id=[$t34])\n"
-                + "    EnumerableJoinRel(condition=[=($35, $0)], joinType=[inner])\n"
-                + "      EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], proj#0..9=[{exprs}], $condition=[$t12])\n"
-                + "        EnumerableTableAccessRel(table=[[foodmart2, time_by_day]])\n"
-                + "      EnumerableCalcRel(expr#0..51=[{inputs}], proj#0..23=[{exprs}], product_id=[$t44], time_id=[$t45], customer_id=[$t46], promotion_id=[$t47], store_id0=[$t48], store_sales=[$t49], store_cost=[$t50], unit_sales=[$t51], product_class_id=[$t24], product_subcategory=[$t25], product_category=[$t26], product_department=[$t27], product_family=[$t28], product_class_id0=[$t29], product_id0=[$t30], brand_name=[$t31], product_name=[$t32], SKU=[$t33], SRP=[$t34], gross_weight=[$t35], net_weight=[$t36], recyclable_package=[$t37], low_fat=[$t38], units_per_case=[$t39], cases_per_pallet=[$t40], shelf_width=[$t41], shelf_height=[$t42], shelf_depth=[$t43])\n"
-                + "        EnumerableJoinRel(condition=[=($48, $0)], joinType=[inner])\n"
-                + "          EnumerableCalcRel(expr#0..23=[{inputs}], expr#24=['USA'], expr#25=[=($t9, $t24)], proj#0..23=[{exprs}], $condition=[$t25])\n"
-                + "            EnumerableTableAccessRel(table=[[foodmart2, store]])\n"
-                + "          EnumerableCalcRel(expr#0..27=[{inputs}], proj#0..4=[{exprs}], product_class_id0=[$t13], product_id=[$t14], brand_name=[$t15], product_name=[$t16], SKU=[$t17], SRP=[$t18], gross_weight=[$t19], net_weight=[$t20], recyclable_package=[$t21], low_fat=[$t22], units_per_case=[$t23], cases_per_pallet=[$t24], shelf_width=[$t25], shelf_height=[$t26], shelf_depth=[$t27], product_id0=[$t5], time_id=[$t6], customer_id=[$t7], promotion_id=[$t8], store_id=[$t9], store_sales=[$t10], store_cost=[$t11], unit_sales=[$t12])\n"
-                + "            EnumerableJoinRel(condition=[=($13, $0)], joinType=[inner])\n"
-                + "              EnumerableTableAccessRel(table=[[foodmart2, product_class]])\n"
-                + "              EnumerableJoinRel(condition=[=($0, $9)], joinType=[inner])\n"
-                + "                EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])\n"
-                + "                EnumerableTableAccessRel(table=[[foodmart2, product]])\n"
-                + "\n"
-                + "]>")
-            .returns(
-                "+-------+---------------------+-----+------+------------+\n"
-                + "| c0    | c1                  | c2  | c3   | c4         |\n"
-                + "+-------+---------------------+-----+------+------------+\n"
-                + "| Drink | Alcoholic Beverages | USA | WA   | Bellingham |\n"
-                + "| Drink | Dairy               | USA | WA   | Bellingham |\n"
-                + "+-------+---------------------+-----+------+------------+");
-    }
+  /** Four-way join. Used to take 80 seconds. */
+  @Ignore
+  @Test public void testJoinFiveWay() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.FOODMART_CLONE)
+        .query(
+            "select \"store\".\"store_country\" as \"c0\",\n"
+            + " \"time_by_day\".\"the_year\" as \"c1\",\n"
+            + " \"product_class\".\"product_family\" as \"c2\",\n"
+            + " count(\"sales_fact_1997\".\"product_id\") as \"m0\"\n"
+            + "from \"store\" as \"store\",\n"
+            + " \"sales_fact_1997\" as \"sales_fact_1997\",\n"
+            + " \"time_by_day\" as \"time_by_day\",\n"
+            + " \"product_class\" as \"product_class\",\n"
+            + " \"product\" as \"product\"\n"
+            + "where \"sales_fact_1997\".\"store_id\" = \"store\".\"store_id\"\n"
+            + "and \"store\".\"store_country\" = 'USA'\n"
+            + "and \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\"\n"
+            + "and \"time_by_day\".\"the_year\" = 1997\n"
+            + "and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
+            + "and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\"\n"
+            + "group by \"store\".\"store_country\",\n"
+            + " \"time_by_day\".\"the_year\",\n"
+            + " \"product_class\".\"product_family\"")
+        .explainContains(
+            "EnumerableAggregateRel(group=[{0, 1, 2}], m0=[COUNT($3)])\n"
+            + "  EnumerableCalcRel(expr#0..61=[{inputs}], c0=[$t19], c1=[$t4], c2=[$t46], product_id=[$t34])\n"
+            + "    EnumerableJoinRel(condition=[=($35, $0)], joinType=[inner])\n"
+            + "      EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], proj#0..9=[{exprs}], $condition=[$t12])\n"
+            + "        EnumerableTableAccessRel(table=[[foodmart2, time_by_day]])\n"
+            + "      EnumerableCalcRel(expr#0..51=[{inputs}], proj#0..23=[{exprs}], product_id=[$t44], time_id=[$t45], customer_id=[$t46], promotion_id=[$t47], store_id0=[$t48], store_sales=[$t49], store_cost=[$t50], unit_sales=[$t51], product_class_id=[$t24], product_subcategory=[$t25], product_category=[$t26], product_department=[$t27], product_family=[$t28], product_class_id0=[$t29], product_id0=[$t30], brand_name=[$t31], product_name=[$t32], SKU=[$t33], SRP=[$t34], gross_weight=[$t35], net_weight=[$t36], recyclable_package=[$t37], low_fat=[$t38], units_per_case=[$t39], cases_per_pallet=[$t40], shelf_width=[$t41], shelf_height=[$t42], shelf_depth=[$t43])\n"
+            + "        EnumerableJoinRel(condition=[=($48, $0)], joinType=[inner])\n"
+            + "          EnumerableCalcRel(expr#0..23=[{inputs}], expr#24=['USA'], expr#25=[=($t9, $t24)], proj#0..23=[{exprs}], $condition=[$t25])\n"
+            + "            EnumerableTableAccessRel(table=[[foodmart2, store]])\n"
+            + "          EnumerableCalcRel(expr#0..27=[{inputs}], proj#0..4=[{exprs}], product_class_id0=[$t13], product_id=[$t14], brand_name=[$t15], product_name=[$t16], SKU=[$t17], SRP=[$t18], gross_weight=[$t19], net_weight=[$t20], recyclable_package=[$t21], low_fat=[$t22], units_per_case=[$t23], cases_per_pallet=[$t24], shelf_width=[$t25], shelf_height=[$t26], shelf_depth=[$t27], product_id0=[$t5], time_id=[$t6], customer_id=[$t7], promotion_id=[$t8], store_id=[$t9], store_sales=[$t10], store_cost=[$t11], unit_sales=[$t12])\n"
+            + "            EnumerableJoinRel(condition=[=($13, $0)], joinType=[inner])\n"
+            + "              EnumerableTableAccessRel(table=[[foodmart2, product_class]])\n"
+            + "              EnumerableJoinRel(condition=[=($0, $9)], joinType=[inner])\n"
+            + "                EnumerableTableAccessRel(table=[[foodmart2, sales_fact_1997]])\n"
+            + "                EnumerableTableAccessRel(table=[[foodmart2, product]])\n"
+            + "\n"
+            + "]>")
+        .returns(
+            "+-------+---------------------+-----+------+------------+\n"
+            + "| c0    | c1                  | c2  | c3   | c4         |\n"
+            + "+-------+---------------------+-----+------+------------+\n"
+            + "| Drink | Alcoholic Beverages | USA | WA   | Bellingham |\n"
+            + "| Drink | Dairy               | USA | WA   | Bellingham |\n"
+            + "+-------+---------------------+-----+------+------------+");
+  }
 
   /** Returns a list of (query, expected) pairs. The expected result is
    * sometimes null. */
@@ -1381,19 +1381,29 @@ public class JdbcTest {
             + "EXPR$0=2; EXPR$1=abc\n");
   }
 
-  /** Tests inner join to an inline table ({@code VALUES} clause).
-   *
-   * <p>Also tests that Optiq uses Unit rather than generating class Record0_0
-   * with no fields.</p> */
+  /** Tests inner join to an inline table ({@code VALUES} clause). */
   @Test public void testInnerJoinValues() {
     OptiqAssert.assertThat()
         .with(OptiqAssert.Config.LINGUAL)
-        .query("select empno, desc from sales.emps,\n"
-               + "  (SELECT * FROM (VALUES (10, 'SameName')) AS t (id, desc)) as sn\n"
-               + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
-        .returns("EMPNO=1; DESC=SameName\n")
-        .planContains("Unit.INSTANCE");
-    }
+        .query(
+            "select empno, desc from sales.emps,\n"
+            + "  (SELECT * FROM (VALUES (10, 'SameName')) AS t (id, desc)) as sn\n"
+            + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
+        .returns("EMPNO=1; DESC=SameName\n");
+  }
+
+  /** Tests a cartesian product aka cross join. */
+  @Test public void testCartesianJoin() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from \"hr\".\"emps\", \"hr\".\"depts\" where \"emps\".\"empid\" < 140 and \"depts\".\"deptno\" > 20")
+        .returnsUnordered(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=30; name0=Marketing; employees=[]",
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=40; name0=HR; employees=[Employee [empid: 200, deptno: 20, name: Eric]]",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=30; name0=Marketing; employees=[]",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=40; name0=HR; employees=[Employee [empid: 200, deptno: 20, name: Eric]]");
+  }
 
   @Test public void testDistinctCount() {
     final String s =
@@ -1689,6 +1699,46 @@ public class JdbcTest {
             "deptno=20; commission=500; S=8000.0",
             "deptno=10; commission=1000; S=10000.0",
             "deptno=10; commission=250; S=11500.0");
+  }
+
+  @Test public void testSelectDistinct() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select distinct \"deptno\"\n"
+            + "from \"hr\".\"emps\"\n")
+        .returnsUnordered(
+            "deptno=10",
+            "deptno=20")
+        .planContains(".distinct(");
+  }
+
+  /** Select distinct on composite key, one column of which is boolean to
+   * boot. */
+  @Test public void testSelectDistinctComposite() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query("select distinct \"empid\" > 140 as c, \"deptno\"\n"
+            + "from \"hr\".\"emps\"\n")
+        .returnsUnordered(
+            "C=false; deptno=10",
+            "C=true; deptno=10",
+            "C=true; deptno=20")
+        .planContains(".distinct(");
+  }
+
+  /** Same result (and plan) as {@link #testSelectDistinct}. */
+  @Test public void testGroupByNoAggregates() {
+    OptiqAssert.assertThat()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select \"deptno\"\n"
+            + "from \"hr\".\"emps\"\n"
+            + "group by \"deptno\"")
+        .returnsUnordered(
+            "deptno=10",
+            "deptno=20")
+        .planContains(".distinct(");
   }
 
   /** Tests sorting by a column that is already sorted. */
