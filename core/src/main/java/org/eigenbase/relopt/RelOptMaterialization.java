@@ -20,14 +20,13 @@ package org.eigenbase.relopt;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.rules.PullUpProjectsAboveJoinRule;
 import org.eigenbase.relopt.hep.HepPlanner;
-import org.eigenbase.relopt.hep.HepProgramBuilder;
+import org.eigenbase.relopt.hep.HepProgram;
 import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.util.Util;
 import org.eigenbase.util.mapping.Mappings;
 
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.StarTable;
-import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 
 /**
  * Records that a particular query is materialized by a particular table.
@@ -177,13 +176,12 @@ public class RelOptMaterialization {
    * {@link org.eigenbase.rel.JoinRel}s are
    * as close to leaves as possible. */
   public static RelNode toLeafJoinForm(RelNode rel) {
-    final HepProgramBuilder programBuilder = new HepProgramBuilder();
-    programBuilder.addRuleInstance(
-        PullUpProjectsAboveJoinRule.instanceRightProjectChild);
-    programBuilder.addRuleInstance(
-        PullUpProjectsAboveJoinRule.instanceLeftProjectChild);
+    HepProgram program = HepProgram.builder()
+        .addRuleInstance(PullUpProjectsAboveJoinRule.instanceRightProjectChild)
+        .addRuleInstance(PullUpProjectsAboveJoinRule.instanceLeftProjectChild)
+        .build();
     final HepPlanner planner =
-        new HepPlanner(programBuilder.createProgram());
+        new HepPlanner(program);
     planner.setRoot(rel);
     System.out.println(
         RelOptUtil.dumpPlan(

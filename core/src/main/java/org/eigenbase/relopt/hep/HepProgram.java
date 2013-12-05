@@ -19,6 +19,7 @@ package org.eigenbase.relopt.hep;
 
 import java.util.*;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * HepProgram specifies the order in which rules should be attempted by {@link
@@ -43,7 +44,7 @@ public class HepProgram
 
     //~ Instance fields --------------------------------------------------------
 
-    final List<HepInstruction> instructions;
+    final ImmutableList<HepInstruction> instructions;
 
     int matchLimit;
 
@@ -58,9 +59,12 @@ public class HepProgram
      * {@link org.eigenbase.relopt.hep.HepMatchOrder#ARBITRARY}, and an initial
      * match limit of {@link #MATCH_UNTIL_FIXPOINT}.
      */
-    HepProgram(List<HepInstruction> instructions)
-    {
-        this.instructions = instructions;
+    HepProgram(List<HepInstruction> instructions) {
+        this.instructions = ImmutableList.copyOf(instructions);
+    }
+
+    public static HepProgramBuilder builder() {
+        return new HepProgramBuilder();
     }
 
     //~ Methods ----------------------------------------------------------------

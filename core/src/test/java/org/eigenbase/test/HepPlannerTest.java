@@ -49,12 +49,12 @@ public class HepPlannerTest
     @Test public void testRuleClass() throws Exception {
         // Verify that an entire class of rules can be applied.
 
-        HepProgramBuilder programBuilder = new HepProgramBuilder();
+        HepProgramBuilder programBuilder = HepProgram.builder();
         programBuilder.addRuleClass(CoerceInputsRule.class);
 
         HepPlanner planner =
             new HepPlanner(
-                programBuilder.createProgram());
+                programBuilder.build());
 
         planner.addRule(new CoerceInputsRule(UnionRel.class, false));
         planner.addRule(new CoerceInputsRule(IntersectRel.class, false));
@@ -68,12 +68,12 @@ public class HepPlannerTest
     @Test public void testRuleDescription() throws Exception {
         // Verify that a rule can be applied via its description.
 
-        HepProgramBuilder programBuilder = new HepProgramBuilder();
+        HepProgramBuilder programBuilder = HepProgram.builder();
         programBuilder.addRuleByDescription("FilterToCalcRule");
 
         HepPlanner planner =
             new HepPlanner(
-                programBuilder.createProgram());
+                programBuilder.build());
 
         planner.addRule(FilterToCalcRule.instance);
 
@@ -85,38 +85,38 @@ public class HepPlannerTest
     @Test public void testMatchLimitOneTopDown() throws Exception {
         // Verify that only the top union gets rewritten.
 
-        HepProgramBuilder programBuilder = new HepProgramBuilder();
+        HepProgramBuilder programBuilder = HepProgram.builder();
         programBuilder.addMatchOrder(HepMatchOrder.TOP_DOWN);
         programBuilder.addMatchLimit(1);
         programBuilder.addRuleInstance(UnionToDistinctRule.instance);
 
         checkPlanning(
-            programBuilder.createProgram(),
+            programBuilder.build(),
             unionTree);
     }
 
     @Test public void testMatchLimitOneBottomUp() throws Exception {
         // Verify that only the bottom union gets rewritten.
 
-        HepProgramBuilder programBuilder = new HepProgramBuilder();
+        HepProgramBuilder programBuilder = HepProgram.builder();
         programBuilder.addMatchLimit(1);
         programBuilder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
         programBuilder.addRuleInstance(UnionToDistinctRule.instance);
 
         checkPlanning(
-            programBuilder.createProgram(),
+            programBuilder.build(),
             unionTree);
     }
 
     @Test public void testMatchUntilFixpoint() throws Exception {
         // Verify that both unions get rewritten.
 
-        HepProgramBuilder programBuilder = new HepProgramBuilder();
+        HepProgramBuilder programBuilder = HepProgram.builder();
         programBuilder.addMatchLimit(HepProgram.MATCH_UNTIL_FIXPOINT);
         programBuilder.addRuleInstance(UnionToDistinctRule.instance);
 
         checkPlanning(
-            programBuilder.createProgram(),
+            programBuilder.build(),
             unionTree);
     }
 
@@ -139,17 +139,17 @@ public class HepPlannerTest
         // In this case, the first time through we limit it to generate
         // only one calc; the second time through it will generate
         // a second calc, and then merge them.
-        HepProgramBuilder subprogramBuilder = new HepProgramBuilder();
+        HepProgramBuilder subprogramBuilder = HepProgram.builder();
         subprogramBuilder.addMatchOrder(HepMatchOrder.TOP_DOWN);
         subprogramBuilder.addMatchLimit(1);
         subprogramBuilder.addRuleInstance(ProjectToCalcRule.instance);
         subprogramBuilder.addRuleInstance(MergeCalcRule.instance);
 
-        HepProgramBuilder programBuilder = new HepProgramBuilder();
-        programBuilder.addSubprogram(subprogramBuilder.createProgram());
+        HepProgramBuilder programBuilder = HepProgram.builder();
+        programBuilder.addSubprogram(subprogramBuilder.build());
 
         checkPlanning(
-            programBuilder.createProgram(),
+            programBuilder.build(),
             "select upper(ename) from (select lower(ename) as ename from emp)");
     }
 
@@ -157,7 +157,7 @@ public class HepPlannerTest
         // Verify simultaneous application of a group of rules.
         // Intentionally add them in the wrong order to make sure
         // that order doesn't matter within the group.
-        HepProgramBuilder programBuilder = new HepProgramBuilder();
+        HepProgramBuilder programBuilder = HepProgram.builder();
         programBuilder.addGroupBegin();
         programBuilder.addRuleInstance(MergeCalcRule.instance);
         programBuilder.addRuleInstance(ProjectToCalcRule.instance);
@@ -165,7 +165,7 @@ public class HepPlannerTest
         programBuilder.addGroupEnd();
 
         checkPlanning(
-            programBuilder.createProgram(),
+            programBuilder.build(),
             "select upper(name) from dept where deptno=20");
     }
 }

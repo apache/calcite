@@ -24,7 +24,6 @@ import org.eigenbase.relopt.hep.*;
 
 import static org.junit.Assert.*;
 
-
 /**
  * RelOptTestBase is an abstract base for tests which exercise a planner and/or
  * rules via {@link DiffRepository}.
@@ -44,11 +43,11 @@ abstract class RelOptTestBase
         RelOptRule rule,
         String sql)
     {
-        HepProgramBuilder programBuilder = new HepProgramBuilder();
+        HepProgramBuilder programBuilder = HepProgram.builder();
         programBuilder.addRuleInstance(rule);
 
         checkPlanning(
-            programBuilder.createProgram(),
+            programBuilder.build(),
             sql);
     }
 
@@ -98,10 +97,10 @@ abstract class RelOptTestBase
         RelOptRule rule,
         String sql)
     {
-        HepProgramBuilder programBuilder = new HepProgramBuilder();
+        HepProgramBuilder programBuilder = HepProgram.builder();
         programBuilder.addRuleInstance(rule);
         final HepPlanner planner =
-            new HepPlanner(programBuilder.createProgram());
+            new HepPlanner(programBuilder.build());
 
         checkPlanning(
             preProgram,
@@ -167,11 +166,11 @@ abstract class RelOptTestBase
     protected static HepProgram createProgram(
         RelOptRule ... rules)
     {
-        final HepProgramBuilder builder = new HepProgramBuilder();
+        final HepProgramBuilder builder = HepProgram.builder();
         for (RelOptRule rule : rules) {
             builder.addRuleInstance(rule);
         }
-        return builder.createProgram();
+        return builder.build();
     }
 }
 

@@ -112,17 +112,13 @@ public class RelDecorrelator
     public RelNode decorrelate(RelNode root)
     {
         // first adjust count() expression if any
-        HepProgramBuilder programBuilder = new HepProgramBuilder();
-
-        programBuilder.addRuleInstance(
-            new AdjustProjectForCountAggregateRule(false));
-        programBuilder.addRuleInstance(
-            new AdjustProjectForCountAggregateRule(true));
+        HepProgram program = HepProgram.builder()
+            .addRuleInstance(new AdjustProjectForCountAggregateRule(false))
+            .addRuleInstance(new AdjustProjectForCountAggregateRule(true))
+            .build();
 
         HepPlanner planner =
-            new HepPlanner(
-                programBuilder.createProgram(),
-                true);
+            new HepPlanner(program, true);
 
         planner.setRoot(root);
         root = planner.findBestExp();
@@ -145,17 +141,15 @@ public class RelDecorrelator
 
     public RelNode removeCorrelationViaRule(RelNode root)
     {
-        HepProgramBuilder programBuilder = new HepProgramBuilder();
-
-        programBuilder.addRuleInstance(new RemoveSingleAggregateRule());
-        programBuilder.addRuleInstance(
-            new RemoveCorrelationForScalarProjectRule());
-        programBuilder.addRuleInstance(
-            new RemoveCorrelationForScalarAggregateRule());
+        HepProgram program = HepProgram.builder()
+            .addRuleInstance(new RemoveSingleAggregateRule())
+            .addRuleInstance(new RemoveCorrelationForScalarProjectRule())
+            .addRuleInstance(new RemoveCorrelationForScalarAggregateRule())
+            .build();
 
         HepPlanner planner =
             new HepPlanner(
-                programBuilder.createProgram(),
+                program,
                 true);
 
         planner.setRoot(root);
