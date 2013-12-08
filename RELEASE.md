@@ -1,6 +1,6 @@
 # Linq4j release history and change log
 
-For a full list of releases, see <a href="https://github.com/julianhyde/lingqj/releases">github</a>.
+For a full list of releases, see <a href="https://github.com/julianhyde/linq4j/releases">github</a>.
 
 ## <a href="https://github.com/julianhyde/linq4j/releases/tag/linq4j-0.1.12">0.1.12</a> (2013-12-07)
 
