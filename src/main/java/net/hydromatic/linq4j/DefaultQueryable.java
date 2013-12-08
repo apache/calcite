@@ -56,6 +56,15 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
     return this;
   }
 
+  @Override
+  public Enumerable<T> asEnumerable() {
+    return new AbstractEnumerable<T>() {
+        public Enumerator<T> enumerator() {
+            return DefaultQueryable.this.enumerator();
+        }
+    };
+  }
+
   // Disambiguate
 
   @Override
