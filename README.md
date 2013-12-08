@@ -13,8 +13,7 @@ Download
 Build and test
 ==============
 
-    $ mvn compile
-    $ mvn test
+    $ mvn package
 
 Backlog
 =======
@@ -98,3 +97,4 @@ More information
 * Project page: http://www.hydromatic.net/linq4j
 * Source code: http://github.com/julianhyde/linq4j
 * Developers list: http://groups.google.com/group/linq4j-dev
+* <a href="RELEASE.md">Release notes</a> for latest release (also change log for previous releases)
