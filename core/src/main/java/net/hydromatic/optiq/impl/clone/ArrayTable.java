@@ -68,15 +68,6 @@ class ArrayTable<T>
     assert relDataType.getFieldCount() == columns.size();
   }
 
-  @Override public Enumerable<T> asEnumerable() {
-    Bug.upgrade("move up to DefaultQueryable in linq4j-0.1.12");
-    return new AbstractEnumerable<T>() {
-      public Enumerator<T> enumerator() {
-        return ArrayTable.this.enumerator();
-      }
-    };
-  }
-
   public RelDataType getRowType() {
     return relDataType;
   }
