@@ -25,6 +25,11 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
+
+import net.hydromatic.linq4j.function.Function1;
+import net.hydromatic.linq4j.function.Functions;
+
 /**
  * Rule that slices the {@link CalcRel} into sections which contain windowed
  * agg functions and sections which do not.
@@ -33,38 +38,107 @@ import org.eigenbase.util.*;
  * {@link org.eigenbase.rel.WindowRel}. If the {@link CalcRel} does not contain any
  * windowed agg functions, does nothing.
  */
-public class WindowedAggSplitterRule
+public abstract class WindowedAggSplitterRule
     extends RelOptRule
 {
     //~ Static fields/initializers ---------------------------------------------
 
     /**
-     * The {@link Glossary#SingletonPattern singleton} instance.
+     * Instance of the rule that applies to a {@link CalcRelBase} that contains
+     * windowed aggregates and converts it into a mixture of
+     * {@link org.eigenbase.rel.WindowRel} and {@code CalcRelBase}.
      */
     public static final WindowedAggSplitterRule INSTANCE =
-        new WindowedAggSplitterRule();
+        new WindowedAggSplitterRule(
+            any(CalcRelBase.class), "WindowedAggSplitterRule")
+        {
+            public void onMatch(RelOptRuleCall call) {
+                CalcRelBase calc = call.rel(0);
+                if (!RexOver.containsOver(calc.getProgram())) {
+                    return;
+                }
+                CalcRelSplitter transform = new WindowedAggRelSplitter(calc);
+                RelNode newRel = transform.execute();
+                call.transformTo(newRel);
+            }
+        };
+
+    /**
+     * Instance of the rule that can be applied to a
+     * {@link org.eigenbase.rel.ProjectRelBase} and that produces, in turn,
+     * a mixture of {@code ProjectRel} and {@link org.eigenbase.rel.WindowRel}.
+     */
+    public static final WindowedAggSplitterRule PROJECT =
+        new WindowedAggSplitterRule(
+            any(ProjectRelBase.class), "WindowedAggSplitterRule:project")
+        {
+            @Override public void onMatch(RelOptRuleCall call) {
+                ProjectRelBase project = call.rel(0);
+                if (!RexOver.containsOver(project.getProjects(), null)) {
+                    return;
+                }
+                final RelNode child = project.getChild();
+                final RelDataType rowType = project.getRowType();
+                final RexProgram program =
+                    RexProgram.create(
+                        child.getRowType(),
+                        project.getProjects(),
+                        null,
+                        project.getRowType(),
+                        project.getCluster().getRexBuilder());
+                // temporary CalcRel, never registered
+                final CalcRel calc =
+                    new CalcRel(
+                        project.getCluster(),
+                        project.getTraitSet(),
+                        child,
+                        rowType,
+                        program,
+                        ImmutableList.<RelCollation>of());
+                CalcRelSplitter transform = new WindowedAggRelSplitter(calc) {
+                    @Override
+                    protected RelNode handle(RelNode rel) {
+                        if (rel instanceof CalcRel) {
+                            CalcRel calc = (CalcRel) rel;
+                            final RexProgram program = calc.getProgram();
+                            rel = calc.getChild();
+                            if (program.getCondition() != null) {
+                                rel = new FilterRel(
+                                    calc.getCluster(),
+                                    rel,
+                                    program.expandLocalRef(
+                                        program.getCondition()));
+                            }
+                            if (!program.projectsOnlyIdentity()) {
+                                rel = CalcRel.createProject(
+                                    rel,
+                                    Functions.apply(
+                                        program.getProjectList(),
+                                        new Function1<RexLocalRef, RexNode>() {
+                                            public RexNode apply(RexLocalRef a0)
+                                            {
+                                                return program
+                                                    .expandLocalRef(a0);
+                                            }
+                                        }),
+                                    calc.getRowType().getFieldNames());
+                            }
+                        }
+                        return rel;
+                    }
+                };
+                RelNode newRel = transform.execute();
+                call.transformTo(newRel);
+            }
+        };
 
     //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a rule.
-     */
-    private WindowedAggSplitterRule()
+    /** Creates a rule. */
+    private WindowedAggSplitterRule(
+        RelOptRuleOperand operand, String description)
     {
-        super(any(CalcRel.class));
-    }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public void onMatch(RelOptRuleCall call)
-    {
-        CalcRel calc = call.rel(0);
-        if (!RexOver.containsOver(calc.getProgram())) {
-            return;
-        }
-        CalcRelSplitter transform = new WindowedAggRelSplitter(calc);
-        RelNode newRel = transform.execute();
-        call.transformTo(newRel);
+        super(operand, description);
     }
 
     //~ Inner Classes ----------------------------------------------------------
@@ -76,7 +150,7 @@ public class WindowedAggSplitterRule
     static class WindowedAggRelSplitter
         extends CalcRelSplitter
     {
-        WindowedAggRelSplitter(CalcRel calc)
+        WindowedAggRelSplitter(CalcRelBase calc)
         {
             super(
                 calc,

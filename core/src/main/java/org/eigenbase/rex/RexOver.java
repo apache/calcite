@@ -33,6 +33,8 @@ import org.eigenbase.util.*;
 public class RexOver
     extends RexCall
 {
+    private static final Finder FINDER = new Finder();
+
     //~ Instance fields --------------------------------------------------------
 
     private final RexWindow window;
@@ -93,13 +95,8 @@ public class RexOver
         return super.computeDigest(withType) + " OVER (" + window + ")";
     }
 
-    public RexOver clone()
-    {
-        return new RexOver(
-            getType(),
-            getAggOperator(),
-            operands,
-            window);
+    public RexOver clone() {
+        return this; // immutable
     }
 
     public <R> R accept(RexVisitor<R> visitor)
@@ -110,42 +107,40 @@ public class RexOver
     /**
      * Returns whether an expression contains an OVER clause.
      */
-    public static boolean containsOver(RexNode expr)
-    {
-        return Finder.instance.containsOver(expr);
+    public static boolean containsOver(RexNode expr) {
+        try {
+            expr.accept(FINDER);
+            return false;
+        } catch (OverFound e) {
+            Util.swallow(e, null);
+            return true;
+        }
     }
 
     /**
      * Returns whether a program contains an OVER clause.
      */
-    public static boolean containsOver(RexProgram program)
-    {
-        for (RexNode expr : program.getExprList()) {
-            if (Finder.instance.containsOver(expr)) {
-                return true;
-            }
+    public static boolean containsOver(RexProgram program) {
+        try {
+            RexProgram.apply(FINDER, program.getExprList(), null);
+            return false;
+        } catch (OverFound e) {
+            Util.swallow(e, null);
+            return true;
         }
-        return false;
     }
 
     /**
      * Returns whether an expression list contains an OVER clause.
-     *
-     * @deprecated
      */
-    public static boolean containsOver(List<RexNode> exprs, RexNode expr)
-    {
-        for (int i = 0; i < exprs.size(); i++) {
-            if (Finder.instance.containsOver(exprs.get(i))) {
-                return true;
-            }
-        }
-        if ((expr != null)
-            && Finder.instance.containsOver(expr))
-        {
+    public static boolean containsOver(List<RexNode> exprs, RexNode condition) {
+        try {
+            RexProgram.apply(FINDER, exprs, condition);
+            return false;
+        } catch (OverFound e) {
+            Util.swallow(e, null);
             return true;
         }
-        return false;
     }
 
     @Override public RexCall clone(RelDataType type, List<RexNode> operands) {
@@ -170,30 +165,12 @@ public class RexOver
     private static class Finder
         extends RexVisitorImpl<Void>
     {
-        static final RexOver.Finder instance = new RexOver.Finder();
-
-        public Finder()
-        {
+        public Finder() {
             super(true);
         }
 
-        public Void visitOver(RexOver over)
-        {
+        public Void visitOver(RexOver over) {
             throw OverFound.instance;
-        }
-
-        /**
-         * Returns whether an expression contains an OVER clause.
-         */
-        boolean containsOver(RexNode expr)
-        {
-            try {
-                expr.accept(this);
-                return false;
-            } catch (OverFound e) {
-                Util.swallow(e, null);
-                return true;
-            }
         }
     }
 }

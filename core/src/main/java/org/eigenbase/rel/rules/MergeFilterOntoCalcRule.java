@@ -23,7 +23,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * Planner rule which merges a {@link FilterRel} and a {@link CalcRel}. The
  * result is a {@link CalcRel} whose filter condition is the logical AND of the
@@ -45,7 +44,7 @@ public class MergeFilterOntoCalcRule
     {
         super(
             some(
-                FilterRel.class, any(CalcRel.class)));
+                FilterRelBase.class, any(CalcRel.class)));
     }
 
     //~ Methods ----------------------------------------------------------------

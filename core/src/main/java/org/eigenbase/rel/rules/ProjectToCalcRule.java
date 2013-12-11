@@ -17,13 +17,12 @@
 */
 package org.eigenbase.rel.rules;
 
-import java.util.*;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * Rule to convert a {@link ProjectRel} to a {@link CalcRel}
@@ -69,7 +68,7 @@ public class ProjectToCalcRule
                 child,
                 rowType,
                 program,
-                Collections.<RelCollation>emptyList());
+                ImmutableList.<RelCollation>of());
         call.transformTo(calc);
     }
 }

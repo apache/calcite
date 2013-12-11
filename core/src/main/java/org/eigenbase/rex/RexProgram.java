@@ -70,10 +70,6 @@ public class RexProgram
 
     private final RelDataType inputRowType;
 
-    /**
-     * Whether this program contains aggregates. TODO: obsolete this
-     */
-    private boolean aggs;
     private final RelDataType outputRowType;
 
     /**
@@ -414,12 +410,7 @@ public class RexProgram
      */
     public boolean containsAggs()
     {
-        return aggs || RexOver.containsOver(this);
-    }
-
-    public void setAggs(boolean aggs)
-    {
-        this.aggs = aggs;
+        return RexOver.containsOver(this);
     }
 
     /**
@@ -670,15 +661,10 @@ loop:
     }
 
     /**
-     * Returns whether this program returns its input exactly.
-     *
-     * <p>This is a stronger condition than {@link #projectsIdentity(boolean)}.
+     * Returns whether this program projects precisely its input fields. It may
+     * or may not apply a condition.
      */
-    public boolean isTrivial()
-    {
-        if (getCondition() != null) {
-            return false;
-        }
+    public boolean projectsOnlyIdentity() {
         if (projects.size() != inputRowType.getFieldCount()) {
             return false;
         }
@@ -688,7 +674,16 @@ loop:
                 return false;
             }
         }
-        return true;
+      return true;
+    }
+
+    /**
+     * Returns whether this program returns its input exactly.
+     *
+     * <p>This is a stronger condition than {@link #projectsIdentity(boolean)}.
+     */
+    public boolean isTrivial() {
+        return getCondition() == null && projectsOnlyIdentity();
     }
 
     /**

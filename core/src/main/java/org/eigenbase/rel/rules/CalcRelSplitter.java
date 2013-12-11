@@ -73,7 +73,7 @@ public abstract class CalcRelSplitter
      * @param relTypes Array of rel types, e.g. {Java, Fennel}. Must be
      * distinct.
      */
-    CalcRelSplitter(CalcRel calc, RelType [] relTypes)
+    CalcRelSplitter(CalcRelBase calc, RelType [] relTypes)
     {
         for (int i = 0; i < relTypes.length; i++) {
             assert relTypes[i] != null;
@@ -217,6 +217,8 @@ public abstract class CalcRelSplitter
                 rel = rel.getInput(0);
             }
 
+            rel = handle(rel);
+
             // The outputs of this level will be the inputs to the next level.
             inputExprOrdinals = projectExprOrdinals;
         }
@@ -224,6 +226,13 @@ public abstract class CalcRelSplitter
         Util.permAssert(
             doneCondition || (conditionRef == null),
             "unhandled condition");
+        return rel;
+    }
+
+    /** Opportunity to further refine the relational expression created for a
+     * given level. The default implementation returns the relational expression
+     * unchanged. */
+    protected RelNode handle(RelNode rel) {
         return rel;
     }
 
@@ -651,11 +660,10 @@ public abstract class CalcRelSplitter
     /**
      * Returns the number of bits set in an array.
      */
-    private static int count(boolean [] booleans)
-    {
+    private static int count(boolean [] booleans) {
         int count = 0;
-        for (int i = 0; i < booleans.length; i++) {
-            if (booleans[i]) {
+        for (boolean b : booleans) {
+            if (b) {
                 ++count;
             }
         }
@@ -703,10 +711,8 @@ public abstract class CalcRelSplitter
      *
      * @return Whether relational expression can be implemented
      */
-    protected boolean canImplement(CalcRel rel, String relTypeName)
-    {
-        for (int i = 0; i < relTypes.length; i++) {
-            RelType relType = relTypes[i];
+    protected boolean canImplement(CalcRel rel, String relTypeName) {
+        for (RelType relType : relTypes) {
             if (relType.name.equals(relTypeName)) {
                 return relType.canImplement(rel.getProgram());
             }

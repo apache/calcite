@@ -17,13 +17,12 @@
 */
 package org.eigenbase.rel.rules;
 
-import java.util.*;
-
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * Planner rule which converts a {@link FilterRel} to a {@link CalcRel}.
@@ -61,9 +60,7 @@ public class FilterToCalcRule
         final RexProgramBuilder programBuilder =
             new RexProgramBuilder(inputRowType, rexBuilder);
         programBuilder.addIdentity();
-        if (filter.getCondition() != null) {
-            programBuilder.addCondition(filter.getCondition());
-        }
+        programBuilder.addCondition(filter.getCondition());
         final RexProgram program = programBuilder.getProgram();
 
         final CalcRel calc =
@@ -73,7 +70,7 @@ public class FilterToCalcRule
                 rel,
                 inputRowType,
                 program,
-                Collections.<RelCollation>emptyList());
+                ImmutableList.<RelCollation>of());
         call.transformTo(calc);
     }
 }

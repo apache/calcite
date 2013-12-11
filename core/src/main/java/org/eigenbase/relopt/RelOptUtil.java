@@ -1455,21 +1455,10 @@ public abstract class RelOptUtil
     public static void registerAbstractRels(RelOptPlanner planner)
     {
         planner.addRule(PullConstantsThroughAggregatesRule.instance);
-        planner.addRule(FilterToCalcRule.instance);
-        planner.addRule(ProjectToCalcRule.instance);
-
-        // REVIEW jvs 9-Apr-2006: Do we still need these two?  Doesn't the
-        // combination of MergeCalcRule, FilterToCalcRule, and
-        // ProjectToCalcRule have the same effect?
-        planner.addRule(MergeFilterOntoCalcRule.instance);
-        planner.addRule(MergeProjectOntoCalcRule.instance);
-
-        planner.addRule(MergeCalcRule.instance);
         planner.addRule(RemoveEmptyRule.unionInstance);
         planner.addRule(RemoveEmptyRule.projectInstance);
         planner.addRule(RemoveEmptyRule.filterInstance);
-
-        //planner.addRule(RemoveTrivialProjectRule.instance);
+        planner.addRule(WindowedAggSplitterRule.PROJECT);
     }
 
     /**

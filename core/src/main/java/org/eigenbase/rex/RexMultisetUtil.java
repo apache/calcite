@@ -23,8 +23,7 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 
-import com.google.common.collect.ImmutableList;
-
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Utility class for various methods related to multisets.
@@ -40,15 +39,8 @@ public class RexMultisetUtil
     /**
      * A set defining all implementable multiset calls
      */
-    private static final Set multisetOperators = createMultisetOperatorSet();
-    public static final SqlStdOperatorTable opTab =
-        SqlStdOperatorTable.instance();
-
-    //~ Methods ----------------------------------------------------------------
-
-    private static final Set createMultisetOperatorSet()
-    {
-        List<SqlOperator> operators = ImmutableList.of(
+    private static final Set<SqlOperator> multisetOperators =
+        ImmutableSet.of(
             SqlStdOperatorTable.cardinalityFunc,
             SqlStdOperatorTable.castFunc,
             SqlStdOperatorTable.elementFunc,
@@ -62,8 +54,11 @@ public class RexMultisetUtil
             SqlStdOperatorTable.isASetOperator,
             SqlStdOperatorTable.memberOfOperator,
             SqlStdOperatorTable.submultisetOfOperator);
-        return new HashSet<SqlOperator>(operators);
-    }
+
+    public static final SqlStdOperatorTable opTab =
+        SqlStdOperatorTable.instance();
+
+    //~ Methods ----------------------------------------------------------------
 
     /**
      * Returns true if any expression in a program contains a mixing between
@@ -113,17 +108,22 @@ public class RexMultisetUtil
     }
 
     /**
-     * Returns whether a program contains a multiset.
+     * Returns whether a list of expressions contains a multiset.
      */
-    public static boolean containsMultiset(RexProgram program)
-    {
-        final boolean deep = true;
-        for (RexNode expr : program.getExprList()) {
-            if (containsMultiset(expr, deep)) {
+    public static boolean containsMultiset(List<RexNode> nodes, boolean deep) {
+        for (RexNode node : nodes) {
+            if (containsMultiset(node, deep)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Returns whether a program contains a multiset.
+     */
+    public static boolean containsMultiset(RexProgram program) {
+        return containsMultiset(program.getExprList(), true);
     }
 
     /**
@@ -154,15 +154,11 @@ public class RexMultisetUtil
             return null;
         }
         final RexCall call = (RexCall) node;
-        assert call != null;
         RexCall firstOne = null;
-        Iterator it = multisetOperators.iterator();
-        while (it.hasNext()) {
-            SqlOperator op = (SqlOperator) it.next();
+        for (SqlOperator op : multisetOperators) {
             firstOne = RexUtil.findOperatorCall(op, call);
             if (null != firstOne) {
-                if (firstOne.getOperator().equals(
-                        SqlStdOperatorTable.castFunc)
+                if (firstOne.getOperator().equals(SqlStdOperatorTable.castFunc)
                     && !isMultisetCast(firstOne))
                 {
                     firstOne = null;

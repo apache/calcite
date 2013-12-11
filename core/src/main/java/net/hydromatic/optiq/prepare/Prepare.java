@@ -17,13 +17,17 @@
 */
 package net.hydromatic.optiq.prepare;
 
+import net.hydromatic.linq4j.function.Functions;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.StarTable;
+import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.Typed;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
+import org.eigenbase.relopt.hep.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.sql.*;
@@ -106,7 +110,33 @@ public abstract class Prepare {
     final RelOptPlanner planner2 = planner.chooseDelegate();
     final RelNode rootRel3 = planner2.findBestExp();
     assert rootRel3 != null : "could not implement exp";
-    return rootRel3;
+
+    // Second planner pass to do physical "tweaks". This the first time that
+    // EnumerableCalcRel is introduced.
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(JavaRules.ENUMERABLE_CALC_RULE)
+        .addRuleInstance(JavaRules.ENUMERABLE_FILTER_TO_CALC_RULE)
+        .addRuleInstance(JavaRules.ENUMERABLE_PROJECT_TO_CALC_RULE)
+        .addRuleInstance(MergeCalcRule.instance)
+        .addRuleInstance(MergeFilterOntoCalcRule.instance)
+        .addRuleInstance(MergeProjectOntoCalcRule.instance)
+        .addRuleInstance(FilterToCalcRule.instance)
+        .addRuleInstance(ProjectToCalcRule.instance)
+        .addRuleInstance(MergeCalcRule.instance)
+
+            // REVIEW jvs 9-Apr-2006: Do we still need these two?  Doesn't the
+            // combination of MergeCalcRule, FilterToCalcRule, and
+            // ProjectToCalcRule have the same effect?
+        .addRuleInstance(MergeFilterOntoCalcRule.instance)
+        .addRuleInstance(MergeProjectOntoCalcRule.instance)
+        .build();
+    final HepPlanner planner3 =
+        new HepPlanner(program, true,
+            Functions.<RelNode, RelNode, Void>ignore2());
+    planner3.setRoot(rootRel3);
+    final RelNode rootRel4 = planner3.findBestExp();
+
+    return rootRel4;
   }
 
   protected RelTraitSet getDesiredRootTraitSet(RelNode rootRel) {

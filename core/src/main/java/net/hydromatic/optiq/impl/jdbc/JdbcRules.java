@@ -56,6 +56,8 @@ public class JdbcRules {
         new JdbcToEnumerableConverterRule(out),
         new JdbcJoinRule(out),
         new JdbcCalcRule(out),
+        new JdbcProjectRule(out),
+        new JdbcFilterRule(out),
         new JdbcAggregateRule(out),
         new JdbcSortRule(out),
         new JdbcUnionRule(out),
@@ -88,6 +90,28 @@ public class JdbcRules {
     final List<JdbcImplementor.Clause> clauses =
         Expressions.list(JdbcImplementor.Clause.SET_OP);
     return implementor.result(node, clauses, rel);
+  }
+
+  private static boolean isStar(List<RexNode> exps, RelDataType inputRowType) {
+    int i = 0;
+    for (RexNode ref : exps) {
+      if (!(ref instanceof RexInputRef)) {
+        return false;
+      } else if (((RexInputRef) ref).getIndex() != i++) {
+        return false;
+      }
+    }
+    return i == inputRowType.getFieldCount();
+  }
+
+  private static boolean isStar(RexProgram program) {
+    int i = 0;
+    for (RexLocalRef ref : program.getProjectList()) {
+      if (ref.getIndex() != i++) {
+        return false;
+      }
+    }
+    return i == program.getInputRowType().getFieldCount();
   }
 
   static abstract class JdbcConverterRule extends ConverterRule {
@@ -320,8 +344,8 @@ public class JdbcRules {
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new JdbcCalcRel(getCluster(), traitSet, sole(inputs),
-          program.copy(), flags);
+      return new JdbcCalcRel(getCluster(), traitSet, sole(inputs), program,
+          flags);
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
@@ -345,15 +369,118 @@ public class JdbcRules {
       }
       return builder.result();
     }
+  }
 
-    private static boolean isStar(RexProgram program) {
-      int i = 0;
-      for (RexLocalRef ref : program.getProjectList()) {
-        if (ref.getIndex() != i++) {
-          return false;
+  /**
+   * Rule to convert a {@link ProjectRel} to an
+   * {@link JdbcProjectRel}.
+   */
+  private static class JdbcProjectRule
+      extends ConverterRule {
+    private JdbcProjectRule(JdbcConvention out) {
+      super(ProjectRel.class, Convention.NONE, out, "JdbcProjectRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final ProjectRel project = (ProjectRel) rel;
+
+      return new JdbcProjectRel(
+          rel.getCluster(),
+          rel.getTraitSet().replace(getOutConvention()),
+          convert(
+              project.getChild(),
+              project.getChild().getTraitSet().replace(getOutConvention())),
+          project.getProjects(),
+          project.getRowType(),
+          ProjectRelBase.Flags.Boxed);
+    }
+  }
+
+  /** Implementation of {@link org.eigenbase.rel.ProjectRel} in
+   * {@link JdbcConvention jdbc calling convention}. */
+  public static class JdbcProjectRel
+      extends ProjectRelBase
+      implements JdbcRel {
+    public JdbcProjectRel(
+        RelOptCluster cluster,
+        RelTraitSet traitSet,
+        RelNode child,
+        List<RexNode> exps,
+        RelDataType rowType,
+        int flags) {
+      super(cluster, traitSet, child, exps, rowType, flags);
+      assert getConvention() instanceof JdbcConvention;
+    }
+
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new JdbcProjectRel(getCluster(), traitSet, sole(inputs),
+          exps, rowType, flags);
+    }
+
+    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+      JdbcImplementor.Result x = implementor.visitChild(0, getChild());
+      final JdbcImplementor.Builder builder =
+          x.builder(this, JdbcImplementor.Clause.FROM);
+      if (!isStar(exps, getChild().getRowType())) {
+        final List<SqlNode> selectList = new ArrayList<SqlNode>();
+        for (RexNode ref : exps) {
+          SqlNode sqlExpr = builder.context.toSql(null, ref);
+          addSelect(selectList, sqlExpr, getRowType());
         }
+        builder.setSelect(new SqlNodeList(selectList, POS));
       }
-      return i == program.getInputRowType().getFieldCount();
+      return builder.result();
+    }
+  }
+
+  /**
+   * Rule to convert a {@link FilterRel} to an
+   * {@link JdbcFilterRel}.
+   */
+  private static class JdbcFilterRule
+      extends ConverterRule {
+    private JdbcFilterRule(JdbcConvention out) {
+      super(FilterRel.class, Convention.NONE, out, "JdbcFilterRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final FilterRel filter = (FilterRel) rel;
+
+      return new JdbcFilterRel(
+          rel.getCluster(),
+          rel.getTraitSet().replace(getOutConvention()),
+          convert(
+              filter.getChild(),
+              filter.getChild().getTraitSet().replace(getOutConvention())),
+          filter.getCondition());
+    }
+  }
+
+  /** Implementation of {@link org.eigenbase.rel.FilterRel} in
+   * {@link JdbcConvention jdbc calling convention}. */
+  public static class JdbcFilterRel
+      extends FilterRelBase
+      implements JdbcRel {
+    public JdbcFilterRel(
+        RelOptCluster cluster,
+        RelTraitSet traitSet,
+        RelNode child,
+        RexNode condition) {
+      super(cluster, traitSet, child, condition);
+      assert getConvention() instanceof JdbcConvention;
+    }
+
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new JdbcFilterRel(getCluster(), traitSet, sole(inputs),
+          condition);
+    }
+
+    public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+      JdbcImplementor.Result x = implementor.visitChild(0, getChild());
+      final JdbcImplementor.Builder builder =
+          x.builder(this, JdbcImplementor.Clause.WHERE);
+      builder.setWhere(builder.context.toSql(null, condition));
+      return builder.result();
     }
   }
 

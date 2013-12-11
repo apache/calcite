@@ -795,6 +795,7 @@ public class RexProgramBuilder
         }
         RexProgram mergedProg = progBuilder.getProgram(normalize);
         assert mergedProg.isValid(true);
+        assert mergedProg.getOutputRowType() == topProgram.getOutputRowType();
         return mergedProg;
     }
 

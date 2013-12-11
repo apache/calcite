@@ -25,7 +25,6 @@ import org.eigenbase.rex.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * <code>FilterRelBase</code> is an abstract base class for implementations of
  * {@link FilterRel}.
@@ -59,9 +58,9 @@ public abstract class FilterRelBase
         RexNode condition)
     {
         super(cluster, traits, child);
-        this.condition = condition;
-
+        assert condition != null;
         assert RexUtil.isFlat(condition) : condition;
+        this.condition = condition;
     }
 
     //~ Methods ----------------------------------------------------------------

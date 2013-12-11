@@ -24,6 +24,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * <code>CalcRelBase</code> is an abstract base class for implementations of
@@ -38,7 +39,7 @@ public abstract class CalcRelBase
     //~ Instance fields --------------------------------------------------------
 
     protected final RexProgram program;
-    private final List<RelCollation> collationList;
+    private final ImmutableList<RelCollation> collationList;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -53,13 +54,23 @@ public abstract class CalcRelBase
         super(cluster, traits, child);
         this.rowType = rowType;
         this.program = program;
-        this.collationList =
-            collationList.isEmpty() ? Collections.<RelCollation>emptyList()
-            : collationList;
+        this.collationList = ImmutableList.copyOf(collationList);
         assert isValid(true);
     }
 
     //~ Methods ----------------------------------------------------------------
+
+    @Override
+    public final CalcRelBase copy(RelTraitSet traitSet, List<RelNode> inputs) {
+        return copy(traitSet, sole(inputs), program, collationList);
+    }
+
+    /** Creates a copy of this {@code CalcRelBase}. */
+    public abstract CalcRelBase copy(
+        RelTraitSet traitSet,
+        RelNode child,
+        RexProgram program,
+        List<RelCollation> collationList);
 
     public boolean isValid(boolean fail)
     {

@@ -39,21 +39,21 @@ public class MergeCalcRule
     {
         super(
             some(
-                CalcRel.class, any(CalcRel.class)));
+                CalcRelBase.class, any(CalcRelBase.class)));
     }
 
     //~ Methods ----------------------------------------------------------------
 
     public void onMatch(RelOptRuleCall call)
     {
-        final CalcRel topCalc = call.rel(0);
-        final CalcRel bottomCalc = call.rel(1);
+        final CalcRelBase topCalc = call.rel(0);
+        final CalcRelBase bottomCalc = call.rel(1);
 
         // Don't merge a calc which contains windowed aggregates onto a
         // calc. That would effectively be pushing a windowed aggregate down
         // through a filter.
-        RexProgram program = topCalc.getProgram();
-        if (RexOver.containsOver(program)) {
+        RexProgram topProgram = topCalc.getProgram();
+        if (RexOver.containsOver(topProgram)) {
             return;
         }
 
@@ -64,12 +64,12 @@ public class MergeCalcRule
                 topCalc.getProgram(),
                 bottomCalc.getProgram(),
                 topCalc.getCluster().getRexBuilder());
-        final CalcRel newCalc =
-            new CalcRel(
-                topCalc.getCluster(),
+        assert mergedProgram.getOutputRowType()
+            == topProgram.getOutputRowType();
+        final CalcRelBase newCalc =
+            topCalc.copy(
                 topCalc.getTraitSet(),
                 bottomCalc.getChild(),
-                topCalc.getRowType(),
                 mergedProgram,
                 topCalc.getCollationList());
 

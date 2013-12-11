@@ -152,7 +152,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
     RelOptUtil.registerAbstractRels(planner);
     planner.addRule(JavaRules.ENUMERABLE_JOIN_RULE);
-    planner.addRule(JavaRules.ENUMERABLE_CALC_RULE);
+    planner.addRule(JavaRules.ENUMERABLE_PROJECT_RULE);
+    planner.addRule(JavaRules.ENUMERABLE_FILTER_RULE);
     planner.addRule(JavaRules.ENUMERABLE_AGGREGATE_RULE);
     planner.addRule(JavaRules.ENUMERABLE_SORT_RULE);
     planner.addRule(JavaRules.ENUMERABLE_LIMIT_RULE);
@@ -173,7 +174,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(PushJoinThroughJoinRule.RIGHT);
     planner.addRule(PushJoinThroughJoinRule.LEFT);
     planner.addRule(PushSortPastProjectRule.INSTANCE);
-    planner.addRule(WindowedAggSplitterRule.INSTANCE);
     context.spark().registerRules(planner);
     return planner;
   }

@@ -49,7 +49,8 @@ import java.util.*;
 import java.util.logging.Logger;
 
 /**
- * Rules and relational operators for the {@link Enumerable} calling convention.
+ * Rules and relational operators for the
+ * {@link EnumerableConvention enumerable calling convention}.
  */
 public class JavaRules {
 
@@ -65,6 +66,7 @@ public class JavaRules {
 
   public static final RelOptRule ENUMERABLE_JOIN_RULE =
       new EnumerableJoinRule();
+
   public static final String[] LEFT_RIGHT = new String[]{"left", "right"};
 
   private static class EnumerableJoinRule extends ConverterRule {
@@ -106,6 +108,8 @@ public class JavaRules {
     }
   }
 
+  /** Implementation of {@link org.eigenbase.rel.JoinRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableJoinRel
       extends JoinRelBase
       implements EnumerableRel {
@@ -370,6 +374,8 @@ public class JavaRules {
     }
   }
 
+  /** Implementation of {@link org.eigenbase.rel.TableAccessRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableTableAccessRel
       extends TableAccessRelBase
       implements EnumerableRel {
@@ -445,6 +451,132 @@ public class JavaRules {
     }
   }
 
+  public static final EnumerableProjectRule ENUMERABLE_PROJECT_RULE =
+      new EnumerableProjectRule();
+
+  /**
+   * Rule to convert a {@link ProjectRel} to an
+   * {@link EnumerableProjectRel}.
+   */
+  private static class EnumerableProjectRule
+      extends ConverterRule {
+    private EnumerableProjectRule() {
+      super(
+          ProjectRel.class,
+          Convention.NONE,
+          EnumerableConvention.INSTANCE,
+          "EnumerableProjectRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final ProjectRel project = (ProjectRel) rel;
+
+      if (RexMultisetUtil.containsMultiset(project.getProjects(), true)
+          || RexOver.containsOver(project.getProjects(), null)) {
+        return null;
+      }
+
+      return new EnumerableProjectRel(
+          rel.getCluster(),
+          rel.getTraitSet().replace(EnumerableConvention.INSTANCE),
+          convert(
+              project.getChild(),
+              project.getChild().getTraitSet()
+                  .replace(EnumerableConvention.INSTANCE)),
+          project.getProjects(),
+          project.getRowType(),
+          ProjectRelBase.Flags.Boxed);
+    }
+  }
+
+  /** Implementation of {@link org.eigenbase.rel.ProjectRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
+  public static class EnumerableProjectRel
+      extends ProjectRelBase
+      implements EnumerableRel {
+    public EnumerableProjectRel(
+        RelOptCluster cluster,
+        RelTraitSet traitSet,
+        RelNode child,
+        List<RexNode> exps,
+        RelDataType rowType,
+        int flags) {
+      super(cluster, traitSet, child, exps, rowType, flags);
+      assert getConvention() instanceof EnumerableConvention;
+    }
+
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new EnumerableProjectRel(getCluster(), traitSet, sole(inputs),
+          exps, rowType, flags);
+    }
+
+    public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+      // EnumerableCalcRel is always better
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  public static final EnumerableFilterRule ENUMERABLE_FILTER_RULE =
+      new EnumerableFilterRule();
+
+  /**
+   * Rule to convert a {@link FilterRel} to an
+   * {@link EnumerableFilterRel}.
+   */
+  private static class EnumerableFilterRule
+      extends ConverterRule {
+    private EnumerableFilterRule() {
+      super(
+          FilterRel.class,
+          Convention.NONE,
+          EnumerableConvention.INSTANCE,
+          "EnumerableFilterRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final FilterRel filter = (FilterRel) rel;
+
+      if (RexMultisetUtil.containsMultiset(filter.getCondition(), true)
+          || RexOver.containsOver(filter.getCondition())) {
+        return null;
+      }
+
+      return new EnumerableFilterRel(
+          rel.getCluster(),
+          rel.getTraitSet().replace(EnumerableConvention.INSTANCE),
+          convert(
+              filter.getChild(),
+              filter.getChild().getTraitSet()
+                  .replace(EnumerableConvention.INSTANCE)),
+          filter.getCondition());
+    }
+  }
+
+  /** Implementation of {@link org.eigenbase.rel.FilterRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
+  public static class EnumerableFilterRel
+      extends FilterRelBase
+      implements EnumerableRel {
+    public EnumerableFilterRel(
+        RelOptCluster cluster,
+        RelTraitSet traitSet,
+        RelNode child,
+        RexNode condition) {
+      super(cluster, traitSet, child, condition);
+      assert getConvention() instanceof EnumerableConvention;
+    }
+
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new EnumerableFilterRel(getCluster(), traitSet, sole(inputs),
+          condition);
+    }
+
+    public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+      // EnumerableCalcRel is always better
+      throw new UnsupportedOperationException();
+    }
+  }
+
   public static final EnumerableCalcRule ENUMERABLE_CALC_RULE =
       new EnumerableCalcRule();
 
@@ -480,64 +612,38 @@ public class JavaRules {
               calc.getChild(),
               calc.getChild().getTraitSet()
                   .replace(EnumerableConvention.INSTANCE)),
+          calc.getRowType(),
           program,
-          ProjectRelBase.Flags.Boxed);
+          calc.getCollationList());
     }
   }
 
+  /** Implementation of {@link org.eigenbase.rel.CalcRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableCalcRel
-      extends SingleRel
+      extends CalcRelBase
       implements EnumerableRel {
     private final RexProgram program;
-
-    /**
-     * Values defined in {@link org.eigenbase.rel.ProjectRelBase.Flags}.
-     */
-    protected int flags;
 
     public EnumerableCalcRel(
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode child,
+        RelDataType rowType,
         RexProgram program,
-        int flags) {
-      super(cluster, traitSet, child);
+        List<RelCollation> collationList) {
+      super(cluster, traitSet, child, rowType, program, collationList);
       assert getConvention() instanceof EnumerableConvention;
       assert !program.containsAggs();
-      this.flags = flags;
       this.program = program;
       this.rowType = program.getOutputRowType();
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
-      return program.explainCalc(super.explainTerms(pw));
-    }
-
-    public double getRows() {
-      return FilterRel.estimateFilteredRows(
-          getChild(), program);
-    }
-
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      double dRows = RelMetadataQuery.getRowCount(this);
-      double dCpu =
-          RelMetadataQuery.getRowCount(getChild())
-          * program.getExprCount();
-      double dIo = 0;
-      return planner.makeCost(dRows, dCpu, dIo);
-    }
-
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new EnumerableCalcRel(
-          getCluster(),
-          traitSet,
-          sole(inputs),
-          program.copy(),
-          getFlags());
-    }
-
-    public int getFlags() {
-      return flags;
+    @Override public EnumerableCalcRel copy(RelTraitSet traitSet, RelNode child,
+        RexProgram program, List<RelCollation> collationList) {
+      // we do not need to copy program; it is immutable
+      return new EnumerableCalcRel(getCluster(), traitSet, child,
+          program.getOutputRowType(), program, collationList);
     }
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -723,6 +829,8 @@ public class JavaRules {
     }
   }
 
+  /** Implementation of {@link org.eigenbase.rel.AggregateRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableAggregateRel
       extends AggregateRelBase
       implements EnumerableRel {
@@ -1087,6 +1195,8 @@ public class JavaRules {
     }
   }
 
+  /** Implementation of {@link org.eigenbase.rel.SortRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableSortRel
       extends SortRel
       implements EnumerableRel {
@@ -1301,6 +1411,8 @@ public class JavaRules {
     }
   }
 
+  /** Implementation of {@link org.eigenbase.rel.UnionRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableUnionRel
       extends UnionRelBase
       implements EnumerableRel {
@@ -1388,6 +1500,8 @@ public class JavaRules {
     }
   }
 
+  /** Implementation of {@link org.eigenbase.rel.IntersectRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableIntersectRel
       extends IntersectRelBase
       implements EnumerableRel {
@@ -1480,6 +1594,8 @@ public class JavaRules {
     }
   }
 
+  /** Implementation of {@link org.eigenbase.rel.MinusRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableMinusRel
       extends MinusRelBase
       implements EnumerableRel {
@@ -1573,6 +1689,8 @@ public class JavaRules {
     }
   }
 
+  /** Implementation of {@link org.eigenbase.rel.TableModificationRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableTableModificationRel
       extends TableModificationRelBase
       implements EnumerableRel {
@@ -1757,6 +1875,8 @@ public class JavaRules {
     }
   }
 
+  /** Implementation of {@link org.eigenbase.rel.ValuesRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableValuesRel
       extends ValuesRelBase
       implements EnumerableRel {
@@ -1847,6 +1967,8 @@ public class JavaRules {
     }
   }
 
+  /** Implementation of {@link org.eigenbase.rel.WindowRel} in
+   * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableWindowRel extends WindowRelBase
       implements EnumerableRel {
     /** Creates an EnumerableWindowRel. */
@@ -2289,6 +2411,75 @@ public class JavaRules {
             max_,
             Expressions.add(i_, Expressions.constant(offset)));
       }
+    }
+  }
+
+  public static final EnumerableFilterToCalcRule
+      ENUMERABLE_FILTER_TO_CALC_RULE =
+      new EnumerableFilterToCalcRule();
+
+  /** Variant of {@link org.eigenbase.rel.rules.FilterToCalcRule} for
+   * {@link EnumerableConvention enumerable calling convention}. */
+  public static class EnumerableFilterToCalcRule extends RelOptRule {
+    private EnumerableFilterToCalcRule() {
+      super(any(EnumerableFilterRel.class));
+    }
+
+    public void onMatch(RelOptRuleCall call) {
+      final EnumerableFilterRel filter = call.rel(0);
+      final RelNode rel = filter.getChild();
+
+      // Create a program containing a filter.
+      final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
+      final RelDataType inputRowType = rel.getRowType();
+      final RexProgramBuilder programBuilder =
+          new RexProgramBuilder(inputRowType, rexBuilder);
+      programBuilder.addIdentity();
+      programBuilder.addCondition(filter.getCondition());
+      final RexProgram program = programBuilder.getProgram();
+
+      final EnumerableCalcRel calc =
+          new EnumerableCalcRel(
+              filter.getCluster(),
+              filter.getTraitSet(),
+              rel,
+              inputRowType,
+              program,
+              ImmutableList.<RelCollation>of());
+      call.transformTo(calc);
+    }
+  }
+
+  public static final EnumerableProjectToCalcRule
+      ENUMERABLE_PROJECT_TO_CALC_RULE =
+      new EnumerableProjectToCalcRule();
+
+  /** Variant of {@link org.eigenbase.rel.rules.ProjectToCalcRule} for
+   * {@link EnumerableConvention enumerable calling convention}. */
+  public static class EnumerableProjectToCalcRule extends RelOptRule {
+    private EnumerableProjectToCalcRule() {
+      super(any(EnumerableProjectRel.class));
+    }
+
+    public void onMatch(RelOptRuleCall call) {
+      final EnumerableProjectRel project = call.rel(0);
+      final RelNode child = project.getChild();
+      final RelDataType rowType = project.getRowType();
+      final RexProgram program =
+          RexProgram.create(child.getRowType(),
+              project.getProjects(),
+              null,
+              project.getRowType(),
+              project.getCluster().getRexBuilder());
+      final EnumerableCalcRel calc =
+          new EnumerableCalcRel(
+              project.getCluster(),
+              project.getTraitSet(),
+              child,
+              rowType,
+              program,
+              ImmutableList.<RelCollation>of());
+      call.transformTo(calc);
     }
   }
 

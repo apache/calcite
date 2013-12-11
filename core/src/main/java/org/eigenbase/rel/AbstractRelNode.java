@@ -222,7 +222,7 @@ public abstract class AbstractRelNode
 
     public List<RelCollation> getCollationList()
     {
-        return Collections.emptyList();
+        return ImmutableList.of();
     }
 
     public final RelDataType getRowType()

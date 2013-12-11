@@ -73,15 +73,14 @@ public final class CalcRel
 
     //~ Methods ----------------------------------------------------------------
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs)
+    @Override
+    public CalcRelBase copy(
+        RelTraitSet traitSet, RelNode child,
+        RexProgram program, List<RelCollation> collationList)
     {
         return new CalcRel(
-            getCluster(),
-            traitSet,
-            sole(inputs),
-            rowType,
-            program,
-            getCollationList());
+            getCluster(), traitSet, child, program.getOutputRowType(), program,
+            collationList);
     }
 
     /**

@@ -1680,10 +1680,10 @@ public class JdbcTest {
             + "  EnumerableCalcRel(expr#0..1=[{inputs}], expr#2=[0], DUMMY=[$t2])\n"
             + "    EnumerableJoinRel(condition=[=($0, $1)], joinType=[inner])\n"
             + "      JdbcToEnumerableConverter\n"
-            + "        JdbcCalcRel(expr#0..7=[{inputs}], store_id=[$t4])\n"
+            + "        JdbcProjectRel(store_id=[$4])\n"
             + "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
             + "      JdbcToEnumerableConverter\n"
-            + "        JdbcCalcRel(expr#0..7=[{inputs}], store_id=[$t4])\n"
+            + "        JdbcProjectRel(store_id=[$4])\n"
             + "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n");
   }
 

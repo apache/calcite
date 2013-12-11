@@ -38,7 +38,7 @@ public class RexWindow
 {
     //~ Instance fields --------------------------------------------------------
 
-    public final List<RexNode> partitionKeys;
+    public final ImmutableList<RexNode> partitionKeys;
     public final ImmutableList<RexFieldCollation> orderKeys;
     private final SqlNode lowerBound;
     private final SqlNode upperBound;
