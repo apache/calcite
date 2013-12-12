@@ -32,18 +32,21 @@ public class PushJoinThroughUnionRule extends RelOptRule
 {
     public static final PushJoinThroughUnionRule instanceUnionOnLeft =
         new PushJoinThroughUnionRule(
-            some(
-                JoinRel.class, any(UnionRel.class), any(RelNode.class)),
+            operand(
+                JoinRel.class,
+                operand(UnionRel.class, any()),
+                operand(RelNode.class, any())),
             "union on left");
 
     public static final PushJoinThroughUnionRule instanceUnionOnRight =
         new PushJoinThroughUnionRule(
-            some(
-                JoinRel.class, any(RelNode.class), any(UnionRel.class)),
+            operand(
+                JoinRel.class,
+                operand(RelNode.class, any()),
+                operand(UnionRel.class, any())),
             "union on right");
 
-    public PushJoinThroughUnionRule(RelOptRuleOperand operand, String id)
-    {
+    private PushJoinThroughUnionRule(RelOptRuleOperand operand, String id) {
         super(
             operand,
             "PushJoinThroughUnionRule: " + id);

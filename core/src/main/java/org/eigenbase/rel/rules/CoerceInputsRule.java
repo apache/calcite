@@ -24,7 +24,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 
-
 /**
  * CoerceInputsRule precasts inputs to a particular type. This can be used to
  * assist operator implementations which impose requirements on their input
@@ -53,7 +52,7 @@ public class CoerceInputsRule
         boolean coerceNames)
     {
         super(
-            any(consumerRelClass),
+            operand(consumerRelClass, any()),
             "CoerceInputsRule:" + consumerRelClass.getName());
         this.consumerRelClass = consumerRelClass;
         this.coerceNames = coerceNames;

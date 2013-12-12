@@ -25,7 +25,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * PushFilterPastTableFunctionRule implements the rule for pushing a
  * {@link FilterRel} past a {@link TableFunctionRel}.
@@ -41,11 +40,11 @@ public class PushFilterPastTableFunctionRule
     /**
      * Creates a PushFilterPastTableFunctionRule.
      */
-    private PushFilterPastTableFunctionRule()
-    {
+    private PushFilterPastTableFunctionRule() {
         super(
-            some(
-                FilterRel.class, any(TableFunctionRel.class)));
+            operand(
+                FilterRel.class,
+                operand(TableFunctionRel.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

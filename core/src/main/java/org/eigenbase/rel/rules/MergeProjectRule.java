@@ -23,7 +23,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * MergeProjectRule merges a {@link ProjectRel} into another {@link ProjectRel},
  * provided the projects aren't projecting identical sets of input references.
@@ -56,11 +55,11 @@ public class MergeProjectRule
      *
      * @param force Whether to always merge projects
      */
-    public MergeProjectRule(boolean force)
-    {
+    public MergeProjectRule(boolean force) {
         super(
-            some(
-                ProjectRel.class, any(ProjectRel.class)),
+            operand(
+                ProjectRel.class,
+                operand(ProjectRel.class, any())),
             "MergeProjectRule" + (force ? ": force mode" : ""));
         this.force = force;
     }

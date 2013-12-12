@@ -37,11 +37,11 @@ public class PushAggregateThroughUnionRule extends RelOptRule
     /**
      * Private constructor.
      */
-    private PushAggregateThroughUnionRule()
-    {
+    private PushAggregateThroughUnionRule() {
         super(
-            some(
-                AggregateRel.class, any(UnionRel.class)));
+            operand(
+                AggregateRel.class,
+                operand(UnionRel.class, any())));
     }
 
     public void onMatch(RelOptRuleCall call)

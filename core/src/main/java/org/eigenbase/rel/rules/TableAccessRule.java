@@ -22,7 +22,6 @@ import org.eigenbase.relopt.*;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
-
 /**
  * TableAccessRule converts a TableAccessRel to the result of calling {@link
  * RelOptTable#toRel}.
@@ -36,9 +35,8 @@ public class TableAccessRule
 
     //~ Constructors -----------------------------------------------------------
 
-    private TableAccessRule()
-    {
-        super(any(TableAccessRel.class));
+    private TableAccessRule() {
+        super(operand(TableAccessRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

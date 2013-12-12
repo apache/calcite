@@ -22,7 +22,6 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * Rule to add a semijoin into a joinrel. Transformation is as follows:
  *
@@ -39,10 +38,8 @@ public class AddRedundantSemiJoinRule
     /**
      * Creates an AddRedundantSemiJoinRule.
      */
-    private AddRedundantSemiJoinRule()
-    {
-        super(
-            any(JoinRel.class));
+    private AddRedundantSemiJoinRule() {
+        super(operand(JoinRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

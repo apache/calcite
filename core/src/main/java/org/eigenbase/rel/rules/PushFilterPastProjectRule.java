@@ -21,7 +21,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * PushFilterPastProjectRule implements the rule for pushing a {@link FilterRel}
  * past a {@link ProjectRel}.
@@ -37,11 +36,11 @@ public class PushFilterPastProjectRule
     /**
      * Creates a PushFilterPastProjectRule.
      */
-    private PushFilterPastProjectRule()
-    {
+    private PushFilterPastProjectRule() {
         super(
-            some(
-                FilterRel.class, any(ProjectRel.class)));
+            operand(
+                FilterRel.class,
+                operand(ProjectRel.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

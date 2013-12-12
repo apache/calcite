@@ -50,9 +50,8 @@ public final class RemoveDistinctAggregateRule
     /**
      * Private constructor.
      */
-    private RemoveDistinctAggregateRule()
-    {
-        super(any(AggregateRel.class));
+    private RemoveDistinctAggregateRule() {
+        super(operand(AggregateRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

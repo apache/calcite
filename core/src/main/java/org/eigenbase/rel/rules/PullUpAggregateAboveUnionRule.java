@@ -24,7 +24,6 @@ import org.eigenbase.relopt.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * PullUpAggregateAboveUnionRule implements the rule for pulling {@link
  * AggregateRel}s beneath a {@link UnionRel} so two {@link AggregateRel}s that
@@ -45,15 +44,14 @@ public class PullUpAggregateAboveUnionRule
     /**
      * Creates a PullUpAggregateAboveUnionRule.
      */
-    private PullUpAggregateAboveUnionRule()
-    {
+    private PullUpAggregateAboveUnionRule() {
         super(
-            some(
+            operand(
                 AggregateRel.class,
-                some(
+                operand(
                     UnionRel.class,
-                    any(RelNode.class),
-                    any(RelNode.class))));
+                    operand(RelNode.class, any()),
+                    operand(RelNode.class, any()))));
     }
 
     //~ Methods ----------------------------------------------------------------

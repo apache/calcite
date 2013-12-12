@@ -22,7 +22,6 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * Collection of rules which remove sections of a query plan known never to
  * produce any rows.
@@ -48,9 +47,10 @@ public abstract class RemoveEmptyRule
      */
     public static final RemoveEmptyRule unionInstance =
         new RemoveEmptyRule(
-            unordered(
+            operand(
                 UnionRel.class,
-                leaf(EmptyRel.class)),
+                unordered(
+                    operand(EmptyRel.class, none()))),
             "Union")
         {
             public void onMatch(RelOptRuleCall call)
@@ -104,8 +104,9 @@ public abstract class RemoveEmptyRule
      */
     public static final RemoveEmptyRule projectInstance =
         new RemoveEmptyRule(
-            some(
-                ProjectRel.class, leaf(EmptyRel.class)),
+            operand(
+                ProjectRel.class,
+                operand(EmptyRel.class, none())),
             "Project")
         {
             public void onMatch(RelOptRuleCall call)
@@ -130,8 +131,9 @@ public abstract class RemoveEmptyRule
      */
     public static final RemoveEmptyRule filterInstance =
         new RemoveEmptyRule(
-            some(
-                FilterRel.class, leaf(EmptyRel.class)),
+            operand(
+                FilterRel.class,
+                operand(EmptyRel.class, none())),
             "Filter")
         {
             public void onMatch(RelOptRuleCall call)

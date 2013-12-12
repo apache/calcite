@@ -20,7 +20,6 @@ package org.eigenbase.rel.rules;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * PullUpProjectsOnTopOfMultiJoinRule implements the rule for pulling {@link
  * ProjectRel}s that are on top of a {@link MultiJoinRel} and beneath a {@link
@@ -55,36 +54,37 @@ public class PullUpProjectsOnTopOfMultiJoinRule
     public static final PullUpProjectsOnTopOfMultiJoinRule
         instanceTwoProjectChildren =
             new PullUpProjectsOnTopOfMultiJoinRule(
-                some(
+                operand(
                     JoinRel.class,
-                    some(
+                    operand(
                         ProjectRel.class,
-                        any(MultiJoinRel.class)),
-                    some(
+                        operand(MultiJoinRel.class, any())),
+                    operand(
                         ProjectRel.class,
-                        any(MultiJoinRel.class))),
+                        operand(MultiJoinRel.class, any()))),
                 "PullUpProjectsOnTopOfMultiJoinRule: with two ProjectRel children");
 
     public static final PullUpProjectsOnTopOfMultiJoinRule
         instanceLeftProjectChild =
             new PullUpProjectsOnTopOfMultiJoinRule(
-                some(
+                operand(
                     JoinRel.class,
                     some(
-                        ProjectRel.class,
-                        any(MultiJoinRel.class))),
+                        operand(
+                            ProjectRel.class,
+                            operand(MultiJoinRel.class, any())))),
                 "PullUpProjectsOnTopOfMultiJoinRule: with ProjectRel on left");
 
     public static final PullUpProjectsOnTopOfMultiJoinRule
         instanceRightProjectChild =
             new PullUpProjectsOnTopOfMultiJoinRule(
-                some(
+                operand(
                     JoinRel.class,
-                    any(RelNode.class),
-                some(
-                    ProjectRel.class,
-                    any(MultiJoinRel.class))),
-                "PullUpProjectsOnTopOfMultiJoinRule: with ProjectRel on right");
+                    operand(RelNode.class, any()),
+                    operand(
+                        ProjectRel.class,
+                        operand(MultiJoinRel.class, any()))),
+        "PullUpProjectsOnTopOfMultiJoinRule: with ProjectRel on right");
 
     //~ Constructors -----------------------------------------------------------
 

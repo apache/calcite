@@ -21,7 +21,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * PushProjectPastFilterRule implements the rule for pushing a projection past a
  * filter.
@@ -30,7 +29,7 @@ public class PushProjectPastFilterRule
     extends RelOptRule
 {
     public static final PushProjectPastFilterRule instance =
-        new PushProjectPastFilterRule();
+        new PushProjectPastFilterRule(PushProjector.ExprCondition.FALSE);
 
     //~ Instance fields --------------------------------------------------------
 
@@ -43,29 +42,17 @@ public class PushProjectPastFilterRule
 
     /**
      * Creates a PushProjectPastFilterRule.
+     *
+     * @param preserveExprCondition Condition for expressions that should be
+     * preserved in the projection
      */
-    private PushProjectPastFilterRule()
+    private PushProjectPastFilterRule(
+        PushProjector.ExprCondition preserveExprCondition)
     {
         super(
-            some(
-                ProjectRel.class, any(FilterRel.class)));
-        this.preserveExprCondition = PushProjector.ExprCondition.FALSE;
-    }
-
-    /**
-     * Creates a PushProjectPastFilterRule with an explicit root operand
-     * and condition to preserve operands.
-     *
-     * @param operand root operand, must not be null
-     *
-     * @param id Part of description
-     */
-    public PushProjectPastFilterRule(
-        RelOptRuleOperand operand,
-        PushProjector.ExprCondition preserveExprCondition,
-        String id)
-    {
-        super(operand, "PushProjectPastFilterRule: " + id);
+            operand(
+                ProjectRel.class,
+                operand(FilterRel.class, any())));
         this.preserveExprCondition = preserveExprCondition;
     }
 

@@ -25,7 +25,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.Pair;
 
-
 /**
  * PushSemiJoinPastProjectRule implements the rule for pushing semijoins down in
  * a tree past a project in order to trigger other rules that will convert
@@ -44,11 +43,11 @@ public class PushSemiJoinPastProjectRule
     /**
      * Creates a PushSemiJoinPastProjectRule.
      */
-    private PushSemiJoinPastProjectRule()
-    {
+    private PushSemiJoinPastProjectRule() {
         super(
-            some(
-                SemiJoinRel.class, any(ProjectRel.class)));
+            operand(
+                SemiJoinRel.class,
+                some(operand(ProjectRel.class, any()))));
     }
 
     //~ Methods ----------------------------------------------------------------

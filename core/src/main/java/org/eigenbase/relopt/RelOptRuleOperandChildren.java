@@ -22,9 +22,27 @@ import com.google.common.collect.ImmutableList;
 /**
  * Children of a {@link org.eigenbase.relopt.RelOptRuleOperand} and the policy
  * for matching them.
+ *
+ * <p>Often created by calling one of the following methods:
+ * {@link RelOptRule#some},
+ * {@link RelOptRule#none},
+ * {@link RelOptRule#any},
+ * {@link RelOptRule#unordered},</p>
 */
 public class RelOptRuleOperandChildren {
-    final RelOptRuleOperandChildPolicy policy;
+  static final
+  RelOptRuleOperandChildren
+      ANY_CHILDREN =
+      new RelOptRuleOperandChildren(
+          RelOptRuleOperandChildPolicy.ANY,
+          ImmutableList.<RelOptRuleOperand>of());
+  static final
+          RelOptRuleOperandChildren
+              LEAF_CHILDREN =
+              new RelOptRuleOperandChildren(
+                  RelOptRuleOperandChildPolicy.LEAF,
+                  ImmutableList.<RelOptRuleOperand>of());
+  final RelOptRuleOperandChildPolicy policy;
     final ImmutableList<RelOptRuleOperand> operands;
 
     public RelOptRuleOperandChildren(
@@ -33,26 +51,6 @@ public class RelOptRuleOperandChildren {
     {
         this.policy = policy;
         this.operands = operands;
-    }
-
-    public static RelOptRuleOperandChildren of(
-        RelOptRuleOperandChildPolicy policy,
-        RelOptRuleOperand[] operands)
-    {
-        return new RelOptRuleOperandChildren(
-            policy,
-            ImmutableList.copyOf(operands));
-    }
-
-    public static RelOptRuleOperandChildren of(
-        RelOptRuleOperandChildPolicy policy,
-        RelOptRuleOperand first,
-        RelOptRuleOperand... others)
-    {
-        return new RelOptRuleOperandChildren(
-            policy,
-            ImmutableList.<RelOptRuleOperand>builder().add(first)
-                .add(others).build());
     }
 }
 

@@ -22,7 +22,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
 
-
 /**
  * Rule to replace isNotDistinctFromOperator with logical equivalent conditions
  * in a {@link FilterRel}.
@@ -40,9 +39,8 @@ public final class RemoveIsNotDistinctFromRule
 
     //~ Constructors -----------------------------------------------------------
 
-    private RemoveIsNotDistinctFromRule()
-    {
-        super(any(FilterRel.class));
+    private RemoveIsNotDistinctFromRule() {
+        super(operand(FilterRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

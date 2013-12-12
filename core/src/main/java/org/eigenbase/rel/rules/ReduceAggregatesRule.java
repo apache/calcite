@@ -28,7 +28,6 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Rule to reduce aggregates to simpler forms. Currently only AVG(x) to
  * SUM(x)/COUNT(x), but eventually will handle others such as STDDEV.
@@ -42,12 +41,11 @@ public class ReduceAggregatesRule
      * The singleton.
      */
     public static final ReduceAggregatesRule instance =
-        new ReduceAggregatesRule(any(AggregateRel.class));
+        new ReduceAggregatesRule(operand(AggregateRel.class, any()));
 
     //~ Constructors -----------------------------------------------------------
 
-    protected ReduceAggregatesRule(RelOptRuleOperand operand)
-    {
+    protected ReduceAggregatesRule(RelOptRuleOperand operand) {
         super(operand);
     }
 

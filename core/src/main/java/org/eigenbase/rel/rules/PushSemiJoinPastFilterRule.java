@@ -20,7 +20,6 @@ package org.eigenbase.rel.rules;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * PushSemiJoinPastFilterRule implements the rule for pushing semijoins down in
  * a tree past a filter in order to trigger other rules that will convert
@@ -37,11 +36,11 @@ public class PushSemiJoinPastFilterRule
     /**
      * Creates a PushSemiJoinPastFilterRule.
      */
-    private PushSemiJoinPastFilterRule()
-    {
+    private PushSemiJoinPastFilterRule() {
         super(
-            some(
-                SemiJoinRel.class, any(FilterRel.class)));
+            operand(
+                SemiJoinRel.class,
+                some(operand(FilterRel.class, any()))));
     }
 
     //~ Methods ----------------------------------------------------------------

@@ -44,9 +44,9 @@ public class TraitMatchingRule
     public TraitMatchingRule(ConverterRule converterRule)
     {
         super(
-            some(
+            operand(
                 converterRule.getOperand().getMatchedClass(),
-                any(RelNode.class)),
+                operand(RelNode.class, any())),
             "TraitMatchingRule: " + converterRule);
         assert converterRule.getOperand().childPolicy
                == RelOptRuleOperandChildPolicy.ANY;

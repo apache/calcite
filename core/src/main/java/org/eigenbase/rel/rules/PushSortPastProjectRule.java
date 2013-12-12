@@ -41,9 +41,11 @@ public class PushSortPastProjectRule
     /**
      * Creates a PushSortPastProjectRule.
      */
-    private PushSortPastProjectRule()
-    {
-        super(some(SortRel.class, any(ProjectRel.class)));
+    private PushSortPastProjectRule() {
+        super(
+            operand(
+                SortRel.class,
+                operand(ProjectRel.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

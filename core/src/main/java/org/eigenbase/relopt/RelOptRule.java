@@ -161,7 +161,7 @@ public abstract class RelOptRule
      * expressions in the order they appear.
      *
      * @param first First child operand
-     * @param rest Remaining child operands
+     * @param rest Remaining child operands (may be empty)
      */
     public static RelOptRuleOperandChildren some(
         RelOptRuleOperand first,
@@ -178,8 +178,25 @@ public abstract class RelOptRule
      * Creates a list of child operands that matches child relational
      * expressions in any order.
      *
+     * <p>This is useful when matching a relational expression which
+     * can have a variable number of children. For example, the rule to
+     * eliminate empty children of a Union would have operands
+     *
+     * <blockquote>Operand(UnionRel, true, Operand(EmptyRel))</blockquote>
+     *
+     * and given the relational expressions
+     *
+     * <blockquote>UnionRel(FilterRel, EmptyRel, ProjectRel)</blockquote>
+     *
+     * would fire the rule with arguments
+     *
+     * <blockquote>{Union, Empty}</blockquote>
+     *
+     * It is up to the rule to deduce the other children, or indeed the position
+     * of the matched child.</p>
+     *
      * @param first First child operand
-     * @param rest Remaining child operands
+     * @param rest Remaining child operands (may be empty)
      */
     public static RelOptRuleOperandChildren unordered(
         RelOptRuleOperand first,
@@ -194,22 +211,16 @@ public abstract class RelOptRule
     /**
      * Creates an empty list of child operands.
      */
-    public static RelOptRuleOperandChildren none()
-    {
-        return new RelOptRuleOperandChildren(
-            RelOptRuleOperandChildPolicy.LEAF,
-            ImmutableList.<RelOptRuleOperand>of());
+    public static RelOptRuleOperandChildren none() {
+        return RelOptRuleOperandChildren.LEAF_CHILDREN;
     }
 
     /**
      * Creates a list of child operands that signifies that the operand matches
      * any number of child relational expressions.
      */
-    public static RelOptRuleOperandChildren any()
-    {
-        return new RelOptRuleOperandChildren(
-            RelOptRuleOperandChildPolicy.ANY,
-            ImmutableList.<RelOptRuleOperand>of());
+    public static RelOptRuleOperandChildren any() {
+        return RelOptRuleOperandChildren.ANY_CHILDREN;
     }
 
     //~ Obsolete methods for creating operands ---------------------------------

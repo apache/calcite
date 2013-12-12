@@ -20,7 +20,6 @@ package org.eigenbase.rel.rules;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * PushProjectIntoMultiJoinRule implements the rule for pushing projection
  * information from a {@link ProjectRel} into the {@link MultiJoinRel} that is
@@ -37,11 +36,11 @@ public class PushProjectIntoMultiJoinRule
     /**
      * Creates a PushProjectIntoMultiJoinRule.
      */
-    private PushProjectIntoMultiJoinRule()
-    {
+    private PushProjectIntoMultiJoinRule() {
         super(
-            some(
-                ProjectRel.class, any(MultiJoinRel.class)));
+            operand(
+                ProjectRel.class,
+                operand(MultiJoinRel.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

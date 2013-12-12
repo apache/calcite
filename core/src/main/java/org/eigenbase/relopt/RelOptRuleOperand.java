@@ -59,31 +59,18 @@ public class RelOptRuleOperand
     /**
      * Creates an operand.
      *
-     * <p>If <code>children</code> is null, the rule matches regardless of the
-     * number of children.
-     *
-     * <p>If <code>matchAnyChild</code> is true, child operands can be matched
-     * in any order. This is useful when matching a relational expression which
-     * can have a variable number of children. For example, the rule to
-     * eliminate empty children of a Union would have operands
-     *
-     * <blockquote>Operand(UnionRel, true, Operand(EmptyRel))</blockquote>
-     *
-     * and given the relational expressions
-     *
-     * <blockquote>UnionRel(FilterRel, EmptyRel, ProjectRel)</blockquote>
-     *
-     * would fire the rule with arguments
-     *
-     * <blockquote>{Union, Empty}</blockquote>
-     *
-     * It is up to the rule to deduce the other children, or indeed the position
-     * of the matched child.</p>
+     * <p>The {@code childOperands} argument is often populated by calling one
+     * of the following methods:
+     * {@link RelOptRule#some},
+     * {@link RelOptRule#none()},
+     * {@link RelOptRule#any},
+     * {@link RelOptRule#unordered},
+     * See {@link org.eigenbase.relopt.RelOptRuleOperandChildren} for more
+     * details.</p>
      *
      * @param clazz Class of relational expression to match (must not be null)
      * @param trait Trait to match, or null to match any trait
-     * @param children Child operands; or null, meaning match any number of
-     * children
+     * @param children Child operands
      */
     protected RelOptRuleOperand(
         Class<? extends RelNode> clazz,

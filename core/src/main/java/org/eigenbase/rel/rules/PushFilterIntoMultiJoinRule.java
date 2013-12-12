@@ -20,7 +20,6 @@ package org.eigenbase.rel.rules;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * PushFilterIntoMultiJoinRule implements the rule for pushing a {@link
  * FilterRel} into a {@link MultiJoinRel}.
@@ -36,11 +35,11 @@ public class PushFilterIntoMultiJoinRule
     /**
      * Creates a PushFilterIntoMultiJoinRule.
      */
-    private PushFilterIntoMultiJoinRule()
-    {
+    private PushFilterIntoMultiJoinRule() {
         super(
-            some(
-                FilterRel.class, any(MultiJoinRel.class)));
+            operand(
+                FilterRel.class,
+                operand(MultiJoinRel.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

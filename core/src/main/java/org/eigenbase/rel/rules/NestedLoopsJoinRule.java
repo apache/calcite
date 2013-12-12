@@ -25,7 +25,6 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Rule which converts a {@link JoinRel} into a {@link CorrelatorRel}, which can
  * then be implemented using nested loops.
@@ -60,9 +59,8 @@ public class NestedLoopsJoinRule
     /**
      * Private constructor; use singleton {@link #instance}.
      */
-    private NestedLoopsJoinRule()
-    {
-        super(any(JoinRel.class));
+    private NestedLoopsJoinRule() {
+        super(operand(JoinRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

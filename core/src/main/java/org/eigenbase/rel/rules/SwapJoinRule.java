@@ -27,7 +27,6 @@ import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * <code>SwapJoinRule</code> permutes the inputs to a join. Outer joins cannot
  * be permuted.
@@ -53,7 +52,7 @@ public class SwapJoinRule
     }
 
     public SwapJoinRule(Class<? extends JoinRelBase> clazz) {
-        super(any(clazz));
+        super(operand(clazz, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

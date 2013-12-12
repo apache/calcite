@@ -61,12 +61,11 @@ public class PullConstantsThroughAggregatesRule
     /**
      * Private: use singleton
      */
-    private PullConstantsThroughAggregatesRule()
-    {
+    private PullConstantsThroughAggregatesRule() {
         super(
-            some(
+            operand(
                 AggregateRel.class,
-                any(CalcRel.class)));
+                operand(CalcRel.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

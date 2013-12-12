@@ -35,7 +35,6 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-
 /**
  * Unit test for {@link VolcanoPlanner the optimizer}.
  */
@@ -599,9 +598,8 @@ public class VolcanoPlannerTest {
     private static class PhysLeafRule
         extends RelOptRule
     {
-        PhysLeafRule()
-        {
-            super(any(NoneLeafRel.class));
+        PhysLeafRule() {
+            super(operand(NoneLeafRel.class, any()));
         }
 
         // implement RelOptRule
@@ -624,9 +622,8 @@ public class VolcanoPlannerTest {
     private static class GoodSingleRule
         extends RelOptRule
     {
-        GoodSingleRule()
-        {
-            super(any(NoneSingleRel.class));
+        GoodSingleRule() {
+            super(operand(NoneSingleRel.class, any()));
         }
 
       // implement RelOptRule
@@ -660,11 +657,11 @@ public class VolcanoPlannerTest {
     private static class ReformedSingleRule
         extends RelOptRule
     {
-        ReformedSingleRule()
-        {
+        ReformedSingleRule() {
             super(
-                some(
-                    NoneSingleRel.class, any(PhysLeafRel.class)));
+                operand(
+                    NoneSingleRel.class,
+                    operand(PhysLeafRel.class, any())));
         }
 
         // implement RelOptRule
@@ -692,9 +689,8 @@ public class VolcanoPlannerTest {
     private static class PhysProjectRule
         extends RelOptRule
     {
-        PhysProjectRule()
-        {
-            super(any(ProjectRel.class));
+        PhysProjectRule() {
+            super(operand(ProjectRel.class, any()));
         }
 
         // implement RelOptRule
@@ -718,11 +714,11 @@ public class VolcanoPlannerTest {
     private static class GoodRemoveSingleRule
         extends RelOptRule
     {
-        GoodRemoveSingleRule()
-        {
+        GoodRemoveSingleRule() {
             super(
-                some(
-                    PhysSingleRel.class, any(PhysLeafRel.class)));
+                operand(
+                    PhysSingleRel.class,
+                    operand(PhysLeafRel.class, any())));
         }
 
         // implement RelOptRule
@@ -746,11 +742,11 @@ public class VolcanoPlannerTest {
     private static class ReformedRemoveSingleRule
         extends RelOptRule
     {
-        ReformedRemoveSingleRule()
-        {
+        ReformedRemoveSingleRule() {
             super(
-                some(
-                    NoneSingleRel.class, any(PhysLeafRel.class)));
+                operand(
+                    NoneSingleRel.class,
+                    operand(PhysLeafRel.class, any())));
         }
 
         // implement RelOptRule

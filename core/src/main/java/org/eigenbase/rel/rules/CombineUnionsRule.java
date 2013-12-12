@@ -23,7 +23,6 @@ import java.util.List;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * CombineUnionsRule implements the rule for combining two non-distinct {@link
  * UnionRel}s into a single {@link UnionRel}.
@@ -39,11 +38,12 @@ public class CombineUnionsRule
     /**
      * Creates a CombineUnionsRule.
      */
-    private CombineUnionsRule()
-    {
+    private CombineUnionsRule() {
         super(
-            some(
-                UnionRel.class, any(RelNode.class), any(RelNode.class)));
+            operand(
+                UnionRel.class,
+                operand(RelNode.class, any()),
+                operand(RelNode.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

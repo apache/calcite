@@ -21,7 +21,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * Rule which removes a trivial {@link CalcRel}.
  *
@@ -40,9 +39,8 @@ public class RemoveTrivialCalcRule
 
     //~ Constructors -----------------------------------------------------------
 
-    private RemoveTrivialCalcRule()
-    {
-        super(any(CalcRel.class));
+    private RemoveTrivialCalcRule() {
+        super(operand(CalcRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

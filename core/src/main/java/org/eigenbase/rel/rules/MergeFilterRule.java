@@ -21,7 +21,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * MergeFilterRule implements the rule for combining two {@link FilterRel}s
  */
@@ -35,11 +34,11 @@ public class MergeFilterRule
     /**
      * Creates a MergeFilterRule.
      */
-    private MergeFilterRule()
-    {
+    private MergeFilterRule() {
         super(
-            some(
-                FilterRel.class, any(FilterRel.class)));
+            operand(
+                FilterRel.class,
+                operand(FilterRel.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

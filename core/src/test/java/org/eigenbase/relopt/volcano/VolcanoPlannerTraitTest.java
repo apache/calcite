@@ -515,9 +515,8 @@ public class VolcanoPlannerTraitTest {
     private static class PhysLeafRule
         extends RelOptRule
     {
-        PhysLeafRule()
-        {
-            super(any(NoneLeafRel.class));
+        PhysLeafRule() {
+            super(operand(NoneLeafRel.class, any()));
         }
 
         // implement RelOptRule
@@ -540,9 +539,8 @@ public class VolcanoPlannerTraitTest {
     private static class IterSingleRule
         extends RelOptRule
     {
-        IterSingleRule()
-        {
-            super(any(NoneSingleRel.class));
+        IterSingleRule() {
+            super(operand(NoneSingleRel.class, any()));
         }
 
         // implement RelOptRule
@@ -576,9 +574,8 @@ public class VolcanoPlannerTraitTest {
     private static class IterSingleRule2
         extends RelOptRule
     {
-        IterSingleRule2()
-        {
-            super(any(NoneSingleRel.class));
+        IterSingleRule2() {
+            super(operand(NoneSingleRel.class, any()));
         }
 
         // implement RelOptRule

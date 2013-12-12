@@ -23,7 +23,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * PushProjectPastSetOpRule implements the rule for pushing a {@link ProjectRel}
  * past a {@link SetOpRel}. The children of the {@link SetOpRel} will project
@@ -33,7 +32,7 @@ public class PushProjectPastSetOpRule
     extends RelOptRule
 {
     public static final PushProjectPastSetOpRule instance =
-        new PushProjectPastSetOpRule();
+        new PushProjectPastSetOpRule(PushProjector.ExprCondition.FALSE);
 
     //~ Instance fields --------------------------------------------------------
 
@@ -45,14 +44,6 @@ public class PushProjectPastSetOpRule
     //~ Constructors -----------------------------------------------------------
 
     /**
-     * Creates a PushProjectPastSetOpRule.
-     */
-    private PushProjectPastSetOpRule()
-    {
-        this(PushProjector.ExprCondition.FALSE);
-    }
-
-    /**
      * Creates a PushProjectPastSetOpRule with an explicit condition whether
      * to preserve expressions.
      *
@@ -62,8 +53,9 @@ public class PushProjectPastSetOpRule
         PushProjector.ExprCondition preserveExprCondition)
     {
         super(
-            some(
-                ProjectRel.class, any(SetOpRel.class)));
+            operand(
+                ProjectRel.class,
+                operand(SetOpRel.class, any())));
         this.preserveExprCondition = preserveExprCondition;
     }
 

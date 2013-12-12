@@ -20,7 +20,6 @@ package org.eigenbase.rel.rules;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * <code>UnionToDistinctRule</code> translates a distinct {@link UnionRel}
  * (<code>all</code> = <code>false</code>) into an {@link AggregateRel} on top
@@ -37,9 +36,8 @@ public class UnionToDistinctRule
     /**
      * Creates a UnionToDistinctRule.
      */
-    private UnionToDistinctRule()
-    {
-        super(any(UnionRel.class));
+    private UnionToDistinctRule() {
+        super(operand(UnionRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

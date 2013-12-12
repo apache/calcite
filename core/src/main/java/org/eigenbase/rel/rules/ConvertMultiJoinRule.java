@@ -25,7 +25,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.Pair;
 
-
 /**
  * Rule to flatten a tree of {@link JoinRel}s into a single {@link MultiJoinRel}
  * with N inputs. An input is not flattened if the input is a null generating
@@ -75,11 +74,12 @@ public class ConvertMultiJoinRule
     /**
      * Creates a ConvertMultiJoinRule.
      */
-    private ConvertMultiJoinRule()
-    {
+    private ConvertMultiJoinRule() {
         super(
-            some(
-                JoinRel.class, any(RelNode.class), any(RelNode.class)));
+            operand(
+                JoinRel.class,
+                operand(RelNode.class, any()),
+                operand(RelNode.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

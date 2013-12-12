@@ -24,7 +24,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.Pair;
 
-
 /**
  * Planner rule which merges a {@link ProjectRel} and a {@link CalcRel}. The
  * resulting {@link CalcRel} has the same project list as the original {@link
@@ -42,11 +41,11 @@ public class MergeProjectOntoCalcRule
 
     //~ Constructors -----------------------------------------------------------
 
-    private MergeProjectOntoCalcRule()
-    {
+    private MergeProjectOntoCalcRule() {
         super(
-            some(
-                ProjectRel.class, any(CalcRel.class)));
+            operand(
+                ProjectRel.class,
+                operand(CalcRel.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

@@ -25,7 +25,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * PushFilterPastSetOpRule implements the rule for pushing a {@link FilterRel}
  * past a {@link SetOpRel}.
@@ -41,11 +40,11 @@ public class PushFilterPastSetOpRule
     /**
      * Creates a PushFilterPastSetOpRule.
      */
-    private PushFilterPastSetOpRule()
-    {
+    private PushFilterPastSetOpRule() {
         super(
-            some(
-                FilterRel.class, any(SetOpRel.class)));
+            operand(
+                FilterRel.class,
+                operand(SetOpRel.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

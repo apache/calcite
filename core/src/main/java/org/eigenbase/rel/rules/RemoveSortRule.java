@@ -29,7 +29,7 @@ public class RemoveSortRule extends RelOptRule {
 
     private RemoveSortRule() {
         super(
-            any(SortRel.class),
+            operand(SortRel.class, any()),
             "RemoveSortRule");
     }
 

@@ -24,7 +24,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * PushProjectPastJoinRule implements the rule for pushing a projection past a
  * join by splitting the projection into a projection on top of each child of
@@ -34,7 +33,7 @@ public class PushProjectPastJoinRule
     extends RelOptRule
 {
     public static final PushProjectPastJoinRule instance =
-        new PushProjectPastJoinRule();
+        new PushProjectPastJoinRule(PushProjector.ExprCondition.FALSE);
 
     //~ Instance fields --------------------------------------------------------
 
@@ -46,25 +45,18 @@ public class PushProjectPastJoinRule
     //~ Constructors -----------------------------------------------------------
 
     /**
-     * Creates a PushProjectPastJoinRule.
-     */
-    private PushProjectPastJoinRule()
-    {
-        this(PushProjector.ExprCondition.FALSE);
-    }
-
-    /**
      * Creates a PushProjectPastJoinRule with an explicit condition.
      *
      * @param preserveExprCondition Condition for expressions that should be
      * preserved in the projection
      */
-    public PushProjectPastJoinRule(
+    private PushProjectPastJoinRule(
         PushProjector.ExprCondition preserveExprCondition)
     {
         super(
-            some(
-                ProjectRel.class, any(JoinRel.class)));
+            operand(
+                ProjectRel.class,
+                operand(JoinRel.class, any())));
         this.preserveExprCondition = preserveExprCondition;
     }
 

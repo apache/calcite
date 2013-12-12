@@ -40,11 +40,11 @@ public class MergeFilterOntoCalcRule
 
     //~ Constructors -----------------------------------------------------------
 
-    private MergeFilterOntoCalcRule()
-    {
+    private MergeFilterOntoCalcRule() {
         super(
-            some(
-                FilterRelBase.class, any(CalcRel.class)));
+            operand(
+                FilterRelBase.class,
+                operand(CalcRel.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

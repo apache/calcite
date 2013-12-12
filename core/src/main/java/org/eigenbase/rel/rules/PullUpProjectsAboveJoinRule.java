@@ -25,7 +25,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.Pair;
 
-
 /**
  * PullUpProjectsAboveJoinRule implements the rule for pulling {@link
  * ProjectRel}s beneath a {@link JoinRel} above the {@link JoinRel}. Projections
@@ -39,21 +38,27 @@ public class PullUpProjectsAboveJoinRule
 
     public static final PullUpProjectsAboveJoinRule instanceTwoProjectChildren =
         new PullUpProjectsAboveJoinRule(
-            some(
-                JoinRel.class, any(ProjectRel.class), any(ProjectRel.class)),
+            operand(
+                JoinRel.class,
+                operand(ProjectRel.class, any()),
+                operand(ProjectRel.class, any())),
             "PullUpProjectsAboveJoinRule: with two ProjectRel children");
 
-    public static final PullUpProjectsAboveJoinRule instanceLeftProjectChild =
-        new PullUpProjectsAboveJoinRule(
-            some(
-                JoinRel.class, any(ProjectRel.class)),
-            "PullUpProjectsAboveJoinRule: with ProjectRel on left");
+  public static final PullUpProjectsAboveJoinRule instanceLeftProjectChild =
+      new PullUpProjectsAboveJoinRule(
+          operand(
+              JoinRel.class,
+              some(
+                  operand(ProjectRel.class, any()))),
+          "PullUpProjectsAboveJoinRule: with ProjectRel on left");
 
-    public static final PullUpProjectsAboveJoinRule instanceRightProjectChild =
-        new PullUpProjectsAboveJoinRule(
-            some(
-                JoinRel.class, any(RelNode.class), any(ProjectRel.class)),
-            "PullUpProjectsAboveJoinRule: with ProjectRel on right");
+  public static final PullUpProjectsAboveJoinRule instanceRightProjectChild =
+      new PullUpProjectsAboveJoinRule(
+          operand(
+              JoinRel.class,
+              operand(RelNode.class, any()),
+              operand(ProjectRel.class, any())),
+          "PullUpProjectsAboveJoinRule: with ProjectRel on right");
 
     //~ Constructors -----------------------------------------------------------
 

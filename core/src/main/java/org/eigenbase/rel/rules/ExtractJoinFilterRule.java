@@ -23,7 +23,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataTypeField;
 
-
 /**
  * Rule to convert an {@link JoinRel inner join} to a {@link FilterRel filter}
  * on top of a {@link JoinRel cartesian inner join}.
@@ -48,9 +47,8 @@ public final class ExtractJoinFilterRule
     /**
      * Creates an ExtractJoinFilterRule.
      */
-    private ExtractJoinFilterRule()
-    {
-        super(any(JoinRel.class));
+    private ExtractJoinFilterRule() {
+        super(operand(JoinRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

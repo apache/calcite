@@ -19,7 +19,6 @@ package org.eigenbase.rel.rules;
 
 import org.eigenbase.relopt.*;
 
-
 /**
  * RemoveSemiJoinRule implements the rule that removes semijoins from a join
  * tree if it turns out it's not possible to convert a SemiJoinRel to an indexed
@@ -38,9 +37,8 @@ public class RemoveSemiJoinRule
     /**
      * Creates a RemoveSemiJoinRule.
      */
-    private RemoveSemiJoinRule()
-    {
-        super(any(SemiJoinRel.class));
+    private RemoveSemiJoinRule() {
+      super(operand(SemiJoinRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

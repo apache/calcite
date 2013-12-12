@@ -20,7 +20,6 @@ package org.eigenbase.rel.rules;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * <code>UnionEliminatorRule</code> checks to see if its possible to optimize a
  * Union call by eliminating the Union operator altogether in the case the call
@@ -37,9 +36,8 @@ public class UnionEliminatorRule
     /**
      * Creates a UnionEliminatorRule.
      */
-    private UnionEliminatorRule()
-    {
-        super(any(UnionRel.class));
+    private UnionEliminatorRule() {
+        super(operand(UnionRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

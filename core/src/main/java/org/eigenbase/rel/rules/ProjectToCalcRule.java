@@ -42,9 +42,8 @@ public class ProjectToCalcRule
 
     //~ Constructors -----------------------------------------------------------
 
-    private ProjectToCalcRule()
-    {
-        super(any(ProjectRel.class));
+    private ProjectToCalcRule() {
+        super(operand(ProjectRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

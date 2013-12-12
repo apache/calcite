@@ -42,9 +42,8 @@ public class FilterToCalcRule
 
     //~ Constructors -----------------------------------------------------------
 
-    private FilterToCalcRule()
-    {
-        super(any(FilterRel.class));
+    private FilterToCalcRule() {
+        super(operand(FilterRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

@@ -1268,7 +1268,7 @@ public class JavaRules {
       extends RelOptRule {
     private EnumerableLimitRule() {
       super(
-          any(SortRel.class),
+          operand(SortRel.class, any()),
           "EnumerableLimitRule");
     }
 
@@ -1848,7 +1848,7 @@ public class JavaRules {
   public static class EnumerableOneRowRule extends RelOptRule {
     private EnumerableOneRowRule() {
       super(
-          leaf(OneRowRel.class, Convention.NONE),
+          operand(OneRowRel.class, Convention.NONE, none()),
           "EnumerableOneRowRule");
     }
 
@@ -2422,7 +2422,7 @@ public class JavaRules {
    * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableFilterToCalcRule extends RelOptRule {
     private EnumerableFilterToCalcRule() {
-      super(any(EnumerableFilterRel.class));
+      super(operand(EnumerableFilterRel.class, any()));
     }
 
     public void onMatch(RelOptRuleCall call) {
@@ -2458,7 +2458,7 @@ public class JavaRules {
    * {@link EnumerableConvention enumerable calling convention}. */
   public static class EnumerableProjectToCalcRule extends RelOptRule {
     private EnumerableProjectToCalcRule() {
-      super(any(EnumerableProjectRel.class));
+      super(operand(EnumerableProjectRel.class, any()));
     }
 
     public void onMatch(RelOptRuleCall call) {

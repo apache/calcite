@@ -35,11 +35,11 @@ public class MergeCalcRule
 
     //~ Constructors -----------------------------------------------------------
 
-    private MergeCalcRule()
-    {
+    private MergeCalcRule() {
         super(
-            some(
-                CalcRelBase.class, any(CalcRelBase.class)));
+            operand(
+                CalcRelBase.class,
+                operand(CalcRelBase.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

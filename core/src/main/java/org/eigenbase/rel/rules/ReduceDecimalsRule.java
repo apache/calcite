@@ -59,9 +59,8 @@ public class ReduceDecimalsRule
     /**
      * Creates a ReduceDecimalsRule.
      */
-    private ReduceDecimalsRule()
-    {
-        super(any(CalcRel.class));
+    private ReduceDecimalsRule() {
+        super(operand(CalcRel.class, any()));
     }
 
     //~ Methods ----------------------------------------------------------------

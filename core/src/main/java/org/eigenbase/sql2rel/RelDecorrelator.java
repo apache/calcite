@@ -1717,14 +1717,13 @@ public class RelDecorrelator
     private final class RemoveSingleAggregateRule
         extends RelOptRule
     {
-        public RemoveSingleAggregateRule()
-        {
+        public RemoveSingleAggregateRule() {
             super(
-                some(
+                operand(
                     AggregateRel.class,
-                    some(
+                    operand(
                         ProjectRel.class,
-                        any(AggregateRel.class))));
+                        operand(AggregateRel.class, any()))));
         }
 
         public void onMatch(RelOptRuleCall call)
@@ -1774,17 +1773,16 @@ public class RelDecorrelator
     private final class RemoveCorrelationForScalarProjectRule
         extends RelOptRule
     {
-        public RemoveCorrelationForScalarProjectRule()
-        {
+        public RemoveCorrelationForScalarProjectRule() {
             super(
-                some(
+                operand(
                     CorrelatorRel.class,
-                    any(RelNode.class),
-                    some(
+                    operand(RelNode.class, any()),
+                    operand(
                         AggregateRel.class,
-                        some(
+                        operand(
                             ProjectRel.class,
-                            any(RelNode.class)))));
+                            operand(RelNode.class, any())))));
         }
 
         public void onMatch(RelOptRuleCall call)
@@ -1995,19 +1993,18 @@ public class RelDecorrelator
     private final class RemoveCorrelationForScalarAggregateRule
         extends RelOptRule
     {
-        public RemoveCorrelationForScalarAggregateRule()
-        {
+        public RemoveCorrelationForScalarAggregateRule() {
             super(
-                some(
+                operand(
                     CorrelatorRel.class,
-                    any(RelNode.class),
-                    some(
+                    operand(RelNode.class, any()),
+                    operand(
                         ProjectRel.class,
-                        some(
+                        operand(
                             AggregateRel.class,
-                            some(
+                            operand(
                                 ProjectRel.class,
-                                any(RelNode.class))))));
+                                operand(RelNode.class, any()))))));
         }
 
         public void onMatch(RelOptRuleCall call)
@@ -2416,20 +2413,19 @@ public class RelDecorrelator
     {
         final boolean flavor;
 
-        public AdjustProjectForCountAggregateRule(boolean flavor)
-        {
+        public AdjustProjectForCountAggregateRule(boolean flavor) {
             super(
                 flavor
-                ? some(
+                ? operand(
                     CorrelatorRel.class,
-                    any(RelNode.class),
-                    some(
+                    operand(RelNode.class, any()),
+                    operand(
                         ProjectRel.class,
-                        any(AggregateRel.class)))
-                : some(
+                        operand(AggregateRel.class, any())))
+                : operand(
                     CorrelatorRel.class,
-                    any(RelNode.class),
-                    any(AggregateRel.class)));
+                    operand(RelNode.class, any()),
+                    operand(AggregateRel.class, any())));
             this.flavor = flavor;
         }
 

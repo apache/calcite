@@ -20,7 +20,6 @@ package org.eigenbase.rel.rules;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * Rule to remove an {@link AggregateRel} implementing DISTINCT if the
  * underlying relational expression is already distinct.
@@ -36,8 +35,7 @@ public class RemoveDistinctRule
     /**
      * Creates a RemoveDistinctRule.
      */
-    private RemoveDistinctRule()
-    {
+    private RemoveDistinctRule() {
         // REVIEW jvs 14-Mar-2006: We have to explicitly mention the child here
         // to make sure the rule re-fires after the child changes (e.g. via
         // RemoveTrivialProjectRule), since that may change our information
@@ -45,8 +43,9 @@ public class RemoveDistinctRule
         // distinct to make it correct up-front, we can get rid of the reference
         // to the child here.
         super(
-            some(
-                AggregateRel.class, any(RelNode.class)));
+            operand(
+                AggregateRel.class,
+                operand(RelNode.class, any())));
     }
 
     //~ Methods ----------------------------------------------------------------

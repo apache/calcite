@@ -65,8 +65,10 @@ public class PushJoinThroughJoinRule extends RelOptRule {
         Class<? extends JoinRelBase> clazz)
     {
         super(
-            some(
-                clazz, any(clazz), any(RelNode.class)),
+            operand(
+                clazz,
+                operand(clazz, any()),
+                operand(RelNode.class, any())),
             description);
         this.right = right;
     }

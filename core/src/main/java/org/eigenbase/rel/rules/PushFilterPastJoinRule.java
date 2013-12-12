@@ -34,11 +34,12 @@ public abstract class PushFilterPastJoinRule
 {
     public static final PushFilterPastJoinRule FILTER_ON_JOIN =
         new PushFilterPastJoinRule(
-            some(FilterRel.class, any(JoinRel.class)),
+            operand(
+                FilterRel.class,
+                operand(JoinRel.class, any())),
             "PushFilterPastJoinRule:filter")
         {
-            @Override
-            public void onMatch(RelOptRuleCall call) {
+            @Override public void onMatch(RelOptRuleCall call) {
                 FilterRel filter = call.rel(0);
                 JoinRel join = call.rel(1);
                 perform(call, filter, join);
@@ -47,11 +48,10 @@ public abstract class PushFilterPastJoinRule
 
     public static final PushFilterPastJoinRule JOIN =
         new PushFilterPastJoinRule(
-            any(JoinRel.class),
+            operand(JoinRel.class, any()),
             "PushFilterPastJoinRule:no-filter")
         {
-            @Override
-            public void onMatch(RelOptRuleCall call) {
+            @Override public void onMatch(RelOptRuleCall call) {
                 JoinRel join = call.rel(0);
                 perform(call, null, join);
             }

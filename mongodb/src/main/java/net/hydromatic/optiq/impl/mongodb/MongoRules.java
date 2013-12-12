@@ -25,12 +25,10 @@ import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
 import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * Rules and relational operators for
@@ -38,8 +36,6 @@ import java.util.logging.Logger;
  * calling convention.
  */
 public class MongoRules {
-  protected static final Logger tracer = EigenbaseTrace.getPlannerTracer();
-
   public static RelOptRule[] RULES = {
       new PushProjectOntoMongoRule(),
       new MongoSortRule(),
@@ -51,8 +47,9 @@ public class MongoRules {
   private static class PushProjectOntoMongoRule extends RelOptRule {
     private PushProjectOntoMongoRule() {
       super(
-          some(
-              ProjectRel.class, leaf(MongoTableScan.class)));
+          operand(
+              ProjectRel.class,
+              operand(MongoTableScan.class, none())));
     }
 
     @Override

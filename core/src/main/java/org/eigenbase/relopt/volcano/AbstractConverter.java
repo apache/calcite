@@ -23,7 +23,6 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * Converts a relational expression to any given output convention.
  *
@@ -103,9 +102,8 @@ public class AbstractConverter
         /**
          * Creates an ExpandConversionRule.
          */
-        private ExpandConversionRule()
-        {
-            super(any(AbstractConverter.class));
+        private ExpandConversionRule() {
+            super(operand(AbstractConverter.class, any()));
         }
 
         public void onMatch(RelOptRuleCall call)
