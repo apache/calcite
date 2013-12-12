@@ -73,7 +73,7 @@ public class RemoveTrivialProjectRule
     /** Returns the child of a project if the project is trivial, otherwise
      * the project itself. */
     public static RelNode strip(ProjectRel project) {
-        return isTrivial(project) ? project : project.getChild();
+        return isTrivial(project) ? project.getChild() : project;
     }
 
     public static boolean isTrivial(ProjectRelBase project) {

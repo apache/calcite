@@ -20,8 +20,10 @@ package org.eigenbase.rel;
 import java.util.Collections;
 import java.util.List;
 
+import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
+import org.eigenbase.util.Util;
 
 import net.hydromatic.linq4j.Ord;
 
@@ -129,6 +131,15 @@ public class SortRel
             newCollation,
             offset,
             fetch);
+    }
+
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
+        // Higher cost if rows are wider discourages pushing a project through a
+        // sort.
+        double rowCount = RelMetadataQuery.getRowCount(this);
+        double bytesPerRow = getRowType().getFieldCount() * 4;
+        return planner.makeCost(
+            Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);
     }
 
     @Override public RelNode accept(RelShuttle shuttle) {

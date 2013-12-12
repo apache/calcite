@@ -585,12 +585,10 @@ public class OptiqAssert {
       } else {
         throw new AssertionError("do not know where to splice");
       }
-      System.out.println(model2);
       return withModel(model2);
     }
 
     public AssertQuery query(String sql) {
-      System.out.println(sql);
       return new AssertQuery(connectionFactory, sql);
     }
 

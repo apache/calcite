@@ -419,16 +419,17 @@ public class JdbcRules {
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       JdbcImplementor.Result x = implementor.visitChild(0, getChild());
-      final JdbcImplementor.Builder builder =
-          x.builder(this, JdbcImplementor.Clause.FROM);
-      if (!isStar(exps, getChild().getRowType())) {
-        final List<SqlNode> selectList = new ArrayList<SqlNode>();
-        for (RexNode ref : exps) {
-          SqlNode sqlExpr = builder.context.toSql(null, ref);
-          addSelect(selectList, sqlExpr, getRowType());
-        }
-        builder.setSelect(new SqlNodeList(selectList, POS));
+      if (isStar(exps, getChild().getRowType())) {
+        return x;
       }
+      final JdbcImplementor.Builder builder =
+          x.builder(this, JdbcImplementor.Clause.SELECT);
+      final List<SqlNode> selectList = new ArrayList<SqlNode>();
+      for (RexNode ref : exps) {
+        SqlNode sqlExpr = builder.context.toSql(null, ref);
+        addSelect(selectList, sqlExpr, getRowType());
+      }
+      builder.setSelect(new SqlNodeList(selectList, POS));
       return builder.result();
     }
   }
