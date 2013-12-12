@@ -20,9 +20,9 @@ package org.eigenbase.relopt;
 import java.util.*;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.util.Bug;
 
 import com.google.common.collect.ImmutableList;
-
 
 /**
  * A <code>RelOptRule</code> transforms an expression into another. It has a
@@ -36,9 +36,18 @@ public abstract class RelOptRule
 {
     //~ Static fields/initializers ---------------------------------------------
 
-    /** Shorthand for {@link RelOptRuleOperand.Dummy#ANY}. */
-    public static final RelOptRuleOperand.Dummy ANY =
-        RelOptRuleOperand.Dummy.ANY;
+    static {
+        // several deprecated methods and constants in this class
+        Bug.upgrade("remove before optiq-0.4.18");
+    }
+
+    /** Shorthand for
+     * {@link RelOptRuleOperandChildPolicy#ANY}.
+     *
+     * @deprecated Will be removed before optiq-0.4.18.
+     */
+    public static final RelOptRuleOperandChildPolicy ANY =
+        RelOptRuleOperandChildPolicy.ANY;
 
     //~ Instance fields --------------------------------------------------------
 
@@ -99,10 +108,10 @@ public abstract class RelOptRule
      * @param clazz Class of relational expression to match (must not be null)
      * @return Operand
      */
-    public static RelOptRuleOperand leaf(
-        Class<? extends RelNode> clazz)
+    public static RelOptRuleOperand operand(
+        Class<? extends RelNode> clazz, RelOptRuleOperandChildren operandList)
     {
-        return leaf(clazz, null);
+        return new RelOptRuleOperand(clazz, null, operandList);
     }
 
     /**
@@ -113,13 +122,130 @@ public abstract class RelOptRule
      * @param trait Trait to match, or null to match any trait
      * @return Operand
      */
+    public static RelOptRuleOperand operand(
+        Class<? extends RelNode> clazz,
+        RelTrait trait,
+        RelOptRuleOperandChildren operandList)
+    {
+        return new RelOptRuleOperand(clazz, trait, operandList);
+    }
+
+    /**
+     * Creates an operand that matches a relational expression with a given
+     * list of children.
+     *
+     * <p>Shorthand for <code>operand(clazz, some(...))</code>.
+     *
+     * <p>If you wish to match a relational expression that has no children
+     * (that is, a leaf node), write <code>operand(clazz, none())</code></p>.
+     *
+     * <p>If you wish to match a relational expression that has any number of
+     * children, write <code>operand(clazz, any())</code></p>.
+     *
+     * @param clazz Class of relational expression to match (must not be null)
+     * @return Operand
+     */
+    public static RelOptRuleOperand operand(
+        Class<? extends RelNode> clazz,
+        RelOptRuleOperand first,
+        RelOptRuleOperand... rest)
+    {
+        return operand(clazz, some(first, rest));
+    }
+
+
+    //~ Methods for creating lists of child operands ---------------------------
+
+    /**
+     * Creates a list of child operands that matches child relational
+     * expressions in the order they appear.
+     *
+     * @param first First child operand
+     * @param rest Remaining child operands
+     */
+    public static RelOptRuleOperandChildren some(
+        RelOptRuleOperand first,
+        RelOptRuleOperand ... rest)
+    {
+        return new RelOptRuleOperandChildren(
+            RelOptRuleOperandChildPolicy.SOME,
+            ImmutableList.<RelOptRuleOperand>builder().add(first)
+                .add(rest).build());
+    }
+
+
+    /**
+     * Creates a list of child operands that matches child relational
+     * expressions in any order.
+     *
+     * @param first First child operand
+     * @param rest Remaining child operands
+     */
+    public static RelOptRuleOperandChildren unordered(
+        RelOptRuleOperand first,
+        RelOptRuleOperand ... rest)
+    {
+        return new RelOptRuleOperandChildren(
+            RelOptRuleOperandChildPolicy.UNORDERED,
+            ImmutableList.<RelOptRuleOperand>builder().add(first)
+                .add(rest).build());
+    }
+
+    /**
+     * Creates an empty list of child operands.
+     */
+    public static RelOptRuleOperandChildren none()
+    {
+        return new RelOptRuleOperandChildren(
+            RelOptRuleOperandChildPolicy.LEAF,
+            ImmutableList.<RelOptRuleOperand>of());
+    }
+
+    /**
+     * Creates a list of child operands that signifies that the operand matches
+     * any number of child relational expressions.
+     */
+    public static RelOptRuleOperandChildren any()
+    {
+        return new RelOptRuleOperandChildren(
+            RelOptRuleOperandChildPolicy.ANY,
+            ImmutableList.<RelOptRuleOperand>of());
+    }
+
+    //~ Obsolete methods for creating operands ---------------------------------
+
+    /**
+     * Creates an operand that matches a relational expression that has no
+     * children.
+     *
+     * @param clazz Class of relational expression to match (must not be null)
+     * @return Operand
+     *
+     * @deprecated Use <code>operand(clazz, {@link #none()})</code>;
+     *    will be removed before optiq-0.4.18.
+     */
+    public static RelOptRuleOperand leaf(
+        Class<? extends RelNode> clazz)
+    {
+        return operand(clazz, none());
+    }
+
+    /**
+     * Creates an operand that matches a relational expression that has no
+     * children.
+     *
+     * @param clazz Class of relational expression to match (must not be null)
+     * @param trait Trait to match, or null to match any trait
+     * @return Operand
+     *
+     * @deprecated Use <code>operand(clazz, trait, {@link #none()})</code>;
+     *    will be removed before optiq-0.4.18.
+     */
     public static RelOptRuleOperand leaf(
         Class<? extends RelNode> clazz,
         RelTrait trait)
     {
-        return new RelOptRuleOperand(
-            clazz, trait, RelOptRuleOperand.Dummy.LEAF,
-            new RelOptRuleOperand[0]);
+        return operand(clazz, trait, none());
     }
 
     /**
@@ -128,11 +254,14 @@ public abstract class RelOptRule
      *
      * @param clazz Class of relational expression to match (must not be null)
      * @return Operand
+     *
+     * @deprecated Use <code>operand(clazz, {@link #any()})</code>;
+     *    will be removed before optiq-0.4.18.
      */
     public static RelOptRuleOperand any(
         Class<? extends RelNode> clazz)
     {
-        return any(clazz, null);
+        return operand(clazz, any());
     }
 
     /**
@@ -142,13 +271,15 @@ public abstract class RelOptRule
      * @param clazz Class of relational expression to match (must not be null)
      * @param trait Trait to match, or null to match any trait
      * @return Operand
+     *
+     * @deprecated Use <code>operand(clazz, trait, {@link #any()})</code>;
+     *    will be removed before optiq-0.4.18.
      */
     public static RelOptRuleOperand any(
         Class<? extends RelNode> clazz,
         RelTrait trait)
     {
-        return new RelOptRuleOperand(
-            clazz, trait, RelOptRuleOperand.Dummy.ANY, null);
+        return operand(clazz, trait, any());
     }
 
     /**
@@ -158,13 +289,16 @@ public abstract class RelOptRule
      * @param clazz Class of relational expression to match (must not be null)
      * @param first First child operand
      * @param rest Remaining child operands
+     *
+     * @deprecated Use <code>operand(clazz, some(...))</code>;
+     *    will be removed before optiq-0.4.18.
      */
     public static RelOptRuleOperand some(
         Class<? extends RelNode> clazz,
         RelOptRuleOperand first,
         RelOptRuleOperand ... rest)
     {
-        return some(clazz, null, first, rest);
+        return operand(clazz, some(first, rest));
     }
 
     /**
@@ -175,6 +309,9 @@ public abstract class RelOptRule
      * @param trait Trait to match, or null to match any trait
      * @param first First child operand
      * @param rest Remaining child operands
+     *
+     * @deprecated Use <code>operand(clazz, trait, some(...))</code>;
+     *    will be removed before optiq-0.4.18.
      */
     public static RelOptRuleOperand some(
         Class<? extends RelNode> clazz,
@@ -182,8 +319,7 @@ public abstract class RelOptRule
         RelOptRuleOperand first,
         RelOptRuleOperand ... rest)
     {
-        return new RelOptRuleOperand(
-            clazz, trait, RelOptRuleOperand.Dummy.SOME, array(first, rest));
+        return operand(clazz, trait, some(first, rest));
     }
 
     /**
@@ -194,32 +330,19 @@ public abstract class RelOptRule
      * @param first First child operand
      * @param rest Remaining child operands
      * @return Operand
+     *
+     * @deprecated Use <code>operand(clazz, trait, unordered(...))</code>;
+     *    will be removed before optiq-0.4.18.
      */
     public static RelOptRuleOperand unordered(
         Class<? extends RelNode> clazz,
         RelOptRuleOperand first,
         RelOptRuleOperand... rest)
     {
-        return new RelOptRuleOperand(
-            clazz, null, RelOptRuleOperand.Dummy.UNORDERED,
-            array(first, rest));
+        return operand(clazz, unordered(first, rest));
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    private static RelOptRuleOperand[] array(
-        RelOptRuleOperand first, RelOptRuleOperand[] rest)
-    {
-        assert first != null;
-        for (RelOptRuleOperand operand : rest) {
-            assert operand != null;
-        }
-        final RelOptRuleOperand[] operands =
-            new RelOptRuleOperand[rest.length + 1];
-        operands[0] = first;
-        System.arraycopy(rest, 0, operands, 1, rest.length);
-        return operands;
-    }
 
     /**
      * Creates a flattened list of this operand and its descendants in prefix
@@ -255,9 +378,6 @@ public abstract class RelOptRule
         List<RelOptRuleOperand> operandList,
         RelOptRuleOperand parentOperand)
     {
-        if (parentOperand.getChildOperands() == null) {
-            return;
-        }
         int k = 0;
         for (RelOptRuleOperand operand : parentOperand.getChildOperands()) {
             operand.setRule(this);
@@ -517,6 +637,7 @@ public abstract class RelOptRule
         }
         return description;
     }
+
 }
 
 // End RelOptRule.java

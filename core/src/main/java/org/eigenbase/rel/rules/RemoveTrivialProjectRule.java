@@ -45,7 +45,15 @@ public class RemoveTrivialProjectRule
 
     private RemoveTrivialProjectRule()
     {
-        super(any(ProjectRel.class));
+        // Create a specialized operand to detect non-matches early. This keeps
+        // the rule queue short.
+        super(
+            new RelOptRuleOperand(ProjectRel.class, null, any()) {
+                @Override public boolean matches(RelNode rel) {
+                    return super.matches(rel)
+                           && isTrivial((ProjectRel) rel);
+                }
+            });
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -53,10 +61,8 @@ public class RemoveTrivialProjectRule
     public void onMatch(RelOptRuleCall call)
     {
         ProjectRel project = call.rel(0);
-        RelNode stripped = strip(project);
-        if (stripped == project) {
-            return;
-        }
+        assert isTrivial(project);
+        RelNode stripped = project.getChild();
         RelNode child = call.getPlanner().register(stripped, project);
         call.transformTo(
             convert(
@@ -67,22 +73,26 @@ public class RemoveTrivialProjectRule
     /** Returns the child of a project if the project is trivial, otherwise
      * the project itself. */
     public static RelNode strip(ProjectRel project) {
+        return isTrivial(project) ? project : project.getChild();
+    }
+
+    public static boolean isTrivial(ProjectRelBase project) {
         RelNode child = project.getChild();
         final RelDataType childRowType = child.getRowType();
         if (!childRowType.isStruct()) {
-            return project;
+            return false;
         }
         if (!project.isBoxed()) {
-            return project;
+            return false;
         }
         if (!isIdentity(
                 project.getProjects(),
                 project.getRowType(),
                 childRowType))
         {
-            return project;
+            return false;
         }
-        return child;
+        return true;
     }
 
     public static boolean isIdentity(

@@ -20,7 +20,6 @@ package org.eigenbase.rel.convert;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * TraitMatchingRule adapts a converter rule, restricting it to fire only when
  * its input already matches the expected output trait. This can be used with
@@ -49,7 +48,8 @@ public class TraitMatchingRule
                 converterRule.getOperand().getMatchedClass(),
                 any(RelNode.class)),
             "TraitMatchingRule: " + converterRule);
-        assert (converterRule.getOperand().getChildOperands() == null);
+        assert converterRule.getOperand().childPolicy
+               == RelOptRuleOperandChildPolicy.ANY;
         this.converter = converterRule;
     }
 

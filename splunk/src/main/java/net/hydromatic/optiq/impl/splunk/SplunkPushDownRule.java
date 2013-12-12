@@ -57,36 +57,35 @@ public class SplunkPushDownRule
 
   public static final SplunkPushDownRule PROJECT_ON_FILTER =
       new SplunkPushDownRule(
-          new RelOptRuleOperand(
+          operand(
               ProjectRel.class,
-              new RelOptRuleOperand(
+              operand(
                   FilterRel.class,
-                  new RelOptRuleOperand(
+                  operand(
                       ProjectRel.class,
-                      new RelOptRuleOperand(SplunkTableAccessRel.class)))),
+                      operand(SplunkTableAccessRel.class, none())))),
           "proj on filter on proj");
 
   public static final SplunkPushDownRule FILTER_ON_PROJECT =
       new SplunkPushDownRule(
-          new RelOptRuleOperand(
+          operand(
               FilterRel.class,
-              new RelOptRuleOperand(
+              operand(
                   ProjectRel.class,
-                  new RelOptRuleOperand(SplunkTableAccessRel.class))),
+                  operand(SplunkTableAccessRel.class, none()))),
           "filter on proj");
 
   public static final SplunkPushDownRule FILTER =
       new SplunkPushDownRule(
-          new RelOptRuleOperand(
-              FilterRel.class,
-              new RelOptRuleOperand(SplunkTableAccessRel.class)),
+          operand(
+              FilterRel.class, operand(SplunkTableAccessRel.class, none())),
           "filter");
 
   public static final SplunkPushDownRule PROJECT =
       new SplunkPushDownRule(
-          new RelOptRuleOperand(
+          operand(
               ProjectRel.class,
-              new RelOptRuleOperand(SplunkTableAccessRel.class)),
+              operand(SplunkTableAccessRel.class, none())),
           "proj");
 
   /** Creates a SplunkPushDownRule. */
@@ -104,7 +103,7 @@ public class SplunkPushDownRule
     SplunkTableAccessRel splunkRel =
         (SplunkTableAccessRel) call.rels[relLength - 1];
 
-    FilterRel  filter     = null;
+    FilterRel  filter;
     ProjectRel topProj    = null;
     ProjectRel bottomProj = null;
 
@@ -181,7 +180,6 @@ public class SplunkPushDownRule
       ProjectRel bottomProj,
       RelDataType topRow,
       RelDataType bottomRow) {
-    final RexBuilder rexBuilder = splunkRel.getCluster().getRexBuilder();
     StringBuilder updateSearchStr = new StringBuilder(splunkRel.search);
 
     if (!toAppend.isEmpty()) {

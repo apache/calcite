@@ -22,6 +22,7 @@ import java.util.*;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * A <code>RelOptRuleOperand</code> determines whether a {@link
@@ -36,33 +37,6 @@ import org.eigenbase.util.*;
  */
 public class RelOptRuleOperand
 {
-    //~ Enums ------------------------------------------------------------------
-
-    /**
-     * Dummy type, containing a single value, for parameters to overloaded forms
-     * of the {@link org.eigenbase.relopt.RelOptRuleOperand} constructor
-     * signifying operands that will be matched by relational expressions with
-     * any number of children.
-     */
-    enum Dummy {
-        /** Signifies that operand can have any number of children. */
-        ANY,
-
-        /** Signifies that operand has no children. Therefore it matches a
-         * leaf node, such as a table scan or VALUES operator.
-         *
-         * <p>{@code RelOptRuleOperand(Foo.class, NONE)} is equivalent to
-         * {@code RelOptRuleOperand(Foo.class)} but we prefer the former because
-         * it is more explicit.</p> */
-        LEAF,
-
-        SOME,
-
-        /** Signifies that the rule matches any one of its parents' children.
-         * The parent may have one or more children. */
-        UNORDERED,
-    }
-
     //~ Instance fields --------------------------------------------------------
 
     private RelOptRuleOperand parent;
@@ -75,10 +49,10 @@ public class RelOptRuleOperand
     public int ordinalInRule;
     private final RelTrait trait;
     private final Class<? extends RelNode> clazz;
-    private final RelOptRuleOperand [] children;
+    private final ImmutableList<RelOptRuleOperand> children;
 
     /** Whether child operands can be matched in any order. */
-    public final boolean matchAnyChildren;
+    public final RelOptRuleOperandChildPolicy childPolicy;
 
     //~ Constructors -----------------------------------------------------------
 
@@ -114,116 +88,29 @@ public class RelOptRuleOperand
     protected RelOptRuleOperand(
         Class<? extends RelNode> clazz,
         RelTrait trait,
-        Dummy dummy,
-        RelOptRuleOperand[] children)
+        RelOptRuleOperandChildren children)
     {
         assert clazz != null;
-        switch (dummy) {
+        switch (children.policy) {
         case ANY:
-            this.matchAnyChildren = false;
-            assert children == null;
             break;
         case LEAF:
-            this.matchAnyChildren = false;
-            assert children.length == 0;
+            assert children.operands.size() == 0;
             break;
         case UNORDERED:
-            this.matchAnyChildren = true;
-            assert children.length == 1;
+            assert children.operands.size() == 1;
             break;
         default:
-            this.matchAnyChildren = false;
-            assert children.length > 0;
+            assert children.operands.size() > 0;
         }
+        this.childPolicy = children.policy;
         this.clazz = clazz;
         this.trait = trait;
-        this.children = children;
-        if (children != null) {
-            for (RelOptRuleOperand child : this.children) {
-                assert child.parent == null : "cannot re-use operands";
-                child.parent = this;
-            }
+        this.children = children.operands;
+        for (RelOptRuleOperand child : this.children) {
+            assert child.parent == null : "cannot re-use operands";
+            child.parent = this;
         }
-    }
-
-    /**
-     * Creates an operand which matches a given trait and matches child operands
-     * in the order they appear.
-     *
-     * @param clazz Class of relational expression to match (must not be null)
-     * @param trait Trait to match, or null to match any trait
-     * @param children Child operands; must not be null
-     *
-     * @deprecated Use {@link RelOptRule#some}
-     */
-    public RelOptRuleOperand(
-        Class<? extends RelNode> clazz,
-        RelTrait trait,
-        RelOptRuleOperand ... children)
-    {
-        this(clazz, trait, Dummy.SOME, children);
-    }
-
-    /**
-     * Creates an operand that matches a given trait and any number of children.
-     *
-     * @param clazz Class of relational expression to match (must not be null)
-     * @param trait Trait to match, or null to match any trait
-     * @param dummy Dummy argument to distinguish this constructor from other
-     * overloaded forms; must be ANY.
-     *
-     * @deprecated Use {@link RelOptRule#any(Class, RelTrait)}
-     */
-    public RelOptRuleOperand(
-        Class<? extends RelNode> clazz,
-        RelTrait trait,
-        Dummy dummy)
-    {
-        this(clazz, trait, dummy, null);
-        assert dummy == Dummy.ANY;
-    }
-
-    /**
-     * Creates an operand that matches child operands in the order they appear.
-     *
-     * <p>There must be at least one child operand. If your rule is intended
-     * to match a relational expression that has no children, use
-     * {@code RelOptRuleOperand(Class, NONE)}.
-     *
-     * @param clazz Class of relational expression to match (must not be null)
-     * @param children Child operands; must not be null
-     *
-     * @deprecated Use {@link RelOptRule#some}
-     */
-    public RelOptRuleOperand(
-        Class<? extends RelNode> clazz,
-        RelOptRuleOperand ... children)
-    {
-        this(clazz, null, Dummy.SOME, children);
-        assert children != null;
-    }
-
-    /**
-     * Creates an operand that matches any number of children.
-     *
-     * <p>Example:</p>
-     * <li><code>RelOptRuleOperand(X.class, ANY)</code> is equivalent to
-     *     <code>RelOptRuleOperand(X.class, null)</code></li>
-     * <li><code>RelOptRuleOperand(X.class, NONE)</code> is equivalent to
-     *     <code>RelOptRuleOperand(X.class, new RelOptRuleOperand[0])</code>
-     * </li>
-     *
-     * @param clazz Class of relational expression to match (must not be null)
-     * @param dummy Dummy argument to distinguish this constructor from other
-     * overloaded forms. Must be ANY.
-     *
-     * @deprecated Use {@link RelOptRule#any} or {@link RelOptRule#leaf}
-     */
-    public RelOptRuleOperand(
-        Class<? extends RelNode> clazz,
-        Dummy dummy)
-    {
-        this(clazz, null, dummy, null);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -271,27 +158,24 @@ public class RelOptRuleOperand
     public int hashCode()
     {
         int h = clazz.hashCode();
-        h = Util.hash(
-            h,
-            trait.hashCode());
-        h = Util.hashArray(h, children);
+        h = Util.hash(h, trait);
+        h = Util.hash(h, children);
         return h;
     }
 
     public boolean equals(Object obj)
     {
+        if (this == obj) {
+            return true;
+        }
         if (!(obj instanceof RelOptRuleOperand)) {
             return false;
         }
         RelOptRuleOperand that = (RelOptRuleOperand) obj;
 
-        boolean equalTraits =
-            (this.trait != null) ? this.trait.equals(that.trait)
-            : (that.trait == null);
-
         return (this.clazz == that.clazz)
-            && equalTraits
-            && Arrays.equals(this.children, that.children);
+            && Util.equal(this.trait, that.trait)
+            && this.children.equals(that.children);
     }
 
     /**
@@ -307,7 +191,7 @@ public class RelOptRuleOperand
      *
      * @return child operands
      */
-    public RelOptRuleOperand [] getChildOperands()
+    public List<RelOptRuleOperand> getChildOperands()
     {
         return children;
     }

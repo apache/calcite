@@ -572,17 +572,15 @@ public class HepPlanner
             return false;
         }
         bindings.add(rel);
-        RelOptRuleOperand [] childOperands = operand.getChildOperands();
-        if (childOperands == null) {
-            return true;
-        }
-        int n = childOperands.length;
         @SuppressWarnings("unchecked")
         List<HepRelVertex> childRels = (List) rel.getInputs();
-        if (operand.matchAnyChildren) {
+        switch (operand.childPolicy) {
+        case ANY:
+            return true;
+        case UNORDERED:
             // For each operand, at least one child must match. If
             // matchAnyChildren, usually there's just one operand.
-            for (RelOptRuleOperand childOperand : childOperands) {
+            for (RelOptRuleOperand childOperand : operand.getChildOperands()) {
                 boolean match = false;
                 for (HepRelVertex childRel : childRels) {
                     match =
@@ -605,12 +603,13 @@ public class HepPlanner
             }
             nodeChildren.put(rel, children);
             return true;
-        } else {
+        default:
+            int n = operand.getChildOperands().size();
             if (childRels.size() < n) {
                 return false;
             }
             for (Pair<HepRelVertex, RelOptRuleOperand> pair
-                : Pair.zip(childRels, Arrays.asList(childOperands)))
+                : Pair.zip(childRels, operand.getChildOperands()))
             {
                 boolean match =
                     matchOperands(

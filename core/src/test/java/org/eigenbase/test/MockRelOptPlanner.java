@@ -21,6 +21,7 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
+import org.eigenbase.util.Pair;
 
 /**
  * MockRelOptPlanner is a mock implementation of the {@link RelOptPlanner}
@@ -155,21 +156,19 @@ public class MockRelOptPlanner
             return false;
         }
         bindings.add(rel);
-        RelOptRuleOperand [] childOperands = operand.getChildOperands();
-        if (childOperands == null) {
+        switch (operand.childPolicy) {
+        case ANY:
             return true;
         }
-        int n = childOperands.length;
+        List<RelOptRuleOperand> childOperands = operand.getChildOperands();
         List<? extends RelNode> childRels = rel.getInputs();
-        if (n != childRels.size()) {
+        if (childOperands.size() != childRels.size()) {
             return false;
         }
-        for (int i = 0; i < n; ++i) {
-            if (!match(
-                    childOperands[i],
-                    childRels.get(i),
-                    bindings))
-            {
+        for (Pair<RelOptRuleOperand, ? extends RelNode> pair
+            : Pair.zip(childOperands, childRels))
+        {
+            if (!match(pair.left, pair.right, bindings)) {
                 return false;
             }
         }

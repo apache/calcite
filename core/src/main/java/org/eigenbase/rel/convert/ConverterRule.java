@@ -20,7 +20,6 @@ package org.eigenbase.rel.convert;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * Abstract base class for a rule which converts from one calling convention to
  * another without changing semantics.
@@ -122,7 +121,7 @@ public abstract class ConverterRule
         public ConverterRelOptRuleOperand(
             Class<? extends RelNode> clazz, RelTrait in)
         {
-            super(clazz, in, RelOptRule.ANY, null);
+            super(clazz, in, any());
         }
 
         public boolean matches(RelNode rel)

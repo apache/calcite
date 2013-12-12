@@ -50,13 +50,18 @@ public abstract class WindowedAggSplitterRule
      */
     public static final WindowedAggSplitterRule INSTANCE =
         new WindowedAggSplitterRule(
-            any(CalcRelBase.class), "WindowedAggSplitterRule")
+            new RelOptRuleOperand(CalcRelBase.class, null, any()) {
+                @Override public boolean matches(RelNode rel) {
+                    return super.matches(rel)
+                        && RexOver.containsOver(
+                            ((CalcRelBase) rel).getProgram());
+                }
+            },
+            "WindowedAggSplitterRule")
         {
             public void onMatch(RelOptRuleCall call) {
                 CalcRelBase calc = call.rel(0);
-                if (!RexOver.containsOver(calc.getProgram())) {
-                    return;
-                }
+                assert RexOver.containsOver(calc.getProgram());
                 CalcRelSplitter transform = new WindowedAggRelSplitter(calc);
                 RelNode newRel = transform.execute();
                 call.transformTo(newRel);
@@ -70,13 +75,20 @@ public abstract class WindowedAggSplitterRule
      */
     public static final WindowedAggSplitterRule PROJECT =
         new WindowedAggSplitterRule(
-            any(ProjectRelBase.class), "WindowedAggSplitterRule:project")
+            new RelOptRuleOperand(
+                ProjectRelBase.class, null, any())
+            {
+                @Override public boolean matches(RelNode rel) {
+                    return super.matches(rel)
+                        && RexOver.containsOver(
+                            ((ProjectRelBase) rel).getProjects(), null);
+                }
+            },
+            "WindowedAggSplitterRule:project")
         {
             @Override public void onMatch(RelOptRuleCall call) {
                 ProjectRelBase project = call.rel(0);
-                if (!RexOver.containsOver(project.getProjects(), null)) {
-                    return;
-                }
+                assert RexOver.containsOver(project.getProjects(), null);
                 final RelNode child = project.getChild();
                 final RelDataType rowType = project.getRowType();
                 final RexProgram program =
