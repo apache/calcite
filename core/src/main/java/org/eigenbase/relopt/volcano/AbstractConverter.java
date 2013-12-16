@@ -66,7 +66,7 @@ public class AbstractConverter
         return planner.makeInfiniteCost();
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         super.explainTerms(pw);
         for (RelTrait trait : traitSet) {
             pw.item(trait.getTraitDef().getSimpleName(), trait);

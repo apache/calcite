@@ -18,7 +18,7 @@
 package org.eigenbase.rex;
 
 import org.eigenbase.reltype.*;
-
+import org.eigenbase.sql.SqlKind;
 
 /**
  * Reference to the current row of a correlating relational expression.
@@ -53,6 +53,10 @@ public class RexCorrelVariable
     public <R> R accept(RexVisitor<R> visitor)
     {
         return visitor.visitCorrelVariable(this);
+    }
+
+    @Override public SqlKind getKind() {
+        return SqlKind.CORREL_VARIABLE;
     }
 }
 

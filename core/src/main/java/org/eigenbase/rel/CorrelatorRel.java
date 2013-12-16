@@ -104,6 +104,28 @@ public final class CorrelatorRel
             joinType);
     }
 
+    /** Creates a CorrelatorRel by parsing serialized output. */
+    public CorrelatorRel(RelInput input) {
+        this(
+            input.getCluster(), input.getInputs().get(0),
+            input.getInputs().get((1)), getCorrelations(input),
+            input.getEnum("joinType", JoinRelType.class));
+    }
+
+    private static List<Correlation> getCorrelations(RelInput input) {
+        final List<Correlation> list = new ArrayList<Correlation>();
+        //noinspection unchecked
+        final List<Map<String, Object>> correlations1 =
+            (List<Map<String, Object>>) input.get("correlations");
+        for (Map<String, Object> correlation : correlations1) {
+            list.add(
+                new Correlation(
+                    (Integer) correlation.get("correlation"),
+                    (Integer) correlation.get("offset")));
+        }
+        return list;
+    }
+
     //~ Methods ----------------------------------------------------------------
 
     @Override
@@ -122,7 +144,7 @@ public final class CorrelatorRel
             joinType);
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw)
             .item("correlations", correlations);
     }

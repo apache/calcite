@@ -20,7 +20,6 @@ package org.eigenbase.test;
 import java.io.*;
 
 import org.eigenbase.rel.*;
-import org.eigenbase.relopt.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
@@ -737,8 +736,8 @@ public class SqlToRelConverterTest
         final RelNode rel = tester.convertSqlToRel(sql);
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
-        RelOptXmlPlanWriter planWriter =
-            new RelOptXmlPlanWriter(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        RelXmlWriter planWriter =
+            new RelXmlWriter(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
         rel.explain(planWriter);
         pw.flush();
         TestUtil.assertEqualsVerbose(

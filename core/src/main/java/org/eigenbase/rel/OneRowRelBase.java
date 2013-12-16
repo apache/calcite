@@ -21,7 +21,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * <code>OneRowRelBase</code> is an abstract base class for implementations of
  * {@link OneRowRel}.
@@ -44,6 +43,11 @@ public abstract class OneRowRelBase
     protected OneRowRelBase(RelOptCluster cluster, RelTraitSet traits)
     {
         super(cluster, traits);
+    }
+
+    /** Creates a OneRowRelBase by parsing serialized output. */
+    protected OneRowRelBase(RelInput input) {
+        this(input.getCluster(), input.getTraitSet());
     }
 
     //~ Methods ----------------------------------------------------------------

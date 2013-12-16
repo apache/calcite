@@ -24,6 +24,7 @@ import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.*;
 import net.hydromatic.optiq.runtime.Hook;
 
+import org.eigenbase.rel.RelWriter;
 import org.eigenbase.rel.TableAccessRelBase;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
@@ -75,7 +76,7 @@ public class SplunkTableAccessRel
   }
 
   @Override
-  public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+  public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("table", table.getQualifiedName())
         .item("earliest", earliest)

@@ -29,7 +29,6 @@ import net.hydromatic.linq4j.Ord;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-
 /**
  * <code>TableFunctionRelBase</code> is an abstract base class for
  * implementations of {@link TableFunctionRel}.
@@ -75,6 +74,14 @@ public abstract class TableFunctionRelBase
             columnMappings == null ? null : ImmutableSet.copyOf(columnMappings);
     }
 
+    /** Creates a TableFunctionRelBase by parsing serialized output. */
+    protected TableFunctionRelBase(RelInput input) {
+        this(
+            input.getCluster(), input.getTraitSet(), input.getInputs(),
+            input.getExpression("invocation"), input.getRowType("rowType"),
+            ImmutableSet.<RelColumnMapping>of());
+    }
+
     //~ Methods ----------------------------------------------------------------
 
     @Override public List<RelNode> getInputs() {
@@ -112,12 +119,13 @@ public abstract class TableFunctionRelBase
         return rexCall;
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         super.explainTerms(pw);
         for (Ord<RelNode> ord : Ord.zip(inputs)) {
             pw.input("input#" + ord.i, ord.e);
         }
-        return pw.item("invocation", rexCall);
+        return pw.item("invocation", rexCall)
+            .item("rowType", rowType);
     }
 
     /**

@@ -26,7 +26,6 @@ import org.eigenbase.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * A relational expression which unnests its input's sole column into a
  * relation.
@@ -61,6 +60,11 @@ public final class UncollectRel
             cluster.traitSetOf(Convention.NONE),
             child);
         assert deriveRowType() != null : "invalid child rowtype";
+    }
+
+    /** Creates an UncollectRel by parsing serialized output. */
+    public UncollectRel(RelInput input) {
+        this(input.getCluster(), input.getInput());
     }
 
     //~ Methods ----------------------------------------------------------------

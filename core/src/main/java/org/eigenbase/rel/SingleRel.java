@@ -24,7 +24,6 @@ import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 
-
 /**
  * A <code>SingleRel</code> is a base class single-input relational expressions.
  *
@@ -81,7 +80,7 @@ public abstract class SingleRel
         visitor.visit(child, 0, this);
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw)
             .input("child", getChild());
     }

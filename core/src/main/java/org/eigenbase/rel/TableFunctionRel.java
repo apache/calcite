@@ -25,6 +25,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
+import com.google.common.collect.ImmutableSet;
 
 /**
  * <code>TableFunctionRel</code> represents a call to a function which returns a
@@ -62,6 +63,11 @@ public class TableFunctionRel
             rexCall,
             rowType,
             columnMappings);
+    }
+
+    /** Creates a TableFunctionRel by parsing serialized output. */
+    public TableFunctionRel(RelInput input) {
+        super(input);
     }
 
     //~ Methods ----------------------------------------------------------------

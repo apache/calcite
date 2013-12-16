@@ -24,6 +24,7 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 
+import com.google.common.collect.ImmutableList;
 
 /**
  * Mock operator table for testing purposes. Contains the standard SQL operator
@@ -38,11 +39,8 @@ public class MockSqlOperatorTable
 
     //~ Constructors -----------------------------------------------------------
 
-    public MockSqlOperatorTable(SqlOperatorTable parentTable)
-    {
-        super(
-            Arrays.<SqlOperatorTable>asList(
-                parentTable, new ListSqlOperatorTable()));
+    public MockSqlOperatorTable(SqlOperatorTable parentTable) {
+        super(ImmutableList.of(parentTable, new ListSqlOperatorTable()));
         listOpTab = (ListSqlOperatorTable) tableList.get(1);
     }
 
@@ -51,54 +49,56 @@ public class MockSqlOperatorTable
     /**
      * Adds an operator to this table.
      */
-    public void addOperator(SqlOperator op)
-    {
+    public void addOperator(SqlOperator op) {
         listOpTab.add(op);
     }
 
-    public static void addRamp(MockSqlOperatorTable opTab)
-    {
-        opTab.addOperator(
-            new SqlFunction(
+    public static void addRamp(MockSqlOperatorTable opTab) {
+        // Don't use anonymous inner classes. They can't be instantiated
+        // using reflection when we are deserializing from JSON.
+        opTab.addOperator(new RampFunction());
+        opTab.addOperator(new DedupFunction());
+    }
+
+    public static class RampFunction extends SqlFunction {
+        public RampFunction() {
+            super(
                 "RAMP",
                 SqlKind.OTHER_FUNCTION,
                 null,
                 null,
                 SqlTypeStrategies.otcNumeric,
-                SqlFunctionCategory.UserDefinedFunction)
-            {
-                public RelDataType inferReturnType(
-                    SqlOperatorBinding opBinding)
-                {
-                    final RelDataTypeFactory typeFactory =
-                        opBinding.getTypeFactory();
-                    final RelDataType [] types =
-                    { typeFactory.createSqlType(SqlTypeName.INTEGER) };
-                    final String [] fieldNames = new String[] { "I" };
-                    return typeFactory.createStructType(types, fieldNames);
-                }
-            });
+                SqlFunctionCategory.UserDefinedFunction);
+        }
 
-        opTab.addOperator(
-            new SqlFunction(
+        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+            final RelDataTypeFactory typeFactory =
+                opBinding.getTypeFactory();
+            return typeFactory.createStructType(
+                new RelDataTypeFactory.FieldInfoBuilder()
+                  .add("I", typeFactory.createSqlType(SqlTypeName.INTEGER)));
+        }
+    }
+
+    public static class DedupFunction extends SqlFunction {
+        public DedupFunction() {
+            super(
                 "DEDUP",
                 SqlKind.OTHER_FUNCTION,
                 null,
                 null,
                 SqlTypeStrategies.otcVariadic,
-                SqlFunctionCategory.UserDefinedFunction)
-            {
-                public RelDataType inferReturnType(
-                    SqlOperatorBinding opBinding)
-                {
-                    final RelDataTypeFactory typeFactory =
-                        opBinding.getTypeFactory();
-                    final RelDataType [] types =
-                    { typeFactory.createSqlType(SqlTypeName.VARCHAR, 1024) };
-                    final String [] fieldNames = new String[] { "NAME" };
-                    return typeFactory.createStructType(types, fieldNames);
-                }
-            });
+                SqlFunctionCategory.UserDefinedFunction);
+        }
+
+        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+            final RelDataTypeFactory typeFactory =
+                opBinding.getTypeFactory();
+            return typeFactory.createStructType(
+                new RelDataTypeFactory.FieldInfoBuilder().add(
+                    "NAME",
+                    typeFactory.createSqlType(SqlTypeName.VARCHAR, 1024)));
+        }
     }
 }
 

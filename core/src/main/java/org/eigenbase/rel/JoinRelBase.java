@@ -199,7 +199,7 @@ public abstract class JoinRelBase
         visitor.visit(right, 1, this);
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw)
             .input("left", left)
             .input("right", right)

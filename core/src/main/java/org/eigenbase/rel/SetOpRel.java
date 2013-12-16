@@ -26,7 +26,6 @@ import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * <code>SetOpRel</code> is an abstract base for relational set operators such
  * as UNION, MINUS (aka EXCEPT), and INTERSECT.
@@ -44,6 +43,7 @@ public abstract class SetOpRel
 
     //~ Constructors -----------------------------------------------------------
 
+    /** Creates a SetOpRel. */
     protected SetOpRel(
         RelOptCluster cluster,
         RelTraitSet traits,
@@ -53,6 +53,13 @@ public abstract class SetOpRel
         super(cluster, traits);
         this.inputs = ImmutableList.copyOf(inputs);
         this.all = all;
+    }
+
+    /** Creates a SetOpRel by parsing serialized output. */
+    protected SetOpRel(RelInput input) {
+        this(
+            input.getCluster(), input.getTraitSet(), input.getInputs(),
+            input.getBoolean("all"));
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -89,7 +96,7 @@ public abstract class SetOpRel
         return inputs;
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         super.explainTerms(pw);
         for (Ord<RelNode> ord : Ord.zip(inputs)) {
             pw.input("input#" + ord.i, ord.e);

@@ -31,7 +31,6 @@ import org.eigenbase.util.*;
 import net.hydromatic.linq4j.Linq4j;
 import net.hydromatic.linq4j.function.Predicate1;
 
-
 /**
  * A <code>RelSubset</code> is set of expressions in a set which have the same
  * calling convention. An expression may be in more than one sub-set of a set;
@@ -136,7 +135,7 @@ public class RelSubset
         }
     }
 
-    public void explain(RelOptPlanWriter pw) {
+    public void explain(RelWriter pw) {
         // Not a typical implementation of "explain". We don't gather terms &
         // values to be printed later. We actually do the work.
         String s = getDescription();

@@ -15,23 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.relopt;
+package org.eigenbase.rel;
 
 import java.io.*;
 import java.util.*;
 
-import org.eigenbase.rel.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.Pair;
 import org.eigenbase.xom.*;
 
-
 /**
  * Callback for a relational expression to dump in XML format.
  */
-public class RelOptXmlPlanWriter
-    extends RelOptPlanWriter
-{
+public class RelXmlWriter extends RelWriterImpl {
     //~ Instance fields --------------------------------------------------------
 
     private final XMLOutput xmlOutput;
@@ -43,9 +39,8 @@ public class RelOptXmlPlanWriter
     // structure makes this difficult without duplication; need to factor
     // out the filtering of attributes before rendering.
 
-    public RelOptXmlPlanWriter(PrintWriter pw, SqlExplainLevel detailLevel)
-    {
-        super(pw, detailLevel);
+    public RelXmlWriter(PrintWriter pw, SqlExplainLevel detailLevel) {
+        super(pw, detailLevel, true);
         xmlOutput = new XMLOutput(pw);
         xmlOutput.setGlob(true);
         xmlOutput.setCompact(false);
@@ -167,4 +162,4 @@ public class RelOptXmlPlanWriter
     }
 }
 
-// End RelOptXmlPlanWriter.java
+// End RelXmlWriter.java

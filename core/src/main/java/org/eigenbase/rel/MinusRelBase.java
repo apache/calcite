@@ -40,9 +40,12 @@ public abstract class MinusRelBase extends SetOpRel {
         super(cluster, traits, inputs, all);
     }
 
-    // implement RelNode
-    public double getRows()
-    {
+    /** Creates a MinusRelBase by parsing serialized output. */
+    protected MinusRelBase(RelInput input) {
+        super(input);
+    }
+
+    @Override public double getRows() {
         // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
         double dRows = RelMetadataQuery.getRowCount(inputs.get(0));
         for (int i = 1; i < inputs.size(); i++) {
@@ -54,8 +57,7 @@ public abstract class MinusRelBase extends SetOpRel {
         return dRows;
     }
 
-    @Override
-    public boolean isKey(BitSet columns) {
+    @Override public boolean isKey(BitSet columns) {
         return inputs.get(0).isKey(columns)
             || super.isKey(columns);
     }

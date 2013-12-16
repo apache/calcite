@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.eigenbase.relopt.*;
 
-
 /**
  * <code>UnionRel</code> returns the union of the rows of its inputs, optionally
  * eliminating duplicates.
@@ -45,6 +44,11 @@ public final class UnionRel
             cluster.traitSetOf(Convention.NONE),
             inputs,
             all);
+    }
+
+    /** Creates a UnionRel by parsing serialized output. */
+    public UnionRel(RelInput input) {
+        super(input);
     }
 
     //~ Methods ----------------------------------------------------------------

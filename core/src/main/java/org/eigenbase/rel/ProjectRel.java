@@ -163,6 +163,11 @@ public final class ProjectRel
             collationList);
     }
 
+    /** Creates a ProjectRel by parsing serialized output. */
+    public ProjectRel(RelInput input) {
+        super(input);
+    }
+
     //~ Methods ----------------------------------------------------------------
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

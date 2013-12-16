@@ -326,7 +326,7 @@ public class JdbcRules {
       this.rowType = program.getOutputRowType();
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
       return program.explainCalc(super.explainTerms(pw));
     }
 

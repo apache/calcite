@@ -31,6 +31,7 @@ import org.eigenbase.relopt.RelTraitSet;
  * @author jhyde
  */
 public abstract class IntersectRelBase extends SetOpRel {
+    /** Creates an IntersectRelBase. */
     public IntersectRelBase(
         RelOptCluster cluster,
         RelTraitSet traits,
@@ -40,9 +41,12 @@ public abstract class IntersectRelBase extends SetOpRel {
         super(cluster, traits, inputs, all);
     }
 
-    // implement RelNode
-    public double getRows()
-    {
+    /** Creates an IntersectRelBase by parsing serialized output. */
+    protected IntersectRelBase(RelInput input) {
+        super(input);
+    }
+
+    @Override public double getRows() {
         // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
         double dRows = Double.MAX_VALUE;
         for (RelNode input : inputs) {
@@ -53,8 +57,7 @@ public abstract class IntersectRelBase extends SetOpRel {
         return dRows;
     }
 
-    @Override
-    public boolean isKey(BitSet columns) {
+    @Override public boolean isKey(BitSet columns) {
         for (RelNode input : inputs) {
             if (input.isKey(columns)) {
                 return true;

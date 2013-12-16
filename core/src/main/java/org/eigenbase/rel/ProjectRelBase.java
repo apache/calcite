@@ -122,6 +122,14 @@ public abstract class ProjectRelBase
         assert isValid(true);
     }
 
+    /** Creates a ProjectRelBase by parsing serialized output. */
+    protected ProjectRelBase(RelInput input) {
+        this(
+            input.getCluster(), input.getTraitSet(), input.getInput(),
+            input.getExpressionList("exprs"),
+            input.getRowType("exprs", "fields"), Flags.Boxed);
+    }
+
     //~ Methods ----------------------------------------------------------------
 
     public List<RelCollation> getCollationList()
@@ -230,14 +238,20 @@ public abstract class ProjectRelBase
         return planner.makeCost(dRows, dCpu, dIo);
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         super.explainTerms(pw);
-        for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFieldList())) {
-            String fieldName = field.e.getName();
-            if (fieldName == null) {
-                fieldName = "field#" + field.i;
+        if (pw.nest()) {
+            pw.item("fields", rowType.getFieldNames());
+            pw.item("exprs", exps);
+        } else {
+            for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFieldList()))
+            {
+                String fieldName = field.e.getName();
+                if (fieldName == null) {
+                    fieldName = "field#" + field.i;
+                }
+                pw.item(fieldName, exps.get(field.i));
             }
-            pw.item(fieldName, exps.get(field.i));
         }
 
         // If we're generating a digest, include the rowtype. If two projects

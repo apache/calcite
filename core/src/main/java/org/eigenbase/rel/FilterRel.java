@@ -22,7 +22,6 @@ import java.util.List;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * A <code>FilterRel</code> is a relational expression which iterates over its
  * input, and returns elements for which <code>condition</code> evaluates to
@@ -52,6 +51,11 @@ public final class FilterRel
             cluster.traitSetOf(Convention.NONE),
             child,
             condition);
+    }
+
+    /** Creates a FilterRel by parsing serialized output. */
+    public FilterRel(RelInput input) {
+        super(input);
     }
 
     //~ Methods ----------------------------------------------------------------

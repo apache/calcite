@@ -448,7 +448,7 @@ public class VolcanoPlannerTest {
                 new String[] { "this" });
         }
 
-        public RelOptPlanWriter explainTerms(RelOptPlanWriter pw)
+        public RelWriter explainTerms(RelWriter pw)
         {
             return super.explainTerms(pw)
                 .item("label", label);

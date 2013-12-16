@@ -174,7 +174,7 @@ ProjectRel(DEPTNO=[$0], EXPR$1=[$1], EXPR$2=[$2], EXPR$3=[$3])
 ProjectRel(EXPR$0=[$0])
   UncollectRel
     ProjectRel(EXPR$0=[$SLICE($0)])
-      CollectRel
+      CollectRel(field=[EXPR$0])
         ValuesRel(tuples=[[{ 1 }, { 2 }]])
 ]]>
         </Resource>
@@ -200,7 +200,7 @@ ProjectRel(EXPR$0=[$0])
             <![CDATA[
 ProjectRel(DEPTNO=[$0], NAME=[$1])
   UncollectRel
-    CollectRel
+    CollectRel(field=[EXPR$0])
       ProjectRel(DEPTNO=[$0], NAME=[$1])
         TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -225,7 +225,7 @@ ProjectRel(DEPTNO=[$0], NAME=[$1])
 ProjectRel(EXPR$0=[$1])
   JoinRel(condition=[true], joinType=[inner])
     ValuesRel(tuples=[[{ true }]])
-    CollectRel
+    CollectRel(field=[EXPR$0])
       ProjectRel(DEPTNO=[$0])
         TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -252,7 +252,7 @@ ProjectRel(EXPR$0=[$1])
 ProjectRel(EXPR$0=['a'], EXPR$1=[$SLICE($2)])
   JoinRel(condition=[true], joinType=[inner])
     TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    CollectRel
+    CollectRel(field=[EXPR$0])
       ValuesRel(tuples=[[{ 10 }]])
 ]]>
         </Resource>
@@ -277,7 +277,7 @@ ProjectRel(EXPR$0=[_ISO-8859-1'a'], EXPR$1=[$SLICE($2)])
 ProjectRel(EXPR$0=['abc'], EXPR$1=[$SLICE($9)])
   CorrelatorRel(condition=[true], joinType=[inner], correlations=[[var0=offset7, var1=offset5]])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    CollectRel
+    CollectRel(field=[EXPR$0])
       UnionRel(all=[true])
         ProjectRel(EXPR$0=[$cor0.DEPTNO])
           OneRowRel
@@ -308,7 +308,7 @@ ProjectRel(EXPR$0=[_ISO-8859-1'abc'], EXPR$1=[$SLICE($8)])
 ProjectRel(DEPTNO=[$0], NAME=[$1], EMPSET=[$2])
   CorrelatorRel(condition=[true], joinType=[inner], correlations=[[var0=offset0]])
     TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-    CollectRel
+    CollectRel(field=[EXPR$0])
       ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         FilterRel(condition=[=($7, $cor0.DEPTNO)])
           TableAccessRel(table=[[CATALOG, SALES, EMP]])
@@ -397,7 +397,7 @@ ProjectRel(EXPR$0=[$0])
     ProjectRel(EXPR$0=[$SLICE($2)])
       CorrelatorRel(condition=[true], joinType=[inner], correlations=[[var0=offset0]])
         TableAccessRel(table=[[CATALOG, SALES, DEPT]])
-        CollectRel
+        CollectRel(field=[EXPR$0])
           UnionRel(all=[true])
             ProjectRel(EXPR$0=[$cor0.DEPTNO])
               OneRowRel
@@ -452,7 +452,7 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
 ProjectRel(EXPR$0=[ELEMENT($SLICE($9))])
   JoinRel(condition=[true], joinType=[inner])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    CollectRel
+    CollectRel(field=[EXPR$0])
       ValuesRel(tuples=[[{ 5 }]])
 ]]>
         </Resource>
@@ -475,7 +475,7 @@ ProjectRel(EXPR$0=[ELEMENT($SLICE($8))])
         <Resource name="plan">
             <![CDATA[
 ProjectRel(EXPR$0=[ELEMENT($SLICE($0))])
-  CollectRel
+  CollectRel(field=[EXPR$0])
     ValuesRel(tuples=[[{ 5 }]])
 ]]>
         </Resource>
@@ -819,7 +819,7 @@ ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], 
         <Resource name="plan">
             <![CDATA[
 ProjectRel(I=[$0])
-  TableFunctionRel(invocation=[RAMP(3)])
+  TableFunctionRel(invocation=[RAMP(3)], rowType=[RecordType(INTEGER I)])
 ]]>
         </Resource>
     </TestCase>
@@ -873,7 +873,7 @@ ProjectRel(EMPNO=[$0])
         <Resource name="plan">
             <![CDATA[
 ProjectRel(NAME=[$0])
-  TableFunctionRel(invocation=[DEDUP($0, $1, 'NAME')])
+  TableFunctionRel(invocation=[DEDUP($0, $1, 'NAME')], rowType=[RecordType(VARCHAR(1024) NAME)])
     ProjectRel(ENAME=[$1])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
     ProjectRel(NAME=[$1])

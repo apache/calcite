@@ -90,7 +90,7 @@ public abstract class WindowRelBase
         return true;
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw)
+    public RelWriter explainTerms(RelWriter pw)
     {
         super.explainTerms(pw);
         for (Ord<Window> window : Ord.zip(windows)) {

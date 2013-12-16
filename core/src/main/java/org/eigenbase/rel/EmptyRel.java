@@ -23,7 +23,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * <code>EmptyRel</code> represents a relational expression with zero rows.
  *
@@ -93,7 +92,7 @@ public class EmptyRel
     }
 
     // implement RelNode
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw)
             // For rel digest, include the row type to discriminate
             // this from other empties with different row types.

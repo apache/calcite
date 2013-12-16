@@ -75,6 +75,13 @@ public abstract class AggregateRelBase
             : "See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6222207";
     }
 
+    /** Creates an AggregateRelBase by parsing serialized output. */
+    protected AggregateRelBase(RelInput input) {
+        this(
+            input.getCluster(), input.getTraitSet(), input.getInput(),
+            input.getBitSet("group"), input.getAggregateCalls("aggs"));
+    }
+
     //~ Methods ----------------------------------------------------------------
 
     // implement RelNode
@@ -120,17 +127,14 @@ public abstract class AggregateRelBase
         return groupSet;
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         super.explainTerms(pw)
-            .item("group", groupSet);
-        for (Ord<AggregateCall> ord : Ord.zip(aggCalls)) {
-            final String name;
-            if (ord.e.name != null) {
-                name = ord.e.name;
-            } else {
-                name = "agg#" + ord.i;
+            .item("group", groupSet)
+            .itemIf("aggs", aggCalls, pw.nest());
+        if (!pw.nest()) {
+            for (Ord<AggregateCall> ord : Ord.zip(aggCalls)) {
+                pw.item(Util.first(ord.e.name, "agg#" + ord.i), ord.e);
             }
-            pw.item(name, ord.e);
         }
         return pw;
     }

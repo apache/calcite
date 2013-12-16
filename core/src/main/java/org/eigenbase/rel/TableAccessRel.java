@@ -18,9 +18,9 @@
 package org.eigenbase.rel;
 
 import java.util.List;
+import java.util.Map;
 
 import org.eigenbase.relopt.*;
-
 
 /**
  * A <code>TableAccessRel</code> reads all the rows from a {@link RelOptTable}.
@@ -70,6 +70,11 @@ public final class TableAccessRel
             cluster,
             cluster.traitSetOf(Convention.NONE),
             table);
+    }
+
+    /** Creates a TableAccessRel by parsing serialized output. */
+    public TableAccessRel(RelInput input) {
+        super(input);
     }
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

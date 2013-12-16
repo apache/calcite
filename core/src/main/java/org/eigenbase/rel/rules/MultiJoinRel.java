@@ -29,7 +29,6 @@ import net.hydromatic.linq4j.Ord;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-
 /**
  * A MultiJoinRel represents a join of N inputs, whereas other join relnodes
  * represent strictly binary joins.
@@ -130,7 +129,7 @@ public final class MultiJoinRel
         return clonedMap;
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         List<String> joinTypeNames = new ArrayList<String>();
         List<String> outerJoinConds = new ArrayList<String>();
         List<String> projFieldObjects = new ArrayList<String>();

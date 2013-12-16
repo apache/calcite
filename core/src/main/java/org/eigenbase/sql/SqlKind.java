@@ -423,6 +423,13 @@ public enum SqlKind
      */
     LOCAL_REF,
 
+    /**
+     * Reference to correlation variable.
+     *
+     * <p>(Only used at the RexNode level.)</p>
+     */
+    CORREL_VARIABLE,
+
     // functions
 
     /**

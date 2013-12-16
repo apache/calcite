@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.eigenbase.relopt.*;
 
-
 /**
  * <code>IntersectRel</code> returns the intersection of the rows of its inputs.
  * If "all" is true, then multiset intersection is performed; otherwise, set
@@ -44,6 +43,11 @@ public final class IntersectRel extends IntersectRelBase {
             cluster.traitSetOf(Convention.NONE),
             inputs,
             all);
+    }
+
+    /** Creates an IntersectRel by parsing serialized output. */
+    public IntersectRel(RelInput input) {
+        super(input);
     }
 
     //~ Methods ----------------------------------------------------------------

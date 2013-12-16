@@ -57,6 +57,11 @@ public abstract class TableAccessRelBase
         }
     }
 
+    /** Creates a TableAccessRelBase by parsing serialized output. */
+    protected TableAccessRelBase(RelInput input) {
+        this(input.getCluster(), input.getTraitSet(), input.getTable("table"));
+    }
+
     //~ Methods ----------------------------------------------------------------
 
     public double getRows()
@@ -92,7 +97,7 @@ public abstract class TableAccessRelBase
         return table.getRowType();
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw)
             .item("table", table.getQualifiedName());
     }

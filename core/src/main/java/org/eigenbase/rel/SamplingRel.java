@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.eigenbase.relopt.*;
 
-
 /**
  * SamplingRel represents the TABLESAMPLE BERNOULLI or SYSTEM keyword applied to
  * a table, view or subquery.
@@ -49,7 +48,25 @@ public class SamplingRel
         this.params = params;
     }
 
+    /** Creates a SamplingRel by parsing serialized output. */
+    public SamplingRel(RelInput input) {
+        this(
+            input.getCluster(), input.getInput(), getSamplingParameters(input));
+    }
+
     //~ Methods ----------------------------------------------------------------
+
+    private static RelOptSamplingParameters getSamplingParameters(
+        RelInput input)
+    {
+        String mode = input.getString("mode");
+        float percentage = input.getFloat("rate");
+        Object repeatableSeed = input.get("repeatableSeed");
+        boolean repeatable = repeatableSeed instanceof Number;
+        return new RelOptSamplingParameters(
+            mode.equals("bernoulli"), percentage, repeatable,
+            repeatable ? ((Number) repeatableSeed).intValue() : 0);
+    }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         assert traitSet.comprises(Convention.NONE);
@@ -68,7 +85,7 @@ public class SamplingRel
     }
 
     // implement RelNode
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw)
             .item("mode", params.isBernoulli() ? "bernoulli" : "system")
             .item("rate", params.getSamplingPercentage())

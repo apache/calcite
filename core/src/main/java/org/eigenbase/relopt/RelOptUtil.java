@@ -1483,13 +1483,12 @@ public abstract class RelOptUtil
         if (!header.equals("")) {
             pw.println(header);
         }
-        RelOptPlanWriter planWriter;
+        RelWriter planWriter;
         if (asXml) {
-            planWriter = new RelOptXmlPlanWriter(pw, detailLevel);
+            planWriter = new RelXmlWriter(pw, detailLevel);
         } else {
-            planWriter = new RelOptPlanWriter(pw, detailLevel);
+            planWriter = new RelWriterImpl(pw, detailLevel, false);
         }
-        planWriter.setIdPrefix(false);
         rel.explain(planWriter);
         pw.flush();
         return sw.toString();
@@ -1727,10 +1726,9 @@ public abstract class RelOptUtil
             return null;
         }
         final StringWriter sw = new StringWriter();
-        final RelOptPlanWriter planWriter =
-            new RelOptPlanWriter(
-                new PrintWriter(sw), detailLevel);
-        planWriter.setIdPrefix(false);
+        final RelWriter planWriter =
+            new RelWriterImpl(
+                new PrintWriter(sw), detailLevel, false);
         rel.explain(planWriter);
         return sw.toString();
     }

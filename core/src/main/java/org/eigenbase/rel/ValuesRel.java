@@ -23,7 +23,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * <code>ValuesRel</code> represents a sequence of zero or more literal row
  * values.
@@ -57,6 +56,11 @@ public class ValuesRel
             rowType,
             tuples,
             cluster.traitSetOf(Convention.NONE));
+    }
+
+    /** Creates a ValuesRel by parsing serialized output. */
+    public ValuesRel(RelInput input) {
+        super(input);
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

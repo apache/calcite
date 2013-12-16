@@ -22,7 +22,6 @@ import java.util.List;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * <code>UnionRelBase</code> is an abstract base class for implementations of
  * {@link UnionRel}.
@@ -42,6 +41,11 @@ public abstract class UnionRelBase
         boolean all)
     {
         super(cluster, traits, inputs, all);
+    }
+
+    /** Creates a UnionRelBase by parsing serialized output. */
+    protected UnionRelBase(RelInput input) {
+        super(input);
     }
 
     //~ Methods ----------------------------------------------------------------

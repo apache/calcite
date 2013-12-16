@@ -63,6 +63,13 @@ public abstract class FilterRelBase
         this.condition = condition;
     }
 
+    /** Creates a FilterRelBase by parsing serialized output. */
+    protected FilterRelBase(RelInput input) {
+        this(
+            input.getCluster(), input.getTraitSet(), input.getInput(),
+            input.getExpression("condition"));
+    }
+
     //~ Methods ----------------------------------------------------------------
 
     @Override public List<RexNode> getChildExps() {
@@ -111,7 +118,7 @@ public abstract class FilterRelBase
             * RelMetadataQuery.getSelectivity(child, condition);
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw)
             .item("condition", condition);
     }

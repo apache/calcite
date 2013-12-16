@@ -23,7 +23,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * A relational expression that collapses multiple rows into one.
  *
@@ -69,14 +68,24 @@ public final class CollectRel
         this.fieldName = fieldName;
     }
 
+    /** Creates a CollectRel by parsing serialized output. */
+    public CollectRel(RelInput input) {
+        this(input.getCluster(), input.getInput(), input.getString("field"));
+    }
+
     //~ Methods ----------------------------------------------------------------
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         assert traitSet.comprises(Convention.NONE);
         return new CollectRel(
             getCluster(),
             sole(inputs),
             fieldName);
+    }
+
+    @Override public RelWriter explainTerms(RelWriter pw) {
+        return super.explainTerms(pw)
+            .item("field", fieldName);
     }
 
     /**
@@ -89,8 +98,7 @@ public final class CollectRel
         return fieldName;
     }
 
-    protected RelDataType deriveRowType()
-    {
+    @Override protected RelDataType deriveRowType() {
         return deriveCollectRowType(this, fieldName);
     }
 

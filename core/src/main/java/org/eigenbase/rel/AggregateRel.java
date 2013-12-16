@@ -21,7 +21,6 @@ import java.util.*;
 
 import org.eigenbase.relopt.*;
 
-
 /**
  * <code>AggregateRel</code> is a relational operator which eliminates
  * duplicates and computes totals.
@@ -64,6 +63,11 @@ public final class AggregateRel
             child,
             groupSet,
             aggCalls);
+    }
+
+    /** Creates an AggregateRel by parsing serialized output. */
+    public AggregateRel(RelInput input) {
+        super(input);
     }
 
     //~ Methods ----------------------------------------------------------------

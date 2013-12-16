@@ -22,6 +22,7 @@ import net.hydromatic.optiq.util.PartiallyOrderedSetTest;
 import net.hydromatic.optiq.util.graph.DirectedGraphTest;
 
 import org.eigenbase.relopt.RelOptUtilTest;
+import org.eigenbase.relopt.RelWriterTest;
 import org.eigenbase.relopt.volcano.VolcanoPlannerTest;
 import org.eigenbase.relopt.volcano.VolcanoPlannerTraitTest;
 import org.eigenbase.sql.parser.SqlParserTest;
@@ -64,6 +65,7 @@ import org.junit.runners.Suite;
     VolcanoPlannerTest.class,
     SargTest.class,
     SqlPrettyWriterTest.class,
+    RelWriterTest.class,
     RexProgramTest.class,
 
     // medium tests (above 0.1s)
@@ -95,6 +97,7 @@ import org.junit.runners.Suite;
     TableInRootSchemaTest.class,
 
     // slow tests that don't break often
+    SqlToRelConverterExtendedTest.class,
     PartiallyOrderedSetTest.class
 })
 public class OptiqSuite {

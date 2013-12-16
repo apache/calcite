@@ -23,6 +23,8 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.rex.*;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * A JoinRel represents two relational expressions joined according to some
@@ -125,6 +127,16 @@ public final class JoinRel
         this.systemFieldList = systemFieldList;
     }
 
+    /** Creates a JoinRel by parsing serialized output. */
+    public JoinRel(RelInput input) {
+        this(
+            input.getCluster(), input.getInputs().get(0),
+            input.getInputs().get(1), input.getExpression("condition"),
+            input.getEnum("joinType", JoinRelType.class),
+            ImmutableSet.<String>of(), false,
+            ImmutableList.<RelDataTypeField>of());
+    }
+
     //~ Methods ----------------------------------------------------------------
 
     @Override public JoinRel copy(
@@ -149,7 +161,7 @@ public final class JoinRel
         return shuttle.visit(this);
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw)
+    public RelWriter explainTerms(RelWriter pw)
     {
         // NOTE jvs 14-Mar-2006: Do it this way so that semijoin state
         // don't clutter things up in optimizers that don't use semijoins

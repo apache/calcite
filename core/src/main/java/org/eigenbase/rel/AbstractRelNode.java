@@ -298,19 +298,19 @@ public abstract class AbstractRelNode
             0);
     }
 
-    public void explain(RelOptPlanWriter pw) {
+    public void explain(RelWriter pw) {
         explainTerms(pw).done(this);
     }
 
     /** Describes the inputs and attributes of this relational expression.
      * Each node should call {@code super.explainTerms}, then call the
-     * {@link RelOptPlanWriter#input(String, RelNode)}
-     * and {@link RelOptPlanWriter#item(String, Object)} methods for each input
+     * {@link RelWriterImpl#input(String, RelNode)}
+     * and {@link RelWriterImpl#item(String, Object)} methods for each input
      * and attribute.
      *
      * @param pw Plan writer
      */
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         return pw;
     }
 
@@ -393,10 +393,10 @@ public abstract class AbstractRelNode
     protected String computeDigest()
     {
         StringWriter sw = new StringWriter();
-        RelOptPlanWriter pw =
-            new RelOptPlanWriter(
+        RelWriter pw =
+            new RelWriterImpl(
                 new PrintWriter(sw),
-                SqlExplainLevel.DIGEST_ATTRIBUTES)
+                SqlExplainLevel.DIGEST_ATTRIBUTES, false)
             {
                 protected void explain_(
                     RelNode rel, List<Pair<String, Object>> values)

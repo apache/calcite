@@ -27,7 +27,6 @@ import org.eigenbase.sql.type.*;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
-
 /**
  * <code>TableModificationRelBase</code> is an abstract base class for
  * implementations of {@link TableModificationRel}.
@@ -189,7 +188,7 @@ public abstract class TableModificationRelBase
         return inputRowType;
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         return super.explainTerms(pw)
             .item("table", table.getQualifiedName())
             .item("operation", getOperation())

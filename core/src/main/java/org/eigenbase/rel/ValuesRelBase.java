@@ -30,7 +30,6 @@ import org.eigenbase.util.Pair;
 import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.linq4j.function.Functions;
 
-
 /**
  * <code>ValuesRelBase</code> is an abstract base class for implementations of
  * {@link ValuesRel}.
@@ -81,7 +80,18 @@ public abstract class ValuesRelBase
         assert (assertRowType());
     }
 
+    /** Creates a ValuesRelBase by parsing serialized output. */
+    public ValuesRelBase(RelInput input) {
+        this(
+            input.getCluster(), input.getRowType("type"),
+            input.getTuples("tuples"), input.getTraitSet());
+    }
+
     //~ Methods ----------------------------------------------------------------
+
+    public List<List<RexLiteral>> getTuples(RelInput input) {
+      return input.getTuples("tuples");
+    }
 
     /**
      * @return rows of literals represented by this rel
@@ -141,25 +151,22 @@ public abstract class ValuesRelBase
     }
 
     // implement RelNode
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw)
+    public RelWriter explainTerms(RelWriter pw)
     {
         // A little adapter just to get the tuples to come out
         // with curly brackets instead of square brackets.  Plus
         // more whitespace for readability.
-        List<String> renderList = new ArrayList<String>();
-        for (List<RexLiteral> tuple : tuples) {
-            String s = tuple.toString();
-            assert (s.startsWith("["));
-            assert (s.endsWith("]"));
-            renderList.add("{ " + s.substring(1, s.length() - 1) + " }");
-        }
         return super.explainTerms(pw)
             // For rel digest, include the row type since a rendered
             // literal may leave the type ambiguous (e.g. "null").
             .itemIf(
                 "type", rowType,
                 pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES)
-            .item("tuples", Functions.adapt(tuples, F));
+            .itemIf(
+                "type", rowType.getFieldList(),
+                pw.nest())
+            .itemIf("tuples", Functions.adapt(tuples, F), !pw.nest())
+            .itemIf("tuples", tuples, pw.nest());
     }
 }
 

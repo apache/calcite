@@ -17,8 +17,7 @@
 */
 package net.hydromatic.optiq.impl.mongodb;
 
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.TableAccessRelBase;
+import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.util.Pair;
@@ -72,7 +71,7 @@ public class MongoTableScan extends TableAccessRelBase implements MongoRel {
   }
 
   @Override
-  public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+  public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("ops", ops);
   }

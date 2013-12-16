@@ -102,6 +102,15 @@ public class SortRel
         fieldExps = builder.build();
     }
 
+    /** Creates a SortRel by parsing serialized output. */
+    public SortRel(RelInput input) {
+        this(
+            input.getCluster(), input.getTraitSet().plus(input.getCollation()),
+            input.getInput(),
+            RelCollationTraitDef.INSTANCE.canonize(input.getCollation()),
+            input.getExpression("offset"), input.getExpression("fetch"));
+    }
+
     //~ Methods ----------------------------------------------------------------
 
     @Override public SortRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -173,9 +182,12 @@ public class SortRel
         return Collections.singletonList(getCollation());
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         super.explainTerms(pw);
         assert fieldExps.size() == collation.getFieldCollations().size();
+      if (pw.nest()) {
+        pw.item("collation", collation);
+      } else {
         for (Ord<RexNode> ord : Ord.zip(fieldExps)) {
             pw.item("sort" + ord.i, ord.e);
         }
@@ -184,6 +196,7 @@ public class SortRel
         {
             pw.item("dir" + ord.i, ord.e.shortString());
         }
+      }
         pw.itemIf("offset", offset, offset != null);
         pw.itemIf("fetch", fetch, fetch != null);
         return pw;

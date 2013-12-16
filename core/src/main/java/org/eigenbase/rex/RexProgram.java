@@ -231,8 +231,8 @@ public class RexProgram
     {
         // Intended to produce similar output to explainCalc,
         // but without requiring a RelNode or RelOptPlanWriter.
-        final RelOptPlanWriter pw =
-            new RelOptPlanWriter(new PrintWriter(new StringWriter()));
+        final RelWriterImpl pw =
+            new RelWriterImpl(new PrintWriter(new StringWriter()));
         collectExplainTerms("", pw);
         return pw.simple();
     }
@@ -243,13 +243,13 @@ public class RexProgram
      *
      * @param pw Plan writer
      */
-    public RelOptPlanWriter explainCalc(RelOptPlanWriter pw) {
+    public RelWriter explainCalc(RelWriter pw) {
         return collectExplainTerms("", pw, pw.getDetailLevel());
     }
 
-    public RelOptPlanWriter collectExplainTerms(
+    public RelWriter collectExplainTerms(
         String prefix,
-        RelOptPlanWriter pw)
+        RelWriter pw)
     {
         return collectExplainTerms(
             prefix,
@@ -264,9 +264,9 @@ public class RexProgram
      * if a relational expression contains more than one program
      * @param pw Plan writer
      */
-    public RelOptPlanWriter collectExplainTerms(
+    public RelWriter collectExplainTerms(
         String prefix,
-        RelOptPlanWriter pw,
+        RelWriter pw,
         SqlExplainLevel level)
     {
         final List<RelDataTypeField> inFields = inputRowType.getFieldList();

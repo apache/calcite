@@ -1336,7 +1336,7 @@ public class JavaRules {
     }
 
     @Override
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
       return super.explainTerms(pw)
           .itemIf("offset", offset, offset != null)
           .itemIf("fetch", fetch, fetch != null);

@@ -24,7 +24,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * A <code>RelNode</code> is a relational expression.
  *
@@ -216,13 +215,13 @@ public interface RelNode
 
     /** Describes the inputs and attributes of this relational expression.
      * Each node should call {@code super.explain}, then call the
-     * {@link RelOptPlanWriter#input(String, RelNode)}
-     * and {@link RelOptPlanWriter#item(String, Object)} methods for each input
+     * {@link RelWriterImpl#input(String, RelNode)}
+     * and {@link RelWriterImpl#item(String, Object)} methods for each input
      * and attribute.
      *
      * @param pw Plan writer
      */
-    public void explain(RelOptPlanWriter pw);
+    public void explain(RelWriter pw);
 
     /**
      * Receives notification that this expression is about to be registered. The

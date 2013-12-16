@@ -24,7 +24,6 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
 
-
 /**
  * RelTraitDef represents a class of {@link RelTrait}s. Implementations of
  * RelTraitDef may be singletons under the following conditions:
@@ -85,7 +84,7 @@ public abstract class RelTraitDef<T extends RelTrait>
 
     /**
      * @return a simple name for this RelTraitDef (for use in
-     * {@link org.eigenbase.rel.RelNode#explain(RelOptPlanWriter)}).
+     * {@link org.eigenbase.rel.RelNode#explain(RelWriter)}).
      */
     public abstract String getSimpleName();
 

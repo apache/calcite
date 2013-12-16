@@ -135,7 +135,7 @@ public abstract class CalcRelBase
         return planner.makeCost(dRows, dCpu, dIo);
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    public RelWriter explainTerms(RelWriter pw) {
         return program.explainCalc(super.explainTerms(pw));
     }
 }

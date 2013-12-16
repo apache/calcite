@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.eigenbase.relopt.*;
 
-
 /**
  * <code>MinusRel</code> returns the rows of its first input minus any matching
  * rows from its other inputs. If "all" is true, then multiset subtraction is
@@ -45,6 +44,11 @@ public final class MinusRel extends MinusRelBase {
             cluster.traitSetOf(Convention.NONE),
             inputs,
             all);
+    }
+
+    /** Creates a MinusRel by parsing serialized output. */
+    public MinusRel(RelInput input) {
+        super(input);
     }
 
     //~ Methods ----------------------------------------------------------------

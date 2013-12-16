@@ -15,12 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package org.eigenbase.relopt;
+package org.eigenbase.rel;
 
 import java.io.PrintWriter;
 import java.util.*;
 
-import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
@@ -32,40 +31,35 @@ import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
- * Callback for an expression to dump itself to.
+ * Implementation of {@link org.eigenbase.rel.RelWriter}.
  */
-public class RelOptPlanWriter {
+public class RelWriterImpl implements RelWriter {
     //~ Instance fields --------------------------------------------------------
 
-    private boolean withIdPrefix = true;
     protected final PrintWriter pw;
     private final SqlExplainLevel detailLevel;
+    private final boolean withIdPrefix;
     protected final Spacer spacer = new Spacer();
     private final List<Pair<String, Object>> values =
         new ArrayList<Pair<String, Object>>();
 
     //~ Constructors -----------------------------------------------------------
 
-    public RelOptPlanWriter(PrintWriter pw) {
-        this(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    public RelWriterImpl(PrintWriter pw) {
+        this(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, true);
     }
 
-    public RelOptPlanWriter(
-        PrintWriter pw,
-        SqlExplainLevel detailLevel)
+    public RelWriterImpl(
+        PrintWriter pw, SqlExplainLevel detailLevel,
+        boolean withIdPrefix)
     {
         this.pw = pw;
         this.detailLevel = detailLevel;
+        this.withIdPrefix = withIdPrefix;
     }
 
     //~ Methods ----------------------------------------------------------------
-
-    public void setIdPrefix(boolean b)
-    {
-        withIdPrefix = b;
-    }
 
     protected void explain_(
         RelNode rel,
@@ -131,55 +125,27 @@ public class RelOptPlanWriter {
         }
     }
 
-    /**
-     * Prints an explanation of a node, with a list of (term, value) pairs.
-     *
-     * <p>The term-value pairs are generally gathered by calling
-     * {@link RelNode#explain(RelOptPlanWriter)}. Each sub-class of
-     * {@link RelNode} calls {@link #input(String, org.eigenbase.rel.RelNode)}
-     * and {@link #item(String, Object)} to declare term-value pairs.</p>
-     *
-     * @param rel Relational expression
-     * @param valueList List of term-value pairs
-     */
-    public final void explain(
-        RelNode rel,
-        List<Pair<String, Object>> valueList)
+    public final void explain(RelNode rel, List<Pair<String, Object>> valueList)
     {
         explain_(rel, valueList);
     }
 
-    /**
-     * @return detail level at which plan should be generated
-     */
     public SqlExplainLevel getDetailLevel()
     {
         return detailLevel;
     }
 
-    /** Adds an input to the explanation of the current node.
-     *
-     * @param term Term for input, e.g. "left" or "input #1".
-     * @param input Input relational expression
-     */
-    public RelOptPlanWriter input(String term, RelNode input) {
+    public RelWriter input(String term, RelNode input) {
         values.add(Pair.of(term, (Object) input));
         return this;
     }
 
-    /** Adds an attribute to the explanation of the current node.
-     *
-     * @param term Term for attribute, e.g. "joinType"
-     * @param value Attribute value
-     */
-    public RelOptPlanWriter item(String term, Object value) {
+    public RelWriter item(String term, Object value) {
         values.add(Pair.of(term, value));
         return this;
     }
 
-    /** Adds an input to the explanation of the current node, if a condition
-     * holds. */
-    public RelOptPlanWriter itemIf(String term, Object value, boolean condition)
+    public RelWriter itemIf(String term, Object value, boolean condition)
     {
         if (condition) {
             item(term, value);
@@ -187,8 +153,7 @@ public class RelOptPlanWriter {
         return this;
     }
 
-    /** Writes the completed explanation. */
-    public RelOptPlanWriter done(RelNode node) {
+    public RelWriter done(RelNode node) {
         int i = 0;
         if (values.size() > 0 && values.get(0).left.equals("subset")) {
             ++i;
@@ -209,6 +174,10 @@ public class RelOptPlanWriter {
         return this;
     }
 
+    public boolean nest() {
+        return false;
+    }
+
     /** Converts the collected terms and values to a string. Does not write to
      * the parent writer. */
     public String simple() {
@@ -224,4 +193,4 @@ public class RelOptPlanWriter {
     }
 }
 
-// End RelOptPlanWriter.java
+// End RelWriterImpl.java
