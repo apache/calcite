@@ -234,10 +234,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
    * preparation process. */
   private <T> PrepareResult<T> simplePrepare(Context context, String sql) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
-    final RelDataType x = typeFactory.createStructType(
-        ImmutableList.of(
-            Pair.of(
-                "EXPR$0", typeFactory.createSqlType(SqlTypeName.INTEGER))));
+    final RelDataType x =
+        typeFactory.builder().add("EXPR$0", SqlTypeName.INTEGER).build();
     @SuppressWarnings("unchecked")
     final List<T> list = (List) ImmutableList.of(1);
     final List<String> origin = null;
@@ -545,9 +543,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       final RelDataType jdbcType =
           makeStruct(rexBuilder.getTypeFactory(), resultType);
       fieldOrigins = Collections.nCopies(jdbcType.getFieldCount(), null);
-      parameterRowType =
-          rexBuilder.getTypeFactory().createStructType(
-              ImmutableList.<Pair<String, RelDataType>>of());
+      parameterRowType = rexBuilder.getTypeFactory().builder().build();
 
       // Structured type flattening, view expansion, and plugging in
       // physical storage.

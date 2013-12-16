@@ -929,6 +929,9 @@ public abstract class SqlTypeUtil
 
     /**
      * Creates a record type with anonymous field names.
+     *
+     * @deprecated not used
+     * @see Bug#upgrade(String) to be removed in optiq-0.4.18
      */
     public static RelDataType createStructType(
         RelDataTypeFactory typeFactory,
@@ -1193,6 +1196,9 @@ public abstract class SqlTypeUtil
      * @param fieldType Type of new field
      *
      * @return Extended record type
+     *
+     * @deprecated not used
+     * @see Bug#upgrade(String) to be removed in optiq-0.4.18
      */
     public static RelDataType addField(
         RelDataTypeFactory typeFactory,

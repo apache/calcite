@@ -31,7 +31,6 @@ import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Standard implementation of {@link SqlRexConvertletTable}.
  */
@@ -405,12 +404,11 @@ public class StandardConvertletTable
                 && !componentType.isStruct())
             {
                 RelDataType tt =
-                    typeFactory.createStructType(
-                        Collections.singletonList(
-                            Pair.of(
-                                argComponentType.getFieldList().get(0)
-                                    .getName(),
-                                componentType)));
+                    typeFactory.builder()
+                        .add(
+                            argComponentType.getFieldList().get(0).getName(),
+                            componentType)
+                        .build();
                 tt = typeFactory.createTypeWithNullability(
                     tt,
                     componentType.isNullable());

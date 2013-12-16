@@ -30,9 +30,9 @@ import org.eigenbase.util.*;
 import net.hydromatic.linq4j.expressions.Primitive;
 
 import com.google.common.base.Preconditions;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.*;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Abstract base for implementations of {@link RelDataTypeFactory}.
@@ -47,11 +47,31 @@ public abstract class RelDataTypeFactoryImpl
     //~ Instance fields --------------------------------------------------------
 
     /** Global cache. Uses soft values to allow GC. */
-    private static final Cache<RelDataType, RelDataType> CACHE =
-        CacheBuilder.newBuilder().softValues().build();
+    private static final LoadingCache<Object, RelDataType> CACHE =
+        CacheBuilder.newBuilder()
+            .softValues()
+            .build(
+                new CacheLoader<Object, RelDataType>() {
+                    @Override public RelDataType load(Object key) {
+                        if (key instanceof RelDataType) {
+                            return (RelDataType) key;
+                        }
+                        @SuppressWarnings("unchecked")
+                        final Pair<List<String>, List<RelDataType>> pair =
+                            (Pair<List<String>, List<RelDataType>>) key;
+                        final ImmutableList.Builder<RelDataTypeField> list =
+                            ImmutableList.builder();
+                        for (int i = 0; i < pair.left.size(); i++) {
+                            list.add(
+                                new RelDataTypeFieldImpl(
+                                    pair.left.get(i), i, pair.right.get(i)));
+                        }
+                        return new RelRecordType(list.build());
+                    }
+                });
 
     private static final Map<Class, RelDataTypeFamily> CLASS_FAMILIES =
-        Util.<Class, RelDataTypeFamily>mapOf(
+        ImmutableMap.<Class, RelDataTypeFamily>of(
             String.class, SqlTypeFamily.CHARACTER);
 
     //~ Constructors -----------------------------------------------------------
@@ -86,50 +106,43 @@ public abstract class RelDataTypeFactoryImpl
 
     // implement RelDataTypeFactory
     public RelDataType createStructType(
-        RelDataType [] types,
-        String [] fieldNames)
+        final RelDataType [] types,
+        final String [] fieldNames)
     {
-        final List<RelDataTypeField> list = new ArrayList<RelDataTypeField>();
-        for (int i = 0; i < types.length; i++) {
-            list.add(new RelDataTypeFieldImpl(fieldNames[i], i, types[i]));
-        }
-        return canonize(new RelRecordType(list));
+        return canonize(Arrays.asList(fieldNames), Arrays.asList(types));
     }
 
     // implement RelDataTypeFactory
     public RelDataType createStructType(
-        List<RelDataType> typeList,
-        List<String> fieldNameList)
+        final List<RelDataType> typeList,
+        final List<String> fieldNameList)
     {
-        final List<RelDataTypeField> list = new ArrayList<RelDataTypeField>();
-        for (Pair<RelDataType, String> pair : Pair.zip(typeList, fieldNameList))
-        {
-            list.add(
-                new RelDataTypeFieldImpl(pair.right, list.size(), pair.left));
-        }
-        return canonize(new RelRecordType(list));
+        return canonize(fieldNameList, typeList);
     }
 
     // implement RelDataTypeFactory
     public RelDataType createStructType(
-        RelDataTypeFactory.FieldInfo fieldInfo)
+        final RelDataTypeFactory.FieldInfo fieldInfo)
     {
-        return canonize(new RelRecordType(iterable(fieldInfo)));
-    }
+        return canonize(
+            new AbstractList<String>() {
+                @Override public String get(int index) {
+                    return fieldInfo.getFieldName(index);
+                }
 
-    static List<RelDataTypeField> iterable(final FieldInfo fieldInfo) {
-        return new AbstractList<RelDataTypeField>() {
-            public RelDataTypeField get(int index) {
-                return new RelDataTypeFieldImpl(
-                    fieldInfo.getFieldName(index),
-                    index,
-                    fieldInfo.getFieldType(index));
-            }
+                @Override public int size() {
+                    return fieldInfo.getFieldCount();
+                }
+            },
+            new AbstractList<RelDataType>() {
+                @Override public RelDataType get(int index) {
+                    return fieldInfo.getFieldType(index);
+                }
 
-            public int size() {
-                return fieldInfo.getFieldCount();
-            }
-        };
+                @Override public int size() {
+                    return fieldInfo.getFieldCount();
+                }
+            });
     }
 
     // implement RelDataTypeFactory
@@ -310,8 +323,7 @@ public abstract class RelDataTypeFactoryImpl
      *
      * @throws NullPointerException if type is null
      */
-    protected RelDataType canonize(final RelDataType type)
-    {
+    protected RelDataType canonize(final RelDataType type) {
         try {
             return CACHE.get(
                 type,
@@ -320,6 +332,32 @@ public abstract class RelDataTypeFactoryImpl
                         return type;
                     }
                 });
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Looks up a type using a temporary key, and if not present, creates
+     * a permanent key and type.
+     *
+     * <p>This approach allows us to use a cheap temporary key. A permanent
+     * key is more expensive, because it must be immutable and not hold
+     * references into other data structures.</p>
+     */
+    protected RelDataType canonize(
+        final List<String> names,
+        final List<RelDataType> types)
+    {
+        final RelDataType type = CACHE.getIfPresent(Pair.of(names, types));
+        if (type != null) {
+            return type;
+        }
+        try {
+            final ImmutableList<String> names2 = ImmutableList.copyOf(names);
+            final ImmutableList<RelDataType> types2 =
+                ImmutableList.copyOf(types);
+            return CACHE.get(Pair.of(names2, types2));
         } catch (ExecutionException e) {
             throw new RuntimeException(e);
         }

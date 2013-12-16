@@ -163,24 +163,15 @@ public abstract class RelOptUtil
         final RelDataTypeFactory typeFactory,
         final List<String> columnNameList)
     {
-        return typeFactory.createStructType(
-            new RelDataTypeFactory.FieldInfo() {
-                public int getFieldCount()
-                {
-                    return columnNameList.size();
-                }
-
-                public String getFieldName(int index)
-                {
-                    return columnNameList.get(index);
-                }
-
-                public RelDataType getFieldType(int index)
-                {
-                    int iField = type.getFieldOrdinal(getFieldName(index));
-                    return type.getFieldList().get(iField).getType();
-                }
-            });
+        // Use createStructType(List, List), which is the most efficient
+        // variant.
+        final List<RelDataType> types =
+            new ArrayList<RelDataType>(columnNameList.size());
+        for (String name : columnNameList) {
+            int field = type.getFieldOrdinal(name);
+            types.add(type.getFieldList().get(field).getType());
+        }
+        return typeFactory.createStructType(types, columnNameList);
     }
 
     public static boolean areRowTypesEqual(

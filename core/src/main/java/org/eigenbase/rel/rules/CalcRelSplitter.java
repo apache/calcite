@@ -579,23 +579,10 @@ public abstract class CalcRelSplitter
         }
         if (outputRowType == null) {
             outputRowType =
-                typeFactory.createStructType(
-                    new RelDataTypeFactory.FieldInfo() {
-                        public int getFieldCount()
-                        {
-                            return projectExprOrdinals.length;
-                        }
-
-                        public String getFieldName(int index)
-                        {
-                            return fieldNames.get(index);
-                        }
-
-                        public RelDataType getFieldType(int index)
-                        {
-                            return projectRefs.get(index).getType();
-                        }
-                    });
+                RexUtil.createStructType(
+                    typeFactory,
+                    projectRefs,
+                    fieldNames);
         }
         final RexProgram program =
             new RexProgram(

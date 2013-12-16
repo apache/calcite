@@ -362,45 +362,12 @@ public interface RelDataTypeFactory
     }
 
     /**
-     * Simple implementation of {@link FieldInfo}, based on a list of fields.
-     */
-    public static class ListFieldInfo implements FieldInfo
-    {
-        private final List<? extends RelDataTypeField> fieldList;
-
-        /**
-         * Creates a ListFieldInfo.
-         *
-         * @param fieldList List of fields
-         */
-        public ListFieldInfo(List<? extends RelDataTypeField> fieldList)
-        {
-            this.fieldList = fieldList;
-        }
-
-        public int getFieldCount()
-        {
-            return fieldList.size();
-        }
-
-        public String getFieldName(int index)
-        {
-            return fieldList.get(index).getName();
-        }
-
-        public RelDataType getFieldType(int index)
-        {
-            return fieldList.get(index).getType();
-        }
-    }
-
-    /**
      * Implementation of {@link FieldInfo} that provides a fluid API to build
      * a list of fields.
      */
     public static class FieldInfoBuilder implements FieldInfo {
-        private final List<RelDataTypeField> fields =
-            new ArrayList<RelDataTypeField>();
+        private final List<String> names = new ArrayList<String>();
+        private final List<RelDataType> types = new ArrayList<RelDataType>();
 
         private final RelDataTypeFactory typeFactory;
 
@@ -411,20 +378,21 @@ public interface RelDataTypeFactory
         }
 
         public int getFieldCount() {
-            return fields.size();
+            return names.size();
         }
 
         public String getFieldName(int index) {
-            return fields.get(index).getName();
+            return names.get(index);
         }
 
         public RelDataType getFieldType(int index) {
-            return fields.get(index).getType();
+            return types.get(index);
         }
 
         /** Adds a field with given name and type. */
         public FieldInfoBuilder add(String name, RelDataType type) {
-            fields.add(new RelDataTypeFieldImpl(name, fields.size(), type));
+            names.add(name);
+            types.add(type);
             return this;
         }
 
@@ -458,11 +426,12 @@ public interface RelDataTypeFactory
          * @throws java.lang.IndexOutOfBoundsException if no fields have been
          * added */
         public FieldInfoBuilder nullable(boolean nullable) {
-            RelDataTypeField field = fields.remove(fields.size() - 1);
-            final RelDataType type =
-                typeFactory.createTypeWithNullability(
-                    field.getType(), nullable);
-            add(field.getName(), type);
+            RelDataType lastType = types.get(types.size() - 1);
+            if (lastType.isNullable() != nullable) {
+                final RelDataType type =
+                    typeFactory.createTypeWithNullability(lastType, nullable);
+                types.set(types.size() - 1, type);
+            }
             return this;
         }
 
@@ -473,16 +442,18 @@ public interface RelDataTypeFactory
         }
 
         /** Adds all fields in a collection. */
-        public FieldInfoBuilder addAll(Iterable<RelDataTypeField> fields) {
-            for (RelDataTypeField field : fields) {
-                add(field);
+        public FieldInfoBuilder addAll(
+            Iterable<? extends Map.Entry<String, RelDataType>> fields)
+        {
+            for (Map.Entry<String, RelDataType> field : fields) {
+                add(field.getKey(), field.getValue());
             }
             return this;
         }
 
         /** Creates a struct type with the current contents of this builder. */
         public RelDataType build() {
-            return typeFactory.createStructType(this);
+            return typeFactory.createStructType(types, names);
         }
     }
 }

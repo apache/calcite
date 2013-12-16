@@ -4107,9 +4107,10 @@ public class SqlValidatorImpl
                 }
             });
         return typeFactory.createStructType(
-            new AbstractList<Map.Entry<String, RelDataType>>() {
-                @Override public Map.Entry<String, RelDataType> get(int index) {
-                    return Pair.of("?" + index, types.get(index));
+            types,
+            new AbstractList<String>() {
+                @Override public String get(int index) {
+                    return "?" + index;
                 }
 
                 @Override public int size() {

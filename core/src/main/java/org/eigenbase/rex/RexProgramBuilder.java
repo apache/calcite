@@ -431,25 +431,11 @@ public class RexProgramBuilder
             outputRowType);
     }
 
-    private RelDataType computeOutputRowType()
-    {
-        return rexBuilder.typeFactory.createStructType(
-            new RelDataTypeFactory.FieldInfo() {
-                public int getFieldCount()
-                {
-                    return projectRefList.size();
-                }
-
-                public String getFieldName(int index)
-                {
-                    return projectNameList.get(index);
-                }
-
-                public RelDataType getFieldType(int index)
-                {
-                    return projectRefList.get(index).getType();
-                }
-            });
+    private RelDataType computeOutputRowType() {
+        return RexUtil.createStructType(
+            rexBuilder.typeFactory,
+            projectRefList,
+            projectNameList);
     }
 
     private void generateMissingNames()

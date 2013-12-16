@@ -164,17 +164,15 @@ public class JavaTypeFactoryImpl
 
   public RelDataType toSql(RelDataType type) {
     if (type instanceof RelRecordType) {
-      RelRecordType relRecordType = (RelRecordType) type;
-      final List<RelDataTypeField> fields = relRecordType.getFieldList();
       return createStructType(
           Functions.adapt(
-              fields,
-              new Function1<RelDataTypeField, Pair<String, RelDataType>>() {
-                public Pair<String, RelDataType> apply(
-                    RelDataTypeField a0) {
-                  return Pair.of(a0.getName(), toSql(a0.getType()));
+              type.getFieldList(),
+              new Function1<RelDataTypeField, RelDataType>() {
+                public RelDataType apply(RelDataTypeField a0) {
+                  return toSql(a0.getType());
                 }
-              }));
+              }),
+          type.getFieldNames());
     }
     if (type instanceof JavaType) {
       return createTypeWithNullability(

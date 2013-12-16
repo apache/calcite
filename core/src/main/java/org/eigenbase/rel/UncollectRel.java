@@ -99,9 +99,9 @@ public final class UncollectRel
             // Element type is not a record. It may be a scalar type, say
             // "INTEGER". Wrap it in a struct type.
             ret =
-                rel.getCluster().getTypeFactory().createStructType(
-                    ImmutableList.of(
-                        Pair.of(SqlUtil.deriveAliasFromOrdinal(0), ret)));
+                rel.getCluster().getTypeFactory().builder()
+                    .add(SqlUtil.deriveAliasFromOrdinal(0), ret)
+                    .build();
         }
         return ret;
     }

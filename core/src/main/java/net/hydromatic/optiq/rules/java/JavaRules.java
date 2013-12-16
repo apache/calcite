@@ -33,8 +33,7 @@ import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.SqlWindowOperator;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
@@ -2116,16 +2115,16 @@ public class JavaRules {
         }
 
         // The output from this stage is the input plus the aggregate functions.
-        final List<Map.Entry<String, RelDataType>> fieldList =
-            new ArrayList<Map.Entry<String, RelDataType>>(
-                inputPhysType.getRowType().getFieldList());
-        final int offset = fieldList.size();
+        final RelDataTypeFactory.FieldInfoBuilder typeBuilder =
+            typeFactory.builder();
+        typeBuilder.addAll(inputPhysType.getRowType().getFieldList());
+        final int offset = typeBuilder.getFieldCount();
         final List<AggregateCall> aggregateCalls =
             window.getAggregateCalls(this);
         for (AggregateCall aggregateCall : aggregateCalls) {
-          fieldList.add(Pair.of(aggregateCall.name, aggregateCall.type));
+          typeBuilder.add(aggregateCall.name, aggregateCall.type);
         }
-        RelDataType outputRowType = typeFactory.createStructType(fieldList);
+        RelDataType outputRowType = typeBuilder.build();
         PhysType outputPhysType =
             PhysTypeImpl.of(
                 typeFactory, outputRowType, pref.prefer(result.format));

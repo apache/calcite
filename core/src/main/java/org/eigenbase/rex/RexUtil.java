@@ -534,30 +534,19 @@ public class RexUtil
      */
     public static RelDataType createStructType(
         RelDataTypeFactory typeFactory,
-        final List<RexNode> exprs,
+        final List<? extends RexNode> exprs,
         final List<String> names)
     {
-        return typeFactory.createStructType(
-            new RelDataTypeFactory.FieldInfo() {
-                public int getFieldCount() {
-                    return exprs.size();
-                }
-
-                public String getFieldName(int index) {
-                    if (names == null) {
-                        return "$f" + index;
-                    }
-                    final String name = names.get(index);
-                    if (name == null) {
-                        return "$f" + index;
-                    }
-                    return name;
-                }
-
-                public RelDataType getFieldType(int index) {
-                    return exprs.get(index).getType();
-                }
-            });
+        final RelDataTypeFactory.FieldInfoBuilder builder =
+            typeFactory.builder();
+        for (int i = 0; i < exprs.size(); i++) {
+            String name;
+            if (names == null || (name = names.get(i)) == null) {
+                name = "$f" + i;
+            }
+            builder.add(name, exprs.get(i).getType());
+        }
+        return builder.build();
     }
 
     /**
