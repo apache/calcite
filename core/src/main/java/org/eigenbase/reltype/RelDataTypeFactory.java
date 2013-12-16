@@ -326,6 +326,10 @@ public interface RelDataTypeFactory
         RelDataType type1,
         RelDataType type2);
 
+    /** Creates a
+     * {@link org.eigenbase.reltype.RelDataTypeFactory.FieldInfoBuilder}. */
+    public FieldInfoBuilder builder();
+
     //~ Inner Interfaces -------------------------------------------------------
 
     /**
@@ -398,25 +402,12 @@ public interface RelDataTypeFactory
         private final List<RelDataTypeField> fields =
             new ArrayList<RelDataTypeField>();
 
-        /**
-         * Creates a FieldInfoBuilder with one field.
-         *
-         * @param name Field name
-         * @param type Field type
-         * @return A FieldInfoBuilder
-         */
-        public static FieldInfoBuilder of(String name, RelDataType type) {
-            return new FieldInfoBuilder().add(name, type);
-        }
+        private final RelDataTypeFactory typeFactory;
 
-        /**
-         * Creates a FieldInfoBuilder with the given fields.
-         *
-         * @param fields Field
-         * @return A FieldInfoBuilder
-         */
-        public static FieldInfoBuilder of(Iterable<RelDataTypeField> fields) {
-            return new FieldInfoBuilder().addAll(fields);
+        /** Creates a FieldInfoBuilder with the given type factory. */
+        public FieldInfoBuilder(RelDataTypeFactory typeFactory) {
+            this.typeFactory = typeFactory;
+            assert typeFactory != null;
         }
 
         public int getFieldCount() {
@@ -437,18 +428,61 @@ public interface RelDataTypeFactory
             return this;
         }
 
+        /** Adds a field with a type created using
+         * {@link org.eigenbase.reltype.RelDataTypeFactory#createSqlType(org.eigenbase.sql.type.SqlTypeName)}. */
+        public FieldInfoBuilder add(String name, SqlTypeName typeName) {
+            add(name, typeFactory.createSqlType(typeName));
+            return this;
+        }
+
+        /** Adds a field with a type created using
+         * {@link org.eigenbase.reltype.RelDataTypeFactory#createSqlType(org.eigenbase.sql.type.SqlTypeName, int)}. */
+        public FieldInfoBuilder add(
+            String name, SqlTypeName typeName, int precision)
+        {
+            add(name, typeFactory.createSqlType(typeName, precision));
+            return this;
+        }
+
+        /** Adds a field with a type created using
+         * {@link org.eigenbase.reltype.RelDataTypeFactory#createSqlType(org.eigenbase.sql.type.SqlTypeName, int, int)}. */
+        public FieldInfoBuilder add(
+            String name, SqlTypeName typeName, int precision, int scale)
+        {
+            add(name, typeFactory.createSqlType(typeName, precision, scale));
+            return this;
+        }
+
+        /** Changes the nullability of the last field added.
+         *
+         * @throws java.lang.IndexOutOfBoundsException if no fields have been
+         * added */
+        public FieldInfoBuilder nullable(boolean nullable) {
+            RelDataTypeField field = fields.remove(fields.size() - 1);
+            final RelDataType type =
+                typeFactory.createTypeWithNullability(
+                    field.getType(), nullable);
+            add(field.getName(), type);
+            return this;
+        }
+
         /** Adds a field. Field's ordinal is ignored. */
         public FieldInfoBuilder add(RelDataTypeField field) {
             add(field.getName(), field.getType());
             return this;
         }
 
-        /** Adds a field. */
+        /** Adds all fields in a collection. */
         public FieldInfoBuilder addAll(Iterable<RelDataTypeField> fields) {
             for (RelDataTypeField field : fields) {
                 add(field);
             }
             return this;
+        }
+
+        /** Creates a struct type with the current contents of this builder. */
+        public RelDataType build() {
+            return typeFactory.createStructType(this);
         }
     }
 }

@@ -95,11 +95,11 @@ public class SplunkTableAccessRel
   @Override
   public RelDataType deriveRowType() {
     final RelDataTypeFactory.FieldInfoBuilder builder =
-        new RelDataTypeFactory.FieldInfoBuilder();
+        getCluster().getTypeFactory().builder();
     for (String field : fieldList) {
       builder.add(table.getRowType().getField(field));
     }
-    return getCluster().getTypeFactory().createStructType(builder);
+    return builder.build();
   }
 
   private static final Constructor CONSTRUCTOR =

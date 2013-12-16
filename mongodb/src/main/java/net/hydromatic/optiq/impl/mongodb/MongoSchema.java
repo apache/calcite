@@ -24,7 +24,6 @@ import net.hydromatic.optiq.impl.TableInSchemaImpl;
 import net.hydromatic.optiq.impl.java.MapSchema;
 
 import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.type.SqlTypeName;
 
 import com.mongodb.DB;
@@ -70,8 +69,7 @@ public class MongoSchema extends MapSchema {
             typeFactory.createSqlType(SqlTypeName.VARCHAR),
             typeFactory.createSqlType(SqlTypeName.ANY));
     final RelDataType rowType =
-        typeFactory.createStructType(
-            new RelDataTypeFactory.FieldInfoBuilder().add("_MAP", mapType));
+        typeFactory.builder().add("_MAP", mapType).build();
     for (String collection : mongoDb.getCollectionNames()) {
       final MongoTable table = new MongoTable(this, collection, rowType);
       list.add(

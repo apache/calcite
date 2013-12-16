@@ -161,12 +161,11 @@ public class RelJson {
     if (o instanceof List) {
       @SuppressWarnings("unchecked")
       final List<Map<String, Object>> jsonList = (List<Map<String, Object>>) o;
-      final RelDataTypeFactory.FieldInfoBuilder builder =
-          new RelDataTypeFactory.FieldInfoBuilder();
+      final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
       for (Map<String, Object> jsonMap : jsonList) {
         builder.add((String) jsonMap.get("name"), toType(typeFactory, jsonMap));
       }
-      return typeFactory.createStructType(builder);
+      return builder.build();
     } else {
       final Map<String, Object> map = (Map<String, Object>) o;
       final SqlTypeName sqlTypeName =

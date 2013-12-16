@@ -326,8 +326,7 @@ public class JdbcSchema implements Schema {
     DatabaseMetaData metaData = connection.getMetaData();
     final ResultSet resultSet =
         metaData.getColumns(catalogName, schemaName, tableName, null);
-    final RelDataTypeFactory.FieldInfoBuilder fieldInfo =
-        new RelDataTypeFactory.FieldInfoBuilder();
+    final RelDataTypeFactory.FieldInfoBuilder fieldInfo = typeFactory.builder();
     while (resultSet.next()) {
       final String columnName = resultSet.getString(4);
       final int dataType = resultSet.getInt(5);
@@ -335,14 +334,10 @@ public class JdbcSchema implements Schema {
       final int scale = resultSet.getInt(9);
       RelDataType sqlType = zzz(dataType, size, scale);
       boolean nullable = resultSet.getBoolean(11);
-      if (nullable) {
-        sqlType =
-            typeFactory.createTypeWithNullability(sqlType,  true);
-      }
-      fieldInfo.add(columnName, sqlType);
+      fieldInfo.add(columnName, sqlType).nullable(nullable);
     }
     resultSet.close();
-    return typeFactory.createStructType(fieldInfo);
+    return fieldInfo.build();
   }
 
   private RelDataType zzz(int dataType, int precision, int scale) {

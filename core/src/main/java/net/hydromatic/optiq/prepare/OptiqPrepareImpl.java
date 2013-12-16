@@ -475,8 +475,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     if (type.isStruct()) {
       return type;
     }
-    return typeFactory.createStructType(
-        RelDataTypeFactory.FieldInfoBuilder.of("$0", type));
+    return typeFactory.builder().add("$0", type).build();
   }
 
   /** Executes an optimize action. */

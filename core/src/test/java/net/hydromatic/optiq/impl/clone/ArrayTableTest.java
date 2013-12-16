@@ -283,11 +283,12 @@ public class ArrayTableTest {
 
   @Test public void testLoadSorted() {
     final JavaTypeFactoryImpl typeFactory = new JavaTypeFactoryImpl();
-    final RelDataType rowType = typeFactory.createStructType(
-        new RelDataTypeFactory.FieldInfoBuilder()
+    final RelDataType rowType =
+        typeFactory.builder()
             .add("empid", typeFactory.createType(int.class))
             .add("deptno", typeFactory.createType(int.class))
-            .add("name", typeFactory.createType(String.class)));
+            .add("name", typeFactory.createType(String.class))
+            .build();
     final Enumerable<Object[]> enumerable =
         Linq4j.asEnumerable(
             Arrays.asList(
@@ -316,11 +317,12 @@ public class ArrayTableTest {
    * column #0 after it discovers that column #1 is unique and sorts by it. */
   @Test public void testLoadSorted2() {
     final JavaTypeFactoryImpl typeFactory = new JavaTypeFactoryImpl();
-    final RelDataType rowType = typeFactory.createStructType(
-        new RelDataTypeFactory.FieldInfoBuilder()
+    final RelDataType rowType =
+        typeFactory.builder()
             .add("deptno", typeFactory.createType(int.class))
             .add("empid", typeFactory.createType(int.class))
-            .add("name", typeFactory.createType(String.class)));
+            .add("name", typeFactory.createType(String.class))
+            .build();
     final Enumerable<Object[]> enumerable =
         Linq4j.asEnumerable(
             Arrays.asList(

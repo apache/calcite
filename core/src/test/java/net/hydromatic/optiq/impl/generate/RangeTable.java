@@ -55,12 +55,10 @@ public class RangeTable extends AbstractTable<Integer> {
   public static RangeTable create(
       Schema schema, String tableName, String columnName, int start, int end) {
     final JavaTypeFactory typeFactory = schema.getTypeFactory();
-    final RelDataType integerType =
-        typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType =
-        typeFactory.createStructType(
-            RelDataTypeFactory.FieldInfoBuilder
-                .of(columnName, integerType));
+        typeFactory.builder()
+            .add(columnName, SqlTypeName.INTEGER)
+            .build();
     return new RangeTable(
         schema, Object[].class, rowType, tableName, start, end);
   }

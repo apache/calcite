@@ -145,11 +145,11 @@ public abstract class JoinRelBase
             // due to outer joins.
             RexChecker checker =
                 new RexChecker(
-                    getCluster().getTypeFactory().createStructType(
-                        RelDataTypeFactory.FieldInfoBuilder.of(
-                            getSystemFieldList())
-                            .addAll(getLeft().getRowType().getFieldList())
-                            .addAll(getRight().getRowType().getFieldList())),
+                    getCluster().getTypeFactory().builder()
+                        .addAll(getSystemFieldList())
+                        .addAll(getLeft().getRowType().getFieldList())
+                        .addAll(getRight().getRowType().getFieldList())
+                        .build(),
                     fail);
             condition.accept(checker);
             if (checker.getFailureCount() > 0) {

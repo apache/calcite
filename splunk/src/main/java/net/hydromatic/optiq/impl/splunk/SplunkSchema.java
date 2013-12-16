@@ -66,11 +66,11 @@ public class SplunkSchema implements Schema {
     this.expression = expression;
     RelDataType stringType = typeFactory.createType(String.class);
     final RelDataType rowType =
-        typeFactory.createStructType(
-            new RelDataTypeFactory.FieldInfoBuilder()
-                .add("source", stringType)
-                .add("sourcetype", stringType)
-                .add("_extra", stringType));
+        typeFactory.builder()
+            .add("source", stringType)
+            .add("sourcetype", stringType)
+            .add("_extra", stringType)
+            .build();
     final Type elementType = typeFactory.getJavaClass(rowType);
     this.table =
         new SplunkTable(elementType, rowType, this, SPLUNK_TABLE_NAME);

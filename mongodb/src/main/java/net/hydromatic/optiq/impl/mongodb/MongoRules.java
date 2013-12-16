@@ -60,8 +60,8 @@ public class MongoRules {
         return;
       }
       final RelOptCluster cluster = table.getCluster();
-
-      final ItemFinder itemFinder = new ItemFinder();
+      final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
+      final ItemFinder itemFinder = new ItemFinder(typeFactory);
       final List<RexNode> newProjects = new ArrayList<RexNode>();
       for (RexNode rex : project.getProjects()) {
         final RexNode rex2 = rex.accept(itemFinder);
@@ -76,9 +76,7 @@ public class MongoRules {
           Util.toString(itemFinder.items, "{", ", ", "}");
       final String aggregateString = "{$project: " + findString + "}";
       ops.add(Pair.of(findString, aggregateString));
-      final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
-      final RelDataType rowType =
-          typeFactory.createStructType(itemFinder.builder);
+      final RelDataType rowType = itemFinder.builder.build();
       final MongoTableScan newTable =
           new MongoTableScan(cluster, table.getTraitSet(), table.getTable(),
               table.mongoTable, rowType, ops);
@@ -123,9 +121,12 @@ public class MongoRules {
   private static class ItemFinder extends RexShuttle {
     private final Map<String, RexInputRef> map =
         new LinkedHashMap<String, RexInputRef>();
-    private final RelDataTypeFactory.FieldInfoBuilder builder =
-        new RelDataTypeFactory.FieldInfoBuilder();
+    private final RelDataTypeFactory.FieldInfoBuilder builder;
     public List<String> items = new ArrayList<String>();
+
+    ItemFinder(RelDataTypeFactory typeFactory) {
+      builder = typeFactory.builder();
+    }
 
     @Override
     public RexNode visitCall(RexCall call) {

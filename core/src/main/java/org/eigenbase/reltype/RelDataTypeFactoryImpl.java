@@ -535,6 +535,10 @@ public abstract class RelDataTypeFactoryImpl
         return Util.getDefaultCharset();
     }
 
+    public FieldInfoBuilder builder() {
+        return new FieldInfoBuilder(this);
+    }
+
     //~ Inner Classes ----------------------------------------------------------
 
     // TODO jvs 13-Dec-2004:  move to OJTypeFactoryImpl?

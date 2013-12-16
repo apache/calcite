@@ -17,8 +17,6 @@
 */
 package org.eigenbase.test;
 
-import java.util.Arrays;
-
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
@@ -74,9 +72,9 @@ public class MockSqlOperatorTable
         public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
             final RelDataTypeFactory typeFactory =
                 opBinding.getTypeFactory();
-            return typeFactory.createStructType(
-                new RelDataTypeFactory.FieldInfoBuilder()
-                  .add("I", typeFactory.createSqlType(SqlTypeName.INTEGER)));
+            return typeFactory.builder()
+                .add("I", SqlTypeName.INTEGER)
+                .build();
         }
     }
 
@@ -94,10 +92,9 @@ public class MockSqlOperatorTable
         public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
             final RelDataTypeFactory typeFactory =
                 opBinding.getTypeFactory();
-            return typeFactory.createStructType(
-                new RelDataTypeFactory.FieldInfoBuilder().add(
-                    "NAME",
-                    typeFactory.createSqlType(SqlTypeName.VARCHAR, 1024)));
+            return typeFactory.builder()
+                .add("NAME", SqlTypeName.VARCHAR, 1024)
+                .build();
         }
     }
 }

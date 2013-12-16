@@ -71,15 +71,14 @@ public class PhysTypeImpl implements PhysType {
   static PhysType of(
       final JavaTypeFactory typeFactory,
       Type javaRowClass) {
-    final RelDataTypeFactory.FieldInfoBuilder builder =
-        new RelDataTypeFactory.FieldInfoBuilder();
+    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
     if (javaRowClass instanceof Types.RecordType) {
       final Types.RecordType recordType = (Types.RecordType) javaRowClass;
       for (Types.RecordField field : recordType.getRecordFields()) {
         builder.add(field.getName(), typeFactory.createType(field.getType()));
       }
     }
-    RelDataType rowType = typeFactory.createStructType(builder);
+    RelDataType rowType = builder.build();
     // Do not optimize if there are 0 or 1 fields.
     return new PhysTypeImpl(
         typeFactory, rowType, javaRowClass, JavaRowFormat.CUSTOM);
