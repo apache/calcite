@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
+import static net.hydromatic.optiq.test.OptiqAssert.that;
 
 /**
  * Tests for a JDBC front-end (with some quite complex SQL) and Linq4j back-end
@@ -44,7 +44,7 @@ public class JdbcFrontLinqBackTest {
    * Runs a simple query that reads from a table in an in-memory schema.
    */
   @Test public void testSelect() {
-    assertThat()
+    that()
         .query(
             "select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
@@ -57,7 +57,7 @@ public class JdbcFrontLinqBackTest {
    * Runs a simple query that joins between two in-memory schemas.
    */
   @Test public void testJoin() {
-    assertThat()
+    that()
         .query(
             "select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
@@ -72,7 +72,7 @@ public class JdbcFrontLinqBackTest {
    * Simple GROUP BY.
    */
   @Test public void testGroupBy() {
-    assertThat()
+    that()
         .query(
             "select \"deptno\", sum(\"empid\") as s, count(*) as c\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -86,7 +86,7 @@ public class JdbcFrontLinqBackTest {
    * Simple ORDER BY.
    */
   @Test public void testOrderBy() {
-    assertThat()
+    that()
         .query(
             "select upper(\"name\") as un, \"deptno\"\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -105,7 +105,7 @@ public class JdbcFrontLinqBackTest {
    * internally, using non-array representations for rows.</p>
    */
   @Test public void testUnionAllOrderBy() {
-    assertThat()
+    that()
         .query(
             "select \"name\"\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -127,7 +127,7 @@ public class JdbcFrontLinqBackTest {
    * Tests UNION.
    */
   @Test public void testUnion() {
-    assertThat()
+    that()
         .query(
             "select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -148,7 +148,7 @@ public class JdbcFrontLinqBackTest {
    */
   @Ignore
   @Test public void testIntersect() {
-    assertThat()
+    that()
         .query(
             "select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -164,7 +164,7 @@ public class JdbcFrontLinqBackTest {
    */
   @Ignore
   @Test public void testExcept() {
-    assertThat()
+    that()
         .query(
             "select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -178,7 +178,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test public void testWhereBad() {
-    assertThat()
+    that()
         .query(
             "select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
@@ -188,7 +188,7 @@ public class JdbcFrontLinqBackTest {
 
   /** Test case for https://github.com/julianhyde/optiq/issues/9. */
   @Test public void testWhereOr() {
-    assertThat()
+    that()
         .query(
             "select * from \"hr\".\"emps\"\n"
             + "where (\"empid\" = 100 or \"empid\" = 200)\n"
@@ -198,7 +198,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test public void testWhereLike() {
-    assertThat()
+    that()
         .query(
             "select *\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -238,7 +238,7 @@ public class JdbcFrontLinqBackTest {
   private OptiqAssert.AssertThat mutable(
       final List<JdbcTest.Employee> employees) {
     employees.add(new JdbcTest.Employee(0, 0, "first", 0f, null));
-    return assertThat()
+    return that()
         .with(
             new OptiqAssert.ConnectionFactory() {
               public OptiqConnection createConnection() throws Exception {

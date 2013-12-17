@@ -253,7 +253,7 @@ public class ReflectiveSchemaTest {
 
   /** Tests column based on java.sql.Date field. */
   @Test public void testDateColumn() throws Exception {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with("s", new DateColumnSchema())
         .query("select * from \"s\".\"emps\"")
         .returns(
@@ -264,7 +264,7 @@ public class ReflectiveSchemaTest {
   /** Tests querying an object that has no public fields. */
   @Test public void testNoPublicFields() throws Exception {
     final OptiqAssert.AssertThat with =
-        OptiqAssert.assertThat().with("s", new CatchallSchema());
+        OptiqAssert.that().with("s", new CatchallSchema());
     with.query("select 1 from \"s\".\"allPrivates\"")
         .returns("EXPR$0=1\n");
     with.query("select \"x\" from \"s\".\"allPrivates\"")
@@ -276,7 +276,7 @@ public class ReflectiveSchemaTest {
    * @see CatchallSchema#everyTypes */
   @Test public void testColumnTypes() throws Exception {
     final OptiqAssert.AssertThat with =
-        OptiqAssert.assertThat().with("s", new CatchallSchema());
+        OptiqAssert.that().with("s", new CatchallSchema());
     with.query("select \"primitiveBoolean\" from \"s\".\"everyTypes\"")
         .returns(
             "primitiveBoolean=false\n"
@@ -292,7 +292,7 @@ public class ReflectiveSchemaTest {
    * @see CatchallSchema#everyTypes */
   @Test public void testAggregateFunctions() throws Exception {
     final OptiqAssert.AssertThat with =
-        OptiqAssert.assertThat()
+        OptiqAssert.that()
             .with("s", new CatchallSchema());
     checkAgg(with, "min");
     checkAgg(with, "max");
@@ -312,7 +312,7 @@ public class ReflectiveSchemaTest {
 
   @Test public void testDivide() throws Exception {
     final OptiqAssert.AssertThat with =
-        OptiqAssert.assertThat().with("s", new CatchallSchema());
+        OptiqAssert.that().with("s", new CatchallSchema());
     with.query(
         "select \"wrapperLong\" / \"primitiveLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
@@ -329,7 +329,7 @@ public class ReflectiveSchemaTest {
 
   @Test public void testOp() throws Exception {
     final OptiqAssert.AssertThat with =
-        OptiqAssert.assertThat()
+        OptiqAssert.that()
             .with("s", new CatchallSchema());
     checkOp(with, "+");
     checkOp(with, "-");
@@ -353,7 +353,7 @@ public class ReflectiveSchemaTest {
   }
 
   @Test public void testCastFromString() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with("s", new CatchallSchema())
         .query(
             "select cast(\"string\" as int) as c from \"s\".\"everyTypes\"")
@@ -378,7 +378,7 @@ public class ReflectiveSchemaTest {
    *
    * @see CatchallSchema#badTypes */
   @Test public void testTableFieldHasBadType() throws Exception {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with("s", new CatchallSchema())
         .query("select * from \"s\".\"badTypes\"")
         .returns("integer=0; bitSet={}\n");
@@ -391,7 +391,7 @@ public class ReflectiveSchemaTest {
    * @see CatchallSchema#list */
   @Test public void testSchemaFieldHasBadType() throws Exception {
     final OptiqAssert.AssertThat with =
-        OptiqAssert.assertThat()
+        OptiqAssert.that()
             .with("s", new CatchallSchema());
     // BitSet is not a valid relation type. It's as if "bitSet" field does
     // not exist.
@@ -416,7 +416,7 @@ public class ReflectiveSchemaTest {
   /** Test case for a bug where a Java string 'Abc' compared to a char 'Ab'
    * would be truncated to the char precision and falsely match. */
   @Test public void testPrefix() throws Exception {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with("s", new CatchallSchema())
         .query(
             "select * from \"s\".\"prefixEmps\" where \"name\" in ('Ab', 'Abd')")

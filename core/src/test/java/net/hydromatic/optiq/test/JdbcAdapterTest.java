@@ -24,7 +24,7 @@ import org.junit.Test;
  */
 public class JdbcAdapterTest {
   @Test public void testUnionPlan() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .withModel(JdbcTest.FOODMART_MODEL)
         .query(
             "select * from \"sales_fact_1997\"\n"
@@ -46,7 +46,7 @@ public class JdbcAdapterTest {
   }
 
   @Test public void testFilterUnionPlan() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .withModel(JdbcTest.FOODMART_MODEL)
         .query(
             "select * from (\n"
@@ -67,7 +67,7 @@ public class JdbcAdapterTest {
   }
 
   @Test public void testInPlan() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .withModel(JdbcTest.FOODMART_MODEL)
         .query(
             "select \"store_id\", \"store_name\" from \"store\"\n"

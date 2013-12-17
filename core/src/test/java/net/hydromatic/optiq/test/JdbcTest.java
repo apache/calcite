@@ -453,7 +453,7 @@ public class JdbcTest {
    * like to use them to check whether the connection is alive.
    */
   @Test public void testSimple() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query("SELECT 1")
         .returns("EXPR$0=1\n");
@@ -464,7 +464,7 @@ public class JdbcTest {
     // JDBC 3.0 specification: "Column names supplied to getter methods are case
     // insensitive. If a select list contains the same column more than once,
     // the first instance of the column will be returned."
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .doWithConnection(
             new Function1<OptiqConnection, Object>() {
               public Object apply(OptiqConnection c) {
@@ -537,7 +537,7 @@ public class JdbcTest {
   }
 
   @Test public void testCloneGroupBy() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"the_year\", count(*) as c, min(\"the_month\") as m\n"
@@ -551,7 +551,7 @@ public class JdbcTest {
 
   @Ignore
   @Test public void testCloneGroupBy2() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"time_by_day\".\"the_year\" as \"c0\", \"time_by_day\".\"quarter\" as \"c1\", \"product_class\".\"product_family\" as \"c2\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" group by \"time_by_day\".\"the_year\", \"time_by_day\".\"quarter\", \"product_class\".\"product_family\"")
@@ -573,7 +573,7 @@ public class JdbcTest {
   /** Tests plan for a query with 4 tables, 3 joins. */
   @Ignore
   @Test public void testCloneGroupBy2Plan() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "explain plan for select \"time_by_day\".\"the_year\" as \"c0\", \"time_by_day\".\"quarter\" as \"c1\", \"product_class\".\"product_family\" as \"c2\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" group by \"time_by_day\".\"the_year\", \"time_by_day\".\"quarter\", \"product_class\".\"product_family\"")
@@ -592,7 +592,7 @@ public class JdbcTest {
   }
 
   @Test public void testOrderByCase() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"time_by_day\".\"the_year\" as \"c0\" from \"time_by_day\" as \"time_by_day\" group by \"time_by_day\".\"the_year\" order by CASE WHEN \"time_by_day\".\"the_year\" IS NULL THEN 1 ELSE 0 END, \"time_by_day\".\"the_year\" ASC")
@@ -897,7 +897,7 @@ public class JdbcTest {
   /** Unit test for self-join. Left and right children of the join are the same
    * relational expression. */
   @Test public void testSelfJoin() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .query(
             "select count(*) as c from (\n"
@@ -909,7 +909,7 @@ public class JdbcTest {
   /** Self-join on different columns, select a different column, and sort and
    * limit on yet another column. */
   @Test public void testSelfJoinDifferentColumns() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .query(
             "select e1.\"full_name\"\n"
@@ -926,7 +926,7 @@ public class JdbcTest {
    * <a href="https://github.com/julianhyde/optiq/issues/35">issue #35</a>. */
   @Ignore
   @Test public void testJoinJoin() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select\n"
@@ -974,7 +974,7 @@ public class JdbcTest {
   /** Four-way join. Used to take 80 seconds. */
   @Ignore
   @Test public void testJoinFiveWay() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"store\".\"store_country\" as \"c0\",\n"
@@ -1044,7 +1044,7 @@ public class JdbcTest {
   @Ignore
   @Test public void testCloneQueries() {
     OptiqAssert.AssertThat with =
-        OptiqAssert.assertThat()
+        OptiqAssert.that()
             .with(OptiqAssert.Config.FOODMART_CLONE);
     for (Ord<Pair<String, String>> query : Ord.zip(FOODMART_QUERIES)) {
       try {
@@ -1074,7 +1074,7 @@ public class JdbcTest {
   private OptiqAssert.AssertQuery withFoodMartQuery(int id) throws IOException {
     final FoodmartTest.FoodMartQuerySet set =
         FoodmartTest.FoodMartQuerySet.instance();
-    return OptiqAssert.assertThat()
+    return OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(set.queries.get(id).sql);
   }
@@ -1092,7 +1092,7 @@ public class JdbcTest {
   @Test public void testNoCalcBetweenJoins() throws IOException {
     final FoodmartTest.FoodMartQuerySet set =
         FoodmartTest.FoodMartQuerySet.instance();
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(set.queries.get(16).sql)
         .explainContains(
@@ -1118,7 +1118,7 @@ public class JdbcTest {
    * possible. */
   @Ignore
   @Test public void testExplainJoin() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(FOODMART_QUERIES.get(48).left)
         .explainContains(
@@ -1208,7 +1208,7 @@ public class JdbcTest {
    * {@link #testExplainJoin()}. */
   @Ignore
   @Test public void testExplainJoinOrderingWithOr() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(FOODMART_QUERIES.get(47).left)
         .explainContains("xxx");
@@ -1226,7 +1226,7 @@ public class JdbcTest {
   }
 
   private void checkNullableTimestamp(OptiqAssert.Config config) {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(config)
         .query(
             "select \"hire_date\", \"end_date\", \"birth_date\" from \"foodmart\".\"employee\" where \"employee_id\" = 1")
@@ -1235,7 +1235,7 @@ public class JdbcTest {
   }
 
   @Test public void testValues() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .query("values (1), (2)")
         .returns(
             "EXPR$0=1\n"
@@ -1243,14 +1243,14 @@ public class JdbcTest {
   }
 
   @Test public void testValuesAlias() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .query(
             "select \"desc\" from (VALUES ROW(1, 'SameName')) AS \"t\" (\"id\", \"desc\")")
         .returns("desc=SameName\n");
   }
 
   @Test public void testValuesMinus() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .query("values (-2-1)")
         .returns("EXPR$0=-3\n");
   }
@@ -1375,7 +1375,7 @@ public class JdbcTest {
    * "contextually typed value specification" in the SQL spec.</p>
    */
   @Test public void testValuesComposite() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .query("values (1, 'a'), (2, 'abc')")
         .returns(
             "EXPR$0=1; EXPR$1=a  \n"
@@ -1384,7 +1384,7 @@ public class JdbcTest {
 
   /** Tests inner join to an inline table ({@code VALUES} clause). */
   @Test public void testInnerJoinValues() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.LINGUAL)
         .query(
             "select empno, desc from sales.emps,\n"
@@ -1395,7 +1395,7 @@ public class JdbcTest {
 
   /** Tests a cartesian product aka cross join. */
   @Test public void testCartesianJoin() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select * from \"hr\".\"emps\", \"hr\".\"depts\" where \"emps\".\"empid\" < 140 and \"depts\".\"deptno\" > 20")
@@ -1409,7 +1409,7 @@ public class JdbcTest {
   @Test public void testDistinctCount() {
     final String s =
         "select \"time_by_day\".\"the_year\" as \"c0\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 group by \"time_by_day\".\"the_year\"";
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(s)
         .returns("c0=1997; m0=266773.0000\n");
@@ -1419,7 +1419,7 @@ public class JdbcTest {
    * to a semi-join against a VALUES relation. */
   @Ignore
   @Test public void testIn() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"time_by_day\".\"the_year\" as \"c0\",\n"
@@ -1455,7 +1455,7 @@ public class JdbcTest {
     if (!Bug.TodoFixed) {
       return;
     }
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select\n"
@@ -1505,7 +1505,7 @@ public class JdbcTest {
    * @see net.hydromatic.avatica.AvaticaDatabaseMetaData#nullsAreSortedAtEnd()
    */
   @Test public void testOrderBy() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
@@ -1518,7 +1518,7 @@ public class JdbcTest {
 
   /** Tests ORDER BY ... DESC. Nulls come last, as for ASC. */
   @Test public void testOrderByDesc() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
@@ -1531,7 +1531,7 @@ public class JdbcTest {
 
   /** Tests ORDER BY ... DESC NULLS FIRST. */
   @Test public void testOrderByDescNullsFirst() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
@@ -1544,7 +1544,7 @@ public class JdbcTest {
 
   /** Tests ORDER BY ... NULLS FIRST. */
   @Test public void testOrderByNullsFirst() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
@@ -1557,7 +1557,7 @@ public class JdbcTest {
 
   /** Tests ORDER BY ... DESC NULLS LAST. */
   @Test public void testOrderByDescNullsLast() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
@@ -1570,7 +1570,7 @@ public class JdbcTest {
 
   /** Tests ORDER BY ... NULLS LAST. */
   @Test public void testOrderByNullsLast() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
@@ -1583,7 +1583,7 @@ public class JdbcTest {
 
   /** Tests ORDER BY ... FETCH. */
   @Test public void testOrderByFetch() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
@@ -1604,7 +1604,7 @@ public class JdbcTest {
 
   /** Tests ORDER BY ... OFFSET ... FETCH. */
   @Test public void testOrderByOffsetFetch() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
@@ -1620,7 +1620,7 @@ public class JdbcTest {
 
   /** Tests FETCH with no ORDER BY. */
   @Test public void testFetch() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select \"empid\" from \"hr\".\"emps\"\n"
@@ -1631,7 +1631,7 @@ public class JdbcTest {
   }
 
   @Test public void testFetchStar() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select * from \"hr\".\"emps\"\n"
@@ -1643,7 +1643,7 @@ public class JdbcTest {
 
   /** Alternative formulation for {@link #testFetchStar()}. */
   @Test public void testLimitStar() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select * from \"hr\".\"emps\"\n"
@@ -1656,7 +1656,7 @@ public class JdbcTest {
   /** Limit implemented using {@link Queryable#take}. Test case for
    * <a href="https://github.com/julianhyde/optiq/issues/96">issue #96</a>. */
   @Test public void testLimitOnQueryableTable() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select * from \"days\"\n"
@@ -1669,7 +1669,7 @@ public class JdbcTest {
   /** Limit implemented using {@link Queryable#take}. Test case for
    * <a href="https://github.com/julianhyde/optiq/issues/70">issue #70</a>. */
   @Test public void testSelfJoinCount() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select count(*) as c from \"foodmart\".\"sales_fact_1997\" as p1 join \"foodmart\".\"sales_fact_1997\" as p2 using (\"store_id\")")
@@ -1689,7 +1689,7 @@ public class JdbcTest {
 
   /** Tests composite GROUP BY where one of the columns has NULL values. */
   @Test public void testGroupByNull() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select \"deptno\", \"commission\", sum(\"salary\") s\n"
@@ -1703,7 +1703,7 @@ public class JdbcTest {
   }
 
   @Test public void testSelectDistinct() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select distinct \"deptno\"\n"
@@ -1717,7 +1717,7 @@ public class JdbcTest {
   /** Select distinct on composite key, one column of which is boolean to
    * boot. */
   @Test public void testSelectDistinctComposite() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query("select distinct \"empid\" > 140 as c, \"deptno\"\n"
             + "from \"hr\".\"emps\"\n")
@@ -1730,7 +1730,7 @@ public class JdbcTest {
 
   /** Same result (and plan) as {@link #testSelectDistinct}. */
   @Test public void testGroupByNoAggregates() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select \"deptno\"\n"
@@ -1744,7 +1744,7 @@ public class JdbcTest {
 
   /** Tests sorting by a column that is already sorted. */
   @Test public void testOrderByOnSortedTable() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select * from \"time_by_day\"\n"
@@ -1757,7 +1757,7 @@ public class JdbcTest {
   /** Tests sorting by a column that is already sorted. */
   @Ignore("fix output for timezone")
   @Test public void testOrderByOnSortedTable2() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"time_id\", \"the_date\" from \"time_by_day\"\n"
@@ -1775,7 +1775,7 @@ public class JdbcTest {
 
   /** Tests windowed aggregation. */
   @Test public void testWinAgg() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select sum(\"salary\" + \"empid\") over w as s,\n"
@@ -1804,7 +1804,7 @@ public class JdbcTest {
    * One window straddles the current row.
    * Some windows have no PARTITION BY clause. */
   @Test public void testWinAgg2() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select sum(\"salary\" + \"empid\") over w as s,\n"
@@ -1834,7 +1834,7 @@ public class JdbcTest {
 
   /** Tests for RANK and ORDER BY ... DESCENDING, NULLS FIRST, NULLS LAST. */
   @Test public void testWinAggRank() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select  \"deptno\",\n"
@@ -1856,7 +1856,7 @@ public class JdbcTest {
 
   /** Tests WHERE comparing a nullable integer with an integer literal. */
   @Test public void testWhereNullable() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select * from \"hr\".\"emps\"\n"
@@ -1867,7 +1867,7 @@ public class JdbcTest {
 
   /** Tests the LIKE operator. */
   @Test public void testLike() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select * from \"hr\".\"emps\"\n"
@@ -1879,7 +1879,7 @@ public class JdbcTest {
 
   /** Tests array index. */
   @Test public void testArray() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select \"deptno\", \"employees\"[1] as e from \"hr\".\"depts\"\n")
@@ -1909,7 +1909,7 @@ public class JdbcTest {
   }
 
   private OptiqAssert.AssertQuery predicate(String foo) {
-      return OptiqAssert.assertThat()
+      return OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
           .query(
               "select * from \"hr\".\"emps\"\n"
@@ -1918,7 +1918,7 @@ public class JdbcTest {
   }
 
   @Test public void testExistsCorrelated() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .query(
             "select*from \"hr\".\"emps\" where exists (\n"
@@ -1932,14 +1932,14 @@ public class JdbcTest {
 
   /** Tests the TABLES table in the information schema. */
   @Test public void testMetaTables() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR_PLUS_METADATA)
         .query("select * from \"metadata\".TABLES")
         .returns(
             OptiqAssert.checkResultContains(
                 "tableSchem=metadata; tableName=COLUMNS; tableType=SYSTEM_TABLE; "));
 
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR_PLUS_METADATA)
         .query(
             "select count(distinct \"tableSchem\") as c\n"
@@ -1949,7 +1949,7 @@ public class JdbcTest {
 
   /** Tests that {@link java.sql.Statement#setMaxRows(int)} is honored. */
   @Test public void testSetMaxRows() throws Exception {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .doWithConnection(
             new Function1<OptiqConnection, Object>() {
@@ -1981,7 +1981,7 @@ public class JdbcTest {
 
   /** Tests a {@link PreparedStatement} with parameters. */
   @Test public void testPreparedStatement() throws Exception {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.REGULAR)
         .doWithConnection(
             new Function1<OptiqConnection, Object>() {
@@ -2026,7 +2026,7 @@ public class JdbcTest {
   /** Tests a JDBC connection that provides a model (a single schema based on
    * a JDBC database). */
   @Test public void testModel() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .withModel(FOODMART_MODEL)
         .query("select count(*) as c from \"foodmart\".\"time_by_day\"")
         .returns("C=730\n");
@@ -2037,13 +2037,13 @@ public class JdbcTest {
    * are more comprehensive tests in {@link MaterializationTest}. */
   @Ignore("until JdbcSchema can define materialized views")
    @Test public void testModelWithMaterializedView() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .withModel(FOODMART_MODEL)
         .enable(false)
         .query(
             "select count(*) as c from \"foodmart\".\"sales_fact_1997\" join \"foodmart\".\"time_by_day\" using (\"time_id\")")
         .returns("C=86837\n");
-    OptiqAssert.assertThat().withMaterializations(
+    OptiqAssert.that().withMaterializations(
         FOODMART_MODEL,
         "agg_c_10_sales_fact_1997",
             "select t.`month_of_year`, t.`quarter`, t.`the_year`, sum(s.`store_sales`) as `store_sales`, sum(s.`store_cost`), sum(s.`unit_sales`), count(distinct s.`customer_id`), count(*) as `fact_count` from `time_by_day` as t join `sales_fact_1997` as s using (`time_id`) group by t.`month_of_year`, t.`quarter`, t.`the_year`")
@@ -2059,7 +2059,7 @@ public class JdbcTest {
   /** Tests a JDBC connection that provides a model that contains custom
    * tables. */
   @Test public void testModelCustomTable() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .withModel(
             "{\n"
             + "  version: '1.0',\n"
@@ -2088,7 +2088,7 @@ public class JdbcTest {
   /** Tests a JDBC connection that provides a model that contains custom
    * tables. */
   @Test public void testModelCustomTable2() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .withModel(
             "{\n"
             + "  version: '1.0',\n"
@@ -2119,7 +2119,7 @@ public class JdbcTest {
    * schema. */
   @Test public void testModelCustomSchema() throws Exception {
     final OptiqAssert.AssertThat that =
-        OptiqAssert.assertThat().withModel(
+        OptiqAssert.that().withModel(
             "{\n"
             + "  version: '1.0',\n"
             + "  defaultSchema: 'adhoc',\n"
@@ -2162,7 +2162,7 @@ public class JdbcTest {
   @Test public void testModelImmutableSchemaCannotContainView()
       throws Exception {
     final OptiqAssert.AssertThat that =
-        OptiqAssert.assertThat().withModel(
+        OptiqAssert.that().withModel(
             "{\n"
             + "  version: '1.0',\n"
             + "  defaultSchema: 'adhoc',\n"
@@ -2198,7 +2198,7 @@ public class JdbcTest {
 
   /** Tests a JDBC connection that provides a model that contains a view. */
   @Test public void testModelView() throws Exception {
-    final OptiqAssert.AssertThat with = OptiqAssert.assertThat()
+    final OptiqAssert.AssertThat with = OptiqAssert.that()
         .withModel(
             "{\n"
             + "  version: '1.0',\n"
@@ -2301,7 +2301,7 @@ public class JdbcTest {
    * {@link net.hydromatic.avatica.Handler.ResultSink}. */
   @Test public void testAutomaticTemporaryTable() throws Exception {
     final List<Object> objects = new ArrayList<Object>();
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(
             new OptiqAssert.ConnectionFactory() {
               public OptiqConnection createConnection() throws Exception {
@@ -2334,7 +2334,7 @@ public class JdbcTest {
 
   @Test public void testExplain() {
     final OptiqAssert.AssertThat with =
-        OptiqAssert.assertThat().with(OptiqAssert.Config.FOODMART_CLONE);
+        OptiqAssert.that().with(OptiqAssert.Config.FOODMART_CLONE);
     with.query("explain plan for values (1, 'ab')")
         .returns("PLAN=EnumerableValuesRel(tuples=[[{ 1, 'ab' }]])\n\n");
     with.query("explain plan with implementation for values (1, 'ab')")
@@ -2369,7 +2369,7 @@ public class JdbcTest {
   /** Tests that CURRENT_TIMESTAMP gives different values each time a statement
    * is executed. */
   @Test public void testCurrentTimestamp() throws Exception {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(
             new OptiqAssert.ConnectionFactory() {
               public OptiqConnection createConnection() throws Exception {
@@ -2419,7 +2419,7 @@ public class JdbcTest {
 
   /** Test for timestamps and time zones, based on pgsql TimezoneTest. */
   @Test public void testGetTimestamp() throws Exception {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(
             new OptiqAssert.ConnectionFactory() {
                 public OptiqConnection createConnection() throws Exception {

@@ -20,7 +20,7 @@ package net.hydromatic.optiq.test;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
+import static net.hydromatic.optiq.test.OptiqAssert.that;
 
 /**
  * Tests for a JDBC front-end and JDBC back-end where the processing is not
@@ -30,7 +30,7 @@ import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
 public class JdbcFrontJdbcBackLinqMiddleTest {
 
   @Test public void testTable() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\"")
         .returns(
@@ -44,7 +44,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Test public void testWhere() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
         .returns(
@@ -53,7 +53,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Test public void testWhere2() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select * from \"foodmart\".\"days\"\n"
@@ -68,7 +68,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Test public void testCase() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select \"day\",\n"
@@ -89,7 +89,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Test public void testGroup() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select s, count(*) as c, min(\"week_day\") as mw from (\n"
@@ -106,7 +106,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Test public void testGroupEmpty() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select count(*) as c\n"
@@ -119,7 +119,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
    * civilized "cannot be implemented" exception. Of course, we'd like to be
    * able to implement it one day. */
   @Test public void testJoinTheta() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select count(*) from (\n"
@@ -131,7 +131,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Test public void testJoinGroupByEmpty() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select count(*) from (\n"
@@ -143,7 +143,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Test public void testJoinGroupByOrderBy() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select count(*), c.\"state_province\", sum(s.\"unit_sales\") as s\n"
@@ -159,7 +159,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Test public void testCompositeGroupBy() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select count(*) as c, c.\"state_province\"\n"
@@ -189,7 +189,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
     // Order by select item, referenced by ordinal
     // Distinct count
     // Not all GROUP columns are projected
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select c.\"state_province\",\n"
@@ -215,7 +215,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
 
   @Ignore
   @Test public void testPlan() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select c.\"state_province\"\n"
@@ -235,7 +235,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
 
   @Ignore
   @Test public void testPlan2() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART)
         .withSchema("foodmart")
         .query(
@@ -265,7 +265,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
     // instead, and that would be wrong.
     //
     // inventory_fact_1997 is on the LHS because it is larger than store.
-    assertThat()
+    that()
         .with(OptiqAssert.Config.FOODMART_CLONE)
         .query(
             "select \"store\".\"store_country\" as \"c0\", sum(\"inventory_fact_1997\".\"supply_time\") as \"m0\" from \"store\" as \"store\", \"inventory_fact_1997\" as \"inventory_fact_1997\" where \"inventory_fact_1997\".\"store_id\" = \"store\".\"store_id\" group by \"store\".\"store_country\"")

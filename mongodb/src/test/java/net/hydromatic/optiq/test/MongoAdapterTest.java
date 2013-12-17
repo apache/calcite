@@ -41,7 +41,7 @@ import java.util.Properties;
  * and "foodmart" data set, as follows:</p>
  *
  * <blockquote><pre>
- * JAR=~/.m2/repository/pentaho/mondrian-data-foodmart-json/0.2/mondrian-data-foodmart-json-0.2.jar
+ * JAR=~/.m2/repository/pentaho/mondrian-data-foodmart-json/0.3/mondrian-data-foodmart-json-0.3.jar
  * mkdir /tmp/foodmart
  * cd /tmp/foodmart
  * jar xvf $JAR
@@ -142,7 +142,7 @@ public class MongoAdapterTest {
   }
 
   @Test public void testSort() {
-      OptiqAssert.assertThat()
+      OptiqAssert.that()
           .enable(enabled())
           .with(ZIPS)
           .query("select * from zips order by state")
@@ -155,7 +155,7 @@ public class MongoAdapterTest {
   }
 
   @Test public void testFilterSort() {
-      OptiqAssert.assertThat()
+      OptiqAssert.that()
           .enable(enabled())
           .with(ZIPS)
           .query(
@@ -176,7 +176,7 @@ public class MongoAdapterTest {
   }
 
   @Test public void testUnionPlan() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
         .query(
@@ -196,7 +196,7 @@ public class MongoAdapterTest {
   }
 
   @Test public void testFilterUnionPlan() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
         .query(
@@ -212,7 +212,7 @@ public class MongoAdapterTest {
    * MongoDB doesn't like it. If there is an '=', it supersedes all other
    * operators. */
   @Test public void testFilterRedundant() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .enable(enabled())
         .with(ZIPS)
         .query(
@@ -229,7 +229,7 @@ public class MongoAdapterTest {
   }
 
   @Test public void testSelectWhere() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
         .query(
@@ -254,7 +254,7 @@ public class MongoAdapterTest {
   }
 
   @Test public void testInPlan() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .enable(enabled())
         .withModel(MONGO_FOODMART_MODEL)
         .query(
@@ -277,7 +277,7 @@ public class MongoAdapterTest {
 
   /** Query based on the "mongo-zips" model. */
   @Test public void testZips() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .enable(enabled())
         .with(ZIPS)
         .query("select count(*) from zips")
@@ -290,7 +290,7 @@ public class MongoAdapterTest {
   }
 
   @Test public void testProject() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .enable(enabled())
         .with(ZIPS)
         .query("select state, city from zips")
@@ -304,7 +304,7 @@ public class MongoAdapterTest {
   }
 
   @Test public void testFilter() {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .enable(enabled())
         .with(ZIPS)
         .query("select state, city from zips where state = 'CA'")
@@ -327,7 +327,7 @@ public class MongoAdapterTest {
         continue;
       }
       final OptiqAssert.AssertQuery query1 =
-          OptiqAssert.assertThat()
+          OptiqAssert.that()
               .enable(enabled())
               .with(FOODMART)
               .query(query.e.left);

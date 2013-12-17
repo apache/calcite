@@ -125,7 +125,7 @@ public class FoodmartTest {
   @Test(timeout = 60000)
   public void test() {
     try {
-      OptiqAssert.assertThat()
+      OptiqAssert.that()
 //          .withModel(JdbcTest.FOODMART_MODEL)
           .with(OptiqAssert.Config.FOODMART_CLONE)
 //          .withSchema("foodmart")

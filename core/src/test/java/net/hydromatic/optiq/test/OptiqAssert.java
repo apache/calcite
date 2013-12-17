@@ -130,7 +130,9 @@ public class OptiqAssert {
         }
       };
 
-  public static AssertThat assertThat() {
+  /** Creates an instance of {@code OptiqAssert} with the regular
+   * configuration. */
+  public static AssertThat that() {
     return new AssertThat(Config.REGULAR);
   }
 
@@ -498,7 +500,7 @@ public class OptiqAssert {
   }
 
   /**
-   * Result of calling {@link OptiqAssert#assertThat}.
+   * Result of calling {@link OptiqAssert#that}.
    */
   public static class AssertThat {
     private final ConnectionFactory connectionFactory;

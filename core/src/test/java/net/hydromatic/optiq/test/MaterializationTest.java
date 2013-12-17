@@ -43,7 +43,7 @@ public class MaterializationTest {
 
   @Test public void testFilter() {
     try {
-      OptiqAssert.assertThat()
+      OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
           .withMaterializations(
               JdbcTest.HR_MODEL,
@@ -63,7 +63,7 @@ public class MaterializationTest {
   @Test public void testFilterQueryOnProjectView() {
     try {
       Prepare.TRIM = true;
-      OptiqAssert.assertThat()
+      OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
           .withMaterializations(
               JdbcTest.HR_MODEL,
@@ -93,7 +93,7 @@ public class MaterializationTest {
       String model) {
     try {
       Prepare.TRIM = true;
-      OptiqAssert.assertThat()
+      OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
           .withMaterializations(model, "m0", materialize)
           .query(query)
@@ -113,7 +113,7 @@ public class MaterializationTest {
       String model) {
     try {
       Prepare.TRIM = true;
-      OptiqAssert.assertThat()
+      OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
           .withMaterializations(model, "m0", materialize)
           .query(query)

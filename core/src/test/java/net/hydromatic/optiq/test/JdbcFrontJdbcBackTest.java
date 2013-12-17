@@ -27,7 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.junit.Assert.*;
-import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
+import static net.hydromatic.optiq.test.OptiqAssert.that;
 
 /**
  * Tests for a JDBC front-end and JDBC back-end.
@@ -40,7 +40,7 @@ import static net.hydromatic.optiq.test.OptiqAssert.assertThat;
  */
 public class JdbcFrontJdbcBackTest {
   @Test public void testWhere2() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
         .returns(
@@ -50,7 +50,7 @@ public class JdbcFrontJdbcBackTest {
 
   @Ignore
   @Test public void testTables() throws Exception {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .doWithConnection(
             new Function1<OptiqConnection, Object>() {
@@ -76,7 +76,7 @@ public class JdbcFrontJdbcBackTest {
   }
 
   @Test public void testTablesByType() throws Exception {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.REGULAR_PLUS_METADATA)
         .doWithConnection(
             new Function1<OptiqConnection, Object>() {
@@ -103,7 +103,7 @@ public class JdbcFrontJdbcBackTest {
   }
 
   @Test public void testColumns() throws Exception {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .doWithConnection(
             new Function1<OptiqConnection, Object>() {
@@ -132,7 +132,7 @@ public class JdbcFrontJdbcBackTest {
    * {@link java.sql.DatabaseMetaData#getPrimaryKeys}) that therefore uses
    * empty result set. */
   @Test public void testEmpty() throws Exception {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .doWithConnection(
             new Function1<OptiqConnection, Object>() {
@@ -152,7 +152,7 @@ public class JdbcFrontJdbcBackTest {
   }
 
   @Test public void testCase() {
-    assertThat()
+    that()
         .with(OptiqAssert.Config.JDBC_FOODMART2)
         .withSchema("foodmart")
         .query(

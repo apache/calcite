@@ -145,7 +145,7 @@ public class ModelTest {
   @Test public void testModelImmutableSchemaCannotContainMaterialization()
       throws Exception {
     final OptiqAssert.AssertThat that =
-        OptiqAssert.assertThat().withModel(
+        OptiqAssert.that().withModel(
             "{\n"
             + "  version: '1.0',\n"
             + "  defaultSchema: 'adhoc',\n"
