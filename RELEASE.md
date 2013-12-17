@@ -2,7 +2,11 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/optiq/releases">github</a>.
 
-## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.16">0.4.16</a> (2013-11-24)
+## HEAD
+
+* Fix <a href="https://github.com/julianhyde/optiq/issues/105">#105</a>, "Externalize RelNode to and from JSON"
+
+## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.16">0.4.16</a> / 2013-11-24
 
 * Fix <a href="https://github.com/julianhyde/optiq/issues/69">#69</a>, "Can't join on string columns" and other problems with expressions in the join condition
 * Fix <a href="https://github.com/julianhyde/optiq/issues/74">#74</a>, "JOIN ... USING fails in 3-way join with UnsupportedOperationException".
@@ -27,6 +31,6 @@ For a full list of releases, see <a href="https://github.com/julianhyde/optiq/re
 * Upgrade to junit-4.11 (avoiding the dodgy junit-4.1.12).
 * Upgrade to linq4j-0.1.11.
 
-## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.15">0.4.15</a> (2013-10-14)
+## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.15">0.4.15</a> / 2013-10-14
 
 * Lots of good stuff that this margin is too small to contain. See a <a href="REFERENCE.md">SQL language reference</a>.
