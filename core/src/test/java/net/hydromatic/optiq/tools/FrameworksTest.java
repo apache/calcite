@@ -32,6 +32,7 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
+import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 
 import org.junit.Test;
@@ -40,6 +41,7 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -115,7 +117,11 @@ public class FrameworksTest {
             return planner.findBestExp();
           }
         });
-    assertEquals("EnumerableCalcRel#12", x.toString());
+    String s =
+        RelOptUtil.dumpPlan("", x, false, SqlExplainLevel.DIGEST_ATTRIBUTES);
+    assertThat(s, equalTo(
+        "EnumerableFilterRel(condition=[>($1, 1)])\n"
+        + "  EnumerableTableAccessRel(table=[[myTable]])\n"));
   }
 }
 

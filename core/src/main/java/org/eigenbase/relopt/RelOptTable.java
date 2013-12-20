@@ -24,7 +24,6 @@ import org.eigenbase.reltype.*;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
-
 /**
  * Represents a relational dataset in a {@link RelOptSchema}. It has methods to
  * describe and implement itself.
@@ -93,9 +92,15 @@ public interface RelOptTable
     /** Finds an interface implemented by this table. */
     <T> T unwrap(Class<T> clazz);
 
-    interface ToRelContext {
+    interface ViewExpander {
+        RelNode expandView(
+            RelDataType rowType,
+            String queryString,
+            List<String> schemaPath);
+    }
+
+    interface ToRelContext extends ViewExpander {
         RelOptCluster getCluster();
-        Prepare getPreparingStmt();
     }
 }
 

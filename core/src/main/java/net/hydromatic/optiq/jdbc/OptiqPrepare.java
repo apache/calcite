@@ -33,6 +33,7 @@ import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.relopt.volcano.VolcanoPlanner;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlNode;
+import org.eigenbase.sql.validate.SqlValidator;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -144,12 +145,16 @@ public interface OptiqPrepare {
   }
 
   public static class ParseResult {
+    public final OptiqPrepareImpl prepare;
     public final String sql; // for debug
     public final SqlNode sqlNode;
     public final RelDataType rowType;
 
-    public ParseResult(String sql, SqlNode sqlNode, RelDataType rowType) {
+    public ParseResult(OptiqPrepareImpl prepare, SqlValidator validator,
+        String sql,
+        SqlNode sqlNode, RelDataType rowType) {
       super();
+      this.prepare = prepare;
       this.sql = sql;
       this.sqlNode = sqlNode;
       this.rowType = rowType;

@@ -31,6 +31,8 @@ import net.hydromatic.optiq.util.graph.*;
 import net.hydromatic.linq4j.function.Function2;
 import net.hydromatic.linq4j.function.Functions;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * HepPlanner is a heuristic implementation of the {@link RelOptPlanner}
  * interface.
@@ -139,7 +141,12 @@ public class HepPlanner
         return added;
     }
 
-    // implement RelOptPlanner
+    public void clearRules() {
+        for (RelOptRule rule : ImmutableList.copyOf(allRules)) {
+            removeRule(rule);
+        }
+    }
+
     public boolean removeRule(RelOptRule rule)
     {
         unmapRuleDescription(rule);

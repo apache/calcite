@@ -18,6 +18,8 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.optiq.impl.clone.ArrayTableTest;
+import net.hydromatic.optiq.tools.FrameworksTest;
+import net.hydromatic.optiq.tools.PlannerTest;
 import net.hydromatic.optiq.util.PartiallyOrderedSetTest;
 import net.hydromatic.optiq.util.graph.DirectedGraphTest;
 
@@ -85,6 +87,8 @@ import org.junit.runners.Suite;
     SqlOperatorTest.class,
     RexTransformerTest.class,
     ChunkListTest.class,
+    FrameworksTest.class,
+    PlannerTest.class,
 
     // slow tests (above 1s)
     JdbcAdapterTest.class,

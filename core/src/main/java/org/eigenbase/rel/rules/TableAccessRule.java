@@ -17,8 +17,11 @@
 */
 package org.eigenbase.rel.rules;
 
+import java.util.List;
+
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
+import org.eigenbase.reltype.RelDataType;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
@@ -51,7 +54,11 @@ public class TableAccessRule
                         return oldRel.getCluster();
                     }
 
-                    public Prepare getPreparingStmt() {
+                    public RelNode expandView(
+                        RelDataType rowType,
+                        String queryString,
+                        List<String> schemaPath)
+                    {
                         throw new UnsupportedOperationException();
                     }
                 });

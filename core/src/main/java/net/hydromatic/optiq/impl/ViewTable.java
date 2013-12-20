@@ -79,14 +79,11 @@ public class ViewTable<T>
   public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
-    return expandView(
-        context.getPreparingStmt(),
-        getRowType(),
-        viewSql);
+    return expandView(context, getRowType(), viewSql);
   }
 
   private RelNode expandView(
-      Prepare preparingStmt,
+      RelOptTable.ToRelContext preparingStmt,
       RelDataType rowType,
       String queryString) {
     try {
@@ -96,7 +93,7 @@ public class ViewTable<T>
           preparingStmt.expandView(rowType, queryString, schemaPath1);
 
       rel = RelOptUtil.createCastRel(rel, rowType, true);
-      rel = preparingStmt.flattenTypes(rel, false);
+      //rel = viewExpander.flattenTypes(rel, false);
       return rel;
     } catch (Throwable e) {
       throw Util.newInternal(

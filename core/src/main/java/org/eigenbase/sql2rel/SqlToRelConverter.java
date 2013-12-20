@@ -127,27 +127,28 @@ public class SqlToRelConverter
      */
     private final Map<SqlNode, RexNode> mapConvertedNonCorrSubqs =
         new HashMap<SqlNode, RexNode>();
-    private final Prepare preparingStmt;
+
+    public final RelOptTable.ViewExpander viewExpander;
 
     //~ Constructors -----------------------------------------------------------
 
     /**
      * Creates a converter.
      *
-     * @param preparingStmt Preparing statement
+     * @param viewExpander Preparing statement
      * @param validator Validator
      * @param catalogReader Schema
      * @param planner Planner
      * @param rexBuilder Rex builder
      */
     public SqlToRelConverter(
-        Prepare preparingStmt,
+        RelOptTable.ViewExpander viewExpander,
         SqlValidator validator,
         Prepare.CatalogReader catalogReader,
         RelOptPlanner planner,
         RexBuilder rexBuilder)
     {
-        this.preparingStmt = preparingStmt;
+        this.viewExpander = viewExpander;
         this.opTab =
             (validator
                 == null) ? SqlStdOperatorTable.instance()
@@ -1769,8 +1770,7 @@ public class SqlToRelConverter
                     usedDataset);
             final RelNode tableRel;
             if (shouldConvertTableAccess) {
-                tableRel = table.toRel(
-                    makeToRelContext());
+                tableRel = toRel(table);
             } else {
                 tableRel = new TableAccessRel(cluster, table);
             }
@@ -2964,16 +2964,22 @@ public class SqlToRelConverter
             false);
     }
 
-    public RelOptTable.ToRelContext makeToRelContext() {
-        return new RelOptTable.ToRelContext() {
-            public RelOptCluster getCluster() {
-                return cluster;
-            }
+    public RelNode toRel(RelOptTable table) {
+        return table.toRel(
+            new RelOptTable.ToRelContext() {
+                public RelOptCluster getCluster() {
+                    return cluster;
+                }
 
-            public Prepare getPreparingStmt() {
-                return preparingStmt;
-            }
-        };
+                public RelNode expandView(
+                    RelDataType rowType,
+                    String queryString,
+                    List<String> schemaPath)
+                {
+                    return viewExpander.expandView(
+                        rowType, queryString, schemaPath);
+                }
+            });
     }
 
     protected RelOptTable getTargetTable(SqlNode call)

@@ -56,9 +56,11 @@ public class MockRelOptPlanner
         // ignore - this planner does not support materializations
     }
 
-    // implement RelOptPlanner
-    public boolean addRule(RelOptRule rule)
-    {
+    public void clearRules() {
+        this.rule = null;
+    }
+
+    public boolean addRule(RelOptRule rule) {
         assert this.rule == null
             : "MockRelOptPlanner only supports a single rule";
         this.rule = rule;
@@ -66,9 +68,7 @@ public class MockRelOptPlanner
         return false;
     }
 
-    // implement RelOptPlanner
-    public boolean removeRule(RelOptRule rule)
-    {
+    public boolean removeRule(RelOptRule rule) {
         return false;
     }
 

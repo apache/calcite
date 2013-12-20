@@ -72,8 +72,7 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
 
     RelOptTable table =
         this.catalogReader.getTable(materialization.materializedTable.path());
-    materialization.tableRel =
-        table.toRel(sqlToRelConverter2.makeToRelContext());
+    materialization.tableRel = sqlToRelConverter2.toRel(table);
   }
 
   /** Converts a relational expression to use a

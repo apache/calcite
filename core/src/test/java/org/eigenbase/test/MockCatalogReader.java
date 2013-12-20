@@ -185,6 +185,10 @@ public class MockCatalogReader
 
     //~ Methods ----------------------------------------------------------------
 
+    public Prepare.CatalogReader withSchemaPath(List<String> schemaPath) {
+        return this;
+    }
+
     public Prepare.PreparingTable getTableForMember(List<String> names) {
         return getTable(names);
     }

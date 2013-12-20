@@ -26,6 +26,7 @@ import net.hydromatic.linq4j.expressions.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelOptTable;
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.RexBuilder;
 import org.eigenbase.rex.RexNode;
 
@@ -34,7 +35,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 
 /**
  * Translates a tree of linq4j {@link Queryable} nodes to a tree of
@@ -57,8 +57,9 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
     return cluster;
   }
 
-  public Prepare getPreparingStmt() {
-    return preparingStmt;
+  public RelNode expandView(RelDataType rowType, String queryString,
+      List<String> schemaPath) {
+    return preparingStmt.expandView(rowType, queryString, schemaPath);
   }
 
   public <T> RelNode translate(Queryable<T> queryable) {

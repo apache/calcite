@@ -50,7 +50,6 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.ChainedSqlOperatorTable;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
-import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
 import org.codehaus.commons.compiler.CompileException;
@@ -114,8 +113,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         new OptiqSqlValidator(
             SqlStdOperatorTable.instance(), catalogReader, typeFactory);
     SqlNode sqlNode1 = validator.validate(sqlNode);
-    return new ParseResult(
-        sql, sqlNode1, validator.getValidatedNodeType(sqlNode1));
+    return new ParseResult(this, validator, sql, sqlNode1,
+        validator.getValidatedNodeType(sqlNode1));
   }
 
   /** Creates a collection of planner factories.
@@ -491,7 +490,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     return action.apply(cluster, catalogReader, context.getRootSchema());
   }
 
-  static class OptiqPreparingStmt extends Prepare {
+  static class OptiqPreparingStmt extends Prepare
+      implements RelOptTable.ViewExpander {
     private final RelOptPlanner planner;
     private final RexBuilder rexBuilder;
     private final Context context;
@@ -617,11 +617,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         throw new RuntimeException("parse failed", e);
       }
       // View may have different schema path than current connection.
-      final OptiqCatalogReader catalogReader =
-          new OptiqCatalogReader(
-              ((OptiqCatalogReader) this.catalogReader).rootSchema,
-              schemaPath,
-              ((OptiqCatalogReader) this.catalogReader).typeFactory);
+      final CatalogReader catalogReader =
+          this.catalogReader.withSchemaPath(schemaPath);
       SqlValidator validator = createSqlValidator(catalogReader);
       SqlNode sqlNode1 = validator.validate(sqlNode);
 
@@ -861,98 +858,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     }
   }
 
-  private static class OptiqCatalogReader
-      implements Prepare.CatalogReader {
-    private final Schema rootSchema;
-    private final JavaTypeFactory typeFactory;
-    private final List<String> defaultSchema;
-
-    public OptiqCatalogReader(
-        Schema rootSchema,
-        List<String> defaultSchema,
-        JavaTypeFactory typeFactory) {
-      super();
-      assert rootSchema != defaultSchema;
-      this.rootSchema = rootSchema;
-      this.defaultSchema = defaultSchema;
-      this.typeFactory = typeFactory;
-    }
-
-    public RelOptTableImpl getTable(final List<String> names) {
-      // First look in the default schema, if any.
-      if (defaultSchema != null) {
-        RelOptTableImpl table = getTableFrom(names, defaultSchema);
-        if (table != null) {
-          return table;
-        }
-      }
-      // If not found, look in the root schema
-      return getTableFrom(names, Collections.<String>emptyList());
-    }
-
-    private RelOptTableImpl getTableFrom(
-        List<String> names,
-        List<String> schemaNames) {
-      List<Pair<String, Object>> pairs =
-          new ArrayList<Pair<String, Object>>();
-      Schema schema = rootSchema;
-      for (String schemaName : schemaNames) {
-        schema = schema.getSubSchema(schemaName);
-        if (schema == null) {
-          return null;
-        }
-        pairs.add(Pair.<String, Object>of(schemaName, schema));
-      }
-      for (int i = 0; i < names.size(); i++) {
-        final String name = names.get(i);
-        Schema subSchema = schema.getSubSchema(name);
-        if (subSchema != null) {
-          pairs.add(Pair.<String, Object>of(name, subSchema));
-          schema = subSchema;
-          continue;
-        }
-        final Table table = schema.getTable(name, Object.class);
-        if (table != null) {
-          pairs.add(Pair.<String, Object>of(name, table));
-          if (i != names.size() - 1) {
-            // not enough objects to match all names
-            return null;
-          }
-          return new RelOptTableImpl(
-              this,
-              table.getRowType(),
-              Pair.left(pairs),
-              table);
-        }
-        return null;
-      }
-      return null;
-    }
-
-    public RelDataType getNamedType(SqlIdentifier typeName) {
-      return null;
-    }
-
-    public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
-      return null;
-    }
-
-    public String getSchemaName() {
-      return null;
-    }
-
-    public RelOptTableImpl getTableForMember(List<String> names) {
-      return getTable(names);
-    }
-
-    public RelDataTypeFactory getTypeFactory() {
-      return typeFactory;
-    }
-
-    public void registerRules(RelOptPlanner planner) throws Exception {
-    }
-  }
-
   interface ScalarTranslator {
     RexNode toRex(BlockStatement statement);
     List<RexNode> toRexList(BlockStatement statement);
@@ -1160,28 +1065,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
     public List<SqlOperator> getOperatorList() {
       return null;
-    }
-  }
-
-  /** Validator. */
-  private static class OptiqSqlValidator extends SqlValidatorImpl {
-    public OptiqSqlValidator(
-        SqlOperatorTable opTab,
-        OptiqCatalogReader catalogReader,
-        JavaTypeFactory typeFactory) {
-      super(opTab, catalogReader, typeFactory, SqlConformance.Default);
-    }
-
-    @Override
-    protected RelDataType getLogicalSourceRowType(
-        RelDataType sourceRowType, SqlInsert insert) {
-      return ((JavaTypeFactory) typeFactory).toSql(sourceRowType);
-    }
-
-    @Override
-    protected RelDataType getLogicalTargetRowType(
-        RelDataType targetRowType, SqlInsert insert) {
-      return ((JavaTypeFactory) typeFactory).toSql(targetRowType);
     }
   }
 }

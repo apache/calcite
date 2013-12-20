@@ -17,13 +17,20 @@
 */
 package net.hydromatic.optiq.tools;
 
+import net.hydromatic.linq4j.function.Function1;
+
+import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
+import net.hydromatic.optiq.prepare.PlannerImpl;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
 import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.relopt.RelOptSchema;
+import org.eigenbase.sql.fun.SqlStdOperatorTable;
+
+import com.google.common.collect.ImmutableList;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -33,6 +40,31 @@ import java.sql.DriverManager;
  * server first.
  */
 public class Frameworks {
+  /**
+   * Creates an instance of {@code Planner}.
+   *
+   * @param schemaFactory Schema factory. Given a root schema, it creates and
+   *                      returns the schema that should be used to execute
+   *                      queries.
+   * @param operatorTable The instance of SqlOperatorTable that be should to
+   *     resolve Optiq operators.
+   * @param ruleSets An array of one or more rule sets used during the course of
+   *     query evaluation. The common use case is when there is a single rule
+   *     set and {@link net.hydromatic.optiq.tools.Planner#transform}
+   *     will only be called once. However, consumers may also register multiple
+   *     {@link net.hydromatic.optiq.tools.RuleSet}s and do multiple repetitions
+   *     of {@link Planner#transform} planning cycles using different indices.
+   *     The order of rule sets provided here determines the zero-based indices
+   *     of rule sets elsewhere in this class.
+   * @return The Planner object.
+   */
+  public static Planner getPlanner(
+      Function1<MutableSchema, Schema> schemaFactory,
+      SqlStdOperatorTable operatorTable, RuleSet... ruleSets) {
+    return new PlannerImpl(schemaFactory, operatorTable,
+        ImmutableList.copyOf(ruleSets));
+  }
+
   /** Piece of code to be run in a context where a planner is available. The
    * planner is accessible from the {@code cluster} parameter, as are several
    * other useful objects. */

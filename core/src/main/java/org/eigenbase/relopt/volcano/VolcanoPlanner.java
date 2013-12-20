@@ -404,6 +404,12 @@ public class VolcanoPlanner
         return traitSet;
     }
 
+    public void clearRules() {
+        for (RelOptRule rule : ImmutableList.copyOf(ruleSet)) {
+            removeRule(rule);
+        }
+    }
+
     public boolean addRule(RelOptRule rule)
     {
         if (locked) {

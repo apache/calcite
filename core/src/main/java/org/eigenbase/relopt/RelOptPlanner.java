@@ -68,6 +68,11 @@ public interface RelOptPlanner
     public List<RelTraitDef> getRelTraitDefs();
 
     /**
+     * Removes all rules.
+     */
+    void clearRules();
+
+    /**
      * Registers a rule. If the rule has already been registered, does nothing.
      * This method should determine if the given rule is a {@link
      * org.eigenbase.rel.convert.ConverterRule} and pass the ConverterRule to

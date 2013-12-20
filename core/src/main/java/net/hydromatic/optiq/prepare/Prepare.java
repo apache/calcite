@@ -377,6 +377,10 @@ public abstract class Prepare {
       extends RelOptSchema, SqlValidatorCatalogReader {
     PreparingTable getTableForMember(List<String> names);
 
+    /** Returns a catalog reader the same as this one but with a possibly
+     * different schema path. */
+    CatalogReader withSchemaPath(List<String> schemaPath);
+
     PreparingTable getTable(List<String> names);
   }
 
