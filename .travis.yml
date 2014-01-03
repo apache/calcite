@@ -1,7 +1,9 @@
 language: java
 jdk:
+  - oraclejdk8
   - oraclejdk7
   - openjdk6
 branches:
   only:
     - master
+    - maint-0.4.12
