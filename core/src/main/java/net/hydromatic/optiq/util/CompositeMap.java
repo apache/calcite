@@ -33,7 +33,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
   }
 
   /** Creates a CompositeMap. */
-  @SafeVarargs
+  // Would like to use '@SafeVarargs' but JDK 1.6 doesn't support it.
   @SuppressWarnings("varargs")
   public static <K, V> CompositeMap<K, V> of(Map<K, V> map0,
       Map<K, V>... maps) {
