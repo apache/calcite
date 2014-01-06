@@ -38,7 +38,7 @@ planning process so detailed that it might fill up your hard drive.
 
 # CSV adapter
 
-See <a href="https://github.com/julianhyde/optiq-csv/TUTORIAL.csv">optiq-csv
+See <a href="https://github.com/julianhyde/optiq-csv/blob/master/TUTORIAL.md">optiq-csv
 tutorial</a>.
 
 # MongoDB adapter
