@@ -19,8 +19,8 @@ package net.hydromatic.optiq.tools;
 
 import net.hydromatic.linq4j.function.Function1;
 
-import net.hydromatic.optiq.MutableSchema;
 import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.prepare.PlannerImpl;
@@ -59,7 +59,7 @@ public class Frameworks {
    * @return The Planner object.
    */
   public static Planner getPlanner(
-      Function1<MutableSchema, Schema> schemaFactory,
+      Function1<SchemaPlus, Schema> schemaFactory,
       SqlStdOperatorTable operatorTable, RuleSet... ruleSets) {
     return new PlannerImpl(schemaFactory, operatorTable,
         ImmutableList.copyOf(ruleSets));
@@ -69,7 +69,8 @@ public class Frameworks {
    * planner is accessible from the {@code cluster} parameter, as are several
    * other useful objects. */
   public interface PlannerAction<R> {
-    R apply(RelOptCluster cluster, RelOptSchema relOptSchema, Schema schema);
+    R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
+        SchemaPlus rootSchema);
   }
 
   /**

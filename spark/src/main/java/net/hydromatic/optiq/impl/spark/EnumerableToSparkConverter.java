@@ -36,8 +36,7 @@ import java.util.List;
  */
 public class EnumerableToSparkConverter
     extends ConverterRelImpl
-    implements SparkRel
-{
+    implements SparkRel {
   protected EnumerableToSparkConverter(RelOptCluster cluster,
       RelTraitSet traits, RelNode input) {
     super(cluster, ConventionTraitDef.instance, traits, input);
@@ -68,7 +67,7 @@ public class EnumerableToSparkConverter
     final Expression sparkContext =
         Expressions.call(
             SparkMethod.GET_SPARK_CONTEXT.method,
-            implementor.root);
+            implementor.getRootExpression());
     final Expression rdd =
         list.append(
             "rdd",

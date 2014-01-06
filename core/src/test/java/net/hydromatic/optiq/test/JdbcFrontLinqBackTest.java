@@ -19,15 +19,22 @@ package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.Enumerator;
 import net.hydromatic.linq4j.Linq4j;
+import net.hydromatic.linq4j.QueryProvider;
+import net.hydromatic.linq4j.Queryable;
+import net.hydromatic.linq4j.expressions.Expression;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.TableInSchemaImpl;
-import net.hydromatic.optiq.impl.java.MapSchema;
+import net.hydromatic.optiq.impl.*;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
+
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -246,30 +253,46 @@ public class JdbcFrontLinqBackTest {
                     OptiqAssert.getConnection("hr", "foodmart");
                 OptiqConnection optiqConnection = connection.unwrap(
                     OptiqConnection.class);
-                MutableSchema rootSchema =
+                SchemaPlus rootSchema =
                     optiqConnection.getRootSchema();
-                MapSchema mapSchema =
-                    MapSchema.create(rootSchema, "foo");
+                SchemaPlus mapSchema =
+                    rootSchema.add(new AbstractSchema(rootSchema, "foo"));
                 final String tableName = "bar";
                 final JdbcTest.AbstractModifiableTable table =
-                    new JdbcTest.AbstractModifiableTable(
-                        mapSchema,
-                        JdbcTest.Employee.class,
-                        optiqConnection.getTypeFactory().createType(
-                            JdbcTest.Employee.class),
-                        tableName) {
-                      public Enumerator enumerator() {
-                        return Linq4j.enumerator(employees);
+                    new JdbcTest.AbstractModifiableTable(tableName) {
+                      public RelDataType getRowType(
+                          RelDataTypeFactory typeFactory) {
+                        return ((JavaTypeFactory) typeFactory)
+                            .createType(JdbcTest.Employee.class);
+                      }
+
+                      public <T> Queryable<T> asQueryable(
+                          QueryProvider queryProvider, SchemaPlus schema,
+                          String tableName) {
+                        return new AbstractTableQueryable<T>(queryProvider,
+                            schema, this, tableName) {
+                          public Enumerator<T> enumerator() {
+                            //noinspection unchecked
+                            return (Enumerator<T>) Linq4j.enumerator(employees);
+                          }
+                        };
+                      }
+
+                      public Type getElementType() {
+                        return JdbcTest.Employee.class;
+                      }
+
+                      public Expression getExpression(SchemaPlus schema,
+                          String tableName, Class clazz) {
+                        return Schemas.tableExpression(schema, getElementType(),
+                            tableName, clazz);
                       }
 
                       public Collection getModifiableCollection() {
                         return employees;
                       }
                     };
-                mapSchema.addTable(
-                    new TableInSchemaImpl(
-                        mapSchema, tableName, Schema.TableType.TABLE,
-                        table));
+                mapSchema.add(tableName, table);
                 return optiqConnection;
               }
             });

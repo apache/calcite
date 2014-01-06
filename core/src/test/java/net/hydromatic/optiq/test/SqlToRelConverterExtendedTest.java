@@ -18,7 +18,8 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.optiq.Schema;
+
+import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.runtime.Hook;
 import net.hydromatic.optiq.tools.Frameworks;
 
@@ -76,11 +77,10 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
     Frameworks.withPlanner(
         new Frameworks.PlannerAction<Object>() {
           public Object apply(RelOptCluster cluster,
-              RelOptSchema relOptSchema, Schema schema) {
+              RelOptSchema relOptSchema, SchemaPlus rootSchema) {
             final RelJsonReader reader = new RelJsonReader(
                 cluster,
-                schemas[0],
-                schema);
+                schemas[0], rootSchema);
             try {
               RelNode x = reader.read(json);
             } catch (IOException e) {

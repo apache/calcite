@@ -93,7 +93,8 @@ public class MongoTableScan extends TableAccessRelBase implements MongoRel {
   }
 
   public void implement(Implementor implementor) {
-    implementor.table = mongoTable;
+    implementor.mongoTable = mongoTable;
+    implementor.table = table;
     for (Pair<String, String> op : ops) {
       implementor.add(op.left, op.right);
     }

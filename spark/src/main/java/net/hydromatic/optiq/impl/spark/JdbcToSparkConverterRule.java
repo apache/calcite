@@ -18,7 +18,6 @@
 package net.hydromatic.optiq.impl.spark;
 
 import net.hydromatic.optiq.impl.jdbc.JdbcConvention;
-import net.hydromatic.optiq.impl.jdbc.JdbcToEnumerableConverter;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.rel.convert.ConverterRule;
@@ -40,8 +39,7 @@ public class JdbcToSparkConverterRule extends ConverterRule {
   @Override
   public RelNode convert(RelNode rel) {
     RelTraitSet newTraitSet = rel.getTraitSet().replace(getOutTrait());
-    return new JdbcToSparkConverter(
-        rel.getCluster(), newTraitSet, rel);
+    return new JdbcToSparkConverter(rel.getCluster(), newTraitSet, rel);
   }
 }
 

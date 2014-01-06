@@ -20,6 +20,7 @@ package net.hydromatic.optiq.prepare;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.StarTable;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
+import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import net.hydromatic.optiq.rules.java.EnumerableRel;
 
@@ -37,7 +38,7 @@ import java.util.*;
 */
 class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
   public OptiqMaterializer(OptiqPrepare.Context context,
-      CatalogReader catalogReader, Schema schema,
+      CatalogReader catalogReader, OptiqSchema schema,
       RelOptPlanner planner) {
     super(context, catalogReader, catalogReader.getTypeFactory(), schema,
         EnumerableRel.Prefer.ANY, planner, EnumerableConvention.INSTANCE);
@@ -78,18 +79,20 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
   /** Converts a relational expression to use a
    * {@link net.hydromatic.optiq.impl.StarTable} defined in {@code schema}.
    * Uses the first star table that fits. */
-  private void useStar(Schema schema, Materialization materialization) {
-    List<StarTable> starTables = getStarTables(schema);
+  private void useStar(OptiqSchema schema, Materialization materialization) {
+    List<OptiqSchema.TableEntry> starTables = getStarTables(schema);
     if (starTables.isEmpty()) {
       // Don't waste effort converting to leaf-join form.
       return;
     }
     final RelNode rel2 =
         RelOptMaterialization.toLeafJoinForm(materialization.queryRel);
-    for (StarTable starTable : starTables) {
+    for (OptiqSchema.TableEntry starTable : starTables) {
+      final Table table = starTable.getTable();
+      assert table instanceof StarTable;
       OptiqPrepareImpl.RelOptTableImpl starRelOptTable =
           new OptiqPrepareImpl.RelOptTableImpl(catalogReader,
-              starTable.getRowType(), starTable.getPath(), starTable);
+              table.getRowType(typeFactory), starTable);
       final RelNode rel3 =
           RelOptMaterialization.tryUseStar(rel2, starRelOptTable);
       if (rel3 != null) {
@@ -104,17 +107,19 @@ class OptiqMaterializer extends OptiqPrepareImpl.OptiqPreparingStmt {
     }
   }
 
-  /** Returns the star tables defined in a schema. */
-  private List<StarTable> getStarTables(Schema schema) {
-    final List<StarTable> list = new ArrayList<StarTable>();
+  /** Returns the star tables defined in a schema.
+   * @param schema Schema */
+  private List<OptiqSchema.TableEntry> getStarTables(OptiqSchema schema) {
+    final List<OptiqSchema.TableEntry> list =
+        new ArrayList<OptiqSchema.TableEntry>();
     // TODO: Assumes that star tables are all defined in a schema called
     // "mat". Instead, we should look for star tables that use a given set of
     // tables, regardless of schema.
-    final Schema matSchema = Schemas.root(schema).getSubSchema("mat");
+    final OptiqSchema matSchema = schema.root().getSubSchema("mat");
     if (matSchema != null) {
-      for (Schema.TableInSchema tis : matSchema.getTables().values()) {
-        if (tis.tableType == Schema.TableType.STAR) {
-          list.add((StarTable) tis.getTable(Object.class));
+      for (OptiqSchema.TableEntry tis : matSchema.tableMap.values()) {
+        if (tis.getTable().getJdbcTableType() == Schema.TableType.STAR) {
+          list.add(tis);
         }
       }
     }

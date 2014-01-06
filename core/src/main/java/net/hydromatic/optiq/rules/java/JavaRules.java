@@ -378,18 +378,17 @@ public class JavaRules {
   public static class EnumerableTableAccessRel
       extends TableAccessRelBase
       implements EnumerableRel {
-    private final Expression expression;
     private final Class elementType;
 
-    public EnumerableTableAccessRel(
-        RelOptCluster cluster,
-        RelTraitSet traitSet,
-        RelOptTable table,
-        Expression expression,
-        Class elementType) {
+    public EnumerableTableAccessRel(RelOptCluster cluster, RelTraitSet traitSet,
+        RelOptTable table, Class elementType) {
       super(cluster, traitSet, table);
       assert getConvention() instanceof EnumerableConvention;
       this.elementType = elementType;
+    }
+
+    private Expression getExpression() {
+      Expression expression = table.getExpression(Queryable.class);
       final Type type = expression.getType();
       if (Types.isArray(type)) {
         if (Types.toClass(type).getComponentType().isPrimitive()) {
@@ -417,7 +416,7 @@ public class JavaRules {
                 expression,
                 BuiltinMethod.QUERYABLE_AS_ENUMERABLE.method);
       }
-      this.expression = expression;
+      return expression;
     }
 
     private JavaRowFormat format() {
@@ -428,11 +427,9 @@ public class JavaRules {
       }
     }
 
-    @Override
-    public RelNode copy(
-        RelTraitSet traitSet, List<RelNode> inputs) {
-      return new EnumerableTableAccessRel(
-          getCluster(), traitSet, table, expression, elementType);
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new EnumerableTableAccessRel(getCluster(), traitSet, table,
+          elementType);
     }
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -446,6 +443,7 @@ public class JavaRules {
               implementor.getTypeFactory(),
               getRowType(),
               format());
+      final Expression expression = getExpression();
       return implementor.result(physType, Blocks.toBlock(expression));
     }
   }
@@ -1671,8 +1669,7 @@ public class JavaRules {
           (TableModificationRel) rel;
       final ModifiableTable modifiableTable =
           modify.getTable().unwrap(ModifiableTable.class);
-      if (modifiableTable == null
-          || modifiableTable.getExpression() == null) {
+      if (modifiableTable == null) {
         return null;
       }
       final RelTraitSet traitSet =
@@ -1693,8 +1690,6 @@ public class JavaRules {
   public static class EnumerableTableModificationRel
       extends TableModificationRelBase
       implements EnumerableRel {
-    private final Expression expression;
-
     public EnumerableTableModificationRel(
         RelOptCluster cluster,
         RelTraitSet traits,
@@ -1718,10 +1713,6 @@ public class JavaRules {
       final ModifiableTable modifiableTable =
           table.unwrap(ModifiableTable.class);
       if (modifiableTable == null) {
-        throw new AssertionError(); // TODO: user error in validator
-      }
-      this.expression = modifiableTable.getExpression();
-      if (expression == null) {
         throw new AssertionError(); // TODO: user error in validator
       }
     }
@@ -1749,14 +1740,16 @@ public class JavaRules {
       final ParameterExpression collectionParameter =
           Expressions.parameter(Collection.class,
               builder.newName("collection"));
+      final Expression expression = table.getExpression(ModifiableTable.class);
+      assert expression != null; // TODO: user error in validator
+      assert ModifiableTable.class.isAssignableFrom(
+          Types.toClass(expression.getType())) : expression.getType();
       builder.add(
           Expressions.declare(
               0,
               collectionParameter,
               Expressions.call(
-                  Expressions.convert_(
-                      expression,
-                      ModifiableTable.class),
+                  expression,
                   BuiltinMethod.MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION
                       .method)));
       final Expression countParameter =

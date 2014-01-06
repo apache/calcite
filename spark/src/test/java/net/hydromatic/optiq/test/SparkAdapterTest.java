@@ -17,7 +17,6 @@
 */
 package net.hydromatic.optiq.test;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.*;
@@ -32,7 +31,7 @@ public class SparkAdapterTest {
    * There are no data sources.
    */
   @Test public void testValues() throws SQLException {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.SPARK)
         .query(
             "select *\n"
@@ -47,7 +46,7 @@ public class SparkAdapterTest {
 
   /** Tests values followed by filter, evaluated by Spark. */
   @Test public void testValuesFilter() throws SQLException {
-    OptiqAssert.assertThat()
+    OptiqAssert.that()
         .with(OptiqAssert.Config.SPARK)
         .query(
             "select *\n"

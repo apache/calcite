@@ -17,18 +17,16 @@
 */
 package net.hydromatic.optiq.prepare;
 
-import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.OptiqSchema;
 
 import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlIdentifier;
 import org.eigenbase.sql.validate.SqlMoniker;
-import org.eigenbase.util.Pair;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,12 +34,12 @@ import java.util.List;
  * Implementation of {@link net.hydromatic.optiq.prepare.Prepare.CatalogReader}.
  */
 class OptiqCatalogReader implements Prepare.CatalogReader {
-  final Schema rootSchema;
+  final OptiqSchema rootSchema;
   final JavaTypeFactory typeFactory;
   private final List<String> defaultSchema;
 
   public OptiqCatalogReader(
-      Schema rootSchema,
+      OptiqSchema rootSchema,
       List<String> defaultSchema,
       JavaTypeFactory typeFactory) {
     super();
@@ -71,36 +69,30 @@ class OptiqCatalogReader implements Prepare.CatalogReader {
   private OptiqPrepareImpl.RelOptTableImpl getTableFrom(
       List<String> names,
       List<String> schemaNames) {
-    List<Pair<String, Object>> pairs =
-        new ArrayList<Pair<String, Object>>();
-    Schema schema = rootSchema;
+    OptiqSchema schema = rootSchema;
     for (String schemaName : schemaNames) {
       schema = schema.getSubSchema(schemaName);
       if (schema == null) {
         return null;
       }
-      pairs.add(Pair.<String, Object>of(schemaName, schema));
     }
     for (int i = 0; i < names.size(); i++) {
       final String name = names.get(i);
-      Schema subSchema = schema.getSubSchema(name);
+      OptiqSchema subSchema = schema.getSubSchema(name);
       if (subSchema != null) {
-        pairs.add(Pair.<String, Object>of(name, subSchema));
         schema = subSchema;
         continue;
       }
-      final Table table = schema.getTable(name, Object.class);
+      final Table table = schema.compositeTableMap.get(name);
       if (table != null) {
-        pairs.add(Pair.<String, Object>of(name, table));
         if (i != names.size() - 1) {
           // not enough objects to match all names
           return null;
         }
         return new OptiqPrepareImpl.RelOptTableImpl(
             this,
-            table.getRowType(),
-            Pair.left(pairs),
-            table);
+            table.getRowType(typeFactory),
+            schema.add(name, table));
       }
       return null;
     }

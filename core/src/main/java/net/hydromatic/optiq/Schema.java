@@ -17,12 +17,7 @@
 */
 package net.hydromatic.optiq;
 
-import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
-
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-
-import com.google.common.collect.Multimap;
 
 import java.util.*;
 
@@ -38,7 +33,7 @@ import java.util.*;
  * different numbers or types of parameters.
  * For this reason, {@link #getTableFunctions} returns a list of all
  * members with the same name. Optiq will call
- * {@link Schemas#resolve(String, java.util.Collection, java.util.List)}
+ * {@link Schemas#resolve(org.eigenbase.reltype.RelDataTypeFactory, String, java.util.Collection, java.util.List)}
  * to choose the appropriate one.</p>
  *
  * <p>The most common and important type of member is the one with no
@@ -61,7 +56,7 @@ public interface Schema {
   /**
    * Returns the parent schema, or null if this schema has no parent.
    */
-  Schema getParentSchema();
+  SchemaPlus getParentSchema();
 
   /**
    * Returns the name of this schema.
@@ -72,80 +67,55 @@ public interface Schema {
   String getName();
 
   /**
+   * Returns a table with a given name, or null if not found.
+   *
+   * @param name Table name
+   * @return Table, or null
+   */
+  Table getTable(String name);
+
+  /**
+   * Returns the names of the tables in this schema.
+   */
+  Set<String> getTableNames();
+
+  /**
    * Returns a list of table functions in this schema with the given name, or
    * an empty list if there is no such table function.
    *
    * @param name Name of table function
    * @return List of table functions with given name, or empty list
    */
-  Collection<TableFunctionInSchema> getTableFunctions(String name);
+  Collection<TableFunction> getTableFunctions(String name);
 
   /**
-   * Returns a table with a given name and element type, or null if not found.
-   *
-   * @param name Table name
-   * @param elementType Element type
-   * @return Table, or null
+   * Returns the names of the table functions in this schema.
    */
-  <E> Table<E> getTable(String name, Class<E> elementType);
-
-  Expression getExpression();
-
-  QueryProvider getQueryProvider();
-
-  Multimap<String, TableFunctionInSchema> getTableFunctions();
+  Set<String> getTableFunctionNames();
 
   /**
    * Returns a sub-schema with a given name, or null.
    */
   Schema getSubSchema(String name);
 
-  Collection<String> getSubSchemaNames();
+  /**
+   * Returns the names of this schema's child schemas.
+   */
+  Set<String> getSubSchemaNames();
 
-  Map<String, TableInSchema> getTables();
+  /**
+   * Returns the expression by which this schema can be referenced in generated
+   * code.
+   */
+  Expression getExpression();
 
-  JavaTypeFactory getTypeFactory();
-
-  abstract class ObjectInSchema {
-    public final Schema schema;
-    public final String name;
-
-    public ObjectInSchema(Schema schema, String name) {
-      Linq4j.requireNonNull(schema);
-      Linq4j.requireNonNull(name);
-      this.schema = schema;
-      this.name = name;
-    }
-
-    /** Returns this object's path. For example ["hr", "emps"]. */
-    public final List<String> path() {
-      return Schemas.path(schema, name);
-    }
-  }
-
-  abstract class TableInSchema extends ObjectInSchema {
-    public final TableType tableType;
-
-    public TableInSchema(
-        Schema schema, String name, TableType tableType) {
-      super(schema, name);
-      this.tableType = tableType;
-    }
-
-    public abstract <E> Table<E> getTable(Class<E> elementType);
-  }
-
-  abstract class TableFunctionInSchema extends ObjectInSchema {
-    public TableFunctionInSchema(Schema schema, String name) {
-      super(schema, name);
-    }
-
-    public abstract TableFunction getTableFunction();
-
-    /** Whether this represents a materialized view. (At a given point in time,
-     * it may or may not be materialized as a table.) */
-    public abstract boolean isMaterialization();
-  }
+  /** Returns whether the user is allowed to create new tables, table functions
+   * and sub-schemas in this schema, in addition to those returned automatically
+   * by methods such as {@link #getTable(String)}.
+   *
+   * <p>Even if this method returns true, the maps are not modified. Optiq
+   * stores the defined objects in a wrapper object. */
+  boolean isMutable();
 
   enum TableType {
     /** A regular table. */

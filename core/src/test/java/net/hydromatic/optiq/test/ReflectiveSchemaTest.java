@@ -21,10 +21,10 @@ import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.*;
-import net.hydromatic.optiq.MutableSchema;
+
+import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.Schemas;
-import net.hydromatic.optiq.impl.TableFunctionInSchemaImpl;
-import net.hydromatic.optiq.impl.ViewTable;
+import net.hydromatic.optiq.impl.*;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
@@ -145,15 +145,15 @@ public class ReflectiveSchemaTest {
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-    MutableSchema rootSchema = optiqConnection.getRootSchema();
-    MapSchema schema = MapSchema.create(rootSchema, "s");
-    schema.addTableFunction(
-        new TableFunctionInSchemaImpl(schema, "GenerateStrings",
-        Schemas.methodMember(JdbcTest.GENERATE_STRINGS_METHOD, typeFactory)));
-    schema.addTableFunction(
-        new TableFunctionInSchemaImpl(schema, "StringUnion",
-            Schemas.methodMember(JdbcTest.STRING_UNION_METHOD, typeFactory)));
-    ReflectiveSchema.create(rootSchema, "hr", new JdbcTest.HrSchema());
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    SchemaPlus schema =
+        rootSchema.add(new AbstractSchema(rootSchema, "s"));
+    schema.add("GenerateStrings",
+        Schemas.methodMember(JdbcTest.GENERATE_STRINGS_METHOD, typeFactory));
+    schema.add("StringUnion",
+        Schemas.methodMember(JdbcTest.STRING_UNION_METHOD, typeFactory));
+    rootSchema.add(
+        new ReflectiveSchema(rootSchema, "hr", new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from table(s.StringUnion(\n"
@@ -172,15 +172,14 @@ public class ReflectiveSchemaTest {
         DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
-    MutableSchema rootSchema = optiqConnection.getRootSchema();
-    MapSchema schema = MapSchema.create(rootSchema, "s");
-    schema.addTableFunction(
-        ViewTable.viewFunction(
-            schema,
-            "emps_view",
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add(new AbstractSchema(rootSchema, "s"));
+    schema.add("emps_view",
+        ViewTable.viewFunction(schema,
             "select * from \"hr\".\"emps\" where \"deptno\" = 10",
             null));
-    ReflectiveSchema.create(rootSchema, "hr", new JdbcTest.HrSchema());
+    rootSchema.add(
+        new ReflectiveSchema(rootSchema, "hr", new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from \"s\".\"emps_view\"\n"
@@ -200,34 +199,25 @@ public class ReflectiveSchemaTest {
         DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
-    MutableSchema rootSchema = optiqConnection.getRootSchema();
-    MapSchema schema = MapSchema.create(rootSchema, "s");
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add(new AbstractSchema(rootSchema, "s"));
     // create a view s.emps based on hr.emps. uses explicit schema path "hr".
-    schema.addTableFunction(
-        ViewTable.viewFunction(
-            schema,
-            "emps",
+    schema.add("emps",
+        ViewTable.viewFunction(schema,
             "select * from \"emps\" where \"deptno\" = 10",
             Collections.singletonList("hr")));
-    schema.addTableFunction(
-        ViewTable.viewFunction(
-            schema,
-            "hr_emps",
+    schema.add("hr_emps",
+        ViewTable.viewFunction(schema,
             "select * from \"emps\"",
             Collections.singletonList("hr")));
-    schema.addTableFunction(
-        ViewTable.viewFunction(
-            schema,
-            "s_emps",
+    schema.add("s_emps",
+        ViewTable.viewFunction(schema,
             "select * from \"emps\"",
             Collections.singletonList("s")));
-    schema.addTableFunction(
-        ViewTable.viewFunction(
-            schema,
-            "null_emps",
-            "select * from \"emps\"",
-            null));
-    ReflectiveSchema.create(rootSchema, "hr", new JdbcTest.HrSchema());
+    schema.add("null_emps",
+        ViewTable.viewFunction(schema, "select * from \"emps\"", null));
+    rootSchema.add(
+        new ReflectiveSchema(rootSchema, "hr", new JdbcTest.HrSchema()));
     final Statement statement = connection.createStatement();
     ResultSet resultSet;
     resultSet = statement.executeQuery(

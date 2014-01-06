@@ -70,8 +70,8 @@ public class RelOptMaterialization {
             if (table.equals(starTable.tables.get(0))) {
               Mappings.TargetMapping mapping =
                   Mappings.createShiftMapping(
-                      starTable.getRowType().getFieldCount(),
-                      0, 0, table.getRowType().getFieldCount());
+                      starRelOptTable.getRowType().getFieldCount(),
+                      0, 0, relOptTable.getRowType().getFieldCount());
 
               return CalcRel.createProject(
                   new TableAccessRel(scan.getCluster(), starRelOptTable),
@@ -152,7 +152,7 @@ public class RelOptMaterialization {
                   Mappings.merge(leftMapping,
                       Mappings.offset(rightMapping,
                           ((StarTable) leftTable).columnOffset(rightTable),
-                          leftTable.getRowType().getFieldCount()));
+                          leftRelOptTable.getRowType().getFieldCount()));
               throw new Util.FoundOne(
                   CalcRel.createProject(
                       new TableAccessRel(cluster, leftRelOptTable),

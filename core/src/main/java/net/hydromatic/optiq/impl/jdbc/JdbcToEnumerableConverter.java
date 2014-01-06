@@ -20,6 +20,7 @@ package net.hydromatic.optiq.impl.jdbc;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.BuiltinMethod;
+import net.hydromatic.optiq.Schemas;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.*;
@@ -147,8 +148,7 @@ public class JdbcToEnumerableConverter
             Expressions.call(
                 BuiltinMethod.RESULT_SET_ENUMERABLE_OF.method,
                 Expressions.call(
-                    Expressions.convert_(
-                        jdbcConvention.jdbcSchema.getExpression(),
+                    Schemas.unwrap(jdbcConvention.jdbcSchema.getExpression(),
                         JdbcSchema.class),
                     BuiltinMethod.JDBC_SCHEMA_DATA_SOURCE.method),
                 sql_,

@@ -19,35 +19,35 @@ package net.hydromatic.optiq.impl.mongodb;
 
 import net.hydromatic.linq4j.expressions.Types;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 /**
  * Builtin methods in the MongoDB adapter.
  */
 public enum MongoMethod {
-  MONGO_TABLE_FIND(MongoTable.class, "find", String.class, String.class,
-      List.class),
-  MONGO_TABLE_AGGREGATE(MongoTable.class, "aggregate", List.class, List.class);
+  MONGO_QUERYABLE_FIND(MongoTable.MongoQueryable.class, "find", String.class,
+      String.class, List.class),
+  MONGO_QUERYABLE_AGGREGATE(MongoTable.MongoQueryable.class, "aggregate",
+      List.class, List.class);
 
   public final Method method;
 
-  private static final HashMap<Method, MongoMethod> MAP =
-      new HashMap<Method, MongoMethod>();
+  public static final ImmutableMap<Method, MongoMethod> MAP;
 
   static {
-    for (MongoMethod builtinMethod : MongoMethod.values()) {
-      MAP.put(builtinMethod.method, builtinMethod);
+    final ImmutableMap.Builder<Method, MongoMethod> builder =
+        ImmutableMap.builder();
+    for (MongoMethod value : MongoMethod.values()) {
+      builder.put(value.method, value);
     }
+    MAP = builder.build();
   }
 
   MongoMethod(Class clazz, String methodName, Class... argumentTypes) {
     this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
-  }
-
-  public static MongoMethod lookup(Method method) {
-    return MAP.get(method);
   }
 }
 

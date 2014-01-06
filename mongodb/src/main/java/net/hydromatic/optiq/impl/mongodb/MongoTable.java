@@ -18,16 +18,20 @@
 package net.hydromatic.optiq.impl.mongodb;
 
 import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-
 import net.hydromatic.linq4j.function.Function1;
+
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.AbstractTableQueryable;
+import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.Pair;
+
+import com.google.common.collect.ImmutableList;
 
 import com.mongodb.*;
 import com.mongodb.util.JSON;
@@ -37,50 +41,31 @@ import java.util.*;
 /**
  * Table based on a MongoDB collection.
  */
-public class MongoTable extends AbstractQueryable<Object>
-    implements TranslatableTable<Object> {
-  private final MongoSchema schema;
-  private final String tableName;
-  private final RelDataType rowType;
+public class MongoTable extends AbstractQueryableTable
+    implements TranslatableTable {
+  protected final String collectionName;
 
   /** Creates a MongoTable. */
-  MongoTable(MongoSchema schema, String tableName, RelDataType rowType) {
-    this.schema = schema;
-    this.tableName = tableName;
-    this.rowType = rowType;
-    assert rowType != null;
-    assert schema != null;
-    assert tableName != null;
+  MongoTable(String collectionName) {
+    super(Object[].class);
+    this.collectionName = collectionName;
   }
 
   public String toString() {
-    return "MongoTable {" + tableName + "}";
+    return "MongoTable {" + collectionName + "}";
   }
 
-  public QueryProvider getProvider() {
-    return schema.getQueryProvider();
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    final RelDataType mapType =
+        typeFactory.createMapType(
+            typeFactory.createSqlType(SqlTypeName.VARCHAR),
+            typeFactory.createSqlType(SqlTypeName.ANY));
+    return typeFactory.builder().add("_MAP", mapType).build();
   }
 
-  public Class getElementType() {
-    return Object[].class;
-  }
-
-  public RelDataType getRowType() {
-    return rowType;
-  }
-
-  public Statistic getStatistic() {
-    return Statistics.UNKNOWN;
-  }
-
-  public Expression getExpression() {
-    return Expressions.convert_(
-        Expressions.call(
-            schema.getExpression(),
-            "getTable",
-            Expressions.constant(tableName),
-            Expressions.constant(getElementType())),
-        MongoTable.class);
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+      SchemaPlus schema, String tableName) {
+    return new MongoQueryable<T>(queryProvider, schema, this, tableName);
   }
 
   public RelNode toRel(
@@ -88,15 +73,7 @@ public class MongoTable extends AbstractQueryable<Object>
       RelOptTable relOptTable) {
     return new MongoTableScan(context.getCluster(),
         context.getCluster().traitSetOf(MongoRel.CONVENTION), relOptTable,
-        this, null, Collections.<Pair<String, String>>emptyList());
-  }
-
-  public Iterator<Object> iterator() {
-    return Linq4j.enumeratorIterator(enumerator());
-  }
-
-  public Enumerator<Object> enumerator() {
-    return find(null, null, null).enumerator();
+        this, null, ImmutableList.<Pair<String, String>>of());
   }
 
   /** Executes a "find" operation on the underlying collection.
@@ -104,14 +81,16 @@ public class MongoTable extends AbstractQueryable<Object>
    * <p>For example,
    * <code>zipsTable.find("{state: 'OR'}", "{city: 1, zipcode: 1}")</code></p>
    *
+   * @param mongoDb MongoDB connection
    * @param filterJson Filter JSON string, or null
    * @param projectJson Project JSON string, or null
    * @param fields List of fields to project; or null to return map
    * @return Enumerator of results
    */
-  public Enumerable<Object> find(String filterJson, String projectJson,
-      final List<String> fields) {
-    final DBCollection collection = schema.mongoDb.getCollection(tableName);
+  public Enumerable<Object> find(DB mongoDb, String filterJson,
+      String projectJson, final List<String> fields) {
+    final DBCollection collection =
+        mongoDb.getCollection(collectionName);
     final DBObject filter =
         filterJson == null ? null : (DBObject) JSON.parse(filterJson);
     final DBObject project =
@@ -133,12 +112,13 @@ public class MongoTable extends AbstractQueryable<Object>
    * "{$group: {_id: '$city', c: {$sum: 1}, p: {$sum: '$pop'}}}")
    * </code></p>
    *
+   * @param mongoDb MongoDB connection
    * @param fields List of fields to project; or null to return map
    * @param operations One or more JSON strings
    * @return Enumerator of results
    */
-  public Enumerable<Object> aggregate(final List<String> fields,
-      List<String> operations) {
+  public Enumerable<Object> aggregate(final DB mongoDb,
+      final List<String> fields, List<String> operations) {
     List<DBObject> list = new ArrayList<DBObject>();
     for (String operation : operations) {
       list.add((DBObject) JSON.parse(operation));
@@ -149,11 +129,43 @@ public class MongoTable extends AbstractQueryable<Object>
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
         final AggregationOutput result =
-            schema.mongoDb.getCollection(tableName)
+            mongoDb.getCollection(collectionName)
                 .aggregate(first, rest.toArray(new DBObject[rest.size()]));
         return new MongoEnumerator(result.results().iterator(), getter);
       }
     };
+  }
+
+  public static class MongoQueryable<T> extends AbstractTableQueryable<T> {
+    public MongoQueryable(QueryProvider queryProvider, SchemaPlus schema,
+        MongoTable table, String tableName) {
+      super(queryProvider, schema, table, tableName);
+    }
+
+    public Enumerator<T> enumerator() {
+      //noinspection unchecked
+      final Enumerable<T> enumerable =
+          (Enumerable<T>) getTable().find(getMongoDb(), null, null, null);
+      return enumerable.enumerator();
+    }
+
+    private DB getMongoDb() {
+      return schema.unwrap(MongoSchema.class).mongoDb;
+    }
+
+    private MongoTable getTable() {
+      return (MongoTable) table;
+    }
+
+    public Enumerable<Object> aggregate(final List<String> fields,
+        List<String> operations) {
+      return getTable().aggregate(getMongoDb(), fields, operations);
+    }
+
+    public Enumerable<Object> find(String filterJson,
+        String projectJson, final List<String> fields) {
+      return getTable().find(getMongoDb(), filterJson, projectJson, fields);
+    }
   }
 }
 

@@ -31,6 +31,8 @@ import org.eigenbase.util.Pair;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
+import net.hydromatic.linq4j.expressions.Expression;
+
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -405,6 +407,10 @@ public class MockCatalogReader
         public SqlAccessType getAllowedAccess()
         {
             return SqlAccessType.ALL;
+        }
+
+        public Expression getExpression(Class clazz) {
+            throw new UnsupportedOperationException();
         }
 
         public void addColumn(int index, String name, RelDataType type)

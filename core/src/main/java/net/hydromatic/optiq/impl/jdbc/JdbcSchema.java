@@ -17,22 +17,21 @@
 */
 package net.hydromatic.optiq.impl.jdbc;
 
-import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.apache.commons.dbcp.BasicDataSource;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.reltype.*;
 import org.eigenbase.sql.SqlDialect;
+import org.eigenbase.sql.type.SqlTypeFactoryImpl;
 import org.eigenbase.sql.type.SqlTypeName;
-import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.*;
 
 import java.sql.*;
@@ -47,88 +46,47 @@ import javax.sql.DataSource;
  * as much as possible of the query logic to SQL.</p>
  */
 public class JdbcSchema implements Schema {
-  final QueryProvider queryProvider;
-  private final MutableSchema parentSchema;
+  private final SchemaPlus parentSchema;
   private final String name;
   final DataSource dataSource;
   final String catalog;
   final String schema;
-  final JavaTypeFactory typeFactory;
-  private final Expression expression;
   public final SqlDialect dialect;
   final JdbcConvention convention;
-  private boolean mapComplete;
-  private ImmutableMap<String, TableInSchemaImpl> tableMap = ImmutableMap.of();
+  private Supplier<Map<String, JdbcTable>> tableMapSupplier =
+      Suppliers.memoize(
+          new Supplier<Map<String, JdbcTable>>() {
+            public Map<String, JdbcTable> get() {
+              return computeTables();
+            }
+          });
 
   /**
    * Creates a JDBC schema.
    *
-   * @param queryProvider Query provider
    * @param name Schema name
    * @param dataSource Data source
    * @param dialect SQL dialect
    * @param catalog Catalog name, or null
    * @param schema Schema name pattern
-   * @param typeFactory Type factory
    */
   public JdbcSchema(
-      QueryProvider queryProvider,
-      MutableSchema parentSchema,
+      SchemaPlus parentSchema,
       String name,
       DataSource dataSource,
       SqlDialect dialect,
       String catalog,
-      String schema,
-      JavaTypeFactory typeFactory,
-      Expression expression) {
+      String schema) {
     super();
-    this.queryProvider = queryProvider;
     this.parentSchema = parentSchema;
     this.name = name;
     this.dataSource = dataSource;
     this.dialect = dialect;
     this.catalog = catalog;
     this.schema = schema;
-    this.typeFactory = typeFactory;
-    this.expression = expression;
     this.convention = JdbcConvention.of(this, name);
-    assert expression != null;
-    assert typeFactory != null;
     assert dialect != null;
-    assert queryProvider != null;
     assert dataSource != null;
-  }
-
-  /**
-   * Creates a JdbcSchema within another schema.
-   *
-   * @param parentSchema Parent schema
-   * @param dataSource Data source
-   * @param jdbcCatalog Catalog name, or null
-   * @param jdbcSchema Schema name pattern
-   * @param name Name of new schema
-   * @return New JdbcSchema
-   */
-  public static JdbcSchema create(
-      MutableSchema parentSchema,
-      DataSource dataSource,
-      String jdbcCatalog,
-      String jdbcSchema,
-      String name) {
-    JdbcSchema schema =
-        new JdbcSchema(
-            parentSchema.getQueryProvider(),
-            parentSchema,
-            name,
-            dataSource,
-            JdbcSchema.createDialect(dataSource),
-            jdbcCatalog,
-            jdbcSchema,
-            parentSchema.getTypeFactory(),
-            parentSchema.getSubSchemaExpression(
-                name, Schema.class));
-    parentSchema.addSchema(name, schema);
-    return schema;
   }
 
   /**
@@ -140,7 +98,7 @@ public class JdbcSchema implements Schema {
    * @return A JdbcSchema
    */
   public static JdbcSchema create(
-      MutableSchema parentSchema,
+      SchemaPlus parentSchema,
       String name,
       Map<String, Object> operand) {
     DataSource dataSource;
@@ -161,7 +119,9 @@ public class JdbcSchema implements Schema {
     }
     String jdbcCatalog = (String) operand.get("jdbcCatalog");
     String jdbcSchema = (String) operand.get("jdbcSchema");
-    return create(parentSchema, dataSource, jdbcCatalog, jdbcSchema, name);
+    final SqlDialect dialect = JdbcSchema.createDialect(dataSource);
+    return new JdbcSchema(parentSchema, name, dataSource, dialect, jdbcCatalog,
+        jdbcSchema);
   }
 
   /** Returns a suitable SQL dialect for the given data source. */
@@ -184,7 +144,7 @@ public class JdbcSchema implements Schema {
     return dataSource;
   }
 
-  public Schema getParentSchema() {
+  public SchemaPlus getParentSchema() {
     return parentSchema;
   }
 
@@ -192,38 +152,33 @@ public class JdbcSchema implements Schema {
     return name;
   }
 
+  public boolean isMutable() {
+    return false;
+  }
+
   // Used by generated code.
   public DataSource getDataSource() {
     return dataSource;
   }
 
-  public JavaTypeFactory getTypeFactory() {
-    return typeFactory;
-  }
-
   public Expression getExpression() {
-    return expression;
+    return Schemas.subSchemaExpression(parentSchema, name, JdbcSchema.class);
   }
 
-  public QueryProvider getQueryProvider() {
-    return queryProvider;
+  protected Multimap<String, TableFunction> getTableFunctions() {
+    // TODO: populate map from JDBC metadata
+    return ImmutableMultimap.of();
   }
 
-  public Collection<TableFunctionInSchema> getTableFunctions(String name) {
-    return Collections.emptyList();
+  public final Collection<TableFunction> getTableFunctions(String name) {
+    return getTableFunctions().get(name);
   }
 
-  public Map<String, TableInSchema> getTables() {
-    if (!mapComplete) {
-      mapComplete = true;
-      tableMap = computeTables();
-    }
-    //noinspection unchecked
-    return (Map) tableMap;
+  public final Set<String> getTableFunctionNames() {
+    return getTableFunctions().keySet();
   }
 
-  private ImmutableMap<String, TableInSchemaImpl> computeTables() {
-    final ImmutableMap<String, TableInSchemaImpl> prevTableMap = tableMap;
+  private ImmutableMap<String, JdbcTable> computeTables() {
     Connection connection = null;
     ResultSet resultSet = null;
     try {
@@ -234,19 +189,18 @@ public class JdbcSchema implements Schema {
           schema,
           null,
           null);
-      final ImmutableMap.Builder<String, TableInSchemaImpl> builder =
+      final ImmutableMap.Builder<String, JdbcTable> builder =
           ImmutableMap.builder();
       while (resultSet.next()) {
-        final String name = resultSet.getString(3);
-        TableInSchemaImpl prevTable = prevTableMap.get(name);
-        if (prevTable != null) {
-          builder.put(name, prevTable);
-          continue;
-        }
+        final String tableName = resultSet.getString(3);
+        final String catalogName = resultSet.getString(1);
+        final String schemaName = resultSet.getString(2);
         final String tableTypeName = resultSet.getString(4);
         final TableType tableType =
             Util.enumVal(TableType.class, tableTypeName);
-        builder.put(name, new TableInSchemaImpl(name, tableType, null));
+        final JdbcTable table =
+            new JdbcTable(this, catalogName, schemaName, tableName, tableType);
+        builder.put(tableName, table);
       }
       return builder.build();
     } catch (SQLException e) {
@@ -257,90 +211,47 @@ public class JdbcSchema implements Schema {
     }
   }
 
-  public <T> Table<T> getTable(String name, Class<T> elementType) {
-    assert elementType != null;
-    TableInSchemaImpl tableInSchema = tableMap.get(name);
-    if (tableInSchema != null) {
-      if (tableInSchema.table == null) {
-        Pair<JdbcTable, TableType> pair = computeTable(name);
-        tableInSchema.table = pair.left;
-      }
-      //noinspection unchecked
-      return tableInSchema.table;
-    }
-    if (mapComplete) {
-      // The map is complete, and didn't contain a table with this name, so
-      // the table must not exist.
-      return null;
-    }
-    Pair<JdbcTable, TableType> pair = computeTable(name);
-    if (pair == null) {
-      return null;
-    }
-    tableInSchema = new TableInSchemaImpl(name, pair.right, pair.left);
-    tableMap = ImmutableMap.<String, TableInSchemaImpl>builder()
-        .putAll(tableMap).put(name, tableInSchema).build();
-    //noinspection unchecked
-    return tableInSchema.table;
+  public Table getTable(String name) {
+    return tableMapSupplier.get().get(name);
   }
 
-  private Pair<JdbcTable, TableType> computeTable(String name) {
+  RelProtoDataType getRelDataType(String catalogName, String schemaName,
+      String tableName) throws SQLException {
     Connection connection = null;
-    ResultSet resultSet = null;
     try {
       connection = dataSource.getConnection();
       DatabaseMetaData metaData = connection.getMetaData();
-      resultSet = metaData.getTables(
-          catalog,
-          schema,
-          name,
-          null);
-      if (!resultSet.next()) {
-        return null;
-      }
-      final String catalogName = resultSet.getString(1);
-      final String schemaName = resultSet.getString(2);
-      final String tableName = resultSet.getString(3);
-      final String tableTypeName = resultSet.getString(4);
-      resultSet.close();
-      final RelDataType type =
-          getRelDataType(connection, catalogName, schemaName, tableName);
-      JdbcTable table = new JdbcTable(type, this, name);
-      final TableType tableType =
-          Util.enumVal(TableType.class, tableTypeName);
-      return Pair.of(table, tableType);
-    } catch (SQLException e) {
-      throw new RuntimeException(
-          "Exception while reading definition of table '" + name + "'",
-          e);
+      return getRelDataType(metaData, catalogName, schemaName, tableName);
     } finally {
-      close(connection, null, resultSet);
+      close(connection, null, null);
     }
   }
 
-  private RelDataType getRelDataType(
-      Connection connection,
-      String catalogName,
-      String schemaName,
-      String tableName) throws SQLException {
-    DatabaseMetaData metaData = connection.getMetaData();
+  RelProtoDataType getRelDataType(DatabaseMetaData metaData, String catalogName,
+      String schemaName, String tableName) throws SQLException {
     final ResultSet resultSet =
         metaData.getColumns(catalogName, schemaName, tableName, null);
+
+    // Temporary type factory, just for the duration of this method. Allowable
+    // because we're creating a proto-type, not a type; before being used, the
+    // proto-type will be copied into a real type factory.
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
     final RelDataTypeFactory.FieldInfoBuilder fieldInfo = typeFactory.builder();
     while (resultSet.next()) {
       final String columnName = resultSet.getString(4);
       final int dataType = resultSet.getInt(5);
       final int size = resultSet.getInt(7);
       final int scale = resultSet.getInt(9);
-      RelDataType sqlType = zzz(dataType, size, scale);
+      RelDataType sqlType = sqlType(typeFactory, dataType, size, scale);
       boolean nullable = resultSet.getBoolean(11);
       fieldInfo.add(columnName, sqlType).nullable(nullable);
     }
     resultSet.close();
-    return fieldInfo.build();
+    return RelDataTypeImpl.proto(fieldInfo.build());
   }
 
-  private RelDataType zzz(int dataType, int precision, int scale) {
+  private RelDataType sqlType(RelDataTypeFactory typeFactory, int dataType,
+      int precision, int scale) {
     SqlTypeName sqlTypeName = SqlTypeName.getNameForJdbcType(dataType);
     if (precision >= 0
         && scale >= 0
@@ -354,9 +265,8 @@ public class JdbcSchema implements Schema {
     }
   }
 
-  public Multimap<String, TableFunctionInSchema> getTableFunctions() {
-    // TODO: populate map from JDBC metadata
-    return ImmutableMultimap.of();
+  public Set<String> getTableNames() {
+    return tableMapSupplier.get().keySet();
   }
 
   public Schema getSubSchema(String name) {
@@ -364,8 +274,8 @@ public class JdbcSchema implements Schema {
     return null;
   }
 
-  public Collection<String> getSubSchemaNames() {
-    return Collections.emptyList();
+  public Set<String> getSubSchemaNames() {
+    return ImmutableSet.of();
   }
 
   private static void close(
@@ -390,25 +300,6 @@ public class JdbcSchema implements Schema {
       } catch (SQLException e) {
         // ignore
       }
-    }
-  }
-
-  private class TableInSchemaImpl extends TableInSchema {
-    // May be populated on first use, since gathering columns is expensive.
-    Table table;
-
-    public TableInSchemaImpl(String name, TableType tableType, Table table) {
-      super(JdbcSchema.this, name, tableType);
-      this.table = table;
-    }
-
-    public <E> Table<E> getTable(Class<E> elementType) {
-      if (table == null) {
-        table = JdbcSchema.this.getTable(name, elementType);
-        assert table != null;
-      }
-      //noinspection unchecked
-      return table;
     }
   }
 
@@ -438,7 +329,7 @@ public class JdbcSchema implements Schema {
    */
   public static class Factory implements SchemaFactory {
     public Schema create(
-        MutableSchema parentSchema,
+        SchemaPlus parentSchema,
         String name,
         Map<String, Object> operand) {
       return JdbcSchema.create(parentSchema, name, operand);

@@ -92,14 +92,16 @@ public class MongoToEnumerableConverter
     final Expression fields =
         list.append("fields", constantArrayList(getRowType().getFieldNames()));
     final Expression table =
-        list.append("table", mongoImplementor.table.getExpression());
+        list.append("table",
+            mongoImplementor.table.getExpression(
+                MongoTable.MongoQueryable.class));
     Expression enumerable;
     if (aggCount == 0 && findCount <= 2) {
       enumerable =
           list.append("enumerable",
               Expressions.call(
                   table,
-                  "find",
+                  MongoMethod.MONGO_QUERYABLE_FIND.method,
                   Expressions.constant(filter, String.class),
                   Expressions.constant(project, String.class),
                   rowType.getFieldCount() == 1
@@ -113,8 +115,8 @@ public class MongoToEnumerableConverter
               constantArrayList(opList));
       enumerable =
           list.append("enumerable",
-              Expressions.call(
-                  table, "aggregate", fields, ops));
+              Expressions.call(table,
+                  MongoMethod.MONGO_QUERYABLE_AGGREGATE.method, fields, ops));
       if (OptiqPrepareImpl.DEBUG) {
         System.out.println("Mongo: " + opList);
       }

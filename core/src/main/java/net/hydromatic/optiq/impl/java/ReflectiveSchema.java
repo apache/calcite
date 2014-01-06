@@ -22,10 +22,13 @@ import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Parameter;
-import net.hydromatic.optiq.impl.TableFunctionInSchemaImpl;
-import net.hydromatic.optiq.impl.TableInSchemaImpl;
+import net.hydromatic.optiq.Table;
+import net.hydromatic.optiq.impl.*;
 
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
+
+import com.google.common.collect.*;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -35,7 +38,7 @@ import java.util.*;
  * fields and methods in a Java object.
  */
 public class ReflectiveSchema
-    extends MapSchema {
+    extends AbstractSchema {
   final Class clazz;
   private Object target;
 
@@ -45,65 +48,14 @@ public class ReflectiveSchema
    * @param parentSchema Parent schema
    * @param name Name
    * @param target Object whose fields will be sub-objects of the schema
-   * @param expression Expression for schema
    */
   public ReflectiveSchema(
-      Schema parentSchema,
-      String name,
-      Object target,
-      Expression expression) {
-    super(
-        parentSchema,
-        parentSchema.getQueryProvider(),
-        parentSchema.getTypeFactory(),
-        name,
-        expression);
-    this.clazz = target.getClass();
-    this.target = target;
-    for (Field field : clazz.getFields()) {
-      final String fieldName = field.getName();
-      final Table<Object> table = fieldRelation(field);
-      if (table == null) {
-        continue;
-      }
-      tableMap.put(
-          fieldName,
-          new TableInSchemaImpl(
-              this, fieldName, TableType.TABLE, table));
-    }
-    for (Method method : clazz.getMethods()) {
-      final String methodName = method.getName();
-      if (method.getDeclaringClass() == Object.class
-          || methodName.equals("toString")) {
-        continue;
-      }
-      final TableFunction tableFunction = methodMember(method);
-      membersMap.put(methodName,
-          new TableFunctionInSchemaImpl(this, methodName, tableFunction));
-    }
-  }
-
-  /**
-   * Creates a ReflectiveSchema within another schema.
-   *
-   * @param parentSchema Parent schema
-   * @param name Name of new schema
-   * @param target Object whose fields become the tables of the schema
-   * @return New ReflectiveSchema
-   */
-  public static ReflectiveSchema create(
-      MutableSchema parentSchema,
+      SchemaPlus parentSchema,
       String name,
       Object target) {
-    ReflectiveSchema schema =
-        new ReflectiveSchema(
-            parentSchema,
-            name,
-            target,
-            parentSchema.getSubSchemaExpression(
-                name, ReflectiveSchema.class));
-    parentSchema.addSchema(name, schema);
-    return schema;
+    super(parentSchema, name);
+    this.clazz = target.getClass();
+    this.target = target;
   }
 
   @Override
@@ -117,73 +69,40 @@ public class ReflectiveSchema
     return target;
   }
 
-  public <T> TableFunction<T> methodMember(final Method method) {
-    final ReflectiveSchema schema = this;
+  @Override
+  protected Map<String, Table> getTableMap() {
+    final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
+    for (Field field : clazz.getFields()) {
+      final String fieldName = field.getName();
+      final Table table = fieldRelation(field);
+      if (table == null) {
+        continue;
+      }
+      builder.put(fieldName, table);
+    }
+    return builder.build();
+  }
+
+  @Override
+  protected Multimap<String, TableFunction> getTableFunctionMultimap() {
+    final ImmutableMultimap.Builder<String, TableFunction> builder =
+        ImmutableMultimap.builder();
+    for (Method method : clazz.getMethods()) {
+      final String methodName = method.getName();
+      if (method.getDeclaringClass() == Object.class
+          || methodName.equals("toString")) {
+        continue;
+      }
+      final TableFunction tableFunction = methodMember(method);
+      builder.put(methodName, tableFunction);
+    }
+    return builder.build();
+  }
+
+  private TableFunction methodMember(final Method method) {
     final Type elementType = getElementType(method.getReturnType());
-    final RelDataType relDataType = typeFactory.createType(elementType);
     final Class<?>[] parameterTypes = method.getParameterTypes();
-    return new TableFunction<T>() {
-      public String toString() {
-        return "Member {method=" + method + "}";
-      }
-
-      public Type getElementType() {
-        return elementType;
-      }
-
-      public List<Parameter> getParameters() {
-        return new AbstractList<Parameter>() {
-          public Parameter get(final int index) {
-            return new Parameter() {
-              public int getOrdinal() {
-                return index;
-              }
-
-              public String getName() {
-                return "arg" + index;
-              }
-
-              public RelDataType getType() {
-                return typeFactory.createJavaType(
-                    parameterTypes[index]);
-              }
-            };
-          }
-
-          public int size() {
-            return parameterTypes.length;
-          }
-        };
-      }
-
-      public Table<T> apply(final List<Object> arguments) {
-        final List<Expression> list = new ArrayList<Expression>();
-        for (Object argument : arguments) {
-          list.add(Expressions.constant(argument));
-        }
-        try {
-          final Object o = method.invoke(schema, arguments.toArray());
-          return new ReflectiveTable<T>(
-              schema,
-              elementType,
-              relDataType,
-              Expressions.call(
-                  schema.getTargetExpression(),
-                  method,
-                  list)) {
-            public Enumerator<T> enumerator() {
-              @SuppressWarnings("unchecked")
-              final Enumerable<T> enumerable = toEnumerable(o);
-              return enumerable.enumerator();
-            }
-          };
-        } catch (IllegalAccessException e) {
-          throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-          throw new RuntimeException(e);
-        }
-      }
-    };
+    return new MethodTableFunction(this, method, elementType, parameterTypes);
   }
 
   /** Returns an expression for the object wrapped by this schema (not the
@@ -192,43 +111,29 @@ public class ReflectiveSchema
     return Types.castIfNecessary(
         target.getClass(),
         Expressions.call(
-            Types.castIfNecessary(
-                ReflectiveSchema.class,
-                getExpression()),
+            Schemas.unwrap(
+                getExpression(),
+                ReflectiveSchema.class),
             BuiltinMethod.REFLECTIVE_SCHEMA_GET_TARGET.method));
   }
 
   /** Returns a table based on a particular field of this schema. If the
    * field is not of the right type to be a relation, returns null. */
-  private <T> Table<T> fieldRelation(final Field field) {
+  private <T> Table fieldRelation(final Field field) {
     final Type elementType = getElementType(field.getType());
     if (elementType == null) {
       return null;
     }
-    final RelDataType relDataType = typeFactory.createType(elementType);
-    return new ReflectiveTable<T>(
-        this,
-        elementType,
-        relDataType,
-        Expressions.field(
-            ReflectiveSchema.this.getTargetExpression(),
-            field)) {
-      public String toString() {
-        return "Relation {field=" + field.getName() + "}";
-      }
-
-      public Enumerator<T> enumerator() {
-        try {
-          Object o = field.get(target);
-          @SuppressWarnings("unchecked")
-          Enumerable<T> enumerable1 = toEnumerable(o);
-          return enumerable1.enumerator();
-        } catch (IllegalAccessException e) {
-          throw new RuntimeException(
-              "Error while accessing field " + field, e);
-        }
-      }
-    };
+    Object o;
+    try {
+      o = field.get(target);
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException(
+          "Error while accessing field " + field, e);
+    }
+    @SuppressWarnings("unchecked")
+    final Enumerable<T> enumerable = toEnumerable(o);
+    return new FieldTable<T>(field, elementType, enumerable);
   }
 
   /** Deduces the element type of a collection;
@@ -258,28 +163,35 @@ public class ReflectiveSchema
         "Cannot convert " + o.getClass() + " into a Enumerable");
   }
 
-  private static abstract class ReflectiveTable<T>
-      extends BaseQueryable<T>
-      implements Table<T> {
-    private final ReflectiveSchema schema;
-    private final RelDataType relDataType;
+  private static class ReflectiveTable
+      extends AbstractQueryableTable
+      implements Table {
+    private final Type elementType;
+    private final Enumerable enumerable;
 
-    public ReflectiveTable(
-        ReflectiveSchema schema,
-        Type elementType,
-        RelDataType relDataType,
-        Expression expression) {
-      super(schema.getQueryProvider(), elementType, expression);
-      this.schema = schema;
-      this.relDataType = relDataType;
+    public ReflectiveTable(Type elementType, Enumerable enumerable) {
+      super(elementType);
+      this.elementType = elementType;
+      this.enumerable = enumerable;
     }
 
-    public RelDataType getRowType() {
-      return relDataType;
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return ((JavaTypeFactory) typeFactory).createType(elementType);
     }
 
     public Statistic getStatistic() {
       return Statistics.UNKNOWN;
+    }
+
+    public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+        SchemaPlus schema, String tableName) {
+      return new AbstractTableQueryable<T>(queryProvider, schema, this,
+          tableName) {
+        @SuppressWarnings("unchecked")
+        public Enumerator<T> enumerator() {
+          return (Enumerator<T>) enumerable.enumerator();
+        }
+      };
     }
   }
 
@@ -314,7 +226,7 @@ public class ReflectiveSchema
    * }</pre>
    * */
   public static class Factory implements SchemaFactory {
-    public Schema create(MutableSchema schema, String name,
+    public Schema create(SchemaPlus parentSchema, String name,
         Map<String, Object> operand) {
       Class clazz;
       Object target;
@@ -345,7 +257,100 @@ public class ReflectiveSchema
               e);
         }
       }
-      return ReflectiveSchema.create(schema, name, target);
+      return new ReflectiveSchema(parentSchema, name, target);
+    }
+  }
+
+  private static class MethodTableFunction implements TableFunction {
+    private final ReflectiveSchema schema;
+    private final Method method;
+    private final Type elementType;
+    private final Class<?>[] parameterTypes;
+
+    public MethodTableFunction(ReflectiveSchema schema, Method method,
+        Type elementType, Class<?>[] parameterTypes) {
+      this.schema = schema;
+      this.method = method;
+      this.elementType = elementType;
+      this.parameterTypes = parameterTypes;
+    }
+
+    public String toString() {
+      return "Member {method=" + method + "}";
+    }
+
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return ((JavaTypeFactory) typeFactory).createType(elementType);
+    }
+
+    public List<Parameter> getParameters() {
+      return new AbstractList<Parameter>() {
+        public Parameter get(final int index) {
+          return new Parameter() {
+            public int getOrdinal() {
+              return index;
+            }
+
+            public String getName() {
+              return "arg" + index;
+            }
+
+            public RelDataType getType(RelDataTypeFactory typeFactory) {
+              return typeFactory.createJavaType(
+                  parameterTypes[index]);
+            }
+          };
+        }
+
+        public int size() {
+          return parameterTypes.length;
+        }
+      };
+    }
+
+    public Table apply(final List<Object> arguments) {
+      final List<Expression> list = new ArrayList<Expression>();
+      for (Object argument : arguments) {
+        list.add(Expressions.constant(argument));
+      }
+      try {
+        final Object o = method.invoke(schema, arguments.toArray());
+        @SuppressWarnings("unchecked")
+        final Enumerable enumerable = toEnumerable(o);
+        return new ReflectiveTable(elementType, enumerable) {
+          @Override
+          public Expression getExpression(SchemaPlus schema, String tableName,
+              Class clazz) {
+            return Expressions.call(
+                ((ReflectiveSchema) schema).getTargetExpression(), method,
+                list);
+          }
+        };
+      } catch (IllegalAccessException e) {
+        throw new RuntimeException(e);
+      } catch (InvocationTargetException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  private static class FieldTable<T> extends ReflectiveTable {
+    private final Field field;
+
+    public FieldTable(Field field, Type elementType, Enumerable<T> enumerable) {
+      super(elementType, enumerable);
+      this.field = field;
+    }
+
+    public String toString() {
+      return "Relation {field=" + field.getName() + "}";
+    }
+
+    @Override
+    public Expression getExpression(SchemaPlus schema, String tableName,
+        Class clazz) {
+      return Expressions.field(
+          schema.unwrap(ReflectiveSchema.class).getTargetExpression(), field);
     }
   }
 }

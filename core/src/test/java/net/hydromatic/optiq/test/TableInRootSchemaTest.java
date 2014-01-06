@@ -18,11 +18,10 @@
 package net.hydromatic.optiq.test;
 
 import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
+
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.TableInSchemaImpl;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.impl.AbstractTableQueryable;
+import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import net.hydromatic.optiq.rules.java.JavaRules;
@@ -30,6 +29,7 @@ import net.hydromatic.optiq.rules.java.JavaRules;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.util.Pair;
 
 import com.google.common.collect.ImmutableMultiset;
@@ -50,8 +50,7 @@ public class TableInRootSchemaTest {
     Connection connection = DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection = connection.unwrap(OptiqConnection.class);
 
-    SimpleTable.create(optiqConnection.getRootSchema(), "SAMPLE");
-
+    optiqConnection.getRootSchema().add("SAMPLE", new SimpleTable());
     Statement statement = optiqConnection.createStatement();
     ResultSet resultSet =
         statement.executeQuery("select A, SUM(B) from SAMPLE group by A");
@@ -76,30 +75,21 @@ public class TableInRootSchemaTest {
     connection.close();
   }
 
-  public static class SimpleTable extends AbstractQueryable<Object[]>
-      implements TranslatableTable<Object[]> {
-    private final Schema schema;
-    private final String tableName;
-    private final RelDataType rowType;
+  public static class SimpleTable extends AbstractQueryableTable
+      implements TranslatableTable {
     private String[] columnNames = { "A", "B" };
     private Class[] columnTypes = { String.class, Integer.class };
     private Object[][] rows = new Object[3][];
 
-    SimpleTable(Schema schema, String tableName) {
-      this.schema = schema;
-      this.tableName = tableName;
-
-      assert schema != null;
-      assert tableName != null;
-
-      this.rowType = deduceTypes(schema.getTypeFactory());
+    SimpleTable() {
+      super(Object[].class);
 
       rows[0] = new Object[] { "foo", 5 };
       rows[1] = new Object[] { "bar", 4 };
       rows[2] = new Object[] { "foo", 3 };
     }
 
-    RelDataType deduceTypes(JavaTypeFactory typeFactory) {
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       int columnCount = columnNames.length;
       final List<Pair<String, RelDataType>> columnDesc =
           new ArrayList<Pair<String, RelDataType>>(columnCount);
@@ -111,50 +101,23 @@ public class TableInRootSchemaTest {
       return typeFactory.createStructType(columnDesc);
     }
 
-    public static SimpleTable create(MutableSchema schema, String tableName) {
-      SimpleTable table = new SimpleTable(schema, tableName);
-      schema.addTable(new TableInSchemaImpl(schema, tableName,
-          Schema.TableType.TABLE, table));
-      return table;
-    }
-
-    @Override
-    public String toString() {
-      return "SimpleTable {" + tableName + "}";
-    }
-
-    public QueryProvider getProvider() {
-      return schema.getQueryProvider();
-    }
-
-    public Class getElementType() {
-      return Object[].class;
-    }
-
-    public RelDataType getRowType() {
-      return rowType;
-    }
-
-    public Statistic getStatistic() {
-      return Statistics.UNKNOWN;
-    }
-
-    public Expression getExpression() {
-      return Expressions.convert_(Expressions.call(
-          schema.getExpression(),
-          "getTable",
-          Expressions.<Expression> list()
-              .append(Expressions.constant(tableName))
-              .append(Expressions.constant(getElementType()))),
-          SimpleTable.class);
-    }
-
     public Iterator<Object[]> iterator() {
       return Linq4j.enumeratorIterator(enumerator());
     }
 
     public Enumerator<Object[]> enumerator() {
       return enumeratorImpl(null);
+    }
+
+    public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+        SchemaPlus schema, String tableName) {
+      return new AbstractTableQueryable<T>(queryProvider, schema, this,
+          tableName) {
+        public Enumerator<T> enumerator() {
+          //noinspection unchecked
+          return (Enumerator<T>) enumeratorImpl(null);
+        }
+      };
     }
 
     private Enumerator<Object[]> enumeratorImpl(final int[] fields) {
@@ -200,9 +163,8 @@ public class TableInRootSchemaTest {
     public RelNode toRel(RelOptTable.ToRelContext context,
         RelOptTable relOptTable) {
       return new JavaRules.EnumerableTableAccessRel(context.getCluster(),
-          context.getCluster().traitSetOf(
-              EnumerableConvention.INSTANCE), relOptTable,
-          getExpression(), getElementType());
+          context.getCluster().traitSetOf(EnumerableConvention.INSTANCE),
+          relOptTable, (Class) getElementType());
     }
   }
 }

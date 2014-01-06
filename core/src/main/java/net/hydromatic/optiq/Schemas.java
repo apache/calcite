@@ -17,10 +17,16 @@
 */
 package net.hydromatic.optiq;
 
+import net.hydromatic.linq4j.QueryProvider;
+import net.hydromatic.linq4j.Queryable;
+
+import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.*;
 
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.reltype.RelProtoDataType;
 import org.eigenbase.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableList;
@@ -41,14 +47,15 @@ public final class Schemas {
     throw new AssertionError("no instances!");
   }
 
-  public static Schema.TableFunctionInSchema resolve(
+  public static OptiqSchema.TableFunctionEntry resolve(
+      RelDataTypeFactory typeFactory,
       String name,
-      Collection<Schema.TableFunctionInSchema> tableFunctions,
+      Collection<OptiqSchema.TableFunctionEntry> tableFunctions,
       List<RelDataType> argumentTypes) {
-    final List<Schema.TableFunctionInSchema> matches =
-        new ArrayList<Schema.TableFunctionInSchema>();
-    for (Schema.TableFunctionInSchema member : tableFunctions) {
-      if (matches(member.getTableFunction(), argumentTypes)) {
+    final List<OptiqSchema.TableFunctionEntry> matches =
+        new ArrayList<OptiqSchema.TableFunctionEntry>();
+    for (OptiqSchema.TableFunctionEntry member : tableFunctions) {
+      if (matches(typeFactory, member.getTableFunction(), argumentTypes)) {
         matches.add(member);
       }
     }
@@ -64,9 +71,8 @@ public final class Schemas {
     }
   }
 
-  private static boolean matches(
-      TableFunction<?> member,
-      List<RelDataType> argumentTypes) {
+  private static boolean matches(RelDataTypeFactory typeFactory,
+      TableFunction member, List<RelDataType> argumentTypes) {
     List<Parameter> parameters = member.getParameters();
     if (parameters.size() != argumentTypes.size()) {
       return false;
@@ -74,7 +80,7 @@ public final class Schemas {
     for (int i = 0; i < argumentTypes.size(); i++) {
       RelDataType argumentType = argumentTypes.get(i);
       Parameter parameter = parameters.get(i);
-      if (!canConvert(argumentType, parameter.getType())) {
+      if (!canConvert(argumentType, parameter.getType(typeFactory))) {
         return false;
       }
     }
@@ -85,7 +91,7 @@ public final class Schemas {
     return SqlTypeUtil.canAssignFrom(toType, fromType);
   }
 
-  public static <T> TableFunction<T> methodMember(
+  public static TableFunction methodMember(
       final Method method,
       final JavaTypeFactory typeFactory) {
     final List<Parameter> parameters = new ArrayList<Parameter>();
@@ -104,18 +110,18 @@ public final class Schemas {
               return "a" + ordinal;
             }
 
-            public RelDataType getType() {
+            public RelDataType getType(RelDataTypeFactory typeFactory) {
               return type;
             }
           }
       );
     }
-    return new TableFunction<T>() {
+    return new TableFunction() {
       public List<Parameter> getParameters() {
         return parameters;
       }
 
-      public Table<T> apply(List<Object> arguments) {
+      public Table apply(List<Object> arguments) {
         try {
           //noinspection unchecked
           return (Table) method.invoke(null, arguments.toArray());
@@ -126,8 +132,9 @@ public final class Schemas {
         }
       }
 
-      public Type getElementType() {
-        return method.getReturnType();
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        final Class<?> returnType = method.getReturnType();
+        return ((JavaTypeFactory) typeFactory).createType(returnType);
       }
     };
   }
@@ -160,54 +167,151 @@ public final class Schemas {
     }
   }
 
+  /** Returns the expression for a sub-schema. */
+  public static Expression subSchemaExpression(Schema schema,
+      String name, Class type) {
+    // (Type) schemaExpression.getSubSchema("name")
+    Expression call =
+        Expressions.call(schema.getExpression(),
+            BuiltinMethod.SCHEMA_GET_SUB_SCHEMA.method,
+            Expressions.constant(name));
+    //noinspection unchecked
+    if (false && type != null && !type.isAssignableFrom(Schema.class)) {
+      return unwrap(call, type);
+    }
+    return call;
+  }
+
+  /** Converts a schema expression to a given type by calling the
+   * {@link net.hydromatic.optiq.SchemaPlus#unwrap(Class)} method. */
+  public static Expression unwrap(Expression call, Class type) {
+    return Expressions.convert_(
+        Expressions.call(call, BuiltinMethod.SCHEMA_PLUS_UNWRAP.method,
+            Expressions.constant(type)),
+        type);
+  }
+
+  /** Returns the expression to access a table within a schema. */
+  public static Expression tableExpression(Schema schema, Type elementType,
+      String tableName, Class clazz) {
+    final MethodCallExpression expression;
+    if (Table.class.isAssignableFrom(clazz)) {
+      expression = Expressions.call(
+          schema.getExpression(),
+          BuiltinMethod.SCHEMA_GET_TABLE.method,
+          Expressions.constant(tableName));
+    } else {
+      expression = Expressions.call(
+          BuiltinMethod.SCHEMAS_QUERYABLE.method,
+          DataContext.ROOT,
+          schema.getExpression(),
+          Expressions.constant(elementType),
+          Expressions.constant(tableName));
+    }
+    return Types.castIfNecessary(
+        clazz, expression);
+  }
+
   public static DataContext createDataContext(Connection schema) {
     return new DummyDataContext((OptiqConnection) schema);
   }
 
+  /** Returns a {@link Queryable}, given a fully-qualified table name. */
+  public static <E> Queryable<E> queryable(DataContext root, Class<E> clazz,
+      String... names) {
+    SchemaPlus schema = root.getRootSchema();
+    for (int i = 0; i < names.length - 1; i++) {
+      String name = names[i];
+      schema = schema.getSubSchema(name);
+    }
+    final String tableName = names[names.length - 1];
+    return queryable(root, schema, clazz, tableName);
+  }
+
+  /** Returns a {@link Queryable}, given a schema and table name. */
+  public static <E> Queryable<E> queryable(DataContext root, SchemaPlus schema,
+      Class<E> clazz, String tableName) {
+    QueryableTable table = (QueryableTable) schema.getTable(tableName);
+    return table.asQueryable(root.getQueryProvider(), schema, tableName);
+  }
+
   /** Parses and validates a SQL query. For use within Optiq only. */
-  public static OptiqPrepare.ParseResult parse(final Schema schema,
+  public static OptiqPrepare.ParseResult parse(
+      final OptiqConnection connection, final OptiqSchema schema,
       final List<String> schemaPath, final String sql) {
     final OptiqPrepare prepare = OptiqPrepare.DEFAULT_FACTORY.apply();
-    return prepare.parse(makeContext(schema, schemaPath), sql);
+    final OptiqPrepare.Context context =
+        makeContext(connection, schema, schemaPath);
+    OptiqPrepare.Dummy.push(context);
+    try {
+      return prepare.parse(context, sql);
+    } finally {
+      OptiqPrepare.Dummy.pop(context);
+    }
   }
 
   /** Prepares a SQL query for execution. For use within Optiq only. */
-  public static OptiqPrepare.PrepareResult<Object> prepare(final Schema schema,
-      final List<String> schemaPath,
-      final String sql) {
+  public static OptiqPrepare.PrepareResult<Object> prepare(
+      final OptiqConnection connection, final OptiqSchema schema,
+      final List<String> schemaPath, final String sql) {
     final OptiqPrepare prepare = OptiqPrepare.DEFAULT_FACTORY.apply();
     return prepare.prepareSql(
-        makeContext(schema, schemaPath), sql, null, Object[].class, -1);
+        makeContext(connection, schema, schemaPath), sql, null, Object[].class,
+        -1);
   }
 
-  private static OptiqPrepare.Context makeContext(final Schema schema,
+  private static OptiqPrepare.Context makeContext(
+      final OptiqConnection connection, final OptiqSchema schema,
       final List<String> schemaPath) {
-    final OptiqConnection connection =
-        (OptiqConnection) schema.getQueryProvider();
+    if (connection == null) {
+      final OptiqPrepare.Context context0 = OptiqPrepare.Dummy.peek();
+      return makeContext(context0.config(), context0.getTypeFactory(), schema,
+          schemaPath);
+    } else {
+      return makeContext(connection.config(), connection.getTypeFactory(),
+          schema, schemaPath);
+    }
+  }
+
+  private static OptiqPrepare.Context makeContext(
+      final ConnectionConfig connectionConfig,
+      final JavaTypeFactory typeFactory, final OptiqSchema schema,
+      final List<String> schemaPath) {
     return new OptiqPrepare.Context() {
       public JavaTypeFactory getTypeFactory() {
-        return schema.getTypeFactory();
+        return typeFactory;
       }
 
-      public Schema getRootSchema() {
-        return connection.getRootSchema();
+      public OptiqRootSchema getRootSchema() {
+        return schema.root();
       }
 
       public List<String> getDefaultSchemaPath() {
         // schemaPath is usually null. If specified, it overrides schema
         // as the context within which the SQL is validated.
         if (schemaPath == null) {
-          return path(schema, null);
+          return path(schema.schema, null);
         }
         return schemaPath;
       }
 
       public ConnectionConfig config() {
-        return connection.config();
+        return connectionConfig;
       }
 
       public OptiqPrepare.SparkHandler spark() {
         return OptiqPrepare.Dummy.getSparkHandler();
+      }
+    };
+  }
+
+  /** Returns an implementation of
+   * {@link RelProtoDataType}
+   * that asks a given table for its row type with a given type factory. */
+  public static RelProtoDataType proto(final Table table) {
+    return new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory typeFactory) {
+        return table.getRowType(typeFactory);
       }
     };
   }
@@ -223,12 +327,16 @@ public final class Schemas {
           ImmutableMap.<String, Object>of("timeZone", TimeZone.getDefault());
     }
 
-    public Schema getRootSchema() {
+    public SchemaPlus getRootSchema() {
       return connection.getRootSchema();
     }
 
     public JavaTypeFactory getTypeFactory() {
       return connection.getTypeFactory();
+    }
+
+    public QueryProvider getQueryProvider() {
+      return connection;
     }
 
     public Object get(String name) {

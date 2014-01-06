@@ -20,7 +20,6 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.avatica.*;
 
 import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.expressions.Types;
 import net.hydromatic.linq4j.function.Function1;
 
@@ -28,21 +27,24 @@ import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.*;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.generate.RangeTable;
+import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.*;
 import net.hydromatic.optiq.jdbc.Driver;
 import net.hydromatic.optiq.prepare.Prepare;
+import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 
 import org.junit.Ignore;
@@ -50,7 +52,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Statement;
@@ -130,13 +131,11 @@ public class JdbcTest {
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
     JavaTypeFactory typeFactory = optiqConnection.getTypeFactory();
-    MutableSchema rootSchema = optiqConnection.getRootSchema();
-    MapSchema schema = MapSchema.create(rootSchema, "s");
-    final TableFunction<Object> tableFunction =
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add(new AbstractSchema(rootSchema, "s"));
+    final TableFunction tableFunction =
         Schemas.methodMember(GENERATE_STRINGS_METHOD, typeFactory);
-    rootSchema.addTableFunction(
-        new TableFunctionInSchemaImpl(schema, "GenerateStrings",
-            tableFunction));
+    schema.add("GenerateStrings", tableFunction);
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from table(s.\"GenerateStrings\"(5)) as t(c)\n"
@@ -209,9 +208,8 @@ public class JdbcTest {
         new HandlerDriver();
     OptiqConnection connection = (OptiqConnection)
         driver.connect("jdbc:optiq:", new Properties());
-    MutableSchema rootSchema = connection.getRootSchema();
-    ReflectiveSchema.create(
-        rootSchema, "hr", new HrSchema());
+    SchemaPlus rootSchema = connection.getRootSchema();
+    rootSchema.add(new ReflectiveSchema(rootSchema, "hr", new HrSchema()));
     connection.setSchema("hr");
     final Statement statement = connection.createStatement();
     final ResultSet resultSet =
@@ -260,9 +258,8 @@ public class JdbcTest {
     final Driver driver = new Driver();
     OptiqConnection connection = (OptiqConnection)
         driver.connect("jdbc:optiq:", new Properties());
-    MutableSchema rootSchema = connection.getRootSchema();
-    ReflectiveSchema.create(
-        rootSchema, "hr", new HrSchema());
+    SchemaPlus rootSchema = connection.getRootSchema();
+    rootSchema.add(new ReflectiveSchema(rootSchema, "hr", new HrSchema()));
     connection.setSchema("hr");
     final Statement statement = connection.createStatement();
     assertFalse((Boolean) OptiqAssert.call(statement, "isCloseOnCompletion"));
@@ -295,8 +292,8 @@ public class JdbcTest {
     Connection connection = DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
-    ReflectiveSchema.create(
-        optiqConnection.getRootSchema(), "hr", new HrSchema());
+    final SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    rootSchema.add(new ReflectiveSchema(rootSchema, "hr", new HrSchema()));
     Statement statement = optiqConnection.createStatement();
     ResultSet resultSet = statement.executeQuery(
         "select d.\"deptno\", min(e.\"empid\")\n"
@@ -305,7 +302,8 @@ public class JdbcTest {
         + "  on e.\"deptno\" = d.\"deptno\"\n"
         + "group by d.\"deptno\"\n"
         + "having count(*) > 1");
-    OptiqAssert.toString(resultSet);
+    final String s = OptiqAssert.toString(resultSet);
+    assertThat(s, notNullValue());
     resultSet.close();
     statement.close();
     connection.close();
@@ -523,9 +521,10 @@ public class JdbcTest {
 
   @Test public void testCloneSchema()
       throws ClassNotFoundException, SQLException {
-    final OptiqConnection connection = OptiqAssert.getConnection(null, false);
-    Schema foodmart = connection.getRootSchema().getSubSchema("foodmart");
-    CloneSchema.create(connection.getRootSchema(), "foodmart2", foodmart);
+    final OptiqConnection connection = OptiqAssert.getConnection(false);
+    final SchemaPlus rootSchema = connection.getRootSchema();
+    final SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
+    rootSchema.add(new CloneSchema(rootSchema, "foodmart2", foodmart));
     Statement statement = connection.createStatement();
     ResultSet resultSet =
         statement.executeQuery(
@@ -898,7 +897,7 @@ public class JdbcTest {
    * relational expression. */
   @Test public void testSelfJoin() {
     OptiqAssert.that()
-        .with(OptiqAssert.Config.JDBC_FOODMART2)
+        .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select count(*) as c from (\n"
             + "  select 1 from \"foodmart\".\"employee\" as e1\n"
@@ -910,7 +909,7 @@ public class JdbcTest {
    * limit on yet another column. */
   @Test public void testSelfJoinDifferentColumns() {
     OptiqAssert.that()
-        .with(OptiqAssert.Config.JDBC_FOODMART2)
+        .with(OptiqAssert.Config.JDBC_FOODMART)
         .query(
             "select e1.\"full_name\"\n"
             + "  from \"foodmart\".\"employee\" as e1\n"
@@ -2191,9 +2190,7 @@ public class JdbcTest {
             + "  ]\n"
             + "}");
     that.connectThrows(
-        "Cannot define view; parent schema "
-        + "DelegatingSchema(delegate=ReflectiveSchema(target=HrSchema)) is "
-        + "not mutable");
+        "Cannot define view; parent schema 'adhoc' is not mutable");
   }
 
   /** Tests a JDBC connection that provides a model that contains a view. */
@@ -2308,9 +2305,10 @@ public class JdbcTest {
                 OptiqConnection connection = (OptiqConnection)
                     new AutoTempDriver(objects)
                         .connect("jdbc:optiq:", new Properties());
-                MutableSchema rootSchema = connection.getRootSchema();
-                ReflectiveSchema.create(
-                    rootSchema, "hr", new HrSchema());
+                final SchemaPlus rootSchema = connection.getRootSchema();
+                rootSchema.add(new ReflectiveSchema(rootSchema,
+                    "hr",
+                    new HrSchema()));
                 connection.setSchema("hr");
                 return connection;
               }
@@ -2355,8 +2353,8 @@ public class JdbcTest {
     Connection connection = DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
-    final MutableSchema rootSchema = optiqConnection.getRootSchema();
-    ReflectiveSchema.create(rootSchema, "TEST", new MySchema());
+    final SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    rootSchema.add(new ReflectiveSchema(rootSchema, "TEST", new MySchema()));
     Statement statement = optiqConnection.createStatement();
     ResultSet resultSet =
         statement.executeQuery("SELECT \"myvalue\" from TEST.\"mytable2\"");
@@ -2659,27 +2657,15 @@ public class JdbcTest {
 
   public static class FoodmartJdbcSchema extends JdbcSchema {
     public FoodmartJdbcSchema(
-        MutableSchema parentSchema,
+        SchemaPlus parentSchema,
         DataSource dataSource,
         SqlDialect dialect,
         String catalog,
-        String schema,
-        JavaTypeFactory typeFactory,
-        Expression expression) {
-      super(
-          parentSchema.getQueryProvider(),
-          parentSchema,
-          "FoodMart",
-          dataSource,
-          dialect,
-          catalog,
-          schema,
-          typeFactory,
-          expression);
+        String schema) {
+      super(parentSchema, "FoodMart", dataSource, dialect, catalog, schema);
     }
 
-    public final Table<Customer> customer =
-        getTable("customer", Customer.class);
+    public final Table customer = getTable("customer");
   }
 
   public static class Customer {
@@ -2714,15 +2700,10 @@ public class JdbcTest {
     }
   }
 
-  public static abstract class AbstractModifiableTable<T>
-      extends AbstractTable<T>
-      implements ModifiableTable<T> {
-    protected AbstractModifiableTable(
-        Schema schema,
-        Type elementType,
-        RelDataType relDataType,
-        String tableName) {
-      super(schema, elementType, relDataType, tableName);
+  public static abstract class AbstractModifiableTable
+      extends AbstractTable implements ModifiableTable {
+    protected AbstractModifiableTable(String tableName) {
+      super();
     }
 
     public TableModificationRelBase toModificationRel(
@@ -2741,7 +2722,7 @@ public class JdbcTest {
 
   public static class EmpDeptTableFactory implements TableFactory<Table> {
     public Table create(
-        Schema schema,
+        SchemaPlus schema,
         String name,
         Map<String, Object> operand,
         RelDataType rowType) {
@@ -2754,13 +2735,21 @@ public class JdbcTest {
         clazz = Department.class;
         array = new HrSchema().depts;
       }
-      return new AbstractTable(
-          schema,
-          clazz,
-          schema.getTypeFactory().createType(clazz),
-          name) {
-        public Enumerator enumerator() {
-          return Linq4j.enumerator(Arrays.asList(array));
+      return new AbstractQueryableTable(clazz) {
+        public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+          return ((JavaTypeFactory) typeFactory).createType(clazz);
+        }
+
+        public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+            SchemaPlus schema, String tableName) {
+          return new AbstractTableQueryable<T>(queryProvider, schema, this,
+              tableName) {
+            public Enumerator<T> enumerator() {
+              @SuppressWarnings("unchecked") final List<T> list =
+                  (List) Arrays.asList(array);
+              return Linq4j.enumerator(list);
+            }
+          };
         }
       };
     }
@@ -2768,28 +2757,28 @@ public class JdbcTest {
 
   public static class MySchemaFactory implements SchemaFactory {
     public Schema create(
-        MutableSchema parentSchema,
+        SchemaPlus parentSchema,
         String name,
-        Map<String, Object> operand) {
-      final ReflectiveSchema schema =
-          ReflectiveSchema.create(parentSchema, name, new HrSchema());
+        final Map<String, Object> operand) {
+      final boolean mutable =
+          SqlFunctions.isNotFalse((Boolean) operand.get("mutable"));
+      return new ReflectiveSchema(parentSchema, name, new HrSchema()) {
+        @Override
+        protected Map<String, Table> getTableMap() {
+          // Mine the EMPS table and add it under another name e.g. ELVIS
+          final Map<String, Table> tableMap = super.getTableMap();
+          final Table table = tableMap.get("emps");
+          final String tableName = (String) operand.get("tableName");
+          return ImmutableMap.<String, Table>builder()
+              .putAll(tableMap)
+              .put(tableName, table)
+              .build();
+        }
 
-      // Mine the EMPS table and add it under another name e.g. ELVIS
-      final Table table = schema.getTable("emps", Object.class);
-
-      String tableName = (String) operand.get("tableName");
-      schema.addTable(
-          new TableInSchemaImpl(
-              schema, tableName, Schema.TableType.TABLE, table));
-
-      final Boolean mutable = (Boolean) operand.get("mutable");
-      if (mutable == null || mutable) {
-        return schema;
-      } else {
-        // Wrap the schema in DelegatingSchema so that it does not
-        // implement MutableSchema.
-        return new DelegatingSchema(schema);
-      }
+        @Override public boolean isMutable() {
+          return mutable;
+        }
+      };
     }
   }
 

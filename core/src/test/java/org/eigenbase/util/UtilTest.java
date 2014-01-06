@@ -32,7 +32,12 @@ import org.junit.Test;
 
 import net.hydromatic.optiq.runtime.FlatLists;
 import net.hydromatic.optiq.util.BitSets;
+import net.hydromatic.optiq.util.CompositeMap;
 
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSet;
+
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
 /**
@@ -1072,6 +1077,61 @@ public class UtilTest {
             + "  nullValue: null\n"
             + "}",
             builder.toJsonString(map));
+    }
+
+    @Test public void testCompositeMap() {
+        String[] beatles = {"john", "paul", "george", "ringo"};
+        Map<String, Integer> beatleMap = new LinkedHashMap<String, Integer>();
+        for (String beatle : beatles) {
+            beatleMap.put(beatle, beatle.length());
+        }
+
+        CompositeMap<String, Integer> map = CompositeMap.of(beatleMap);
+        checkCompositeMap(beatles, map);
+
+        map = CompositeMap.of(
+            beatleMap, Collections.<String, Integer>emptyMap());
+        checkCompositeMap(beatles, map);
+
+        map = CompositeMap.of(
+            Collections.<String, Integer>emptyMap(), beatleMap);
+        checkCompositeMap(beatles, map);
+
+        map = CompositeMap.of(beatleMap, beatleMap);
+        checkCompositeMap(beatles, map);
+
+        final Map<String, Integer> founderMap =
+            new LinkedHashMap<String, Integer>();
+        founderMap.put("ben", 1706);
+        founderMap.put("george", 1732);
+        founderMap.put("thomas", 1743);
+
+        map = CompositeMap.of(beatleMap, founderMap);
+        assertThat(map.isEmpty(), equalTo(false));
+        assertThat(map.size(), equalTo(6));
+        assertThat(map.keySet().size(), equalTo(6));
+        assertThat(map.entrySet().size(), equalTo(6));
+        assertThat(map.values().size(), equalTo(6));
+        assertThat(map.containsKey("john"), equalTo(true));
+        assertThat(map.containsKey("george"), equalTo(true));
+        assertThat(map.containsKey("ben"), equalTo(true));
+        assertThat(map.containsKey("andrew"), equalTo(false));
+        assertThat(map.get("ben"), equalTo(1706));
+        assertThat(map.get("george"), equalTo(6)); // use value from first map
+        assertThat(map.values().contains(1743), equalTo(true));
+        assertThat(map.values().contains(1732), equalTo(false)); // masked
+        assertThat(map.values().contains(1999), equalTo(false));
+    }
+
+    private void checkCompositeMap(String[] beatles, Map<String, Integer> map) {
+        assertThat(4, equalTo(map.size()));
+        assertThat(false, equalTo(map.isEmpty()));
+        assertThat(
+            map.keySet(),
+            equalTo((Set<String>) new HashSet<String>(Arrays.asList(beatles))));
+        assertThat(
+            ImmutableMultiset.copyOf(map.values()),
+            equalTo((ImmutableMultiset.copyOf(Arrays.asList(4, 4, 6, 5)))));
     }
 
     //~ Inner Classes ----------------------------------------------------------

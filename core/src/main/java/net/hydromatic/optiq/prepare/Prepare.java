@@ -18,8 +18,8 @@
 package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.linq4j.function.Functions;
-import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.impl.StarTable;
+import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.Typed;
@@ -556,7 +556,7 @@ public abstract class Prepare {
    * process. */
   public static class Materialization {
     /** The table that holds the materialized data. */
-    final Schema.TableInSchema materializedTable;
+    final OptiqSchema.TableEntry materializedTable;
     /** The query that derives the data. */
     final String sql;
     /** Relational expression for the table. Usually a
@@ -567,7 +567,7 @@ public abstract class Prepare {
     /** Star table identified. */
     private RelOptTable starRelOptTable;
 
-    public Materialization(Schema.TableInSchema materializedTable,
+    public Materialization(OptiqSchema.TableEntry materializedTable,
         String sql) {
       assert materializedTable != null;
       assert sql != null;

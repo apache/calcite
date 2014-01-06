@@ -18,10 +18,12 @@
 package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.linq4j.function.Function1;
-import net.hydromatic.optiq.MutableSchema;
+
 import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.Schemas;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.tools.*;
 
 import org.eigenbase.rel.RelNode;
@@ -37,7 +39,7 @@ import com.google.common.collect.ImmutableList;
 
 /** Implementation of {@link net.hydromatic.optiq.tools.Planner}. */
 public class PlannerImpl implements Planner {
-  private final Function1<MutableSchema, Schema> schemaFactory;
+  private final Function1<SchemaPlus, Schema> schemaFactory;
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<RuleSet> ruleSets;
 
@@ -47,7 +49,7 @@ public class PlannerImpl implements Planner {
   private boolean open;
 
   // set in STATE_2_READY
-  private MutableSchema rootSchema;
+  private SchemaPlus rootSchema;
   private Schema defaultSchema;
   private JavaTypeFactory typeFactory;
   private RelOptPlanner planner;
@@ -60,7 +62,7 @@ public class PlannerImpl implements Planner {
   private SqlToRelConverter sqlToRelConverter;
   private RelNode rel;
 
-  public PlannerImpl(Function1<MutableSchema, Schema> schemaFactory,
+  public PlannerImpl(Function1<SchemaPlus, Schema> schemaFactory,
       SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets) {
     this.schemaFactory = schemaFactory;
     this.operatorTable = operatorTable;
@@ -108,9 +110,11 @@ public class PlannerImpl implements Planner {
     Frameworks.withPlanner(
         new Frameworks.PlannerAction<Void>() {
           public Void apply(RelOptCluster cluster, RelOptSchema relOptSchema,
-              Schema schema) {
-            rootSchema = (MutableSchema) schema;
-            defaultSchema = schemaFactory.apply(rootSchema);
+              SchemaPlus rootSchema) {
+            PlannerImpl.this.rootSchema = rootSchema;
+            defaultSchema =
+                rootSchema.addRecursive(
+                    schemaFactory.apply(PlannerImpl.this.rootSchema));
             typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
             planner = cluster.getPlanner();
             return null;
@@ -162,7 +166,7 @@ public class PlannerImpl implements Planner {
   // OptiqCatalogReader is stateless; no need to store one
   private OptiqCatalogReader createCatalogReader() {
     return new OptiqCatalogReader(
-        rootSchema,
+        OptiqSchema.from(rootSchema),
         Schemas.path(defaultSchema, null),
         typeFactory);
   }

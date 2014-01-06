@@ -20,7 +20,6 @@ package net.hydromatic.optiq;
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
 
-
 /**
  * Extension to {@link Table} that specifies how it is to be translated to
  * a {@link org.eigenbase.rel.RelNode planner node}.
@@ -31,7 +30,7 @@ import org.eigenbase.relopt.RelOptTable;
  * create a particular subclass of RelNode, and also register rules that act
  * on that particular subclass of RelNode.</p>
  */
-public interface TranslatableTable<T> extends Table<T> {
+public interface TranslatableTable extends Table {
   /** Converts this table into a {@link RelNode relational expression}. */
   RelNode toRel(
       RelOptTable.ToRelContext context,

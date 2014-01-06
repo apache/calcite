@@ -17,14 +17,10 @@
 */
 package net.hydromatic.optiq.impl.mongodb;
 
-import net.hydromatic.linq4j.expressions.Expression;
-
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.TableInSchemaImpl;
-import net.hydromatic.optiq.impl.java.MapSchema;
+import net.hydromatic.optiq.impl.AbstractSchema;
 
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.sql.type.SqlTypeName;
+import com.google.common.collect.ImmutableMap;
 
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
@@ -35,7 +31,7 @@ import java.util.*;
  * Schema mapped onto a directory of MONGO files. Each table in the schema
  * is a MONGO file in that directory.
  */
-public class MongoSchema extends MapSchema {
+public class MongoSchema extends AbstractSchema {
   final DB mongoDb;
 
   /**
@@ -47,12 +43,11 @@ public class MongoSchema extends MapSchema {
    * @param database Mongo database name, e.g. "foodmart"
    */
   public MongoSchema(
-      Schema parentSchema,
+      SchemaPlus parentSchema,
       String name,
       String host,
-      String database,
-      Expression expression) {
-    super(parentSchema, name, expression);
+      String database) {
+    super(parentSchema, name);
     try {
       MongoClient mongo = new MongoClient(host);
       this.mongoDb = mongo.getDB(database);
@@ -62,20 +57,12 @@ public class MongoSchema extends MapSchema {
   }
 
   @Override
-  protected Collection<TableInSchema> initialTables() {
-    final List<TableInSchema> list = new ArrayList<TableInSchema>();
-    final RelDataType mapType =
-        typeFactory.createMapType(
-            typeFactory.createSqlType(SqlTypeName.VARCHAR),
-            typeFactory.createSqlType(SqlTypeName.ANY));
-    final RelDataType rowType =
-        typeFactory.builder().add("_MAP", mapType).build();
-    for (String collection : mongoDb.getCollectionNames()) {
-      final MongoTable table = new MongoTable(this, collection, rowType);
-      list.add(
-          new TableInSchemaImpl(this, collection, TableType.TABLE, table));
+  protected Map<String, Table> getTableMap() {
+    final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
+    for (String collectionName : mongoDb.getCollectionNames()) {
+      builder.put(collectionName, new MongoTable(collectionName));
     }
-    return list;
+    return builder.build();
   }
 }
 

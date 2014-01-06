@@ -327,7 +327,7 @@ public class RexToLixTranslator {
     return nullAs.handle(
         convert(
             Expressions.call(
-                Expressions.variable(DataContext.class, "root"),
+                DataContext.ROOT,
                 BuiltinMethod.DATA_CONTEXT_GET.method,
                 Expressions.constant("?" + expr.getIndex())),
             typeFactory.getJavaClass(expr.getType())));

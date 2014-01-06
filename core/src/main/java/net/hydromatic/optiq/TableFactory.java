@@ -82,7 +82,7 @@ public interface TableFactory<T extends Table> {
    * @param rowType Row type. Specified if the "columns" JSON property.
    */
   T create(
-      Schema schema,
+      SchemaPlus schema,
       String name,
       Map<String, Object> operand,
       RelDataType rowType);

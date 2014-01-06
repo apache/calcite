@@ -17,18 +17,17 @@
 */
 package net.hydromatic.optiq.impl;
 
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.Schemas;
 import net.hydromatic.optiq.Table;
 
 import org.eigenbase.relopt.RelOptUtil;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.validate.SqlValidatorUtil;
+import org.eigenbase.util.ImmutableIntList;
+import org.eigenbase.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,47 +42,48 @@ import java.util.List;
  * to a query on top of a star table. Queries that are candidates to map onto
  * the materialization are mapped onto the same star table.</p>
  */
-public class StarTable<T>
-    extends AbstractTable<T>
-{
+public class StarTable extends AbstractTable {
   // TODO: we'll also need a list of join conditions between tables. For now
   //  we assume that join conditions match
   public final ImmutableList<Table> tables;
 
+  /** Number of fields in each table's row type. */
+  public ImmutableIntList fieldCounts;
+
   /** Creates a StarTable. */
-  public StarTable(Schema schema, Type elementType, RelDataType rowType,
-      String tableName, List<Table> tables) {
-    super(schema, elementType, rowType, tableName);
+  public StarTable(List<Table> tables) {
+    super();
     this.tables = ImmutableList.copyOf(tables);
   }
 
   /** Creates a StarTable and registers it in a schema. */
-  public static <T> StarTable<T> of(Schema schema, String tableName,
-      List<Table> tables) {
-    final List<RelDataType> typeList = new ArrayList<RelDataType>();
-    final List<String> nameList = new ArrayList<String>();
-    for (Table table : tables) {
-      typeList.addAll(RelOptUtil.getFieldTypeList(table.getRowType()));
-      nameList.addAll(table.getRowType().getFieldNames());
-    }
-    final RelDataType rowType =
-        schema.getTypeFactory().createStructType(
-            typeList, SqlValidatorUtil.uniquify(nameList));
-    return new StarTable<T>(schema, Object[].class, rowType, tableName, tables);
+  public static StarTable of(List<Table> tables) {
+    return new StarTable(tables);
   }
 
-  public Enumerator<T> enumerator() {
-    throw new UnsupportedOperationException();
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    final List<RelDataType> typeList = new ArrayList<RelDataType>();
+    final List<String> nameList = new ArrayList<String>();
+    final List<Integer> fieldCounts = new ArrayList<Integer>();
+    for (Table table : tables) {
+      final RelDataType rowType = table.getRowType(typeFactory);
+      typeList.addAll(RelOptUtil.getFieldTypeList(rowType));
+      nameList.addAll(rowType.getFieldNames());
+      fieldCounts.add(rowType.getFieldCount());
+    }
+    // Compute fieldCounts the first time this method is called. Safe to assume
+    // that the field counts will be the same whichever type factory is used.
+    if (this.fieldCounts == null) {
+      this.fieldCounts = ImmutableIntList.copyOf(fieldCounts);
+    }
+    return typeFactory.createStructType(typeList,
+        SqlValidatorUtil.uniquify(nameList));
   }
 
   public StarTable add(Table table) {
     final List<Table> tables1 = new ArrayList<Table>(tables);
     tables1.add(table);
-    return of(schema, tableName + tables.size(), tables1);
-  }
-
-  public List<String> getPath() {
-    return Schemas.path(schema, tableName);
+    return of(tables1);
   }
 
   /** Returns the column offset of the first column of {@code table} in this
@@ -95,11 +95,11 @@ public class StarTable<T>
    */
   public int columnOffset(Table table) {
     int n = 0;
-    for (Table table1 : tables) {
-      if (table1 == table) {
+    for (Pair<Table, Integer> pair : Pair.zip(tables, fieldCounts)) {
+      if (pair.left == table) {
         return n;
       }
-      n += table1.getRowType().getFieldCount();
+      n += pair.right;
     }
     throw new IllegalArgumentException("star table " + this
         + " does not contain table " + table);

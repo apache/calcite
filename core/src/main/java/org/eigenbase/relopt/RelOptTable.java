@@ -22,7 +22,7 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
 
-import net.hydromatic.optiq.prepare.Prepare;
+import net.hydromatic.linq4j.expressions.Expression;
 
 /**
  * Represents a relational dataset in a {@link RelOptSchema}. It has methods to
@@ -91,6 +91,13 @@ public interface RelOptTable
 
     /** Finds an interface implemented by this table. */
     <T> T unwrap(Class<T> clazz);
+
+    /**
+     * Generates code for this table.
+     *
+     * @param clazz The desired collection class; for example {@code Queryable}.
+     */
+    Expression getExpression(Class clazz);
 
     interface ViewExpander {
         RelNode expandView(

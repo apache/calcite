@@ -17,19 +17,18 @@
 */
 package net.hydromatic.optiq.test;
 
-import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.DataContext;
-import net.hydromatic.optiq.MutableSchema;
+import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
-import net.hydromatic.optiq.impl.jdbc.JdbcQueryProvider;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.MetaImpl;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.Hook;
 
+import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableMultiset;
@@ -41,6 +40,7 @@ import java.sql.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import javax.sql.DataSource;
 
 import static org.junit.Assert.*;
 
@@ -442,20 +442,25 @@ public class OptiqAssert {
         DriverManager.getConnection("jdbc:optiq:" + suffix);
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
-    MutableSchema rootSchema = optiqConnection.getRootSchema();
+    SchemaPlus rootSchema = optiqConnection.getRootSchema();
     if (schemaList.contains("hr")) {
-      ReflectiveSchema.create(rootSchema, "hr", new JdbcTest.HrSchema());
+      rootSchema.add(new ReflectiveSchema(rootSchema,
+          "hr",
+          new JdbcTest.HrSchema()));
     }
     if (schemaList.contains("foodmart")) {
-      ReflectiveSchema.create(
-          rootSchema, "foodmart", new JdbcTest.FoodmartSchema());
+      rootSchema.add(new ReflectiveSchema(rootSchema,
+          "foodmart",
+          new JdbcTest.FoodmartSchema()));
     }
     if (schemaList.contains("lingual")) {
-      ReflectiveSchema.create(
-          rootSchema, "SALES", new JdbcTest.LingualSchema());
+      rootSchema.add(new ReflectiveSchema(rootSchema,
+          "SALES",
+          new JdbcTest.LingualSchema()));
     }
     if (schemaList.contains("metadata")) {
       // always present
+      Util.discard(0);
     }
     return optiqConnection;
   }
@@ -465,35 +470,33 @@ public class OptiqAssert {
    * uses the connection as its own provider. The connection contains a
    * schema called "foodmart" backed by a JDBC connection to MySQL.
    *
-   * @param queryProvider Query provider
    * @param withClone Whether to create a "foodmart2" schema as in-memory
    *     clone
    * @return Connection
    * @throws ClassNotFoundException
    * @throws java.sql.SQLException
    */
-  static OptiqConnection getConnection(
-      QueryProvider queryProvider,
-      boolean withClone)
+  static OptiqConnection getConnection(boolean withClone)
       throws ClassNotFoundException, SQLException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection = DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection optiqConnection =
         connection.unwrap(OptiqConnection.class);
-    JdbcSchema foodmart =
-        JdbcSchema.create(
-            optiqConnection.getRootSchema(),
-            JdbcSchema.dataSource(
-                CONNECTION_SPEC.url,
-                CONNECTION_SPEC.driver,
-                CONNECTION_SPEC.username,
-                CONNECTION_SPEC.password),
-            null,
-            "foodmart",
-            "foodmart");
+    final SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    final DataSource dataSource =
+        JdbcSchema.dataSource(CONNECTION_SPEC.url,
+            CONNECTION_SPEC.driver,
+            CONNECTION_SPEC.username,
+            CONNECTION_SPEC.password);
+    final SqlDialect dialect = JdbcSchema.createDialect(dataSource);
+    final SchemaPlus foodmart =
+        rootSchema.add(
+            new JdbcSchema(rootSchema, "foodmart", dataSource, dialect, null,
+                "foodmart"));
     if (withClone) {
-      CloneSchema.create(
-          optiqConnection.getRootSchema(), "foodmart2", foodmart);
+      CloneSchema schema =
+          new CloneSchema(rootSchema, "foodmart2", foodmart);
+      rootSchema.add(schema);
     }
     optiqConnection.setSchema("foodmart2");
     return optiqConnection;
@@ -532,9 +535,10 @@ public class OptiqAssert {
                   DriverManager.getConnection("jdbc:optiq:");
               OptiqConnection optiqConnection =
                   connection.unwrap(OptiqConnection.class);
-              MutableSchema rootSchema =
+              SchemaPlus rootSchema =
                   optiqConnection.getRootSchema();
-              ReflectiveSchema.create(rootSchema, name, schema);
+              rootSchema.add(
+                  new ReflectiveSchema(rootSchema, name, schema));
               optiqConnection.setSchema(name);
               return optiqConnection;
             }
@@ -675,13 +679,10 @@ public class OptiqAssert {
         return getConnection("hr", "foodmart", "metadata");
       case LINGUAL:
         return getConnection("lingual");
-      case JDBC_FOODMART2:
-        return getConnection(null, false);
       case JDBC_FOODMART:
-        return getConnection(
-            JdbcQueryProvider.INSTANCE, false);
+        return getConnection(false);
       case FOODMART_CLONE:
-        return getConnection(JdbcQueryProvider.INSTANCE, true);
+        return getConnection(true);
       case SPARK:
         return getConnection("spark");
       default:
@@ -855,7 +856,7 @@ public class OptiqAssert {
      * what it wants. This method can be used to check whether a particular
      * MongoDB or SQL query is generated, for instance. */
     public AssertQuery queryContains(Function1<List, Void> predicate1) {
-      final List list = new ArrayList();
+      final List<Object> list = new ArrayList<Object>();
       final Hook.Closeable hook = Hook.QUERY_PLAN.add(
           new Function1<Object, Object>() {
             public Object apply(Object a0) {
@@ -924,7 +925,6 @@ public class OptiqAssert {
      * {@link net.hydromatic.linq4j.Enumerable#where(net.hydromatic.linq4j.function.Predicate1)}.
      */
     JDBC_FOODMART,
-    JDBC_FOODMART2,
 
     /** Configuration that contains an in-memory clone of the FoodMart
      * database. */

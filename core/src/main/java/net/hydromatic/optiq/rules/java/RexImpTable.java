@@ -20,7 +20,6 @@ package net.hydromatic.optiq.rules.java;
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
@@ -39,15 +38,13 @@ import java.math.BigInteger;
 import java.util.*;
 
 import static net.hydromatic.linq4j.expressions.ExpressionType.*;
+import static net.hydromatic.optiq.DataContext.ROOT;
 import static org.eigenbase.sql.fun.SqlStdOperatorTable.*;
 
 /**
  * Contains implementations of Rex operators as Java code.
  */
 public class RexImpTable {
-  public static final ParameterExpression root =
-      Expressions.parameter(DataContext.class, "root");
-
   public static final ConstantExpression NULL_EXPR =
       Expressions.constant(null);
   public static final ConstantExpression FALSE_EXPR =
@@ -1267,15 +1264,15 @@ public class RexImpTable {
         // the empty string because a role has to be set explicitly.
         return Expressions.constant("");
       } else if (op == currentTimestampFunc) {
-        return Expressions.call(BuiltinMethod.CURRENT_TIMESTAMP.method, root);
+        return Expressions.call(BuiltinMethod.CURRENT_TIMESTAMP.method, ROOT);
       } else if (op == currentTimeFunc) {
-        return Expressions.call(BuiltinMethod.CURRENT_TIME.method, root);
+        return Expressions.call(BuiltinMethod.CURRENT_TIME.method, ROOT);
       } else if (op == currentDateFunc) {
-        return Expressions.call(BuiltinMethod.CURRENT_DATE.method, root);
+        return Expressions.call(BuiltinMethod.CURRENT_DATE.method, ROOT);
       } else if (op == localTimestampFunc) {
-        return Expressions.call(BuiltinMethod.LOCAL_TIMESTAMP.method, root);
+        return Expressions.call(BuiltinMethod.LOCAL_TIMESTAMP.method, ROOT);
       } else if (op == localTimeFunc) {
-        return Expressions.call(BuiltinMethod.LOCAL_TIME.method, root);
+        return Expressions.call(BuiltinMethod.LOCAL_TIME.method, ROOT);
       } else {
         throw new AssertionError("unknown function " + op);
       }

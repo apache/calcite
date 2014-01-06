@@ -19,6 +19,7 @@ package net.hydromatic.optiq.impl.mongodb;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.Convention;
+import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.util.Pair;
 
 import java.util.ArrayList;
@@ -37,7 +38,8 @@ public interface MongoRel extends RelNode {
     final List<Pair<String, String>> list =
         new ArrayList<Pair<String, String>>();
 
-    MongoTable table;
+    RelOptTable table;
+    MongoTable mongoTable;
 
     public void add(String findOp, String aggOp) {
       list.add(Pair.of(findOp, aggOp));

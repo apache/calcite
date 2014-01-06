@@ -18,83 +18,55 @@
 package net.hydromatic.optiq.impl.splunk;
 
 import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
+
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.AbstractTableQueryable;
+import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
-
-import java.lang.reflect.Type;
-import java.util.Iterator;
+import org.eigenbase.reltype.RelDataTypeFactory;
 
 /**
  * Table based on Splunk.
  */
-class SplunkTable<T>
-    extends AbstractQueryable<T>
-    implements TranslatableTable<T> {
-  private final Type elementType;
-  private final RelDataType rowType;
+class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
   final SplunkSchema schema;
-  private final String tableName;
 
-  public SplunkTable(
-      Type elementType,
-      RelDataType rowType,
-      SplunkSchema schema,
-      String tableName) {
-    this.elementType = elementType;
-    this.rowType = rowType;
+  public SplunkTable(SplunkSchema schema) {
+    super(Object[].class);
     this.schema = schema;
-    this.tableName = tableName;
-    assert elementType != null;
-    assert rowType != null;
     assert schema != null;
-    assert tableName != null;
   }
 
   public String toString() {
-    return "SplunkTable {" + tableName + "}";
+    return "SplunkTable";
   }
 
-  public Statistic getStatistic() {
-    return Statistics.UNKNOWN;
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    RelDataType stringType =
+        ((JavaTypeFactory) typeFactory).createType(String.class);
+    return typeFactory.builder()
+        .add("source", stringType)
+        .add("sourcetype", stringType)
+        .add("_extra", stringType)
+        .build();
   }
 
-  public QueryProvider getProvider() {
-    return schema.queryProvider;
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+      SchemaPlus schema, String tableName) {
+    return new AbstractTableQueryable<T>(queryProvider, schema, this,
+        tableName) {
+      public Enumerator<T> enumerator() {
+        final SplunkQuery<T> query = createQuery();
+        return query.enumerator();
+      }
+    };
   }
 
-  public Type getElementType() {
-    return elementType;
-  }
-
-  public RelDataType getRowType() {
-    return rowType;
-  }
-
-  public Expression getExpression() {
-    return Expressions.call(
-        schema.getExpression(),
-        "getTable",
-        Expressions.<Expression>list()
-            .append(Expressions.constant(tableName))
-            .appendIf(
-                elementType instanceof Class,
-                Expressions.constant(elementType)));
-  }
-
-  public Iterator<T> iterator() {
-    return createQuery().iterator();
-  }
-
-  public Enumerator<T> enumerator() {
-    return createQuery().enumerator();
-  }
-
-  private SplunkQuery<T> createQuery() {
+  private <T> SplunkQuery<T> createQuery() {
     return new SplunkQuery<T>(
         schema.splunkConnection,
         "search",

@@ -17,15 +17,12 @@
 */
 package net.hydromatic.optiq.impl;
 
-import net.hydromatic.linq4j.QueryProvider;
 import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
-import com.google.common.collect.Multimap;
+import net.hydromatic.optiq.*;
 
 import java.util.Collection;
-import java.util.Map;
+import java.util.Set;
 
 /**
  * Implementation of {@link net.hydromatic.optiq.Schema} that delegates to an
@@ -48,7 +45,7 @@ public class DelegatingSchema implements Schema {
     return "DelegatingSchema(delegate=" + schema + ")";
   }
 
-  public Schema getParentSchema() {
+  public SchemaPlus getParentSchema() {
     return schema.getParentSchema();
   }
 
@@ -56,40 +53,36 @@ public class DelegatingSchema implements Schema {
     return schema.getName();
   }
 
-  public Multimap<String, TableFunctionInSchema> getTableFunctions() {
-    return schema.getTableFunctions();
+  public boolean isMutable() {
+    return schema.isMutable();
   }
 
   public Expression getExpression() {
     return schema.getExpression();
   }
 
-  public QueryProvider getQueryProvider() {
-    return schema.getQueryProvider();
+  public Table getTable(String name) {
+    return schema.getTable(name);
   }
 
-  public Map<String, TableInSchema> getTables() {
-    return schema.getTables();
+  public Set<String> getTableNames() {
+    return schema.getTableNames();
   }
 
-  public <T> Table<T> getTable(String name, Class<T> elementType) {
-    return schema.getTable(name, elementType);
-  }
-
-  public Collection<TableFunctionInSchema> getTableFunctions(String name) {
+  public Collection<TableFunction> getTableFunctions(String name) {
     return schema.getTableFunctions(name);
   }
 
-  public Collection<String> getSubSchemaNames() {
-    return schema.getSubSchemaNames();
+  public Set<String> getTableFunctionNames() {
+    return schema.getTableFunctionNames();
   }
 
   public Schema getSubSchema(String name) {
     return schema.getSubSchema(name);
   }
 
-  public JavaTypeFactory getTypeFactory() {
-    return schema.getTypeFactory();
+  public Set<String> getSubSchemaNames() {
+    return schema.getSubSchemaNames();
   }
 }
 

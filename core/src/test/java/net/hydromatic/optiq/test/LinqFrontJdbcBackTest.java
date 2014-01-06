@@ -20,7 +20,9 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
 import net.hydromatic.linq4j.function.Predicate1;
-import net.hydromatic.optiq.Schema;
+
+import net.hydromatic.optiq.SchemaPlus;
+import net.hydromatic.optiq.Schemas;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.eigenbase.util.Util;
@@ -29,7 +31,6 @@ import org.junit.Test;
 
 import java.sql.SQLException;
 
-
 /**
  * Tests for a linq4j front-end and JDBC back-end.
  */
@@ -37,14 +38,14 @@ public class LinqFrontJdbcBackTest {
   @Test public void testTableWhere() throws SQLException,
       ClassNotFoundException {
     final OptiqConnection connection =
-        OptiqAssert.getConnection(null, false);
-    Schema schema =
+        OptiqAssert.getConnection(false);
+    final SchemaPlus schema =
         connection.getRootSchema().getSubSchema("foodmart");
     ParameterExpression c =
-        Expressions.parameter(
-            JdbcTest.Customer.class, "c");
+        Expressions.parameter(JdbcTest.Customer.class, "c");
     String s =
-        schema.getTable("customer", JdbcTest.Customer.class)
+        Schemas.queryable(Schemas.createDataContext(connection), schema,
+            JdbcTest.Customer.class, "customer")
             .where(
                 Expressions.<Predicate1<JdbcTest.Customer>>lambda(
                     Expressions.lessThan(

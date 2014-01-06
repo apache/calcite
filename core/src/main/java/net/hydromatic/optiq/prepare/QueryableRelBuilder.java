@@ -20,13 +20,14 @@ package net.hydromatic.optiq.prepare;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.FunctionExpression;
 import net.hydromatic.linq4j.function.*;
-import net.hydromatic.optiq.Table;
+
+import net.hydromatic.optiq.QueryableTable;
 import net.hydromatic.optiq.TranslatableTable;
+import net.hydromatic.optiq.impl.AbstractTableQueryable;
+import net.hydromatic.optiq.jdbc.OptiqSchema;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rex.RexNode;
-
-import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -66,16 +67,20 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
       ((QueryableDefaults.Replayable) queryable).replay(this);
       return rel;
     }
-    if (queryable instanceof Table) {
+    if (queryable instanceof AbstractTableQueryable) {
+      final AbstractTableQueryable tableQueryable =
+          (AbstractTableQueryable) queryable;
+      final QueryableTable table = tableQueryable.table;
+      final OptiqSchema.TableEntry tableEntry =
+          OptiqSchema.from(tableQueryable.schema)
+              .add(tableQueryable.tableName, tableQueryable.table);
       final OptiqPrepareImpl.RelOptTableImpl relOptTable =
           new OptiqPrepareImpl.RelOptTableImpl(
               null,
-              ((Table) queryable).getRowType(),
-              ImmutableList.<String>of(),
-              (Table) queryable);
-      if (queryable instanceof TranslatableTable) {
-        return ((TranslatableTable) queryable)
-            .toRel(translator, relOptTable);
+              table.getRowType(translator.typeFactory),
+              tableEntry);
+      if (table instanceof TranslatableTable) {
+        return ((TranslatableTable) table).toRel(translator, relOptTable);
       } else {
         return new TableAccessRel(
             translator.cluster, relOptTable);

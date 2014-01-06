@@ -30,8 +30,7 @@ import org.eigenbase.sql.type.SqlTypeName;
 
 import org.junit.Test;
 
-import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.test.JdbcTest;
 import net.hydromatic.optiq.tools.Frameworks;
@@ -111,11 +110,10 @@ public class RelWriterTest {
         Frameworks.withPlanner(
             new Frameworks.PlannerAction<String>() {
               public String apply(RelOptCluster cluster,
-                  RelOptSchema relOptSchema, Schema schema) {
-                ReflectiveSchema.create(
-                    (MutableSchema) schema,
-                    "hr",
-                    new JdbcTest.HrSchema());
+                  RelOptSchema relOptSchema, SchemaPlus rootSchema) {
+                rootSchema.add(
+                    new ReflectiveSchema(rootSchema, "hr",
+                        new JdbcTest.HrSchema()));
                 TableAccessRel table =
                     new TableAccessRel(cluster,
                         relOptSchema.getTableForMember(
@@ -154,11 +152,11 @@ public class RelWriterTest {
         Frameworks.withPlanner(
             new Frameworks.PlannerAction<String>() {
               public String apply(RelOptCluster cluster,
-                  RelOptSchema relOptSchema, Schema schema) {
-                ReflectiveSchema.create(
-                    (MutableSchema) schema,
-                    "hr",
-                    new JdbcTest.HrSchema());
+                  RelOptSchema relOptSchema, SchemaPlus rootSchema) {
+                SchemaPlus schema =
+                    rootSchema.add(new ReflectiveSchema(rootSchema,
+                        "hr",
+                        new JdbcTest.HrSchema()));
                 final RelJsonReader reader =
                     new RelJsonReader(cluster, relOptSchema, schema);
                 RelNode node;

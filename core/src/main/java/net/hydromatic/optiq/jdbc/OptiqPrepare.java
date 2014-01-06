@@ -32,8 +32,10 @@ import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.relopt.volcano.VolcanoPlanner;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.SqlNode;
 import org.eigenbase.sql.validate.SqlValidator;
+import org.eigenbase.util.Stacks;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -48,6 +50,14 @@ public interface OptiqPrepare {
       new Function0<OptiqPrepare>() {
         public OptiqPrepare apply() {
           return new OptiqPrepareImpl();
+        }
+      };
+  ThreadLocal<ArrayList<Context>>
+      THREAD_CONTEXT_STACK =
+      new ThreadLocal<ArrayList<Context>>() {
+        @Override
+        protected ArrayList<Context> initialValue() {
+          return new ArrayList<Context>();
         }
       };
 
@@ -69,7 +79,7 @@ public interface OptiqPrepare {
   interface Context {
     JavaTypeFactory getTypeFactory();
 
-    Schema getRootSchema();
+    OptiqRootSchema getRootSchema();
 
     List<String> getDefaultSchemaPath();
 
@@ -121,6 +131,18 @@ public interface OptiqPrepare {
       }
     }
 
+    public static void push(Context context) {
+      Stacks.push(THREAD_CONTEXT_STACK.get(), context);
+    }
+
+    public static Context peek() {
+      return Stacks.peek(THREAD_CONTEXT_STACK.get());
+    }
+
+    public static void pop(Context context) {
+      Stacks.pop(THREAD_CONTEXT_STACK.get(), context);
+    }
+
     private static class TrivialSparkHandler implements SparkHandler {
       public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
           boolean restructure) {
@@ -149,6 +171,7 @@ public interface OptiqPrepare {
     public final String sql; // for debug
     public final SqlNode sqlNode;
     public final RelDataType rowType;
+    public final RelDataTypeFactory typeFactory;
 
     public ParseResult(OptiqPrepareImpl prepare, SqlValidator validator,
         String sql,
@@ -158,6 +181,7 @@ public interface OptiqPrepare {
       this.sql = sql;
       this.sqlNode = sqlNode;
       this.rowType = rowType;
+      this.typeFactory = validator.getTypeFactory();
     }
   }
 

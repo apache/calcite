@@ -20,114 +20,93 @@ package net.hydromatic.optiq.impl.clone;
 import net.hydromatic.avatica.ColumnMetaData;
 
 import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.TableInSchemaImpl;
+import net.hydromatic.optiq.impl.AbstractSchema;
 import net.hydromatic.optiq.impl.java.*;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
+import net.hydromatic.optiq.jdbc.OptiqConnection;
 
-import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelProtoDataType;
+
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 import java.lang.reflect.Type;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import static net.hydromatic.optiq.impl.MaterializedViewTable.MATERIALIZATION_CONNECTION;
 
 /**
  * Schema that contains in-memory copies of tables from a JDBC schema.
  */
-public class CloneSchema extends MapSchema {
+public class CloneSchema extends AbstractSchema {
   // TODO: implement 'driver' property
   // TODO: implement 'source' property
   // TODO: test Factory
 
-  private final Schema sourceSchema;
+  private final SchemaPlus sourceSchema;
 
   /**
    * Creates a CloneSchema.
    *
    * @param parentSchema Parent schema
    * @param name Name of schema
-   * @param expression Expression for schema
    * @param sourceSchema JDBC data source
    */
   public CloneSchema(
-      Schema parentSchema,
+      SchemaPlus parentSchema,
       String name,
-      Expression expression,
-      Schema sourceSchema) {
-    super(parentSchema, name, expression);
+      SchemaPlus sourceSchema) {
+    super(parentSchema, name);
     this.sourceSchema = sourceSchema;
   }
 
   @Override
-  public <E> Table<E> getTable(String name, Class<E> elementType) {
-    // TODO: check elementType matches table.elementType
-    assert elementType != null;
-
-    Table<E> table = super.getTable(name, elementType);
-    if (table != null) {
-      return table;
+  protected Map<String, Table> getTableMap() {
+    final Map<String, Table> map = new LinkedHashMap<String, Table>();
+    for (String name : sourceSchema.getTableNames()) {
+      final QueryableTable sourceTable =
+          (QueryableTable) sourceSchema.getTable(name);
+      map.put(name,
+          createCloneTable(MATERIALIZATION_CONNECTION, sourceTable, name));
     }
-    // TODO: make thread safe!
-    Table<E> sourceTable = sourceSchema.getTable(name, elementType);
-    if (sourceTable != null) {
-      //noinspection unchecked
-      return createCloneTable(sourceTable, name);
-    }
-    return null;
+    return map;
   }
 
-  private <T> Table<T> createCloneTable(Table<T> sourceTable, String name) {
-    final TableInSchema tableInSchema =
-        createCloneTable(this, name, sourceTable.getRowType(), null,
-            sourceTable);
-    addTable(tableInSchema);
-    return tableInSchema.getTable(null);
+  private Table createCloneTable(QueryProvider queryProvider,
+      QueryableTable sourceTable, String name) {
+    final Queryable<Object> queryable =
+        sourceTable.asQueryable(queryProvider, sourceSchema, name);
+    final JavaTypeFactory typeFactory =
+        ((OptiqConnection) queryProvider).getTypeFactory();
+    return createCloneTable(typeFactory, Schemas.proto(sourceTable), null,
+        queryable);
   }
 
-  public static <T> TableInSchema createCloneTable(MutableSchema schema,
-      String name, RelDataType rowType, List<ColumnMetaData.Rep> repList,
-      Enumerable<T> source) {
-    final ColumnLoader loader =
-        new ColumnLoader<T>(schema.getTypeFactory(), source, rowType, repList);
-    final Type elementType = source instanceof Queryable
-        ? ((Queryable) source).getElementType()
-        : Object.class;
-    ArrayTable<T> table = new ArrayTable<T>(
-        schema, elementType,
-        rowType,
-        Expressions.call(
-            schema.getExpression(),
-            BuiltinMethod.SCHEMA_GET_TABLE.method,
-            Expressions.constant(name),
-            Expressions.constant(Types.toClass(elementType))),
-        loader.representationValues,
-        loader.size(),
-        loader.sortField);
-    return new TableInSchemaImpl(schema, name, TableType.TABLE, table);
-  }
-
-  /**
-   * Creates a CloneSchema within another schema.
-   *
-   * @param parentSchema Parent schema
-   * @param name Name of new schema
-   * @param sourceSchema Source schema
-   * @return New CloneSchema
-   */
-  public static CloneSchema create(
-      MutableSchema parentSchema,
-      String name,
-      Schema sourceSchema) {
-    CloneSchema schema =
-        new CloneSchema(
-            parentSchema,
-            name,
-            parentSchema.getSubSchemaExpression(name, Object.class),
-            sourceSchema);
-    parentSchema.addSchema(name, schema);
-    return schema;
+  public static <T> Table createCloneTable(final JavaTypeFactory typeFactory,
+      final RelProtoDataType protoRowType,
+      final List<ColumnMetaData.Rep> repList,
+      final Enumerable<T> source) {
+    final Type elementType = source instanceof QueryableTable
+        ? ((QueryableTable) source).getElementType()
+        : Object[].class;
+    return new ArrayTable(
+        elementType,
+        protoRowType,
+        Suppliers.memoize(
+            new Supplier<ArrayTable.Content>() {
+              public ArrayTable.Content get() {
+                final ColumnLoader loader =
+                    new ColumnLoader<T>(typeFactory, source, protoRowType,
+                        repList);
+                return new ArrayTable.Content(loader.representationValues,
+                    loader.size(), loader.sortField);
+              }
+            }
+        ));
   }
 
   /** Schema factory that creates a
@@ -156,12 +135,13 @@ public class CloneSchema extends MapSchema {
    */
   public static class Factory implements SchemaFactory {
     public Schema create(
-        MutableSchema parentSchema,
+        SchemaPlus parentSchema,
         String name,
         Map<String, Object> operand) {
-      JdbcSchema jdbcSchema =
-          JdbcSchema.create(parentSchema, name + "$source", operand);
-      return CloneSchema.create(parentSchema, name, jdbcSchema);
+      SchemaPlus schema =
+          parentSchema.add(
+              JdbcSchema.create(parentSchema, name + "$source", operand));
+      return new CloneSchema(parentSchema, name, schema);
     }
   }
 }

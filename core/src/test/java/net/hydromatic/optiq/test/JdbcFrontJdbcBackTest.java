@@ -41,7 +41,7 @@ import static net.hydromatic.optiq.test.OptiqAssert.that;
 public class JdbcFrontJdbcBackTest {
   @Test public void testWhere2() {
     that()
-        .with(OptiqAssert.Config.JDBC_FOODMART2)
+        .with(OptiqAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
         .returns(
             "day=1; week_day=Sunday\n"
@@ -51,7 +51,7 @@ public class JdbcFrontJdbcBackTest {
   @Ignore
   @Test public void testTables() throws Exception {
     that()
-        .with(OptiqAssert.Config.JDBC_FOODMART2)
+        .with(OptiqAssert.Config.JDBC_FOODMART)
         .doWithConnection(
             new Function1<OptiqConnection, Object>() {
               public Object apply(OptiqConnection a0) {
@@ -104,7 +104,7 @@ public class JdbcFrontJdbcBackTest {
 
   @Test public void testColumns() throws Exception {
     that()
-        .with(OptiqAssert.Config.JDBC_FOODMART2)
+        .with(OptiqAssert.Config.JDBC_FOODMART)
         .doWithConnection(
             new Function1<OptiqConnection, Object>() {
               public Object apply(OptiqConnection a0) {
@@ -133,7 +133,7 @@ public class JdbcFrontJdbcBackTest {
    * empty result set. */
   @Test public void testEmpty() throws Exception {
     that()
-        .with(OptiqAssert.Config.JDBC_FOODMART2)
+        .with(OptiqAssert.Config.JDBC_FOODMART)
         .doWithConnection(
             new Function1<OptiqConnection, Object>() {
               public Object apply(OptiqConnection a0) {
@@ -153,7 +153,7 @@ public class JdbcFrontJdbcBackTest {
 
   @Test public void testCase() {
     that()
-        .with(OptiqAssert.Config.JDBC_FOODMART2)
+        .with(OptiqAssert.Config.JDBC_FOODMART)
         .withSchema("foodmart")
         .query(
             "select case when \"sales_fact_1997\".\"promotion_id\" = 1 then 0\n"

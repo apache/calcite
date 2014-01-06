@@ -22,12 +22,18 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.*;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.AbstractTableQueryable;
+import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.runtime.ResultSetEnumerable;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.reltype.RelProtoDataType;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParserPos;
@@ -36,7 +42,7 @@ import org.eigenbase.sql.util.SqlString;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
-import java.lang.reflect.Type;
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -48,68 +54,58 @@ import java.util.*;
  * The resulting queryable can then be converted to a SQL query, which can be
  * executed efficiently on the JDBC server.</p>
  */
-class JdbcTable extends AbstractQueryable<Object[]>
-    implements TranslatableTable<Object[]>
-{
-  private final JdbcSchema schema;
-  public final String tableName;
-  private final RelDataType rowType;
+class JdbcTable extends AbstractQueryableTable implements TranslatableTable {
+  private RelProtoDataType protoRowType;
+  private final JdbcSchema jdbcSchema;
+  private final String jdbcCatalogName;
+  private final String jdbcSchemaName;
+  private final String jdbcTableName;
+  private final Schema.TableType jdbcTableType;
 
-  public JdbcTable(
-      RelDataType rowType,
-      JdbcSchema schema,
-      String tableName) {
-    this.rowType = rowType;
-    this.schema = schema;
-    this.tableName = tableName;
-    assert rowType != null;
-    assert schema != null;
-    assert tableName != null;
+  public JdbcTable(JdbcSchema jdbcSchema, String jdbcCatalogName,
+      String jdbcSchemaName, String tableName, Schema.TableType jdbcTableType) {
+    super(Object[].class);
+    this.jdbcSchema = jdbcSchema;
+    this.jdbcCatalogName = jdbcCatalogName;
+    this.jdbcSchemaName = jdbcSchemaName;
+    this.jdbcTableName = tableName;
+    this.jdbcTableType = jdbcTableType;
   }
 
   public String toString() {
-    return "JdbcTable {" + tableName + "}";
+    return "JdbcTable {" + jdbcTableName + "}";
   }
 
-  public QueryProvider getProvider() {
-    return schema.queryProvider;
+  @Override public Schema.TableType getJdbcTableType() {
+    return jdbcTableType;
   }
 
-  public Type getElementType() {
-    return Object[].class;
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    if (protoRowType == null) {
+      try {
+        protoRowType =
+            jdbcSchema.getRelDataType(
+                jdbcCatalogName,
+                jdbcSchemaName,
+                jdbcTableName);
+      } catch (SQLException e) {
+        throw new RuntimeException(
+            "Exception while reading definition of table '" + jdbcTableName
+            + "'", e);
+      }
+    }
+    return protoRowType.apply(typeFactory);
   }
 
-  public Expression getExpression() {
-    return Expressions.call(
-        schema.getExpression(),
-        BuiltinMethod.SCHEMA_GET_TABLE.method,
-        Expressions.constant(tableName),
-        Expressions.constant(getElementType()));
-  }
-
-  public Statistic getStatistic() {
-    return Statistics.UNKNOWN;
-  }
-
-  public Iterator<Object[]> iterator() {
-    return Linq4j.enumeratorIterator(enumerator());
-  }
-
-  public Enumerator<Object[]> enumerator() {
-    final SqlString sql = generateSql();
-    return ResultSetEnumerable.of(
-        schema.getDataSource(),
-        sql.getSql(),
-        JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses())).enumerator();
-  }
-
-  private List<Pair<Primitive, Integer>> fieldClasses() {
+  private List<Pair<Primitive, Integer>> fieldClasses(
+      final JavaTypeFactory typeFactory) {
+    final RelDataType rowType = protoRowType.apply(typeFactory);
     return Functions.adapt(
         rowType.getFieldList(),
         new Function1<RelDataTypeField, Pair<Primitive, Integer>>() {
           public Pair<Primitive, Integer> apply(RelDataTypeField field) {
             RelDataType type = field.getType();
-            Class clazz = (Class) schema.typeFactory.getJavaClass(type);
+            Class clazz = (Class) typeFactory.getJavaClass(type);
             return Pair.of(Util.first(Primitive.of(clazz), Primitive.OTHER),
                 type.getSqlTypeName().getJdbcOrdinal());
           }
@@ -126,33 +122,47 @@ class JdbcTable extends AbstractQueryable<Object[]>
                 SqlParserPos.ZERO),
             tableName(), null, null, null, null, null, null, null,
             SqlParserPos.ZERO);
-    final SqlPrettyWriter writer = new SqlPrettyWriter(schema.dialect);
+    final SqlPrettyWriter writer = new SqlPrettyWriter(jdbcSchema.dialect);
     node.unparse(writer, 0, 0);
     return writer.toSqlString();
   }
 
   SqlIdentifier tableName() {
     final List<String> strings = new ArrayList<String>();
-    if (schema.catalog != null) {
-      strings.add(schema.catalog);
+    if (jdbcSchema.catalog != null) {
+      strings.add(jdbcSchema.catalog);
     }
-    if (schema.schema != null) {
-      strings.add(schema.schema);
+    if (jdbcSchema.schema != null) {
+      strings.add(jdbcSchema.schema);
     }
-    strings.add(tableName);
+    strings.add(jdbcTableName);
     return new SqlIdentifier(
         strings.toArray(new String[strings.size()]),
         SqlParserPos.ZERO);
   }
 
-  public RelDataType getRowType() {
-    return rowType;
-  }
-
   public RelNode toRel(
       RelOptTable.ToRelContext context, RelOptTable relOptTable) {
     return new JdbcTableScan(
-        context.getCluster(), relOptTable, this, schema.convention);
+        context.getCluster(), relOptTable, this, jdbcSchema.convention);
+  }
+
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+      SchemaPlus schema, String tableName) {
+    return new AbstractTableQueryable<T>(queryProvider, schema, this,
+        tableName) {
+      public Enumerator<T> enumerator() {
+        final JavaTypeFactory typeFactory =
+            ((OptiqConnection) queryProvider).getTypeFactory();
+        final SqlString sql = generateSql();
+        //noinspection unchecked
+        final Enumerable<T> enumerable = (Enumerable<T>) ResultSetEnumerable.of(
+            jdbcSchema.getDataSource(),
+            sql.getSql(),
+            JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses(typeFactory)));
+        return enumerable.enumerator();
+      }
+    };
   }
 }
 

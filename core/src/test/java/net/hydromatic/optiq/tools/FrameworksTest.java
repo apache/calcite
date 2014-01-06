@@ -17,9 +17,7 @@
 */
 package net.hydromatic.optiq.tools;
 
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.AbstractTable;
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
@@ -38,8 +36,6 @@ import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.junit.Test;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
@@ -49,32 +45,22 @@ import static org.junit.Assert.*;
  */
 public class FrameworksTest {
   @Test public void testOptimize() {
-    final List<Object[]> strings =
-        Arrays.asList(
-            new Object[]{"x", 1},
-            new Object[]{"y", 2},
-            new Object[]{"z", 3});
     RelNode x =
         Frameworks.withPlanner(new Frameworks.PlannerAction<RelNode>() {
           public RelNode apply(RelOptCluster cluster,
               RelOptSchema relOptSchema,
-              Schema schema) {
+              SchemaPlus rootSchema) {
             final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
-            final RelDataType stringType =
-                typeFactory.createJavaType(String.class);
-            final RelDataType integerType =
-                typeFactory.createJavaType(Integer.class);
-            final RelDataType rowType =
-                typeFactory.builder()
+            final Table table = new AbstractTable() {
+              public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+                final RelDataType stringType =
+                    typeFactory.createJavaType(String.class);
+                final RelDataType integerType =
+                    typeFactory.createJavaType(Integer.class);
+                return typeFactory.builder()
                     .add("s", stringType)
                     .add("i", integerType)
                     .build();
-            final Table table = new AbstractTable(schema,
-                String.class,
-                rowType,
-                "myTable") {
-              public Enumerator enumerator() {
-                return Linq4j.enumerator(strings);
               }
             };
 
@@ -82,22 +68,20 @@ public class FrameworksTest {
             final RelOptAbstractTable relOptTable = new RelOptAbstractTable(
                 relOptSchema,
                 "myTable",
-                table.getRowType()) {
+                table.getRowType(typeFactory)) {
             };
             final JavaRules.EnumerableTableAccessRel tableRel =
                 new JavaRules.EnumerableTableAccessRel(
-                    cluster,
-                    cluster.traitSetOf(EnumerableConvention.INSTANCE),
-                    relOptTable,
-                    schema.getExpression(),
-                    Object[].class);
+                    cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE),
+                    relOptTable, Object[].class);
 
             // "WHERE i > 1"
             final RexBuilder rexBuilder = cluster.getRexBuilder();
             final RexNode condition =
                 rexBuilder.makeCall(SqlStdOperatorTable.greaterThanOperator,
                     rexBuilder.makeFieldAccess(
-                        rexBuilder.makeRangeReference(table.getRowType()),
+                        rexBuilder.makeRangeReference(table.getRowType(
+                            typeFactory)),
                         "i"),
                     rexBuilder.makeExactLiteral(BigDecimal.ONE));
             final FilterRel filterRel = new FilterRel(cluster,

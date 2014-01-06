@@ -17,7 +17,6 @@
 */
 package net.hydromatic.optiq.rules.java;
 
-import net.hydromatic.linq4j.expressions.Expressions;
 import net.hydromatic.linq4j.expressions.ParameterExpression;
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
@@ -25,18 +24,13 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import org.eigenbase.rel.RelImplementorImpl;
 import org.eigenbase.rex.RexBuilder;
 
-import java.lang.reflect.Modifier;
-
 /**
  * Abstract base class for implementations of {@link RelImplementorImpl}
  * that generate java code.
  */
 public abstract class JavaRelImplementor extends RelImplementorImpl {
-  public final ParameterExpression root;
-
   public JavaRelImplementor(RexBuilder rexBuilder) {
     super(rexBuilder);
-    root = Expressions.parameter(Modifier.FINAL, DataContext.class, "root");
   }
 
   @Override
@@ -47,7 +41,7 @@ public abstract class JavaRelImplementor extends RelImplementorImpl {
   /** Returns the expression with which to access the
    * {@link net.hydromatic.optiq.DataContext}. */
   public ParameterExpression getRootExpression() {
-    return root;
+    return DataContext.ROOT;
   }
 }
 

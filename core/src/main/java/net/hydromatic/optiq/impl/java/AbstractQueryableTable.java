@@ -15,28 +15,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq;
+package net.hydromatic.optiq.impl.java;
 
 import net.hydromatic.linq4j.expressions.Expression;
 
+import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.AbstractTable;
+
+import java.lang.reflect.Type;
+
 /**
- * Schema that can be modified.
+ * Abstract base class for implementing {@link net.hydromatic.optiq.Table}.
  */
-public interface MutableSchema extends Schema {
-  /** Defines a table-function in this schema. There can be multiple
-   * table-functions with the same name; this method will not remove a
-   * table-function with the same name, just define another overloading. */
-  void addTableFunction(TableFunctionInSchema tableFunctionInSchema);
+public abstract class AbstractQueryableTable extends AbstractTable
+    implements QueryableTable {
+  protected final Type elementType;
 
-  /** Defines a table within this schema. */
-  void addTable(TableInSchema table);
+  protected AbstractQueryableTable(Type elementType) {
+    super();
+    this.elementType = elementType;
+  }
 
-  /** Adds a child schema of this schema. */
-  void addSchema(String name, Schema schema);
+  public Type getElementType() {
+    return elementType;
+  }
 
-  /** Returns the expression with which a sub-schema of this schema with a
-   * given name and type should be accessed. */
-  Expression getSubSchemaExpression(String name, Class type);
+  public Expression getExpression(SchemaPlus schema, String tableName,
+      Class clazz) {
+    return Schemas.tableExpression(schema, elementType, tableName, clazz);
+  }
 }
 
-// End MutableSchema.java
+// End AbstractQueryableTable.java

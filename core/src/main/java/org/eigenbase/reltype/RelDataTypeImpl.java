@@ -296,6 +296,17 @@ public abstract class RelDataTypeImpl
     {
         return RelDataTypeComparability.All;
     }
+
+    /** Returns an implementation of
+     * {@link RelProtoDataType}
+     * that copies a given type using th given type factory. */
+    public static RelProtoDataType proto(final RelDataType protoType) {
+        return new RelProtoDataType() {
+            public RelDataType apply(RelDataTypeFactory a0) {
+                return a0.copyType(protoType);
+            }
+        };
+    }
 }
 
 // End RelDataTypeImpl.java

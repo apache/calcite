@@ -18,6 +18,7 @@
 package net.hydromatic.optiq.impl.jdbc;
 
 import net.hydromatic.linq4j.Ord;
+import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.ModifiableTable;
@@ -791,7 +792,7 @@ public class JdbcRules {
       final ModifiableTable modifiableTable =
           modify.getTable().unwrap(ModifiableTable.class);
       if (modifiableTable == null
-          || modifiableTable.getExpression() == null) {
+          /* || modifiableTable.getExpression(tableInSchema) == null */) {
         return null;
       }
       final RelTraitSet traitSet =
@@ -831,7 +832,7 @@ public class JdbcRules {
       if (modifiableTable == null) {
         throw new AssertionError(); // TODO: user error in validator
       }
-      this.expression = modifiableTable.getExpression();
+      this.expression = table.getExpression(Queryable.class);
       if (expression == null) {
         throw new AssertionError(); // TODO: user error in validator
       }

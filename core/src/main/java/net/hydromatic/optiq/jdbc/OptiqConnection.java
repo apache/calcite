@@ -17,7 +17,7 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import net.hydromatic.optiq.MutableSchema;
+import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import net.hydromatic.linq4j.QueryProvider;
@@ -47,7 +47,7 @@ public interface OptiqConnection extends Connection, QueryProvider {
    *
    * @return Root schema
    */
-  MutableSchema getRootSchema();
+  SchemaPlus getRootSchema();
 
   /**
    * Returns the type factory.

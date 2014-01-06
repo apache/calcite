@@ -22,16 +22,15 @@ import net.hydromatic.avatica.*;
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Expressions;
-import net.hydromatic.linq4j.expressions.ParameterExpression;
 import net.hydromatic.linq4j.function.Function0;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.AbstractSchema;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
-import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.*;
 
 import java.lang.reflect.*;
 import java.sql.*;
@@ -46,14 +45,9 @@ import java.util.*;
 abstract class OptiqConnectionImpl
     extends AvaticaConnection
     implements OptiqConnection, QueryProvider {
-  public final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
+  public final JavaTypeFactory typeFactory;
 
-  final ParameterExpression rootExpression =
-      Expressions.parameter(DataContext.class, "root");
-  final Expression rootSchemaExpression =
-      Expressions.call(rootExpression,
-          BuiltinMethod.DATA_CONTEXT_GET_ROOT_SCHEMA.method);
-  final MutableSchema rootSchema;
+  final OptiqRootSchema rootSchema;
   final Function0<OptiqPrepare> prepareFactory;
   final OptiqServer server = new OptiqServerImpl();
 
@@ -69,20 +63,29 @@ abstract class OptiqConnectionImpl
    * @param factory Factory for JDBC objects
    * @param url Server URL
    * @param info Other connection properties
+   * @param rootSchema Root schema, or null
+   * @param typeFactory Type factory, or null
    */
-  OptiqConnectionImpl(
-      Driver driver,
-      AvaticaFactory factory,
-      String url,
-      Properties info) {
+  protected OptiqConnectionImpl(Driver driver, AvaticaFactory factory,
+      String url, Properties info, OptiqRootSchema rootSchema,
+      JavaTypeFactory typeFactory) {
     super(driver, factory, url, info);
     this.prepareFactory = driver.prepareFactory;
-    this.rootSchema = new RootSchema(this);
-    ((MetaImpl) meta).createInformationSchema();
+    this.typeFactory =
+        typeFactory != null ? typeFactory : new JavaTypeFactoryImpl();
+    if (rootSchema == null) {
+      rootSchema = new OptiqRootSchema(new RootSchema());
+      rootSchema.addSchema(MetadataSchema.create(rootSchema.plus()));
+    }
+    this.rootSchema = rootSchema;
   }
 
   @Override protected Meta createMeta() {
     return new MetaImpl(this);
+  }
+
+  MetaImpl meta() {
+    return (MetaImpl) meta;
   }
 
   public ConnectionConfig config() {
@@ -151,15 +154,20 @@ abstract class OptiqConnectionImpl
 
   <T> OptiqPrepare.PrepareResult<T> parseQuery(String sql,
       OptiqPrepare.Context prepareContext, int maxRowCount) {
-    final OptiqPrepare prepare = prepareFactory.apply();
-    return prepare.prepareSql(prepareContext, sql, null, Object[].class,
-        maxRowCount);
+    OptiqPrepare.Dummy.push(prepareContext);
+    try {
+      final OptiqPrepare prepare = prepareFactory.apply();
+      return prepare.prepareSql(prepareContext, sql, null, Object[].class,
+          maxRowCount);
+    } finally {
+      OptiqPrepare.Dummy.pop(prepareContext);
+    }
   }
 
   // OptiqConnection methods
 
-  public MutableSchema getRootSchema() {
-    return rootSchema;
+  public SchemaPlus getRootSchema() {
+    return rootSchema.plus();
   }
 
   public JavaTypeFactory getTypeFactory() {
@@ -211,7 +219,7 @@ abstract class OptiqConnectionImpl
   }
 
   public DataContext createDataContext(List<Object> parameterValues) {
-    return new DataContextImpl(this, (RootSchema) rootSchema, parameterValues);
+    return new DataContextImpl(this, parameterValues);
   }
 
   // do not make public
@@ -249,24 +257,29 @@ abstract class OptiqConnectionImpl
     }
   }
 
-  private static class RootSchema extends MapSchema {
-    RootSchema(OptiqConnectionImpl connection) {
-      super(
-          null,
-          connection,
-          connection.typeFactory,
-          "",
-          connection.rootSchemaExpression);
+  private static class RootSchema extends AbstractSchema {
+    RootSchema() {
+      super(null, "");
+    }
+
+    @Override public Expression getExpression() {
+      return Expressions.call(
+          DataContext.ROOT,
+          BuiltinMethod.DATA_CONTEXT_GET_ROOT_SCHEMA.method);
     }
   }
 
   static class DataContextImpl implements DataContext {
     private final ImmutableMap<Object, Object> map;
-    private final RootSchema rootSchema;
+    private final OptiqSchema rootSchema;
+    private final QueryProvider queryProvider;
+    private final JavaTypeFactory typeFactory;
 
-    DataContextImpl(OptiqConnectionImpl connection, RootSchema rootSchema,
+    DataContextImpl(OptiqConnectionImpl connection,
         List<Object> parameterValues) {
-      this.rootSchema = rootSchema;
+      this.queryProvider = connection;
+      this.typeFactory = connection.getTypeFactory();
+      this.rootSchema = connection.rootSchema;
 
       // Store the time at which the query started executing. The SQL
       // standard says that functions such as CURRENTTIMESTAMP return the
@@ -299,12 +312,16 @@ abstract class OptiqConnectionImpl
       return o;
     }
 
-    public Schema getRootSchema() {
-      return rootSchema;
+    public SchemaPlus getRootSchema() {
+      return rootSchema.plus();
     }
 
     public JavaTypeFactory getTypeFactory() {
-      return rootSchema.getTypeFactory();
+      return typeFactory;
+    }
+
+    public QueryProvider getQueryProvider() {
+      return queryProvider;
     }
   }
 
@@ -319,8 +336,8 @@ abstract class OptiqConnectionImpl
       return connection.typeFactory;
     }
 
-    public Schema getRootSchema() {
-      return connection.getRootSchema();
+    public OptiqRootSchema getRootSchema() {
+      return connection.rootSchema;
     }
 
     public List<String> getDefaultSchemaPath() {

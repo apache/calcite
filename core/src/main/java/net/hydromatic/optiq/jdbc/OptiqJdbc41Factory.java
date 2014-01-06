@@ -19,6 +19,8 @@ package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.avatica.*;
 
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.sql.*;
@@ -31,35 +33,22 @@ import java.util.TimeZone;
  * for Optiq and JDBC 4.1 (corresponds to JDK 1.7).
  */
 @SuppressWarnings("UnusedDeclaration")
-public class OptiqJdbc41Factory implements AvaticaFactory {
-  private final int major;
-  private final int minor;
-
-  /** Creates a JDBC factory. */
+public class OptiqJdbc41Factory extends OptiqFactory {
+  /** Creates a factory for JDBC version 4.1. */
   public OptiqJdbc41Factory() {
     this(4, 1);
   }
 
   /** Creates a JDBC factory with given major/minor version number. */
   protected OptiqJdbc41Factory(int major, int minor) {
-    this.major = major;
-    this.minor = minor;
+    super(major, minor);
   }
 
-  public int getJdbcMajorVersion() {
-    return major;
-  }
-
-  public int getJdbcMinorVersion() {
-    return minor;
-  }
-
-  public AvaticaConnection newConnection(
-      UnregisteredDriver driver,
-      AvaticaFactory factory,
-      String url,
-      Properties info) {
-    return new OptiqJdbc41Connection((Driver) driver, factory, url, info);
+  public OptiqJdbc41Connection newConnection(UnregisteredDriver driver,
+      AvaticaFactory factory, String url, Properties info,
+      OptiqRootSchema rootSchema, JavaTypeFactory typeFactory) {
+    return new OptiqJdbc41Connection(
+        (Driver) driver, factory, url, info, rootSchema, typeFactory);
   }
 
   public OptiqJdbc41DatabaseMetaData newDatabaseMetaData(
@@ -108,12 +97,10 @@ public class OptiqJdbc41Factory implements AvaticaFactory {
   }
 
   private static class OptiqJdbc41Connection extends OptiqConnectionImpl {
-    OptiqJdbc41Connection(
-        Driver driver,
-        AvaticaFactory factory,
-        String url,
-        Properties info) {
-      super(driver, factory, url, info);
+    OptiqJdbc41Connection(Driver driver, AvaticaFactory factory, String url,
+        Properties info, OptiqRootSchema rootSchema,
+        JavaTypeFactory typeFactory) {
+      super(driver, factory, url, info, rootSchema, typeFactory);
     }
   }
 

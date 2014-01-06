@@ -178,7 +178,7 @@ public class SparkRules {
           Expressions.return_(null,
               Expressions.call(SparkMethod.ARRAY_TO_RDD.method,
                   Expressions.call(SparkMethod.GET_SPARK_CONTEXT.method,
-                      implementor.root),
+                      implementor.getRootExpression()),
                   Expressions.newArrayInit(Primitive.box(rowClass),
                       expressions))));
       return implementor.result(physType, builder.toBlock());
@@ -246,7 +246,8 @@ public class SparkRules {
       this.rowType = program.getOutputRowType();
     }
 
-    public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+    @Override
+    public RelWriter explainTerms(RelWriter pw) {
       return program.explainCalc(super.explainTerms(pw));
     }
 
@@ -268,7 +269,7 @@ public class SparkRules {
           getCluster(),
           traitSet,
           sole(inputs),
-          program.copy(),
+          program,
           getFlags());
     }
 

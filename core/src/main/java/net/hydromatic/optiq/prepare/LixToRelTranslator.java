@@ -17,7 +17,7 @@
 */
 package net.hydromatic.optiq.prepare;
 
-import net.hydromatic.optiq.BuiltinMethod;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import net.hydromatic.linq4j.Queryable;
@@ -70,8 +70,8 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
 
   public RelNode translate(Expression expression) {
     if (expression instanceof MethodCallExpression) {
-      MethodCallExpression call = (MethodCallExpression) expression;
-      BuiltinMethod method = BuiltinMethod.lookup(call.method);
+      final MethodCallExpression call = (MethodCallExpression) expression;
+      BuiltinMethod method = BuiltinMethod.MAP.get(call.method);
       if (method == null) {
         throw new UnsupportedOperationException(
             "unknown method " + call.method);

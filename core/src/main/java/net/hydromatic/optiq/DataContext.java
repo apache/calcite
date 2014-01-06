@@ -17,25 +17,37 @@
 */
 package net.hydromatic.optiq;
 
+import net.hydromatic.linq4j.QueryProvider;
+import net.hydromatic.linq4j.expressions.Expressions;
+import net.hydromatic.linq4j.expressions.ParameterExpression;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.util.Util;
 
+import java.lang.reflect.Modifier;
 import java.util.TimeZone;
 
 /**
  * Runtime context allowing access to the tables in a database.
  */
 public interface DataContext {
+  ParameterExpression ROOT =
+      Expressions.parameter(Modifier.FINAL, DataContext.class, "root");
+
   /**
    * Returns a sub-schema with a given name, or null.
    */
-  Schema getRootSchema();
+  SchemaPlus getRootSchema();
 
   /**
    * Returns the type factory.
    */
   JavaTypeFactory getTypeFactory();
+
+  /**
+   * Returns the query provider.
+   */
+  QueryProvider getQueryProvider();
 
   /**
    * Returns a context variable.

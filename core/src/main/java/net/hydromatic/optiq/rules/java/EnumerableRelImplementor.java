@@ -22,6 +22,7 @@ import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.BuiltinMethod;
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
 import net.hydromatic.optiq.runtime.Bindable;
 import net.hydromatic.optiq.runtime.Utilities;
@@ -73,7 +74,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
             Modifier.PUBLIC,
             Enumerable.class,
             BuiltinMethod.BINDABLE_BIND.method.getName(),
-            Expressions.list(root),
+            Expressions.list(DataContext.ROOT),
             result.block));
     memberDeclarations.add(
         Expressions.methodDecl(

@@ -26,13 +26,14 @@ import net.hydromatic.linq4j.function.Functions;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.clone.CloneSchema;
-import net.hydromatic.optiq.jdbc.OptiqPrepare;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.*;
 import net.hydromatic.optiq.prepare.Prepare;
 
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeImpl;
 
 import java.lang.reflect.Type;
-import java.sql.Connection;
 import java.util.*;
 
 /**
@@ -49,20 +50,24 @@ public class MaterializationService {
   }
 
   /** Defines a new materialization. Returns its key. */
-  public MaterializationKey defineMaterialization(final Schema schema,
+  public MaterializationKey defineMaterialization(final OptiqSchema schema,
       String viewSql, List<String> viewSchemaPath, String tableName) {
+    final OptiqConnection connection =
+        MetaImpl.connect(schema.root(), null);
     final MaterializationKey key = new MaterializationKey();
-    Schema.TableInSchema materializedTable;
+    Table materializedTable;
     RelDataType rowType = null;
+    OptiqSchema.TableEntry tableEntry;
     if (tableName != null) {
-      materializedTable = schema.getTables().get(tableName);
+      materializedTable = schema.compositeTableMap.get(tableName);
       if (materializedTable == null) {
         final OptiqPrepare.PrepareResult<Object> prepareResult =
-            Schemas.prepare(schema, viewSchemaPath, viewSql);
+            Schemas.prepare(connection, schema, viewSchemaPath, viewSql);
         rowType = prepareResult.rowType;
+        final JavaTypeFactory typeFactory = connection.getTypeFactory();
         materializedTable =
-            CloneSchema.createCloneTable((MutableSchema) schema, tableName,
-                prepareResult.rowType,
+            CloneSchema.createCloneTable(typeFactory,
+                RelDataTypeImpl.proto(prepareResult.rowType),
                 Functions.adapt(prepareResult.columnList,
                     new Function1<ColumnMetaData, ColumnMetaData.Rep>() {
                       public ColumnMetaData.Rep apply(ColumnMetaData column) {
@@ -70,53 +75,52 @@ public class MaterializationService {
                       }
                     }),
                 new AbstractQueryable<Object>() {
+                  public Enumerator<Object> enumerator() {
+                    final DataContext dataContext =
+                        Schemas.createDataContext(connection);
+                    return prepareResult.enumerator(dataContext);
+                  }
+
                   public Type getElementType() {
-                    return prepareResult.resultClazz;
+                    return Object.class;
                   }
 
                   public Expression getExpression() {
-                    return null;
+                    throw new UnsupportedOperationException();
                   }
 
                   public QueryProvider getProvider() {
-                    return schema.getQueryProvider();
+                    return connection;
                   }
 
                   public Iterator<Object> iterator() {
                     final DataContext dataContext =
-                        Schemas.createDataContext(
-                            (Connection) schema.getQueryProvider());
+                        Schemas.createDataContext(connection);
                     return prepareResult.iterator(dataContext);
                   }
-
-                  public Enumerator<Object> enumerator() {
-                    final DataContext dataContext =
-                        Schemas.createDataContext(
-                            (Connection) schema.getQueryProvider());
-                    return prepareResult.enumerator(dataContext);
-                  }
-            });
-        ((MutableSchema) schema).addTable(materializedTable);
+                });
+        schema.add(tableName, materializedTable);
       }
+      tableEntry = schema.add(tableName, materializedTable);
     } else {
-      materializedTable = null;
+      tableEntry = null;
     }
     if (rowType == null) {
       // If we didn't validate the SQL by populating a table, validate it now.
       final OptiqPrepare.ParseResult parse =
-          Schemas.parse(schema, viewSchemaPath, viewSql);
+          Schemas.parse(connection, schema, viewSchemaPath, viewSql);
       rowType = parse.rowType;
     }
     final MaterializationActor.Materialization materialization =
-        new MaterializationActor.Materialization(key, Schemas.root(schema),
-            materializedTable, viewSql, rowType);
+        new MaterializationActor.Materialization(key, schema.root(),
+            tableEntry, viewSql, rowType);
     actor.keyMap.put(materialization.key, materialization);
     return key;
   }
 
   /** Checks whether a materialization is valid, and if so, returns the table
    * where the data are stored. */
-  public Schema.TableInSchema checkValid(MaterializationKey key) {
+  public OptiqSchema.TableEntry checkValid(MaterializationKey key) {
     final MaterializationActor.Materialization materialization =
         actor.keyMap.get(key);
     if (materialization != null) {
@@ -129,7 +133,7 @@ public class MaterializationService {
    * schema. (Each root schema defines a disconnected namespace, with no overlap
    * with the current schema. Especially in a test run, the contents of two
    * root schemas may look similar.) */
-  public List<Prepare.Materialization> query(Schema rootSchema) {
+  public List<Prepare.Materialization> query(OptiqSchema rootSchema) {
     final List<Prepare.Materialization> list =
         new ArrayList<Prepare.Materialization>();
     for (MaterializationActor.Materialization materialization

@@ -20,16 +20,18 @@ package net.hydromatic.optiq.impl.splunk;
 import net.hydromatic.avatica.DriverVersion;
 import net.hydromatic.avatica.UnregisteredDriver;
 
-import net.hydromatic.optiq.MutableSchema;
-import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.impl.splunk.search.SplunkConnection;
 import net.hydromatic.optiq.jdbc.*;
+
+import org.eigenbase.sql.SqlDialect;
 
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
+import javax.sql.DataSource;
 
 /**
  * JDBC driver for Splunk.
@@ -79,18 +81,8 @@ public class SplunkDriver extends UnregisteredDriver {
     } catch (Exception e) {
       throw new SQLException("Cannot connect", e);
     }
-    final MutableSchema rootSchema = optiqConnection.getRootSchema();
-    final String schemaName = "splunk";
-    final SplunkSchema schema =
-        new SplunkSchema(
-            optiqConnection,
-            rootSchema,
-            schemaName,
-            splunkConnection,
-            optiqConnection.getTypeFactory(),
-            rootSchema.getSubSchemaExpression(
-                schemaName, Schema.class));
-    rootSchema.addSchema(schemaName, schema);
+    final SchemaPlus rootSchema = optiqConnection.getRootSchema();
+    rootSchema.add(new SplunkSchema(rootSchema, "splunk", splunkConnection));
 
     // Include a schema called "mysql" in every splunk connection.
     // This is a hack for demo purposes. TODO: Add a config file mechanism.
@@ -101,13 +93,13 @@ public class SplunkDriver extends UnregisteredDriver {
       } catch (ClassNotFoundException e) {
         throw new SQLException(e);
       }
-      JdbcSchema.create(
-          optiqConnection.getRootSchema(),
+      final DataSource dataSource =
           JdbcSchema.dataSource("jdbc:mysql://localhost", null, "foodmart",
-              "foodmart"),
-          "foodmart",
-          "",
-          mysqlSchemaName);
+              "foodmart");
+      final SqlDialect dialect = JdbcSchema.createDialect(dataSource);
+      rootSchema.add(
+          new JdbcSchema(optiqConnection.getRootSchema(), "foodmart",
+              dataSource, dialect, "", mysqlSchemaName));
     }
 
     return connection;

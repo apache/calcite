@@ -284,9 +284,9 @@ public class MongoAdapterTest {
         .returns("EXPR$0=29467\n")
         .explainContains(
             "PLAN=EnumerableAggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
-            + "  EnumerableCalcRel(expr#0..4=[{inputs}], expr#5=[0], $f0=[$t5])\n"
+            + "  EnumerableCalcRel(expr#0=[{inputs}], expr#0=[0], DUMMY=[$t0])\n"
             + "    MongoToEnumerableConverter\n"
-            + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
+            + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{}, {$project: {}}>]])");
   }
 
   @Test public void testProject() {
@@ -299,8 +299,9 @@ public class MongoAdapterTest {
             "STATE=AL; CITY=ACMAR\n"
             + "STATE=AL; CITY=ADAMSVILLE\n")
         .explainContains(
-            "PLAN=MongoToEnumerableConverter\n"
-            + "  MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{state: 1, city: 1}, {$project: {state: 1, city: 1}}>]])");
+            "PLAN=EnumerableCalcRel(expr#0..1=[{inputs}], STATE=[$t1], CITY=[$t0])\n"
+            + "  MongoToEnumerableConverter\n"
+            + "    MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, state: 1}, {$project: {city: 1, state: 1}}>]])");
   }
 
   @Test public void testFilter() {
@@ -313,10 +314,10 @@ public class MongoAdapterTest {
             "STATE=CA; CITY=LOS ANGELES\n"
             + "STATE=CA; CITY=LOS ANGELES\n")
         .explainContains(
-            "PLAN=EnumerableCalcRel(expr#0..4=[{inputs}], STATE=[$t3], CITY=[$t0])\n"
+            "PLAN=EnumerableCalcRel(expr#0..1=[{inputs}], STATE=[$t1], CITY=[$t0])\n"
             + "  MongoToEnumerableConverter\n"
-            + "    MongoFilterRel(condition=[=($3, 'CA')])\n"
-            + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, loc: 1, pop: 1, state: 1, _id: 1}, {$project: {city: 1, loc: 1, pop: 1, state: 1, _id: 1}}>]])");
+            + "    MongoFilterRel(condition=[=($1, 'CA')])\n"
+            + "      MongoTableScan(table=[[mongo_raw, zips]], ops=[[<{city: 1, state: 1}, {$project: {city: 1, state: 1}}>]])");
   }
 
   public void _testFoodmartQueries() {

@@ -18,15 +18,17 @@
 package net.hydromatic.optiq.impl.clone;
 
 import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
 import net.hydromatic.linq4j.expressions.Primitive;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.AbstractTableQueryable;
+import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 import net.hydromatic.optiq.util.BitSets;
 
-import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.*;
 import org.eigenbase.util.*;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Array;
@@ -39,75 +41,65 @@ import java.util.*;
  * values in the column; see {@link Representation} and
  * {@link RepresentationType}.
  */
-class ArrayTable<T>
-    extends BaseQueryable<T>
-    implements Table<T>
-{
-  private final Schema schema;
-  private final RelDataType relDataType;
-  private final List<Column> columns;
-  private final int size;
-  private final int sortField;
+class ArrayTable extends AbstractQueryableTable {
+  private final RelProtoDataType protoRowType;
+  private final Supplier<Content> supplier;
 
   /** Creates an ArrayTable. */
-  public ArrayTable(
-      Schema schema,
-      Type elementType,
-      RelDataType relDataType,
-      Expression expression,
-      List<? extends Column> columns,
-      int size,
-      int sortField) {
-    super(schema.getQueryProvider(), elementType, expression);
-    this.schema = schema;
-    this.relDataType = relDataType;
-    this.columns = ImmutableList.copyOf(columns);
-    this.size = size;
-    this.sortField = sortField;
-
-    assert relDataType.getFieldCount() == columns.size();
+  public ArrayTable(Type elementType, RelProtoDataType protoRowType,
+      Supplier<Content> supplier) {
+    super(elementType);
+    this.protoRowType = protoRowType;
+    this.supplier = supplier;
   }
 
-  public RelDataType getRowType() {
-    return relDataType;
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    return protoRowType.apply(typeFactory);
   }
 
   public Statistic getStatistic() {
-    final ArrayList<BitSet> keys = new ArrayList<BitSet>();
-    for (Ord<Column> ord : Ord.zip(columns)) {
-      if (ord.e.cardinality == size) {
+    final List<BitSet> keys = new ArrayList<BitSet>();
+    final Content content = supplier.get();
+    for (Ord<Column> ord : Ord.zip(content.columns)) {
+      if (ord.e.cardinality == content.size) {
         keys.add(BitSets.of(ord.i));
       }
     }
-    return Statistics.of(size, keys);
+    return Statistics.of(content.size, keys);
   }
 
-  @SuppressWarnings("unchecked")
-  @Override
-  public Enumerator<T> enumerator() {
-    return new Enumerator() {
-      final int rowCount = size;
-      final int columnCount = columns.size();
-      int i = -1;
+  public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
+      SchemaPlus schema, String tableName) {
+    return new AbstractTableQueryable<T>(queryProvider, schema, this,
+        tableName) {
+      @SuppressWarnings("unchecked")
+      public Enumerator<T> enumerator() {
+        final Content content = supplier.get();
+        return new Enumerator() {
+          final int rowCount = content.size;
+          final int columnCount = content.columns.size();
+          int i = -1;
 
-      public Object[] current() {
-        Object[] objects = new Object[columnCount];
-        for (int j = 0; j < objects.length; j++) {
-          final Column pair = columns.get(j);
-          objects[j] = pair.representation.getObject(pair.dataSet, i);
-        }
-        return objects;
-      }
+          public Object[] current() {
+            Object[] objects = new Object[columnCount];
+            for (int j = 0; j < objects.length; j++) {
+              final Column pair = content.columns.get(j);
+              objects[j] = pair.representation.getObject(pair.dataSet, i);
+            }
+            return objects;
+          }
 
-      public boolean moveNext() {
-        return (++i < rowCount);
-      }
+          public boolean moveNext() {
+            return (++i < rowCount);
+          }
 
-      public void reset() {
-        i = -1;
-      }
+          public void reset() {
+            i = -1;
+          }
 
-      public void close() {
+          public void close() {
+          }
+        };
       }
     };
   }
@@ -787,6 +779,18 @@ class ArrayTable<T>
         return list.size();
       }
     };
+  }
+
+  public static class Content {
+    private final List<Column> columns;
+    private final int size;
+    private final int sortField;
+
+    public Content(List<? extends Column> columns, int size, int sortField) {
+      this.columns = ImmutableList.copyOf(columns);
+      this.size = size;
+      this.sortField = sortField;
+    }
   }
 }
 

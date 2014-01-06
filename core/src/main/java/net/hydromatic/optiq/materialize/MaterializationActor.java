@@ -17,7 +17,8 @@
 */
 package net.hydromatic.optiq.materialize;
 
-import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.jdbc.OptiqRootSchema;
+import net.hydromatic.optiq.jdbc.OptiqSchema;
 
 import org.eigenbase.reltype.RelDataType;
 
@@ -35,8 +36,8 @@ class MaterializationActor {
 
   static class Materialization {
     final MaterializationKey key;
-    final Schema rootSchema;
-    Schema.TableInSchema materializedTable;
+    final OptiqRootSchema rootSchema;
+    OptiqSchema.TableEntry materializedTable;
     final String sql;
     final RelDataType rowType;
 
@@ -52,8 +53,8 @@ class MaterializationActor {
      * @param rowType Row type
      */
     Materialization(MaterializationKey key,
-        Schema rootSchema,
-        Schema.TableInSchema materializedTable,
+        OptiqRootSchema rootSchema,
+        OptiqSchema.TableEntry materializedTable,
         String sql,
         RelDataType rowType) {
       this.key = key;

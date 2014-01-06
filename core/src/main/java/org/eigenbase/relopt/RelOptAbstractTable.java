@@ -22,6 +22,8 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
 
+import net.hydromatic.linq4j.expressions.Expression;
+
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -98,6 +100,10 @@ public abstract class RelOptAbstractTable
 
     public RelNode toRel(ToRelContext context) {
         return new TableAccessRel(context.getCluster(), this);
+    }
+
+    public Expression getExpression(Class clazz) {
+        throw new UnsupportedOperationException();
     }
 }
 

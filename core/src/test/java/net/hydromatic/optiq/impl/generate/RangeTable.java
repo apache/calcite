@@ -18,49 +18,58 @@
 package net.hydromatic.optiq.impl.generate;
 
 import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.linq4j.QueryProvider;
+import net.hydromatic.linq4j.Queryable;
 
-import net.hydromatic.optiq.Schema;
+import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.TableFactory;
-import net.hydromatic.optiq.impl.AbstractTable;
-import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.impl.AbstractTableQueryable;
+import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.type.SqlTypeName;
 
-import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
  * Table that returns a range of integers.
  */
-public class RangeTable extends AbstractTable<Integer> {
+public class RangeTable extends AbstractQueryableTable {
+  private final String columnName;
   private final int start;
   private final int end;
 
-  protected RangeTable(
-      Schema schema,
-      Type elementType,
-      RelDataType relDataType,
-      String tableName,
-      int start,
+  protected RangeTable(String columnName, String tableName, int start,
       int end) {
-    super(schema, elementType, relDataType, tableName);
+    super(Object[].class);
+    this.columnName = columnName;
     this.start = start;
     this.end = end;
   }
 
   /** Creates a RangeTable. */
-  public static RangeTable create(
-      Schema schema, String tableName, String columnName, int start, int end) {
-    final JavaTypeFactory typeFactory = schema.getTypeFactory();
-    final RelDataType rowType =
-        typeFactory.builder()
-            .add(columnName, SqlTypeName.INTEGER)
-            .build();
-    return new RangeTable(
-        schema, Object[].class, rowType, tableName, start, end);
+  public static RangeTable create(String tableName, String columnName,
+      int start, int end) {
+    return new RangeTable(columnName, tableName, start, end);
+  }
+
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    return typeFactory.builder()
+        .add(columnName, SqlTypeName.INTEGER)
+        .build();
+  }
+
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+      SchemaPlus schema, String tableName) {
+    return new AbstractTableQueryable<T>(queryProvider, schema, this,
+        tableName) {
+      public Enumerator<T> enumerator() {
+        //noinspection unchecked
+        return (Enumerator<T>) RangeTable.this.enumerator();
+      }
+    };
   }
 
   public Enumerator<Integer> enumerator() {
@@ -93,14 +102,14 @@ public class RangeTable extends AbstractTable<Integer> {
    * file. */
   public static class Factory implements TableFactory<RangeTable> {
     public RangeTable create(
-        Schema schema,
+        SchemaPlus schema,
         String name,
         Map<String, Object> operand,
         RelDataType rowType) {
       final String columnName = (String) operand.get("column");
       final int start = (Integer) operand.get("start");
       final int end = (Integer) operand.get("end");
-      return RangeTable.create(schema, name, columnName, start, end);
+      return RangeTable.create(name, columnName, start, end);
     }
   }
 }

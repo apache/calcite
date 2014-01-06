@@ -18,6 +18,7 @@
 package net.hydromatic.optiq;
 
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 
 /**
  * Parameter to a {@link TableFunction}.
@@ -41,9 +42,11 @@ public interface Parameter {
   /**
    * Returns the type of this parameter.
    *
+   * @param typeFactory Type factory to be used to create the type
+   *
    * @return Parameter type.
    */
-  RelDataType getType();
+  RelDataType getType(RelDataTypeFactory typeFactory);
 }
 
 // End Parameter.java

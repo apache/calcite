@@ -17,16 +17,18 @@
 */
 package net.hydromatic.optiq.impl;
 
-import net.hydromatic.linq4j.Enumerator;
+import net.hydromatic.linq4j.QueryProvider;
+import net.hydromatic.linq4j.Queryable;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.*;
-import net.hydromatic.optiq.prepare.Prepare;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.relopt.RelOptUtil;
-import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.*;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -35,51 +37,55 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.List;
 
+import static net.hydromatic.optiq.impl.MaterializedViewTable.MATERIALIZATION_CONNECTION;
+
 /**
  * Table whose contents are defined using an SQL statement.
  *
  * <p>It is not evaluated; it is expanded during query planning.</p>
  */
-public class ViewTable<T>
-    extends AbstractTable<T>
-    implements TranslatableTable<T>
+public class ViewTable
+    extends AbstractQueryableTable
+    implements TranslatableTable
 {
   private final String viewSql;
   private final List<String> schemaPath;
+  private final RelProtoDataType protoRowType;
 
-  public ViewTable(Schema schema,
-      Type elementType,
-      RelDataType relDataType,
-      String tableName,
-      String viewSql,
+  public ViewTable(Type elementType, RelProtoDataType rowType, String viewSql,
       List<String> schemaPath) {
-    super(schema, elementType, relDataType, tableName);
+    super(elementType);
     this.viewSql = viewSql;
-    this.schemaPath =
-        schemaPath == null ? null : ImmutableList.copyOf(schemaPath);
+    this.schemaPath = ImmutableList.copyOf(schemaPath);
+    this.protoRowType = rowType;
   }
 
   /** Table function that returns a view. */
-  public static <T> Schema.TableFunctionInSchema viewFunction(
-      final Schema schema,
-      final String name,
+  public static ViewTableFunction viewFunction(SchemaPlus schema,
       final String viewSql,
       final List<String> schemaPath) {
-    return new TableFunctionInSchemaImpl(schema, name,
-        new ViewTableFunction<T>(schema, name, viewSql, schemaPath));
+    return new ViewTableFunction(OptiqSchema.from(schema), viewSql, schemaPath);
   }
 
-  public Enumerator<T> enumerator() {
-    return schema
-        .getQueryProvider()
-        .<T>createQuery(getExpression(), elementType)
-        .enumerator();
+  @Override public Schema.TableType getJdbcTableType() {
+    return Schema.TableType.VIEW;
+  }
+
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    return protoRowType.apply(typeFactory);
+  }
+
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+      SchemaPlus schema, String tableName) {
+    return queryProvider.createQuery(
+        getExpression(schema, tableName, Queryable.class),
+        elementType);
   }
 
   public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
-    return expandView(context, getRowType(), viewSql);
+    return expandView(context, relOptTable.getRowType(), viewSql);
   }
 
   private RelNode expandView(
@@ -87,10 +93,7 @@ public class ViewTable<T>
       RelDataType rowType,
       String queryString) {
     try {
-      final List<String> schemaPath1 =
-          schemaPath != null ? schemaPath : Schemas.path(schema, null);
-      RelNode rel =
-          preparingStmt.expandView(rowType, queryString, schemaPath1);
+      RelNode rel = preparingStmt.expandView(rowType, queryString, schemaPath);
 
       rel = RelOptUtil.createCastRel(rel, rowType, true);
       //rel = viewExpander.flattenTypes(rel, false);
@@ -101,22 +104,17 @@ public class ViewTable<T>
     }
   }
 
-  static class ViewTableFunction<T> implements TableFunction<T> {
+  static class ViewTableFunction implements TableFunction {
     protected final String viewSql;
-    protected final Schema schema;
-    protected final String name;
+    protected final OptiqSchema schema;
     /** Typically null. If specified, overrides the path of the schema as the
      * context for validating {@code viewSql}. */
     protected final List<String> schemaPath;
 
-    ViewTableFunction(
-        Schema schema,
-        String name,
-        String viewSql,
+    ViewTableFunction(OptiqSchema schema, String viewSql,
         List<String> schemaPath) {
       this.viewSql = viewSql;
       this.schema = schema;
-      this.name = name;
       this.schemaPath =
           schemaPath == null ? null : ImmutableList.copyOf(schemaPath);
     }
@@ -125,16 +123,19 @@ public class ViewTable<T>
       return Collections.emptyList();
     }
 
-    public Table<T> apply(List<Object> arguments) {
+    public Table apply(List<Object> arguments) {
       OptiqPrepare.ParseResult parsed =
-          Schemas.parse(schema, schemaPath, viewSql);
-      return new ViewTable<T>(
-          schema, schema.getTypeFactory().getJavaClass(parsed.rowType),
-          parsed.rowType, name, viewSql, schemaPath);
+          Schemas.parse(MATERIALIZATION_CONNECTION, schema, schemaPath,
+              viewSql);
+      final List<String> schemaPath1 =
+          schemaPath != null ? schemaPath : Schemas.path(schema.schema, null);
+      final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
+      return new ViewTable(typeFactory.getJavaClass(parsed.rowType),
+          RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1);
     }
 
-    public Type getElementType() {
-      return apply(Collections.emptyList()).getElementType();
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return apply(Collections.emptyList()).getRowType(typeFactory);
     }
   }
 }

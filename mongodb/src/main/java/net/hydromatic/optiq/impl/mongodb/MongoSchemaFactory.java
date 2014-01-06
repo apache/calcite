@@ -32,17 +32,12 @@ public class MongoSchemaFactory implements SchemaFactory {
   public MongoSchemaFactory() {
   }
 
-  public Schema create(MutableSchema parentSchema, String name,
+  public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     Map map = (Map) operand;
     String host = (String) map.get("host");
     String database = (String) map.get("database");
-    final MongoSchema schema =
-        new MongoSchema(
-            parentSchema, name, host, database,
-            parentSchema.getSubSchemaExpression(name, MongoSchema.class));
-    parentSchema.addSchema(name, schema);
-    return schema;
+    return new MongoSchema(parentSchema, name, host, database);
   }
 }
 

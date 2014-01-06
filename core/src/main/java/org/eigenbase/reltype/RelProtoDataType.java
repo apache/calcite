@@ -15,32 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.impl;
+package org.eigenbase.reltype;
 
-import net.hydromatic.optiq.*;
+import net.hydromatic.linq4j.function.Function1;
 
 /**
- * Implementation of {@link net.hydromatic.optiq.Schema.TableFunctionInSchema}
- * where all properties are held in fields.
+ * Can be converted into a {@link RelDataType} given a
+ * {@link org.eigenbase.reltype.RelDataTypeFactory}.
+ *
+ * @see org.eigenbase.reltype.RelDataTypeImpl#proto
  */
-public class TableFunctionInSchemaImpl extends Schema.TableFunctionInSchema {
-  private final TableFunction tableFunction;
-
-  /** Creates a TableFunctionInSchemaImpl. */
-  public TableFunctionInSchemaImpl(Schema schema, String name,
-      TableFunction tableFunction) {
-    super(schema, name);
-    this.tableFunction = tableFunction;
-  }
-
-  public TableFunction getTableFunction() {
-    return tableFunction;
-  }
-
-  public boolean isMaterialization() {
-    return tableFunction
-        instanceof MaterializedViewTable.MaterializedViewTableFunction;
-  }
+public interface RelProtoDataType
+    extends Function1<RelDataTypeFactory, RelDataType>
+{
 }
 
-// End TableFunctionInSchemaImpl.java
+// End RelProtoDataType.java

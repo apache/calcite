@@ -37,6 +37,7 @@ import java.util.Map;
  *       name: 'SALES',
  *       type: 'custom',
  *       factory: 'net.hydromatic.optiq.impl.csv.CsvSchemaFactory',
+ *       mutable: true,
  *       operand: {
  *         directory: 'target/test-classes/sales'
  *       },
@@ -53,13 +54,9 @@ import java.util.Map;
  * }
  * </pre>
  *
- * <p>If you wish to allow model authors to add additional tables (including
- * views) to an instance of your schema, the class that implements
- * {@link Schema} must implement {@link MutableSchema}. The previous example
- * defines a view called 'FEMALE_EMPS' using the <code>tables: [ ... ]</code>
- * property; this is possible only because <code>CsvSchema</code>, the class
- * returned by <code>CsvSchemaFactory</code>, implements
- * <code>MutableSchema</code>.</p>
+ * <p>If you do not wish to allow model authors to add additional tables
+ * (including views) to an instance of your schema, specify
+ * 'mutable: false'.</p>
  *
  * <p>A class that implements SchemaFactory specified in a schema must have a
  * public default constructor.</p>
@@ -67,15 +64,12 @@ import java.util.Map;
 public interface SchemaFactory {
   /** Creates a Schema.
    *
-   * <p>The implementation must register the schema in the parent schema,
-   * by calling {@link MutableSchema#addSchema(String, Schema)}.</p>
-   *
-   * @param schema Parent schema
+   * @param parentSchema Parent schema
    * @param name Name of this schema
    * @param operand The "operand" JSON property
    */
   Schema create(
-      MutableSchema schema,
+      SchemaPlus parentSchema,
       String name,
       Map<String, Object> operand);
 }

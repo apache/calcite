@@ -43,7 +43,7 @@ import java.util.logging.Logger;
  */
 public abstract class UnregisteredDriver implements java.sql.Driver {
   final DriverVersion version;
-  final AvaticaFactory factory;
+  protected final AvaticaFactory factory;
   public final Handler handler;
 
   protected UnregisteredDriver() {

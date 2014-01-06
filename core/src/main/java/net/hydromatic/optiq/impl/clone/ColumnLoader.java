@@ -29,6 +29,7 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeField;
+import org.eigenbase.reltype.RelProtoDataType;
 import org.eigenbase.util14.DateTimeUtil;
 
 import java.lang.reflect.Type;
@@ -82,21 +83,22 @@ class ColumnLoader<T> {
    *
    * @param typeFactory Type factory
    * @param sourceTable Source data
-   * @param elementType Logical row type
+   * @param protoRowType Logical row type
    * @param repList Physical row types, or null if not known */
   ColumnLoader(JavaTypeFactory typeFactory,
       Enumerable<T> sourceTable,
-      RelDataType elementType,
+      RelProtoDataType protoRowType,
       List<ColumnMetaData.Rep> repList) {
     this.typeFactory = typeFactory;
+    final RelDataType rowType = protoRowType.apply(typeFactory);
     if (repList == null) {
       repList =
-          Collections.nCopies(elementType.getFieldCount(),
+          Collections.nCopies(rowType.getFieldCount(),
               ColumnMetaData.Rep.OBJECT);
     }
     sourceTable.into(list);
     final int[] sorts = {-1};
-    load(elementType, repList, sorts);
+    load(rowType, repList, sorts);
     this.sortField = sorts[0];
   }
 

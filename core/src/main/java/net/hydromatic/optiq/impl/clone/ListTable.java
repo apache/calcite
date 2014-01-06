@@ -19,9 +19,13 @@ package net.hydromatic.optiq.impl.clone;
 
 import net.hydromatic.linq4j.*;
 import net.hydromatic.linq4j.expressions.Expression;
+
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.reltype.RelProtoDataType;
 
 import java.lang.reflect.Type;
 import java.util.*;
@@ -31,38 +35,55 @@ import java.util.*;
  * an enumerator of rows. Each row is object (if there is just one column) or
  * an object array (if there are multiple columns).
  */
-class ListTable<T>
-    extends BaseQueryable<T>
-    implements Table<T>
-{
-  private final Schema schema;
-  private final RelDataType relDataType;
-  private final List<T> list;
+class ListTable extends AbstractQueryableTable {
+  private final RelProtoDataType protoRowType;
+  private final Expression expression;
+  private final List list;
 
   /** Creates a ListTable. */
   public ListTable(
-      Schema schema,
       Type elementType,
-      RelDataType relDataType,
+      RelProtoDataType protoRowType,
       Expression expression,
-      List<T> list) {
-    super(schema.getQueryProvider(), elementType, expression);
-    this.schema = schema;
-    this.relDataType = relDataType;
+      List list) {
+    super(elementType);
+    this.protoRowType = protoRowType;
+    this.expression = expression;
     this.list = list;
   }
 
-  public RelDataType getRowType() {
-    return relDataType;
-  }
-
-  @Override
-  public Enumerator<T> enumerator() {
-    return Linq4j.enumerator(list);
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    return protoRowType.apply(typeFactory);
   }
 
   public Statistic getStatistic() {
     return Statistics.of(list.size(), Collections.<BitSet>emptyList());
+  }
+
+  public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
+      SchemaPlus schema, String tableName) {
+    return new AbstractQueryable<T>() {
+      public Type getElementType() {
+        return elementType;
+      }
+
+      public Expression getExpression() {
+        return expression;
+      }
+
+      public QueryProvider getProvider() {
+        return queryProvider;
+      }
+
+      public Iterator<T> iterator() {
+        return Linq4j.enumeratorIterator(enumerator());
+      }
+
+      public Enumerator<T> enumerator() {
+        //noinspection unchecked
+        return Linq4j.enumerator(list);
+      }
+    };
   }
 }
 

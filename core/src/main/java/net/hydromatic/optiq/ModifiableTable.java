@@ -32,7 +32,7 @@ import java.util.List;
  * <p>NOTE: The current API is inefficient and experimental. It will change
  * without notice.</p>
  */
-public interface ModifiableTable<E> extends Table<E> {
+public interface ModifiableTable extends QueryableTable {
   /** Returns the modifiable collection.
    * Modifying the collection will change the table's contents. */
   Collection getModifiableCollection();

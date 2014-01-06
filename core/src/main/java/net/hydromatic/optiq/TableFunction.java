@@ -17,13 +17,15 @@
 */
 package net.hydromatic.optiq;
 
-import java.lang.reflect.Type;
+import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
+
 import java.util.List;
 
 /**
  * Function that returns a {@link Table}.
  */
-public interface TableFunction<T> {
+public interface TableFunction {
   /**
    * Returns the parameters of this table function.
    *
@@ -34,8 +36,10 @@ public interface TableFunction<T> {
   /**
    * Returns the record type of the table yielded by this function when
    * applied to parameters of given types.
+   *
+   * @param typeFactory Type factory
    */
-  Type getElementType();
+  RelDataType getRowType(RelDataTypeFactory typeFactory);
 
   /**
    * Applies arguments to yield a table.
@@ -43,7 +47,7 @@ public interface TableFunction<T> {
    * @param arguments Arguments
    * @return Table
    */
-  Table<T> apply(List<Object> arguments);
+  Table apply(List<Object> arguments);
 
 }
 

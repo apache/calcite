@@ -19,10 +19,11 @@ package net.hydromatic.optiq.model;
 
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.*;
-import net.hydromatic.optiq.impl.java.MapSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
+import net.hydromatic.optiq.jdbc.OptiqSchema;
 
+import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.util.Pair;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -32,6 +33,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
+import javax.sql.DataSource;
 
 import static org.eigenbase.util.Stacks.*;
 
@@ -40,8 +42,8 @@ import static org.eigenbase.util.Stacks.*;
  */
 public class ModelHandler {
   private final OptiqConnection connection;
-  private final List<Pair<String, Schema>> schemaStack =
-      new ArrayList<Pair<String, Schema>>();
+  private final List<Pair<String, SchemaPlus>> schemaStack =
+      new ArrayList<Pair<String, SchemaPlus>>();
 
   public ModelHandler(OptiqConnection connection, String uri)
       throws IOException {
@@ -61,8 +63,8 @@ public class ModelHandler {
   }
 
   public void visit(JsonRoot root) {
-    final Pair<String, Schema> pair =
-        Pair.<String, Schema>of(null, connection.getRootSchema());
+    final Pair<String, SchemaPlus> pair =
+        Pair.of(null, connection.getRootSchema());
     push(schemaStack, pair);
     for (JsonSchema schema : root.schemas) {
       schema.accept(this);
@@ -78,9 +80,11 @@ public class ModelHandler {
   }
 
   public void visit(JsonMapSchema jsonSchema) {
-    final MutableSchema parentSchema = currentMutableSchema("schema");
-    final MapSchema schema = MapSchema.create(parentSchema, jsonSchema.name);
-    schema.initialize();
+    final SchemaPlus parentSchema = currentMutableSchema("schema");
+    final AbstractSchema mapSchema =
+        new AbstractSchema(parentSchema, jsonSchema.name);
+    final SchemaPlus schema =
+        parentSchema.add(mapSchema);
     populateSchema(jsonSchema, schema);
     if (schema.getName().equals("mat")) {
       // Inject by hand a Star Table. Later we'll add a JSON model element.
@@ -88,20 +92,17 @@ public class ModelHandler {
       final String[] tableNames = {
           "sales_fact_1997", "time_by_day", "product", "product_class"
       };
-      final Schema schema2 = parentSchema.getSubSchema("foodmart");
+      final SchemaPlus schema2 = parentSchema.getSubSchema("foodmart");
       for (String tableName : tableNames) {
-        tables.add(schema2.getTable(tableName, Object.class));
+        tables.add(schema2.getTable(tableName));
       }
       final String tableName = "star";
-      schema.addTable(
-          new TableInSchemaImpl(
-              schema, tableName, Schema.TableType.STAR,
-              StarTable.of(schema, tableName, tables)));
+      schema.add(tableName, StarTable.of(tables));
     }
   }
 
-  private void populateSchema(JsonSchema jsonSchema, Schema schema) {
-    final Pair<String, Schema> pair = Pair.of(jsonSchema.name, schema);
+  private void populateSchema(JsonSchema jsonSchema, SchemaPlus schema) {
+    final Pair<String, SchemaPlus> pair = Pair.of(jsonSchema.name, schema);
     push(schemaStack, pair);
     jsonSchema.visitChildren(this);
     pop(schemaStack, pair);
@@ -109,54 +110,52 @@ public class ModelHandler {
 
   public void visit(JsonCustomSchema jsonSchema) {
     try {
-      final MutableSchema parentSchema = currentMutableSchema("sub-schema");
+      final SchemaPlus parentSchema = currentMutableSchema("sub-schema");
       final Class clazz = Class.forName(jsonSchema.factory);
       final SchemaFactory schemaFactory = (SchemaFactory) clazz.newInstance();
-      final Schema schema = schemaFactory.create(
-          parentSchema, jsonSchema.name, jsonSchema.operand);
-      parentSchema.addSchema(jsonSchema.name, schema);
-      if (schema instanceof MapSchema) {
-        ((MapSchema) schema).initialize();
-      }
-      populateSchema(jsonSchema, schema);
+      final Schema schema =
+          schemaFactory.create(
+              parentSchema, jsonSchema.name, jsonSchema.operand);
+      final SchemaPlus optiqSchema = parentSchema.add(schema);
+      populateSchema(jsonSchema, optiqSchema);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonSchema, e);
     }
   }
 
   public void visit(JsonJdbcSchema jsonSchema) {
+    final SchemaPlus parentSchema = currentMutableSchema("jdbc schema");
+    final DataSource dataSource =
+        JdbcSchema.dataSource(jsonSchema.jdbcUrl,
+            jsonSchema.jdbcDriver,
+            jsonSchema.jdbcUser,
+            jsonSchema.jdbcPassword);
+    final SqlDialect dialect = JdbcSchema.createDialect(dataSource);
     JdbcSchema schema =
-        JdbcSchema.create(
-            currentMutableSchema("jdbc schema"),
-            JdbcSchema.dataSource(
-                jsonSchema.jdbcUrl,
-                jsonSchema.jdbcDriver,
-                jsonSchema.jdbcUser,
-                jsonSchema.jdbcPassword),
+        new JdbcSchema(parentSchema,
+            jsonSchema.name,
+            dataSource,
+            dialect,
             jsonSchema.jdbcCatalog,
-            jsonSchema.jdbcSchema,
-            jsonSchema.name);
-    populateSchema(jsonSchema, schema);
+            jsonSchema.jdbcSchema);
+    final SchemaPlus optiqSchema = parentSchema.add(schema);
+    populateSchema(jsonSchema, optiqSchema);
   }
 
   public void visit(JsonMaterialization jsonMaterialization) {
     try {
-      final Schema schema = currentSchema();
-      if (!(schema instanceof MutableSchema)) {
+      final SchemaPlus schema = currentSchema();
+      if (!schema.isMutable()) {
         throw new RuntimeException(
             "Cannot define materialization; parent schema '"
             + currentSchemaName()
             + "' is not a SemiMutableSchema");
       }
-      final MutableSchema mutableSchema = (MutableSchema) schema;
-      Schema.TableFunctionInSchema tableFunctionInSchema =
+      OptiqSchema optiqSchema = OptiqSchema.from(schema);
+      schema.add(jsonMaterialization.view,
           MaterializedViewTable.create(
-              schema,
-              jsonMaterialization.view,
-              jsonMaterialization.sql,
-              null,
-              jsonMaterialization.table);
-      mutableSchema.addTableFunction(tableFunctionInSchema);
+              optiqSchema, jsonMaterialization.sql, null,
+              jsonMaterialization.table));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonMaterialization,
           e);
@@ -165,14 +164,12 @@ public class ModelHandler {
 
   public void visit(JsonCustomTable jsonTable) {
     try {
-      final MutableSchema schema = currentMutableSchema("table");
+      final SchemaPlus schema = currentMutableSchema("table");
       final Class clazz = Class.forName(jsonTable.factory);
       final TableFactory tableFactory = (TableFactory) clazz.newInstance();
-      final Table table = tableFactory.create(
-          schema, jsonTable.name, jsonTable.operand, null);
-      schema.addTable(
-          new TableInSchemaImpl(
-              schema, jsonTable.name, Schema.TableType.TABLE, table));
+      final Table table =
+          tableFactory.create(schema, jsonTable.name, jsonTable.operand, null);
+      schema.add(jsonTable.name, table);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonTable, e);
     }
@@ -180,14 +177,13 @@ public class ModelHandler {
 
   public void visit(JsonView jsonView) {
     try {
-      final MutableSchema schema = currentMutableSchema("view");
+      final SchemaPlus schema = currentMutableSchema("view");
       final List<String> path =
           jsonView.path == null
               ? currentSchemaPath()
               : jsonView.path;
-      schema.addTableFunction(
-          ViewTable.viewFunction(
-              schema, jsonView.name, jsonView.sql, path));
+      schema.add(jsonView.name,
+          ViewTable.viewFunction(schema, jsonView.sql, path));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonView, e);
     }
@@ -197,7 +193,7 @@ public class ModelHandler {
     return Collections.singletonList(peek(schemaStack).left);
   }
 
-  private Schema currentSchema() {
+  private SchemaPlus currentSchema() {
     return peek(schemaStack).right;
   }
 
@@ -205,14 +201,14 @@ public class ModelHandler {
     return peek(schemaStack).left;
   }
 
-  private MutableSchema currentMutableSchema(String elementType) {
-    final Schema schema = currentSchema();
-    if (schema instanceof MutableSchema) {
-      return (MutableSchema) schema;
+  private SchemaPlus currentMutableSchema(String elementType) {
+    final SchemaPlus schema = currentSchema();
+    if (!schema.isMutable()) {
+      throw new RuntimeException(
+          "Cannot define " + elementType + "; parent schema '"
+          + schema.getName() + "' is not mutable");
     }
-    throw new RuntimeException(
-        "Cannot define " + elementType + "; parent schema " + schema
-        + " is not mutable");
+    return schema;
   }
 }
 

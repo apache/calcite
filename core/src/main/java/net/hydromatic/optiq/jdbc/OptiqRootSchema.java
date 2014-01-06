@@ -15,30 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-package net.hydromatic.optiq.impl;
+package net.hydromatic.optiq.jdbc;
 
 import net.hydromatic.optiq.Schema;
-import net.hydromatic.optiq.Table;
 
 /**
- * Implementation of {@link Schema.TableInSchema} where all properties are
- * held in fields.
+ * Root schema.
  */
-public class TableInSchemaImpl extends Schema.TableInSchema {
-  private final Table table;
-
-  /** Creates a TableInSchemaImpl. */
-  public TableInSchemaImpl(
-      Schema schema, String name, Schema.TableType tableType, Table table) {
-    super(schema, name, tableType);
-    assert table != null;
-    this.table = table;
-  }
-
-  @SuppressWarnings("unchecked")
-  public <E> Table<E> getTable(Class<E> elementType) {
-    return table;
+public class OptiqRootSchema extends OptiqSchema {
+  /** Creates a root schema. */
+  OptiqRootSchema(Schema schema) {
+    super(null, schema);
+    assert schema.getParentSchema() == null;
   }
 }
 
-// End TableInSchemaImpl.java
+// End OptiqRootSchema.java

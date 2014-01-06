@@ -18,15 +18,21 @@
 package net.hydromatic.optiq.impl;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
+import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.materialize.MaterializationKey;
 import net.hydromatic.optiq.materialize.MaterializationService;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeImpl;
+import org.eigenbase.reltype.RelProtoDataType;
 
 import java.lang.reflect.Type;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -37,36 +43,50 @@ import java.util.List;
  * its current state. State is managed by
  * {@link net.hydromatic.optiq.materialize.MaterializationService}.</p>
  */
-public class MaterializedViewTable<T> extends ViewTable<T> {
+public class MaterializedViewTable extends ViewTable {
 
   private final MaterializationKey key;
 
-  public MaterializedViewTable(Schema schema, Type elementType,
-      RelDataType relDataType, String tableName, String viewSql,
-      List<String> viewSchemaPath, MaterializationKey key) {
-    super(schema, elementType, relDataType, tableName, viewSql, viewSchemaPath);
+  /**
+   * Internal connection, used to execute queries to materialize views.
+   * To be used only by Optiq internals. And sparingly.
+   */
+  public static final OptiqConnection MATERIALIZATION_CONNECTION;
+
+  static {
+    try {
+      MATERIALIZATION_CONNECTION = DriverManager.getConnection("jdbc:optiq:")
+          .unwrap(OptiqConnection.class);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public MaterializedViewTable(Type elementType,
+      RelProtoDataType relDataType,
+      String viewSql,
+      List<String> viewSchemaPath,
+      MaterializationKey key) {
+    super(elementType, relDataType, viewSql, viewSchemaPath);
     this.key = key;
   }
 
   /** Table function that returns a materialized view. */
-  public static Schema.TableFunctionInSchema create(final Schema schema,
-      final String viewName,
+  public static MaterializedViewTableFunction create(final OptiqSchema schema,
       final String viewSql,
       final List<String> viewSchemaPath,
       final String tableName) {
-    final MaterializedViewTableFunction tableFunction =
-        new MaterializedViewTableFunction(schema, viewName, viewSql,
-            viewSchemaPath, tableName);
-    return new TableFunctionInSchemaImpl(schema, viewName, tableFunction);
+    return new MaterializedViewTableFunction(schema, viewSql, viewSchemaPath,
+        tableName);
   }
 
   @Override
   public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
-    final Schema.TableInSchema tableInSchema =
+    final OptiqSchema.TableEntry tableEntry =
         MaterializationService.INSTANCE.checkValid(key);
-    if (tableInSchema != null) {
-      Table materializeTable = tableInSchema.getTable(null);
+    if (tableEntry != null) {
+      Table materializeTable = tableEntry.getTable();
       if (materializeTable instanceof TranslatableTable) {
         TranslatableTable table = (TranslatableTable) materializeTable;
         return table.toRel(context, relOptTable);
@@ -75,26 +95,30 @@ public class MaterializedViewTable<T> extends ViewTable<T> {
     return super.toRel(context, relOptTable);
   }
 
-  public static class MaterializedViewTableFunction<T>
-      extends ViewTableFunction<T> {
+  public static class MaterializedViewTableFunction
+      extends ViewTableFunction {
     private final MaterializationKey key;
 
-    private MaterializedViewTableFunction(Schema schema, String viewName,
-        String viewSql, List<String> viewSchemaPath, String tableName) {
-      super(schema, viewName, viewSql, viewSchemaPath);
+    private MaterializedViewTableFunction(OptiqSchema schema, String viewSql,
+        List<String> viewSchemaPath, String tableName) {
+      super(schema, viewSql, viewSchemaPath);
       this.key =
           MaterializationService.INSTANCE.defineMaterialization(
               schema, viewSql, schemaPath, tableName);
     }
 
     @Override
-    public Table<T> apply(List<Object> arguments) {
+    public Table apply(List<Object> arguments) {
       assert arguments.isEmpty();
       OptiqPrepare.ParseResult parsed =
-          Schemas.parse(schema, schemaPath, viewSql);
-      return new MaterializedViewTable<T>(
-          schema, schema.getTypeFactory().getJavaClass(parsed.rowType),
-          parsed.rowType, name, viewSql, schemaPath, key);
+          Schemas.parse(MATERIALIZATION_CONNECTION, schema, schemaPath,
+              viewSql);
+      final List<String> schemaPath1 =
+          schemaPath != null ? schemaPath : Schemas.path(schema.schema, null);
+      final JavaTypeFactory typeFactory =
+          MATERIALIZATION_CONNECTION.getTypeFactory();
+      return new MaterializedViewTable(typeFactory.getJavaClass(parsed.rowType),
+          RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1, key);
     }
   }
 }

@@ -17,46 +17,13 @@
 */
 package net.hydromatic.optiq.impl;
 
-import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.Expression;
-import net.hydromatic.linq4j.expressions.Expressions;
-
 import net.hydromatic.optiq.*;
-
-import org.eigenbase.reltype.RelDataType;
-
-import java.lang.reflect.Type;
-import java.util.Iterator;
 
 /**
  * Abstract base class for implementing {@link Table}.
  */
-public abstract class AbstractTable<T>
-    extends AbstractQueryable<T>
-    implements Table<T>
-{
-  protected final Type elementType;
-  private final RelDataType relDataType;
-  protected final Schema schema;
-  protected final String tableName;
-
-  protected AbstractTable(
-      Schema schema,
-      Type elementType,
-      RelDataType relDataType,
-      String tableName) {
-    this.schema = schema;
-    this.elementType = elementType;
-    this.relDataType = relDataType;
-    this.tableName = tableName;
-    assert schema != null;
-    assert relDataType != null;
-    assert elementType != null;
-    assert tableName != null;
-  }
-
-  public QueryProvider getProvider() {
-    return schema.getQueryProvider();
+public abstract class AbstractTable implements Table {
+  protected AbstractTable() {
   }
 
   // Default implementation. Override if you have statistics.
@@ -64,27 +31,8 @@ public abstract class AbstractTable<T>
     return Statistics.UNKNOWN;
   }
 
-  public Type getElementType() {
-    return elementType;
-  }
-
-  public RelDataType getRowType() {
-    return relDataType;
-  }
-
-  public Expression getExpression() {
-    return Expressions.call(
-        schema.getExpression(),
-        BuiltinMethod.SCHEMA_GET_TABLE.method,
-        Expressions.<Expression>list()
-            .append(Expressions.constant(tableName))
-            .appendIf(
-                elementType instanceof Class,
-                Expressions.constant(elementType)));
-  }
-
-  public Iterator<T> iterator() {
-    return Linq4j.enumeratorIterator(enumerator());
+  public Schema.TableType getJdbcTableType() {
+    return Schema.TableType.TABLE;
   }
 }
 

@@ -24,8 +24,10 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.linq4j.function.*;
 
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.TableInSchemaImpl;
-import net.hydromatic.optiq.impl.java.MapSchema;
+import net.hydromatic.optiq.Table;
+import net.hydromatic.optiq.impl.AbstractTableQueryable;
+import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
+import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.runtime.*;
 
 import org.eigenbase.reltype.*;
@@ -35,8 +37,7 @@ import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.*;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -71,6 +72,8 @@ public class MetaImpl implements Meta {
           .put(Time.class, Pair.of(Types.TIME, "TIME"))
           .put(Timestamp.class, Pair.of(Types.TIMESTAMP, "TIMESTAMP"))
           .build();
+
+  static final Driver DRIVER = new Driver();
 
   final OptiqConnectionImpl connection;
 
@@ -162,70 +165,6 @@ public class MetaImpl implements Meta {
     return list;
   }
 
-  /** Creates the data dictionary, also called the information schema. It is a
-   * schema called "metadata" that contains tables "TABLES", "COLUMNS" etc. */
-  MapSchema createInformationSchema() {
-    final MapSchema mapSchema =
-        MapSchema.create(connection.getRootSchema(), "metadata");
-    mapSchema.addTable(
-        new TableInSchemaImpl(
-            mapSchema,
-            "TABLES",
-            Schema.TableType.SYSTEM_TABLE,
-            new MetadataTable<MetaTable>(
-                connection,
-                mapSchema,
-                "TABLES",
-                MetaTable.class) {
-              public Enumerator<MetaTable> enumerator() {
-                return schemas(connection.getCatalog())
-                    .selectMany(
-                        new Function1<
-                            MetaSchema, Enumerable<MetaTable>>() {
-                          public Enumerable<MetaTable> apply(
-                              MetaSchema a0) {
-                            return tablesAndTableFunctions(
-                                a0, Functions.<String>truePredicate1());
-                          }
-                        })
-                    .enumerator();
-              }
-            }));
-    mapSchema.addTable(
-        new TableInSchemaImpl(
-            mapSchema,
-            "COLUMNS",
-            Schema.TableType.SYSTEM_TABLE,
-            new MetadataTable<MetaColumn>(
-                connection,
-                mapSchema,
-                "COLUMNS",
-                MetaColumn.class) {
-              public Enumerator<MetaColumn> enumerator() {
-                return schemas(connection.getCatalog())
-                    .selectMany(
-                        new Function1<
-                            MetaSchema, Enumerable<MetaTable>>() {
-                          public Enumerable<MetaTable> apply(
-                              MetaSchema a0) {
-                            return tablesAndTableFunctions(
-                                a0, Functions.<String>truePredicate1());
-                          }
-                        })
-                    .selectMany(
-                        new Function1<
-                            MetaTable, Enumerable<MetaColumn>>() {
-                          public Enumerable<MetaColumn> apply(
-                              MetaTable a0) {
-                            return columns(a0);
-                          }
-                        })
-                    .enumerator();
-              }
-            }));
-    return mapSchema;
-  }
-
   /** Creates an empty result set. Useful for JDBC metadata methods that are
    * not implemented or which query entities that are not supported (e.g.
    * triggers in Lingual). */
@@ -264,7 +203,9 @@ public class MetaImpl implements Meta {
       final Enumerable<?> enumerable,
       final NamedFieldGetter columnGetter) {
     //noinspection unchecked
-    return createResultSet(connection, columnGetter.columnNames,
+    return createResultSet(
+        connection,
+        columnGetter.columnNames,
         columnGetter.cursor(((Enumerable) enumerable).enumerator()));
   }
 
@@ -304,20 +245,17 @@ public class MetaImpl implements Meta {
       };
     }
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
-    return createResultSet(
-        connection,
+    return createResultSet(connection,
         schemas(catalog)
             .where(schemaMatcher)
             .selectMany(
                 new Function1<MetaSchema, Enumerable<MetaTable>>() {
-                  public Enumerable<MetaTable> apply(MetaSchema a0) {
-                    return tablesAndTableFunctions(
-                        a0, matcher(tableNamePattern));
+                  public Enumerable<MetaTable> apply(MetaSchema schema) {
+                    return tables(schema, matcher(tableNamePattern));
                   }
                 })
             .where(typeFilter),
-        new NamedFieldGetter(
-            MetaTable.class,
+        new NamedFieldGetter(MetaTable.class,
             "TABLE_CAT",
             "TABLE_SCHEM",
             "TABLE_NAME",
@@ -344,15 +282,14 @@ public class MetaImpl implements Meta {
             .where(schemaMatcher)
             .selectMany(
                 new Function1<MetaSchema, Enumerable<MetaTable>>() {
-                  public Enumerable<MetaTable> apply(MetaSchema a0) {
-                    return tablesAndTableFunctions(
-                        a0, tableNameMatcher);
+                  public Enumerable<MetaTable> apply(MetaSchema schema) {
+                    return tables(schema, tableNameMatcher);
                   }
                 })
             .selectMany(
                 new Function1<MetaTable, Enumerable<MetaColumn>>() {
-                  public Enumerable<MetaColumn> apply(MetaTable a0) {
-                    return columns(a0);
+                  public Enumerable<MetaColumn> apply(MetaTable schema) {
+                    return columns(schema);
                   }
                 })
             .where(columnMatcher),
@@ -385,28 +322,25 @@ public class MetaImpl implements Meta {
 
   Enumerable<MetaCatalog> catalogs() {
     return Linq4j.asEnumerable(
-        Arrays.asList(
-            new MetaCatalog(connection.getCatalog())));
+        Arrays.asList(new MetaCatalog(connection.getCatalog())));
   }
 
   Enumerable<MetaTableType> tableTypes() {
     return Linq4j.asEnumerable(
         Arrays.asList(
-            new MetaTableType("TABLE"),
-            new MetaTableType("VIEW")));
+            new MetaTableType("TABLE"), new MetaTableType("VIEW")));
   }
 
   Enumerable<MetaSchema> schemas(String catalog) {
-    Collection<String> schemaNames =
-        connection.rootSchema.getSubSchemaNames();
-    return Linq4j.asEnumerable(schemaNames)
+    return Linq4j.asEnumerable(
+        connection.rootSchema.compositeSubSchemaMap.values())
         .select(
-            new Function1<String, MetaSchema>() {
-              public MetaSchema apply(String name) {
+            new Function1<OptiqSchema, MetaSchema>() {
+              public MetaSchema apply(OptiqSchema optiqSchema) {
                 return new MetaSchema(
-                    connection.rootSchema.getSubSchema(name),
+                    optiqSchema,
                     connection.getCatalog(),
-                    name);
+                    optiqSchema.getName());
               }
             })
         .orderBy(
@@ -416,55 +350,33 @@ public class MetaImpl implements Meta {
                     Util.first(metaSchema.tableCatalog, ""),
                     metaSchema.tableSchem);
               }
-            }
-        );
+            });
+  }
+
+  Enumerable<MetaTable> tables(String catalog) {
+    return schemas(catalog)
+        .selectMany(
+            new Function1<MetaSchema, Enumerable<MetaTable>>() {
+              public Enumerable<MetaTable> apply(MetaSchema schema) {
+                return tables(schema, Functions.<String>truePredicate1());
+              }
+            });
   }
 
   Enumerable<MetaTable> tables(final MetaSchema schema) {
-    return Linq4j.asEnumerable(schema.optiqSchema.getTables().values())
+    return Linq4j.asEnumerable(schema.optiqSchema.compositeTableMap.entrySet())
         .select(
-            new Function1<Schema.TableInSchema, MetaTable>() {
-              public MetaTable apply(Schema.TableInSchema tableInSchema) {
-                return new MetaTable(
-                    tableInSchema.getTable(Object.class),
-                    schema.tableCatalog, schema.tableSchem,
-                    tableInSchema.name, tableInSchema.tableType.name());
-              }
-            });
-  }
-
-  Enumerable<MetaTable> tableFunctions(
-      final MetaSchema schema,
-      final Predicate1<String> matcher) {
-    final List<Pair<String, TableFunction>> list =
-        new ArrayList<Pair<String, TableFunction>>();
-    for (Map.Entry<String, Schema.TableFunctionInSchema> entry
-        : schema.optiqSchema.getTableFunctions().entries()) {
-      if (matcher.apply(entry.getKey())) {
-        final TableFunction tableFunction = entry.getValue().getTableFunction();
-        if (tableFunction.getParameters().isEmpty()) {
-          list.add(Pair.of(entry.getKey(), tableFunction));
-        }
-      }
-    }
-    return Linq4j
-        .asEnumerable(list)
-        .select(
-            new Function1<Pair<String, TableFunction>, MetaTable>() {
-              public MetaTable apply(Pair<String, TableFunction> a0) {
-                final Table table =
-                    a0.right.apply(Collections.emptyList());
-                return new MetaTable(
-                    table,
+            new Function1<Map.Entry<String, Table>, MetaTable>() {
+              public MetaTable apply(Map.Entry<String, Table> entry) {
+                return new MetaTable(entry.getValue(),
                     schema.tableCatalog,
                     schema.tableSchem,
-                    a0.left,
-                    Schema.TableType.VIEW.name());
+                    entry.getKey());
               }
             });
   }
 
-  Enumerable<MetaTable> tablesAndTableFunctions(
+  Enumerable<MetaTable> tables(
       final MetaSchema schema,
       final Predicate1<String> matcher) {
     return tables(schema)
@@ -473,55 +385,49 @@ public class MetaImpl implements Meta {
               public boolean apply(MetaTable v1) {
                 return matcher.apply(v1.getName());
               }
-            })
-        .concat(
-            tableFunctions(schema, matcher));
+            });
   }
 
   public Enumerable<MetaColumn> columns(final MetaTable table) {
-    return Linq4j.asEnumerable(table.optiqTable.getRowType().getFieldList())
+    final RelDataType rowType =
+        table.optiqTable.getRowType(connection.typeFactory);
+    return Linq4j.asEnumerable(rowType.getFieldList())
         .select(
             new Function1<RelDataTypeField, MetaColumn>() {
-              public MetaColumn apply(RelDataTypeField a0) {
+              public MetaColumn apply(RelDataTypeField field) {
                 final int precision =
-                    a0.getType().getSqlTypeName().allowsPrec()
-                        && !(a0.getType()
+                    field.getType().getSqlTypeName().allowsPrec()
+                        && !(field.getType()
                         instanceof RelDataTypeFactoryImpl.JavaType)
-                        ? a0.getType().getPrecision()
+                        ? field.getType().getPrecision()
                         : -1;
                 return new MetaColumn(
                     table.tableCat,
                     table.tableSchem,
                     table.tableName,
-                    a0.getName(),
-                    a0.getType().getSqlTypeName().getJdbcOrdinal(),
-                    a0.getType().getFullTypeString(),
+                    field.getName(),
+                    field.getType().getSqlTypeName().getJdbcOrdinal(),
+                    field.getType().getFullTypeString(),
                     precision,
-                    a0.getType().getSqlTypeName().allowsScale()
-                        ? a0.getType().getScale()
+                    field.getType().getSqlTypeName().allowsScale()
+                        ? field.getType().getScale()
                         : null,
                     10,
-                    a0.getType().isNullable()
+                    field.getType().isNullable()
                         ? DatabaseMetaData.columnNullable
                         : DatabaseMetaData.columnNoNulls,
                     precision,
-                    a0.getIndex() + 1,
-                    a0.getType().isNullable() ? "YES" : "NO");
+                    field.getIndex() + 1,
+                    field.getType().isNullable() ? "YES" : "NO");
               }
-            }
-        );
+            });
   }
 
   public ResultSet getSchemas(String catalog, Pat schemaPattern) {
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
-    return createResultSet(
-        connection,
-        schemas(catalog)
-            .where(schemaMatcher),
-        new NamedFieldGetter(
-            MetaSchema.class,
-            "TABLE_SCHEM",
-            "TABLE_CATALOG"));
+    return createResultSet(connection,
+        schemas(catalog).where(schemaMatcher),
+        new NamedFieldGetter(MetaSchema.class, "TABLE_SCHEM", "TABLE_CATALOG"));
   }
 
   public ResultSet getCatalogs() {
@@ -702,8 +608,15 @@ public class MetaImpl implements Meta {
   /** A trojan-horse method, subject to change without notice. */
   @VisibleForTesting
   public static DataContext createDataContext(OptiqConnection connection) {
-    return ((OptiqConnectionImpl) connection).createDataContext(
-        ImmutableList.of());
+    return ((OptiqConnectionImpl) connection)
+        .createDataContext(ImmutableList.of());
+  }
+
+  /** A trojan-horse method, subject to change without notice. */
+  @VisibleForTesting
+  public static OptiqConnection connect(OptiqRootSchema schema,
+      JavaTypeFactory typeFactory) {
+    return DRIVER.connect(schema, typeFactory);
   }
 
   interface Named {
@@ -782,18 +695,14 @@ public class MetaImpl implements Meta {
     public final String selfReferencingColName = null;
     public final String refGeneration = null;
 
-    public MetaTable(
-        Table optiqTable,
-        String tableCat,
-        String tableSchem,
-        String tableName,
-        String tableType) {
+    public MetaTable(Table optiqTable, String tableCat, String tableSchem,
+        String tableName) {
       this.optiqTable = optiqTable;
       assert optiqTable != null;
       this.tableCat = tableCat;
       this.tableSchem = tableSchem;
       this.tableName = tableName;
-      this.tableType = tableType;
+      this.tableType = optiqTable.getJdbcTableType().name();
     }
 
     public String getName() {
@@ -802,12 +711,12 @@ public class MetaImpl implements Meta {
   }
 
   public static class MetaSchema implements Named {
-    private final Schema optiqSchema;
+    private final OptiqSchema optiqSchema;
     public final String tableCatalog;
     public final String tableSchem;
 
     public MetaSchema(
-        Schema optiqSchema,
+        OptiqSchema optiqSchema,
         String tableCatalog,
         String tableSchem) {
       this.optiqSchema = optiqSchema;
@@ -993,50 +902,37 @@ public class MetaImpl implements Meta {
     }
   }
 
-  private static abstract class MetadataTable<E>
-      extends AbstractQueryable<E>
-      implements Table<E> {
-    private final MapSchema schema;
-    private final String tableName;
-    private final Class<E> clazz;
-    private final OptiqConnectionImpl connection;
-
-    public MetadataTable(
-        OptiqConnectionImpl connection, MapSchema schema, String tableName,
-        Class<E> clazz) {
-      super();
-      this.schema = schema;
-      this.tableName = tableName;
-      this.clazz = clazz;
-      this.connection = connection;
+  static abstract class MetadataTable<E> extends AbstractQueryableTable {
+    public MetadataTable(Class<E> clazz) {
+      super(clazz);
     }
 
-    public RelDataType getRowType() {
-      return connection.typeFactory.createType(getElementType());
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return ((JavaTypeFactory) typeFactory).createType(elementType);
     }
 
+    @Override public Schema.TableType getJdbcTableType() {
+      return Schema.TableType.SYSTEM_TABLE;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
     public Class<E> getElementType() {
-      return clazz;
+      return (Class<E>) elementType;
     }
 
-    public Expression getExpression() {
-      return Expressions.call(
-          schema.getExpression(),
-          "getTable",
-          Expressions.constant(tableName),
-          Expressions.constant(getElementType()));
-    }
+    protected abstract Enumerator<E> enumerator(MetaImpl connection);
 
-    public QueryProvider getProvider() {
-      return connection;
-    }
-
-    public Statistic getStatistic() {
-      return Statistics.UNKNOWN;
-    }
-
-    public Iterator<E> iterator() {
-      return Linq4j.enumeratorIterator(enumerator());
+    public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+        SchemaPlus schema, String tableName) {
+      return new AbstractTableQueryable<T>(queryProvider, schema, this,
+          tableName) {
+        @SuppressWarnings("unchecked")
+        public Enumerator<T> enumerator() {
+          return (Enumerator<T>) MetadataTable.this.enumerator(
+              ((OptiqConnectionImpl) queryProvider).meta());
+        }
+      };
     }
   }
 }

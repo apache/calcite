@@ -33,6 +33,8 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
+import net.hydromatic.linq4j.expressions.Expression;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -347,6 +349,10 @@ public abstract class SqlToRelTestBase {
             public boolean isKey(BitSet columns) {
                 return false;
             }
+
+            public Expression getExpression(Class clazz) {
+                return null;
+            }
         }
     }
 
@@ -365,6 +371,10 @@ public abstract class SqlToRelTestBase {
                 return clazz.cast(this);
             }
             return parent.unwrap(clazz);
+        }
+
+        public Expression getExpression(Class clazz) {
+            return parent.getExpression(clazz);
         }
 
         public List<String> getQualifiedName()

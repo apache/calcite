@@ -26,6 +26,8 @@ import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.impl.jdbc.JdbcSchema;
 import net.hydromatic.optiq.runtime.*;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.sql.ResultSet;
@@ -44,7 +46,10 @@ public enum BuiltinMethod {
   ABSTRACT_ENUMERABLE_CTOR(AbstractEnumerable.class),
   INTO(ExtendedEnumerable.class, "into", Collection.class),
   SCHEMA_GET_SUB_SCHEMA(Schema.class, "getSubSchema", String.class),
-  SCHEMA_GET_TABLE(Schema.class, "getTable", String.class, Class.class),
+  SCHEMA_GET_TABLE(Schema.class, "getTable", String.class),
+  SCHEMA_PLUS_UNWRAP(SchemaPlus.class, "unwrap", Class.class),
+  SCHEMAS_QUERYABLE(Schemas.class, "queryable", DataContext.class,
+      SchemaPlus.class, Class.class, String.class),
   REFLECTIVE_SCHEMA_GET_TARGET(ReflectiveSchema.class, "getTarget"),
   DATA_CONTEXT_GET(DataContext.class, "get", String.class),
   DATA_CONTEXT_GET_ROOT_SCHEMA(DataContext.class, "getRootSchema"),
@@ -175,15 +180,17 @@ public enum BuiltinMethod {
   public final Method method;
   public final Constructor constructor;
 
-  private static final HashMap<Method, BuiltinMethod> MAP =
-      new HashMap<Method, BuiltinMethod>();
+  public static final ImmutableMap<Method, BuiltinMethod> MAP;
 
   static {
-    for (BuiltinMethod builtinMethod : BuiltinMethod.values()) {
-      if (builtinMethod.method != null) {
-        MAP.put(builtinMethod.method, builtinMethod);
+    final ImmutableMap.Builder<Method, BuiltinMethod> builder =
+        ImmutableMap.builder();
+    for (BuiltinMethod value : BuiltinMethod.values()) {
+      if (value.method != null) {
+        builder.put(value.method, value);
       }
     }
+    MAP = builder.build();
   }
 
   BuiltinMethod(Class clazz, String methodName, Class... argumentTypes) {
@@ -194,10 +201,6 @@ public enum BuiltinMethod {
   BuiltinMethod(Class clazz, Class... argumentTypes) {
     this.method = null;
     this.constructor = Types.lookupConstructor(clazz, argumentTypes);
-  }
-
-  public static BuiltinMethod lookup(Method method) {
-    return MAP.get(method);
   }
 }
 

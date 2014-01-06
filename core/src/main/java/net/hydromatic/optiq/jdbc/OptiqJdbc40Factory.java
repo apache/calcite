@@ -22,7 +22,7 @@ package net.hydromatic.optiq.jdbc;
  * for Optiq and JDBC 4.0 (corresponds to JDK 1.6).
  */
 public class OptiqJdbc40Factory extends OptiqJdbc41Factory {
-  /** Creates a JDBC factory. */
+  /** Creates a factory for JDBC version 4.1. */
   public OptiqJdbc40Factory() {
     super(4, 0);
   }
