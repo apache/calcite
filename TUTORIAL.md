@@ -154,19 +154,15 @@ optiq-csv project and implements the Optiq interface
 schema, passing in the <code>directory</code> argument from the model file:
 
 ```java
-public Schema create(MutableSchema parentSchema, String name,
+public Schema create(SchemaPlus parentSchema, String name,
     Map<String, Object> operand) {
-  Map map = (Map) operand;
-  String directory = (String) map.get("directory");
-  Boolean smart = (Boolean) map.get("smart");
-  final CsvSchema schema =
-      new CsvSchema(
-          parentSchema,
-          new File(directory),
-          parentSchema.getSubSchemaExpression(name, CsvSchema.class),
-          smart != null && smart);
-  parentSchema.addSchema(name, schema);
-  return schema;
+  String directory = (String) operand.get("directory");
+  Boolean smart = (Boolean) operand.get("smart");
+  return new CsvSchema(
+      parentSchema,
+      name,
+      new File(directory),
+      smart != null && smart);
 }
 ```
 
@@ -183,37 +179,37 @@ href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/Table.html">T
 <a href="https://github.com/julianhyde/optiq-csv/blob/master/src/main/java/net/hydromatic/optiq/impl/csv/CsvTable.java">CsvTable</a>.
 
 Here is the relevant code from <code>CsvSchema</code>, overriding the
-<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/java/MapSchema.html#initialTables()">initialTables()</a></code>
-method in the <code>MapSchema</code> base class.
+<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/AbstractSchema.html#getTableMap()">getTableMap()</a></code>
+method in the <code>AbstractSchema</code> base class.
 
 ```java
-protected Collection<TableInSchema> initialTables() {
-  final List<TableInSchema> list = new ArrayList<TableInSchema>();
+protected Map<String, Table> getTableMap() {
+  final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
   File[] files = directoryFile.listFiles(
       new FilenameFilter() {
         public boolean accept(File dir, String name) {
           return name.endsWith(".csv");
         }
       });
+  if (files == null) {
+    System.out.println("directory " + directoryFile + " not found");
+    files = new File[0];
+  }
   for (File file : files) {
     String tableName = file.getName();
     if (tableName.endsWith(".csv")) {
       tableName = tableName.substring(
           0, tableName.length() - ".csv".length());
     }
-    final List<CsvFieldType> fieldTypes = new ArrayList<CsvFieldType>();
-    final RelDataType rowType =
-        CsvTable.deduceRowType(typeFactory, file, fieldTypes);
     final CsvTable table;
     if (smart) {
-      table = new CsvSmartTable(this, tableName, file, rowType, fieldTypes);
+      table = new CsvSmartTable(file, null);
     } else {
-      table = new CsvTable(this, tableName, file, rowType, fieldTypes);
+      table = new CsvTable(file, null);
     }
-    list.add(
-        new TableInSchemaImpl(this, tableName, TableType.TABLE, table));
+    builder.put(tableName, table);
   }
-  return list;
+  return builder.build();
 }
 ```
 
@@ -228,22 +224,11 @@ the tables <code>EMPS</code> and <code>DEPTS</code>.
 Note how we did not need to define any tables in the model; the schema
 generated the tables automatically. 
 
-Some schema types allow you to define extra tables,
+You can define extra tables,
 beyond those that are created automatically,
 using the <code>tables</code> property of a schema.
 
-(Specifically, Optiq checks whether the schema
-returned from <code>SchemaFactory.create</code> implements the
-<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/MutableSchema.html">MutableSchema</a></code>
-interface. If it does, you can define tables in the model.
-Further, if the schema extends the
-<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/java/MapSchema.html">MapSchema</a></code>
-class, Optiq will call
-<code><a href="http://www.hydromatic.net/optiq/apidocs/net/hydromatic/optiq/impl/java/MapSchema.html#initialize()">MapSchema.initialize()</a></code>
-to create the automatic tables,
-then go ahead and create the explicit tables.)
-
-<code>CsvSchema</code> allows explicit tables, so let's see how to create
+Let's see how to create
 an important and useful type of table, namely a view.
 
 A view looks like a table when you are writing a query, but it doesn't store data.
@@ -323,7 +308,7 @@ There is an example in <code>model-with-custom-table.json</code>:
 }
 ```
 
-We can query the table it in the usual way:
+We can query the table in the usual way:
 
 ```sql
 sqlline> !connect jdbc:optiq:model=target/test-classes/model-with-custom-table.json admin admin
@@ -347,16 +332,18 @@ Its <code>create</code> method instantiates a
 table, passing in the <code>file</code> argument from the model file:
 
 ```java
-public CsvTable create(Schema schema, String name,
+public CsvTable create(SchemaPlus schema, String name,
     Map<String, Object> map, RelDataType rowType) {
   String fileName = (String) map.get("file");
   Boolean smart = (Boolean) map.get("smart");
   final File file = new File(fileName);
-  final List<CsvFieldType> list = new ArrayList<CsvFieldType>();
-  final RelDataType rowType2 =
-      CsvTable.deduceRowType(schema.getTypeFactory(), file, list);
-  final RelDataType rowType3 = rowType != null ? rowType : rowType2;
-  return new CsvTable(schema, name, file, rowType3, list);
+  final RelProtoDataType protoRowType =
+      rowType != null ? RelDataTypeImpl.proto(rowType) : null;
+  if (smart != null && smart) {
+    return new CsvSmartTable(file, protoRowType);
+  } else {
+    return new CsvTable(file, protoRowType);
+  }
 }
 ```
 
