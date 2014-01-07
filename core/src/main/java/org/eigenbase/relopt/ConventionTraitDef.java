@@ -35,9 +35,6 @@ import net.hydromatic.optiq.util.graph.*;
  * garbage collected. The conversion information consists of a graph of
  * conversions (from one calling convention to another) and a map of graph arcs
  * to {@link ConverterRule}s.
- *
- * @author Stephan Zuercher
- * @version $Id$
  */
 public class ConventionTraitDef
     extends RelTraitDef<Convention>

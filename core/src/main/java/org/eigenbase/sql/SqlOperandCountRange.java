@@ -20,9 +20,6 @@ package org.eigenbase.sql;
 
 /**
  * A class that describes how many operands an operator can take.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public interface SqlOperandCountRange
 {

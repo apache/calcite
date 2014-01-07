@@ -21,14 +21,10 @@ import java.util.*;
 
 import org.eigenbase.reltype.*;
 
-
 /**
  * SqlTypeExplicitPrecedenceList implements the {@link
  * RelDataTypePrecedenceList} interface via an explicit list of SqlTypeName
  * entries.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlTypeExplicitPrecedenceList
     implements RelDataTypePrecedenceList

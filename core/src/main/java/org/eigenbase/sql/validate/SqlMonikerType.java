@@ -21,10 +21,6 @@ package org.eigenbase.sql.validate;
  * An enumeration of moniker types.
  *
  * <p>Used in {@link SqlMoniker}.
- *
- * @author tleung
- * @version $Id$
- * @since May 24, 2005
  */
 public enum SqlMonikerType
 {

@@ -24,16 +24,12 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * DefaultValueFactory supplies default values for INSERT, UPDATE, and NEW.
  *
  * <p>TODO jvs 26-Feb-2005: rename this to InitializerExpressionFactory, since
  * it is in the process of being generalized to handle constructor invocations
  * and eventually generated columns.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public interface DefaultValueFactory
 {

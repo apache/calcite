@@ -28,14 +28,9 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
-
 /**
  * An assistant which offers hints and corrections to a partially-formed SQL
  * statement. It is used in the SQL editor user-interface.
- *
- * @author tleung
- * @version $Id$
- * @since Jan 16, 2004
  */
 public class SqlAdvisor
 {

@@ -45,10 +45,6 @@ import org.eigenbase.sql.SqlKind;
  *     WHERE emp.deptno = dept.deptno
  *     AND gender = 'F')</pre>
  * </blockquote>
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 24, 2003
  */
 public class RexFieldAccess
     extends RexNode

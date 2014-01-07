@@ -25,10 +25,6 @@ import org.eigenbase.util.*;
 
 /**
  * Call to an aggregate function over a window.
- *
- * @author jhyde
- * @version $Id$
- * @since Dec 6, 2004
  */
 public class RexOver
     extends RexCall

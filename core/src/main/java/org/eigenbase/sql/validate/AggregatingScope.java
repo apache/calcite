@@ -19,7 +19,6 @@ package org.eigenbase.sql.validate;
 
 import org.eigenbase.sql.*;
 
-
 /**
  * An extension to the {@link SqlValidatorScope} interface which indicates that
  * the scope is aggregating.
@@ -28,10 +27,6 @@ import org.eigenbase.sql.*;
  * will return the same set of identifiers as its parent scope, but some of
  * those identifiers may not be accessible because they are not in the GROUP BY
  * clause.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 public interface AggregatingScope
     extends SqlValidatorScope

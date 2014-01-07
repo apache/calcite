@@ -21,12 +21,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Base class for functions such as "USER", "CURRENT_ROLE", and "CURRENT_PATH".
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlStringContextVariable
     extends SqlFunction

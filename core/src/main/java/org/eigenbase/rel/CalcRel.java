@@ -46,10 +46,6 @@ import org.eigenbase.util.mapping.*;
  * <li>{@link MergeCalcRule} merges two CalcRels</li>
  * </ul>
  * </p>
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 7, 2004
  */
 public final class CalcRel
     extends CalcRelBase

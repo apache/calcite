@@ -22,17 +22,12 @@ import org.eigenbase.rel.metadata.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * A <code>RelOptCluster</code> is a collection of {@link RelNode relational
  * expressions} which have the same environment.
  *
  * <p>See the comment against <code>net.sf.saffron.oj.xlat.QueryInfo</code> on
  * why you should put fields in that class, not this one.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since 27 September, 2001
  */
 public class RelOptCluster
 {

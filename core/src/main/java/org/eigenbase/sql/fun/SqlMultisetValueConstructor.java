@@ -25,17 +25,12 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.SqlValidatorException;
 
-
 /**
  * Definition of the SQL:2003 standard MULTISET constructor, <code>MULTISET
  * [&lt;expr&gt;, ...]</code>.
  *
  * <p>Derived classes construct other kinds of collections.</p>
- *
- * @author Wael Chatila
- * @version $Id$
  * @see SqlMultisetQueryConstructor
- * @since Oct 17, 2004
  */
 public class SqlMultisetValueConstructor
     extends SqlSpecialOperator

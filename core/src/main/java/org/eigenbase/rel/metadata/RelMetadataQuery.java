@@ -25,7 +25,6 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.stat.*;
 
-
 /**
  * RelMetadataQuery provides a strongly-typed facade on top of {@link
  * RelMetadataProvider} for the set of relational expression metadata queries
@@ -60,9 +59,6 @@ import org.eigenbase.stat.*;
  * instance of {@link DefaultRelMetadataProvider}, prepending it to the default
  * providers. Then supply that instance to the planner via the appropriate
  * plugin mechanism.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class RelMetadataQuery
 {

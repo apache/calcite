@@ -20,14 +20,9 @@ package org.eigenbase.sql.validate;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Namespace representing the type of a dynamic parameter.
- *
- * @author jhyde
- * @version $Id$
  * @see ParameterScope
- * @since Mar 25, 2003
  */
 class ParameterNamespace
     extends AbstractNamespace

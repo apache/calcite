@@ -19,13 +19,9 @@ package org.eigenbase.sql.fun;
 
 import org.eigenbase.sql.*;
 
-
 /**
  * Common base for the <code>CONVERT</code> and <code>TRANSLATE</code>
  * functions.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlConvertFunction
     extends SqlFunction

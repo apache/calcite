@@ -21,13 +21,9 @@ import java.util.*;
 
 import org.eigenbase.sql.*;
 
-
 /**
  * ChainedSqlOperatorTable implements the {@link SqlOperatorTable} interface by
  * chaining together any number of underlying operator table instances.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class ChainedSqlOperatorTable
     implements SqlOperatorTable

@@ -22,8 +22,6 @@ package org.eigenbase.relopt;
  * sample of a relation.
  *
  * <p>It's parameters are derived from the SQL 2003 TABLESAMPLE clause.
- *
- * @author Stephan Zuercher
  */
 public class RelOptSamplingParameters
 {

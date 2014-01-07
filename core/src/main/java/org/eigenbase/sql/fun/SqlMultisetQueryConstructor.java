@@ -25,15 +25,10 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Definition of the SQL:2003 standard MULTISET query constructor, <code>
  * MULTISET (&lt;query&gt;)</code>.
- *
- * @author Wael Chatila
- * @version $Id$
  * @see SqlMultisetValueConstructor
- * @since Oct 17, 2004
  */
 public class SqlMultisetQueryConstructor
     extends SqlSpecialOperator

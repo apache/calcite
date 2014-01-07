@@ -19,7 +19,6 @@ package org.eigenbase.util;
 
 import java.lang.reflect.*;
 
-
 /**
  * A class derived from <code>DelegatingInvocationHandler</code> handles a
  * method call by looking for a method in itself with identical parameters. If
@@ -48,10 +47,6 @@ import java.lang.reflect.*;
  *     });</pre>
  * </blockquote>
  * </p>
- *
- * @author jhyde
- * @version $Id$
- * @since 21 March, 2002
  */
 public abstract class DelegatingInvocationHandler
     implements InvocationHandler

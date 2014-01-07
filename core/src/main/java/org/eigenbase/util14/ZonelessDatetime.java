@@ -23,13 +23,9 @@ import java.text.*;
 
 import java.util.*;
 
-
 /**
  * ZonelessDatetime is an abstract class for dates, times, or timestamps that
  * contain a zoneless time value.
- *
- * @author John Pham
- * @version $Id$
  */
 public abstract class ZonelessDatetime
     implements BasicDatetime,

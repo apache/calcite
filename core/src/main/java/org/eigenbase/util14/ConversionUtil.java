@@ -25,13 +25,8 @@ import java.text.*;
 
 import org.eigenbase.resource.*;
 
-
 /**
  * Utility functions for converting from one type to another
- *
- * @author angel
- * @version $Id$
- * @since Jan 22, 2006
  */
 public class ConversionUtil
 {

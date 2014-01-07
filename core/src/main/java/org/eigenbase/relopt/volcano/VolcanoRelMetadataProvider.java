@@ -20,13 +20,9 @@ package org.eigenbase.relopt.volcano;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 
-
 /**
  * VolcanoRelMetadataProvider implements the {@link RelMetadataProvider}
  * interface by combining metadata from the rels making up an equivalence class.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class VolcanoRelMetadataProvider
     implements RelMetadataProvider

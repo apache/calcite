@@ -23,12 +23,9 @@ import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * A <code>RelOptQuery</code> represents a set of {@link RelNode relational
  * expressions} which derive from the same <code>select</code> statement.
- *
- * @version $Id$
  */
 public class RelOptQuery
 {

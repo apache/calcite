@@ -24,14 +24,9 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * SqlOverlapsOperator represents the SQL:1999 standard OVERLAPS function
  * Determins if two anchored time intervals overlaps.
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Dec 11, 2004
  */
 public class SqlOverlapsOperator
     extends SqlSpecialOperator

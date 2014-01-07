@@ -36,10 +36,6 @@ import com.google.common.collect.ImmutableMap;
 
 /**
  * Abstract base for implementations of {@link RelDataTypeFactory}.
- *
- * @author jhyde
- * @version $Id$
- * @since May 31, 2003
  */
 public abstract class RelDataTypeFactoryImpl
     implements RelDataTypeFactory

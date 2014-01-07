@@ -45,9 +45,6 @@ import com.google.common.collect.ImmutableList;
  * To flag that an expression cannot be split, specify a rule that it must be
  * <dfn>preserved</dfn>. Such an expression will be pushed down intact to one
  * of the inputs, or not pushed down at all.</p>
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class PushProjector
 {

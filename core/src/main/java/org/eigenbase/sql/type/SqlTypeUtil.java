@@ -33,10 +33,6 @@ import com.google.common.base.Preconditions;
 
 /**
  * Contains utility methods used during SQL validation or type derivation.
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Sep 3, 2004
  */
 public abstract class SqlTypeUtil
 {

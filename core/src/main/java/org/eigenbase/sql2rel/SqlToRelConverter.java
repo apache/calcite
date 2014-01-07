@@ -55,10 +55,6 @@ import com.google.common.collect.ImmutableSet;
  *
  * <p>The public entry points are: {@link #convertQuery}, {@link
  * #convertExpression(SqlNode)}.
- *
- * @author jhyde
- * @version $Id$
- * @since Oct 10, 2003
  */
 public class SqlToRelConverter
 {

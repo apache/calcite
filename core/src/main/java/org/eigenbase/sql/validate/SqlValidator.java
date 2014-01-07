@@ -70,10 +70,6 @@ import org.eigenbase.util.*;
  * #getWhereScope}, {@link #getGroupScope}, {@link #getHavingScope}, {@link
  * #getOrderScope} and {@link #getJoinScope} get the correct scope to resolve
  * names in a particular clause of a SQL statement.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since Oct 28, 2004
  */
 public interface SqlValidator
 {

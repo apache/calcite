@@ -42,10 +42,7 @@ import com.google.common.collect.ImmutableList;
  * <p>A program can contain aggregate functions. If it does, the arguments to
  * each aggregate function must be an {@link RexInputRef}.
  *
- * @author jhyde
- * @version $Id$
  * @see RexProgramBuilder
- * @since Aug 18, 2005
  */
 public class RexProgram
 {

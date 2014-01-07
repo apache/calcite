@@ -27,14 +27,9 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A <code>SqlCollation</code> is an object representing a <code>Collate</code>
  * statement. It is immutable.
- *
- * @author wael
- * @version $Id$
- * @since Mar 23, 2004
  */
 public class SqlCollation
     implements Serializable

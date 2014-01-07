@@ -21,12 +21,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * The <code>CURRENT_DATE</code> function.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlCurrentDateFunction
     extends SqlFunction

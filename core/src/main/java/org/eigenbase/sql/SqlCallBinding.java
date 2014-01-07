@@ -25,13 +25,9 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * <code>SqlCallBinding</code> implements {@link SqlOperatorBinding} by
  * analyzing to the operands of a {@link SqlCall} with a {@link SqlValidator}.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlCallBinding
     extends SqlOperatorBinding
@@ -100,7 +96,7 @@ public class SqlCallBinding
     // implement SqlOperatorBinding
     public int getIntLiteralOperand(int ordinal)
     {
-        //todo: move this to SqlTypeUtil
+        // todo: move this to SqlTypeUtil
         SqlNode node = call.operands[ordinal];
         if (node instanceof SqlLiteral) {
             SqlLiteral sqlLiteral = (SqlLiteral) node;

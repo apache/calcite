@@ -24,10 +24,6 @@ import org.eigenbase.relopt.*;
 /**
  * <code>OneRowRel</code> always returns one row, one column (containing the
  * value 0).
- *
- * @author jhyde
- * @version $Id$
- * @since 23 September, 2001
  */
 public final class OneRowRel
     extends OneRowRelBase

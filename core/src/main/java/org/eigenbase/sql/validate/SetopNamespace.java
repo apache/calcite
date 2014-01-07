@@ -22,13 +22,8 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Namespace based upon a set operation (UNION, INTERSECT, EXCEPT).
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 public class SetopNamespace
     extends AbstractNamespace

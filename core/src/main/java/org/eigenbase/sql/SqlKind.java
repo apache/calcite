@@ -59,10 +59,6 @@ import java.util.Set;
  * }</pre>
  * </blockquote>
  * </p>
- *
- * @author jhyde
- * @version $Id$
- * @since Dec 12, 2003
  */
 public enum SqlKind
 {

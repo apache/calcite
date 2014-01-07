@@ -31,9 +31,6 @@ import org.eigenbase.sql.SqlDialect;
  * concatenating strings, and you forget to treat identifers and string literals
  * correctly. SqlBuilder has special methods for appending identifiers and
  * literals.
- *
- * @version $Id$
- * @author jhyde
  */
 public class SqlBuilder
 {

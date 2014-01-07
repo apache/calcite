@@ -25,14 +25,9 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Definition of the SQL <code>IN</code> operator, which tests for a value's
  * membership in a subquery or a list of values.
- *
- * @author jhyde
- * @version $Id$
- * @since April 17, 2006
  */
 public class SqlInOperator
     extends SqlBinaryOperator

@@ -35,10 +35,6 @@ import org.eigenbase.sql.type.*;
  * org.eigenbase.sql.fun.SqlMultisetQueryConstructor}.</li>
  * </ul>
  * </p>
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Dec 12, 2004
  */
 public final class CollectRel
     extends SingleRel

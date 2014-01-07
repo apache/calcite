@@ -21,15 +21,11 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
-
 /**
  * The SQL <code>EXTRACT</code> operator. Extracts a specified field value from
  * a DATETIME or an INTERVAL. E.g.<br>
  * <code>EXTRACT(HOUR FROM INTERVAL '364 23:59:59')</code> returns <code>
  * 23</code>
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlExtractFunction
     extends SqlFunction

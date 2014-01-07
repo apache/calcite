@@ -28,10 +28,6 @@ import com.google.common.collect.ImmutableList;
  * <p>Like {@link RexVisitor}, this is an instance of the {@link
  * org.eigenbase.util.Glossary#VisitorPattern Visitor Pattern}. Use <code>
  * RexShuttle</code> if you would like your methods to return a value.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 26, 2003
  */
 public class RexShuttle
     implements RexVisitor<RexNode>

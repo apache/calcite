@@ -24,13 +24,9 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * TableFunctionReturnTypeInference implements rules for deriving table function
  * output row types by expanding references to cursor parameters.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class TableFunctionReturnTypeInference
     extends ExplicitReturnTypeInference

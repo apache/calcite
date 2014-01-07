@@ -27,13 +27,8 @@ import org.eigenbase.sql.validate.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Operator which aggregates sets of values into a result.
- *
- * @author jack
- * @version $Id$
- * @since Jun 3, 2005
  */
 public class SqlRankFunction
     extends SqlAggFunction

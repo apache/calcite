@@ -19,13 +19,8 @@ package org.eigenbase.sql;
 
 import org.eigenbase.util.*;
 
-
 /**
  * Enumeration of possible syntactic types of {@link SqlOperator operators}.
- *
- * @author jhyde
- * @version $Id$
- * @since June 28, 2004
  */
 public enum SqlSyntax
 {

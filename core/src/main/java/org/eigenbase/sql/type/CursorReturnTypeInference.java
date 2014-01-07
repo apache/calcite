@@ -20,13 +20,9 @@ package org.eigenbase.sql.type;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Returns the rowtype of a cursor of the operand at a particular 0-based
  * ordinal position.
- *
- * @author Julian Hyde
- * @version $Id$
  * @see OrdinalReturnTypeInference
  */
 public class CursorReturnTypeInference

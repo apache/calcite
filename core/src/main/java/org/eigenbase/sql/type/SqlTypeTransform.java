@@ -28,9 +28,6 @@ import org.eigenbase.sql.*;
  *
  * <p>This class is an example of the {@link
  * org.eigenbase.util.Glossary#StrategyPattern strategy pattern}.</p>
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public interface SqlTypeTransform
 {

@@ -23,17 +23,12 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Deviant implementation of {@link SqlValidatorScope} for the top of the scope
  * stack.
  *
  * <p>It is convenient, because we never need to check whether a scope's parent
  * is null. (This scope knows not to ask about its parents, just like Adam.)
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 class EmptyScope
     implements SqlValidatorScope

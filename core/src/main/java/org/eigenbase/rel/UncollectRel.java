@@ -32,10 +32,6 @@ import com.google.common.collect.ImmutableList;
  *
  * <p>Like its inverse operation {@link CollectRel}, UncollectRel is generally
  * invoked in a nested loop, driven by {@link CorrelatorRel} or similar.
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Dec 12, 2004
  */
 public final class UncollectRel
     extends SingleRel

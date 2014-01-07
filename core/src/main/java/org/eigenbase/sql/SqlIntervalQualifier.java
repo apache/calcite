@@ -77,10 +77,6 @@ import net.hydromatic.optiq.runtime.SqlFunctions;
  * </ul>
  *
  * An instance of this class is immutable.
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Oct 31, 2004
  */
 public class SqlIntervalQualifier
     extends SqlNode

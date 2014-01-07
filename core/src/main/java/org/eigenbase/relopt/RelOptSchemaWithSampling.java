@@ -22,7 +22,6 @@ import java.util.List;
 /**
  * Extension to {@link RelOptSchema} with support for sample data-sets.
  *
- * @author jhyde
  * @see RelOptSchema
  */
 public interface RelOptSchemaWithSampling

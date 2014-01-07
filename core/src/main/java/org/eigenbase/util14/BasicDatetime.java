@@ -19,7 +19,6 @@ package org.eigenbase.util14;
 
 import java.util.*;
 
-
 /**
  * BasicDatetime is an interface for dates, times, or timestamps that can be
  * assigned from a long value. The value to be assigned may either be a zoneless
@@ -40,9 +39,6 @@ import java.util.*;
  * relative to a specified time zone, according to a {@link java.util.Calendar
  * Calendar}. Jdbc types, such as {@link java.sql.Date} typically contain zoned
  * times.
- *
- * @author John Pham
- * @version $Id$
  */
 public interface BasicDatetime
 {

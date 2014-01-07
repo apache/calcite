@@ -22,12 +22,8 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * The <code>NULLIF</code> function.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlNullifFunction
     extends SqlFunction

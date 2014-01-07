@@ -36,10 +36,6 @@ import org.eigenbase.sql.type.*;
  * objects are canonical: two types are equal if and only if they are
  * represented by the same Java object. This reduces memory consumption and
  * comparison cost.
- *
- * @author jhyde
- * @version $Id$
- * @since May 29, 2003
  */
 public interface RelDataTypeFactory
 {

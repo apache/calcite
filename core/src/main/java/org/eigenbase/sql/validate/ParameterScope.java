@@ -22,15 +22,10 @@ import java.util.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * A scope which contains nothing besides a few parameters. Like {@link
  * EmptyScope} (which is its base class), it has no parent scope.
- *
- * @author jhyde
- * @version $Id$
  * @see ParameterNamespace
- * @since Mar 25, 2003
  */
 public class ParameterScope
     extends EmptyScope

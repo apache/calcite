@@ -19,17 +19,12 @@ package org.eigenbase.sql;
 
 import org.eigenbase.sql.type.*;
 
-
 /**
  * A generalization of a binary operator to involve several (two or more)
  * arguments, and keywords between each pair of arguments.
  *
  * <p>For example, the <code>BETWEEN</code> operator is ternary, and has syntax
  * <code><i>exp1</i> BETWEEN <i>exp2</i> AND <i>exp3</i></code>.
- *
- * @author jhyde
- * @version $Id$
- * @since Aug 8, 2004
  */
 public class SqlInfixOperator
     extends SqlSpecialOperator

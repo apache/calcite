@@ -22,13 +22,9 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * RelMdPercentageOriginalRows supplies a default implementation of {@link
  * RelMetadataQuery#getPercentageOriginalRows} for the standard logical algebra.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class RelMdPercentageOriginalRows
     extends ReflectiveRelMetadataProvider

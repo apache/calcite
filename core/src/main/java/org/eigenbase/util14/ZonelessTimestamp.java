@@ -21,12 +21,8 @@ import java.sql.*;
 
 import java.text.*;
 
-
 /**
  * ZonelessTimestamp is a timestamp value without a time zone.
- *
- * @author John Pham
- * @version $Id$
  */
 public class ZonelessTimestamp
     extends ZonelessDatetime

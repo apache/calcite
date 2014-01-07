@@ -21,7 +21,6 @@ import java.lang.reflect.*;
 
 import java.util.*;
 
-
 /**
  * Interface for looking up methods relating to reflective visitation. One
  * possible implementation would cache the results.
@@ -31,9 +30,6 @@ import java.util.*;
  *
  * <p>TODO: obsolete {@link ReflectUtil#lookupVisitMethod}, and use caching in
  * implementing that method.
- *
- * @author Julian Hyde
- * @version $Id$
  */
 public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor, E>
 {

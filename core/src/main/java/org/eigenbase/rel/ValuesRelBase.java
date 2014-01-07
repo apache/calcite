@@ -33,9 +33,6 @@ import net.hydromatic.linq4j.function.Functions;
 /**
  * <code>ValuesRelBase</code> is an abstract base class for implementations of
  * {@link ValuesRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class ValuesRelBase
     extends AbstractRelNode

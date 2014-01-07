@@ -27,10 +27,6 @@ import net.hydromatic.linq4j.expressions.Expression;
 /**
  * Represents a relational dataset in a {@link RelOptSchema}. It has methods to
  * describe and implement itself.
- *
- * @author jhyde
- * @version $Id$
- * @since 10 November, 2001
  */
 public interface RelOptTable
 {

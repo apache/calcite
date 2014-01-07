@@ -21,13 +21,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Definition of the "FLOOR" builtin SQL function.
- *
- * @author jack
- * @version $Id$
- * @since May 28, 2004
  */
 public class SqlFloorFunction
     extends SqlFunction

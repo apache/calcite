@@ -26,16 +26,11 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * <code>SqlAdvisorValidator</code> is used by {@link SqlAdvisor} to traverse
  * the parse tree of a SQL statement, not for validation purpose but for setting
  * up the scopes and namespaces to facilitate retrieval of SQL statement
  * completion hints.
- *
- * @author tleung
- * @version $Id$
- * @since Jan 16, 2005
  */
 public class SqlAdvisorValidator
     extends SqlValidatorImpl

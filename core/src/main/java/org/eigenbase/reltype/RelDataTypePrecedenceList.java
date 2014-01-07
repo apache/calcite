@@ -21,8 +21,6 @@ package org.eigenbase.reltype;
  * RelDataTypePrecedenceList defines a type precedence list for a particular
  * type.
  *
- * @author John V. Sichi
- * @version $Id$
  * @sql.99 Part 2 Section 9.5
  */
 public interface RelDataTypePrecedenceList

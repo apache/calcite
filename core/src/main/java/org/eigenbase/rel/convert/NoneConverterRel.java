@@ -23,14 +23,9 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.util.*;
 
-
 /**
  * <code>NoneConverter</code> converts a plan from <code>inConvention</code> to
  * {@link org.eigenbase.relopt.Convention#NONE}.
- *
- * @author jhyde
- * @version $Id$
- * @since 15 February, 2002
  */
 public class NoneConverterRel
     extends ConverterRelImpl

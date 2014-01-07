@@ -31,10 +31,6 @@ import org.eigenbase.relopt.*;
  * <li>{@link org.eigenbase.rel.rules.PullConstantsThroughAggregatesRule}
  * <li>{@link org.eigenbase.rel.rules.RemoveDistinctAggregateRule}
  * <li>{@link org.eigenbase.rel.rules.ReduceAggregatesRule}.
- *
- * @author jhyde
- * @version $Id$
- * @since 3 February, 2002
  */
 public final class AggregateRel
     extends AggregateRelBase

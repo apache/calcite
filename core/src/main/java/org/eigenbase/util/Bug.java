@@ -40,10 +40,6 @@ package org.eigenbase.util;
  * usages of it. Also, the constant helps track the propagation of the fix: as
  * the fix is integrated into other branches, the constant will be removed from
  * those branches.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since 2006/3/2
  */
 public abstract class Bug
 {

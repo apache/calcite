@@ -32,9 +32,6 @@ import net.hydromatic.avatica.ByteString;
  * <p>Instances of SargEndpoint are immutable from outside this package.
  * Subclass {@link SargMutableEndpoint} is provided for manipulation from
  * outside the package.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SargEndpoint
     implements Comparable<SargEndpoint>

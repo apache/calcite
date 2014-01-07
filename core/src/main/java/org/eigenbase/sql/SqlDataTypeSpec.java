@@ -29,7 +29,6 @@ import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Represents a SQL data type specification in a parse tree.
  *
@@ -45,10 +44,6 @@ import org.eigenbase.util.*;
  *
  * <p>Currently it only supports simple datatypes like CHAR, VARCHAR and DOUBLE,
  * with optional precision and scale.
- *
- * @author Lee Schumacher
- * @version $Id$
- * @since Jun 4, 2004
  */
 public class SqlDataTypeSpec
     extends SqlNode

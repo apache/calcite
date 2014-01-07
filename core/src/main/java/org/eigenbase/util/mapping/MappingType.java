@@ -40,10 +40,6 @@ package org.eigenbase.util.mapping;
  * <p>Once you know what type of mapping you want, call {@link
  * Mappings#create(MappingType, int, int)} to create an efficient implementation
  * of that mapping.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 24, 2006
  */
 public enum MappingType
 {

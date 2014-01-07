@@ -26,10 +26,6 @@ import org.eigenbase.reltype.*;
 
 /**
  * A <code>SingleRel</code> is a base class single-input relational expressions.
- *
- * @author jhyde
- * @version $Id$
- * @since 23 September, 2001
  */
 public abstract class SingleRel
     extends AbstractRelNode

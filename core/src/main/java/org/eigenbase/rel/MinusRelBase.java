@@ -27,8 +27,6 @@ import org.eigenbase.relopt.RelTraitSet;
 /**
  * Abstract base class for implementations of
  * {@link MinusRel}.
- *
- * @author jhyde
  */
 public abstract class MinusRelBase extends SetOpRel {
     public MinusRelBase(

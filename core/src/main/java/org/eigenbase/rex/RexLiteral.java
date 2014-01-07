@@ -116,10 +116,6 @@ import net.hydromatic.avatica.ByteString;
  * interface</td>
  * </tr>
  * </table>
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 24, 2003
  */
 public class RexLiteral
     extends RexNode

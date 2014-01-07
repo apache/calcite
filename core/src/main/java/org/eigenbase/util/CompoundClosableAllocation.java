@@ -19,14 +19,10 @@ package org.eigenbase.util;
 
 import java.util.*;
 
-
 /**
  * CompoundClosableAllocation represents a collection of ClosableAllocations
  * which share a common lifecycle. It guarantees that allocations are closed in
  * the reverse order in which they were added.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class CompoundClosableAllocation
     implements ClosableAllocationOwner

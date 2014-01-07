@@ -20,7 +20,6 @@ package org.eigenbase.sql.fun;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * SqlCollectionTableOperator is the "table function derived table" operator. It
  * converts a table-valued function into a relation, e.g. "<code>SELECT * FROM
@@ -28,8 +27,6 @@ import org.eigenbase.sql.type.*;
  *
  * <p>This operator has function syntax (with one argument), whereas {@link
  * SqlStdOperatorTable#explicitTableOperator} is a prefix operator.
- *
- * @author jhyde, stephan
  */
 public class SqlCollectionTableOperator
     extends SqlFunctionalOperator

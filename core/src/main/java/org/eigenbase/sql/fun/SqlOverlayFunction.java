@@ -20,12 +20,8 @@ package org.eigenbase.sql.fun;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * The <code>OVERLAY</code> function.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlOverlayFunction
     extends SqlFunction

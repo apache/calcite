@@ -24,7 +24,6 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.util.*;
 
-
 /**
  * ReflectiveRelMetadataProvider provides an abstract base for reflective
  * implementations of the {@link RelMetadataProvider} interface. For an example,
@@ -32,9 +31,6 @@ import org.eigenbase.util.*;
  *
  * <p>TODO jvs 28-Mar-2006: most of this should probably be refactored into
  * ReflectUtil.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class ReflectiveRelMetadataProvider
     implements RelMetadataProvider,

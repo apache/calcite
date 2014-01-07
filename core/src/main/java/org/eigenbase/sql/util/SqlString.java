@@ -27,9 +27,6 @@ import org.eigenbase.sql.SqlDialect;
  * dialect and injection issues.
  *
  * <p>The easiest way to do build a SqlString is to use a {@link SqlBuilder}.
- *
- * @version $Id$
- * @author jhyde
  */
 public class SqlString
 {

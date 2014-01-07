@@ -21,12 +21,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Returns the type of the operand at a particular 0-based ordinal position.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class OrdinalReturnTypeInference
     implements SqlReturnTypeInference

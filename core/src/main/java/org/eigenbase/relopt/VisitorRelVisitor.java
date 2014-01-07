@@ -22,14 +22,9 @@ import java.util.List;
 import org.eigenbase.rel.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * Walks over a tree of {@link RelNode relational expressions}, walking a {@link
  * RexShuttle} over every expression in that tree.
- *
- * @author jhyde
- * @version $Id$
- * @since 22 October, 2001
  */
 public class VisitorRelVisitor
     extends RelVisitor

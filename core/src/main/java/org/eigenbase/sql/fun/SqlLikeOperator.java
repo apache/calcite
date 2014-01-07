@@ -24,7 +24,6 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
-
 /**
  * An operator describing the <code>LIKE</code> and <code>SIMILAR</code>
  * operators.
@@ -41,10 +40,6 @@ import org.eigenbase.util.*;
  * <p><b>NOTE</b> If the <code>NOT</code> clause is present the {@link
  * org.eigenbase.sql.parser.SqlParser parser} will generate a eqvivalent to
  * <code>NOT (src LIKE pattern ...)</code>
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Jan 21, 2004
  */
 public class SqlLikeOperator
     extends SqlSpecialOperator

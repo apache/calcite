@@ -22,7 +22,6 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.Util;
 
-
 /**
  * Namespace for COLLECT and TABLE constructs.
  *
@@ -35,11 +34,7 @@ import org.eigenbase.util.Util;
  *
  * <p>NOTE: jhyde, 2006/4/24: These days, this class seems to be used
  * exclusively for the <code>MULTISET</code> construct.
- *
- * @author wael
- * @version $Id$
  * @see CollectScope
- * @since Mar 25, 2003
  */
 public class CollectNamespace
     extends AbstractNamespace

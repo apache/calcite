@@ -23,15 +23,11 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * A SQL literal representing a DATE value, such as <code>DATE
  * '2004-10-22'</code>.
  *
  * <p>Create values using {@link SqlLiteral#createDate}.
- *
- * @author jhyde
- * @version $Id$
  */
 public class SqlDateLiteral
     extends SqlAbstractDateTimeLiteral

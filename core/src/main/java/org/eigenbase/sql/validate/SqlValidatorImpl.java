@@ -37,10 +37,6 @@ import net.hydromatic.linq4j.Linq4j;
 
 /**
  * Default implementation of {@link SqlValidator}.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 3, 2005
  */
 public class SqlValidatorImpl
     implements SqlValidatorWithHints

@@ -19,13 +19,9 @@ package org.eigenbase.relopt;
 
 import java.util.*;
 
-
 /**
  * MulticastRelOptListener implements the {@link RelOptListener} interface by
  * forwarding events on to a collection of other listeners.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class MulticastRelOptListener
     implements RelOptListener

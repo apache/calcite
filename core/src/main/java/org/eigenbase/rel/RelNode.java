@@ -60,10 +60,6 @@ import org.eigenbase.rex.*;
  * <p>Every relational expression must derive from {@link AbstractRelNode}. (Why
  * have the <code>RelNode</code> interface, then? We need a root interface,
  * because an interface can only derive from an interface.)</p>
- *
- * @author jhyde
- * @version $Id$
- * @since May 24, 2004
  */
 public interface RelNode
     extends RelOptNode, Cloneable

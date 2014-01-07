@@ -26,10 +26,6 @@ import org.eigenbase.relopt.*;
  * rows from its other inputs. If "all" is true, then multiset subtraction is
  * performed; otherwise, set subtraction is performed (implying no duplicates in
  * the results).
- *
- * @author jhyde
- * @version $Id$
- * @since 23 September, 2001
  */
 public final class MinusRel extends MinusRelBase {
     //~ Constructors -----------------------------------------------------------

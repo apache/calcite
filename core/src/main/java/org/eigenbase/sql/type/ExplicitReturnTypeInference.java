@@ -21,12 +21,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A {@link SqlReturnTypeInference} which always returns the same SQL type.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class ExplicitReturnTypeInference
     implements SqlReturnTypeInference

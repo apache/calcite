@@ -19,7 +19,6 @@ package org.eigenbase.reltype;
 
 import org.eigenbase.util.*;
 
-
 /**
  * RelDataTypeComparability is an enumeration of the categories of comparison
  * operators which types may support.
@@ -27,9 +26,6 @@ import org.eigenbase.util.*;
  * <p>NOTE jvs 17-Mar-2005: the order of values of this enumeration is
  * significant (from least inclusive to most inclusive) and should not be
  * changed.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public enum RelDataTypeComparability
 {

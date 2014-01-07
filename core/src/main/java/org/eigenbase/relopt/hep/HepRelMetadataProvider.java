@@ -20,13 +20,9 @@ package org.eigenbase.relopt.hep;
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
 
-
 /**
  * HepRelMetadataProvider implements the {@link RelMetadataProvider} interface
  * by combining metadata from the rels inside of a {@link HepRelVertex}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 class HepRelMetadataProvider
     implements RelMetadataProvider

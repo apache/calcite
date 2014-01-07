@@ -28,9 +28,6 @@ import com.google.common.collect.ImmutableList;
  *
  * <p>Its fields are those of its constituent records, but unlike a {@link
  * RelRecordType}, those fields' names are not necessarily distinct.</p>
- *
- * @author jhyde
- * @version $Id$
  */
 public class RelCrossType
     extends RelDataTypeImpl

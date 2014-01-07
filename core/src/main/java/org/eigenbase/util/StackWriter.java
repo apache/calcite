@@ -21,7 +21,6 @@ import java.io.*;
 
 import java.util.*;
 
-
 /**
  * A helper class for generating formatted text. StackWriter keeps track of
  * nested formatting state like indentation level and quote escaping. Typically,
@@ -54,9 +53,6 @@ import java.util.*;
  *          select * from t where c > ''alabama''
  *      ');
  *</code></pre>
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class StackWriter
     extends FilterWriter

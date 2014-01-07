@@ -24,7 +24,6 @@ import org.eigenbase.reltype.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * SqlTypeFamily provides SQL type categorization.
  *
@@ -38,9 +37,6 @@ import com.google.common.collect.ImmutableList;
  * with the primary categorization. It is used in type strategies for more
  * specific or more general categorization than the primary families. Secondary
  * families are never returned by RelDataType.getFamily().
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public enum SqlTypeFamily
     implements RelDataTypeFamily

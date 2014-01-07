@@ -26,7 +26,6 @@ import org.eigenbase.trace.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * A <code>RelSet</code> is an equivalence-set of expressions; that is, a set of
  * expressions which have identical semantics. We are generally interested in
@@ -34,10 +33,6 @@ import com.google.common.collect.ImmutableList;
  *
  * <p>All of the expressions in an <code>RelSet</code> have the same calling
  * convention.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since 16 December, 2001
  */
 class RelSet
 {

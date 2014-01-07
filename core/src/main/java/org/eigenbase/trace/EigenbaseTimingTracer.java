@@ -21,13 +21,9 @@ import java.text.*;
 
 import java.util.logging.*;
 
-
 /**
  * EigenbaseTimingTracer provides a mechanism for tracing the timing of a call
  * sequence at nanosecond resolution.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class EigenbaseTimingTracer
 {

@@ -35,9 +35,6 @@ import org.eigenbase.sql.*;
  * <li>Created by {@code net.sf.farrago.query.FarragoReduceValuesRule}</li>
  * <li>Triggers {@link org.eigenbase.rel.rules.RemoveEmptyRule}</li>
  * </ul>
- *
- * @author jhyde
- * @version $Id$
  * @see org.eigenbase.rel.ValuesRel
  */
 public class EmptyRel

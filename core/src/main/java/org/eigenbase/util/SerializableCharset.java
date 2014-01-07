@@ -21,7 +21,6 @@ import java.io.*;
 
 import java.nio.charset.*;
 
-
 /**
  * Serializable wrapper around a {@link Charset}.
  *
@@ -30,9 +29,6 @@ import java.nio.charset.*;
  * for a charset with the same name.
  *
  * <p>A SerializableCharset is immutable.
- *
- * @author jhyde
- * @version $Id$
  */
 public class SerializableCharset
     implements Serializable

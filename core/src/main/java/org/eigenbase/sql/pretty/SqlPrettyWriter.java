@@ -102,10 +102,6 @@ import org.eigenbase.util.*;
  * <td>0</td>
  * </tr>
  * </table>
- *
- * @author Julian Hyde
- * @version $Id$
- * @since 2005/8/24
  */
 public class SqlPrettyWriter
     implements SqlWriter

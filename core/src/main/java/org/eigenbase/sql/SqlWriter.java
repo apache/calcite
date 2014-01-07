@@ -24,10 +24,6 @@ import org.eigenbase.sql.util.SqlString;
  * parse tree. It deals with dialect differences; for example, Oracle quotes
  * identifiers as <code>"scott"</code>, while SQL Server quotes them as <code>
  * [scott]</code>.
- *
- * @author Julian Hyde
- * @version $Id$
- * @since 2002/8/8
  */
 public interface SqlWriter
 {

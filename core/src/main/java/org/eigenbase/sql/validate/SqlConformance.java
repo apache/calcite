@@ -19,10 +19,6 @@ package org.eigenbase.sql.validate;
 
 /**
  * Enumeration of valid SQL compatiblity modes.
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 06, 2007
  */
 public enum SqlConformance
 {

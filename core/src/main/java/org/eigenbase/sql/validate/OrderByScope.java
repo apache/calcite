@@ -22,7 +22,6 @@ import java.util.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Represents the name-resolution context for expressions in an ORDER BY clause.
  *
@@ -34,10 +33,6 @@ import org.eigenbase.sql.*;
  * ORDER BY x</code></blockquote>
  *
  * is valid.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 public class OrderByScope
     extends DelegatingScope

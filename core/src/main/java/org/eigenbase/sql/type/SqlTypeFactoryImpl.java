@@ -27,9 +27,6 @@ import org.eigenbase.util.*;
 /**
  * SqlTypeFactoryImpl provides a default implementation of {@link
  * RelDataTypeFactory} which supports SQL types.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlTypeFactoryImpl
     extends RelDataTypeFactoryImpl

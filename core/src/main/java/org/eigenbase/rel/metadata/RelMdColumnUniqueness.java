@@ -30,9 +30,6 @@ import net.hydromatic.optiq.util.BitSets;
 /**
  * RelMdColumnUniqueness supplies a default implementation of {@link
  * RelMetadataQuery#areColumnsUnique} for the standard logical algebra.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class RelMdColumnUniqueness
     extends ReflectiveRelMetadataProvider

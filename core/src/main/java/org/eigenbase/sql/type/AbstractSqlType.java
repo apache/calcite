@@ -22,12 +22,8 @@ import java.util.List;
 
 import org.eigenbase.reltype.*;
 
-
 /**
  * Abstract base class for SQL implementations of {@link RelDataType}.
- *
- * @author jhyde
- * @version $Id$
  */
 public abstract class AbstractSqlType
     extends RelDataTypeImpl

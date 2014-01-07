@@ -19,13 +19,8 @@ package org.eigenbase.sql2rel;
 
 import org.eigenbase.sql.*;
 
-
 /**
  * Collection of {@link SqlRexConvertlet}s.
- *
- * @author jhyde
- * @version $Id$
- * @since 2005/8/3
  */
 public interface SqlRexConvertletTable
 {

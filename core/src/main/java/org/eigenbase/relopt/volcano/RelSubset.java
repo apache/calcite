@@ -35,10 +35,6 @@ import net.hydromatic.linq4j.function.Predicate1;
  * A <code>RelSubset</code> is set of expressions in a set which have the same
  * calling convention. An expression may be in more than one sub-set of a set;
  * the same expression is used.
- *
- * @author jhyde
- * @version $Id$
- * @since 16 December, 2001
  */
 public class RelSubset
     extends AbstractRelNode

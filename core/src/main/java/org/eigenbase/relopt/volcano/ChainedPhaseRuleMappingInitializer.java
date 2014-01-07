@@ -19,14 +19,12 @@ package org.eigenbase.relopt.volcano;
 
 import java.util.*;
 
-
 /**
  * ChainedPhaseRuleMappingInitializer is an abstract implementation of {@link
  * VolcanoPlannerPhaseRuleMappingInitializer} that allows additional rules to be
  * layered ontop of those configured by a subordinate
  * VolcanoPlannerPhaseRuleMappingInitializer.
  *
- * @author Stephan Zuercher
  * @see VolcanoPlannerPhaseRuleMappingInitializer
  */
 public abstract class ChainedPhaseRuleMappingInitializer

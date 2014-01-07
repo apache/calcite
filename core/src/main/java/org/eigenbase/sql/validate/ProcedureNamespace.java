@@ -20,13 +20,9 @@ package org.eigenbase.sql.validate;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Namespace whose contents are defined by the result of a call to a
  * user-defined procedure.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class ProcedureNamespace
     extends AbstractNamespace

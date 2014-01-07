@@ -23,13 +23,9 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * A <code>SqlFunction</code> is a type of operator which has conventional
  * function-call syntax.
- *
- * @author jhyde
- * @version $Id$
  */
 public class SqlFunction
     extends SqlOperator

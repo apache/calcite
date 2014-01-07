@@ -20,15 +20,11 @@ package org.eigenbase.sql;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * SqlSetOperator represents a relational set theory operator (UNION, INTERSECT,
  * MINUS). These are binary operators, but with an extra boolean attribute
  * tacked on for whether to remove duplicates (e.g. UNION ALL does not remove
  * duplicates).
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlSetOperator
     extends SqlBinaryOperator

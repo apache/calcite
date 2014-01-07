@@ -19,11 +19,7 @@ package org.eigenbase.util.mapping;
 
 /**
  * An immutable pair of integers.
- *
- * @author jhyde
- * @version $Id$
  * @see Mapping#iterator()
- * @since Mar 24, 2006
  */
 public class IntPair
 {

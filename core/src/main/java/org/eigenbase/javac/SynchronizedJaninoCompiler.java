@@ -23,9 +23,6 @@ package org.eigenbase.javac;
  * if necessary:
  * <code>alter system set "javaCompilerClassName" =
  * 'org.eigenbase.javac.SynchronizedJaninoCompiler';</code>
- *
- * @author John Sichi
- * @version $Id$
  */
 public class SynchronizedJaninoCompiler extends JaninoCompiler
 {

@@ -29,9 +29,6 @@ import com.google.common.collect.ImmutableList;
 /**
  * <code>CalcRelBase</code> is an abstract base class for implementations of
  * {@link CalcRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class CalcRelBase
     extends SingleRel

@@ -24,8 +24,6 @@ import org.eigenbase.relopt.*;
 /**
  * SamplingRel represents the TABLESAMPLE BERNOULLI or SYSTEM keyword applied to
  * a table, view or subquery.
- *
- * @author Stephan Zuercher
  */
 public class SamplingRel
     extends SingleRel

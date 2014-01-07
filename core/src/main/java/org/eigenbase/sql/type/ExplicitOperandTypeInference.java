@@ -24,13 +24,9 @@ import org.eigenbase.sql.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * ExplicitOperandTypeInferences implements {@link SqlOperandTypeInference} by
  * explicity supplying a type for each parameter.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class ExplicitOperandTypeInference
     implements SqlOperandTypeInference

@@ -25,16 +25,12 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Parameter type-checking strategy for a set operator (UNION, INTERSECT,
  * EXCEPT).
  *
  * <p>Both arguments must be records with the same number of fields, and the
  * fields must be union-compatible.
- *
- * @author Jack Frost
- * @version $Id$
  */
 public class SetopOperandTypeChecker
     implements SqlOperandTypeChecker

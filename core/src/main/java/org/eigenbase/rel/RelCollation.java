@@ -21,16 +21,11 @@ import java.util.*;
 
 import org.eigenbase.relopt.RelTrait;
 
-
 /**
  * Description of the physical ordering of a relational expression.
  *
  * <p>An ordering consists of a list of one or more column ordinals and the
  * direction of the ordering.
- *
- * @author jhyde
- * @version $Id$
- * @since March 6, 2006
  */
 public interface RelCollation extends RelTrait
 {

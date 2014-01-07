@@ -28,7 +28,6 @@ import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Defines the BETWEEN operator.
  *
@@ -41,10 +40,6 @@ import org.eigenbase.util.*;
  *
  * <p>This operator is always expanded (into something like <code>Y &lt;= X AND
  * X &lt;= Z</code>) before being converted into Rex nodes.
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Jun 9, 2004
  */
 public class SqlBetweenOperator
     extends SqlInfixOperator

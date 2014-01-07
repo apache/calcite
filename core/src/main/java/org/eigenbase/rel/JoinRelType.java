@@ -19,9 +19,6 @@ package org.eigenbase.rel;
 
 /**
  * Enumeration of join types.
- *
- * @author jhyde
- * @version $Id$
  */
 public enum JoinRelType
 {

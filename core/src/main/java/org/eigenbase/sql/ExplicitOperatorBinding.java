@@ -24,13 +24,9 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * <code>ExplicitOperatorBinding</code> implements {@link SqlOperatorBinding}
  * via an underlying array of known operand types.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class ExplicitOperatorBinding
     extends SqlOperatorBinding

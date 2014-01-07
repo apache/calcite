@@ -20,15 +20,11 @@ package org.eigenbase.sql.type;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Strategy interface to check for allowed operand types of an operator call.
  *
  * <p>This interface is an example of the {@link
  * org.eigenbase.util.Glossary#StrategyPattern strategy pattern}.</p>
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public interface SqlOperandTypeChecker
 {

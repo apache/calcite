@@ -23,9 +23,6 @@ import org.eigenbase.util.Pair;
 
 /**
  * RelTraitSet represents an ordered set of {@link RelTrait}s.
- *
- * @author Stephan Zuercher
- * @version $Id$
  */
 public final class RelTraitSet extends AbstractList<RelTrait> {
     private static final RelTrait[] EMPTY_TRAITS = new RelTrait[0];

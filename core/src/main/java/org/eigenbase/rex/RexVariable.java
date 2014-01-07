@@ -19,13 +19,8 @@ package org.eigenbase.rex;
 
 import org.eigenbase.reltype.*;
 
-
 /**
  * A row-expression which references a field.
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 24, 2003
  */
 public abstract class RexVariable
     extends RexNode

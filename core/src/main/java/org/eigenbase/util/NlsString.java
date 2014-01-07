@@ -25,14 +25,9 @@ import org.eigenbase.sql.*;
 
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
-
 /**
  * A string, optionally with {@link Charset character set} and {@link
  * SqlCollation}. It is immutable.
- *
- * @author jhyde
- * @version $Id$
- * @since May 28, 2004
  */
 public class NlsString
     implements Comparable<NlsString>

@@ -19,7 +19,6 @@ package org.eigenbase.sql.util;
 
 import org.eigenbase.sql.*;
 
-
 /**
  * Visitor class, follows the {@link org.eigenbase.util.Glossary#VisitorPattern
  * visitor pattern}.
@@ -27,9 +26,6 @@ import org.eigenbase.sql.*;
  * <p>The type parameter <code>R</code> is the return type of each <code>
  * visit()</code> method. If the methods do not need to return a value, use
  * {@link Void}.
- *
- * @author jhyde
- * @version $Id$
  * @see SqlBasicVisitor
  * @see SqlNode#accept(SqlVisitor)
  * @see SqlOperator#acceptCall

@@ -24,14 +24,9 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 
-
 /**
  * A scope which delegates all requests to its parent scope. Use this as a base
  * class for defining nested scopes.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 public abstract class DelegatingScope
     implements SqlValidatorScope

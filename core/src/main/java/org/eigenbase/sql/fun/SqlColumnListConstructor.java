@@ -20,13 +20,9 @@ package org.eigenbase.sql.fun;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * SqlColumnListConstructor defines the non-standard constructor used to pass a
  * COLUMN_LIST parameter to a UDX.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class SqlColumnListConstructor
     extends SqlSpecialOperator

@@ -20,12 +20,8 @@ package org.eigenbase.sql.type;
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.*;
 
-
 /**
  * MultisetSqlType represents a standard SQL2003 multiset type.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class MultisetSqlType
     extends AbstractSqlType

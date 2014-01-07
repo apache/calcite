@@ -24,13 +24,9 @@ import org.eigenbase.rel.rules.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util14.*;
 
-
 /**
  * RelMdRowCount supplies a default implementation of {@link
  * RelMetadataQuery#getRowCount} for the standard logical algebra.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class RelMdRowCount
     extends ReflectiveRelMetadataProvider

@@ -21,12 +21,8 @@ import java.util.*;
 
 import org.eigenbase.util.mapping.*;
 
-
 /**
  * Represents a mapping which reorders elements in an array.
- *
- * @author Julian Hyde
- * @version $Id$
  */
 public class Permutation
     implements Mapping,

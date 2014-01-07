@@ -23,13 +23,9 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.util.*;
 
-
 /**
  * CachingRelMetadataProvider implements the {@link RelMetadataProvider}
  * interface by caching results from an underlying provider.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class CachingRelMetadataProvider
     implements RelMetadataProvider

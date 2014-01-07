@@ -23,13 +23,9 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * RelMdColumnOrigins supplies a default implementation of {@link
  * RelMetadataQuery#getColumnOrigins} for the standard logical algebra.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class RelMdColumnOrigins
     extends ReflectiveRelMetadataProvider

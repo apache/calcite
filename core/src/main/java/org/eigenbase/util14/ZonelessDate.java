@@ -24,12 +24,8 @@ import java.text.*;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-
 /**
  * ZonelessDate is a date value without a time zone.
- *
- * @author John Pham
- * @version $Id$
  */
 public class ZonelessDate
     extends ZonelessDatetime

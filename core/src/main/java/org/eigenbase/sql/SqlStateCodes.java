@@ -22,10 +22,6 @@ package org.eigenbase.sql;
  * Sate codes are defined in
  *
  * <pre><code> &#64;sql.2003 Part 2 Section 23.1</code></pre>
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Mar 30, 2005
  */
 public enum SqlStateCodes
 {

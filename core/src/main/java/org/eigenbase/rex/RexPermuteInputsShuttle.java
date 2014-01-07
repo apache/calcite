@@ -24,12 +24,9 @@ import org.eigenbase.rel.RelNode;
 import org.eigenbase.reltype.RelDataTypeField;
 import org.eigenbase.util.mapping.Mappings;
 
-
 /**
  * Shuttle which applies a permutation to its input fields.
  *
- * @author jhyde
- * @version $Id$
  * @see RexPermutationShuttle
  */
 public class RexPermuteInputsShuttle

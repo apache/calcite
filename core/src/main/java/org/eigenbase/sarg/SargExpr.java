@@ -22,13 +22,9 @@ import java.util.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * SargExpr represents an expression defining a possibly non-contiguous search
  * subset of a scalar domain of a given datatype.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public interface SargExpr
 {

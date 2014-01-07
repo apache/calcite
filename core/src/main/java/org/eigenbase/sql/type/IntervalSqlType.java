@@ -21,12 +21,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 
-
 /**
  * IntervalSqlType represents a standard SQL datetime interval type.
- *
- * @author wael
- * @version $Id$
  */
 public class IntervalSqlType
     extends AbstractSqlType

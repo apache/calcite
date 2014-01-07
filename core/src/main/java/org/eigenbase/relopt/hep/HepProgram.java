@@ -29,9 +29,6 @@ import com.google.common.collect.ImmutableList;
  * <p>Note that the structure of a program is immutable, but the planner uses it
  * as read/write during planning, so a program can only be in use by a single
  * planner at a time.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class HepProgram
 {

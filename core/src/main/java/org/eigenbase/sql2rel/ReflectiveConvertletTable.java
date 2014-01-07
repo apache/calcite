@@ -26,16 +26,11 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Implementation of {@link SqlRexConvertletTable} which uses reflection to call
  * any method of the form <code>public RexNode convertXxx(ConvertletContext,
  * SqlNode)</code> or <code>public RexNode convertXxx(ConvertletContext,
  * SqlOperator, SqlCall)</code>.
- *
- * @author jhyde
- * @version $Id$
- * @since 2005/8/3
  */
 public class ReflectiveConvertletTable
     implements SqlRexConvertletTable

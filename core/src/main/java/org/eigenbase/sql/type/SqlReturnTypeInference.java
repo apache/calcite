@@ -28,10 +28,6 @@ import org.eigenbase.sql.*;
  * org.eigenbase.util.Glossary#StrategyPattern strategy pattern}. This makes
  * sense because many operators have similar, straightforward strategies, such
  * as to take the type of the first operand.</p>
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Sept 8, 2004
  */
 public interface SqlReturnTypeInference
 {

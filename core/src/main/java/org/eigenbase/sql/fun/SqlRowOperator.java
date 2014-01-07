@@ -25,15 +25,11 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.Pair;
 
-
 /**
  * SqlRowOperator represents the special ROW constructor.
  *
  * <p>TODO: describe usage for row-value construction and row-type construction
  * (SQL supports both).
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlRowOperator
     extends SqlSpecialOperator

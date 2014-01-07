@@ -26,9 +26,6 @@ import org.eigenbase.sql.validate.*;
 /**
  * SqlProcedureCallOperator represents the CALL statement. It takes a single
  * operand which is the real SqlCall.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlProcedureCallOperator
     extends SqlPrefixOperator

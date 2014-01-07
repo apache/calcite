@@ -19,10 +19,6 @@ package org.eigenbase.sql;
 
 /**
  * Enumeration representing different access types
- *
- * @author angel
- * @version $Id$
- * @since Sep 18, 2005
  */
 public enum SqlAccessEnum
 {

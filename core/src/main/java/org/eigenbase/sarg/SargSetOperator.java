@@ -20,9 +20,6 @@ package org.eigenbase.sarg;
 /**
  * SargSetOperator defines the supported set operators which can be used to
  * combine instances of {@link SargExpr}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public enum SargSetOperator
 {

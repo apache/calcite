@@ -31,9 +31,6 @@ import com.google.common.collect.ImmutableSet;
  * <code>TableFunctionRel</code> represents a call to a function which returns a
  * result set. Currently, it can only appear as a leaf in a query tree, but
  * eventually we will extend it to take relational inputs.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class TableFunctionRel
     extends TableFunctionRelBase

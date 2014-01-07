@@ -20,9 +20,6 @@ package org.eigenbase.util;
 /**
  * ClosableAllocation represents an object which requires a call in order to
  * release resources early rather than waiting for finalization.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public interface ClosableAllocation
 {

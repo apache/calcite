@@ -22,14 +22,9 @@ import java.util.List;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Implements {@link org.eigenbase.sql.validate.SqlValidatorTable} by
  * delegating to a parent table.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 9, 2009
  */
 public abstract class DelegatingSqlValidatorTable implements SqlValidatorTable
 {

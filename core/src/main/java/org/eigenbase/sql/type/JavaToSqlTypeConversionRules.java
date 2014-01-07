@@ -24,13 +24,9 @@ import java.sql.Date;
 
 import java.util.*;
 
-
 /**
  * JavaToSqlTypeConversionRules defines mappings from common Java types to
  * corresponding SQL types.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class JavaToSqlTypeConversionRules
 {

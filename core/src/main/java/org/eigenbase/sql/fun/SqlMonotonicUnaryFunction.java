@@ -21,13 +21,9 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Base class for unary operators such as FLOOR/CEIL which are monotonic for
  * monotonic inputs.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlMonotonicUnaryFunction
     extends SqlFunction

@@ -21,9 +21,6 @@ import org.eigenbase.sql.parser.SqlParserPos;
 
 /**
  * SqlExplainLevel defines detail levels for EXPLAIN PLAN.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public enum SqlExplainLevel
     implements SqlLiteral.SqlSymbol

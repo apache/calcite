@@ -19,7 +19,6 @@ package org.eigenbase.rel.metadata;
 
 import org.eigenbase.rel.*;
 
-
 /**
  * RelMetadataProvider defines an interface for obtaining metadata about
  * relational expressions. This interface is weakly-typed and is not intended to
@@ -28,9 +27,6 @@ import org.eigenbase.rel.*;
  *
  * <p>For background and motivation, see <a
  * href="http://wiki.eigenbase.org/RelationalExpressionMetadata">wiki</a>.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public interface RelMetadataProvider
 {

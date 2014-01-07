@@ -47,9 +47,6 @@ import org.eigenbase.rel.convert.*;
  *
  * <p>Otherwise, a new instance of RelTraitDef must be constructed and
  * registered with each new planner instantiated.</p>
- *
- * @author Stephan Zuercher
- * @version $Id$
  */
 public abstract class RelTraitDef<T extends RelTrait>
 {

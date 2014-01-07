@@ -22,9 +22,6 @@ package org.eigenbase.rel.metadata;
  * RelMetadataProvider} interface. It provides generic formulas and derivation
  * rules for the standard logical algebra; coverage corresponds to the methods
  * declared in {@link RelMetadataQuery}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class DefaultRelMetadataProvider
     extends ChainedRelMetadataProvider

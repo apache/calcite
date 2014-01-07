@@ -35,10 +35,6 @@ import net.hydromatic.linq4j.Ord;
  * <p>The result is usually 'boxed' as a record with one named field for each
  * column; if there is precisely one expression, the result may be 'unboxed',
  * and consist of the raw value type.</p>
- *
- * @version $Id$
- * @author jhyde
- * @since March, 2004
  */
 public final class ProjectRel
     extends ProjectRelBase

@@ -25,13 +25,9 @@ import org.eigenbase.sql.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Operand type-checking strategy which checks operands for inclusion in type
  * families.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class FamilyOperandTypeChecker
     implements SqlSingleOperandTypeChecker

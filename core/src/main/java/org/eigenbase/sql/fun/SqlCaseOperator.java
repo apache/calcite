@@ -29,7 +29,6 @@ import org.eigenbase.util.Pair;
 
 import com.google.common.collect.Iterables;
 
-
 /**
  * An operator describing a <code>CASE</code>, <code>NULLIF</code> or <code>
  * COALESCE</code> expression. All of these forms are normalized at parse time
@@ -115,10 +114,6 @@ import com.google.common.collect.Iterables;
  * <li>The <i>else</i> expression is stored as a regular {@link SqlNode}.</li>
  * </ul>
  * </p>
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Mar 14, 2004
  */
 public class SqlCaseOperator
     extends SqlOperator

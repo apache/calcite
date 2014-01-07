@@ -24,12 +24,8 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Standard implementation of {@link RexToSqlNodeConverter}.
- *
- * @author Sunny Choi
- * @version $Id$
  */
 public class RexToSqlNodeConverterImpl
     implements RexToSqlNodeConverter

@@ -32,10 +32,6 @@ import java.util.*;
  * unspecified behavior.
  *
  * @param <T> Element type
- *
- * @author jhyde
- * @version $Id$
- * @since 31 October, 2009
  */
 public class CompositeList<T> extends AbstractList<T>
 {

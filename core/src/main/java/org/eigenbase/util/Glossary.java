@@ -22,10 +22,6 @@ package org.eigenbase.util;
  *
  * <p>(This is not a real class. It is here so that terms which do not map to
  * classes can be referenced in Javadoc.)</p>
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 28, 2003
  */
 public class Glossary
 {

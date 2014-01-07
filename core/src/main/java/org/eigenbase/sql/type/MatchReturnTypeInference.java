@@ -24,13 +24,9 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Returns the first type that matches a set of given {@link SqlTypeName}s. If
  * no match could be found, null is returned.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class MatchReturnTypeInference
     implements SqlReturnTypeInference

@@ -21,9 +21,6 @@ package org.eigenbase.sql;
  * SqlNullSemantics defines the possible comparison rules for values which might
  * be null. In SQL (and internal plans used to process SQL) different rules are
  * used depending on the context.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public enum SqlNullSemantics
 {

@@ -21,15 +21,11 @@ import java.text.*;
 
 import java.util.*;
 
-
 /**
  * Utility functions for datetime types: date, time, timestamp. Refactored from
  * SqlParserUtil because they are required by the Jdbc driver. TODO: review
  * methods for performance. Due to allocations required, it may be preferable to
  * introduce a "formatter" with the required state.
- *
- * @version $Id$
- * @since Sep 28, 2006
  */
 public class DateTimeUtil
 {

@@ -46,10 +46,6 @@ import org.eigenbase.util.Pair;
  *
  * So <code>RexInputRef(3,Integer)</code> is the correct reference for the field
  * DEPTNO2.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 24, 2003
  */
 public class RexInputRef
     extends RexSlot

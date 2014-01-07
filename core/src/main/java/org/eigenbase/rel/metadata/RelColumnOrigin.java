@@ -21,13 +21,9 @@ import java.util.*;
 
 import org.eigenbase.relopt.*;
 
-
 /**
  * RelColumnOrigin is a data structure describing one of the origins of an
  * output column produced by a relational expression.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class RelColumnOrigin
 {

@@ -23,14 +23,10 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Base class for binary operators such as addition, subtraction, and
  * multiplication which are monotonic for the patterns <code>m op c</code> and
  * <code>c op m</code> where m is any monotonic expression and c is a constant.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlMonotonicBinaryOperator
     extends SqlBinaryOperator

@@ -24,13 +24,8 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A numeric SQL literal.
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 18, 2004
  */
 public class SqlNumericLiteral
     extends SqlLiteral
@@ -119,7 +114,7 @@ public class SqlNumericLiteral
                 return typeFactory.createSqlType(result);
             }
 
-            //else we have a decimal
+            // else we have a decimal
             return typeFactory.createSqlType(
                 SqlTypeName.DECIMAL,
                 prec.intValue(),

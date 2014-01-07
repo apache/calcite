@@ -20,7 +20,6 @@ package org.eigenbase.sql.pretty;
 /**
  * Data structure to hold options for
  * {@link SqlPrettyWriter#setFormatOptions(SqlFormatOptions)}.
- * @author chard
  */
 public class SqlFormatOptions
 {
@@ -45,18 +44,19 @@ public class SqlFormatOptions
     }
 
     /**
-     * COnstructs a complete set of SQL format options.
-     * @param alwaysUseParentheses
-     * @param caseClausesOnNewLines
-     * @param clauseStartsLine
-     * @param keywordsLowercase
-     * @param quoteAllIdentifiers
-     * @param selectListItemsOnSeparateLines
-     * @param whereListItemsOnSeparateLines
-     * @param windowDeclarationStartsLine
-     * @param windowListItemsOnSeparateLines
-     * @param indentation
-     * @param lineLength
+     * Constructs a complete set of SQL format options.
+     *
+     * @param alwaysUseParentheses Always use parentheses
+     * @param caseClausesOnNewLines Case clauses on new lines
+     * @param clauseStartsLine Clause starts line
+     * @param keywordsLowercase Keywords in lower case
+     * @param quoteAllIdentifiers Quote all identifiers
+     * @param selectListItemsOnSeparateLines Select items on separate lines
+     * @param whereListItemsOnSeparateLines Where items on separate lines
+     * @param windowDeclarationStartsLine Window declaration starts line
+     * @param windowListItemsOnSeparateLines Window list items on separate lines
+     * @param indentation Indentation
+     * @param lineLength Line length
      */
     public SqlFormatOptions(
         boolean alwaysUseParentheses,

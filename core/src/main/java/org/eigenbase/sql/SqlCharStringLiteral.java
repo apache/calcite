@@ -21,15 +21,11 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A character string literal.
  *
  * <p>Its {@link #value} field is an {@link NlsString} and {@link #typeName} is
  * {@link SqlTypeName#CHAR}.
- *
- * @author wael
- * @version $Id$
  */
 public class SqlCharStringLiteral
     extends SqlAbstractStringLiteral

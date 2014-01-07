@@ -33,10 +33,6 @@ package org.eigenbase.util;
  * }</pre>
  * </blockquote>
  * </p>
- *
- * @author jhyde
- * @version $Id$
- * @since Aug 31, 2003
  */
 public abstract class MainApp
 {

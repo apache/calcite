@@ -33,10 +33,6 @@ import org.eigenbase.sql.SqlKind;
  * {@link RexVariable} (variable), {@link RexCall} (call to operator with
  * operands). Expressions are generally created using a {@link RexBuilder}
  * factory.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 22, 2003
  */
 public abstract class RexNode
 {

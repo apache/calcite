@@ -22,9 +22,6 @@ import java.util.*;
 /**
  * Extension to {@link ArrayList} to help build an array of <code>int</code>
  * values.
- *
- * @author jhyde
- * @version $Id$
  */
 public class IntList
     extends ArrayList<Integer>

@@ -20,12 +20,8 @@ package org.eigenbase.sql;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * Abstract base for chararacter and binary string literals.
- *
- * @author wael
- * @version $Id$
  */
 abstract class SqlAbstractStringLiteral
     extends SqlLiteral

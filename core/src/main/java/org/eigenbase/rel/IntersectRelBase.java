@@ -27,8 +27,6 @@ import org.eigenbase.relopt.RelTraitSet;
 /**
  * Abstract base class for implementations of
  * {@link IntersectRel}.
- *
- * @author jhyde
  */
 public abstract class IntersectRelBase extends SetOpRel {
     /** Creates an IntersectRelBase. */

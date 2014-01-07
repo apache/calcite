@@ -21,15 +21,11 @@ import java.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * SargIntervalSequence represents the union of a set of disjoint {@link
  * SargInterval} instances. (If any adjacent intervals weren't disjoint, they
  * would have been combined into one bigger one before creation of the
  * sequence.) Intervals are maintained in coordinate order.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SargIntervalSequence
 {

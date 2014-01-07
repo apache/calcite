@@ -25,16 +25,11 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * SqlCastFunction. Note that the std functions are really singleton objects,
  * because they always get fetched via the StdOperatorTable. So you can't store
  * any local info in the class and hence the return type data is maintained in
  * operand[1] through the validation phase.
- *
- * @author lee
- * @version $Id$
- * @since Jun 5, 2004
  */
 public class SqlCastFunction
     extends SqlFunction

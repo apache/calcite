@@ -36,9 +36,6 @@ import com.google.common.collect.ImmutableList;
 /**
  * HepPlanner is a heuristic implementation of the {@link RelOptPlanner}
  * interface.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class HepPlanner
     extends AbstractRelOptPlanner

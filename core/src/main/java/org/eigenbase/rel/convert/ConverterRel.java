@@ -20,7 +20,6 @@ package org.eigenbase.rel.convert;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * A relational expression implements the interface <code>ConverterRel</code> to
  * indicate that it converts a physical attribute, or {@link
@@ -44,10 +43,6 @@ import org.eigenbase.relopt.*;
  * would return a {@link org.eigenbase.relopt.RelTraitSet}. But for simplicity,
  * this class only allows one trait to be converted at a time; all other traits
  * are assumed to be preserved.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since Dec 12, 2007
  */
 public interface ConverterRel
     extends RelNode

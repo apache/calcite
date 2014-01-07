@@ -29,9 +29,6 @@ import net.hydromatic.optiq.util.BitSets;
 /**
  * <code>TableAccessRelBase</code> is an abstract base class for implementations
  * of {@link TableAccessRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class TableAccessRelBase
     extends AbstractRelNode

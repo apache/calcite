@@ -21,8 +21,6 @@ package org.eigenbase.relopt.volcano;
  * VolcanoPlannerPhase represents the phases of operation that the {@link
  * VolcanoPlanner} passes through during optimization of a tree of {@link
  * org.eigenbase.rel.RelNode} objects.
- *
- * @author stephan
  */
 public enum VolcanoPlannerPhase
 {

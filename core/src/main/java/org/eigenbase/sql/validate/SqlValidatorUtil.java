@@ -32,10 +32,6 @@ import net.hydromatic.optiq.prepare.Prepare;
 
 /**
  * Utility methods related to validation.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 public class SqlValidatorUtil
 {

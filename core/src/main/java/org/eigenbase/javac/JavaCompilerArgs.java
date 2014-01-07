@@ -19,7 +19,6 @@ package org.eigenbase.javac;
 
 import java.util.*;
 
-
 /**
  * A <code>JavaCompilerArgs</code> holds the arguments for a {@link
  * JavaCompiler}.
@@ -28,10 +27,6 @@ import java.util.*;
  * set<i>Argument</i></code> methods to store arguments in a different fashion,
  * or may throw {@link UnsupportedOperationException} to indicate that the
  * compiler does not support that argument.
- *
- * @author jhyde
- * @version $Id$
- * @since Jun 2, 2002
  */
 public class JavaCompilerArgs
 {

@@ -22,15 +22,10 @@ import java.util.List;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Implementation of
  * {@link org.eigenbase.sql.validate.SqlValidatorCatalogReader} that passes
  * all calls to a parent catalog reader.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 6, 2009
  */
 public abstract class DelegatingSqlValidatorCatalogReader
     implements SqlValidatorCatalogReader

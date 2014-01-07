@@ -32,9 +32,6 @@ import com.google.common.collect.ImmutableSet;
  * A SemiJoinRel represents two relational expressions joined according to some
  * condition, where the output only contains the columns from the left join
  * input.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public final class SemiJoinRel
     extends JoinRelBase

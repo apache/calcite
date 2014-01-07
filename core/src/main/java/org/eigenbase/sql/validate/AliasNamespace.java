@@ -24,17 +24,12 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 
-
 /**
  * Namespace for an <code>AS t(c1, c2, ...)</code> clause.
  *
  * <p>A namespace is necessary only if there is a column list, in order to
  * re-map column names; a <code>relation AS t</code> clause just uses the same
  * namespace as <code>relation</code>.
- *
- * @author jhyde
- * @version $Id$
- * @since October 9, 2008
  */
 public class AliasNamespace
     extends AbstractNamespace

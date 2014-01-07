@@ -23,7 +23,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A namespace describes the relation returned by a section of a SQL query.
  *
@@ -46,12 +45,8 @@ import org.eigenbase.util.*;
  * Don't try to cast the namespace or use <code>instanceof</code>; use {@link
  * SqlValidatorNamespace#unwrap(Class)} and {@link
  * SqlValidatorNamespace#isWrapperFor(Class)} instead.</p>
- *
- * @author jhyde
- * @version $Id$
  * @see SqlValidator
  * @see SqlValidatorScope
- * @since Mar 25, 2003
  */
 public interface SqlValidatorNamespace
 {

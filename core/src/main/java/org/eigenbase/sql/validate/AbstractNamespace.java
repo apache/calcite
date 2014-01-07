@@ -23,13 +23,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 3, 2005
  */
 abstract class AbstractNamespace
     implements SqlValidatorNamespace

@@ -20,9 +20,6 @@ package org.eigenbase.sarg;
 /**
  * Defines the boundary strictness of an endpoint: either open (either strictly
  * less than or greater than) or closed (exactly equal).
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public enum SargStrictness
 {

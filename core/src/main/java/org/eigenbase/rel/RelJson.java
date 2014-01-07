@@ -37,7 +37,7 @@ import net.hydromatic.optiq.util.BitSets;
 import com.google.common.collect.ImmutableList;
 
 /**
- * @author jhyde
+ * Utilities for converting {@link RelNode} into JSON format.
  */
 public class RelJson {
   private final Map<String, Constructor> constructorMap =

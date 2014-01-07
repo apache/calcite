@@ -34,9 +34,6 @@ import com.google.common.collect.ImmutableSet;
 /**
  * <code>JoinRelBase</code> is an abstract base class for implementations of
  * {@link JoinRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class JoinRelBase
     extends AbstractRelNode

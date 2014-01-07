@@ -31,10 +31,6 @@ package org.eigenbase.relopt;
  * <pre>public static RelOptSchema getRelOptSchema()</pre>
  * </blockquote>
  * </p>
- *
- * @author jhyde
- * @version $Id$
- * @since 10 November, 2001
  */
 public interface RelOptConnection
 {

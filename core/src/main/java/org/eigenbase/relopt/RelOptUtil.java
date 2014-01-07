@@ -41,9 +41,6 @@ import com.google.common.collect.ImmutableList;
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
  * {@link RelNode}s.
- *
- * @author jhyde
- * @since 26 September, 2003
  */
 public abstract class RelOptUtil
 {

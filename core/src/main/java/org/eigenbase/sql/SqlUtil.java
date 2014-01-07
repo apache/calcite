@@ -33,13 +33,8 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
-
 /**
  * Contains utility functions related to SQL parsing, all static.
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 26, 2003
  */
 public abstract class SqlUtil
 {

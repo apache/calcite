@@ -20,14 +20,9 @@ package org.eigenbase.sql.validate;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * An implementation of {@link SqlMoniker} that encapsulates the normalized name
  * information of a {@link SqlIdentifier}.
- *
- * @author tleung
- * @version $Id$
- * @since May 24, 2005
  */
 public class SqlIdentifierMoniker
     implements SqlMoniker

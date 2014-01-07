@@ -21,15 +21,10 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
-
 /**
  * <code>SqlJoinOperator</code> describes the syntax of the SQL <code>
  * JOIN</code> operator. Since there is only one such operator, this class is
  * almost certainly a singleton.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 19, 2003
  */
 public class SqlJoinOperator
     extends SqlOperator

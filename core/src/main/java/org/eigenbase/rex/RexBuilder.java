@@ -38,10 +38,6 @@ import com.google.common.collect.ImmutableList;
  * Factory for row expressions.
  *
  * <p>Some common literal values (NULL, TRUE, FALSE, 0, 1, '') are cached.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 23, 2003
  */
 public class RexBuilder
 {

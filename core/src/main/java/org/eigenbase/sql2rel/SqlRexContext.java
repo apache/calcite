@@ -22,14 +22,9 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Contains the context necessary for a {@link SqlRexConvertlet} to convert a
  * {@link SqlNode} expression into a {@link RexNode}.
- *
- * @author jhyde
- * @version $Id$
- * @since 2005/8/3
  */
 public interface SqlRexContext
 {

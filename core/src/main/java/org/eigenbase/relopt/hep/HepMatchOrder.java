@@ -20,9 +20,6 @@ package org.eigenbase.relopt.hep;
 /**
  * HepMatchOrder specifies the order of graph traversal when looking for rule
  * matches.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public enum HepMatchOrder
 {

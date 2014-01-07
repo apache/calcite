@@ -22,8 +22,6 @@ import org.eigenbase.sql.type.*;
 /**
  * SqlFunctionalOperator is a base class for special operators which use
  * functional syntax.
- *
- * @author John V. Sichi
  */
 public class SqlFunctionalOperator
     extends SqlSpecialOperator

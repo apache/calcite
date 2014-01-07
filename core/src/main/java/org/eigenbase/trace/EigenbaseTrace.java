@@ -48,10 +48,6 @@ import net.hydromatic.linq4j.function.Functions;
  * <p>In the class where the tracer is used, create a <em>private</em> (or
  * perhaps <em>protected</em>) <em>static final</em> member called <code>
  * tracer</code>.
- *
- * @author jhyde
- * @version $Id$
- * @since May 24, 2004
  */
 public abstract class EigenbaseTrace
 {

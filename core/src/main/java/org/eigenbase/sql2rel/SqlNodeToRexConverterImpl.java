@@ -32,10 +32,6 @@ import net.hydromatic.avatica.ByteString;
 
 /**
  * Standard implementation of {@link SqlNodeToRexConverter}.
- *
- * @author jhyde
- * @version $Id$
- * @since 2005/8/4
  */
 public class SqlNodeToRexConverterImpl
     implements SqlNodeToRexConverter

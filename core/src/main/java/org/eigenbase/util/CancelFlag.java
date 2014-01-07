@@ -19,9 +19,6 @@ package org.eigenbase.util;
 
 /**
  * CancelFlag is used to post and check cancellation requests.
- *
- * @author John Sichi
- * @version $Id$
  */
 public class CancelFlag
 {

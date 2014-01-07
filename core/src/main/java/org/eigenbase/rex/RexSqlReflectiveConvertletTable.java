@@ -21,12 +21,8 @@ import java.util.*;
 
 import org.eigenbase.sql.*;
 
-
 /**
  * Implementation of {@link RexSqlConvertletTable}.
- *
- * @author Sunny Choi
- * @version $Id$
  */
 public class RexSqlReflectiveConvertletTable
     implements RexSqlConvertletTable

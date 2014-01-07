@@ -19,7 +19,6 @@ package org.eigenbase.rex;
 
 import org.eigenbase.reltype.*;
 
-
 /**
  * Reference to a range of columns.
  *
@@ -36,10 +35,6 @@ import org.eigenbase.reltype.*;
  * <p>Suppose we later create a reference to the DNAME field of this
  * RexRangeRef; it will return a <code>{@link RexInputRef}(5,Integer)</code>,
  * and the {@link org.eigenbase.rex.RexRangeRef} will disappear.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 23, 2003
  */
 public class RexRangeRef
     extends RexNode

@@ -21,13 +21,9 @@ import java.util.*;
 
 import org.eigenbase.util14.*;
 
-
 /**
  * SqlParseException defines a checked exception corresponding to {@link
  * SqlParser}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlParseException
     extends Exception

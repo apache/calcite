@@ -19,7 +19,6 @@ package org.eigenbase.util;
 
 import java.util.*;
 
-
 /**
  * Command-line option parser.
  *
@@ -90,10 +89,6 @@ import java.util.*;
  * array of command-line parameters, the values of those parameters are stored
  * in the options themselves. Alternatively, you can specify a {@link
  * OptionsList.OptionHandler handler}.</p>
- *
- * @author Julian Hyde
- * @version $Id$
- * @since Sep 4, 2003
  */
 public class OptionsList
 {

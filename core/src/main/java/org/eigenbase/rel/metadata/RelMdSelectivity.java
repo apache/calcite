@@ -30,9 +30,6 @@ import net.hydromatic.optiq.util.BitSets;
 /**
  * RelMdSelectivity supplies a default implementation of {@link
  * RelMetadataQuery#getSelectivity} for the standard logical algebra.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class RelMdSelectivity
     extends ReflectiveRelMetadataProvider

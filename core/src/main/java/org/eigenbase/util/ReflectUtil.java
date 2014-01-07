@@ -25,12 +25,8 @@ import java.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Static utilities for Java reflection.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class ReflectUtil
 {

@@ -24,14 +24,10 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 
-
 /**
  * SargRexAnalyzer attempts to translate a rex predicate into a {@link
  * SargBinding}. It assumes that the predicate expression is already
  * well-formed.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SargRexAnalyzer
 {

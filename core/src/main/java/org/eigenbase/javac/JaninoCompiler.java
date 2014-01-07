@@ -28,13 +28,9 @@ import org.codehaus.janino.*;
 import org.codehaus.janino.util.*;
 import org.codehaus.janino.util.resource.*;
 
-
 /**
  * <code>JaninoCompiler</code> implements the {@link JavaCompiler} interface by
  * calling <a href="http://www.janino.net">Janino</a>.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class JaninoCompiler
     implements JavaCompiler

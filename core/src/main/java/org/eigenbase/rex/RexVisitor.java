@@ -20,12 +20,9 @@ package org.eigenbase.rex;
 /**
  * Visitor pattern for traversing a tree of {@link RexNode} objects.
  *
- * @author jhyde
- * @version $Id$
  * @see org.eigenbase.util.Glossary#VisitorPattern
  * @see RexShuttle
  * @see RexVisitorImpl
- * @since May 30, 2004
  */
 public interface RexVisitor<R>
 {

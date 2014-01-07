@@ -27,10 +27,6 @@ import com.google.common.collect.ImmutableSet;
 
 /**
  * Utility class for various methods related to multisets.
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Apr 4, 2005
  */
 public class RexMultisetUtil
 {

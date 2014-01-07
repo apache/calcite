@@ -27,10 +27,6 @@ import com.google.common.collect.ImmutableList;
 /**
  * Implementation of {@link org.eigenbase.sql.SqlOperatorTable} containing the
  * standard operators and functions.
- *
- * @author jhyde
- * @version $Id$
- * @since May 28, 2004
  */
 public class SqlStdOperatorTable
     extends ReflectiveSqlOperatorTable

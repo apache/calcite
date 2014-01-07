@@ -28,9 +28,6 @@ import net.hydromatic.optiq.util.BitSets;
 /**
  * RelMdUniqueKeys supplies a default implementation of {@link
  * RelMetadataQuery#getUniqueKeys} for the standard logical algebra.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class RelMdUniqueKeys
     extends ReflectiveRelMetadataProvider

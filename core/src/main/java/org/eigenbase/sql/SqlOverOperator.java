@@ -23,7 +23,6 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * An operator describing a window function specification.
  *
@@ -35,10 +34,6 @@ import org.eigenbase.sql.validate.*;
  * specification ({@link SqlWindowOperator})</li>
  * </ul>
  * </p>
- *
- * @author klo
- * @version $Id$
- * @since Nov 4, 2004
  */
 public class SqlOverOperator
     extends SqlBinaryOperator

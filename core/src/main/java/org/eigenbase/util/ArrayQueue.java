@@ -19,7 +19,6 @@ package org.eigenbase.util;
 
 import java.util.*;
 
-
 /**
  * ArrayQueue is a queue implementation backed by an array. Grows by doubling
  * the existing size, but never shrinks. Queue entries are allowed to wrap
@@ -37,10 +36,6 @@ import java.util.*;
  * <p>The {@link Iterator} returned by {@link #iterator()} behaves somewhat
  * inconsistently with the general contract of Iterator. Read the documentation
  * for that method carefully.
- *
- * @author Stephan Zuercher
- * @version $Id$
- * @since Sep 16, 2004
  */
 public class ArrayQueue<E>
     extends AbstractCollection<E>

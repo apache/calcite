@@ -19,14 +19,9 @@ package org.eigenbase.sql.advise;
 
 import java.util.*;
 
-
 /**
  * A simple parser that takes an incomplete and turn it into a syntactically
  * correct statement. It is used in the SQL editor user-interface.
- *
- * @author jhyde
- * @version $Id$
- * @since Oct 31, 2007
  */
 public class SqlSimpleParser
 {

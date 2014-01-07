@@ -22,7 +22,6 @@ import java.util.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Name-resolution scope. Represents any position in a parse tree than an
  * expression can be, or anything in the parse tree which has columns.
@@ -31,10 +30,6 @@ import org.eigenbase.sql.*;
  * #resolve} method of the scope where the expression is defined to locate
  * "foo". If successful, this returns a {@link SqlValidatorNamespace namespace}
  * describing the type of the resulting object.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 public interface SqlValidatorScope
 {

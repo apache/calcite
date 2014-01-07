@@ -22,10 +22,6 @@ package org.eigenbase.rel;
  * org.eigenbase.util.Glossary#VisitorPattern visitor pattern} and visits {@link
  * RelNode} objects as the role of Element. Other components in the pattern:
  * {@link RelNode#childrenAccept(RelVisitor)}.
- *
- * @author jhyde
- * @version $Id$
- * @since 22 September, 2001
  */
 public abstract class RelVisitor
 {

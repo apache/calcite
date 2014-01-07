@@ -24,7 +24,6 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.util.*;
 
-
 /**
  * The name-resolution scope of a SELECT clause. The objects visible are those
  * in the FROM clause, and objects inherited from the parent scope.
@@ -80,11 +79,7 @@ import org.eigenbase.util.*;
  * <li>(SELECT expr2 FROM t3) AS q3</li>
  * <li>(SELECT expr3 FROM t4)</li>
  * </ul>
- *
- * @author jhyde
- * @version $Id$
  * @see SelectNamespace
- * @since Mar 25, 2003
  */
 public class SelectScope
     extends ListScope

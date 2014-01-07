@@ -21,8 +21,6 @@ import java.util.*;
 
 /**
  * Set based on object identity, like {@link IdentityHashMap}.
- *
- * @author jhyde
  */
 public class IdentityHashSet<E> extends AbstractSet<E> implements Set<E>
 {

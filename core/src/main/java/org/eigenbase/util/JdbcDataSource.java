@@ -26,13 +26,8 @@ import javax.sql.*;
 
 import org.eigenbase.util14.Unwrappable;
 
-
 /**
  * Adapter to make a JDBC connection into a {@link javax.sql.DataSource}.
- *
- * @author jhyde
- * @version $Id$
- * @since Sep 7, 2003
  */
 public class JdbcDataSource
     extends Unwrappable

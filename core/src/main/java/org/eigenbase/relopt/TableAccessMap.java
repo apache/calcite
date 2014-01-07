@@ -21,7 +21,6 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 
-
 // TODO jvs 9-Mar-2006:  move this class to another package; it
 // doesn't really belong here.  Also, use a proper class for table
 // names instead of List<String>.
@@ -29,9 +28,6 @@ import org.eigenbase.rel.*;
 /**
  * <code>TableAccessMap</code> represents the tables accessed by a query plan,
  * with READ/WRITE information.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class TableAccessMap
 {

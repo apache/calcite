@@ -20,13 +20,9 @@ package org.eigenbase.sarg;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * SargIntervalBase is a common base for {@link SargInterval} and {@link
  * SargIntervalExpr}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class SargIntervalBase
 {

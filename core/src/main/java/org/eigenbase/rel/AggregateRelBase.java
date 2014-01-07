@@ -36,9 +36,6 @@ import com.google.common.collect.ImmutableList;
 /**
  * <code>AggregateRelBase</code> is an abstract base class for implementations
  * of {@link AggregateRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class AggregateRelBase
     extends SingleRel

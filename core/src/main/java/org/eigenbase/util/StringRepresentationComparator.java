@@ -19,13 +19,9 @@ package org.eigenbase.util;
 
 import java.util.*;
 
-
 /**
  * StringRepresentationComparator compares two objects by comparing their {@link
  * Object#toString()} representations.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class StringRepresentationComparator<T>
     implements Comparator<T>

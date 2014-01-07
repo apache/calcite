@@ -37,9 +37,6 @@ import com.google.common.collect.ImmutableSet;
  * JoinRel cartesian inner join}.  <li>{@code
  * net.sf.farrago.fennel.rel.FennelCartesianJoinRule} implements a JoinRel as a
  * cartesian product.  </ul>
- *
- * @author jhyde
- * @version $Id$
  */
 public final class JoinRel
     extends JoinRelBase

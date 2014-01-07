@@ -32,7 +32,6 @@ import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A <code>SqlLiteral</code> is a constant. It is, appropriately, immutable.
  *
@@ -123,9 +122,6 @@ import org.eigenbase.util.*;
  * <td><{@link SqlIntervalLiteral.IntervalValue}.</td>
  * </tr>
  * </table>
- *
- * @author jhyde
- * @version $Id$
  */
 public class SqlLiteral
     extends SqlNode

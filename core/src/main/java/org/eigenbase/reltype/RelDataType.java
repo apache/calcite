@@ -23,7 +23,6 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * RelDataType represents the type of a scalar expression or entire row returned
  * from a relational expression.
@@ -31,10 +30,6 @@ import org.eigenbase.sql.type.*;
  * <p>This is a somewhat "fat" interface which unions the attributes of many
  * different type classes into one. Inelegant, but since our type system was
  * defined before the advent of Java generics, it avoids a lot of typecasting.
- *
- * @author jhyde
- * @version $Id$
- * @since May 29, 2003
  */
 public interface RelDataType /*extends Type*/
 {

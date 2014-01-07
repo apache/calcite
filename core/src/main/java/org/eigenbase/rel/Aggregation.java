@@ -21,16 +21,11 @@ import java.util.List;
 
 import org.eigenbase.reltype.*;
 
-
 /**
  * An <code>Aggregation</code> aggregates a set of values into one value.
  *
  * <p>It is used, via a {@link AggregateCall}, in an {@link AggregateRel}
  * relational operator.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since 26 January, 2001
  */
 public interface Aggregation
 {

@@ -19,7 +19,6 @@ package org.eigenbase.sarg;
 
 import org.eigenbase.reltype.*;
 
-
 /**
  * SargInterval represents a single contiguous search interval over a scalar
  * domain of a given datatype (including null values). It consists of two
@@ -47,9 +46,6 @@ import org.eigenbase.reltype.*;
  * <p>Null values are ordered lower than any non-null value but higher than
  * -infinity. So the interval [null,7) would include the null value and any
  * non-null value less than 7.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SargInterval
     extends SargIntervalBase

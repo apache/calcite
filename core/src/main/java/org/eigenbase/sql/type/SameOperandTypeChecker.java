@@ -26,9 +26,6 @@ import org.eigenbase.util.Util;
 
 /**
  * Parameter type-checking strategy where all operand types must be the same.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SameOperandTypeChecker
     implements SqlSingleOperandTypeChecker

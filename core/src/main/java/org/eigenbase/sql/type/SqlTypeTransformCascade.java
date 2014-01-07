@@ -26,9 +26,6 @@ import com.google.common.collect.ImmutableList;
  * Strategy to infer the type of an operator call from the type of the operands
  * by using one {@link SqlReturnTypeInference} rule and a combination of {@link
  * SqlTypeTransform}s
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlTypeTransformCascade
     implements SqlReturnTypeInference

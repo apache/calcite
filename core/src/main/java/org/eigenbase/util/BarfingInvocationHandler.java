@@ -19,7 +19,6 @@ package org.eigenbase.util;
 
 import java.lang.reflect.*;
 
-
 /**
  * A class derived from <code>BarfingInvocationHandler</code> handles a method
  * call by looking for a method in itself with identical parameters. If no such
@@ -28,11 +27,7 @@ import java.lang.reflect.*;
  * <p>It is useful when you are prototyping code. You can rapidly create a
  * prototype class which implements the important methods in an interface, then
  * implement other methods as they are called.</p>
- *
- * @author jhyde
- * @version $Id$
  * @see DelegatingInvocationHandler
- * @since Dec 23, 2002
  */
 public class BarfingInvocationHandler
     implements InvocationHandler

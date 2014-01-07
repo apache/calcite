@@ -22,13 +22,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * Namespace for UNNEST.
- *
- * @author wael
- * @version $Id$
- * @since Mar 25, 2003
  */
 class UnnestNamespace
     extends AbstractNamespace

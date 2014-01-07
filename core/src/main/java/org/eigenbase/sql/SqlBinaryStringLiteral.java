@@ -21,15 +21,11 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A binary (or hexadecimal) string literal.
  *
  * <p>The {@link #value} field is a {@link BitString} and {@link #typeName} is
  * {@link SqlTypeName#BINARY}.
- *
- * @author wael
- * @version $Id$
  */
 public class SqlBinaryStringLiteral
     extends SqlAbstractStringLiteral

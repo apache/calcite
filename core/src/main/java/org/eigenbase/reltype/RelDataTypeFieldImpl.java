@@ -19,12 +19,8 @@ package org.eigenbase.reltype;
 
 import java.io.*;
 
-
 /**
  * Default implementation of {@link RelDataTypeField}.
- *
- * @author jhyde
- * @version $Id$
  */
 public class RelDataTypeFieldImpl
     implements RelDataTypeField,

@@ -20,16 +20,12 @@ package org.eigenbase.sql.fun;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * SqlNewOperator represents an SQL <code>new specification</code> such as
  * <code>NEW UDT(1, 2)</code>. When used in an SqlCall, SqlNewOperator takes a
  * single operand, which is an invocation of the constructor method; but when
  * used in a RexCall, the operands are the initial values to be used for the new
  * instance.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlNewOperator
     extends SqlPrefixOperator

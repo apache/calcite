@@ -21,7 +21,6 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A SQL literal representing a time interval.
  *
@@ -36,9 +35,6 @@ import org.eigenbase.util.*;
  * <p>YEAR/MONTH intervals are not implemented yet.</p>
  *
  * <p>The interval string, such as '1:00:05.345', is not parsed yet.</p>
- *
- * @author jhyde
- * @version $Id$
  */
 public class SqlIntervalLiteral
     extends SqlLiteral
@@ -113,7 +109,7 @@ public class SqlIntervalLiteral
          *
          * @param intervalQualifier Interval qualifier
          * @param sign Sign (+1 or -1)
-         * @param intervalStr
+         * @param intervalStr Interval string
          */
         IntervalValue(
             SqlIntervalQualifier intervalQualifier,

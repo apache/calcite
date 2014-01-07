@@ -20,9 +20,6 @@ package org.eigenbase.rel.metadata;
 /**
  * Mapping from an input column of a {@link org.eigenbase.rel.RelNode} to one
  * of its output columns.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class RelColumnMapping
 {

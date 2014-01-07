@@ -22,13 +22,9 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * SqlCursorConstructor defines the non-standard CURSOR(&lt;query&gt;)
  * constructor.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlCursorConstructor
     extends SqlSpecialOperator

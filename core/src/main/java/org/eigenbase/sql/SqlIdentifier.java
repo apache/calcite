@@ -23,12 +23,8 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
- *
- * @author jhyde
- * @version $Id$
  */
 public class SqlIdentifier
     extends SqlNode

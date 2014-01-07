@@ -19,7 +19,6 @@ package org.eigenbase.util;
 
 import java.util.*;
 
-
 /**
  * Converts a list whose members are automatically down-cast to a given type.
  *
@@ -29,9 +28,6 @@ import java.util.*;
  *
  * <p>All modifications are automatically written to the backing list. Not
  * synchronized.
- *
- * @author jhyde
- * @version $Id$
  */
 public class CastingList<E>
     extends AbstractList<E>

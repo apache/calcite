@@ -24,9 +24,6 @@ import org.eigenbase.relopt.*;
 
 /**
  * HepProgramBuilder creates instances of {@link HepProgram}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class HepProgramBuilder
 {

@@ -35,9 +35,6 @@ import com.google.common.collect.Iterables;
  *
  * <p>Identity is based upon the {@link #digest} field, which each derived class
  * should set during construction.</p>
- *
- * @author jhyde
- * @version $Id$
  */
 public abstract class RelDataTypeImpl
     implements RelDataType,

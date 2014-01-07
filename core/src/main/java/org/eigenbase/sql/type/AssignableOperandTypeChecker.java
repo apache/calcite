@@ -20,14 +20,10 @@ package org.eigenbase.sql.type;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * AssignableOperandTypeChecker implements {@link SqlOperandTypeChecker} by
  * verifying that the type of each argument is assignable to a predefined set of
  * parameter types (under the SQL definition of "assignable").
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class AssignableOperandTypeChecker
     implements SqlOperandTypeChecker

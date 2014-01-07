@@ -68,9 +68,6 @@ import net.hydromatic.linq4j.function.Function1;
  * <pre><code>
  * FtrsIndexScanRel(table=[T], index=[clustered], projection=[3, 2])
  *</code></pre>
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class RelStructuredTypeFlattener
     implements ReflectiveVisitor

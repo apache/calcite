@@ -19,16 +19,11 @@ package org.eigenbase.util;
 
 import java.util.*;
 
-
 /**
  * Filtered iterator class: an iterator that includes only elements that are
  * instanceof a specified class. Apologies for the dorky name.
- *
- * @author jason
- * @version $Id$
  * @see Util#cast(List, Class)
  * @see Util#cast(Iterator, Class)
- * @since November 9, 2004
  */
 public class Filterator<E>
     implements Iterator<E>
@@ -50,9 +45,6 @@ public class Filterator<E>
 
     //~ Methods ----------------------------------------------------------------
 
-    /* (non-Javadoc)
-     * @see java.util.Iterator#hasNext()
-     */
     public boolean hasNext()
     {
         if (ready) {
@@ -71,9 +63,6 @@ public class Filterator<E>
         }
     }
 
-    /* (non-Javadoc)
-     * @see java.util.Iterator#next()
-     */
     public E next()
     {
         if (ready) {
@@ -91,9 +80,6 @@ public class Filterator<E>
         throw new NoSuchElementException();
     }
 
-    /* (non-Javadoc)
-     * @see java.util.Iterator#remove()
-     */
     public void remove()
     {
         iterator.remove();

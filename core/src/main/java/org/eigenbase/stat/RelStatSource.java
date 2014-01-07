@@ -20,12 +20,8 @@ package org.eigenbase.stat;
 import org.eigenbase.rel.*;
 import org.eigenbase.sarg.*;
 
-
 /**
  * This class encapsulates statistics for a RelNode
- *
- * @author John Pham
- * @version $Id$
  */
 public interface RelStatSource
 {

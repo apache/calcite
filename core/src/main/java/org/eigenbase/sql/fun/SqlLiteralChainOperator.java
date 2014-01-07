@@ -27,7 +27,6 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Internal operator, by which the parser represents a continued string literal.
  *
@@ -37,10 +36,6 @@ import org.eigenbase.util.*;
  *
  * <p>For a chain of {@link org.eigenbase.sql.SqlCharStringLiteral} objects, a
  * {@link SqlCollation} object is attached only to the head of the chain.
- *
- * @author Marc Berkowitz
- * @version $Id$
- * @since Sep 7, 2004
  */
 public class SqlLiteralChainOperator
     extends SqlInternalOperator

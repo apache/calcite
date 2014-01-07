@@ -23,13 +23,9 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * An implementation of {@link SqlValidatorNamespace} that delegates all methods
  * to an underlying object.
- *
- * @author jhyde
- * @version $Id$
  */
 public abstract class DelegatingNamespace
     implements SqlValidatorNamespace

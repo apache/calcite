@@ -21,14 +21,10 @@ import java.util.*;
 
 import org.eigenbase.relopt.*;
 
-
 /**
  * HepInstruction represents one instruction in a HepProgram. The actual
  * instruction set is defined here via inner classes; if these grow too big,
  * they should be moved out to top-level classes.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 abstract class HepInstruction
 {

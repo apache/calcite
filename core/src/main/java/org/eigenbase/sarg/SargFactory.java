@@ -21,12 +21,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * SargFactory creates new instances of various sarg-related objects.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SargFactory
 {

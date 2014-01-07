@@ -29,7 +29,6 @@ import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Enumeration of the type names which can be used to construct a SQL type.
  * Rationale for this class's existence (instead of just using the standard
@@ -41,10 +40,6 @@ import com.google.common.collect.ImmutableList;
  * <li>SqlTypeName provides a place to hang extra information such as whether
  * the type carries precision and scale.
  * </ul>
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 24, 2003
  */
 public enum SqlTypeName
 {

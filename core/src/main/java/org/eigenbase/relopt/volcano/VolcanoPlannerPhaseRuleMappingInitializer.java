@@ -19,7 +19,6 @@ package org.eigenbase.relopt.volcano;
 
 import java.util.*;
 
-
 /**
  * VolcanoPlannerPhaseRuleMappingInitializer describes an inteface for
  * initializing the mapping of {@link VolcanoPlannerPhase}s to sets of rule
@@ -32,8 +31,6 @@ import java.util.*;
  * explicitly provide alternate descriptions by calling the
  * {@link org.eigenbase.relopt.RelOptRule#RelOptRule(org.eigenbase.relopt.RelOptRuleOperand, String)}
  * constructor.
- *
- * @author Stephan Zuercher
  */
 public interface VolcanoPlannerPhaseRuleMappingInitializer
 {

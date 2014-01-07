@@ -31,9 +31,6 @@ package org.eigenbase.relopt;
  * to the planner), you must implement {@link #hashCode()} and {@link
  * #equals(Object)} for proper {@link RelTraitDef#canonize canonization} of your
  * RelTrait objects.</p>
- *
- * @author Stephan Zuercher
- * @version $Id$
  */
 public interface RelTrait
 {

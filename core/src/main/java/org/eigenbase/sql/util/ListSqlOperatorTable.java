@@ -21,13 +21,9 @@ import java.util.*;
 
 import org.eigenbase.sql.*;
 
-
 /**
  * Implementation of the {@link SqlOperatorTable} interface by using a list of
  * {@link SqlOperator operators}.
- *
- * @author jhyde
- * @version $Id$
  */
 public class ListSqlOperatorTable
     implements SqlOperatorTable

@@ -22,13 +22,9 @@ import java.util.*;
 import org.eigenbase.rel.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * RelMdExplainVisibility supplies a default implementation of {@link
  * RelMetadataQuery#isVisibleInExplain} for the standard logical algebra.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class RelMdExplainVisibility
     extends ReflectiveRelMetadataProvider

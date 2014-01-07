@@ -23,14 +23,9 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
 
-
 /**
  * Visitor which throws an exception if any component of the expression is not a
  * group expression.
- *
- * @author jhyde
- * @version $Id$
- * @since Oct 28, 2004
  */
 class AggChecker
     extends SqlBasicVisitor<Void>

@@ -23,13 +23,9 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Parameter type-checking strategy types must be [nullable] Multiset,
  * [nullable] Multiset and the two types must have the same element type
- *
- * @author Wael Chatila
- * @version $Id$
  * @see MultisetSqlType#getComponentType
  */
 public class MultisetOperandTypeChecker

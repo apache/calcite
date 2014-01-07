@@ -19,10 +19,6 @@ package org.eigenbase.sql.validate;
 
 /**
  * Enumeration of types of monotonicity.
- *
- * @author jhyde
- * @version $Id$
- * @since 2007/9/4
  */
 public enum SqlMonotonicity
 {

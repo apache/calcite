@@ -22,9 +22,6 @@ import org.eigenbase.sql.SqlKind;
 
 /**
  * Dynamic parameter reference in a row-expression.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class RexDynamicParam
     extends RexVariable

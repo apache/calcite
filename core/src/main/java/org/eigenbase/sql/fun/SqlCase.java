@@ -20,15 +20,10 @@ package org.eigenbase.sql.fun;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 
-
 /**
  * A <code>SqlCase</code> is a node of a parse tree which represents a case
  * statement. It warrants its own node type just because we have a lot of
  * methods to put somewhere.
- *
- * @author wael
- * @version $Id$
- * @since Mar 14, 2004
  */
 public class SqlCase
     extends SqlCall

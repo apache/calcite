@@ -20,16 +20,12 @@ package org.eigenbase.sql.validate;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Implementation of {@link SqlValidatorNamespace} for a field of a record.
  *
  * <p>A field is not a very interesting namespace - except if the field has a
  * record or multiset type - but this class exists to make fields behave
  * similarly to other records for purposes of name resolution.
- *
- * @author jhyde
- * @version $Id$
  */
 class FieldNamespace
     extends AbstractNamespace

@@ -22,15 +22,11 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * Multiset MEMBER OF. Checks to see if a element belongs to a multiset.<br>
  * Example:<br>
  * <code>'green' MEMBER OF MULTISET['red','almost green','blue']</code> returns
  * <code>false</code>.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlMultisetMemberOfOperator
     extends SqlBinaryOperator

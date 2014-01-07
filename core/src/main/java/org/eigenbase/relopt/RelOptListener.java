@@ -21,13 +21,9 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 
-
 /**
  * RelOptListener defines an interface for listening to events which occur
  * during the optimization process.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public interface RelOptListener
     extends EventListener

@@ -19,13 +19,10 @@ package org.eigenbase.rex;
 
 import org.eigenbase.util.*;
 
-
 /**
  * Visitor which replaces {@link RexLocalRef} objects after the expressions in a
  * {@link RexProgram} have been reordered.
  *
- * @author jhyde
- * @version $Id$
  * @see RexPermuteInputsShuttle
  */
 public class RexPermutationShuttle

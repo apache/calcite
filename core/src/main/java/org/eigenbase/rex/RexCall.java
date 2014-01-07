@@ -39,10 +39,6 @@ import com.google.common.collect.ImmutableList;
  * the operator, rather than the call. Any extra information about the call can
  * often be encoded as extra arguments. (These don't need to be hidden, because
  * no one is going to be generating source code from this tree.)</p>
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 24, 2003
  */
 public class RexCall
     extends RexNode

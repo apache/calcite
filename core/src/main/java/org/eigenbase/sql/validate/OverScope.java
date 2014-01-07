@@ -22,7 +22,6 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * The name-resolution scope of a OVER clause. The objects visible are those in
  * the parameters found on the left side of the over clause, and objects
@@ -42,10 +41,6 @@ import org.eigenbase.util.*;
  * <p/>
  * <p>We need to use the {@link OverScope} as a {@link SqlValidatorNamespace}
  * when resolving names used in the window specification.</p>
- *
- * @author jack
- * @version $Id$
- * @since Jun 29, 2005
  */
 public class OverScope
     extends ListScope

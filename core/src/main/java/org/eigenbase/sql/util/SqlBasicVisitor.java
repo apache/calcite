@@ -19,16 +19,12 @@ package org.eigenbase.sql.util;
 
 import org.eigenbase.sql.*;
 
-
 /**
  * Basic implementation of {@link SqlVisitor} which does nothing at each node.
  *
  * <p>This class is useful as a base class for classes which implement the
  * {@link SqlVisitor} interface. The derived class can override whichever
  * methods it chooses.
- *
- * @author jhyde
- * @version $Id$
  */
 public class SqlBasicVisitor<R>
     implements SqlVisitor<R>

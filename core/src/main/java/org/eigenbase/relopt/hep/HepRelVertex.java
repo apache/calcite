@@ -26,13 +26,9 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.*;
 
-
 /**
  * HepRelVertex wraps a real {@link RelNode} as a vertex in a DAG representing
  * the entire query expression.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class HepRelVertex
     extends AbstractRelNode

@@ -19,13 +19,8 @@ package org.eigenbase.sql;
 
 import org.eigenbase.sql.parser.*;
 
-
 /**
- * A <code>SqlJoin</code> is ...
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 29, 2003
+ * Parse tree node representing a {@code JOIN} clause.
  */
 public class SqlJoin
     extends SqlCall

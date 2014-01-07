@@ -26,9 +26,6 @@ import java.util.logging.*;
 
 /**
  * Base class for all exceptions originating from Farrago.
- *
- * @author John V. Sichi
- * @version $Id$
  * @see EigenbaseContextException
  */
 public class EigenbaseException

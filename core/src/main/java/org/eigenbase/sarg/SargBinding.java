@@ -19,13 +19,9 @@ package org.eigenbase.sarg;
 
 import org.eigenbase.rex.*;
 
-
 /**
  * SargBinding represents the binding of a {@link SargExpr} to a particular
  * {@link RexInputRef}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SargBinding
 {

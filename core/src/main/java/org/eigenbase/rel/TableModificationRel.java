@@ -23,14 +23,11 @@ import org.eigenbase.relopt.*;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
-
 /**
  * TableModificationRel is like TableAccessRel, but represents a request to
  * modify a table rather than read from it. It takes one child which produces
  * the modified rows. (For INSERT, the new values; for DELETE, the old values;
  * for UPDATE, all old values plus updated new values.)
- *
- * @version $Id$
  */
 public final class TableModificationRel
     extends TableModificationRelBase

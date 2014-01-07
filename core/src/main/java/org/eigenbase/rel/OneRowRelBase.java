@@ -24,9 +24,6 @@ import org.eigenbase.sql.type.*;
 /**
  * <code>OneRowRelBase</code> is an abstract base class for implementations of
  * {@link OneRowRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class OneRowRelBase
     extends AbstractRelNode

@@ -29,10 +29,6 @@ import com.google.common.collect.ImmutableList;
  * aggregate is evaluated.
  *
  * <p>Treat it as immutable!
- *
- * @author jhyde
- * @version $Id$
- * @since Dec 6, 2004
  */
 public class RexWindow
 {

@@ -28,9 +28,6 @@ import com.google.common.collect.ImmutableList;
 /**
  * <code>FilterRelBase</code> is an abstract base class for implementations of
  * {@link FilterRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class FilterRelBase
     extends SingleRel

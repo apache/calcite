@@ -33,10 +33,6 @@ import org.eigenbase.util.*;
  * of the immutability.
  *
  * <p>Variables are immutable.
- *
- * @author jhyde
- * @version $Id$
- * @since Oct 25, 2005
  */
 public class RexLocalRef
     extends RexSlot

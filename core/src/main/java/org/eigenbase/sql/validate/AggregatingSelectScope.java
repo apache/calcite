@@ -22,17 +22,12 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 
-
 /**
  * Scope for resolving identifers within a SELECT statement which has a GROUP BY
  * clause.
  *
  * <p>The same set of identifiers are in scope, but it won't allow access to
  * identifiers or expressions which are not group-expressions.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 public class AggregatingSelectScope
     extends DelegatingScope

@@ -27,10 +27,6 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Simple implementation of {@link RelCollation}.
- *
- * @author jhyde
- * @version $Id$
- * @since March 6, 2006
  */
 public class RelCollationImpl
     implements RelCollation

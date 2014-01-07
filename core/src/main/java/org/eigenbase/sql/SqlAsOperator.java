@@ -23,12 +23,8 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * The <code>AS</code> operator associates an expression with an alias.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlAsOperator
     extends SqlSpecialOperator

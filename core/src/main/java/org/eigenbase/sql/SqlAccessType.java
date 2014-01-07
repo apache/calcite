@@ -19,13 +19,8 @@ package org.eigenbase.sql;
 
 import java.util.*;
 
-
 /**
  * SqlAccessType is represented by a set of allowed access types
- *
- * @author angel
- * @version $Id$
- * @since Sep 16, 2005
  */
 public class SqlAccessType
 {

@@ -30,8 +30,6 @@ import org.eigenbase.util.*;
 
 /**
  * <code>SqlBinaryOperator</code> is a binary operator.
- *
- * @version $Id$
  */
 public class SqlBinaryOperator
     extends SqlOperator

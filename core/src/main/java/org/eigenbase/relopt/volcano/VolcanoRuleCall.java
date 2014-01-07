@@ -24,13 +24,9 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.util.*;
 
-
 /**
  * <code>VolcanoRuleCall</code> implements the {@link RelOptRuleCall} interface
  * for VolcanoPlanner.
- *
- * @author jhyde
- * @version $Id$
  */
 public class VolcanoRuleCall
     extends RelOptRuleCall

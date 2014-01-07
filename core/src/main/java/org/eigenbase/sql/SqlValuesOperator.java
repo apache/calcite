@@ -19,9 +19,6 @@ package org.eigenbase.sql;
 
 /**
  * The <code>VALUES</code> operator.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlValuesOperator
     extends SqlSpecialOperator

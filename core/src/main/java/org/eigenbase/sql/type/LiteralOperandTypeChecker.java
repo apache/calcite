@@ -21,15 +21,11 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Parameter type-checking strategy type must be a literal (whether null is
  * allowed is determined by the constructor). <code>CAST(NULL as ...)</code> is
  * considered to be a NULL literal but not <code>CAST(CAST(NULL as ...) AS
  * ...)</code>
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class LiteralOperandTypeChecker
     implements SqlSingleOperandTypeChecker

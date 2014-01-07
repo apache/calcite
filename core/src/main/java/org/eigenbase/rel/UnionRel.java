@@ -24,10 +24,6 @@ import org.eigenbase.relopt.*;
 /**
  * <code>UnionRel</code> returns the union of the rows of its inputs, optionally
  * eliminating duplicates.
- *
- * @author jhyde
- * @version $Id$
- * @since 23 September, 2001
  */
 public final class UnionRel
     extends UnionRelBase

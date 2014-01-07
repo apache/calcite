@@ -25,13 +25,9 @@ import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * SargSetExpr represents the application of a {@link SargSetOperator set
  * operator} to zero or more child {@link SargExpr sarg expressions}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SargSetExpr
     implements SargExpr

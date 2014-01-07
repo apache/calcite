@@ -33,13 +33,8 @@ import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
-
 /**
  * Utility methods relating to parsing SQL.
- *
- * @author jhyde
- * @version $Id$
- * @since Oct 7, 2003
  */
 public final class SqlParserUtil
 {
@@ -256,7 +251,7 @@ public final class SqlParserUtil
         if (s.length() == 0) {
             return new byte[0];
         }
-        assert ((s.length() & 1) == 0); //must be even nbr of hex digits
+        assert (s.length() & 1) == 0; // must be even nbr of hex digits
 
         final int lengthToBe = s.length() / 2;
         s = "ff" + s;

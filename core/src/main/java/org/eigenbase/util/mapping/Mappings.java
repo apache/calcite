@@ -27,13 +27,9 @@ import net.hydromatic.optiq.util.BitSets;
 
 /**
  * Utility functions related to mappings.
- *
- * @author jhyde
- * @version $Id$
  * @see MappingType
  * @see Mapping
  * @see Permutation
- * @since Mar 24, 2006
  */
 public abstract class Mappings
 {

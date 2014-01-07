@@ -28,10 +28,6 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Definition of the "TRIM" builtin SQL function.
- *
- * @author Wael Chatila, Julian Hyde
- * @version $Id$
- * @since May 28, 2004
  */
 public class SqlTrimFunction
     extends SqlFunction

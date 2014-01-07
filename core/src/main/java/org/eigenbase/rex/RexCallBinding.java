@@ -27,13 +27,9 @@ import org.eigenbase.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * <code>RexCallBinding</code> implements {@link SqlOperatorBinding} by
  * referring to an underlying collection of {@link RexNode} operands.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class RexCallBinding
     extends SqlOperatorBinding

@@ -22,7 +22,6 @@ import java.util.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Supplies catalog information for {@link SqlValidator}.
  *
@@ -31,10 +30,6 @@ import org.eigenbase.sql.*;
  * interest to the validator, we reduce the dependency on exact mechanism to
  * implement the repository. It is also possible to construct mock
  * implementations of this interface for testing purposes.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 public interface SqlValidatorCatalogReader
 {

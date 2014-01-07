@@ -55,8 +55,6 @@ import net.hydromatic.optiq.util.BitSets;
  * particular order. For instance, it may avoid a project at the top of the
  * tree just for reordering. Could ease the transition by writing methods that
  * convert BitSet to Mapping and vice versa.
- *
- * @author Julian Hyde
  */
 public class RelFieldTrimmer
     implements ReflectiveVisitor
@@ -207,8 +205,9 @@ public class RelFieldTrimmer
             : "target: " + mapping.getTargetCount()
               + " + " + extraFields.size()
               + " != " + newFieldCount;
-        if (Bug.TodoFixed)
-        assert newFieldCount > 0 : "rel has no fields after trim: " + rel;
+        if (Bug.TodoFixed) {
+            assert newFieldCount > 0 : "rel has no fields after trim: " + rel;
+        }
         if (newRel.equals(rel)) {
             return new TrimResult(rel, mapping);
         }

@@ -21,13 +21,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Support for the CEIL/CEILING builtin function.
- *
- * @author jack
- * @version $Id$
- * @since Apr 13, 2005
  */
 public class SqlCeilFunction
     extends SqlFunction

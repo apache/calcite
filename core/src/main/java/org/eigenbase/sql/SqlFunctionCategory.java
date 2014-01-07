@@ -19,12 +19,9 @@ package org.eigenbase.sql;
 
 import org.eigenbase.util.*;
 
-
 /**
  * <code>SqlFunctionCategory</codde> is an enumeration of the categories of
  * SQL-invoked routines.
- *
- * @version $Id$
  */
 public enum SqlFunctionCategory
 {

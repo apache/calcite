@@ -32,9 +32,6 @@ import com.google.common.collect.ImmutableMap;
 /**
  * A MultiJoinRel represents a join of N inputs, whereas other join relnodes
  * represent strictly binary joins.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public final class MultiJoinRel
     extends AbstractRelNode

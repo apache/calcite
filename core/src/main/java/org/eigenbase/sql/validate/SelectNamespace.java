@@ -21,15 +21,10 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * Namespace offered by a subquery.
- *
- * @author jhyde
- * @version $Id$
  * @see SelectScope
  * @see SetopNamespace
- * @since Mar 25, 2003
  */
 public class SelectNamespace
     extends AbstractNamespace

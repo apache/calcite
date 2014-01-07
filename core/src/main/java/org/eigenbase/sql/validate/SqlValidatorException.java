@@ -25,17 +25,12 @@ import java.util.logging.*;
 
 import org.eigenbase.util14.*;
 
-
 /**
  * Exception thrown while validating a SQL statement.
  *
  * <p>Unlike {@link org.eigenbase.util.EigenbaseException}, this is a checked
  * exception, which reminds code authors to wrap it in another exception
  * containing the line/column context.
- *
- * @author jhyde
- * @version $Id$
- * @since Oct 28, 2004
  */
 public class SqlValidatorException
     extends Exception

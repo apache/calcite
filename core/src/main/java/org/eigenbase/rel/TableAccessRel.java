@@ -46,10 +46,6 @@ import org.eigenbase.relopt.*;
  *
  * can. It is the optimizer's responsibility to find these ways, by applying
  * transformation rules.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since 10 November, 2001
  */
 public final class TableAccessRel
     extends TableAccessRelBase

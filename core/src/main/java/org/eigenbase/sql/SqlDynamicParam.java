@@ -21,15 +21,11 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * A <code>SqlDynamicParam</code> represents a dynamic parameter marker in an
  * SQL statement. The textual order in which dynamic parameters appear within an
  * SQL statement is the only property which distinguishes them, so this 0-based
  * index is recorded as soon as the parameter is encountered.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SqlDynamicParam
     extends SqlNode

@@ -23,13 +23,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.impl.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A <code>SqlParser</code> parses a SQL statement.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 18, 2003
  */
 public class SqlParser
 {

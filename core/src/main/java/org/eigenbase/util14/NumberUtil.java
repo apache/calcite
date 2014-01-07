@@ -21,13 +21,8 @@ import java.math.*;
 
 import java.text.*;
 
-
 /**
  * Utility functions for working with numbers This class is JDK 1.4 compatible.
- *
- * @author angel
- * @version $Id$
- * @since Jan 9, 2006
  */
 public class NumberUtil
 {

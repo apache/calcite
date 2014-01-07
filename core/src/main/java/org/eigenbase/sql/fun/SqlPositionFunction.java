@@ -22,12 +22,8 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * The <code>POSITION</code> function.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlPositionFunction
     extends SqlFunction

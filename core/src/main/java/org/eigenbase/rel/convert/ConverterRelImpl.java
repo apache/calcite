@@ -22,12 +22,8 @@ import org.eigenbase.rel.metadata.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Abstract implementation of {@link org.eigenbase.rel.convert.ConverterRel}.
- *
- * @author jhyde
- * @version $Id$
  */
 public abstract class ConverterRelImpl
     extends SingleRel

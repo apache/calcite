@@ -24,14 +24,9 @@ import java.util.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * SqlParserPos represents the position of a parsed token within SQL statement
  * text.
- *
- * @author Kinkoi Lo
- * @version $Id$
- * @since Jun 1, 2004
  */
 public class SqlParserPos
     implements Serializable

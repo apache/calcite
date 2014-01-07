@@ -25,9 +25,6 @@ import org.eigenbase.relopt.*;
 /**
  * <code>UnionRelBase</code> is an abstract base class for implementations of
  * {@link UnionRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class UnionRelBase
     extends SetOpRel

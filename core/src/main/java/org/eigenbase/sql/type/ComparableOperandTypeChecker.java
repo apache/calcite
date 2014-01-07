@@ -22,13 +22,9 @@ import java.util.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Type checking strategy which verifies that types have the required attributes
  * to be used as arguments to comparison operators.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class ComparableOperandTypeChecker
     extends SameOperandTypeChecker

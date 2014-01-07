@@ -25,8 +25,6 @@ import java.util.logging.*;
  * applications that require it (such as fitting into transmission buffers).
  * The class contains methods that allow the user to specify the maximum chunk
  * length, or by default uses a maximum chunk length of 32,000 characters.
- *
- * @author chard
  */
 public abstract class StringChunker
 {

@@ -20,12 +20,8 @@ package org.eigenbase.sql;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * The <code>UNNEST<code>operator.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlUnnestOperator
     extends SqlFunctionalOperator

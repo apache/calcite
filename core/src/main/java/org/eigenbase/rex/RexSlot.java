@@ -22,13 +22,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eigenbase.reltype.*;
 
-
 /**
  * Abstract base class for {@link RexInputRef} and {@link RexLocalRef}.
- *
- * @author jhyde
- * @version $Id$
- * @since Oct 25, 2005
  */
 public abstract class RexSlot
     extends RexVariable

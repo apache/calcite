@@ -26,9 +26,6 @@ import org.eigenbase.rex.*;
 /**
  * <code>ValuesRel</code> represents a sequence of zero or more literal row
  * values.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class ValuesRel
     extends ValuesRelBase

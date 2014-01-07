@@ -20,12 +20,8 @@ package org.eigenbase.sarg;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 
-
 /**
  * SargMutableEndpoint exposes methods for modifying a {@link SargEndpoint}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SargMutableEndpoint
     extends SargEndpoint

@@ -22,7 +22,6 @@ import java.util.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * String template.
  *
@@ -61,9 +60,6 @@ import com.google.common.collect.ImmutableList;
  * args.put(0, 64);<br/>
  * args.put("name", "Ringo");<br/>
  * System.out.println(f.format(args);</blockquote>
- *
- * @author jhyde
- * @version $Id$
  */
 public class Template extends MessageFormat
 {

@@ -22,16 +22,12 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.SqlMonotonicity;
 import org.eigenbase.sql.validate.SqlValidatorScope;
 
-
 /**
  * A special operator for the subtraction of two DATETIMEs. The format of
  * DATETIME substraction is:<br>
  * <code>"(" &lt;datetime&gt; "-" &lt;datetime&gt; ")" <interval
  * qualifier></code>. This operator is special since it needs to hold the
  * additional interval qualifier specification.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlDatetimeSubtractionOperator
     extends SqlSpecialOperator

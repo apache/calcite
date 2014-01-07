@@ -20,7 +20,6 @@ package org.eigenbase.sql.fun;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * An internal operator that throws an exception.<br>
  * The exception is thrown with a (localized) error message which is the only
@@ -32,10 +31,6 @@ import org.eigenbase.sql.type.*;
  * WHEN &lt;conditionn&gt; THEN true<br>
  * ELSE throw("what's wrong with you man?")<br>
  * END
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Mar 29, 2005
  */
 public class SqlThrowOperator
     extends SqlInternalOperator

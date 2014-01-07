@@ -30,9 +30,6 @@ import com.google.common.collect.ImmutableSet;
 
 /**
  * Abstract base for parsers generated from CommonParser.jj.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class SqlAbstractParserImpl
 {

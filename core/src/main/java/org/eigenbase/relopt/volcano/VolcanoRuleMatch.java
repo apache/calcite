@@ -20,14 +20,9 @@ package org.eigenbase.relopt.volcano;
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 
-
 /**
  * A match of a rule to a particular set of target relational expressions,
  * frozen in time.
- *
- * @author jhyde
- * @version $Id$
- * @since Jun 14, 2003
  */
 class VolcanoRuleMatch
     extends VolcanoRuleCall

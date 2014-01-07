@@ -19,14 +19,11 @@ package org.eigenbase.relopt;
 
 import org.eigenbase.rel.*;
 
-
 /**
  * Callback used to hold state while converting a tree of {@link RelNode
  * relational expressions} into a plan. Calling conventions typically have their
  * own protocol for walking over a tree, and correspondingly have their own
  * implementors, which are subclasses of <code>RelImplementor</code>.
- *
- * @version $Id$
  */
 public interface RelImplementor
 {

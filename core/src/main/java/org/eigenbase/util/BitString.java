@@ -21,7 +21,6 @@ import java.math.*;
 
 import org.eigenbase.util14.*;
 
-
 /**
  * String of bits.
  *
@@ -38,10 +37,6 @@ import org.eigenbase.util14.*;
  *
  * <p>This class is immutable: once created, none of the methods modify the
  * value.
- *
- * @author Wael Chatila
- * @version $Id$
- * @since May 28, 2004
  * @testcase
  */
 public class BitString

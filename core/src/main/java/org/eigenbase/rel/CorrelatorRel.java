@@ -32,10 +32,6 @@ import com.google.common.collect.ImmutableSet;
  *
  * <p>A CorrelatorRel is used to represent a correlated query. One
  * implementation strategy is to de-correlate the expression.
- *
- * @author jhyde
- * @version $Id$
- * @since 23 September, 2001
  */
 public final class CorrelatorRel
     extends JoinRelBase

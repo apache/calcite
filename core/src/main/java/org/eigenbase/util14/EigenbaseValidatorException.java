@@ -21,9 +21,6 @@ package org.eigenbase.util14;
  * This is a tagging interface to allow {@link
  * org.eigenbase.sql.validate.SqlValidatorException} to be identified without
  * adding a dependency on it from client-side code.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public interface EigenbaseValidatorException
 {

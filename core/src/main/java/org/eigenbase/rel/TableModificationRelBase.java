@@ -30,9 +30,6 @@ import net.hydromatic.optiq.prepare.Prepare;
 /**
  * <code>TableModificationRelBase</code> is an abstract base class for
  * implementations of {@link TableModificationRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class TableModificationRelBase
     extends SingleRel

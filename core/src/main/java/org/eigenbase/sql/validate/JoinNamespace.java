@@ -20,13 +20,8 @@ package org.eigenbase.sql.validate;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Namespace representing the row type produced by joining two relations.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 class JoinNamespace
     extends AbstractNamespace

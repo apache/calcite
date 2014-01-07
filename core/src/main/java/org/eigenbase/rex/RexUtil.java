@@ -32,10 +32,6 @@ import net.hydromatic.linq4j.function.*;
 
 /**
  * Utility methods concerning row-expressions.
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 23, 2003
  */
 public class RexUtil
 {

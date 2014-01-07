@@ -26,7 +26,6 @@ import net.hydromatic.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * This class allows multiple existing {@link SqlOperandTypeChecker} rules to be
  * combined into one rule. For example, allowing an operand to be either string
@@ -73,9 +72,6 @@ import com.google.common.collect.ImmutableList;
  * <p>For SEQUENCE composition, the rules must be instances of
  * SqlSingleOperandTypeChecker, and signature generation is not supported. For
  * AND composition, only the first rule is used for signature generation.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class CompositeOperandTypeChecker
     implements SqlSingleOperandTypeChecker

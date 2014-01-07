@@ -24,7 +24,6 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Definition of the <code>MIN</code> and <code>MAX</code> aggregate functions,
  * returning the returns the smallest/largest of the values which go into it.
@@ -43,9 +42,6 @@ import org.eigenbase.util.*;
  * to compare pairs of objects. The comparator is a startup argument, and must
  * therefore be constant for the duration of the aggregation.</dd>
  * </dl>
- *
- * @author jhyde
- * @version $Id$
  */
 public class SqlMinMaxAggFunction
     extends SqlAggFunction

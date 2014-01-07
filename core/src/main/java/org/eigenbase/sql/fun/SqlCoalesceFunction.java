@@ -22,12 +22,8 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * The <code>COALESCE</code> function.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlCoalesceFunction
     extends SqlFunction
@@ -69,7 +65,7 @@ public class SqlCoalesceFunction
         SqlNodeList whenList = new SqlNodeList(pos);
         SqlNodeList thenList = new SqlNodeList(pos);
 
-        //todo optimize when know operand is not null.
+        // todo: optimize when know operand is not null.
 
         for (int i = 0; (i + 1) < operands.length; ++i) {
             whenList.add(

@@ -22,14 +22,9 @@ import java.util.List;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Supplies a {@link SqlValidator} with the metadata for a table.
- *
- * @author jhyde
- * @version $Id$
  * @see SqlValidatorCatalogReader
- * @since Mar 25, 2003
  */
 public interface SqlValidatorTable
 {

@@ -30,7 +30,7 @@ import org.eigenbase.trace.EigenbaseTrace;
 import org.eigenbase.util.Util;
 
 /**
- * @author jhyde
+ * Implementation of {@link RelImplementor}.
  */
 public class RelImplementorImpl implements RelImplementor {
     protected static final Logger tracer =

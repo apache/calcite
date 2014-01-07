@@ -44,10 +44,6 @@ import org.eigenbase.util.*;
  * </ul>
  *
  * All operands are optional.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since Oct 19, 2004
  */
 public class SqlWindowOperator
     extends SqlOperator

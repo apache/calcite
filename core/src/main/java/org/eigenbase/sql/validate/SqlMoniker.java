@@ -19,13 +19,8 @@ package org.eigenbase.sql.validate;
 
 import org.eigenbase.sql.*;
 
-
 /**
  * An interface of an object identifier that represents a SqlIdentifier
- *
- * @author tleung
- * @version $Id$
- * @since May 24, 2005
  */
 public interface SqlMoniker
 {

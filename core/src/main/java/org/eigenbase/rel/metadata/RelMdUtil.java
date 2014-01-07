@@ -35,9 +35,6 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * RelMdUtil provides utility methods used by the metadata provider methods.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class RelMdUtil
 {

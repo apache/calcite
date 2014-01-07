@@ -31,9 +31,6 @@ import net.hydromatic.optiq.util.BitSets;
 /**
  * RelMdDistinctRowCount supplies a default implementation of {@link
  * RelMetadataQuery#getDistinctRowCount} for the standard logical algebra.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class RelMdDistinctRowCount
     extends ReflectiveRelMetadataProvider

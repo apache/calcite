@@ -22,13 +22,9 @@ import java.nio.charset.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * BasicSqlType represents a standard atomic SQL type (excluding interval
  * types).
- *
- * @author jhyde
- * @version $Id$
  */
 public class BasicSqlType
     extends AbstractSqlType

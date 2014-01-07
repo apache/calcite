@@ -22,12 +22,8 @@ import java.util.List;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * ObjectSqlType represents an SQL structured user-defined type.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class ObjectSqlType
     extends AbstractSqlType

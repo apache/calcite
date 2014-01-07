@@ -32,9 +32,6 @@ import com.google.common.collect.ImmutableSet;
 /**
  * <code>TableFunctionRelBase</code> is an abstract base class for
  * implementations of {@link TableFunctionRel}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class TableFunctionRelBase
     extends AbstractRelNode

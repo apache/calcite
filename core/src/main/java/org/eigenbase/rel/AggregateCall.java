@@ -26,9 +26,6 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Call to an aggregation function within an {@link AggregateRel}.
- *
- * @author jhyde
- * @version $Id$
  */
 public class AggregateCall
 {

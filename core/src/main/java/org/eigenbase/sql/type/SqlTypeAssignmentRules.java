@@ -21,15 +21,11 @@ import java.util.*;
 
 import org.eigenbase.util.*;
 
-
 /**
  * Class to hold rules to determine if a type is assignable from another type.
  *
  * <p>REVIEW 7/05/04 Wael: We should split this up in Cast rules, symmetric and
  * asymmetric assignable rules
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public class SqlTypeAssignmentRules
 {

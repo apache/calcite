@@ -27,13 +27,8 @@ import org.eigenbase.sql.validate.*;
 
 import net.hydromatic.linq4j.Ord;
 
-
 /**
  * Definition of the "SUBSTRING" builtin SQL function.
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Sep 5, 2004
  */
 public class SqlSubstringFunction
     extends SqlFunction

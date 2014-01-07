@@ -19,7 +19,6 @@ package org.eigenbase.util;
 
 import java.util.*;
 
-
 /**
  * Map which contains more than one value per key.
  *
@@ -28,10 +27,6 @@ import java.util.*;
  * are returned in the order in which they were added.</p>
  *
  * <p>TODO jvs 21-Jul-2007: unit test for this class
- *
- * @author jhyde
- * @version $Id$
- * @since May 18, 2003
  */
 public class MultiMap<K, V>
 {

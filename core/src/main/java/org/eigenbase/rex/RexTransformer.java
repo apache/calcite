@@ -30,10 +30,6 @@ import org.eigenbase.sql.type.*;
  * remain unchanged.
  *
  * <p>NOTE: You must validate the tree of RexNodes before using this class.
- *
- * @author wael
- * @version $Id$
- * @since Mar 8, 2004
  */
 public class RexTransformer
 {

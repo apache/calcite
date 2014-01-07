@@ -28,9 +28,6 @@ import net.hydromatic.optiq.util.BitSets;
 /**
  * RelMdPopulationSize supplies a default implementation of {@link
  * RelMetadataQuery#getPopulationSize} for the standard logical algebra.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public class RelMdPopulationSize
     extends ReflectiveRelMetadataProvider

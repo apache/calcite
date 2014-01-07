@@ -19,14 +19,9 @@ package org.eigenbase.sql.validate;
 
 import java.util.*;
 
-
 /**
  * A general-purpose implementation of {@link Comparator} to compare {@link
  * SqlMoniker} values.
- *
- * @author tleung
- * @version $Id$
- * @since Oct 16, 2005
  */
 public class SqlMonikerComparator
     implements Comparator<SqlMoniker>

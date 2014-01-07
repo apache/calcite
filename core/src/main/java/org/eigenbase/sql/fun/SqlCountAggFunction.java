@@ -26,17 +26,12 @@ import org.eigenbase.sql.validate.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * Definition of the SQL <code>COUNT</code> aggregation function.
  *
  * <p><code>COUNT</code> is an aggregator which returns the number of rows which
  * have gone into it. With one argument (or more), it returns the number of rows
  * for which that argument (or all) is not <code>null</code>.
- *
- * @author Julian Hyde
- * @version $Id$
- * @since Oct 17, 2004
  */
 public class SqlCountAggFunction
     extends SqlAggFunction

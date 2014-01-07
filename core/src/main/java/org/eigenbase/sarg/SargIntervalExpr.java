@@ -23,7 +23,6 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * SargIntervalExpr represents an expression which can be resolved to a fixed
  * {@link SargInterval}.
@@ -35,9 +34,6 @@ import org.eigenbase.sql.*;
  * when a point interval is created matching the null value. When null values
  * are considered to be part of the domain, the ordering is defined as for
  * {@link SargInterval}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class SargIntervalExpr
     extends SargIntervalBase

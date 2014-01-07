@@ -20,13 +20,8 @@ package org.eigenbase.sql.validate;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Namespace for a table constructor <code>VALUES (expr, expr, ...)</code>.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 public class TableConstructorNamespace
     extends AbstractNamespace

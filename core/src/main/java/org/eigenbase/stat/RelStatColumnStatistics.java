@@ -22,9 +22,6 @@ package org.eigenbase.stat;
  * summarize the results of applying a predicate to a column of a relational
  * expression. Alternatively, it may be used to summarize aspects of the entire
  * column.
- *
- * @author John Pham
- * @version $Id$
  */
 public interface RelStatColumnStatistics
 {

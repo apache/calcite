@@ -25,15 +25,11 @@ import org.eigenbase.sql.type.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * <code>Avg</code> is an aggregator which returns the average of the values
  * which go into it. It has precisely one argument of numeric type
  * (<code>int</code>, <code>long</code>, <code>float</code>, <code>
  * double</code>), and the result is the same type.
- *
- * @author jhyde
- * @version $Id$
  */
 public class SqlAvgAggFunction
     extends SqlAggFunction

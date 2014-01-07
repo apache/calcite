@@ -21,14 +21,10 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 
-
 /**
  * ChainedRelMetadataProvider implements the {@link RelMetadataProvider}
  * interface via the {@link
  * org.eigenbase.util.Glossary#ChainOfResponsibilityPattern}.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class ChainedRelMetadataProvider
     implements RelMetadataProvider

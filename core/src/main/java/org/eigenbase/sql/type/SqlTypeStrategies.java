@@ -39,9 +39,6 @@ import com.google.common.collect.ImmutableList;
  * non-generalizable strategies; anything else belongs in a reusable top-level
  * class. If you find yourself copying and pasting an existing strategy's
  * anonymous inner class, you're making a mistake.
- *
- * @author Wael Chatila
- * @version $Id$
  */
 public abstract class SqlTypeStrategies
 {

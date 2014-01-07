@@ -121,9 +121,8 @@ public class RhBase64
      * The 64 valid Base64 values.
      */
     private static final byte [] ALPHABET;
-    private static final byte [] _NATIVE_ALPHABET = /* May be something funny
-                                                     like EBCDIC */
-    {
+    private static final byte [] _NATIVE_ALPHABET = {
+        // May be something funny like EBCDIC
         (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F',
         (byte) 'G',
         (byte) 'H', (byte) 'I', (byte) 'J', (byte) 'K', (byte) 'L', (byte) 'M',
@@ -190,7 +189,9 @@ public class RhBase64
         46, 47, 48, 49, 50, 51,     // Letters 'u' through 'z'
         -9, -9, -9, -9 // Decimal 123 - 126
 
-        /*,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 127 - 139
+/*
+        ,
+        -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 127 - 139
         -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 140 - 152
          -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 153 - 165
          -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 166 - 178
@@ -200,7 +201,7 @@ public class RhBase64
          -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 218 - 230
          -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 231 -
          243-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9         // Decimal 244 - 255
-         */
+*/
     };
 
     // I think I end up not using the BAD_ENCODING indicator. private final
@@ -1034,7 +1035,6 @@ public class RhBase64
      * to/from Base64 notation on the fly.
      *
      * @see RhBase64
-     * @since 1.3
      */
     public static class InputStream
         extends java.io.FilterInputStream
@@ -1220,9 +1220,6 @@ public class RhBase64
             int b;
             for (i = 0; i < len; i++) {
                 b = read();
-
-                //if( b < 0 && i == 0 )
-                //    return -1;
 
                 if (b >= 0) {
                     dest[off + i] = (byte) b;

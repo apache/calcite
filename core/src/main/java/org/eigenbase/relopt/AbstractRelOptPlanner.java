@@ -26,13 +26,9 @@ import org.eigenbase.rel.metadata.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.util.*;
 
-
 /**
  * AbstractRelOptPlanner is an abstract base for implementations of the {@link
  * RelOptPlanner} interface.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class AbstractRelOptPlanner
     implements RelOptPlanner

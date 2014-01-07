@@ -22,9 +22,6 @@ package org.eigenbase.relopt;
  * interface. It it defined in terms of a single scalar quantity; somewhat
  * arbitrarily, it returns this scalar for rows processed and zero for both CPU
  * and I/O.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public class RelOptCostImpl
     implements RelOptCost

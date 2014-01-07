@@ -21,14 +21,9 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Visitor which looks for an aggregate function inside a tree of {@link
  * SqlNode} objects.
- *
- * @author jhyde
- * @version $Id$
- * @since Oct 28, 2004
  */
 class AggFinder
     extends SqlBasicVisitor<Void>

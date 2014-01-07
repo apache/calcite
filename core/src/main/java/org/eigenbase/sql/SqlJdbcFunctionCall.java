@@ -27,7 +27,6 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
-
 /**
  * A <code>SqlJdbcFunctionCall</code> is a node of a parse tree which represents
  * a JDBC function call. A JDBC call is of the form <code>{fn NAME(arg0, arg1,
@@ -350,10 +349,6 @@ import org.eigenbase.util.*;
  * VARBINARY, or VARCHAR</td>
  * </tr>
  * </table>
- *
- * @author Wael Chatila
- * @version $Id$
- * @since June 28, 2004
  */
 public class SqlJdbcFunctionCall
     extends SqlFunction

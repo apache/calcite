@@ -26,10 +26,6 @@ import org.eigenbase.sql.SqlKind;
  * <p>Correlating variables are introduced when performing nested loop joins.
  * Each row is received from one side of the join, a correlating variable is
  * assigned a value, and the other side of the join is restarted.</p>
- *
- * @author jhyde
- * @version $Id$
- * @since Nov 24, 2003
  */
 public class RexCorrelVariable
     extends RexVariable

@@ -19,9 +19,6 @@ package org.eigenbase.sarg;
 
 /**
  * SargBoundType defines the possible endpoint boundaries (upper or lower).
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public enum SargBoundType
 {

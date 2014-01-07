@@ -24,12 +24,8 @@ import org.eigenbase.sql.type.*;
 
 import net.hydromatic.linq4j.Ord;
 
-
 /**
  * RelRecordType represents a structured type having named fields.
- *
- * @author jhyde
- * @version $Id$
  */
 public class RelRecordType
     extends RelDataTypeImpl

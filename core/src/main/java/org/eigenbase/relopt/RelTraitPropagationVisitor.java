@@ -20,14 +20,11 @@ package org.eigenbase.relopt;
 import org.eigenbase.rel.*;
 import org.eigenbase.util.Util;
 
-
 /**
  * RelTraitPropagationVisitor traverses a RelNode and its <i>unregistered</i>
  * children, making sure that each has a full complement of traits. When a
  * RelNode is found to be missing one or more traits, they are copied from a
  * RelTraitSet given during construction.
- *
- * @author Stephan Zuercher
  */
 public class RelTraitPropagationVisitor
     extends RelVisitor

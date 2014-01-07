@@ -20,13 +20,9 @@ package org.eigenbase.sql2rel;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * SubqueryConverter provides the interface for classes that convert subqueries
  * into equivalent expressions.
- *
- * @author Zelaine Fong
- * @version $Id$
  */
 public interface SubqueryConverter
 {

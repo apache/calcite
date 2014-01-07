@@ -28,10 +28,6 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Partial implementation of {@link RelOptTable}.
- *
- * @author jhyde
- * @version $Id$
- * @since May 3, 2002
  */
 public abstract class RelOptAbstractTable
     implements RelOptTable

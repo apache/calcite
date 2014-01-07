@@ -26,8 +26,6 @@ package org.eigenbase.rex;
  * <p>Due to the laziness of the author, not all Rex types are supported at
  * present.
  *
- * @author jhyde
- * @version $Id$
  * @see RexBuilder#copy(RexNode)
  */
 class RexCopier

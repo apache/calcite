@@ -24,13 +24,9 @@ import java.util.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
-
 /**
  * ReflectiveSqlOperatorTable implements the {@link SqlOperatorTable } interface
  * by reflecting the public fields of a subclass.
- *
- * @author John V. Sichi
- * @version $Id$
  */
 public abstract class ReflectiveSqlOperatorTable
     implements SqlOperatorTable

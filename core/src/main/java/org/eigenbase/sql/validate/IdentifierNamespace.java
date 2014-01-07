@@ -25,14 +25,9 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Namespace whose contents are defined by the type of an {@link
  * org.eigenbase.sql.SqlIdentifier identifier}.
- *
- * @author jhyde
- * @version $Id$
- * @since Mar 25, 2003
  */
 public class IdentifierNamespace
     extends AbstractNamespace

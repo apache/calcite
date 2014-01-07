@@ -22,7 +22,6 @@ import java.util.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 
-
 /**
  * Visitor which checks the validity of a {@link RexNode} expression.
  *
@@ -49,10 +48,7 @@ import org.eigenbase.reltype.*;
  * }</br></code></blockquote>
  * </li>
  *
- * @author jhyde
- * @version $Id$
  * @see RexNode
- * @since May 21, 2006
  */
 public class RexChecker
     extends RexVisitorImpl<Boolean>

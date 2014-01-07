@@ -20,13 +20,8 @@ package org.eigenbase.sql.type;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 
-
 /**
  * Strategies to check for allowed operand types of an operator call.
- *
- * @author Wael Chatila
- * @version $Id$
- * @since Sept 8, 2004
  */
 public abstract class OperandsTypeChecking
 {

@@ -25,15 +25,11 @@ import org.eigenbase.sql.type.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * <code>Sum</code> is an aggregator which returns the sum of the values which
  * go into it. It has precisely one argument of numeric type (<code>int</code>,
  * <code>long</code>, <code>float</code>, <code>double</code>), and the result
  * is the same type.
- *
- * @author jhyde
- * @version $Id$
  */
 public class SqlSumAggFunction
     extends SqlAggFunction

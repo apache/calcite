@@ -20,10 +20,6 @@ package org.eigenbase.rex;
 /**
  * A <code>RexAction</code> is called when a {@link RexPattern} finds a match.
  * It yields a {@link RexNode} by substituting the matching tokens.
- *
- * @author jhyde
- * @version $Id$
- * @since May 3, 2002
  */
 public interface RexAction
 {

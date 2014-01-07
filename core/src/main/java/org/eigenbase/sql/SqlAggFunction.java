@@ -21,13 +21,9 @@ import org.eigenbase.rel.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Abstract base class for the definition of an aggregate function: an operator
  * which aggregates sets of values into a result.
- *
- * @author jhyde
- * @version $Id$
  */
 public abstract class SqlAggFunction
     extends SqlFunction

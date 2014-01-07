@@ -25,10 +25,6 @@ import org.eigenbase.relopt.*;
  * <code>IntersectRel</code> returns the intersection of the rows of its inputs.
  * If "all" is true, then multiset intersection is performed; otherwise, set
  * intersection is performed (implying no duplicates in the results).
- *
- * @author jhyde
- * @version $Id$
- * @since 23 September, 2001
  */
 public final class IntersectRel extends IntersectRelBase {
     //~ Constructors -----------------------------------------------------------
