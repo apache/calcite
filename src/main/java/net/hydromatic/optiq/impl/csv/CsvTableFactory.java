@@ -43,7 +43,11 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
     final File file = new File(fileName);
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-    return new CsvTable(file, protoRowType);
+    if (smart != null && smart) {
+      return new CsvSmartTable(file, protoRowType);
+    } else {
+      return new CsvTable(file, protoRowType);
+    }
   }
 }
 
