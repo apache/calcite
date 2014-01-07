@@ -27,20 +27,16 @@ import org.eigenbase.sql.type.SqlTypeStrategies;
 import org.eigenbase.sql.type.SqlTypeUtil;
 import org.eigenbase.sql.validate.*;
 
-
 /**
  * Definition of the SQL:2003 standard ARRAY query constructor, <code>
  * ARRAY (&lt;query&gt;)</code>.
  */
-public class SqlArrayQueryConstructor
-    extends SqlMultisetQueryConstructor
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlArrayQueryConstructor extends SqlMultisetQueryConstructor {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlArrayQueryConstructor()
-    {
-        super("ARRAY", SqlKind.MAP_QUERY_CONSTRUCTOR);
-    }
+  public SqlArrayQueryConstructor() {
+    super("ARRAY", SqlKind.MAP_QUERY_CONSTRUCTOR);
+  }
 }
 
 // End SqlArrayQueryConstructor.java

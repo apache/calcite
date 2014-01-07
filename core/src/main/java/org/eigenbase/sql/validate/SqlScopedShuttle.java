@@ -28,49 +28,43 @@ import org.eigenbase.sql.util.*;
  * <p>Derived class should override {@link #visitScoped(SqlCall)} rather than
  * {@link #visit(SqlCall)}.
  */
-public abstract class SqlScopedShuttle
-    extends SqlShuttle
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class SqlScopedShuttle extends SqlShuttle {
+  //~ Instance fields --------------------------------------------------------
 
-    private final Stack<SqlValidatorScope> scopes =
-        new Stack<SqlValidatorScope>();
+  private final Stack<SqlValidatorScope> scopes =
+      new Stack<SqlValidatorScope>();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlScopedShuttle(SqlValidatorScope initialScope)
-    {
-        scopes.push(initialScope);
-    }
+  protected SqlScopedShuttle(SqlValidatorScope initialScope) {
+    scopes.push(initialScope);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public final SqlNode visit(SqlCall call)
-    {
-        SqlValidatorScope oldScope = scopes.peek();
-        SqlValidatorScope newScope = oldScope.getOperandScope(call);
-        scopes.push(newScope);
-        SqlNode result = visitScoped(call);
-        scopes.pop();
-        return result;
-    }
+  public final SqlNode visit(SqlCall call) {
+    SqlValidatorScope oldScope = scopes.peek();
+    SqlValidatorScope newScope = oldScope.getOperandScope(call);
+    scopes.push(newScope);
+    SqlNode result = visitScoped(call);
+    scopes.pop();
+    return result;
+  }
 
-    /**
-     * Visits an operator call. If the call has entered a new scope, the base
-     * class will have already modified the scope.
-     */
-    protected SqlNode visitScoped(SqlCall call)
-    {
-        return super.visit(call);
-    }
+  /**
+   * Visits an operator call. If the call has entered a new scope, the base
+   * class will have already modified the scope.
+   */
+  protected SqlNode visitScoped(SqlCall call) {
+    return super.visit(call);
+  }
 
-    /**
-     * Returns the current scope.
-     */
-    protected SqlValidatorScope getScope()
-    {
-        return scopes.peek();
-    }
+  /**
+   * Returns the current scope.
+   */
+  protected SqlValidatorScope getScope() {
+    return scopes.peek();
+  }
 }
 
 // End SqlScopedShuttle.java

@@ -37,7 +37,8 @@ import java.util.*;
  * Base class for implementing a cursor.
  *
  * <p>Derived class needs to provide {@link Getter} and can override
- * {@link Accessor} implementations if it wishes.</p>
+ * {@link net.hydromatic.avatica.Cursor.Accessor} implementations if it
+ * wishes.</p>
  */
 public abstract class AbstractCursor implements Cursor {
   /**

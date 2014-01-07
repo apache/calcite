@@ -20,32 +20,28 @@ package org.eigenbase.sql;
 /**
  * The <code>VALUES</code> operator.
  */
-public class SqlValuesOperator
-    extends SqlSpecialOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlValuesOperator extends SqlSpecialOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlValuesOperator()
-    {
-        super("VALUES", SqlKind.VALUES);
+  public SqlValuesOperator() {
+    super("VALUES", SqlKind.VALUES);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame frame = writer.startList("VALUES", "");
+    for (int i = 0; i < operands.length; i++) {
+      writer.sep(",");
+      SqlNode operand = operands[i];
+      operand.unparse(writer, 0, 0);
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        final SqlWriter.Frame frame = writer.startList("VALUES", "");
-        for (int i = 0; i < operands.length; i++) {
-            writer.sep(",");
-            SqlNode operand = operands[i];
-            operand.unparse(writer, 0, 0);
-        }
-        writer.endList(frame);
-    }
+    writer.endList(frame);
+  }
 }
 
 // End SqlValuesOperator.java

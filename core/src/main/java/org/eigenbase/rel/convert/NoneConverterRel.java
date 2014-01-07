@@ -27,37 +27,33 @@ import org.eigenbase.util.*;
  * <code>NoneConverter</code> converts a plan from <code>inConvention</code> to
  * {@link org.eigenbase.relopt.Convention#NONE}.
  */
-public class NoneConverterRel
-    extends ConverterRelImpl
-{
-    //~ Constructors -----------------------------------------------------------
+public class NoneConverterRel extends ConverterRelImpl {
+  //~ Constructors -----------------------------------------------------------
 
-    public NoneConverterRel(
-        RelOptCluster cluster,
-        RelNode child)
-    {
-        super(
-            cluster,
-            ConventionTraitDef.instance,
-            cluster.traitSetOf(Convention.NONE),
-            child);
-    }
+  public NoneConverterRel(
+      RelOptCluster cluster,
+      RelNode child) {
+    super(
+        cluster,
+        ConventionTraitDef.instance,
+        cluster.traitSetOf(Convention.NONE),
+        child);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(Convention.NONE);
-        return new NoneConverterRel(
-            getCluster(),
-            sole(inputs));
-    }
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.comprises(Convention.NONE);
+    return new NoneConverterRel(
+        getCluster(),
+        sole(inputs));
+  }
 
-    public static void init(RelOptPlanner planner)
-    {
-        // we can't convert from any conventions, therefore no rules to register
-        Util.discard(planner);
-    }
+  public static void init(RelOptPlanner planner) {
+    // we can't convert from any conventions, therefore no rules to register
+    Util.discard(planner);
+  }
 }
 
 // End NoneConverterRel.java

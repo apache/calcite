@@ -21,17 +21,16 @@ package org.eigenbase.rex;
  * A <code>RexPattern</code> represents an expression with holes in it. The
  * {@link #match} method tests whether a given expression matches the pattern.
  */
-public interface RexPattern
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RexPattern {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Calls <code>action</code> for every combination of tokens for which this
-     * pattern matches.
-     */
-    void match(
-        RexNode ptree,
-        RexAction action);
+  /**
+   * Calls <code>action</code> for every combination of tokens for which this
+   * pattern matches.
+   */
+  void match(
+      RexNode ptree,
+      RexAction action);
 }
 
 // End RexPattern.java

@@ -25,77 +25,70 @@ import org.eigenbase.sql.*;
 /**
  * ObjectSqlType represents an SQL structured user-defined type.
  */
-public class ObjectSqlType
-    extends AbstractSqlType
-{
-    //~ Instance fields --------------------------------------------------------
+public class ObjectSqlType extends AbstractSqlType {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlIdentifier sqlIdentifier;
+  private final SqlIdentifier sqlIdentifier;
 
-    private final RelDataTypeComparability comparability;
+  private final RelDataTypeComparability comparability;
 
-    private RelDataTypeFamily family;
+  private RelDataTypeFamily family;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Constructs an object type. This should only be called from a factory
-     * method.
-     *
-     * @param typeName SqlTypeName for this type (either Distinct or Structured)
-     * @param sqlIdentifier identifier for this type
-     * @param nullable whether type accepts nulls
-     * @param fields object attribute definitions
-     */
-    public ObjectSqlType(
-        SqlTypeName typeName,
-        SqlIdentifier sqlIdentifier,
-        boolean nullable,
-        List<? extends RelDataTypeField> fields,
-        RelDataTypeComparability comparability)
-    {
-        super(typeName, nullable, fields);
-        this.sqlIdentifier = sqlIdentifier;
-        this.comparability = comparability;
-        computeDigest();
-    }
+  /**
+   * Constructs an object type. This should only be called from a factory
+   * method.
+   *
+   * @param typeName      SqlTypeName for this type (either Distinct or
+   *                      Structured)
+   * @param sqlIdentifier identifier for this type
+   * @param nullable      whether type accepts nulls
+   * @param fields        object attribute definitions
+   */
+  public ObjectSqlType(
+      SqlTypeName typeName,
+      SqlIdentifier sqlIdentifier,
+      boolean nullable,
+      List<? extends RelDataTypeField> fields,
+      RelDataTypeComparability comparability) {
+    super(typeName, nullable, fields);
+    this.sqlIdentifier = sqlIdentifier;
+    this.comparability = comparability;
+    computeDigest();
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public void setFamily(RelDataTypeFamily family)
-    {
-        this.family = family;
-    }
+  public void setFamily(RelDataTypeFamily family) {
+    this.family = family;
+  }
 
-    // implement RelDataType
-    public RelDataTypeComparability getComparability()
-    {
-        return comparability;
-    }
+  // implement RelDataType
+  public RelDataTypeComparability getComparability() {
+    return comparability;
+  }
 
-    // override AbstractSqlType
-    public SqlIdentifier getSqlIdentifier()
-    {
-        return sqlIdentifier;
-    }
+  // override AbstractSqlType
+  public SqlIdentifier getSqlIdentifier() {
+    return sqlIdentifier;
+  }
 
-    // override AbstractSqlType
-    public RelDataTypeFamily getFamily()
-    {
-        // each UDT is in its own lonely family, until one day when
-        // we support inheritance (at which time also need to implement
-        // getPrecedenceList).
-        return family;
-    }
+  // override AbstractSqlType
+  public RelDataTypeFamily getFamily() {
+    // each UDT is in its own lonely family, until one day when
+    // we support inheritance (at which time also need to implement
+    // getPrecedenceList).
+    return family;
+  }
 
-    // implement RelDataTypeImpl
-    protected void generateTypeString(StringBuilder sb, boolean withDetail)
-    {
-        // TODO jvs 10-Feb-2005:  proper quoting; dump attributes withDetail?
-        sb.append("ObjectSqlType(");
-        sb.append(sqlIdentifier.toString());
-        sb.append(")");
-    }
+  // implement RelDataTypeImpl
+  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+    // TODO jvs 10-Feb-2005:  proper quoting; dump attributes withDetail?
+    sb.append("ObjectSqlType(");
+    sb.append(sqlIdentifier.toString());
+    sb.append(")");
+  }
 }
 
 // End ObjectSqlType.java

@@ -22,14 +22,13 @@ import org.eigenbase.sql.*;
 /**
  * Collection of {@link SqlRexConvertlet}s.
  */
-public interface SqlRexConvertletTable
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SqlRexConvertletTable {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Returns the convertlet applicable to a given expression.
-     */
-    public SqlRexConvertlet get(SqlCall call);
+  /**
+   * Returns the convertlet applicable to a given expression.
+   */
+  public SqlRexConvertlet get(SqlCall call);
 }
 
 // End SqlRexConvertletTable.java

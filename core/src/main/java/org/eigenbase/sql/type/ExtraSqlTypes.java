@@ -30,15 +30,14 @@ package org.eigenbase.sql.type;
  * fully supports the associated type.  This is simply a mirror of the
  * missing constant values.
  */
-public interface ExtraSqlTypes
-{
-    // From JDK 1.6
-    int ROWID = -8;
-    int NCHAR = -15;
-    int NVARCHAR = -9;
-    int LONGNVARCHAR = -16;
-    int NCLOB = 2011;
-    int SQLXML = 2009;
+public interface ExtraSqlTypes {
+  // From JDK 1.6
+  int ROWID = -8;
+  int NCHAR = -15;
+  int NVARCHAR = -9;
+  int LONGNVARCHAR = -16;
+  int NCLOB = 2011;
+  int SQLXML = 2009;
 }
 
 // End ExtraSqlTypes.java

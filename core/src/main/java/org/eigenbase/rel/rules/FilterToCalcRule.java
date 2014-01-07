@@ -33,45 +33,42 @@ import com.google.common.collect.ImmutableList;
  * {@link FilterRel} will eventually be converted by {@link
  * MergeFilterOntoCalcRule}.
  */
-public class FilterToCalcRule
-    extends RelOptRule
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class FilterToCalcRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final FilterToCalcRule instance = new FilterToCalcRule();
+  public static final FilterToCalcRule instance = new FilterToCalcRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    private FilterToCalcRule() {
-        super(operand(FilterRel.class, any()));
-    }
+  private FilterToCalcRule() {
+    super(operand(FilterRel.class, any()));
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public void onMatch(RelOptRuleCall call)
-    {
-        final FilterRel filter = call.rel(0);
-        final RelNode rel = filter.getChild();
+  public void onMatch(RelOptRuleCall call) {
+    final FilterRel filter = call.rel(0);
+    final RelNode rel = filter.getChild();
 
-        // Create a program containing a filter.
-        final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
-        final RelDataType inputRowType = rel.getRowType();
-        final RexProgramBuilder programBuilder =
-            new RexProgramBuilder(inputRowType, rexBuilder);
-        programBuilder.addIdentity();
-        programBuilder.addCondition(filter.getCondition());
-        final RexProgram program = programBuilder.getProgram();
+    // Create a program containing a filter.
+    final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
+    final RelDataType inputRowType = rel.getRowType();
+    final RexProgramBuilder programBuilder =
+        new RexProgramBuilder(inputRowType, rexBuilder);
+    programBuilder.addIdentity();
+    programBuilder.addCondition(filter.getCondition());
+    final RexProgram program = programBuilder.getProgram();
 
-        final CalcRel calc =
-            new CalcRel(
-                filter.getCluster(),
-                filter.getTraitSet(),
-                rel,
-                inputRowType,
-                program,
-                ImmutableList.<RelCollation>of());
-        call.transformTo(calc);
-    }
+    final CalcRel calc =
+        new CalcRel(
+            filter.getCluster(),
+            filter.getTraitSet(),
+            rel,
+            inputRowType,
+            program,
+            ImmutableList.<RelCollation>of());
+    call.transformTo(calc);
+  }
 }
 
 // End FilterToCalcRule.java

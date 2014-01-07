@@ -30,90 +30,79 @@ import org.eigenbase.util.*;
  * HepRelVertex wraps a real {@link RelNode} as a vertex in a DAG representing
  * the entire query expression.
  */
-public class HepRelVertex
-    extends AbstractRelNode
-{
-    //~ Instance fields --------------------------------------------------------
+public class HepRelVertex extends AbstractRelNode {
+  //~ Instance fields --------------------------------------------------------
 
-    /**
-     * Wrapped rel currently chosen for implementation of expression.
-     */
-    private RelNode currentRel;
+  /**
+   * Wrapped rel currently chosen for implementation of expression.
+   */
+  private RelNode currentRel;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    HepRelVertex(RelNode rel)
-    {
-        super(
-            rel.getCluster(),
-            rel.getTraitSet());
-        currentRel = rel;
-    }
+  HepRelVertex(RelNode rel) {
+    super(
+        rel.getCluster(),
+        rel.getTraitSet());
+    currentRel = rel;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    @Override
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs)
-    {
-        assert traitSet.equals(this.traitSet);
-        assert inputs.equals(this.getInputs());
-        return this;
-    }
+  @Override
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.equals(this.traitSet);
+    assert inputs.equals(this.getInputs());
+    return this;
+  }
 
-    @Override
-    public RelOptCost computeSelfCost(RelOptPlanner planner)
-    {
-        // HepRelMetadataProvider is supposed to intercept this
-        // and redirect to the real rels.
-        throw Util.newInternal("should never get here");
-    }
+  @Override
+  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    // HepRelMetadataProvider is supposed to intercept this
+    // and redirect to the real rels.
+    throw Util.newInternal("should never get here");
+  }
 
-    @Override
-    public double getRows()
-    {
-        return RelMetadataQuery.getRowCount(currentRel);
-    }
+  @Override
+  public double getRows() {
+    return RelMetadataQuery.getRowCount(currentRel);
+  }
 
-    @Override
-    protected RelDataType deriveRowType()
-    {
-        return currentRel.getRowType();
-    }
+  @Override
+  protected RelDataType deriveRowType() {
+    return currentRel.getRowType();
+  }
 
-    @Override
-    public boolean isDistinct()
-    {
-        return currentRel.isDistinct();
-    }
+  @Override
+  public boolean isDistinct() {
+    return currentRel.isDistinct();
+  }
 
-    @Override
-    public boolean isKey(BitSet columns) {
-        return currentRel.isKey(columns);
-    }
+  @Override
+  public boolean isKey(BitSet columns) {
+    return currentRel.isKey(columns);
+  }
 
-    @Override
-    protected String computeDigest()
-    {
-        return "HepRelVertex(" + currentRel + ")";
-    }
+  @Override
+  protected String computeDigest() {
+    return "HepRelVertex(" + currentRel + ")";
+  }
 
-    /**
-     * Replaces the implementation for this expression with a new one.
-     *
-     * @param newRel new expression
-     */
-    void replaceRel(RelNode newRel)
-    {
-        currentRel = newRel;
-    }
+  /**
+   * Replaces the implementation for this expression with a new one.
+   *
+   * @param newRel new expression
+   */
+  void replaceRel(RelNode newRel) {
+    currentRel = newRel;
+  }
 
-    /**
-     * @return current implementation chosen for this vertex
-     */
-    public RelNode getCurrentRel()
-    {
-        return currentRel;
-    }
+  /**
+   * @return current implementation chosen for this vertex
+   */
+  public RelNode getCurrentRel() {
+    return currentRel;
+  }
 }
 
 // End HepRelVertex.java

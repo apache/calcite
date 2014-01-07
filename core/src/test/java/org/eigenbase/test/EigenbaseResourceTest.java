@@ -25,30 +25,29 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-
 /**
  * Tests generated package org.eigenbase.resource (mostly a sanity check for
  * resgen infrastructure).
  */
 public class EigenbaseResourceTest {
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public EigenbaseResourceTest() {
-    }
+  public EigenbaseResourceTest() {
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Verifies that resource properties such as SQLSTATE are available at
-     * runtime.
-     */
-    @Test public void testSqlstateProperty() {
-        Properties props =
-            EigenbaseResource.instance().IllegalIntervalLiteral.getProperties();
-        assertEquals(
-            "42000",
-            props.get("SQLSTATE"));
-    }
+  /**
+   * Verifies that resource properties such as SQLSTATE are available at
+   * runtime.
+   */
+  @Test public void testSqlstateProperty() {
+    Properties props =
+        EigenbaseResource.instance().IllegalIntervalLiteral.getProperties();
+    assertEquals(
+        "42000",
+        props.get("SQLSTATE"));
+  }
 }
 
 // End EigenbaseResourceTest.java

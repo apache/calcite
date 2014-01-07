@@ -27,73 +27,64 @@ import org.eigenbase.reltype.*;
 /**
  * A <code>SingleRel</code> is a base class single-input relational expressions.
  */
-public abstract class SingleRel
-    extends AbstractRelNode
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class SingleRel extends AbstractRelNode {
+  //~ Instance fields --------------------------------------------------------
 
-    private RelNode child;
+  private RelNode child;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a <code>SingleRel</code>.
-     *
-     * @param cluster {@link RelOptCluster}  this relational expression belongs
-     * to
-     * @param child input relational expression
-     */
-    protected SingleRel(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        RelNode child)
-    {
-        super(cluster, traits);
-        this.child = child;
-    }
+  /**
+   * Creates a <code>SingleRel</code>.
+   *
+   * @param cluster {@link RelOptCluster}  this relational expression belongs
+   *                to
+   * @param child   input relational expression
+   */
+  protected SingleRel(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      RelNode child) {
+    super(cluster, traits);
+    this.child = child;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelNode getChild()
-    {
-        return child;
-    }
+  public RelNode getChild() {
+    return child;
+  }
 
-    // implement RelNode
-    public List<RelNode> getInputs()
-    {
-        return Collections.singletonList(child);
-    }
+  // implement RelNode
+  public List<RelNode> getInputs() {
+    return Collections.singletonList(child);
+  }
 
-    public double getRows()
-    {
-        // Not necessarily correct, but a better default than Rel's 1.0
-        return RelMetadataQuery.getRowCount(child);
-    }
+  public double getRows() {
+    // Not necessarily correct, but a better default than Rel's 1.0
+    return RelMetadataQuery.getRowCount(child);
+  }
 
-    public void childrenAccept(RelVisitor visitor)
-    {
-        visitor.visit(child, 0, this);
-    }
+  public void childrenAccept(RelVisitor visitor) {
+    visitor.visit(child, 0, this);
+  }
 
-    public RelWriter explainTerms(RelWriter pw) {
-        return super.explainTerms(pw)
-            .input("child", getChild());
-    }
+  public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw)
+        .input("child", getChild());
+  }
 
-    // override Rel
-    public void replaceInput(
-        int ordinalInParent,
-        RelNode rel)
-    {
-        assert (ordinalInParent == 0);
-        this.child = rel;
-    }
+  // override Rel
+  public void replaceInput(
+      int ordinalInParent,
+      RelNode rel) {
+    assert (ordinalInParent == 0);
+    this.child = rel;
+  }
 
-    protected RelDataType deriveRowType()
-    {
-        return child.getRowType();
-    }
+  protected RelDataType deriveRowType() {
+    return child.getRowType();
+  }
 }
 
 // End SingleRel.java

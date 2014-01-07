@@ -30,27 +30,24 @@ import org.eigenbase.sql.type.*;
  * <p>todo: Represent the ALL keyword to MULTISET UNION ALL etc. as a hidden
  * operand. Then we can obsolete this class.
  */
-public class SqlMultisetSetOperator
-    extends SqlBinaryOperator
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlMultisetSetOperator extends SqlBinaryOperator {
+  //~ Instance fields --------------------------------------------------------
 
-    private final boolean all;
+  private final boolean all;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlMultisetSetOperator(String name, int prec, boolean all)
-    {
-        super(
-            name,
-            SqlKind.OTHER,
-            prec,
-            true,
-            SqlTypeStrategies.rtiNullableMultiset,
-            SqlTypeStrategies.otiFirstKnown,
-            SqlTypeStrategies.otcMultisetX2);
-        this.all = all;
-    }
+  public SqlMultisetSetOperator(String name, int prec, boolean all) {
+    super(
+        name,
+        SqlKind.OTHER,
+        prec,
+        true,
+        SqlTypeStrategies.rtiNullableMultiset,
+        SqlTypeStrategies.otiFirstKnown,
+        SqlTypeStrategies.otcMultisetX2);
+    this.all = all;
+  }
 }
 
 // End SqlMultisetSetOperator.java

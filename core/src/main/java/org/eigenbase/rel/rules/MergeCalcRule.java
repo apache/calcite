@@ -26,61 +26,58 @@ import org.eigenbase.rex.*;
  * resulting {@link CalcRel} has the same project list as the upper {@link
  * CalcRel}, but expressed in terms of the lower {@link CalcRel}'s inputs.
  */
-public class MergeCalcRule
-    extends RelOptRule
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class MergeCalcRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final MergeCalcRule instance = new MergeCalcRule();
+  public static final MergeCalcRule instance = new MergeCalcRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    private MergeCalcRule() {
-        super(
-            operand(
-                CalcRelBase.class,
-                operand(CalcRelBase.class, any())));
+  private MergeCalcRule() {
+    super(
+        operand(
+            CalcRelBase.class,
+            operand(CalcRelBase.class, any())));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void onMatch(RelOptRuleCall call) {
+    final CalcRelBase topCalc = call.rel(0);
+    final CalcRelBase bottomCalc = call.rel(1);
+
+    // Don't merge a calc which contains windowed aggregates onto a
+    // calc. That would effectively be pushing a windowed aggregate down
+    // through a filter.
+    RexProgram topProgram = topCalc.getProgram();
+    if (RexOver.containsOver(topProgram)) {
+      return;
     }
 
-    //~ Methods ----------------------------------------------------------------
+    // Merge the programs together.
 
-    public void onMatch(RelOptRuleCall call)
-    {
-        final CalcRelBase topCalc = call.rel(0);
-        final CalcRelBase bottomCalc = call.rel(1);
+    RexProgram mergedProgram =
+        RexProgramBuilder.mergePrograms(
+            topCalc.getProgram(),
+            bottomCalc.getProgram(),
+            topCalc.getCluster().getRexBuilder());
+    assert mergedProgram.getOutputRowType()
+        == topProgram.getOutputRowType();
+    final CalcRelBase newCalc =
+        topCalc.copy(
+            topCalc.getTraitSet(),
+            bottomCalc.getChild(),
+            mergedProgram,
+            topCalc.getCollationList());
 
-        // Don't merge a calc which contains windowed aggregates onto a
-        // calc. That would effectively be pushing a windowed aggregate down
-        // through a filter.
-        RexProgram topProgram = topCalc.getProgram();
-        if (RexOver.containsOver(topProgram)) {
-            return;
-        }
-
-        // Merge the programs together.
-
-        RexProgram mergedProgram =
-            RexProgramBuilder.mergePrograms(
-                topCalc.getProgram(),
-                bottomCalc.getProgram(),
-                topCalc.getCluster().getRexBuilder());
-        assert mergedProgram.getOutputRowType()
-            == topProgram.getOutputRowType();
-        final CalcRelBase newCalc =
-            topCalc.copy(
-                topCalc.getTraitSet(),
-                bottomCalc.getChild(),
-                mergedProgram,
-                topCalc.getCollationList());
-
-        if (newCalc.getDigest().equals(bottomCalc.getDigest())) {
-            // newCalc is equivalent to bottomCalc, which means that topCalc
-            // must be trivial. Take it out of the game.
-            call.getPlanner().setImportance(topCalc, 0.0);
-        }
-
-        call.transformTo(newCalc);
+    if (newCalc.getDigest().equals(bottomCalc.getDigest())) {
+      // newCalc is equivalent to bottomCalc, which means that topCalc
+      // must be trivial. Take it out of the game.
+      call.getPlanner().setImportance(topCalc, 0.0);
     }
+
+    call.transformTo(newCalc);
+  }
 }
 
 // End MergeCalcRule.java

@@ -21,11 +21,10 @@ package org.eigenbase.rex;
  * A <code>RexAction</code> is called when a {@link RexPattern} finds a match.
  * It yields a {@link RexNode} by substituting the matching tokens.
  */
-public interface RexAction
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RexAction {
+  //~ Methods ----------------------------------------------------------------
 
-    void onMatch(RexNode [] tokens);
+  void onMatch(RexNode[] tokens);
 }
 
 // End RexAction.java

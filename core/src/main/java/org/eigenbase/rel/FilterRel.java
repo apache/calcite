@@ -27,50 +27,51 @@ import org.eigenbase.rex.*;
  * input, and returns elements for which <code>condition</code> evaluates to
  * <code>true</code>.
  */
-public final class FilterRel
-    extends FilterRelBase
-{
-    //~ Constructors -----------------------------------------------------------
+public final class FilterRel extends FilterRelBase {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a filter.
-     *
-     * @param cluster {@link RelOptCluster}  this relational expression belongs
-     * to
-     * @param child input relational expression
-     * @param condition boolean expression which determines whether a row is
-     * allowed to pass
-     */
-    public FilterRel(
-        RelOptCluster cluster,
-        RelNode child,
-        RexNode condition)
-    {
-        super(
-            cluster,
-            cluster.traitSetOf(Convention.NONE),
-            child,
-            condition);
-    }
+  /**
+   * Creates a filter.
+   *
+   * @param cluster   {@link RelOptCluster}  this relational expression belongs
+   *                  to
+   * @param child     input relational expression
+   * @param condition boolean expression which determines whether a row is
+   *                  allowed to pass
+   */
+  public FilterRel(
+      RelOptCluster cluster,
+      RelNode child,
+      RexNode condition) {
+    super(
+        cluster,
+        cluster.traitSetOf(Convention.NONE),
+        child,
+        condition);
+  }
 
-    /** Creates a FilterRel by parsing serialized output. */
-    public FilterRel(RelInput input) {
-        super(input);
-    }
+  /**
+   * Creates a FilterRel by parsing serialized output.
+   */
+  public FilterRel(RelInput input) {
+    super(input);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.containsIfApplicable(Convention.NONE);
-        return new FilterRel(
-            getCluster(),
-            sole(inputs),
-            getCondition());
-    }
+  @Override
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.containsIfApplicable(Convention.NONE);
+    return new FilterRel(
+        getCluster(),
+        sole(inputs),
+        getCondition());
+  }
 
-    @Override public RelNode accept(RelShuttle shuttle) {
-        return shuttle.visit(this);
-    }
+  @Override
+  public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
 }
 
 // End FilterRel.java

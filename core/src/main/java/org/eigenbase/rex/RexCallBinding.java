@@ -31,61 +31,52 @@ import com.google.common.collect.ImmutableList;
  * <code>RexCallBinding</code> implements {@link SqlOperatorBinding} by
  * referring to an underlying collection of {@link RexNode} operands.
  */
-public class RexCallBinding
-    extends SqlOperatorBinding
-{
-    //~ Instance fields --------------------------------------------------------
+public class RexCallBinding extends SqlOperatorBinding {
+  //~ Instance fields --------------------------------------------------------
 
-    private final List<RexNode> operands;
+  private final List<RexNode> operands;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public RexCallBinding(
-        RelDataTypeFactory typeFactory,
-        SqlOperator sqlOperator,
-        List<? extends RexNode> operands)
-    {
-        super(typeFactory, sqlOperator);
-        this.operands = ImmutableList.copyOf(operands);
-    }
+  public RexCallBinding(
+      RelDataTypeFactory typeFactory,
+      SqlOperator sqlOperator,
+      List<? extends RexNode> operands) {
+    super(typeFactory, sqlOperator);
+    this.operands = ImmutableList.copyOf(operands);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // implement SqlOperatorBinding
-    public String getStringLiteralOperand(int ordinal)
-    {
-        return RexLiteral.stringValue(operands.get(ordinal));
-    }
+  // implement SqlOperatorBinding
+  public String getStringLiteralOperand(int ordinal) {
+    return RexLiteral.stringValue(operands.get(ordinal));
+  }
 
-    // implement SqlOperatorBinding
-    public int getIntLiteralOperand(int ordinal)
-    {
-        return RexLiteral.intValue(operands.get(ordinal));
-    }
+  // implement SqlOperatorBinding
+  public int getIntLiteralOperand(int ordinal) {
+    return RexLiteral.intValue(operands.get(ordinal));
+  }
 
-    // implement SqlOperatorBinding
-    public boolean isOperandNull(int ordinal, boolean allowCast)
-    {
-        return RexUtil.isNullLiteral(operands.get(ordinal), allowCast);
-    }
+  // implement SqlOperatorBinding
+  public boolean isOperandNull(int ordinal, boolean allowCast) {
+    return RexUtil.isNullLiteral(operands.get(ordinal), allowCast);
+  }
 
-    // implement SqlOperatorBinding
-    public int getOperandCount()
-    {
-        return operands.size();
-    }
+  // implement SqlOperatorBinding
+  public int getOperandCount() {
+    return operands.size();
+  }
 
-    // implement SqlOperatorBinding
-    public RelDataType getOperandType(int ordinal)
-    {
-        return operands.get(ordinal).getType();
-    }
+  // implement SqlOperatorBinding
+  public RelDataType getOperandType(int ordinal) {
+    return operands.get(ordinal).getType();
+  }
 
-    public EigenbaseException newError(
-        SqlValidatorException e)
-    {
-        return SqlUtil.newContextException(SqlParserPos.ZERO, e);
-    }
+  public EigenbaseException newError(
+      SqlValidatorException e) {
+    return SqlUtil.newContextException(SqlParserPos.ZERO, e);
+  }
 }
 
 // End RexCallBinding.java

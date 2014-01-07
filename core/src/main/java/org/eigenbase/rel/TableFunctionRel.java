@@ -32,60 +32,58 @@ import com.google.common.collect.ImmutableSet;
  * result set. Currently, it can only appear as a leaf in a query tree, but
  * eventually we will extend it to take relational inputs.
  */
-public class TableFunctionRel
-    extends TableFunctionRelBase
-{
-    //~ Constructors -----------------------------------------------------------
+public class TableFunctionRel extends TableFunctionRelBase {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a <code>TableFunctionRel</code>.
-     *
-     * @param cluster Cluster that this relational expression belongs to
-     * @param inputs 0 or more relational inputs
-     * @param rexCall function invocation expression
-     * @param rowType row type produced by function
-     * @param columnMappings column mappings associated with this function
-     */
-    public TableFunctionRel(
-        RelOptCluster cluster,
-        List<RelNode> inputs,
-        RexNode rexCall,
-        RelDataType rowType,
-        Set<RelColumnMapping> columnMappings)
-    {
-        super(
-            cluster,
-            cluster.traitSetOf(Convention.NONE),
-            inputs,
-            rexCall,
-            rowType,
-            columnMappings);
-    }
+  /**
+   * Creates a <code>TableFunctionRel</code>.
+   *
+   * @param cluster        Cluster that this relational expression belongs to
+   * @param inputs         0 or more relational inputs
+   * @param rexCall        function invocation expression
+   * @param rowType        row type produced by function
+   * @param columnMappings column mappings associated with this function
+   */
+  public TableFunctionRel(
+      RelOptCluster cluster,
+      List<RelNode> inputs,
+      RexNode rexCall,
+      RelDataType rowType,
+      Set<RelColumnMapping> columnMappings) {
+    super(
+        cluster,
+        cluster.traitSetOf(Convention.NONE),
+        inputs,
+        rexCall,
+        rowType,
+        columnMappings);
+  }
 
-    /** Creates a TableFunctionRel by parsing serialized output. */
-    public TableFunctionRel(RelInput input) {
-        super(input);
-    }
+  /**
+   * Creates a TableFunctionRel by parsing serialized output.
+   */
+  public TableFunctionRel(RelInput input) {
+    super(input);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    @Override
-    public TableFunctionRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(Convention.NONE);
-        return new TableFunctionRel(
-            getCluster(),
-            inputs,
-            getCall(),
-            getRowType(),
-            columnMappings);
-    }
+  @Override
+  public TableFunctionRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.comprises(Convention.NONE);
+    return new TableFunctionRel(
+        getCluster(),
+        inputs,
+        getCall(),
+        getRowType(),
+        columnMappings);
+  }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner)
-    {
-        // REVIEW jvs 8-Jan-2006:  what is supposed to be here
-        // for an abstract rel?
-        return planner.makeHugeCost();
-    }
+  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    // REVIEW jvs 8-Jan-2006:  what is supposed to be here
+    // for an abstract rel?
+    return planner.makeHugeCost();
+  }
 }
 
 // End TableFunctionRel.java

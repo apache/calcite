@@ -25,56 +25,50 @@ import org.eigenbase.sql.validate.*;
 /**
  * The <code>POSITION</code> function.
  */
-public class SqlPositionFunction
-    extends SqlFunction
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlPositionFunction extends SqlFunction {
+  //~ Constructors -----------------------------------------------------------
 
-    // FIXME jvs 25-Jan-2009:  POSITION should verify that
-    // params are all same character set, like OVERLAY does implicitly
-    // as part of rtiDyadicStringSumPrecision
+  // FIXME jvs 25-Jan-2009:  POSITION should verify that
+  // params are all same character set, like OVERLAY does implicitly
+  // as part of rtiDyadicStringSumPrecision
 
-    public SqlPositionFunction()
-    {
-        super(
-            "POSITION",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiNullableInteger,
-            null,
-            SqlTypeStrategies.otcStringSameX2,
-            SqlFunctionCategory.Numeric);
-    }
+  public SqlPositionFunction() {
+    super(
+        "POSITION",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiNullableInteger,
+        null,
+        SqlTypeStrategies.otcStringSameX2,
+        SqlFunctionCategory.Numeric);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        final SqlWriter.Frame frame = writer.startFunCall(getName());
-        operands[0].unparse(writer, leftPrec, rightPrec);
-        writer.sep("IN");
-        operands[1].unparse(writer, leftPrec, rightPrec);
-        writer.endFunCall(frame);
-    }
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall(getName());
+    operands[0].unparse(writer, leftPrec, rightPrec);
+    writer.sep("IN");
+    operands[1].unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(frame);
+  }
 
-    public String getSignatureTemplate(final int operandsCount)
-    {
-        assert operandsCount == 2;
-        return "{0}({1} IN {2})";
-    }
+  public String getSignatureTemplate(final int operandsCount) {
+    assert operandsCount == 2;
+    return "{0}({1} IN {2})";
+  }
 
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        // check that the two operands are of same type.
-        return SqlTypeStrategies.otcSameX2.checkOperandTypes(
-            callBinding, throwOnFailure)
-            && super.checkOperandTypes(callBinding, throwOnFailure);
-    }
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    // check that the two operands are of same type.
+    return SqlTypeStrategies.otcSameX2.checkOperandTypes(
+        callBinding, throwOnFailure)
+        && super.checkOperandTypes(callBinding, throwOnFailure);
+  }
 }
 
 // End SqlPositionFunction.java

@@ -27,66 +27,57 @@ import org.eigenbase.util.*;
  * <p>Its {@link #value} field is an {@link NlsString} and {@link #typeName} is
  * {@link SqlTypeName#CHAR}.
  */
-public class SqlCharStringLiteral
-    extends SqlAbstractStringLiteral
+public class SqlCharStringLiteral extends SqlAbstractStringLiteral
 {
     //~ Constructors -----------------------------------------------------------
 
-    protected SqlCharStringLiteral(
-        NlsString val,
-        SqlParserPos pos)
-    {
-        super(val, SqlTypeName.CHAR, pos);
-    }
+  protected SqlCharStringLiteral(NlsString val, SqlParserPos pos) {
+    super(val, SqlTypeName.CHAR, pos);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * @return the underlying NlsString
-     */
-    public NlsString getNlsString()
-    {
-        return (NlsString) value;
-    }
+  /**
+   * @return the underlying NlsString
+   */
+  public NlsString getNlsString() {
+    return (NlsString) value;
+  }
 
-    /**
-     * @return the collation
-     */
-    public SqlCollation getCollation()
-    {
-        return getNlsString().getCollation();
-    }
+  /**
+   * @return the collation
+   */
+  public SqlCollation getCollation() {
+    return getNlsString().getCollation();
+  }
 
-    public SqlNode clone(SqlParserPos pos)
-    {
-        return new SqlCharStringLiteral((NlsString) value, pos);
-    }
+  public SqlNode clone(SqlParserPos pos) {
+    return new SqlCharStringLiteral((NlsString) value, pos);
+  }
 
-    public void unparse(
-        SqlWriter writer,
-        int leftPrec,
-        int rightPrec)
-    {
-        if (false) {
-            Util.discard(Bug.Frg78Fixed);
-            String stringValue = ((NlsString) value).getValue();
-            writer.literal(
-                writer.getDialect().quoteStringLiteral(stringValue));
-        }
-        assert value instanceof NlsString;
-        writer.literal(value.toString());
+  public void unparse(
+      SqlWriter writer,
+      int leftPrec,
+      int rightPrec) {
+    if (false) {
+      Util.discard(Bug.Frg78Fixed);
+      String stringValue = ((NlsString) value).getValue();
+      writer.literal(
+          writer.getDialect().quoteStringLiteral(stringValue));
     }
+    assert value instanceof NlsString;
+    writer.literal(value.toString());
+  }
 
-    protected SqlAbstractStringLiteral concat1(SqlLiteral [] lits)
-    {
-        NlsString [] args = new NlsString[lits.length];
-        for (int i = 0; i < lits.length; i++) {
-            args[i] = ((SqlCharStringLiteral) lits[i]).getNlsString();
-        }
-        return new SqlCharStringLiteral(
-            NlsString.concat(args),
-            lits[0].getParserPosition());
+  protected SqlAbstractStringLiteral concat1(SqlLiteral[] lits) {
+    NlsString[] args = new NlsString[lits.length];
+    for (int i = 0; i < lits.length; i++) {
+      args[i] = ((SqlCharStringLiteral) lits[i]).getNlsString();
     }
+    return new SqlCharStringLiteral(
+        NlsString.concat(args),
+        lits[0].getParserPosition());
+  }
 }
 
 // End SqlCharStringLiteral.java

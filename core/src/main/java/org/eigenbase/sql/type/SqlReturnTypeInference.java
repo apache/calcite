@@ -29,19 +29,17 @@ import org.eigenbase.sql.*;
  * sense because many operators have similar, straightforward strategies, such
  * as to take the type of the first operand.</p>
  */
-public interface SqlReturnTypeInference
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SqlReturnTypeInference {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Infers the return type of a call to an {@link SqlOperator}.
-     *
-     * @param opBinding description of operator binding
-     *
-     * @return inferred type; may be null
-     */
-    public RelDataType inferReturnType(
-        SqlOperatorBinding opBinding);
+  /**
+   * Infers the return type of a call to an {@link SqlOperator}.
+   *
+   * @param opBinding description of operator binding
+   * @return inferred type; may be null
+   */
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding);
 }
 
 // End SqlReturnTypeInference.java

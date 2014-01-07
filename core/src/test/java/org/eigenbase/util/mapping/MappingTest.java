@@ -48,7 +48,9 @@ public class MappingTest {
             Mappings.create(MappingType.PartialSurjection, 4, 4)));
   }
 
-  /** Unit test for {@link Mappings#createShiftMapping}. */
+  /**
+   * Unit test for {@link Mappings#createShiftMapping}.
+   */
   @Test public void testMappingsCreateShiftMapping() {
     assertEquals(
         "[size=5, sourceCount=20, targetCount=13, elements=[6:3, 7:4, 15:10, 16:11, 17:12]]",
@@ -68,7 +70,9 @@ public class MappingTest {
     assertEquals(0, mapping.getTargetCount());
   }
 
-  /** Unit test for {@link Mappings#append}. */
+  /**
+   * Unit test for {@link Mappings#append}.
+   */
   @Test public void testMappingsAppend() {
     assertTrue(
         Mappings.isIdentity(
@@ -84,7 +88,9 @@ public class MappingTest {
         Mappings.append(mapping0, Mappings.createIdentity(2)).toString());
   }
 
-  /** Unit test for {@link Mappings#offsetSource}. */
+  /**
+   * Unit test for {@link Mappings#offsetSource}.
+   */
   @Test public void testMappingsOffsetSource() {
     final Mappings.TargetMapping mapping =
         Mappings.target(ImmutableMap.of(0, 5, 1, 7), 2, 8);

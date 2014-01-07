@@ -41,240 +41,227 @@ import org.eigenbase.sql.util.*;
  * </ul>
  * </p>
  */
-public class SqlSelectOperator
-    extends SqlOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlSelectOperator extends SqlOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlSelectOperator()
-    {
-        super(
-            "SELECT",
-            SqlKind.SELECT,
-            2,
-            true,
-            SqlTypeStrategies.rtiScope,
-            null,
-            null);
+  public SqlSelectOperator() {
+    super(
+        "SELECT",
+        SqlKind.SELECT,
+        2,
+        true,
+        SqlTypeStrategies.rtiScope,
+        null,
+        null);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.Special;
+  }
+
+  public SqlCall createCall(
+      SqlLiteral functionQualifier,
+      SqlParserPos pos,
+      SqlNode... operands) {
+    assert functionQualifier == null;
+    return new SqlSelect(this, operands, pos);
+  }
+
+  /**
+   * Creates a call to the <code>SELECT</code> operator.
+   *
+   * @param keywordList List of keywords such DISTINCT and ALL, or null
+   * @param selectList  The SELECT clause, or null if empty
+   * @param fromClause  The FROM clause
+   * @param whereClause The WHERE clause, or null if not present
+   * @param groupBy     The GROUP BY clause, or null if not present
+   * @param having      The HAVING clause, or null if not present
+   * @param windowDecls The WINDOW clause, or null if not present
+   * @param orderBy     The ORDER BY clause, or null if not present
+   * @param offset      Expression for number of rows to discard before
+   *                    returning first row
+   * @param fetch       Expression for number of rows to fetch
+   * @param pos         The parser position, or
+   *                    {@link org.eigenbase.sql.parser.SqlParserPos#ZERO} if not
+   *                    specified; must not be null.
+   * @return A {@link SqlSelect}, never null
+   */
+  public SqlSelect createCall(
+      SqlNodeList keywordList,
+      SqlNodeList selectList,
+      SqlNode fromClause,
+      SqlNode whereClause,
+      SqlNode groupBy,
+      SqlNode having,
+      SqlNodeList windowDecls,
+      SqlNode orderBy,
+      SqlNode offset,
+      SqlNode fetch,
+      SqlParserPos pos) {
+    if (keywordList == null) {
+      keywordList = new SqlNodeList(pos);
+    }
+    if (windowDecls == null) {
+      windowDecls = new SqlNodeList(pos);
+    }
+    return (SqlSelect) createCall(
+        pos,
+        keywordList,
+        selectList,
+        fromClause,
+        whereClause,
+        groupBy,
+        having,
+        windowDecls,
+        orderBy,
+        offset,
+        fetch);
+  }
+
+  public <R> void acceptCall(
+      SqlVisitor<R> visitor,
+      SqlCall call,
+      boolean onlyExpressions,
+      SqlBasicVisitor.ArgHandler<R> argHandler) {
+    if (onlyExpressions) {
+      // None of the arguments to the SELECT operator are expressions.
+      return;
+    } else {
+      super.acceptCall(visitor, call, onlyExpressions, argHandler);
+    }
+  }
+
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame selectFrame =
+        writer.startList(SqlWriter.FrameTypeEnum.Select);
+    writer.sep("SELECT");
+    final SqlNodeList keywords =
+        (SqlNodeList) operands[SqlSelect.KEYWORDS_OPERAND];
+    for (int i = 0; i < keywords.size(); i++) {
+      final SqlNode keyword = keywords.get(i);
+      keyword.unparse(writer, 0, 0);
+    }
+    SqlNode selectClause = operands[SqlSelect.SELECT_OPERAND];
+    if (selectClause == null) {
+      selectClause =
+          new SqlIdentifier(
+              "*",
+              SqlParserPos.ZERO);
+    }
+    final SqlWriter.Frame selectListFrame =
+        writer.startList(SqlWriter.FrameTypeEnum.SelectList);
+    unparseListClause(writer, selectClause);
+    writer.endList(selectListFrame);
+
+    SqlNode fromClause = operands[SqlSelect.FROM_OPERAND];
+    if (fromClause != null) {
+      // Optiq SQL requires FROM but MySQL does not.
+      writer.sep("FROM");
+
+      // for FROM clause, use precedence just below join operator to make
+      // sure that an un-joined nested select will be properly
+      // parenthesized
+      final SqlWriter.Frame fromFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.FromList);
+      fromClause.unparse(
+          writer,
+          SqlStdOperatorTable.joinOperator.getLeftPrec() - 1,
+          SqlStdOperatorTable.joinOperator.getRightPrec() - 1);
+      writer.endList(fromFrame);
     }
 
-    //~ Methods ----------------------------------------------------------------
+    SqlNode whereClause = operands[SqlSelect.WHERE_OPERAND];
 
-    public SqlSyntax getSyntax()
-    {
-        return SqlSyntax.Special;
+    if (whereClause != null) {
+      writer.sep("WHERE");
+
+      if (!writer.isAlwaysUseParentheses()) {
+        SqlNode node = whereClause;
+
+        // decide whether to split on ORs or ANDs
+        SqlKind whereSepKind = SqlKind.AND;
+        if ((node instanceof SqlCall)
+            && node.getKind() == SqlKind.OR) {
+          whereSepKind = SqlKind.OR;
+        }
+
+        // unroll whereClause
+        ArrayList<SqlNode> list = new ArrayList<SqlNode>(0);
+        while (
+            (node instanceof SqlCall)
+                && (node.getKind() == whereSepKind)) {
+          list.add(0, ((SqlCall) node).getOperands()[1]);
+          node = ((SqlCall) node).getOperands()[0];
+        }
+        list.add(0, node);
+
+        // unparse in a WhereList frame
+        final SqlWriter.Frame whereFrame =
+            writer.startList(SqlWriter.FrameTypeEnum.WhereList);
+        unparseListClause(
+            writer,
+            new SqlNodeList(
+                list,
+                whereClause.getParserPosition()),
+            whereSepKind);
+        writer.endList(whereFrame);
+      } else {
+        whereClause.unparse(writer, 0, 0);
+      }
     }
-
-    public SqlCall createCall(
-        SqlLiteral functionQualifier,
-        SqlParserPos pos,
-        SqlNode ... operands)
-    {
-        assert functionQualifier == null;
-        return new SqlSelect(this, operands, pos);
+    SqlNodeList groupClause =
+        (SqlNodeList) operands[SqlSelect.GROUP_OPERAND];
+    if (groupClause != null) {
+      writer.sep("GROUP BY");
+      final SqlWriter.Frame groupFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.GroupByList);
+      if (groupClause.getList().isEmpty()) {
+        final SqlWriter.Frame frame =
+            writer.startList(SqlWriter.FrameTypeEnum.Simple, "(", ")");
+        writer.endList(frame);
+      } else {
+        unparseListClause(writer, groupClause);
+      }
+      writer.endList(groupFrame);
     }
-
-    /**
-     * Creates a call to the <code>SELECT</code> operator.
-     *
-     *
-     *
-     * @param keywordList List of keywords such DISTINCT and ALL, or null
-     * @param selectList The SELECT clause, or null if empty
-     * @param fromClause The FROM clause
-     * @param whereClause The WHERE clause, or null if not present
-     * @param groupBy The GROUP BY clause, or null if not present
-     * @param having The HAVING clause, or null if not present
-     * @param windowDecls The WINDOW clause, or null if not present
-     * @param orderBy The ORDER BY clause, or null if not present
-     * @param offset Expression for number of rows to discard before returning
-     *               first row
-     * @param fetch Expression for number of rows to fetch
-     * @param pos The parser position, or
-     *            {@link org.eigenbase.sql.parser.SqlParserPos#ZERO} if not
-     *            specified; must not be null.
-     * @return A {@link SqlSelect}, never null
-     */
-    public SqlSelect createCall(
-        SqlNodeList keywordList,
-        SqlNodeList selectList,
-        SqlNode fromClause,
-        SqlNode whereClause,
-        SqlNode groupBy,
-        SqlNode having,
-        SqlNodeList windowDecls,
-        SqlNode orderBy,
-        SqlNode offset,
-        SqlNode fetch,
-        SqlParserPos pos)
-    {
-        if (keywordList == null) {
-            keywordList = new SqlNodeList(pos);
-        }
-        if (windowDecls == null) {
-            windowDecls = new SqlNodeList(pos);
-        }
-        return (SqlSelect) createCall(
-            pos,
-            keywordList,
-            selectList,
-            fromClause,
-            whereClause,
-            groupBy,
-            having,
-            windowDecls,
-            orderBy,
-            offset,
-            fetch);
+    SqlNode havingClause = operands[SqlSelect.HAVING_OPERAND];
+    if (havingClause != null) {
+      writer.sep("HAVING");
+      havingClause.unparse(writer, 0, 0);
     }
-
-    public <R> void acceptCall(
-        SqlVisitor<R> visitor,
-        SqlCall call,
-        boolean onlyExpressions,
-        SqlBasicVisitor.ArgHandler<R> argHandler)
-    {
-        if (onlyExpressions) {
-            // None of the arguments to the SELECT operator are expressions.
-            return;
-        } else {
-            super.acceptCall(visitor, call, onlyExpressions, argHandler);
-        }
+    SqlNodeList windowDecls =
+        (SqlNodeList) operands[SqlSelect.WINDOW_OPERAND];
+    if (windowDecls.size() > 0) {
+      writer.sep("WINDOW");
+      final SqlWriter.Frame windowFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.WindowDeclList);
+      for (int i = 0; i < windowDecls.size(); i++) {
+        SqlNode windowDecl = windowDecls.get(i);
+        writer.sep(",");
+        windowDecl.unparse(writer, 0, 0);
+      }
+      writer.endList(windowFrame);
     }
-
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        final SqlWriter.Frame selectFrame =
-            writer.startList(SqlWriter.FrameTypeEnum.Select);
-        writer.sep("SELECT");
-        final SqlNodeList keywords =
-            (SqlNodeList) operands[SqlSelect.KEYWORDS_OPERAND];
-        for (int i = 0; i < keywords.size(); i++) {
-            final SqlNode keyword = keywords.get(i);
-            keyword.unparse(writer, 0, 0);
-        }
-        SqlNode selectClause = operands[SqlSelect.SELECT_OPERAND];
-        if (selectClause == null) {
-            selectClause =
-                new SqlIdentifier(
-                    "*",
-                    SqlParserPos.ZERO);
-        }
-        final SqlWriter.Frame selectListFrame =
-            writer.startList(SqlWriter.FrameTypeEnum.SelectList);
-        unparseListClause(writer, selectClause);
-        writer.endList(selectListFrame);
-
-        SqlNode fromClause = operands[SqlSelect.FROM_OPERAND];
-        if (fromClause != null) {
-            // Optiq SQL requires FROM but MySQL does not.
-            writer.sep("FROM");
-
-            // for FROM clause, use precedence just below join operator to make
-            // sure that an un-joined nested select will be properly
-            // parenthesized
-            final SqlWriter.Frame fromFrame =
-                writer.startList(SqlWriter.FrameTypeEnum.FromList);
-            fromClause.unparse(
-                writer,
-                SqlStdOperatorTable.joinOperator.getLeftPrec() - 1,
-                SqlStdOperatorTable.joinOperator.getRightPrec() - 1);
-            writer.endList(fromFrame);
-        }
-
-        SqlNode whereClause = operands[SqlSelect.WHERE_OPERAND];
-
-        if (whereClause != null) {
-            writer.sep("WHERE");
-
-            if (!writer.isAlwaysUseParentheses()) {
-                SqlNode node = whereClause;
-
-                // decide whether to split on ORs or ANDs
-                SqlKind whereSepKind = SqlKind.AND;
-                if ((node instanceof SqlCall)
-                    && node.getKind() == SqlKind.OR)
-                {
-                    whereSepKind = SqlKind.OR;
-                }
-
-                // unroll whereClause
-                ArrayList<SqlNode> list = new ArrayList<SqlNode>(0);
-                while (
-                    (node instanceof SqlCall)
-                    && (node.getKind() == whereSepKind))
-                {
-                    list.add(0, ((SqlCall) node).getOperands()[1]);
-                    node = ((SqlCall) node).getOperands()[0];
-                }
-                list.add(0, node);
-
-                // unparse in a WhereList frame
-                final SqlWriter.Frame whereFrame =
-                    writer.startList(SqlWriter.FrameTypeEnum.WhereList);
-                unparseListClause(
-                    writer,
-                    new SqlNodeList(
-                        list,
-                        whereClause.getParserPosition()),
-                    whereSepKind);
-                writer.endList(whereFrame);
-            } else {
-                whereClause.unparse(writer, 0, 0);
-            }
-        }
-        SqlNodeList groupClause =
-            (SqlNodeList) operands[SqlSelect.GROUP_OPERAND];
-        if (groupClause != null) {
-            writer.sep("GROUP BY");
-            final SqlWriter.Frame groupFrame =
-                writer.startList(SqlWriter.FrameTypeEnum.GroupByList);
-            if (groupClause.getList().isEmpty()) {
-                final SqlWriter.Frame frame =
-                    writer.startList(SqlWriter.FrameTypeEnum.Simple, "(", ")");
-                writer.endList(frame);
-            } else {
-                unparseListClause(writer, groupClause);
-            }
-            writer.endList(groupFrame);
-        }
-        SqlNode havingClause = operands[SqlSelect.HAVING_OPERAND];
-        if (havingClause != null) {
-            writer.sep("HAVING");
-            havingClause.unparse(writer, 0, 0);
-        }
-        SqlNodeList windowDecls =
-            (SqlNodeList) operands[SqlSelect.WINDOW_OPERAND];
-        if (windowDecls.size() > 0) {
-            writer.sep("WINDOW");
-            final SqlWriter.Frame windowFrame =
-                writer.startList(SqlWriter.FrameTypeEnum.WindowDeclList);
-            for (int i = 0; i < windowDecls.size(); i++) {
-                SqlNode windowDecl = windowDecls.get(i);
-                writer.sep(",");
-                windowDecl.unparse(writer, 0, 0);
-            }
-            writer.endList(windowFrame);
-        }
-        SqlNode orderClause = operands[SqlSelect.ORDER_OPERAND];
-        if (orderClause != null) {
-            writer.sep("ORDER BY");
-            final SqlWriter.Frame orderFrame =
-                writer.startList(SqlWriter.FrameTypeEnum.OrderByList);
-            unparseListClause(writer, orderClause);
-            writer.endList(orderFrame);
-        }
-        writer.endList(selectFrame);
+    SqlNode orderClause = operands[SqlSelect.ORDER_OPERAND];
+    if (orderClause != null) {
+      writer.sep("ORDER BY");
+      final SqlWriter.Frame orderFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.OrderByList);
+      unparseListClause(writer, orderClause);
+      writer.endList(orderFrame);
     }
+    writer.endList(selectFrame);
+  }
 
-    public boolean argumentMustBeScalar(int ordinal)
-    {
-        return ordinal == SqlSelect.WHERE_OPERAND;
-    }
+  public boolean argumentMustBeScalar(int ordinal) {
+    return ordinal == SqlSelect.WHERE_OPERAND;
+  }
 }
 
 // End SqlSelectOperator.java

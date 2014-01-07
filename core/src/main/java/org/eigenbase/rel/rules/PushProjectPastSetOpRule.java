@@ -28,79 +28,75 @@ import org.eigenbase.rex.*;
  * past a {@link SetOpRel}. The children of the {@link SetOpRel} will project
  * only the {@link RexInputRef}s referenced in the original {@link ProjectRel}.
  */
-public class PushProjectPastSetOpRule
-    extends RelOptRule
-{
-    public static final PushProjectPastSetOpRule instance =
-        new PushProjectPastSetOpRule(PushProjector.ExprCondition.FALSE);
+public class PushProjectPastSetOpRule extends RelOptRule {
+  public static final PushProjectPastSetOpRule instance =
+      new PushProjectPastSetOpRule(PushProjector.ExprCondition.FALSE);
 
-    //~ Instance fields --------------------------------------------------------
+  //~ Instance fields --------------------------------------------------------
 
-    /**
-     * Expressions that should be preserved in the projection
-     */
-    private PushProjector.ExprCondition preserveExprCondition;
+  /**
+   * Expressions that should be preserved in the projection
+   */
+  private PushProjector.ExprCondition preserveExprCondition;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a PushProjectPastSetOpRule with an explicit condition whether
-     * to preserve expressions.
-     *
-     * @param preserveExprCondition Condition whether to preserve expressions
-     */
-    public PushProjectPastSetOpRule(
-        PushProjector.ExprCondition preserveExprCondition)
-    {
-        super(
-            operand(
-                ProjectRel.class,
-                operand(SetOpRel.class, any())));
-        this.preserveExprCondition = preserveExprCondition;
+  /**
+   * Creates a PushProjectPastSetOpRule with an explicit condition whether
+   * to preserve expressions.
+   *
+   * @param preserveExprCondition Condition whether to preserve expressions
+   */
+  public PushProjectPastSetOpRule(
+      PushProjector.ExprCondition preserveExprCondition) {
+    super(
+        operand(
+            ProjectRel.class,
+            operand(SetOpRel.class, any())));
+    this.preserveExprCondition = preserveExprCondition;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelOptRule
+  public void onMatch(RelOptRuleCall call) {
+    ProjectRel origProj = call.rel(0);
+    SetOpRel setOpRel = call.rel(1);
+
+    // cannot push project past a distinct
+    if (!setOpRel.all) {
+      return;
     }
 
-    //~ Methods ----------------------------------------------------------------
+    // locate all fields referenced in the projection
+    PushProjector pushProject =
+        new PushProjector(origProj, null, setOpRel, preserveExprCondition);
+    pushProject.locateAllRefs();
 
-    // implement RelOptRule
-    public void onMatch(RelOptRuleCall call)
-    {
-        ProjectRel origProj = call.rel(0);
-        SetOpRel setOpRel = call.rel(1);
+    List<RelNode> newSetOpInputs = new ArrayList<RelNode>();
+    int[] adjustments = pushProject.getAdjustments();
 
-        // cannot push project past a distinct
-        if (!setOpRel.all) {
-            return;
-        }
-
-        // locate all fields referenced in the projection
-        PushProjector pushProject =
-            new PushProjector(origProj, null, setOpRel, preserveExprCondition);
-        pushProject.locateAllRefs();
-
-        List<RelNode> newSetOpInputs = new ArrayList<RelNode>();
-        int [] adjustments = pushProject.getAdjustments();
-
-        // push the projects completely below the setop; this
-        // is different from pushing below a join, where we decompose
-        // to try to keep expensive expressions above the join,
-        // because UNION ALL does not have any filtering effect,
-        // and it is the only operator this rule currently acts on
-        for (RelNode input : setOpRel.getInputs()) {
-            // be lazy:  produce two ProjectRels, and let another rule
-            // merge them (could probably just clone origProj instead?)
-            ProjectRel p =
-                pushProject.createProjectRefsAndExprs(
-                    input, true, false);
-            newSetOpInputs.add(
-                pushProject.createNewProject(p, adjustments));
-        }
-
-        // create a new setop whose children are the ProjectRels created above
-        SetOpRel newSetOpRel =
-            setOpRel.copy(setOpRel.getTraitSet(), newSetOpInputs);
-
-        call.transformTo(newSetOpRel);
+    // push the projects completely below the setop; this
+    // is different from pushing below a join, where we decompose
+    // to try to keep expensive expressions above the join,
+    // because UNION ALL does not have any filtering effect,
+    // and it is the only operator this rule currently acts on
+    for (RelNode input : setOpRel.getInputs()) {
+      // be lazy:  produce two ProjectRels, and let another rule
+      // merge them (could probably just clone origProj instead?)
+      ProjectRel p =
+          pushProject.createProjectRefsAndExprs(
+              input, true, false);
+      newSetOpInputs.add(
+          pushProject.createNewProject(p, adjustments));
     }
+
+    // create a new setop whose children are the ProjectRels created above
+    SetOpRel newSetOpRel =
+        setOpRel.copy(setOpRel.getTraitSet(), newSetOpInputs);
+
+    call.transformTo(newSetOpRel);
+  }
 }
 
 // End PushProjectPastSetOpRule.java

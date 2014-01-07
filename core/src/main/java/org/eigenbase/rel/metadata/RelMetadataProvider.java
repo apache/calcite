@@ -28,27 +28,26 @@ import org.eigenbase.rel.*;
  * <p>For background and motivation, see <a
  * href="http://wiki.eigenbase.org/RelationalExpressionMetadata">wiki</a>.
  */
-public interface RelMetadataProvider
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RelMetadataProvider {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Retrieves metadata about a relational expression.
-     *
-     * @param rel relational expression of interest
-     * @param metadataQueryName name of metadata query to invoke
-     * @param args arguments to metadata query (expected number and type depend
-     * on query name; must have well-defined hashCode/equals for use by
-     * caching); null can be used instead of empty array
-     *
-     * @return metadata result (actual type depends on query name), or null if
-     * the provider cannot answer the given query/rel combination; it is better
-     * to return null than to return a possibly incorrect answer
-     */
-    public Object getRelMetadata(
-        RelNode rel,
-        String metadataQueryName,
-        Object [] args);
+  /**
+   * Retrieves metadata about a relational expression.
+   *
+   * @param rel               relational expression of interest
+   * @param metadataQueryName name of metadata query to invoke
+   * @param args              arguments to metadata query (expected number and
+   *                          type depend on query name; must have well-defined
+   *                          hashCode/equals for use by caching); null can be
+   *                          used instead of empty array
+   * @return metadata result (actual type depends on query name), or null if
+   * the provider cannot answer the given query/rel combination; it is better
+   * to return null than to return a possibly incorrect answer
+   */
+  public Object getRelMetadata(
+      RelNode rel,
+      String metadataQueryName,
+      Object[] args);
 }
 
 // End RelMetadataProvider.java

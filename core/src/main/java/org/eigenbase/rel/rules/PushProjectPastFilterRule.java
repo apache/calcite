@@ -25,77 +25,70 @@ import org.eigenbase.rex.*;
  * PushProjectPastFilterRule implements the rule for pushing a projection past a
  * filter.
  */
-public class PushProjectPastFilterRule
-    extends RelOptRule
-{
-    public static final PushProjectPastFilterRule instance =
-        new PushProjectPastFilterRule(PushProjector.ExprCondition.FALSE);
+public class PushProjectPastFilterRule extends RelOptRule {
+  public static final PushProjectPastFilterRule instance =
+      new PushProjectPastFilterRule(PushProjector.ExprCondition.FALSE);
 
-    //~ Instance fields --------------------------------------------------------
+  //~ Instance fields --------------------------------------------------------
 
-    /**
-     * Expressions that should be preserved in the projection
-     */
-    private final PushProjector.ExprCondition preserveExprCondition;
+  /**
+   * Expressions that should be preserved in the projection
+   */
+  private final PushProjector.ExprCondition preserveExprCondition;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a PushProjectPastFilterRule.
-     *
-     * @param preserveExprCondition Condition for expressions that should be
-     * preserved in the projection
-     */
-    private PushProjectPastFilterRule(
-        PushProjector.ExprCondition preserveExprCondition)
-    {
-        super(
-            operand(
-                ProjectRel.class,
-                operand(FilterRel.class, any())));
-        this.preserveExprCondition = preserveExprCondition;
+  /**
+   * Creates a PushProjectPastFilterRule.
+   *
+   * @param preserveExprCondition Condition for expressions that should be
+   *                              preserved in the projection
+   */
+  private PushProjectPastFilterRule(
+      PushProjector.ExprCondition preserveExprCondition) {
+    super(
+        operand(
+            ProjectRel.class,
+            operand(FilterRel.class, any())));
+    this.preserveExprCondition = preserveExprCondition;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelOptRule
+  public void onMatch(RelOptRuleCall call) {
+    ProjectRel origProj;
+    FilterRel filterRel;
+
+    if (call.rels.length == 2) {
+      origProj = call.rel(0);
+      filterRel = call.rel(1);
+    } else {
+      origProj = null;
+      filterRel = call.rel(0);
+    }
+    RelNode rel = filterRel.getChild();
+    RexNode origFilter = filterRel.getCondition();
+
+    if ((origProj != null)
+        && RexOver.containsOver(origProj.getProjects(), null)) {
+      // Cannot push project through filter if project contains a windowed
+      // aggregate -- it will affect row counts. Abort this rule
+      // invocation; pushdown will be considered after the windowed
+      // aggregate has been implemented. It's OK if the filter contains a
+      // windowed aggregate.
+      return;
     }
 
-    //~ Methods ----------------------------------------------------------------
+    PushProjector pushProjector =
+        new PushProjector(
+            origProj, origFilter, rel, preserveExprCondition);
+    ProjectRel topProject = pushProjector.convertProject(null);
 
-    // implement RelOptRule
-    public void onMatch(RelOptRuleCall call)
-    {
-        ProjectRel origProj;
-        FilterRel filterRel;
-
-        if (call.rels.length == 2) {
-            origProj = call.rel(0);
-            filterRel = call.rel(1);
-        } else {
-            origProj = null;
-            filterRel = call.rel(0);
-        }
-        RelNode rel = filterRel.getChild();
-        RexNode origFilter = filterRel.getCondition();
-
-        if ((origProj != null)
-            && RexOver.containsOver(
-                origProj.getProjects(),
-                null))
-        {
-            // Cannot push project through filter if project contains a windowed
-            // aggregate -- it will affect row counts. Abort this rule
-            // invocation; pushdown will be considered after the windowed
-            // aggregate has been implemented. It's OK if the filter contains a
-            // windowed aggregate.
-            return;
-        }
-
-        PushProjector pushProjector =
-            new PushProjector(
-                origProj, origFilter, rel, preserveExprCondition);
-        ProjectRel topProject = pushProjector.convertProject(null);
-
-        if (topProject != null) {
-            call.transformTo(topProject);
-        }
+    if (topProject != null) {
+      call.transformTo(topProject);
     }
+  }
 }
 
 // End PushProjectPastFilterRule.java

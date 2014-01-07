@@ -27,52 +27,45 @@ import org.eigenbase.util.*;
  * <p>The {@link #value} field is a {@link BitString} and {@link #typeName} is
  * {@link SqlTypeName#BINARY}.
  */
-public class SqlBinaryStringLiteral
-    extends SqlAbstractStringLiteral
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlBinaryStringLiteral(
-        BitString val,
-        SqlParserPos pos)
-    {
-        super(val, SqlTypeName.BINARY, pos);
+  protected SqlBinaryStringLiteral(
+      BitString val,
+      SqlParserPos pos) {
+    super(val, SqlTypeName.BINARY, pos);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * @return the underlying BitString
+   */
+  public BitString getBitString() {
+    return (BitString) value;
+  }
+
+  public SqlNode clone(SqlParserPos pos) {
+    return new SqlBinaryStringLiteral((BitString) value, pos);
+  }
+
+  public void unparse(
+      SqlWriter writer,
+      int leftPrec,
+      int rightPrec) {
+    assert value instanceof BitString;
+    writer.literal("X'" + ((BitString) value).toHexString() + "'");
+  }
+
+  protected SqlAbstractStringLiteral concat1(SqlLiteral[] lits) {
+    BitString[] args = new BitString[lits.length];
+    for (int i = 0; i < lits.length; i++) {
+      args[i] = ((SqlBinaryStringLiteral) lits[i]).getBitString();
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * @return the underlying BitString
-     */
-    public BitString getBitString()
-    {
-        return (BitString) value;
-    }
-
-    public SqlNode clone(SqlParserPos pos)
-    {
-        return new SqlBinaryStringLiteral((BitString) value, pos);
-    }
-
-    public void unparse(
-        SqlWriter writer,
-        int leftPrec,
-        int rightPrec)
-    {
-        assert value instanceof BitString;
-        writer.literal("X'" + ((BitString) value).toHexString() + "'");
-    }
-
-    protected SqlAbstractStringLiteral concat1(SqlLiteral [] lits)
-    {
-        BitString [] args = new BitString[lits.length];
-        for (int i = 0; i < lits.length; i++) {
-            args[i] = ((SqlBinaryStringLiteral) lits[i]).getBitString();
-        }
-        return new SqlBinaryStringLiteral(
-            BitString.concat(args),
-            lits[0].getParserPosition());
-    }
+    return new SqlBinaryStringLiteral(
+        BitString.concat(args),
+        lits[0].getParserPosition());
+  }
 }
 
 // End SqlBinaryStringLiteral.java

@@ -46,102 +46,98 @@ import org.eigenbase.util.*;
  * would require emitting a NULL emp row if a certain department contained no
  * employees, and CorrelatorRel cannot do that.</p>
  */
-public class NestedLoopsJoinRule
-    extends RelOptRule
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class NestedLoopsJoinRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final NestedLoopsJoinRule instance =
-        new NestedLoopsJoinRule();
+  public static final NestedLoopsJoinRule instance =
+      new NestedLoopsJoinRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Private constructor; use singleton {@link #instance}.
-     */
-    private NestedLoopsJoinRule() {
-        super(operand(JoinRel.class, any()));
+  /**
+   * Private constructor; use singleton {@link #instance}.
+   */
+  private NestedLoopsJoinRule() {
+    super(operand(JoinRel.class, any()));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public boolean matches(RelOptRuleCall call) {
+    JoinRel join = call.rel(0);
+    switch (join.getJoinType()) {
+    case INNER:
+    case LEFT:
+      return true;
+    case FULL:
+    case RIGHT:
+      return false;
+    default:
+      throw Util.unexpected(join.getJoinType());
     }
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  public void onMatch(RelOptRuleCall call) {
+    assert matches(call);
+    final JoinRel join = call.rel(0);
+    final List<Integer> leftKeys = new ArrayList<Integer>();
+    final List<Integer> rightKeys = new ArrayList<Integer>();
+    RelNode right = join.getRight();
+    final RelNode left = join.getLeft();
+    RexNode remainingCondition =
+        RelOptUtil.splitJoinCondition(
+            left,
+            right,
+            join.getCondition(),
+            leftKeys,
+            rightKeys);
+    assert leftKeys.size() == rightKeys.size();
+    final List<CorrelatorRel.Correlation> correlationList =
+        new ArrayList<CorrelatorRel.Correlation>();
+    if (leftKeys.size() > 0) {
+      final RelOptCluster cluster = join.getCluster();
+      final RexBuilder rexBuilder = cluster.getRexBuilder();
+      RexNode condition = null;
+      for (Pair<Integer, Integer> p : Pair.zip(leftKeys, rightKeys)) {
+        final String dyn_inIdStr = cluster.getQuery().createCorrel();
+        final int dyn_inId = RelOptQuery.getCorrelOrdinal(dyn_inIdStr);
 
-    public boolean matches(RelOptRuleCall call)
-    {
-        JoinRel join = call.rel(0);
-        switch (join.getJoinType()) {
-        case INNER:
-        case LEFT:
-            return true;
-        case FULL:
-        case RIGHT:
-            return false;
-        default:
-            throw Util.unexpected(join.getJoinType());
-        }
+        // Create correlation to say 'each row, set variable #id
+        // to the value of column #leftKey'.
+        correlationList.add(
+            new CorrelatorRel.Correlation(
+                dyn_inId,
+                p.left));
+        condition =
+            RelOptUtil.andJoinFilters(
+                rexBuilder,
+                condition,
+                rexBuilder.makeCall(
+                    SqlStdOperatorTable.equalsOperator,
+                    rexBuilder.makeInputRef(
+                        right.getRowType().getFieldList().get(
+                            p.right).getType(),
+                        p.right),
+                    rexBuilder.makeCorrel(
+                        left.getRowType().getFieldList().get(
+                            p.left).getType(),
+                        dyn_inIdStr)));
+      }
+      right =
+          CalcRel.createFilter(
+              right,
+              condition);
     }
-
-    public void onMatch(RelOptRuleCall call)
-    {
-        assert matches(call);
-        final JoinRel join = call.rel(0);
-        final List<Integer> leftKeys = new ArrayList<Integer>();
-        final List<Integer> rightKeys = new ArrayList<Integer>();
-        RelNode right = join.getRight();
-        final RelNode left = join.getLeft();
-        RexNode remainingCondition =
-            RelOptUtil.splitJoinCondition(
-                left,
-                right,
-                join.getCondition(),
-                leftKeys,
-                rightKeys);
-        assert leftKeys.size() == rightKeys.size();
-        final List<CorrelatorRel.Correlation> correlationList =
-            new ArrayList<CorrelatorRel.Correlation>();
-        if (leftKeys.size() > 0) {
-            final RelOptCluster cluster = join.getCluster();
-            final RexBuilder rexBuilder = cluster.getRexBuilder();
-            RexNode condition = null;
-            for (Pair<Integer, Integer> p : Pair.zip(leftKeys, rightKeys)) {
-                final String dyn_inIdStr = cluster.getQuery().createCorrel();
-                final int dyn_inId = RelOptQuery.getCorrelOrdinal(dyn_inIdStr);
-
-                // Create correlation to say 'each row, set variable #id
-                // to the value of column #leftKey'.
-                correlationList.add(
-                    new CorrelatorRel.Correlation(
-                        dyn_inId,
-                        p.left));
-                condition =
-                    RelOptUtil.andJoinFilters(
-                        rexBuilder,
-                        condition,
-                        rexBuilder.makeCall(
-                            SqlStdOperatorTable.equalsOperator,
-                            rexBuilder.makeInputRef(
-                                right.getRowType().getFieldList().get(
-                                    p.right).getType(),
-                                p.right),
-                            rexBuilder.makeCorrel(
-                                left.getRowType().getFieldList().get(
-                                    p.left).getType(),
-                                dyn_inIdStr)));
-            }
-            right =
-                CalcRel.createFilter(
-                    right,
-                    condition);
-        }
-        RelNode newRel =
-            new CorrelatorRel(
-                join.getCluster(),
-                left,
-                right,
-                remainingCondition,
-                correlationList,
-                join.getJoinType());
-        call.transformTo(newRel);
-    }
+    RelNode newRel =
+        new CorrelatorRel(
+            join.getCluster(),
+            left,
+            right,
+            remainingCondition,
+            correlationList,
+            join.getJoinType());
+    call.transformTo(newRel);
+  }
 }
 
 // End NestedLoopsJoinRule.java

@@ -25,56 +25,53 @@ import org.eigenbase.relopt.*;
  * information from a {@link ProjectRel} into the {@link MultiJoinRel} that is
  * input into the {@link ProjectRel}.
  */
-public class PushProjectIntoMultiJoinRule
-    extends RelOptRule
-{
-    public static final PushProjectIntoMultiJoinRule instance =
-        new PushProjectIntoMultiJoinRule();
+public class PushProjectIntoMultiJoinRule extends RelOptRule {
+  public static final PushProjectIntoMultiJoinRule instance =
+      new PushProjectIntoMultiJoinRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a PushProjectIntoMultiJoinRule.
-     */
-    private PushProjectIntoMultiJoinRule() {
-        super(
-            operand(
-                ProjectRel.class,
-                operand(MultiJoinRel.class, any())));
+  /**
+   * Creates a PushProjectIntoMultiJoinRule.
+   */
+  private PushProjectIntoMultiJoinRule() {
+    super(
+        operand(
+            ProjectRel.class,
+            operand(MultiJoinRel.class, any())));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void onMatch(RelOptRuleCall call) {
+    ProjectRel project = call.rel(0);
+    MultiJoinRel multiJoin = call.rel(1);
+
+    // if all inputs have their projFields set, then projection information
+    // has already been pushed into each input
+    boolean allSet = true;
+    for (int i = 0; i < multiJoin.getInputs().size(); i++) {
+      if (multiJoin.getProjFields().get(i) == null) {
+        allSet = false;
+        break;
+      }
+    }
+    if (allSet) {
+      return;
     }
 
-    //~ Methods ----------------------------------------------------------------
+    // create a new MultiJoinRel that reflects the columns in the projection
+    // above the MultiJoinRel
+    MultiJoinRel newMultiJoin =
+        RelOptUtil.projectMultiJoin(multiJoin, project);
+    ProjectRel newProject =
+        (ProjectRel) CalcRel.createProject(
+            newMultiJoin,
+            project.getProjects(),
+            project.getRowType().getFieldNames());
 
-    public void onMatch(RelOptRuleCall call)
-    {
-        ProjectRel project = call.rel(0);
-        MultiJoinRel multiJoin = call.rel(1);
-
-        // if all inputs have their projFields set, then projection information
-        // has already been pushed into each input
-        boolean allSet = true;
-        for (int i = 0; i < multiJoin.getInputs().size(); i++) {
-            if (multiJoin.getProjFields().get(i) == null) {
-                allSet = false;
-                break;
-            }
-        }
-        if (allSet) {
-            return;
-        }
-
-        // create a new MultiJoinRel that reflects the columns in the projection
-        // above the MultiJoinRel
-        MultiJoinRel newMultiJoin =
-            RelOptUtil.projectMultiJoin(multiJoin, project);
-        ProjectRel newProject =
-            (ProjectRel) CalcRel.createProject(
-                newMultiJoin,
-                project.getProjects(),
-                project.getRowType().getFieldNames());
-
-        call.transformTo(newProject);
-    }
+    call.transformTo(newProject);
+  }
 }
 
 // End PushProjectIntoMultiJoinRule.java

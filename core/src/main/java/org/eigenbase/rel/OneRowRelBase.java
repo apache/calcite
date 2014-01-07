@@ -25,49 +25,45 @@ import org.eigenbase.sql.type.*;
  * <code>OneRowRelBase</code> is an abstract base class for implementations of
  * {@link OneRowRel}.
  */
-public abstract class OneRowRelBase
-    extends AbstractRelNode
-{
-    //~ Constructors -----------------------------------------------------------
+public abstract class OneRowRelBase extends AbstractRelNode {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a <code>OneRowRelBase</code> with specific traits.
-     *
-     * @param cluster {@link RelOptCluster}  this relational expression belongs
-     * to
-     * @param traits for this rel
-     */
-    protected OneRowRelBase(RelOptCluster cluster, RelTraitSet traits)
-    {
-        super(cluster, traits);
-    }
+  /**
+   * Creates a <code>OneRowRelBase</code> with specific traits.
+   *
+   * @param cluster {@link RelOptCluster}  this relational expression belongs
+   *                to
+   * @param traits  for this rel
+   */
+  protected OneRowRelBase(RelOptCluster cluster, RelTraitSet traits) {
+    super(cluster, traits);
+  }
 
-    /** Creates a OneRowRelBase by parsing serialized output. */
-    protected OneRowRelBase(RelInput input) {
-        this(input.getCluster(), input.getTraitSet());
-    }
+  /**
+   * Creates a OneRowRelBase by parsing serialized output.
+   */
+  protected OneRowRelBase(RelInput input) {
+    this(input.getCluster(), input.getTraitSet());
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner)
-    {
-        return planner.makeTinyCost();
-    }
+  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    return planner.makeTinyCost();
+  }
 
-    protected RelDataType deriveRowType()
-    {
-        return deriveOneRowType(getCluster().getTypeFactory());
-    }
+  protected RelDataType deriveRowType() {
+    return deriveOneRowType(getCluster().getTypeFactory());
+  }
 
-    public static RelDataType deriveOneRowType(RelDataTypeFactory typeFactory)
-    {
-        return typeFactory.createStructType(
-            new RelDataType[] {
-                typeFactory.createSqlType(
-                    SqlTypeName.INTEGER)
-            },
-            new String[] { "ZERO" });
-    }
+  public static RelDataType deriveOneRowType(RelDataTypeFactory typeFactory) {
+    return typeFactory.createStructType(
+        new RelDataType[]{
+            typeFactory.createSqlType(
+                SqlTypeName.INTEGER)
+        },
+        new String[]{"ZERO"});
+  }
 }
 
 // End OneRowRelBase.java

@@ -27,73 +27,66 @@ import org.eigenbase.util.*;
  * considered to be a NULL literal but not <code>CAST(CAST(NULL as ...) AS
  * ...)</code>
  */
-public class LiteralOperandTypeChecker
-    implements SqlSingleOperandTypeChecker
-{
-    //~ Instance fields --------------------------------------------------------
+public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
+  //~ Instance fields --------------------------------------------------------
 
-    private boolean allowNull;
+  private boolean allowNull;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public LiteralOperandTypeChecker(boolean allowNull)
-    {
-        this.allowNull = allowNull;
-    }
+  public LiteralOperandTypeChecker(boolean allowNull) {
+    this.allowNull = allowNull;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public boolean checkSingleOperandType(
-        SqlCallBinding callBinding,
-        SqlNode node,
-        int iFormalOperand,
-        boolean throwOnFailure)
-    {
-        Util.discard(iFormalOperand);
+  public boolean checkSingleOperandType(
+      SqlCallBinding callBinding,
+      SqlNode node,
+      int iFormalOperand,
+      boolean throwOnFailure) {
+    Util.discard(iFormalOperand);
 
-        if (SqlUtil.isNullLiteral(node, true)) {
-            if (allowNull) {
-                return true;
-            }
-            if (throwOnFailure) {
-                throw callBinding.newError(
-                    EigenbaseResource.instance().ArgumentMustNotBeNull.ex(
-                        callBinding.getOperator().getName()));
-            }
-            return false;
-        }
-        if (!SqlUtil.isLiteral(node) && !SqlUtil.isLiteralChain(node)) {
-            if (throwOnFailure) {
-                throw callBinding.newError(
-                    EigenbaseResource.instance().ArgumentMustBeLiteral.ex(
-                        callBinding.getOperator().getName()));
-            }
-            return false;
-        }
-
+    if (SqlUtil.isNullLiteral(node, true)) {
+      if (allowNull) {
         return true;
+      }
+      if (throwOnFailure) {
+        throw callBinding.newError(
+            EigenbaseResource.instance().ArgumentMustNotBeNull.ex(
+                callBinding.getOperator().getName()));
+      }
+      return false;
+    }
+    if (!SqlUtil.isLiteral(node) && !SqlUtil.isLiteralChain(node)) {
+      if (throwOnFailure) {
+        throw callBinding.newError(
+            EigenbaseResource.instance().ArgumentMustBeLiteral.ex(
+                callBinding.getOperator().getName()));
+      }
+      return false;
     }
 
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        return checkSingleOperandType(
-            callBinding,
-            callBinding.getCall().operands[0],
-            0,
-            throwOnFailure);
-    }
+    return true;
+  }
 
-    public SqlOperandCountRange getOperandCountRange()
-    {
-        return SqlOperandCountRanges.of(1);
-    }
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    return checkSingleOperandType(
+        callBinding,
+        callBinding.getCall().operands[0],
+        0,
+        throwOnFailure);
+  }
 
-    public String getAllowedSignatures(SqlOperator op, String opName)
-    {
-        return "<LITERAL>";
-    }
+  public SqlOperandCountRange getOperandCountRange() {
+    return SqlOperandCountRanges.of(1);
+  }
+
+  public String getAllowedSignatures(SqlOperator op, String opName) {
+    return "<LITERAL>";
+  }
 }
 
 // End LiteralOperandTypeChecker.java

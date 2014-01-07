@@ -33,183 +33,172 @@ import com.google.common.collect.ImmutableSet;
  * <p>A CorrelatorRel is used to represent a correlated query. One
  * implementation strategy is to de-correlate the expression.
  */
-public final class CorrelatorRel
-    extends JoinRelBase
-{
-    //~ Instance fields --------------------------------------------------------
+public final class CorrelatorRel extends JoinRelBase {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final ImmutableList<Correlation> correlations;
+  protected final ImmutableList<Correlation> correlations;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a CorrelatorRel.
+   *
+   * @param cluster      cluster this relational expression belongs to
+   * @param left         left input relational expression
+   * @param right        right input relational expression
+   * @param joinCond     join condition
+   * @param correlations set of expressions to set as variables each time a
+   *                     row arrives from the left input
+   * @param joinType     join type
+   */
+  public CorrelatorRel(
+      RelOptCluster cluster,
+      RelNode left,
+      RelNode right,
+      RexNode joinCond,
+      List<Correlation> correlations,
+      JoinRelType joinType) {
+    super(
+        cluster,
+        cluster.traitSetOf(Convention.NONE),
+        left,
+        right,
+        joinCond,
+        joinType,
+        ImmutableSet.<String>of());
+    this.correlations = ImmutableList.copyOf(correlations);
+    assert (joinType == JoinRelType.LEFT)
+        || (joinType == JoinRelType.INNER);
+  }
+
+  /**
+   * Creates a CorrelatorRel with no join condition.
+   *
+   * @param cluster      cluster this relational expression belongs to
+   * @param left         left input relational expression
+   * @param right        right input relational expression
+   * @param correlations set of expressions to set as variables each time a
+   *                     row arrives from the left input
+   * @param joinType     join type
+   */
+  public CorrelatorRel(
+      RelOptCluster cluster,
+      RelNode left,
+      RelNode right,
+      List<Correlation> correlations,
+      JoinRelType joinType) {
+    this(
+        cluster,
+        left,
+        right,
+        cluster.getRexBuilder().makeLiteral(true),
+        correlations,
+        joinType);
+  }
+
+  /**
+   * Creates a CorrelatorRel by parsing serialized output.
+   */
+  public CorrelatorRel(RelInput input) {
+    this(
+        input.getCluster(), input.getInputs().get(0),
+        input.getInputs().get((1)), getCorrelations(input),
+        input.getEnum("joinType", JoinRelType.class));
+  }
+
+  private static List<Correlation> getCorrelations(RelInput input) {
+    final List<Correlation> list = new ArrayList<Correlation>();
+    //noinspection unchecked
+    final List<Map<String, Object>> correlations1 =
+        (List<Map<String, Object>>) input.get("correlations");
+    for (Map<String, Object> correlation : correlations1) {
+      list.add(
+          new Correlation(
+              (Integer) correlation.get("correlation"),
+              (Integer) correlation.get("offset")));
+    }
+    return list;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  @Override
+  public CorrelatorRel copy(
+      RelTraitSet traitSet,
+      RexNode conditionExpr,
+      RelNode left,
+      RelNode right) {
+    assert traitSet.containsIfApplicable(Convention.NONE);
+    return new CorrelatorRel(
+        getCluster(),
+        left,
+        right,
+        correlations,
+        joinType);
+  }
+
+  public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw)
+        .item("correlations", correlations);
+  }
+
+  /**
+   * Returns the correlating expressions.
+   *
+   * @return correlating expressions
+   */
+  public List<Correlation> getCorrelations() {
+    return correlations;
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
+
+  /**
+   * Describes the neccessary parameters for an implementation in order to
+   * identify and set dynamic variables
+   */
+  public static class Correlation
+      implements Cloneable, Comparable<Correlation> {
+    private final int id;
+    private final int offset;
 
     /**
-     * Creates a CorrelatorRel.
+     * Creates a correlation.
      *
-     * @param cluster cluster this relational expression belongs to
-     * @param left left input relational expression
-     * @param right right input relational expression
-     * @param joinCond join condition
-     * @param correlations set of expressions to set as variables each time a
-     * row arrives from the left input
-     * @param joinType join type
+     * @param id     Identifier
+     * @param offset Offset
      */
-    public CorrelatorRel(
-        RelOptCluster cluster,
-        RelNode left,
-        RelNode right,
-        RexNode joinCond,
-        List<Correlation> correlations,
-        JoinRelType joinType)
-    {
-        super(
-            cluster,
-            cluster.traitSetOf(Convention.NONE),
-            left,
-            right,
-            joinCond,
-            joinType,
-            ImmutableSet.<String>of());
-        this.correlations = ImmutableList.copyOf(correlations);
-        assert (joinType == JoinRelType.LEFT)
-            || (joinType == JoinRelType.INNER);
+    public Correlation(int id, int offset) {
+      this.id = id;
+      this.offset = offset;
     }
 
     /**
-     * Creates a CorrelatorRel with no join condition.
+     * Returns the identifier.
      *
-     * @param cluster cluster this relational expression belongs to
-     * @param left left input relational expression
-     * @param right right input relational expression
-     * @param correlations set of expressions to set as variables each time a
-     * row arrives from the left input
-     * @param joinType join type
+     * @return identifier
      */
-    public CorrelatorRel(
-        RelOptCluster cluster,
-        RelNode left,
-        RelNode right,
-        List<Correlation> correlations,
-        JoinRelType joinType)
-    {
-        this(
-            cluster,
-            left,
-            right,
-            cluster.getRexBuilder().makeLiteral(true),
-            correlations,
-            joinType);
-    }
-
-    /** Creates a CorrelatorRel by parsing serialized output. */
-    public CorrelatorRel(RelInput input) {
-        this(
-            input.getCluster(), input.getInputs().get(0),
-            input.getInputs().get((1)), getCorrelations(input),
-            input.getEnum("joinType", JoinRelType.class));
-    }
-
-    private static List<Correlation> getCorrelations(RelInput input) {
-        final List<Correlation> list = new ArrayList<Correlation>();
-        //noinspection unchecked
-        final List<Map<String, Object>> correlations1 =
-            (List<Map<String, Object>>) input.get("correlations");
-        for (Map<String, Object> correlation : correlations1) {
-            list.add(
-                new Correlation(
-                    (Integer) correlation.get("correlation"),
-                    (Integer) correlation.get("offset")));
-        }
-        return list;
-    }
-
-    //~ Methods ----------------------------------------------------------------
-
-    @Override
-    public CorrelatorRel copy(
-        RelTraitSet traitSet,
-        RexNode conditionExpr,
-        RelNode left,
-        RelNode right)
-    {
-        assert traitSet.containsIfApplicable(Convention.NONE);
-        return new CorrelatorRel(
-            getCluster(),
-            left,
-            right,
-            correlations,
-            joinType);
-    }
-
-    public RelWriter explainTerms(RelWriter pw) {
-        return super.explainTerms(pw)
-            .item("correlations", correlations);
+    public int getId() {
+      return id;
     }
 
     /**
-     * Returns the correlating expressions.
+     * Returns this correlation's offset.
      *
-     * @return correlating expressions
+     * @return offset
      */
-    public List<Correlation> getCorrelations()
-    {
-        return correlations;
+    public int getOffset() {
+      return offset;
     }
 
-    //~ Inner Classes ----------------------------------------------------------
-
-    /**
-     * Describes the neccessary parameters for an implementation in order to
-     * identify and set dynamic variables
-     */
-    public static class Correlation
-        implements Cloneable,
-            Comparable<Correlation>
-    {
-        private final int id;
-        private final int offset;
-
-        /**
-         * Creates a correlation.
-         *
-         * @param id Identifier
-         * @param offset Offset
-         */
-        public Correlation(int id, int offset)
-        {
-            this.id = id;
-            this.offset = offset;
-        }
-
-        /**
-         * Returns the identifier.
-         *
-         * @return identifier
-         */
-        public int getId()
-        {
-            return id;
-        }
-
-        /**
-         * Returns this correlation's offset.
-         *
-         * @return offset
-         */
-        public int getOffset()
-        {
-            return offset;
-        }
-
-        public String toString()
-        {
-            return "var" + id + "=offset" + offset;
-        }
-
-        public int compareTo(Correlation other)
-        {
-            return (id - other.id);
-        }
+    public String toString() {
+      return "var" + id + "=offset" + offset;
     }
+
+    public int compareTo(Correlation other) {
+      return (id - other.id);
+    }
+  }
 }
 
 // End CorrelatorRel.java

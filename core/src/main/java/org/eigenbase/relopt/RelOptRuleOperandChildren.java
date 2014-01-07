@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableList;
  * {@link RelOptRule#none},
  * {@link RelOptRule#any},
  * {@link RelOptRule#unordered},</p>
-*/
+ */
 public class RelOptRuleOperandChildren {
   static final
   RelOptRuleOperandChildren
@@ -37,21 +37,20 @@ public class RelOptRuleOperandChildren {
           RelOptRuleOperandChildPolicy.ANY,
           ImmutableList.<RelOptRuleOperand>of());
   static final
-          RelOptRuleOperandChildren
-              LEAF_CHILDREN =
-              new RelOptRuleOperandChildren(
-                  RelOptRuleOperandChildPolicy.LEAF,
-                  ImmutableList.<RelOptRuleOperand>of());
+  RelOptRuleOperandChildren
+      LEAF_CHILDREN =
+      new RelOptRuleOperandChildren(
+          RelOptRuleOperandChildPolicy.LEAF,
+          ImmutableList.<RelOptRuleOperand>of());
   final RelOptRuleOperandChildPolicy policy;
-    final ImmutableList<RelOptRuleOperand> operands;
+  final ImmutableList<RelOptRuleOperand> operands;
 
-    public RelOptRuleOperandChildren(
-        RelOptRuleOperandChildPolicy policy,
-        ImmutableList<RelOptRuleOperand> operands)
-    {
-        this.policy = policy;
-        this.operands = operands;
-    }
+  public RelOptRuleOperandChildren(
+      RelOptRuleOperandChildPolicy policy,
+      ImmutableList<RelOptRuleOperand> operands) {
+    this.policy = policy;
+    this.operands = operands;
+  }
 }
 
 // End RelOptRuleOperandChildren.java

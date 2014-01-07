@@ -24,47 +24,44 @@ import org.eigenbase.relopt.*;
  * PushFilterIntoMultiJoinRule implements the rule for pushing a {@link
  * FilterRel} into a {@link MultiJoinRel}.
  */
-public class PushFilterIntoMultiJoinRule
-    extends RelOptRule
-{
-    public static final PushFilterIntoMultiJoinRule instance =
-        new PushFilterIntoMultiJoinRule();
+public class PushFilterIntoMultiJoinRule extends RelOptRule {
+  public static final PushFilterIntoMultiJoinRule instance =
+      new PushFilterIntoMultiJoinRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a PushFilterIntoMultiJoinRule.
-     */
-    private PushFilterIntoMultiJoinRule() {
-        super(
-            operand(
-                FilterRel.class,
-                operand(MultiJoinRel.class, any())));
-    }
+  /**
+   * Creates a PushFilterIntoMultiJoinRule.
+   */
+  private PushFilterIntoMultiJoinRule() {
+    super(
+        operand(
+            FilterRel.class,
+            operand(MultiJoinRel.class, any())));
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // implement RelOptRule
-    public void onMatch(RelOptRuleCall call)
-    {
-        FilterRel filterRel = call.rel(0);
-        MultiJoinRel multiJoinRel = call.rel(1);
+  // implement RelOptRule
+  public void onMatch(RelOptRuleCall call) {
+    FilterRel filterRel = call.rel(0);
+    MultiJoinRel multiJoinRel = call.rel(1);
 
-        MultiJoinRel newMultiJoinRel =
-            new MultiJoinRel(
-                multiJoinRel.getCluster(),
-                multiJoinRel.getInputs(),
-                multiJoinRel.getJoinFilter(),
-                multiJoinRel.getRowType(),
-                multiJoinRel.isFullOuterJoin(),
-                multiJoinRel.getOuterJoinConditions(),
-                multiJoinRel.getJoinTypes(),
-                multiJoinRel.getProjFields(),
-                multiJoinRel.getJoinFieldRefCountsMap(),
-                filterRel.getCondition());
+    MultiJoinRel newMultiJoinRel =
+        new MultiJoinRel(
+            multiJoinRel.getCluster(),
+            multiJoinRel.getInputs(),
+            multiJoinRel.getJoinFilter(),
+            multiJoinRel.getRowType(),
+            multiJoinRel.isFullOuterJoin(),
+            multiJoinRel.getOuterJoinConditions(),
+            multiJoinRel.getJoinTypes(),
+            multiJoinRel.getProjFields(),
+            multiJoinRel.getJoinFieldRefCountsMap(),
+            filterRel.getCondition());
 
-        call.transformTo(newMultiJoinRel);
-    }
+    call.transformTo(newMultiJoinRel);
+  }
 }
 
 // End PushFilterIntoMultiJoinRule.java

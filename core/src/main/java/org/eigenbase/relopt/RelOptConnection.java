@@ -32,16 +32,15 @@ package org.eigenbase.relopt;
  * </blockquote>
  * </p>
  */
-public interface RelOptConnection
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RelOptConnection {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Returns the schema underlying this connection. Non-abstract classes
-     * implementing this interface must also provide <code>public static Schema
-     * getRelOptSchemaStatic()</code>.
-     */
-    RelOptSchema getRelOptSchema();
+  /**
+   * Returns the schema underlying this connection. Non-abstract classes
+   * implementing this interface must also provide <code>public static Schema
+   * getRelOptSchemaStatic()</code>.
+   */
+  RelOptSchema getRelOptSchema();
 }
 
 // End RelOptConnection.java

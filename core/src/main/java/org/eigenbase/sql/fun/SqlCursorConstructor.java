@@ -26,54 +26,48 @@ import org.eigenbase.sql.validate.*;
  * SqlCursorConstructor defines the non-standard CURSOR(&lt;query&gt;)
  * constructor.
  */
-public class SqlCursorConstructor
-    extends SqlSpecialOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlCursorConstructor extends SqlSpecialOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlCursorConstructor()
-    {
-        super(
-            "CURSOR",
-            SqlKind.CURSOR,
-            MaxPrec,
-            false,
-            SqlTypeStrategies.rtiCursor,
-            null,
-            SqlTypeStrategies.otcAny);
-    }
+  public SqlCursorConstructor() {
+    super(
+        "CURSOR",
+        SqlKind.CURSOR,
+        MaxPrec,
+        false,
+        SqlTypeStrategies.rtiCursor,
+        null,
+        SqlTypeStrategies.otcAny);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelDataType deriveType(
-        SqlValidator validator,
-        SqlValidatorScope scope,
-        SqlCall call)
-    {
-        SqlSelect subSelect = (SqlSelect) call.operands[0];
-        validator.declareCursor(subSelect, scope);
-        subSelect.validateExpr(validator, scope);
-        RelDataType type = super.deriveType(validator, scope, call);
-        return type;
-    }
+  public RelDataType deriveType(
+      SqlValidator validator,
+      SqlValidatorScope scope,
+      SqlCall call) {
+    SqlSelect subSelect = (SqlSelect) call.operands[0];
+    validator.declareCursor(subSelect, scope);
+    subSelect.validateExpr(validator, scope);
+    RelDataType type = super.deriveType(validator, scope, call);
+    return type;
+  }
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        writer.keyword("CURSOR");
-        final SqlWriter.Frame frame = writer.startList("(", ")");
-        assert operands.length == 1;
-        operands[0].unparse(writer, leftPrec, rightPrec);
-        writer.endList(frame);
-    }
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    writer.keyword("CURSOR");
+    final SqlWriter.Frame frame = writer.startList("(", ")");
+    assert operands.length == 1;
+    operands[0].unparse(writer, leftPrec, rightPrec);
+    writer.endList(frame);
+  }
 
-    public boolean argumentMustBeScalar(int ordinal)
-    {
-        return false;
-    }
+  public boolean argumentMustBeScalar(int ordinal) {
+    return false;
+  }
 }
 
 // End SqlCursorConstructor.java

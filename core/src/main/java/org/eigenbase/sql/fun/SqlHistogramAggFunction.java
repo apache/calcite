@@ -32,43 +32,37 @@ import com.google.common.collect.ImmutableList;
  * <code>long</code>, <code>float</code>, <code>double</code>) results are
  * retrived with (<code>HistogramMin</code>) and (<code>HistogramMax</code>)
  */
-public class SqlHistogramAggFunction
-    extends SqlAggFunction
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlHistogramAggFunction extends SqlAggFunction {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType type;
+  private final RelDataType type;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlHistogramAggFunction(RelDataType type)
-    {
-        super(
-            "$HISTOGRAM",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiHistogram,
-            null,
-            SqlTypeStrategies.otcNumericOrString,
-            SqlFunctionCategory.Numeric);
-        this.type = type;
-    }
+  public SqlHistogramAggFunction(RelDataType type) {
+    super(
+        "$HISTOGRAM",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiHistogram,
+        null,
+        SqlTypeStrategies.otcNumericOrString,
+        SqlFunctionCategory.Numeric);
+    this.type = type;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
-    {
-        return ImmutableList.of(type);
-    }
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+    return ImmutableList.of(type);
+  }
 
-    public RelDataType getType()
-    {
-        return type;
-    }
+  public RelDataType getType() {
+    return type;
+  }
 
-    public RelDataType getReturnType(RelDataTypeFactory typeFactory)
-    {
-        return type;
-    }
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+    return type;
+  }
 }
 
 // End SqlHistogramAggFunction.java

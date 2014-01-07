@@ -23,57 +23,52 @@ import org.eigenbase.sql.type.*;
 
 /**
  * Namespace offered by a subquery.
+ *
  * @see SelectScope
  * @see SetopNamespace
  */
-public class SelectNamespace
-    extends AbstractNamespace
-{
-    //~ Instance fields --------------------------------------------------------
+public class SelectNamespace extends AbstractNamespace {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlSelect select;
+  private final SqlSelect select;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a SelectNamespace.
-     *
-     * @param validator Validate
-     * @param select Select node
-     * @param enclosingNode Enclosing node
-     */
-    public SelectNamespace(
-        SqlValidatorImpl validator,
-        SqlSelect select,
-        SqlNode enclosingNode)
-    {
-        super(validator, enclosingNode);
-        this.select = select;
-    }
+  /**
+   * Creates a SelectNamespace.
+   *
+   * @param validator     Validate
+   * @param select        Select node
+   * @param enclosingNode Enclosing node
+   */
+  public SelectNamespace(
+      SqlValidatorImpl validator,
+      SqlSelect select,
+      SqlNode enclosingNode) {
+    super(validator, enclosingNode);
+    this.select = select;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // implement SqlValidatorNamespace, overriding return type
-    public SqlSelect getNode()
-    {
-        return select;
-    }
+  // implement SqlValidatorNamespace, overriding return type
+  public SqlSelect getNode() {
+    return select;
+  }
 
-    public RelDataType validateImpl()
-    {
-        validator.validateSelect(select, validator.unknownType);
-        return rowType;
-    }
+  public RelDataType validateImpl() {
+    validator.validateSelect(select, validator.unknownType);
+    return rowType;
+  }
 
-    public SqlMonotonicity getMonotonicity(String columnName)
-    {
-        final RelDataType rowType = this.getRowTypeSansSystemColumns();
-        final int field = SqlTypeUtil.findField(rowType, columnName);
-        final SqlNode selectItem =
-            validator.getRawSelectScope(select)
-                .getExpandedSelectList().get(field);
-        return validator.getSelectScope(select).getMonotonicity(selectItem);
-    }
+  public SqlMonotonicity getMonotonicity(String columnName) {
+    final RelDataType rowType = this.getRowTypeSansSystemColumns();
+    final int field = SqlTypeUtil.findField(rowType, columnName);
+    final SqlNode selectItem =
+        validator.getRawSelectScope(select)
+            .getExpandedSelectList().get(field);
+    return validator.getSelectScope(select).getMonotonicity(selectItem);
+  }
 }
 
 // End SelectNamespace.java

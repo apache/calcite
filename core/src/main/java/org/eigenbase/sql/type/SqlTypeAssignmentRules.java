@@ -27,348 +27,342 @@ import org.eigenbase.util.*;
  * <p>REVIEW 7/05/04 Wael: We should split this up in Cast rules, symmetric and
  * asymmetric assignable rules
  */
-public class SqlTypeAssignmentRules
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlTypeAssignmentRules {
+  //~ Static fields/initializers ---------------------------------------------
 
-    private static SqlTypeAssignmentRules instance = null;
-    private static Map<SqlTypeName, Set<SqlTypeName>> rules = null;
-    private static Map<SqlTypeName, Set<SqlTypeName>> coerceRules = null;
+  private static SqlTypeAssignmentRules instance = null;
+  private static Map<SqlTypeName, Set<SqlTypeName>> rules = null;
+  private static Map<SqlTypeName, Set<SqlTypeName>> coerceRules = null;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    private SqlTypeAssignmentRules()
-    {
-        rules = new HashMap<SqlTypeName, Set<SqlTypeName>>();
+  private SqlTypeAssignmentRules() {
+    rules = new HashMap<SqlTypeName, Set<SqlTypeName>>();
 
-        Set<SqlTypeName> rule;
+    Set<SqlTypeName> rule;
 
-        // IntervalYearMonth is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
-        rules.put(SqlTypeName.INTERVAL_YEAR_MONTH, rule);
+    // IntervalYearMonth is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
+    rules.put(SqlTypeName.INTERVAL_YEAR_MONTH, rule);
 
-        // IntervalDayTime is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.INTERVAL_DAY_TIME);
-        rules.put(SqlTypeName.INTERVAL_DAY_TIME, rule);
+    // IntervalDayTime is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.INTERVAL_DAY_TIME);
+    rules.put(SqlTypeName.INTERVAL_DAY_TIME, rule);
 
-        // Multiset is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.MULTISET);
-        rules.put(SqlTypeName.MULTISET, rule);
+    // Multiset is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.MULTISET);
+    rules.put(SqlTypeName.MULTISET, rule);
 
-        // Tinyint is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TINYINT);
-        rules.put(SqlTypeName.TINYINT, rule);
+    // Tinyint is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TINYINT);
+    rules.put(SqlTypeName.TINYINT, rule);
 
-        // Smallint is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TINYINT);
-        rule.add(SqlTypeName.SMALLINT);
-        rules.put(SqlTypeName.SMALLINT, rule);
+    // Smallint is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rules.put(SqlTypeName.SMALLINT, rule);
 
-        // Int is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TINYINT);
-        rule.add(SqlTypeName.SMALLINT);
-        rule.add(SqlTypeName.INTEGER);
-        rules.put(SqlTypeName.INTEGER, rule);
+    // Int is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rules.put(SqlTypeName.INTEGER, rule);
 
-        // BigInt is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TINYINT);
-        rule.add(SqlTypeName.SMALLINT);
-        rule.add(SqlTypeName.INTEGER);
-        rule.add(SqlTypeName.BIGINT);
-        rules.put(SqlTypeName.BIGINT, rule);
+    // BigInt is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BIGINT);
+    rules.put(SqlTypeName.BIGINT, rule);
 
-        // Float is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TINYINT);
-        rule.add(SqlTypeName.SMALLINT);
-        rule.add(SqlTypeName.INTEGER);
-        rule.add(SqlTypeName.BIGINT);
-        rule.add(SqlTypeName.DECIMAL);
-        rule.add(SqlTypeName.FLOAT);
-        rules.put(SqlTypeName.FLOAT, rule);
+    // Float is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.DECIMAL);
+    rule.add(SqlTypeName.FLOAT);
+    rules.put(SqlTypeName.FLOAT, rule);
 
-        // Real is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TINYINT);
-        rule.add(SqlTypeName.SMALLINT);
-        rule.add(SqlTypeName.INTEGER);
-        rule.add(SqlTypeName.BIGINT);
-        rule.add(SqlTypeName.DECIMAL);
-        rule.add(SqlTypeName.FLOAT);
-        rule.add(SqlTypeName.REAL);
-        rules.put(SqlTypeName.REAL, rule);
+    // Real is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.DECIMAL);
+    rule.add(SqlTypeName.FLOAT);
+    rule.add(SqlTypeName.REAL);
+    rules.put(SqlTypeName.REAL, rule);
 
-        // Double is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TINYINT);
-        rule.add(SqlTypeName.SMALLINT);
-        rule.add(SqlTypeName.INTEGER);
-        rule.add(SqlTypeName.BIGINT);
-        rule.add(SqlTypeName.DECIMAL);
-        rule.add(SqlTypeName.FLOAT);
-        rule.add(SqlTypeName.REAL);
-        rule.add(SqlTypeName.DOUBLE);
-        rules.put(SqlTypeName.DOUBLE, rule);
+    // Double is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.DECIMAL);
+    rule.add(SqlTypeName.FLOAT);
+    rule.add(SqlTypeName.REAL);
+    rule.add(SqlTypeName.DOUBLE);
+    rules.put(SqlTypeName.DOUBLE, rule);
 
-        // Decimal is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TINYINT);
-        rule.add(SqlTypeName.SMALLINT);
-        rule.add(SqlTypeName.INTEGER);
-        rule.add(SqlTypeName.BIGINT);
-        rule.add(SqlTypeName.REAL);
-        rule.add(SqlTypeName.DOUBLE);
-        rule.add(SqlTypeName.DECIMAL);
-        rules.put(SqlTypeName.DECIMAL, rule);
+    // Decimal is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.REAL);
+    rule.add(SqlTypeName.DOUBLE);
+    rule.add(SqlTypeName.DECIMAL);
+    rules.put(SqlTypeName.DECIMAL, rule);
 
-        // VarBinary is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.VARBINARY);
-        rule.add(SqlTypeName.BINARY);
-        rules.put(SqlTypeName.VARBINARY, rule);
+    // VarBinary is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.VARBINARY);
+    rule.add(SqlTypeName.BINARY);
+    rules.put(SqlTypeName.VARBINARY, rule);
 
-        // Char is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.CHAR);
-        rules.put(SqlTypeName.CHAR, rule);
+    // Char is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.CHAR);
+    rules.put(SqlTypeName.CHAR, rule);
 
-        // VarChar is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.CHAR);
-        rule.add(SqlTypeName.VARCHAR);
-        rules.put(SqlTypeName.VARCHAR, rule);
+    // VarChar is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.CHAR);
+    rule.add(SqlTypeName.VARCHAR);
+    rules.put(SqlTypeName.VARCHAR, rule);
 
-        // Boolean is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.BOOLEAN);
-        rules.put(SqlTypeName.BOOLEAN, rule);
+    // Boolean is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.BOOLEAN);
+    rules.put(SqlTypeName.BOOLEAN, rule);
 
-        // Binary is assignable from...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.BINARY);
-        rule.add(SqlTypeName.VARBINARY);
-        rules.put(SqlTypeName.BINARY, rule);
+    // Binary is assignable from...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.BINARY);
+    rule.add(SqlTypeName.VARBINARY);
+    rules.put(SqlTypeName.BINARY, rule);
 
-        // Date is assignable from ...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.DATE);
-        rule.add(SqlTypeName.TIMESTAMP);
-        rules.put(SqlTypeName.DATE, rule);
+    // Date is assignable from ...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.DATE);
+    rule.add(SqlTypeName.TIMESTAMP);
+    rules.put(SqlTypeName.DATE, rule);
 
-        // Time is assignable from ...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TIME);
-        rule.add(SqlTypeName.TIMESTAMP);
-        rules.put(SqlTypeName.TIME, rule);
+    // Time is assignable from ...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TIME);
+    rule.add(SqlTypeName.TIMESTAMP);
+    rules.put(SqlTypeName.TIME, rule);
 
-        // Timestamp is assignable from ...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TIMESTAMP);
-        rules.put(SqlTypeName.TIMESTAMP, rule);
+    // Timestamp is assignable from ...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TIMESTAMP);
+    rules.put(SqlTypeName.TIMESTAMP, rule);
 
-        // Any is assignable from ...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TINYINT);
-        rule.add(SqlTypeName.SMALLINT);
-        rule.add(SqlTypeName.INTEGER);
-        rule.add(SqlTypeName.BIGINT);
-        rule.add(SqlTypeName.DECIMAL);
-        rule.add(SqlTypeName.FLOAT);
-        rule.add(SqlTypeName.REAL);
-        rule.add(SqlTypeName.TIME);
-        rule.add(SqlTypeName.DATE);
-        rule.add(SqlTypeName.TIMESTAMP);
-        rules.put(SqlTypeName.ANY, rule);
+    // Any is assignable from ...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.DECIMAL);
+    rule.add(SqlTypeName.FLOAT);
+    rule.add(SqlTypeName.REAL);
+    rule.add(SqlTypeName.TIME);
+    rule.add(SqlTypeName.DATE);
+    rule.add(SqlTypeName.TIMESTAMP);
+    rules.put(SqlTypeName.ANY, rule);
 
-        // we use coerceRules when we're casting
-        coerceRules = copy(rules);
+    // we use coerceRules when we're casting
+    coerceRules = copy(rules);
 
-        // Make numbers symmetrical and
-        // make varchar/char castable to/from numbers
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TINYINT);
-        rule.add(SqlTypeName.SMALLINT);
-        rule.add(SqlTypeName.INTEGER);
-        rule.add(SqlTypeName.BIGINT);
-        rule.add(SqlTypeName.DECIMAL);
-        rule.add(SqlTypeName.FLOAT);
-        rule.add(SqlTypeName.REAL);
-        rule.add(SqlTypeName.DOUBLE);
+    // Make numbers symmetrical and
+    // make varchar/char castable to/from numbers
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.DECIMAL);
+    rule.add(SqlTypeName.FLOAT);
+    rule.add(SqlTypeName.REAL);
+    rule.add(SqlTypeName.DOUBLE);
 
-        rule.add(SqlTypeName.CHAR);
-        rule.add(SqlTypeName.VARCHAR);
+    rule.add(SqlTypeName.CHAR);
+    rule.add(SqlTypeName.VARCHAR);
 
-        coerceRules.put(
-            SqlTypeName.TINYINT,
-            copy(rule));
-        coerceRules.put(
-            SqlTypeName.SMALLINT,
-            copy(rule));
-        coerceRules.put(
-            SqlTypeName.INTEGER,
-            copy(rule));
-        coerceRules.put(
-            SqlTypeName.BIGINT,
-            copy(rule));
-        coerceRules.put(
-            SqlTypeName.FLOAT,
-            copy(rule));
-        coerceRules.put(
-            SqlTypeName.REAL,
-            copy(rule));
-        coerceRules.put(
-            SqlTypeName.DECIMAL,
-            copy(rule));
-        coerceRules.put(
-            SqlTypeName.DOUBLE,
-            copy(rule));
-        coerceRules.put(
-            SqlTypeName.CHAR,
-            copy(rule));
-        coerceRules.put(
-            SqlTypeName.VARCHAR,
-            copy(rule));
+    coerceRules.put(
+        SqlTypeName.TINYINT,
+        copy(rule));
+    coerceRules.put(
+        SqlTypeName.SMALLINT,
+        copy(rule));
+    coerceRules.put(
+        SqlTypeName.INTEGER,
+        copy(rule));
+    coerceRules.put(
+        SqlTypeName.BIGINT,
+        copy(rule));
+    coerceRules.put(
+        SqlTypeName.FLOAT,
+        copy(rule));
+    coerceRules.put(
+        SqlTypeName.REAL,
+        copy(rule));
+    coerceRules.put(
+        SqlTypeName.DECIMAL,
+        copy(rule));
+    coerceRules.put(
+        SqlTypeName.DOUBLE,
+        copy(rule));
+    coerceRules.put(
+        SqlTypeName.CHAR,
+        copy(rule));
+    coerceRules.put(
+        SqlTypeName.VARCHAR,
+        copy(rule));
 
-        // Exact Numerics are castable from intervals
-        for (SqlTypeName exactType : SqlTypeName.exactTypes) {
-            rule = coerceRules.get(exactType);
-            rule.add(SqlTypeName.INTERVAL_DAY_TIME);
-            rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
-        }
-
-        // intervals are castable from Exact Numeric
-        rule = coerceRules.get(SqlTypeName.INTERVAL_DAY_TIME);
-        rule.add(SqlTypeName.TINYINT);
-        rule.add(SqlTypeName.SMALLINT);
-        rule.add(SqlTypeName.INTEGER);
-        rule.add(SqlTypeName.BIGINT);
-        rule.add(SqlTypeName.DECIMAL);
-        rule.add(SqlTypeName.VARCHAR);
-
-        // intervals  castable from Exact Numeric
-        rule = coerceRules.get(SqlTypeName.INTERVAL_YEAR_MONTH);
-        rule.add(SqlTypeName.TINYINT);
-        rule.add(SqlTypeName.SMALLINT);
-        rule.add(SqlTypeName.INTEGER);
-        rule.add(SqlTypeName.BIGINT);
-        rule.add(SqlTypeName.DECIMAL);
-        rule.add(SqlTypeName.VARCHAR);
-
-        // varchar is castable from Boolean, Date, time, timestamp, numbers and
-        // intervals
-        rule = coerceRules.get(SqlTypeName.VARCHAR);
-        rule.add(SqlTypeName.BOOLEAN);
-        rule.add(SqlTypeName.DATE);
-        rule.add(SqlTypeName.TIME);
-        rule.add(SqlTypeName.TIMESTAMP);
-        rule.add(SqlTypeName.INTERVAL_DAY_TIME);
-        rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
-
-        // char is castable from Boolean, Date, time and timestamp and numbers
-        rule = coerceRules.get(SqlTypeName.CHAR);
-        rule.add(SqlTypeName.BOOLEAN);
-        rule.add(SqlTypeName.DATE);
-        rule.add(SqlTypeName.TIME);
-        rule.add(SqlTypeName.TIMESTAMP);
-        rule.add(SqlTypeName.INTERVAL_DAY_TIME);
-        rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
-
-        // Boolean is castable from char and varchar
-        rule = coerceRules.get(SqlTypeName.BOOLEAN);
-        rule.add(SqlTypeName.CHAR);
-        rule.add(SqlTypeName.VARCHAR);
-
-        // Date, time, and timestamp are castable from
-        // char and varchar
-        // Date is castable from ...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.DATE);
-        rule.add(SqlTypeName.TIMESTAMP);
-        rule.add(SqlTypeName.CHAR);
-        rule.add(SqlTypeName.VARCHAR);
-        coerceRules.put(SqlTypeName.DATE, rule);
-
-        // Time is castable from ...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TIME);
-        rule.add(SqlTypeName.TIMESTAMP);
-        rule.add(SqlTypeName.CHAR);
-        rule.add(SqlTypeName.VARCHAR);
-        coerceRules.put(SqlTypeName.TIME, rule);
-
-        // Timestamp is castable from ...
-        rule = new HashSet<SqlTypeName>();
-        rule.add(SqlTypeName.TIMESTAMP);
-        rule.add(SqlTypeName.DATE);
-        rule.add(SqlTypeName.TIME);
-        rule.add(SqlTypeName.CHAR);
-        rule.add(SqlTypeName.VARCHAR);
-        coerceRules.put(SqlTypeName.TIMESTAMP, rule);
+    // Exact Numerics are castable from intervals
+    for (SqlTypeName exactType : SqlTypeName.exactTypes) {
+      rule = coerceRules.get(exactType);
+      rule.add(SqlTypeName.INTERVAL_DAY_TIME);
+      rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
     }
 
-    //~ Methods ----------------------------------------------------------------
+    // intervals are castable from Exact Numeric
+    rule = coerceRules.get(SqlTypeName.INTERVAL_DAY_TIME);
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.DECIMAL);
+    rule.add(SqlTypeName.VARCHAR);
 
-    public synchronized static SqlTypeAssignmentRules instance()
-    {
-        if (instance == null) {
-            instance = new SqlTypeAssignmentRules();
-        }
-        return instance;
+    // intervals  castable from Exact Numeric
+    rule = coerceRules.get(SqlTypeName.INTERVAL_YEAR_MONTH);
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.DECIMAL);
+    rule.add(SqlTypeName.VARCHAR);
+
+    // varchar is castable from Boolean, Date, time, timestamp, numbers and
+    // intervals
+    rule = coerceRules.get(SqlTypeName.VARCHAR);
+    rule.add(SqlTypeName.BOOLEAN);
+    rule.add(SqlTypeName.DATE);
+    rule.add(SqlTypeName.TIME);
+    rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.INTERVAL_DAY_TIME);
+    rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
+
+    // char is castable from Boolean, Date, time and timestamp and numbers
+    rule = coerceRules.get(SqlTypeName.CHAR);
+    rule.add(SqlTypeName.BOOLEAN);
+    rule.add(SqlTypeName.DATE);
+    rule.add(SqlTypeName.TIME);
+    rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.INTERVAL_DAY_TIME);
+    rule.add(SqlTypeName.INTERVAL_YEAR_MONTH);
+
+    // Boolean is castable from char and varchar
+    rule = coerceRules.get(SqlTypeName.BOOLEAN);
+    rule.add(SqlTypeName.CHAR);
+    rule.add(SqlTypeName.VARCHAR);
+
+    // Date, time, and timestamp are castable from
+    // char and varchar
+    // Date is castable from ...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.DATE);
+    rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.CHAR);
+    rule.add(SqlTypeName.VARCHAR);
+    coerceRules.put(SqlTypeName.DATE, rule);
+
+    // Time is castable from ...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TIME);
+    rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.CHAR);
+    rule.add(SqlTypeName.VARCHAR);
+    coerceRules.put(SqlTypeName.TIME, rule);
+
+    // Timestamp is castable from ...
+    rule = new HashSet<SqlTypeName>();
+    rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.DATE);
+    rule.add(SqlTypeName.TIME);
+    rule.add(SqlTypeName.CHAR);
+    rule.add(SqlTypeName.VARCHAR);
+    coerceRules.put(SqlTypeName.TIMESTAMP, rule);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public synchronized static SqlTypeAssignmentRules instance() {
+    if (instance == null) {
+      instance = new SqlTypeAssignmentRules();
+    }
+    return instance;
+  }
+
+  public boolean canCastFrom(
+      SqlTypeName to,
+      SqlTypeName from,
+      boolean coerce) {
+    assert (null != to);
+    assert (null != from);
+
+    Map<SqlTypeName, Set<SqlTypeName>> ruleset =
+        coerce ? coerceRules : rules;
+
+    if (to.equals(SqlTypeName.NULL)) {
+      return false;
+    } else if (from.equals(SqlTypeName.NULL)) {
+      return true;
     }
 
-    public boolean canCastFrom(
-        SqlTypeName to,
-        SqlTypeName from,
-        boolean coerce)
-    {
-        assert (null != to);
-        assert (null != from);
-
-        Map<SqlTypeName, Set<SqlTypeName>> ruleset =
-            coerce ? coerceRules : rules;
-
-        if (to.equals(SqlTypeName.NULL)) {
-            return false;
-        } else if (from.equals(SqlTypeName.NULL)) {
-            return true;
-        }
-
-        Set<SqlTypeName> rule = ruleset.get(to);
-        if (null == rule) {
-            // if you hit this assert, see the constructor of this class on how
-            // to add new rule
-            throw Util.newInternal(
-                "No assign rules for " + to + " defined");
-        }
-
-        return rule.contains(from);
+    Set<SqlTypeName> rule = ruleset.get(to);
+    if (null == rule) {
+      // if you hit this assert, see the constructor of this class on how
+      // to add new rule
+      throw Util.newInternal(
+          "No assign rules for " + to + " defined");
     }
 
-    @SuppressWarnings("unchecked")
-    private static <K, V> Map<K, V> copy(Map<K, V> map)
-    {
-        Map<K, V> copy = new HashMap<K, V>();
-        for (Map.Entry<K, V> e : map.entrySet()) {
-            if (e.getValue() instanceof Set) {
-                copy.put(e.getKey(), (V) copy((Set) e.getValue()));
-            } else {
-                copy.put(e.getKey(), e.getValue());
-            }
-        }
-        return copy;
-    }
+    return rule.contains(from);
+  }
 
-    private static <T> HashSet<T> copy(Set<T> set)
-    {
-        return new HashSet<T>(set);
+  @SuppressWarnings("unchecked")
+  private static <K, V> Map<K, V> copy(Map<K, V> map) {
+    Map<K, V> copy = new HashMap<K, V>();
+    for (Map.Entry<K, V> e : map.entrySet()) {
+      if (e.getValue() instanceof Set) {
+        copy.put(e.getKey(), (V) copy((Set) e.getValue()));
+      } else {
+        copy.put(e.getKey(), e.getValue());
+      }
     }
+    return copy;
+  }
+
+  private static <T> HashSet<T> copy(Set<T> set) {
+    return new HashSet<T>(set);
+  }
 }
 
 // End SqlTypeAssignmentRules.java

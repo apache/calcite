@@ -27,125 +27,116 @@ import org.eigenbase.util.Util;
 /**
  * Parameter type-checking strategy where all operand types must be the same.
  */
-public class SameOperandTypeChecker
-    implements SqlSingleOperandTypeChecker
-{
-    //~ Instance fields --------------------------------------------------------
+public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final int nOperands;
+  protected final int nOperands;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SameOperandTypeChecker(
-        int nOperands)
-    {
-        this.nOperands = nOperands;
+  public SameOperandTypeChecker(
+      int nOperands) {
+    this.nOperands = nOperands;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement SqlOperandTypeChecker
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    return checkOperandTypesImpl(
+        callBinding,
+        throwOnFailure,
+        callBinding);
+  }
+
+  protected List<Integer> getOperandList(int operandCount) {
+    return nOperands == -1
+        ? Util.range(0, operandCount)
+        : Util.range(0, nOperands);
+  }
+
+  private boolean checkOperandTypesImpl(
+      SqlOperatorBinding operatorBinding,
+      boolean throwOnFailure,
+      SqlCallBinding callBinding) {
+    int nOperandsActual = nOperands;
+    if (nOperandsActual == -1) {
+      nOperandsActual = operatorBinding.getOperandCount();
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    // implement SqlOperandTypeChecker
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        return checkOperandTypesImpl(
-            callBinding,
-            throwOnFailure,
-            callBinding);
-    }
-
-    protected List<Integer> getOperandList(int operandCount) {
-        return nOperands == -1
-            ? Util.range(0, operandCount)
-            : Util.range(0, nOperands);
-    }
-
-    private boolean checkOperandTypesImpl(
-        SqlOperatorBinding operatorBinding,
-        boolean throwOnFailure,
-        SqlCallBinding callBinding)
-    {
-        int nOperandsActual = nOperands;
-        if (nOperandsActual == -1) {
-            nOperandsActual = operatorBinding.getOperandCount();
-        }
-        assert !(throwOnFailure && (callBinding == null));
-        RelDataType [] types = new RelDataType[nOperandsActual];
-        final List<Integer> operandList =
-            getOperandList(operatorBinding.getOperandCount());
-        for (int i : operandList) {
-            if (operatorBinding.isOperandNull(i, false)) {
-                if (throwOnFailure) {
-                    throw callBinding.getValidator().newValidationError(
-                        callBinding.getCall().operands[i],
-                        EigenbaseResource.instance().NullIllegal.ex());
-                } else {
-                    return false;
-                }
-            }
-            types[i] = operatorBinding.getOperandType(i);
-        }
-        int prev = -1;
-        for (int i : operandList) {
-            if (prev >= 0) {
-                if (!SqlTypeUtil.isComparable(types[i], types[prev])) {
-                    if (!throwOnFailure) {
-                        return false;
-                    }
-
-                    // REVIEW jvs 5-June-2005: Why don't we use
-                    // newValidationSignatureError() here?  It gives more
-                    // specific diagnostics.
-                    throw callBinding.newValidationError(
-                        EigenbaseResource.instance().NeedSameTypeParameter
-                            .ex());
-                }
-            }
-            prev = i;
-        }
-        return true;
-    }
-
-    /**
-     * Similar functionality to {@link #checkOperandTypes(SqlCallBinding,
-     * boolean)}, but not part of the interface, and cannot throw an error.
-     */
-    public boolean checkOperandTypes(
-        SqlOperatorBinding operatorBinding)
-    {
-        return checkOperandTypesImpl(operatorBinding, false, null);
-    }
-
-    // implement SqlOperandTypeChecker
-    public SqlOperandCountRange getOperandCountRange()
-    {
-        if (nOperands == -1) {
-            return SqlOperandCountRanges.any();
+    assert !(throwOnFailure && (callBinding == null));
+    RelDataType[] types = new RelDataType[nOperandsActual];
+    final List<Integer> operandList =
+        getOperandList(operatorBinding.getOperandCount());
+    for (int i : operandList) {
+      if (operatorBinding.isOperandNull(i, false)) {
+        if (throwOnFailure) {
+          throw callBinding.getValidator().newValidationError(
+              callBinding.getCall().operands[i],
+              EigenbaseResource.instance().NullIllegal.ex());
         } else {
-            return SqlOperandCountRanges.of(nOperands);
+          return false;
         }
+      }
+      types[i] = operatorBinding.getOperandType(i);
     }
+    int prev = -1;
+    for (int i : operandList) {
+      if (prev >= 0) {
+        if (!SqlTypeUtil.isComparable(types[i], types[prev])) {
+          if (!throwOnFailure) {
+            return false;
+          }
 
-    // implement SqlOperandTypeChecker
-    public String getAllowedSignatures(SqlOperator op, String opName)
-    {
-        return SqlUtil.getAliasedSignature(
-            op,
-            opName,
-            nOperands == -1
-                ? Arrays.asList("EQUIVALENT_TYPE", "EQUIVALENT_TYPE", "...")
-                : Collections.nCopies(nOperands, "EQUIVALENT_TYPE"));
+          // REVIEW jvs 5-June-2005: Why don't we use
+          // newValidationSignatureError() here?  It gives more
+          // specific diagnostics.
+          throw callBinding.newValidationError(
+              EigenbaseResource.instance().NeedSameTypeParameter
+                  .ex());
+        }
+      }
+      prev = i;
     }
+    return true;
+  }
 
-    public boolean checkSingleOperandType(
-        SqlCallBinding callBinding,
-        SqlNode operand,
-        int iFormalOperand,
-        boolean throwOnFailure)
-    {
-        throw new UnsupportedOperationException(); // TODO:
+  /**
+   * Similar functionality to {@link #checkOperandTypes(SqlCallBinding,
+   * boolean)}, but not part of the interface, and cannot throw an error.
+   */
+  public boolean checkOperandTypes(
+      SqlOperatorBinding operatorBinding) {
+    return checkOperandTypesImpl(operatorBinding, false, null);
+  }
+
+  // implement SqlOperandTypeChecker
+  public SqlOperandCountRange getOperandCountRange() {
+    if (nOperands == -1) {
+      return SqlOperandCountRanges.any();
+    } else {
+      return SqlOperandCountRanges.of(nOperands);
     }
+  }
+
+  // implement SqlOperandTypeChecker
+  public String getAllowedSignatures(SqlOperator op, String opName) {
+    return SqlUtil.getAliasedSignature(
+        op,
+        opName,
+        nOperands == -1
+            ? Arrays.asList("EQUIVALENT_TYPE", "EQUIVALENT_TYPE", "...")
+            : Collections.nCopies(nOperands, "EQUIVALENT_TYPE"));
+  }
+
+  public boolean checkSingleOperandType(
+      SqlCallBinding callBinding,
+      SqlNode operand,
+      int iFormalOperand,
+      boolean throwOnFailure) {
+    throw new UnsupportedOperationException(); // TODO:
+  }
 }
 
 // End SameOperandTypeChecker.java

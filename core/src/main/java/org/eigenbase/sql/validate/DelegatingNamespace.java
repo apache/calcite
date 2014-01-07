@@ -27,112 +27,93 @@ import org.eigenbase.util.*;
  * An implementation of {@link SqlValidatorNamespace} that delegates all methods
  * to an underlying object.
  */
-public abstract class DelegatingNamespace
-    implements SqlValidatorNamespace
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class DelegatingNamespace implements SqlValidatorNamespace {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final SqlValidatorNamespace namespace;
+  protected final SqlValidatorNamespace namespace;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a DelegatingNamespace.
-     *
-     * @param namespace Underlying namespace, to delegate to
-     */
-    protected DelegatingNamespace(SqlValidatorNamespace namespace)
-    {
-        this.namespace = namespace;
+  /**
+   * Creates a DelegatingNamespace.
+   *
+   * @param namespace Underlying namespace, to delegate to
+   */
+  protected DelegatingNamespace(SqlValidatorNamespace namespace) {
+    this.namespace = namespace;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlValidator getValidator() {
+    return namespace.getValidator();
+  }
+
+  public SqlValidatorTable getTable() {
+    return namespace.getTable();
+  }
+
+  public RelDataType getRowType() {
+    return namespace.getRowType();
+  }
+
+  public void setRowType(RelDataType rowType) {
+    namespace.setRowType(rowType);
+  }
+
+  public RelDataType getRowTypeSansSystemColumns() {
+    return namespace.getRowTypeSansSystemColumns();
+  }
+
+  public void validate() {
+    namespace.validate();
+  }
+
+  public SqlNode getNode() {
+    return namespace.getNode();
+  }
+
+  public SqlNode getEnclosingNode() {
+    return namespace.getEnclosingNode();
+  }
+
+  public SqlValidatorNamespace lookupChild(
+      String name) {
+    return namespace.lookupChild(name);
+  }
+
+  public boolean fieldExists(String name) {
+    return namespace.fieldExists(name);
+  }
+
+  public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
+    return namespace.getMonotonicExprs();
+  }
+
+  public SqlMonotonicity getMonotonicity(String columnName) {
+    return namespace.getMonotonicity(columnName);
+  }
+
+  public void makeNullable() {
+    namespace.makeNullable();
+  }
+
+  public String translate(String name) {
+    return namespace.translate(name);
+  }
+
+  public <T> T unwrap(Class<T> clazz) {
+    if (clazz.isInstance(this)) {
+      return clazz.cast(this);
+    } else {
+      return namespace.unwrap(clazz);
     }
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public SqlValidator getValidator()
-    {
-        return namespace.getValidator();
-    }
-
-    public SqlValidatorTable getTable()
-    {
-        return namespace.getTable();
-    }
-
-    public RelDataType getRowType()
-    {
-        return namespace.getRowType();
-    }
-
-    public void setRowType(RelDataType rowType)
-    {
-        namespace.setRowType(rowType);
-    }
-
-    public RelDataType getRowTypeSansSystemColumns()
-    {
-        return namespace.getRowTypeSansSystemColumns();
-    }
-
-    public void validate()
-    {
-        namespace.validate();
-    }
-
-    public SqlNode getNode()
-    {
-        return namespace.getNode();
-    }
-
-    public SqlNode getEnclosingNode()
-    {
-        return namespace.getEnclosingNode();
-    }
-
-    public SqlValidatorNamespace lookupChild(
-        String name)
-    {
-        return namespace.lookupChild(name);
-    }
-
-    public boolean fieldExists(String name)
-    {
-        return namespace.fieldExists(name);
-    }
-
-    public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs()
-    {
-        return namespace.getMonotonicExprs();
-    }
-
-    public SqlMonotonicity getMonotonicity(String columnName)
-    {
-        return namespace.getMonotonicity(columnName);
-    }
-
-    public void makeNullable()
-    {
-        namespace.makeNullable();
-    }
-
-    public String translate(String name)
-    {
-        return namespace.translate(name);
-    }
-
-    public <T> T unwrap(Class<T> clazz)
-    {
-        if (clazz.isInstance(this)) {
-            return clazz.cast(this);
-        } else {
-            return namespace.unwrap(clazz);
-        }
-    }
-
-    public boolean isWrapperFor(Class<?> clazz)
-    {
-        return clazz.isInstance(this)
-            || namespace.isWrapperFor(clazz);
-    }
+  public boolean isWrapperFor(Class<?> clazz) {
+    return clazz.isInstance(this)
+        || namespace.isWrapperFor(clazz);
+  }
 }
 
 // End DelegatingNamespace.java

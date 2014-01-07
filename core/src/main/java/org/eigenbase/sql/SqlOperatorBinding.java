@@ -28,164 +28,147 @@ import org.eigenbase.util.*;
  * SqlOperator} to actual operands, along with any additional information
  * required to validate those operands if needed.
  */
-public abstract class SqlOperatorBinding
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class SqlOperatorBinding {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final RelDataTypeFactory typeFactory;
-    private final SqlOperator sqlOperator;
+  protected final RelDataTypeFactory typeFactory;
+  private final SqlOperator sqlOperator;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a SqlOperatorBinding.
-     *
-     * @param typeFactory Type factory
-     * @param sqlOperator Operator which is subject of this call
-     */
-    protected SqlOperatorBinding(
-        RelDataTypeFactory typeFactory,
-        SqlOperator sqlOperator)
-    {
-        this.typeFactory = typeFactory;
-        this.sqlOperator = sqlOperator;
-    }
+  /**
+   * Creates a SqlOperatorBinding.
+   *
+   * @param typeFactory Type factory
+   * @param sqlOperator Operator which is subject of this call
+   */
+  protected SqlOperatorBinding(
+      RelDataTypeFactory typeFactory,
+      SqlOperator sqlOperator) {
+    this.typeFactory = typeFactory;
+    this.sqlOperator = sqlOperator;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * @return bound operator
-     */
-    public SqlOperator getOperator()
-    {
-        return sqlOperator;
-    }
+  /**
+   * @return bound operator
+   */
+  public SqlOperator getOperator() {
+    return sqlOperator;
+  }
 
-    /**
-     * @return factory for type creation
-     */
-    public RelDataTypeFactory getTypeFactory()
-    {
-        return typeFactory;
-    }
+  /**
+   * @return factory for type creation
+   */
+  public RelDataTypeFactory getTypeFactory() {
+    return typeFactory;
+  }
 
-    /**
-     * Gets the string value of a string literal operand.
-     *
-     * @param ordinal zero-based ordinal of operand of interest
-     *
-     * @return string value
-     */
-    public String getStringLiteralOperand(int ordinal)
-    {
-        throw new UnsupportedOperationException();
-    }
+  /**
+   * Gets the string value of a string literal operand.
+   *
+   * @param ordinal zero-based ordinal of operand of interest
+   * @return string value
+   */
+  public String getStringLiteralOperand(int ordinal) {
+    throw new UnsupportedOperationException();
+  }
 
-    /**
-     * Gets the integer value of a numeric literal operand.
-     *
-     * @param ordinal zero-based ordinal of operand of interest
-     *
-     * @return integer value
-     */
-    public int getIntLiteralOperand(int ordinal)
-    {
-        throw new UnsupportedOperationException();
-    }
+  /**
+   * Gets the integer value of a numeric literal operand.
+   *
+   * @param ordinal zero-based ordinal of operand of interest
+   * @return integer value
+   */
+  public int getIntLiteralOperand(int ordinal) {
+    throw new UnsupportedOperationException();
+  }
 
-    /**
-     * Determines whether a bound operand is NULL.
-     *
-     * <p>This is only relevant for SQL validation.
-     *
-     * @param ordinal zero-based ordinal of operand of interest
-     * @param allowCast whether to regard CAST(constant) as a constant
-     *
-     * @return whether operand is null; false for everything except SQL
-     * validation
-     */
-    public boolean isOperandNull(int ordinal, boolean allowCast)
-    {
-        throw new UnsupportedOperationException();
-    }
+  /**
+   * Determines whether a bound operand is NULL.
+   *
+   * <p>This is only relevant for SQL validation.
+   *
+   * @param ordinal   zero-based ordinal of operand of interest
+   * @param allowCast whether to regard CAST(constant) as a constant
+   * @return whether operand is null; false for everything except SQL
+   * validation
+   */
+  public boolean isOperandNull(int ordinal, boolean allowCast) {
+    throw new UnsupportedOperationException();
+  }
 
-    /**
-     * @return the number of bound operands
-     */
-    public abstract int getOperandCount();
+  /**
+   * @return the number of bound operands
+   */
+  public abstract int getOperandCount();
 
-    /**
-     * Gets the type of a bound operand.
-     *
-     * @param ordinal zero-based ordinal of operand of interest
-     *
-     * @return bound operand type
-     */
-    public abstract RelDataType getOperandType(int ordinal);
+  /**
+   * Gets the type of a bound operand.
+   *
+   * @param ordinal zero-based ordinal of operand of interest
+   * @return bound operand type
+   */
+  public abstract RelDataType getOperandType(int ordinal);
 
-    /**
-     * Collects the types of the bound operands into a list.
-     *
-     * @return collected list
-     */
-    public List<RelDataType> collectOperandTypes()
-    {
-        return new AbstractList<RelDataType>() {
-            public RelDataType get(int index) {
-                return getOperandType(index);
-            }
-            public int size() {
-                return getOperandCount();
-            }
-        };
-    }
+  /**
+   * Collects the types of the bound operands into a list.
+   *
+   * @return collected list
+   */
+  public List<RelDataType> collectOperandTypes() {
+    return new AbstractList<RelDataType>() {
+      public RelDataType get(int index) {
+        return getOperandType(index);
+      }
 
-    /**
-     * Returns the rowtype of the <code>ordinal</code>th operand, which is a
-     * cursor.
-     *
-     * <p>This is only implemented for {@link SqlCallBinding}.
-     *
-     * @param ordinal Ordinal of the operand
-     *
-     * @return Rowtype of the query underlying the cursor
-     */
-    public RelDataType getCursorOperand(int ordinal)
-    {
-        throw new UnsupportedOperationException();
-    }
+      public int size() {
+        return getOperandCount();
+      }
+    };
+  }
 
-    /**
-     * Retrieves information about a column list parameter.
-     *
-     * @param ordinal ordinal position of the column list parameter
-     * @param paramName name of the column list parameter
-     * @param columnList returns a list of the column names that are referenced
-     * in the column list parameter
-     *
-     * @return the name of the parent cursor referenced by the column list
-     * parameter if it is a column list parameter; otherwise, null is returned
-     */
-    public String getColumnListParamInfo(
-        int ordinal,
-        String paramName,
-        List<String> columnList)
-    {
-        throw new UnsupportedOperationException();
-    }
+  /**
+   * Returns the rowtype of the <code>ordinal</code>th operand, which is a
+   * cursor.
+   *
+   * <p>This is only implemented for {@link SqlCallBinding}.
+   *
+   * @param ordinal Ordinal of the operand
+   * @return Rowtype of the query underlying the cursor
+   */
+  public RelDataType getCursorOperand(int ordinal) {
+    throw new UnsupportedOperationException();
+  }
 
-    /**
-     * Wraps a validation error with context appropriate to this operator call.
-     *
-     * @param e Validation error
-     *
-     * @return Error wrapped, if possible, with positional information
-     *
-     * @pre node != null
-     * @post return != null
-     */
-    public abstract EigenbaseException newError(
-        SqlValidatorException e);
+  /**
+   * Retrieves information about a column list parameter.
+   *
+   * @param ordinal    ordinal position of the column list parameter
+   * @param paramName  name of the column list parameter
+   * @param columnList returns a list of the column names that are referenced
+   *                   in the column list parameter
+   * @return the name of the parent cursor referenced by the column list
+   * parameter if it is a column list parameter; otherwise, null is returned
+   */
+  public String getColumnListParamInfo(
+      int ordinal,
+      String paramName,
+      List<String> columnList) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Wraps a validation error with context appropriate to this operator call.
+   *
+   * @param e Validation error
+   * @return Error wrapped, if possible, with positional information
+   * @pre node != null
+   * @post return != null
+   */
+  public abstract EigenbaseException newError(
+      SqlValidatorException e);
 }
 
 // End SqlOperatorBinding.java

@@ -21,8 +21,7 @@ package org.eigenbase.reltype;
  * RelDataTypeFamily represents a family of related types. The specific criteria
  * for membership in a type family are type-system dependent.
  */
-public interface RelDataTypeFamily
-{
+public interface RelDataTypeFamily {
 }
 
 // End RelDataTypeFamily.java

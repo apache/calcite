@@ -20,49 +20,45 @@ package org.eigenbase.sql;
 import org.eigenbase.sql.parser.SqlParserPos;
 import org.eigenbase.util.*;
 
-
 /**
  * Defines the keywords which can occur immediately after the "SELECT" keyword.
  */
-public class SqlSelectKeyword
-    extends EnumeratedValues.BasicValue
-    implements SqlLiteral.SqlSymbol
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlSelectKeyword extends EnumeratedValues.BasicValue
+    implements SqlLiteral.SqlSymbol {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final int Distinct_ordinal = 0;
-    public static final SqlSelectKeyword Distinct =
-        new SqlSelectKeyword("Distinct", Distinct_ordinal);
-    public static final int All_ordinal = 1;
-    public static final SqlSelectKeyword All =
-        new SqlSelectKeyword("All", All_ordinal);
-    public static final EnumeratedValues enumeration =
-        new EnumeratedValues(new SqlSelectKeyword[] { Distinct, All });
+  public static final int Distinct_ordinal = 0;
+  public static final SqlSelectKeyword Distinct =
+      new SqlSelectKeyword("Distinct", Distinct_ordinal);
+  public static final int All_ordinal = 1;
+  public static final SqlSelectKeyword All =
+      new SqlSelectKeyword("All", All_ordinal);
+  public static final EnumeratedValues enumeration =
+      new EnumeratedValues(new SqlSelectKeyword[]{Distinct, All});
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlSelectKeyword(String name, int ordinal)
-    {
-        super(name, ordinal, null);
-    }
+  protected SqlSelectKeyword(String name, int ordinal) {
+    super(name, ordinal, null);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public String name()
-    {
-        return getName();
-    }
+  public String name() {
+    return getName();
+  }
 
-    public int ordinal()
-    {
-        return getOrdinal();
-    }
+  public int ordinal() {
+    return getOrdinal();
+  }
 
-    /** Creates a parse-tree node representing an occurrence of this keyword
-     * at a particular position in the parsed text. */
-    public SqlLiteral symbol(SqlParserPos pos) {
-        return SqlLiteral.createSymbol(this, pos);
-    }
+  /**
+   * Creates a parse-tree node representing an occurrence of this keyword
+   * at a particular position in the parsed text.
+   */
+  public SqlLiteral symbol(SqlParserPos pos) {
+    return SqlLiteral.createSymbol(this, pos);
+  }
 }
 
 // End SqlSelectKeyword.java

@@ -29,50 +29,44 @@ import org.eigenbase.sql.validate.SqlValidatorScope;
  * qualifier></code>. This operator is special since it needs to hold the
  * additional interval qualifier specification.
  */
-public class SqlDatetimeSubtractionOperator
-    extends SqlSpecialOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlDatetimeSubtractionOperator()
-    {
-        super(
-            "-",
-            SqlKind.MINUS,
-            40,
-            true,
-            SqlTypeStrategies.rtiNullableThirdArgType,
-            SqlTypeStrategies.otiFirstKnown,
-            SqlTypeStrategies.otcMinusDateOperator);
-    }
+  public SqlDatetimeSubtractionOperator() {
+    super(
+        "-",
+        SqlKind.MINUS,
+        40,
+        true,
+        SqlTypeStrategies.rtiNullableThirdArgType,
+        SqlTypeStrategies.otiFirstKnown,
+        SqlTypeStrategies.otcMinusDateOperator);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlSyntax getSyntax()
-    {
-        return SqlSyntax.Special;
-    }
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.Special;
+  }
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        final SqlWriter.Frame frame = writer.startList("(", ")");
-        operands[0].unparse(writer, leftPrec, rightPrec);
-        writer.sep("-");
-        operands[1].unparse(writer, leftPrec, rightPrec);
-        writer.endList(frame);
-        operands[2].unparse(writer, leftPrec, rightPrec);
-    }
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame frame = writer.startList("(", ")");
+    operands[0].unparse(writer, leftPrec, rightPrec);
+    writer.sep("-");
+    operands[1].unparse(writer, leftPrec, rightPrec);
+    writer.endList(frame);
+    operands[2].unparse(writer, leftPrec, rightPrec);
+  }
 
-    public SqlMonotonicity getMonotonicity(
-        SqlCall call,
-        SqlValidatorScope scope)
-    {
-        return SqlStdOperatorTable.minusOperator.getMonotonicity(call, scope);
-    }
+  public SqlMonotonicity getMonotonicity(
+      SqlCall call,
+      SqlValidatorScope scope) {
+    return SqlStdOperatorTable.minusOperator.getMonotonicity(call, scope);
+  }
 }
 
 // End SqlDatetimeSubtractionOperator.java

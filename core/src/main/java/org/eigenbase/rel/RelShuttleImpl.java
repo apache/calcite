@@ -33,7 +33,9 @@ import net.hydromatic.linq4j.Ord;
 public class RelShuttleImpl implements RelShuttle {
   protected final List<RelNode> stack = new ArrayList<RelNode>();
 
-  /** Visits a particular child of a parent. */
+  /**
+   * Visits a particular child of a parent.
+   */
   protected RelNode visitChild(RelNode parent, int i, RelNode child) {
     Stacks.push(stack, parent);
     try {

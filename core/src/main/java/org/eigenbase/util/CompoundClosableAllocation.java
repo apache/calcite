@@ -24,68 +24,60 @@ import java.util.*;
  * which share a common lifecycle. It guarantees that allocations are closed in
  * the reverse order in which they were added.
  */
-public class CompoundClosableAllocation
-    implements ClosableAllocationOwner
-{
-    //~ Instance fields --------------------------------------------------------
+public class CompoundClosableAllocation implements ClosableAllocationOwner {
+  //~ Instance fields --------------------------------------------------------
 
-    /**
-     * List of owned ClosableAllocation objects.
-     */
-    protected List<ClosableAllocation> allocations;
+  /**
+   * List of owned ClosableAllocation objects.
+   */
+  protected List<ClosableAllocation> allocations;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public CompoundClosableAllocation()
-    {
-        allocations = new LinkedList<ClosableAllocation>();
+  public CompoundClosableAllocation() {
+    allocations = new LinkedList<ClosableAllocation>();
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement ClosableAllocationOwner
+  public void addAllocation(ClosableAllocation allocation) {
+    allocations.add(allocation);
+  }
+
+  // implement ClosableAllocation
+  public void closeAllocation() {
+    // traverse in reverse order
+    ListIterator<ClosableAllocation> iter =
+        allocations.listIterator(allocations.size());
+    while (iter.hasPrevious()) {
+      ClosableAllocation allocation = iter.previous();
+
+      // NOTE:  nullify the entry just retrieved so that if allocation
+      // calls back to forgetAllocation, it won't find itself
+      // (this prevents a ConcurrentModificationException)
+      iter.set(null);
+      allocation.closeAllocation();
     }
+    allocations.clear();
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  /**
+   * Forgets an allocation without closing it.
+   *
+   * @param allocation the allocation to forget
+   * @return whether the allocation was known
+   */
+  public boolean forgetAllocation(ClosableAllocation allocation) {
+    return allocations.remove(allocation);
+  }
 
-    // implement ClosableAllocationOwner
-    public void addAllocation(ClosableAllocation allocation)
-    {
-        allocations.add(allocation);
-    }
-
-    // implement ClosableAllocation
-    public void closeAllocation()
-    {
-        // traverse in reverse order
-        ListIterator<ClosableAllocation> iter =
-            allocations.listIterator(allocations.size());
-        while (iter.hasPrevious()) {
-            ClosableAllocation allocation = iter.previous();
-
-            // NOTE:  nullify the entry just retrieved so that if allocation
-            // calls back to forgetAllocation, it won't find itself
-            // (this prevents a ConcurrentModificationException)
-            iter.set(null);
-            allocation.closeAllocation();
-        }
-        allocations.clear();
-    }
-
-    /**
-     * Forgets an allocation without closing it.
-     *
-     * @param allocation the allocation to forget
-     *
-     * @return whether the allocation was known
-     */
-    public boolean forgetAllocation(ClosableAllocation allocation)
-    {
-        return allocations.remove(allocation);
-    }
-
-    /**
-     * @return whether any allocations remain unclosed
-     */
-    public boolean hasAllocations()
-    {
-        return !allocations.isEmpty();
-    }
+  /**
+   * @return whether any allocations remain unclosed
+   */
+  public boolean hasAllocations() {
+    return !allocations.isEmpty();
+  }
 }
 
 // End CompoundClosableAllocation.java

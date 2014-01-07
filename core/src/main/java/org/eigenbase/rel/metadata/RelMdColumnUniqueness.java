@@ -31,257 +31,245 @@ import net.hydromatic.optiq.util.BitSets;
  * RelMdColumnUniqueness supplies a default implementation of {@link
  * RelMetadataQuery#areColumnsUnique} for the standard logical algebra.
  */
-public class RelMdColumnUniqueness
-    extends ReflectiveRelMetadataProvider
-{
-    //~ Constructors -----------------------------------------------------------
+public class RelMdColumnUniqueness extends ReflectiveRelMetadataProvider {
+  //~ Constructors -----------------------------------------------------------
 
-    public RelMdColumnUniqueness()
-    {
-        // Tell superclass reflection about parameter types expected
-        // for various metadata queries.
+  public RelMdColumnUniqueness() {
+    // Tell superclass reflection about parameter types expected
+    // for various metadata queries.
 
-        // This corresponds to areColumnsUnique(rel, BitSet columns,
-        // boolean ignoreNulls);
-        // note that we don't specify the rel type because we always overload
-        // on that.
-        List<Class> args = new ArrayList<Class>();
-        args.add((Class) BitSet.class);
-        args.add((Class) Boolean.TYPE);
-        mapParameterTypes(
-            "areColumnsUnique",
-            args);
-    }
+    // This corresponds to areColumnsUnique(rel, BitSet columns,
+    // boolean ignoreNulls);
+    // note that we don't specify the rel type because we always overload
+    // on that.
+    List<Class> args = new ArrayList<Class>();
+    args.add((Class) BitSet.class);
+    args.add((Class) Boolean.TYPE);
+    mapParameterTypes(
+        "areColumnsUnique",
+        args);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public Boolean areColumnsUnique(
-        FilterRelBase rel,
-        BitSet columns,
-        boolean ignoreNulls)
-    {
-        return RelMetadataQuery.areColumnsUnique(
-            rel.getChild(),
-            columns,
-            ignoreNulls);
-    }
+  public Boolean areColumnsUnique(
+      FilterRelBase rel,
+      BitSet columns,
+      boolean ignoreNulls) {
+    return RelMetadataQuery.areColumnsUnique(
+        rel.getChild(),
+        columns,
+        ignoreNulls);
+  }
 
-    public Boolean areColumnsUnique(
-        SortRel rel,
-        BitSet columns,
-        boolean ignoreNulls)
-    {
-        return RelMetadataQuery.areColumnsUnique(
-            rel.getChild(),
-            columns,
-            ignoreNulls);
-    }
+  public Boolean areColumnsUnique(
+      SortRel rel,
+      BitSet columns,
+      boolean ignoreNulls) {
+    return RelMetadataQuery.areColumnsUnique(
+        rel.getChild(),
+        columns,
+        ignoreNulls);
+  }
 
-    public Boolean areColumnsUnique(
-        CorrelatorRel rel,
-        BitSet columns,
-        boolean ignoreNulls)
-    {
-        return RelMetadataQuery.areColumnsUnique(
-            rel.getLeft(),
-            columns,
-            ignoreNulls);
-    }
+  public Boolean areColumnsUnique(
+      CorrelatorRel rel,
+      BitSet columns,
+      boolean ignoreNulls) {
+    return RelMetadataQuery.areColumnsUnique(
+        rel.getLeft(),
+        columns,
+        ignoreNulls);
+  }
 
-    public Boolean areColumnsUnique(
-        ProjectRelBase rel,
-        BitSet columns,
-        boolean ignoreNulls)
-    {
-        // ProjectRel maps a set of rows to a different set;
-        // Without knowledge of the mapping function(whether it
-        // preserves uniqueness), it is only safe to derive uniqueness
-        // info from the child of a project when the mapping is f(a) => a.
-        //
-        // Also need to map the input column set to the corresponding child
-        // references
+  public Boolean areColumnsUnique(
+      ProjectRelBase rel,
+      BitSet columns,
+      boolean ignoreNulls) {
+    // ProjectRel maps a set of rows to a different set;
+    // Without knowledge of the mapping function(whether it
+    // preserves uniqueness), it is only safe to derive uniqueness
+    // info from the child of a project when the mapping is f(a) => a.
+    //
+    // Also need to map the input column set to the corresponding child
+    // references
 
-        List<RexNode> projExprs = rel.getProjects();
-        BitSet childColumns = new BitSet();
-        for (int bit : BitSets.toIter(columns)) {
-            RexNode projExpr = projExprs.get(bit);
-            if (projExpr instanceof RexInputRef) {
-                childColumns.set(((RexInputRef) projExpr).getIndex());
-            } else if (projExpr instanceof RexCall && ignoreNulls) {
-                // If the expression is a cast such that the types are the same
-                // except for the nullability, then if we're ignoring nulls,
-                // it doesn't matter whether the underlying column reference
-                // is nullable.  Check that the types are the same by making a
-                // nullable copy of both types and then comparing them.
-                RexCall call = (RexCall) projExpr;
-                if (call.getOperator() != SqlStdOperatorTable.castFunc) {
-                    continue;
-                }
-                RexNode castOperand = call.getOperands().get(0);
-                if (!(castOperand instanceof RexInputRef)) {
-                    continue;
-                }
-                RelDataTypeFactory typeFactory =
-                    rel.getCluster().getTypeFactory();
-                RelDataType castType =
-                    typeFactory.createTypeWithNullability(
-                        projExpr.getType(), true);
-                RelDataType origType = typeFactory.createTypeWithNullability(
-                    castOperand.getType(),
-                    true);
-                if (castType.equals(origType)) {
-                    childColumns.set(((RexInputRef) castOperand).getIndex());
-                }
-            } else {
-                // If the expression will not influence uniqueness of the
-                // projection, then skip it.
-                continue;
-            }
+    List<RexNode> projExprs = rel.getProjects();
+    BitSet childColumns = new BitSet();
+    for (int bit : BitSets.toIter(columns)) {
+      RexNode projExpr = projExprs.get(bit);
+      if (projExpr instanceof RexInputRef) {
+        childColumns.set(((RexInputRef) projExpr).getIndex());
+      } else if (projExpr instanceof RexCall && ignoreNulls) {
+        // If the expression is a cast such that the types are the same
+        // except for the nullability, then if we're ignoring nulls,
+        // it doesn't matter whether the underlying column reference
+        // is nullable.  Check that the types are the same by making a
+        // nullable copy of both types and then comparing them.
+        RexCall call = (RexCall) projExpr;
+        if (call.getOperator() != SqlStdOperatorTable.castFunc) {
+          continue;
         }
-
-        // If no columns can affect uniqueness, then return unknown
-        if (childColumns.cardinality() == 0) {
-            return null;
+        RexNode castOperand = call.getOperands().get(0);
+        if (!(castOperand instanceof RexInputRef)) {
+          continue;
         }
-
-        return RelMetadataQuery.areColumnsUnique(
-            rel.getChild(),
-            childColumns,
-            ignoreNulls);
+        RelDataTypeFactory typeFactory =
+            rel.getCluster().getTypeFactory();
+        RelDataType castType =
+            typeFactory.createTypeWithNullability(
+                projExpr.getType(), true);
+        RelDataType origType = typeFactory.createTypeWithNullability(
+            castOperand.getType(),
+            true);
+        if (castType.equals(origType)) {
+          childColumns.set(((RexInputRef) castOperand).getIndex());
+        }
+      } else {
+        // If the expression will not influence uniqueness of the
+        // projection, then skip it.
+        continue;
+      }
     }
 
-    public Boolean areColumnsUnique(
-        JoinRelBase rel,
-        BitSet columns, boolean
-        ignoreNulls)
-    {
-        if (columns.cardinality() == 0) {
-            return false;
-        }
-
-        RelNode left = rel.getLeft();
-        RelNode right = rel.getRight();
-
-        // Divide up the input column mask into column masks for the left and
-        // right sides of the join
-        BitSet leftColumns = new BitSet();
-        BitSet rightColumns = new BitSet();
-        int nLeftColumns = left.getRowType().getFieldCount();
-        for (int bit : BitSets.toIter(columns)) {
-            if (bit < nLeftColumns) {
-                leftColumns.set(bit);
-            } else {
-                rightColumns.set(bit - nLeftColumns);
-            }
-        }
-
-        // If the original column mask contains columns from both the left and
-        // right hand side, then the columns are unique if and only if they're
-        // unique for their respective join inputs
-        Boolean leftUnique =
-            RelMetadataQuery.areColumnsUnique(left, leftColumns, ignoreNulls);
-        Boolean rightUnique =
-            RelMetadataQuery.areColumnsUnique(right, rightColumns, ignoreNulls);
-        if ((leftColumns.cardinality() > 0)
-            && (rightColumns.cardinality() > 0))
-        {
-            if ((leftUnique == null) || (rightUnique == null)) {
-                return null;
-            } else {
-                return (leftUnique && rightUnique);
-            }
-        }
-
-        // If we're only trying to determine uniqueness for columns that
-        // originate from one join input, then determine if the equijoin
-        // columns from the other join input are unique.  If they are, then
-        // the columns are unique for the entire join if they're unique for
-        // the corresponding join input, provided that input is not null
-        // generating.
-        BitSet leftJoinCols = new BitSet();
-        BitSet rightJoinCols = new BitSet();
-        RelMdUtil.findEquiJoinCols(
-            left,
-            right,
-            rel.getCondition(),
-            leftJoinCols,
-            rightJoinCols);
-
-        if (leftColumns.cardinality() > 0) {
-            if (rel.getJoinType().generatesNullsOnLeft()) {
-                return false;
-            }
-            Boolean rightJoinColsUnique =
-                RelMetadataQuery.areColumnsUnique(
-                    right,
-                    rightJoinCols,
-                    ignoreNulls);
-            if ((rightJoinColsUnique == null) || (leftUnique == null)) {
-                return null;
-            }
-            return (rightJoinColsUnique && leftUnique);
-        } else if (rightColumns.cardinality() > 0) {
-            if (rel.getJoinType().generatesNullsOnRight()) {
-                return false;
-            }
-            Boolean leftJoinColsUnique =
-                RelMetadataQuery.areColumnsUnique(
-                    left,
-                    leftJoinCols,
-                    ignoreNulls);
-            if ((leftJoinColsUnique == null) || (rightUnique == null)) {
-                return null;
-            }
-            return (leftJoinColsUnique && rightUnique);
-        }
-
-        throw new AssertionError();
+    // If no columns can affect uniqueness, then return unknown
+    if (childColumns.cardinality() == 0) {
+      return null;
     }
 
-    public Boolean areColumnsUnique(
-        SemiJoinRel rel,
-        BitSet columns,
-        boolean ignoreNulls)
-    {
-        // only return the unique keys from the LHS since a semijoin only
-        // returns the LHS
-        return RelMetadataQuery.areColumnsUnique(
-            rel.getLeft(),
-            columns,
-            ignoreNulls);
+    return RelMetadataQuery.areColumnsUnique(
+        rel.getChild(),
+        childColumns,
+        ignoreNulls);
+  }
+
+  public Boolean areColumnsUnique(
+      JoinRelBase rel,
+      BitSet columns, boolean
+      ignoreNulls) {
+    if (columns.cardinality() == 0) {
+      return false;
     }
 
-    public Boolean areColumnsUnique(
-        AggregateRelBase rel,
-        BitSet columns,
-        boolean ignoreNulls)
-    {
-        // group by keys form a unique key
-        if (rel.getGroupCount() > 0) {
-            BitSet groupKey = new BitSet();
-            for (int i = 0; i < rel.getGroupCount(); i++) {
-                groupKey.set(i);
-            }
-            return BitSets.contains(columns, groupKey);
-        } else {
-            // interpret an empty set as asking whether the aggregation is full
-            // table (in which case it returns at most one row);
-            // TODO jvs 1-Sept-2008:  apply this convention consistently
-            // to other relational expressions, as well as to
-            // RelMetadataQuery.getUniqueKeys
-            return columns.isEmpty();
-        }
+    RelNode left = rel.getLeft();
+    RelNode right = rel.getRight();
+
+    // Divide up the input column mask into column masks for the left and
+    // right sides of the join
+    BitSet leftColumns = new BitSet();
+    BitSet rightColumns = new BitSet();
+    int nLeftColumns = left.getRowType().getFieldCount();
+    for (int bit : BitSets.toIter(columns)) {
+      if (bit < nLeftColumns) {
+        leftColumns.set(bit);
+      } else {
+        rightColumns.set(bit - nLeftColumns);
+      }
     }
 
-    // Catch-all rule when none of the others apply.
-    public Boolean areColumnsUnique(
-        RelNode rel,
-        BitSet columns,
-        boolean ignoreNulls)
-    {
-        // no information available
+    // If the original column mask contains columns from both the left and
+    // right hand side, then the columns are unique if and only if they're
+    // unique for their respective join inputs
+    Boolean leftUnique =
+        RelMetadataQuery.areColumnsUnique(left, leftColumns, ignoreNulls);
+    Boolean rightUnique =
+        RelMetadataQuery.areColumnsUnique(right, rightColumns, ignoreNulls);
+    if ((leftColumns.cardinality() > 0)
+        && (rightColumns.cardinality() > 0)) {
+      if ((leftUnique == null) || (rightUnique == null)) {
         return null;
+      } else {
+        return (leftUnique && rightUnique);
+      }
     }
+
+    // If we're only trying to determine uniqueness for columns that
+    // originate from one join input, then determine if the equijoin
+    // columns from the other join input are unique.  If they are, then
+    // the columns are unique for the entire join if they're unique for
+    // the corresponding join input, provided that input is not null
+    // generating.
+    BitSet leftJoinCols = new BitSet();
+    BitSet rightJoinCols = new BitSet();
+    RelMdUtil.findEquiJoinCols(
+        left,
+        right,
+        rel.getCondition(),
+        leftJoinCols,
+        rightJoinCols);
+
+    if (leftColumns.cardinality() > 0) {
+      if (rel.getJoinType().generatesNullsOnLeft()) {
+        return false;
+      }
+      Boolean rightJoinColsUnique =
+          RelMetadataQuery.areColumnsUnique(
+              right,
+              rightJoinCols,
+              ignoreNulls);
+      if ((rightJoinColsUnique == null) || (leftUnique == null)) {
+        return null;
+      }
+      return (rightJoinColsUnique && leftUnique);
+    } else if (rightColumns.cardinality() > 0) {
+      if (rel.getJoinType().generatesNullsOnRight()) {
+        return false;
+      }
+      Boolean leftJoinColsUnique =
+          RelMetadataQuery.areColumnsUnique(
+              left,
+              leftJoinCols,
+              ignoreNulls);
+      if ((leftJoinColsUnique == null) || (rightUnique == null)) {
+        return null;
+      }
+      return (leftJoinColsUnique && rightUnique);
+    }
+
+    throw new AssertionError();
+  }
+
+  public Boolean areColumnsUnique(
+      SemiJoinRel rel,
+      BitSet columns,
+      boolean ignoreNulls) {
+    // only return the unique keys from the LHS since a semijoin only
+    // returns the LHS
+    return RelMetadataQuery.areColumnsUnique(
+        rel.getLeft(),
+        columns,
+        ignoreNulls);
+  }
+
+  public Boolean areColumnsUnique(
+      AggregateRelBase rel,
+      BitSet columns,
+      boolean ignoreNulls) {
+    // group by keys form a unique key
+    if (rel.getGroupCount() > 0) {
+      BitSet groupKey = new BitSet();
+      for (int i = 0; i < rel.getGroupCount(); i++) {
+        groupKey.set(i);
+      }
+      return BitSets.contains(columns, groupKey);
+    } else {
+      // interpret an empty set as asking whether the aggregation is full
+      // table (in which case it returns at most one row);
+      // TODO jvs 1-Sept-2008:  apply this convention consistently
+      // to other relational expressions, as well as to
+      // RelMetadataQuery.getUniqueKeys
+      return columns.isEmpty();
+    }
+  }
+
+  // Catch-all rule when none of the others apply.
+  public Boolean areColumnsUnique(
+      RelNode rel,
+      BitSet columns,
+      boolean ignoreNulls) {
+    // no information available
+    return null;
+  }
 }
 
 // End RelMdColumnUniqueness.java

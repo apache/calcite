@@ -26,99 +26,85 @@ import org.eigenbase.sql.*;
  * {@link SqlVisitor} interface. The derived class can override whichever
  * methods it chooses.
  */
-public class SqlBasicVisitor<R>
-    implements SqlVisitor<R>
-{
-    //~ Methods ----------------------------------------------------------------
+public class SqlBasicVisitor<R> implements SqlVisitor<R> {
+  //~ Methods ----------------------------------------------------------------
 
-    public R visit(SqlLiteral literal)
-    {
+  public R visit(SqlLiteral literal) {
+    return null;
+  }
+
+  public R visit(SqlCall call) {
+    return call.getOperator().acceptCall(this, call);
+  }
+
+  public R visit(SqlNodeList nodeList) {
+    R result = null;
+    for (int i = 0; i < nodeList.size(); i++) {
+      SqlNode node = nodeList.get(i);
+      result = node.accept(this);
+    }
+    return result;
+  }
+
+  public R visit(SqlIdentifier id) {
+    return null;
+  }
+
+  public R visit(SqlDataTypeSpec type) {
+    return null;
+  }
+
+  public R visit(SqlDynamicParam param) {
+    return null;
+  }
+
+  public R visit(SqlIntervalQualifier intervalQualifier) {
+    return null;
+  }
+
+  //~ Inner Interfaces -------------------------------------------------------
+
+  // REVIEW jvs 16-June-2006:  Without javadoc, the interaction between
+  // ArgHandler and SqlBasicVisitor isn't obvious (nor why this interface
+  // belongs here instead of at top-level).  visitChild already returns
+  // R; why is a separate result() call needed?
+  public interface ArgHandler<R> {
+    R result();
+
+    R visitChild(
+        SqlVisitor<R> visitor,
+        SqlNode expr,
+        int i,
+        SqlNode operand);
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
+
+  /**
+   * Default implementation of {@link ArgHandler} which merely calls {@link
+   * SqlNode#accept} on each operand.
+   */
+  public static class ArgHandlerImpl<R> implements ArgHandler<R> {
+    // REVIEW jvs 16-June-2006:  This doesn't actually work, because it
+    // is type-erased, and if you try to add <R>, you get the error
+    // "non-static class R cannot be referenced from a static context."
+    public static final ArgHandler instance = new ArgHandlerImpl();
+
+    public R result() {
+      return null;
+    }
+
+    public R visitChild(
+        SqlVisitor<R> visitor,
+        SqlNode expr,
+        int i,
+        SqlNode operand) {
+      if (operand == null) {
         return null;
+      }
+      return operand.accept(visitor);
     }
-
-    public R visit(SqlCall call)
-    {
-        return call.getOperator().acceptCall(this, call);
-    }
-
-    public R visit(SqlNodeList nodeList)
-    {
-        R result = null;
-        for (int i = 0; i < nodeList.size(); i++) {
-            SqlNode node = nodeList.get(i);
-            result = node.accept(this);
-        }
-        return result;
-    }
-
-    public R visit(SqlIdentifier id)
-    {
-        return null;
-    }
-
-    public R visit(SqlDataTypeSpec type)
-    {
-        return null;
-    }
-
-    public R visit(SqlDynamicParam param)
-    {
-        return null;
-    }
-
-    public R visit(SqlIntervalQualifier intervalQualifier)
-    {
-        return null;
-    }
-
-    //~ Inner Interfaces -------------------------------------------------------
-
-    // REVIEW jvs 16-June-2006:  Without javadoc, the interaction between
-    // ArgHandler and SqlBasicVisitor isn't obvious (nor why this interface
-    // belongs here instead of at top-level).  visitChild already returns
-    // R; why is a separate result() call needed?
-    public interface ArgHandler<R>
-    {
-        R result();
-
-        R visitChild(
-            SqlVisitor<R> visitor,
-            SqlNode expr,
-            int i,
-            SqlNode operand);
-    }
-
-    //~ Inner Classes ----------------------------------------------------------
-
-    /**
-     * Default implementation of {@link ArgHandler} which merely calls {@link
-     * SqlNode#accept} on each operand.
-     */
-    public static class ArgHandlerImpl<R>
-        implements ArgHandler<R>
-    {
-        // REVIEW jvs 16-June-2006:  This doesn't actually work, because it
-        // is type-erased, and if you try to add <R>, you get the error
-        // "non-static class R cannot be referenced from a static context."
-        public static final ArgHandler instance = new ArgHandlerImpl();
-
-        public R result()
-        {
-            return null;
-        }
-
-        public R visitChild(
-            SqlVisitor<R> visitor,
-            SqlNode expr,
-            int i,
-            SqlNode operand)
-        {
-            if (operand == null) {
-                return null;
-            }
-            return operand.accept(visitor);
-        }
-    }
+  }
 }
 
 // End SqlBasicVisitor.java

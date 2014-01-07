@@ -26,28 +26,25 @@ import org.eigenbase.relopt.*;
  * table that can be scanned using an index. This rule should only be applied
  * after attempts have been made to convert SemiJoinRels.
  */
-public class RemoveSemiJoinRule
-    extends RelOptRule
-{
-    public static final RemoveSemiJoinRule instance =
-        new RemoveSemiJoinRule();
+public class RemoveSemiJoinRule extends RelOptRule {
+  public static final RemoveSemiJoinRule instance =
+      new RemoveSemiJoinRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a RemoveSemiJoinRule.
-     */
-    private RemoveSemiJoinRule() {
-      super(operand(SemiJoinRel.class, any()));
-    }
+  /**
+   * Creates a RemoveSemiJoinRule.
+   */
+  private RemoveSemiJoinRule() {
+    super(operand(SemiJoinRel.class, any()));
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // implement RelOptRule
-    public void onMatch(RelOptRuleCall call)
-    {
-        call.transformTo(call.rel(0).getInput(0));
-    }
+  // implement RelOptRule
+  public void onMatch(RelOptRuleCall call) {
+    call.transformTo(call.rel(0).getInput(0));
+  }
 }
 
 // End RemoveSemiJoinRule.java

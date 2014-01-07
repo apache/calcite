@@ -112,10 +112,10 @@ public abstract class ReduceValuesRule extends RelOptRule {
   /**
    * Does the work.
    *
-   * @param call Rule call
+   * @param call    Rule call
    * @param project Project, may be null
-   * @param filter Filter, may be null
-   * @param values Values rel to be reduced
+   * @param filter  Filter, may be null
+   * @param values  Values rel to be reduced
    */
   protected void apply(RelOptRuleCall call, ProjectRel project,
       FilterRel filter, ValuesRel values) {

@@ -22,8 +22,7 @@ package org.eigenbase.util14;
  * org.eigenbase.sql.parser.SqlParseException} to be identified without adding a
  * dependency on it from client-side code.
  */
-public interface EigenbaseParserException
-{
+public interface EigenbaseParserException {
 }
 
 // End EigenbaseParserException.java

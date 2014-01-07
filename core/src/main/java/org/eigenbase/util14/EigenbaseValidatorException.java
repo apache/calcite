@@ -22,8 +22,7 @@ package org.eigenbase.util14;
  * org.eigenbase.sql.validate.SqlValidatorException} to be identified without
  * adding a dependency on it from client-side code.
  */
-public interface EigenbaseValidatorException
-{
+public interface EigenbaseValidatorException {
 }
 
 // End EigenbaseValidatorException.java

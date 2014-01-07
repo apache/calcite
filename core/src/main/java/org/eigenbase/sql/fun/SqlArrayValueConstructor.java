@@ -22,30 +22,27 @@ import org.eigenbase.sql.SqlKind;
 import org.eigenbase.sql.SqlOperatorBinding;
 import org.eigenbase.sql.type.SqlTypeUtil;
 
-
 /**
  * Definition of the SQL:2003 standard ARRAY constructor, <code>MULTISET
  * [&lt;expr&gt;, ...]</code>.
  */
-public class SqlArrayValueConstructor
-    extends SqlMultisetValueConstructor
-{
-    public SqlArrayValueConstructor() {
-      super("ARRAY", SqlKind.ARRAY_VALUE_CONSTRUCTOR);
-    }
+public class SqlArrayValueConstructor extends SqlMultisetValueConstructor {
+  public SqlArrayValueConstructor() {
+    super("ARRAY", SqlKind.ARRAY_VALUE_CONSTRUCTOR);
+  }
 
-    @Override
-    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-        RelDataType type =
-            getComponentType(
-                opBinding.getTypeFactory(),
-                opBinding.collectOperandTypes());
-        if (null == type) {
-            return null;
-        }
-        return SqlTypeUtil.createArrayType(
-            opBinding.getTypeFactory(), type, false);
+  @Override
+  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+    RelDataType type =
+        getComponentType(
+            opBinding.getTypeFactory(),
+            opBinding.collectOperandTypes());
+    if (null == type) {
+      return null;
     }
+    return SqlTypeUtil.createArrayType(
+        opBinding.getTypeFactory(), type, false);
+  }
 }
 
 // End SqlArrayValueConstructor.java

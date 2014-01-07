@@ -25,62 +25,57 @@ import org.eigenbase.util.*;
 /**
  * Namespace based upon a set operation (UNION, INTERSECT, EXCEPT).
  */
-public class SetopNamespace
-    extends AbstractNamespace
-{
-    //~ Instance fields --------------------------------------------------------
+public class SetopNamespace extends AbstractNamespace {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlCall call;
+  private final SqlCall call;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a <code>SetopNamespace</code>.
-     *
-     * @param validator Validator
-     * @param call Call to set operator
-     * @param enclosingNode Enclosing node
-     */
-    protected SetopNamespace(
-        SqlValidatorImpl validator,
-        SqlCall call,
-        SqlNode enclosingNode)
-    {
-        super(validator, enclosingNode);
-        this.call = call;
-    }
+  /**
+   * Creates a <code>SetopNamespace</code>.
+   *
+   * @param validator     Validator
+   * @param call          Call to set operator
+   * @param enclosingNode Enclosing node
+   */
+  protected SetopNamespace(
+      SqlValidatorImpl validator,
+      SqlCall call,
+      SqlNode enclosingNode) {
+    super(validator, enclosingNode);
+    this.call = call;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlNode getNode()
-    {
-        return call;
-    }
+  public SqlNode getNode() {
+    return call;
+  }
 
-    public RelDataType validateImpl()
-    {
-        switch (call.getKind()) {
-        case UNION:
-        case INTERSECT:
-        case EXCEPT:
-            final SqlValidatorScope scope = validator.scopes.get(call);
-            for (SqlNode operand : call.operands) {
-                if (!(operand.isA(SqlKind.QUERY))) {
-                    throw validator.newValidationError(
-                        operand,
-                        EigenbaseResource.instance().NeedQueryOp.ex(
-                            operand.toString()));
-                }
-                validator.validateQuery(operand, scope);
-            }
-            return call.getOperator().validateOperands(
-                validator,
-                scope,
-                call);
-        default:
-            throw Util.newInternal("Not a query: " + call.getKind());
+  public RelDataType validateImpl() {
+    switch (call.getKind()) {
+    case UNION:
+    case INTERSECT:
+    case EXCEPT:
+      final SqlValidatorScope scope = validator.scopes.get(call);
+      for (SqlNode operand : call.operands) {
+        if (!(operand.isA(SqlKind.QUERY))) {
+          throw validator.newValidationError(
+              operand,
+              EigenbaseResource.instance().NeedQueryOp.ex(
+                  operand.toString()));
         }
+        validator.validateQuery(operand, scope);
+      }
+      return call.getOperator().validateOperands(
+          validator,
+          scope,
+          call);
+    default:
+      throw Util.newInternal("Not a query: " + call.getKind());
     }
+  }
 }
 
 // End SetopNamespace.java

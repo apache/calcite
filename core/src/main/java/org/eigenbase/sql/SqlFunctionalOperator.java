@@ -23,40 +23,36 @@ import org.eigenbase.sql.type.*;
  * SqlFunctionalOperator is a base class for special operators which use
  * functional syntax.
  */
-public class SqlFunctionalOperator
-    extends SqlSpecialOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlFunctionalOperator extends SqlSpecialOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlFunctionalOperator(
-        String name,
-        SqlKind kind,
-        int pred,
-        boolean isLeftAssoc,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker)
-    {
-        super(
-            name,
-            kind,
-            pred,
-            isLeftAssoc,
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker);
-    }
+  public SqlFunctionalOperator(
+      String name,
+      SqlKind kind,
+      int pred,
+      boolean isLeftAssoc,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
+    super(
+        name,
+        kind,
+        pred,
+        isLeftAssoc,
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        SqlUtil.unparseFunctionSyntax(this, writer, operands, true, null);
-    }
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    SqlUtil.unparseFunctionSyntax(this, writer, operands, true, null);
+  }
 }
 
 // End SqlFunctionalOperator.java

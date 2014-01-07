@@ -27,52 +27,51 @@ import org.eigenbase.rex.*;
  * <code>ValuesRel</code> represents a sequence of zero or more literal row
  * values.
  */
-public class ValuesRel
-    extends ValuesRelBase
-{
-    //~ Constructors -----------------------------------------------------------
+public class ValuesRel extends ValuesRelBase {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a new ValuesRel. Note that tuples passed in become owned by this
-     * rel (without a deep copy), so caller must not modify them after this
-     * call, otherwise bad things will happen.
-     *
-     * @param cluster .
-     * @param rowType row type for tuples produced by this rel
-     * @param tuples 2-dimensional array of tuple values to be produced; outer
-     * list contains tuples; each inner list is one tuple; all tuples must be of
-     * same length, conforming to rowType
-     */
-    public ValuesRel(
-        RelOptCluster cluster,
-        RelDataType rowType,
-        List<List<RexLiteral>> tuples)
-    {
-        super(
-            cluster,
-            rowType,
-            tuples,
-            cluster.traitSetOf(Convention.NONE));
-    }
+  /**
+   * Creates a new ValuesRel. Note that tuples passed in become owned by this
+   * rel (without a deep copy), so caller must not modify them after this
+   * call, otherwise bad things will happen.
+   *
+   * @param cluster .
+   * @param rowType row type for tuples produced by this rel
+   * @param tuples  2-dimensional array of tuple values to be produced; outer
+   *                list contains tuples; each inner list is one tuple; all
+   *                tuples must be of same length, conforming to rowType
+   */
+  public ValuesRel(
+      RelOptCluster cluster,
+      RelDataType rowType,
+      List<List<RexLiteral>> tuples) {
+    super(
+        cluster,
+        rowType,
+        tuples,
+        cluster.traitSetOf(Convention.NONE));
+  }
 
-    /** Creates a ValuesRel by parsing serialized output. */
-    public ValuesRel(RelInput input) {
-        super(input);
-    }
+  /**
+   * Creates a ValuesRel by parsing serialized output.
+   */
+  public ValuesRel(RelInput input) {
+    super(input);
+  }
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(Convention.NONE);
-        assert inputs.isEmpty();
-        return new ValuesRel(
-            getCluster(),
-            rowType,
-            tuples);
-    }
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.comprises(Convention.NONE);
+    assert inputs.isEmpty();
+    return new ValuesRel(
+        getCluster(),
+        rowType,
+        tuples);
+  }
 
-    @Override
-    public RelNode accept(RelShuttle shuttle) {
-        return shuttle.visit(this);
-    }
+  @Override
+  public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
 }
 
 // End ValuesRel.java

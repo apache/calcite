@@ -27,34 +27,31 @@ import org.eigenbase.reltype.*;
  * <p>It is used, via a {@link AggregateCall}, in an {@link AggregateRel}
  * relational operator.</p>
  */
-public interface Aggregation
-{
-    //~ Methods ----------------------------------------------------------------
+public interface Aggregation {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Returns the parameter types accepted by this Aggregation.
-     *
-     * @param typeFactory Type factory to create the types
-     *
-     * @return Array of parameter types
-     */
-    List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory);
+  /**
+   * Returns the parameter types accepted by this Aggregation.
+   *
+   * @param typeFactory Type factory to create the types
+   * @return Array of parameter types
+   */
+  List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory);
 
-    /**
-     * Returns the type of the result yielded by this Aggregation.
-     *
-     * @param typeFactory Type factory to create the type
-     *
-     * @return Result type
-     */
-    RelDataType getReturnType(RelDataTypeFactory typeFactory);
+  /**
+   * Returns the type of the result yielded by this Aggregation.
+   *
+   * @param typeFactory Type factory to create the type
+   * @return Result type
+   */
+  RelDataType getReturnType(RelDataTypeFactory typeFactory);
 
-    /**
-     * Returns the name of this Aggregation
-     *
-     * @return name of this aggregation
-     */
-    String getName();
+  /**
+   * Returns the name of this Aggregation
+   *
+   * @return name of this aggregation
+   */
+  String getName();
 }
 
 // End Aggregation.java

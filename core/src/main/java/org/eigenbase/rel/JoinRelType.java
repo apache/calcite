@@ -20,27 +20,24 @@ package org.eigenbase.rel;
 /**
  * Enumeration of join types.
  */
-public enum JoinRelType
-{
-    INNER, LEFT, RIGHT, FULL;
+public enum JoinRelType {
+  INNER, LEFT, RIGHT, FULL;
 
-    /**
-     * Returns whether a join of this type may generate NULL values on the
-     * right-hand side.
-     */
-    public boolean generatesNullsOnRight()
-    {
-        return (this == LEFT) || (this == FULL);
-    }
+  /**
+   * Returns whether a join of this type may generate NULL values on the
+   * right-hand side.
+   */
+  public boolean generatesNullsOnRight() {
+    return (this == LEFT) || (this == FULL);
+  }
 
-    /**
-     * Returns whether a join of this type may generate NULL values on the
-     * left-hand side.
-     */
-    public boolean generatesNullsOnLeft()
-    {
-        return (this == RIGHT) || (this == FULL);
-    }
+  /**
+   * Returns whether a join of this type may generate NULL values on the
+   * left-hand side.
+   */
+  public boolean generatesNullsOnLeft() {
+    return (this == RIGHT) || (this == FULL);
+  }
 }
 
 // End JoinRelType.java

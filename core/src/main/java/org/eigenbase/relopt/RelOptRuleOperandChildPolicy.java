@@ -22,24 +22,32 @@ package org.eigenbase.relopt;
  * any number of children.
  */
 public enum RelOptRuleOperandChildPolicy {
-    /** Signifies that operand can have any number of children. */
-    ANY,
+  /**
+   * Signifies that operand can have any number of children.
+   */
+  ANY,
 
-    /** Signifies that operand has no children. Therefore it matches a
-     * leaf node, such as a table scan or VALUES operator.
-     *
-     * <p>{@code RelOptRuleOperand(Foo.class, NONE)} is equivalent to
-     * {@code RelOptRuleOperand(Foo.class)} but we prefer the former because
-     * it is more explicit.</p> */
-    LEAF,
+  /**
+   * Signifies that operand has no children. Therefore it matches a
+   * leaf node, such as a table scan or VALUES operator.
+   *
+   * <p>{@code RelOptRuleOperand(Foo.class, NONE)} is equivalent to
+   * {@code RelOptRuleOperand(Foo.class)} but we prefer the former because
+   * it is more explicit.</p>
+   */
+  LEAF,
 
-    /** Signifies that the operand's children must precisely match its
-     * child operands, in order. */
-    SOME,
+  /**
+   * Signifies that the operand's children must precisely match its
+   * child operands, in order.
+   */
+  SOME,
 
-    /** Signifies that the rule matches any one of its parents' children.
-     * The parent may have one or more children. */
-    UNORDERED,
+  /**
+   * Signifies that the rule matches any one of its parents' children.
+   * The parent may have one or more children.
+   */
+  UNORDERED,
 }
 
 // End RelOptRuleOperandChildPolicy.java

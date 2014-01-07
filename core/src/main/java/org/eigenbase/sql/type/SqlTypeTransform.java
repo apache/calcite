@@ -29,21 +29,20 @@ import org.eigenbase.sql.*;
  * <p>This class is an example of the {@link
  * org.eigenbase.util.Glossary#StrategyPattern strategy pattern}.</p>
  */
-public interface SqlTypeTransform
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SqlTypeTransform {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Transforms a type.
-     *
-     * @param opBinding call context in which transformation is being performed
-     * @param typeToTransform type to be transformed, never null
-     *
-     * @return transformed type, never null
-     */
-    public RelDataType transformType(
-        SqlOperatorBinding opBinding,
-        RelDataType typeToTransform);
+  /**
+   * Transforms a type.
+   *
+   * @param opBinding       call context in which transformation is being
+   *                        performed
+   * @param typeToTransform type to be transformed, never null
+   * @return transformed type, never null
+   */
+  public RelDataType transformType(
+      SqlOperatorBinding opBinding,
+      RelDataType typeToTransform);
 }
 
 // End SqlTypeTransform.java

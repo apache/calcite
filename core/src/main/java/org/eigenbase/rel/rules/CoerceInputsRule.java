@@ -29,80 +29,75 @@ import org.eigenbase.reltype.*;
  * assist operator implementations which impose requirements on their input
  * types.
  */
-public class CoerceInputsRule
-    extends RelOptRule
-{
-    //~ Instance fields --------------------------------------------------------
+public class CoerceInputsRule extends RelOptRule {
+  //~ Instance fields --------------------------------------------------------
 
-    private final Class consumerRelClass;
+  private final Class consumerRelClass;
 
-    private final boolean coerceNames;
+  private final boolean coerceNames;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Constructs the rule.
-     *
-     * @param consumerRelClass the RelNode class which will consume the inputs
-     * @param coerceNames if true, coerce names and types; if false, coerce type
-     * only
-     */
-    public CoerceInputsRule(
-        Class<? extends RelNode> consumerRelClass,
-        boolean coerceNames)
-    {
-        super(
-            operand(consumerRelClass, any()),
-            "CoerceInputsRule:" + consumerRelClass.getName());
-        this.consumerRelClass = consumerRelClass;
-        this.coerceNames = coerceNames;
+  /**
+   * Constructs the rule.
+   *
+   * @param consumerRelClass the RelNode class which will consume the inputs
+   * @param coerceNames      if true, coerce names and types; if false, coerce
+   *                         type only
+   */
+  public CoerceInputsRule(
+      Class<? extends RelNode> consumerRelClass,
+      boolean coerceNames) {
+    super(
+        operand(consumerRelClass, any()),
+        "CoerceInputsRule:" + consumerRelClass.getName());
+    this.consumerRelClass = consumerRelClass;
+    this.coerceNames = coerceNames;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelOptRule
+  public Convention getOutConvention() {
+    return Convention.NONE;
+  }
+
+  // implement RelOptRule
+  public void onMatch(RelOptRuleCall call) {
+    RelNode consumerRel = call.rel(0);
+    if (consumerRel.getClass() != consumerRelClass) {
+      // require exact match on type
+      return;
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    // implement RelOptRule
-    public Convention getOutConvention()
-    {
-        return Convention.NONE;
+    List<RelNode> inputs = consumerRel.getInputs();
+    List<RelNode> newInputs = new ArrayList<RelNode>(inputs);
+    boolean coerce = false;
+    for (int i = 0; i < inputs.size(); ++i) {
+      RelDataType expectedType = consumerRel.getExpectedInputRowType(i);
+      RelNode input = inputs.get(i);
+      RelNode newInput =
+          RelOptUtil.createCastRel(
+              input,
+              expectedType,
+              coerceNames);
+      if (newInput != input) {
+        newInputs.set(i, newInput);
+        coerce = true;
+      }
+      assert RelOptUtil.areRowTypesEqual(
+          newInputs.get(i).getRowType(),
+          expectedType,
+          coerceNames);
     }
-
-    // implement RelOptRule
-    public void onMatch(RelOptRuleCall call)
-    {
-        RelNode consumerRel = call.rel(0);
-        if (consumerRel.getClass() != consumerRelClass) {
-            // require exact match on type
-            return;
-        }
-        List<RelNode> inputs = consumerRel.getInputs();
-        List<RelNode> newInputs = new ArrayList<RelNode>(inputs);
-        boolean coerce = false;
-        for (int i = 0; i < inputs.size(); ++i) {
-            RelDataType expectedType = consumerRel.getExpectedInputRowType(i);
-            RelNode input = inputs.get(i);
-            RelNode newInput =
-                RelOptUtil.createCastRel(
-                    input,
-                    expectedType,
-                    coerceNames);
-            if (newInput != input) {
-                newInputs.set(i, newInput);
-                coerce = true;
-            }
-            assert RelOptUtil.areRowTypesEqual(
-                newInputs.get(i).getRowType(),
-                expectedType,
-                coerceNames);
-        }
-        if (!coerce) {
-            return;
-        }
-        RelNode newConsumerRel =
-            consumerRel.copy(
-                consumerRel.getTraitSet(),
-                newInputs);
-        call.transformTo(newConsumerRel);
+    if (!coerce) {
+      return;
     }
+    RelNode newConsumerRel =
+        consumerRel.copy(
+            consumerRel.getTraitSet(),
+            newInputs);
+    call.transformTo(newConsumerRel);
+  }
 }
 
 // End CoerceInputsRule.java

@@ -32,54 +32,54 @@ import org.eigenbase.relopt.*;
  * <li>{@link org.eigenbase.rel.rules.RemoveDistinctAggregateRule}
  * <li>{@link org.eigenbase.rel.rules.ReduceAggregatesRule}.
  */
-public final class AggregateRel
-    extends AggregateRelBase
-{
-    //~ Constructors -----------------------------------------------------------
+public final class AggregateRel extends AggregateRelBase {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates an AggregateRel.
-     *
-     * @param cluster Cluster that this relational expression belongs to
-     * @param child input relational expression
-     * @param groupSet Bitset of grouping fields
-     * @param aggCalls Array of aggregates to compute
-     *
-     * @pre aggCalls != null
-     */
-    public AggregateRel(
-        RelOptCluster cluster,
-        RelNode child,
-        BitSet groupSet,
-        List<AggregateCall> aggCalls)
-    {
-        super(
-            cluster,
-            cluster.traitSetOf(Convention.NONE),
-            child,
-            groupSet,
-            aggCalls);
-    }
+  /**
+   * Creates an AggregateRel.
+   *
+   * @param cluster  Cluster that this relational expression belongs to
+   * @param child    input relational expression
+   * @param groupSet Bitset of grouping fields
+   * @param aggCalls Array of aggregates to compute
+   * @pre aggCalls != null
+   */
+  public AggregateRel(
+      RelOptCluster cluster,
+      RelNode child,
+      BitSet groupSet,
+      List<AggregateCall> aggCalls) {
+    super(
+        cluster,
+        cluster.traitSetOf(Convention.NONE),
+        child,
+        groupSet,
+        aggCalls);
+  }
 
-    /** Creates an AggregateRel by parsing serialized output. */
-    public AggregateRel(RelInput input) {
-        super(input);
-    }
+  /**
+   * Creates an AggregateRel by parsing serialized output.
+   */
+  public AggregateRel(RelInput input) {
+    super(input);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.containsIfApplicable(Convention.NONE);
-        return new AggregateRel(
-            getCluster(),
-            sole(inputs),
-            groupSet,
-            aggCalls);
-    }
+  @Override
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.containsIfApplicable(Convention.NONE);
+    return new AggregateRel(
+        getCluster(),
+        sole(inputs),
+        groupSet,
+        aggCalls);
+  }
 
-    @Override public RelNode accept(RelShuttle shuttle) {
-        return shuttle.visit(this);
-    }
+  @Override
+  public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
 }
 
 // End AggregateRel.java

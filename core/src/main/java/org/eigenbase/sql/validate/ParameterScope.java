@@ -25,49 +25,44 @@ import org.eigenbase.sql.*;
 /**
  * A scope which contains nothing besides a few parameters. Like {@link
  * EmptyScope} (which is its base class), it has no parent scope.
+ *
  * @see ParameterNamespace
  */
-public class ParameterScope
-    extends EmptyScope
-{
-    //~ Instance fields --------------------------------------------------------
+public class ParameterScope extends EmptyScope {
+  //~ Instance fields --------------------------------------------------------
 
-    /**
-     * Map from the simple names of the parameters to types of the parameters
-     * ({@link RelDataType}).
-     */
-    private final Map<String, RelDataType> nameToTypeMap;
+  /**
+   * Map from the simple names of the parameters to types of the parameters
+   * ({@link RelDataType}).
+   */
+  private final Map<String, RelDataType> nameToTypeMap;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public ParameterScope(
-        SqlValidatorImpl validator,
-        Map<String, RelDataType> nameToTypeMap)
-    {
-        super(validator);
-        this.nameToTypeMap = nameToTypeMap;
-    }
+  public ParameterScope(
+      SqlValidatorImpl validator,
+      Map<String, RelDataType> nameToTypeMap) {
+    super(validator);
+    this.nameToTypeMap = nameToTypeMap;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlIdentifier fullyQualify(SqlIdentifier identifier)
-    {
-        return identifier;
-    }
+  public SqlIdentifier fullyQualify(SqlIdentifier identifier) {
+    return identifier;
+  }
 
-    public SqlValidatorScope getOperandScope(SqlCall call)
-    {
-        return this;
-    }
+  public SqlValidatorScope getOperandScope(SqlCall call) {
+    return this;
+  }
 
-    public SqlValidatorNamespace resolve(
-        String name,
-        SqlValidatorScope [] ancestorOut,
-        int [] offsetOut)
-    {
-        final RelDataType type = nameToTypeMap.get(name);
-        return new ParameterNamespace(validator, type);
-    }
+  public SqlValidatorNamespace resolve(
+      String name,
+      SqlValidatorScope[] ancestorOut,
+      int[] offsetOut) {
+    final RelDataType type = nameToTypeMap.get(name);
+    return new ParameterNamespace(validator, type);
+  }
 }
 
 // End ParameterScope.java

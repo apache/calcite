@@ -23,21 +23,18 @@ import java.util.*;
  * A general-purpose implementation of {@link Comparator} to compare {@link
  * SqlMoniker} values.
  */
-public class SqlMonikerComparator
-    implements Comparator<SqlMoniker>
-{
-    //~ Methods ----------------------------------------------------------------
+public class SqlMonikerComparator implements Comparator<SqlMoniker> {
+  //~ Methods ----------------------------------------------------------------
 
-    public int compare(SqlMoniker m1, SqlMoniker m2)
-    {
-        if (m1.getType().ordinal() > m2.getType().ordinal()) {
-            return 1;
-        } else if (m1.getType().ordinal() < m2.getType().ordinal()) {
-            return -1;
-        } else {
-            return (m1.toString().compareTo(m2.toString()));
-        }
+  public int compare(SqlMoniker m1, SqlMoniker m2) {
+    if (m1.getType().ordinal() > m2.getType().ordinal()) {
+      return 1;
+    } else if (m1.getType().ordinal() < m2.getType().ordinal()) {
+      return -1;
+    } else {
+      return (m1.toString().compareTo(m2.toString()));
     }
+  }
 }
 
 // End SqlMonikerComparator.java

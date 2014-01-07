@@ -34,69 +34,62 @@ import org.eigenbase.sql.SqlKind;
  * operands). Expressions are generally created using a {@link RexBuilder}
  * factory.</p>
  */
-public abstract class RexNode
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class RexNode {
+  //~ Instance fields --------------------------------------------------------
 
-    protected String digest;
+  protected String digest;
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public abstract RelDataType getType();
+  public abstract RelDataType getType();
 
-    public abstract RexNode clone();
+  public abstract RexNode clone();
 
-    /**
-     * Returns whether this expression always returns true. (Such as if this
-     * expression is equal to the literal <code>TRUE</code>.)
-     */
-    public boolean isAlwaysTrue()
-    {
-        return false;
-    }
+  /**
+   * Returns whether this expression always returns true. (Such as if this
+   * expression is equal to the literal <code>TRUE</code>.)
+   */
+  public boolean isAlwaysTrue() {
+    return false;
+  }
 
-    /**
-     * Returns whether this expression always returns false. (Such as if this
-     * expression is equal to the literal <code>FALSE</code>.)
-     */
-    public boolean isAlwaysFalse()
-    {
-        return false;
-    }
+  /**
+   * Returns whether this expression always returns false. (Such as if this
+   * expression is equal to the literal <code>FALSE</code>.)
+   */
+  public boolean isAlwaysFalse() {
+    return false;
+  }
 
-    public boolean isA(SqlKind kind)
-    {
-        return getKind() == kind;
-    }
+  public boolean isA(SqlKind kind) {
+    return getKind() == kind;
+  }
 
-    public boolean isA(Collection<SqlKind> kinds)
-    {
-        return getKind().belongsTo(kinds);
-    }
+  public boolean isA(Collection<SqlKind> kinds) {
+    return getKind().belongsTo(kinds);
+  }
 
-    /**
-     * Returns the kind of node this is.
-     *
-     * @return A {@link org.eigenbase.sql.SqlKind} value, never null
-     */
-    public SqlKind getKind()
-    {
-        return SqlKind.OTHER;
-    }
+  /**
+   * Returns the kind of node this is.
+   *
+   * @return A {@link org.eigenbase.sql.SqlKind} value, never null
+   */
+  public SqlKind getKind() {
+    return SqlKind.OTHER;
+  }
 
-    public String toString()
-    {
-        return digest;
-    }
+  public String toString() {
+    return digest;
+  }
 
-    /**
-     * Accepts a visitor, dispatching to the right overloaded {@link
-     * RexVisitor#visitInputRef visitXxx} method.
-     *
-     * <p>Also see {@link RexProgram#apply(RexVisitor, java.util.List, RexNode)},
-     * which applies a visitor to several expressions simultaneously.
-     */
-    public abstract <R> R accept(RexVisitor<R> visitor);
+  /**
+   * Accepts a visitor, dispatching to the right overloaded {@link
+   * RexVisitor#visitInputRef visitXxx} method.
+   *
+   * <p>Also see {@link RexProgram#apply(RexVisitor, java.util.List, RexNode)},
+   * which applies a visitor to several expressions simultaneously.
+   */
+  public abstract <R> R accept(RexVisitor<R> visitor);
 }
 
 // End RexNode.java

@@ -44,7 +44,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class RelJsonReader {
   private static final TypeReference<LinkedHashMap<String, Object>> TYPE_REF =
-      new TypeReference<LinkedHashMap<String, Object>>() {};
+      new TypeReference<LinkedHashMap<String, Object>>() {
+      };
 
   private final RelOptCluster cluster;
   private final RelOptSchema relOptSchema;
@@ -175,12 +176,14 @@ public class RelJsonReader {
             (List<String>) get(fieldsTag);
         return cluster.getTypeFactory().createStructType(
             new AbstractList<Map.Entry<String, RelDataType>>() {
-              @Override public Map.Entry<String, RelDataType> get(int index) {
+              @Override
+              public Map.Entry<String, RelDataType> get(int index) {
                 return Pair.of(names.get(index),
                     expressionList.get(index).getType());
               }
 
-              @Override public int size() {
+              @Override
+              public int size() {
                 return names.size();
               }
             });

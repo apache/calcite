@@ -24,15 +24,13 @@ package org.eigenbase.javac;
  * <code>alter system set "javaCompilerClassName" =
  * 'org.eigenbase.javac.SynchronizedJaninoCompiler';</code>
  */
-public class SynchronizedJaninoCompiler extends JaninoCompiler
-{
-    // override JaninoCompiler
-    public void compile()
-    {
-        synchronized (SynchronizedJaninoCompiler.class) {
-            super.compile();
-        }
+public class SynchronizedJaninoCompiler extends JaninoCompiler {
+  // override JaninoCompiler
+  public void compile() {
+    synchronized (SynchronizedJaninoCompiler.class) {
+      super.compile();
     }
+  }
 }
 
 // End SynchronizedJaninoCompiler.java

@@ -25,72 +25,69 @@ import org.eigenbase.relopt.*;
  * SamplingRel represents the TABLESAMPLE BERNOULLI or SYSTEM keyword applied to
  * a table, view or subquery.
  */
-public class SamplingRel
-    extends SingleRel
-{
-    //~ Instance fields --------------------------------------------------------
+public class SamplingRel extends SingleRel {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelOptSamplingParameters params;
+  private final RelOptSamplingParameters params;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SamplingRel(
-        RelOptCluster cluster,
-        RelNode child,
-        RelOptSamplingParameters params)
-    {
-        super(
-            cluster,
-            cluster.traitSetOf(Convention.NONE),
-            child);
-        this.params = params;
-    }
+  public SamplingRel(
+      RelOptCluster cluster,
+      RelNode child,
+      RelOptSamplingParameters params) {
+    super(
+        cluster,
+        cluster.traitSetOf(Convention.NONE),
+        child);
+    this.params = params;
+  }
 
-    /** Creates a SamplingRel by parsing serialized output. */
-    public SamplingRel(RelInput input) {
-        this(
-            input.getCluster(), input.getInput(), getSamplingParameters(input));
-    }
+  /**
+   * Creates a SamplingRel by parsing serialized output.
+   */
+  public SamplingRel(RelInput input) {
+    this(
+        input.getCluster(), input.getInput(), getSamplingParameters(input));
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    private static RelOptSamplingParameters getSamplingParameters(
-        RelInput input)
-    {
-        String mode = input.getString("mode");
-        float percentage = input.getFloat("rate");
-        Object repeatableSeed = input.get("repeatableSeed");
-        boolean repeatable = repeatableSeed instanceof Number;
-        return new RelOptSamplingParameters(
-            mode.equals("bernoulli"), percentage, repeatable,
-            repeatable ? ((Number) repeatableSeed).intValue() : 0);
-    }
+  private static RelOptSamplingParameters getSamplingParameters(
+      RelInput input) {
+    String mode = input.getString("mode");
+    float percentage = input.getFloat("rate");
+    Object repeatableSeed = input.get("repeatableSeed");
+    boolean repeatable = repeatableSeed instanceof Number;
+    return new RelOptSamplingParameters(
+        mode.equals("bernoulli"), percentage, repeatable,
+        repeatable ? ((Number) repeatableSeed).intValue() : 0);
+  }
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(Convention.NONE);
-        return new SamplingRel(
-            getCluster(),
-            sole(inputs),
-            params);
-    }
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.comprises(Convention.NONE);
+    return new SamplingRel(
+        getCluster(),
+        sole(inputs),
+        params);
+  }
 
-    /**
-     * Retrieve the sampling parameters for this SamplingRel.
-     */
-    public RelOptSamplingParameters getSamplingParameters()
-    {
-        return params;
-    }
+  /**
+   * Retrieve the sampling parameters for this SamplingRel.
+   */
+  public RelOptSamplingParameters getSamplingParameters() {
+    return params;
+  }
 
-    // implement RelNode
-    public RelWriter explainTerms(RelWriter pw) {
-        return super.explainTerms(pw)
-            .item("mode", params.isBernoulli() ? "bernoulli" : "system")
-            .item("rate", params.getSamplingPercentage())
-            .item(
-                "repeatableSeed",
-                params.isRepeatable() ? params.getRepeatableSeed() : "-");
-    }
+  // implement RelNode
+  public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw)
+        .item("mode", params.isBernoulli() ? "bernoulli" : "system")
+        .item("rate", params.getSamplingPercentage())
+        .item(
+            "repeatableSeed",
+            params.isRepeatable() ? params.getRepeatableSeed() : "-");
+  }
 }
 
 // End SamplingRel.java

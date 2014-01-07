@@ -24,50 +24,42 @@ import org.eigenbase.util.*;
  * An implementation of {@link SqlMoniker} that encapsulates the normalized name
  * information of a {@link SqlIdentifier}.
  */
-public class SqlIdentifierMoniker
-    implements SqlMoniker
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlIdentifierMoniker implements SqlMoniker {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlIdentifier id;
+  private final SqlIdentifier id;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates an SqlIdentifierMoniker.
-     */
-    public SqlIdentifierMoniker(SqlIdentifier id)
-    {
-        Util.pre(id != null, "id != null");
-        this.id = id;
-    }
+  /**
+   * Creates an SqlIdentifierMoniker.
+   */
+  public SqlIdentifierMoniker(SqlIdentifier id) {
+    Util.pre(id != null, "id != null");
+    this.id = id;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlMonikerType getType()
-    {
-        return SqlMonikerType.Column;
-    }
+  public SqlMonikerType getType() {
+    return SqlMonikerType.Column;
+  }
 
-    public String [] getFullyQualifiedNames()
-    {
-        return id.names;
-    }
+  public String[] getFullyQualifiedNames() {
+    return id.names;
+  }
 
-    public SqlIdentifier toIdentifier()
-    {
-        return id;
-    }
+  public SqlIdentifier toIdentifier() {
+    return id;
+  }
 
-    public String toString()
-    {
-        return id.toString();
-    }
+  public String toString() {
+    return id.toString();
+  }
 
-    public String id()
-    {
-        return id.toString();
-    }
+  public String id() {
+    return id.toString();
+  }
 }
 
 // End SqlIdentifierMoniker.java

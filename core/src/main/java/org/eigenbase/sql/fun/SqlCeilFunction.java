@@ -24,31 +24,27 @@ import org.eigenbase.sql.validate.*;
 /**
  * Support for the CEIL/CEILING builtin function.
  */
-public class SqlCeilFunction
-    extends SqlFunction
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlCeilFunction extends SqlFunction {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlCeilFunction()
-    {
-        super(
-            "CEIL",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiFirstArgType,
-            null,
-            SqlTypeStrategies.otcNumeric,
-            SqlFunctionCategory.Numeric);
-    }
+  public SqlCeilFunction() {
+    super(
+        "CEIL",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiFirstArgType,
+        null,
+        SqlTypeStrategies.otcNumeric,
+        SqlFunctionCategory.Numeric);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlMonotonicity getMonotonicity(
-        SqlCall call,
-        SqlValidatorScope scope)
-    {
-        SqlNode node = (SqlNode) call.operands[0];
-        return scope.getMonotonicity(node);
-    }
+  public SqlMonotonicity getMonotonicity(
+      SqlCall call,
+      SqlValidatorScope scope) {
+    SqlNode node = (SqlNode) call.operands[0];
+    return scope.getMonotonicity(node);
+  }
 }
 
 // End SqlCeilFunction.java

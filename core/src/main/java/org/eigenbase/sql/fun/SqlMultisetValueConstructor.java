@@ -30,97 +30,90 @@ import org.eigenbase.sql.validate.SqlValidatorException;
  * [&lt;expr&gt;, ...]</code>.
  *
  * <p>Derived classes construct other kinds of collections.</p>
+ *
  * @see SqlMultisetQueryConstructor
  */
-public class SqlMultisetValueConstructor
-    extends SqlSpecialOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlMultisetValueConstructor extends SqlSpecialOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlMultisetValueConstructor()
-    {
-        this("MULTISET", SqlKind.MULTISET_VALUE_CONSTRUCTOR);
-    }
+  public SqlMultisetValueConstructor() {
+    this("MULTISET", SqlKind.MULTISET_VALUE_CONSTRUCTOR);
+  }
 
-    protected SqlMultisetValueConstructor(String name, SqlKind kind)
-    {
-        super(
-            name,
-            kind,
-            MaxPrec,
-            false,
-            SqlTypeStrategies.rtiFirstArgType,
-            null,
-            SqlTypeStrategies.otcVariadic);
-    }
+  protected SqlMultisetValueConstructor(String name, SqlKind kind) {
+    super(
+        name,
+        kind,
+        MaxPrec,
+        false,
+        SqlTypeStrategies.rtiFirstArgType,
+        null,
+        SqlTypeStrategies.otcVariadic);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelDataType inferReturnType(
-        SqlOperatorBinding opBinding)
-    {
-        RelDataType type =
-            getComponentType(
-                opBinding.getTypeFactory(),
-                opBinding.collectOperandTypes());
-        if (null == type) {
-            return null;
-        }
-        return SqlTypeUtil.createMultisetType(
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    RelDataType type =
+        getComponentType(
             opBinding.getTypeFactory(),
-            type,
-            false);
+            opBinding.collectOperandTypes());
+    if (null == type) {
+      return null;
     }
+    return SqlTypeUtil.createMultisetType(
+        opBinding.getTypeFactory(),
+        type,
+        false);
+  }
 
-    protected RelDataType getComponentType(
-        RelDataTypeFactory typeFactory,
-        List<RelDataType> argTypes)
-    {
-        return typeFactory.leastRestrictive(argTypes);
-    }
+  protected RelDataType getComponentType(
+      RelDataTypeFactory typeFactory,
+      List<RelDataType> argTypes) {
+    return typeFactory.leastRestrictive(argTypes);
+  }
 
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        final List<RelDataType> argTypes =
-            SqlTypeUtil.deriveAndCollectTypes(
-                callBinding.getValidator(),
-                callBinding.getScope(),
-                callBinding.getCall().operands);
-        if (argTypes.size() == 0) {
-            throw callBinding.newValidationError(
-                new SqlValidatorException(
-                    "Require at least 1 argument", null));
-        }
-        final RelDataType componentType =
-            getComponentType(
-                callBinding.getTypeFactory(),
-                argTypes);
-        if (null == componentType) {
-            if (throwOnFailure) {
-                throw callBinding.newValidationError(
-                    EigenbaseResource.instance().NeedSameTypeParameter.ex());
-            }
-            return false;
-        }
-        return true;
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    final List<RelDataType> argTypes =
+        SqlTypeUtil.deriveAndCollectTypes(
+            callBinding.getValidator(),
+            callBinding.getScope(),
+            callBinding.getCall().operands);
+    if (argTypes.size() == 0) {
+      throw callBinding.newValidationError(
+          new SqlValidatorException(
+              "Require at least 1 argument", null));
     }
+    final RelDataType componentType =
+        getComponentType(
+            callBinding.getTypeFactory(),
+            argTypes);
+    if (null == componentType) {
+      if (throwOnFailure) {
+        throw callBinding.newValidationError(
+            EigenbaseResource.instance().NeedSameTypeParameter.ex());
+      }
+      return false;
+    }
+    return true;
+  }
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        writer.keyword(getName()); // "MULTISET" or "ARRAY"
-        final SqlWriter.Frame frame = writer.startList("[", "]");
-        for (SqlNode operand : operands) {
-            writer.sep(",");
-            operand.unparse(writer, leftPrec, rightPrec);
-        }
-        writer.endList(frame);
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    writer.keyword(getName()); // "MULTISET" or "ARRAY"
+    final SqlWriter.Frame frame = writer.startList("[", "]");
+    for (SqlNode operand : operands) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
     }
+    writer.endList(frame);
+  }
 }
 
 // End SqlMultisetValueConstructor.java

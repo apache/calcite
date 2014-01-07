@@ -40,116 +40,102 @@ import com.google.common.collect.ImmutableList;
  * often be encoded as extra arguments. (These don't need to be hidden, because
  * no one is going to be generating source code from this tree.)</p>
  */
-public class RexCall
-    extends RexNode
-{
-    //~ Instance fields --------------------------------------------------------
+public class RexCall extends RexNode {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlOperator op;
-    public final ImmutableList<RexNode> operands;
-    private final RelDataType type;
+  private final SqlOperator op;
+  public final ImmutableList<RexNode> operands;
+  private final RelDataType type;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    protected RexCall(
-        RelDataType type,
-        SqlOperator op,
-        List<? extends RexNode> operands)
-    {
-        assert type != null : "precondition: type != null";
-        assert op != null : "precondition: op != null";
-        assert operands != null : "precondition: operands != null";
-        this.type = type;
-        this.op = op;
-        this.operands = ImmutableList.copyOf(operands);
-        assert op.getKind() != null : op;
-        this.digest = computeDigest(true);
+  protected RexCall(
+      RelDataType type,
+      SqlOperator op,
+      List<? extends RexNode> operands) {
+    assert type != null : "precondition: type != null";
+    assert op != null : "precondition: op != null";
+    assert operands != null : "precondition: operands != null";
+    this.type = type;
+    this.op = op;
+    this.operands = ImmutableList.copyOf(operands);
+    assert op.getKind() != null : op;
+    this.digest = computeDigest(true);
 
-        assert op.validRexOperands(operands.size(), true) : this;
-    }
+    assert op.validRexOperands(operands.size(), true) : this;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    protected String computeDigest(boolean withType)
-    {
-        StringBuilder sb = new StringBuilder(op.getName());
-        if ((operands.size() == 0)
-            && (op.getSyntax() == SqlSyntax.FunctionId))
-        {
-            // Don't print params for empty arg list. For example, we want
-            // "SYSTEM_USER", not "SYSTEM_USER()".
-        } else {
-            sb.append("(");
-            for (int i = 0; i < operands.size(); i++) {
-                if (i > 0) {
-                    sb.append(", ");
-                }
-                RexNode operand = operands.get(i);
-                sb.append(operand.toString());
-            }
-            sb.append(")");
+  protected String computeDigest(boolean withType) {
+    StringBuilder sb = new StringBuilder(op.getName());
+    if ((operands.size() == 0)
+        && (op.getSyntax() == SqlSyntax.FunctionId)) {
+      // Don't print params for empty arg list. For example, we want
+      // "SYSTEM_USER", not "SYSTEM_USER()".
+    } else {
+      sb.append("(");
+      for (int i = 0; i < operands.size(); i++) {
+        if (i > 0) {
+          sb.append(", ");
         }
-        if (withType) {
-            sb.append(":");
-
-            // NOTE jvs 16-Jan-2005:  for digests, it is very important
-            // to use the full type string.
-            sb.append(type.getFullTypeString());
-        }
-        return sb.toString();
+        RexNode operand = operands.get(i);
+        sb.append(operand.toString());
+      }
+      sb.append(")");
     }
+    if (withType) {
+      sb.append(":");
 
-    public String toString()
-    {
-        // REVIEW jvs 16-Jan-2005: For CAST and NEW, the type is really an
-        // operand and needs to be printed out.  But special-casing it here is
-        // ugly.
-        return computeDigest(
-            isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION));
+      // NOTE jvs 16-Jan-2005:  for digests, it is very important
+      // to use the full type string.
+      sb.append(type.getFullTypeString());
     }
+    return sb.toString();
+  }
 
-    public <R> R accept(RexVisitor<R> visitor)
-    {
-        return visitor.visitCall(this);
-    }
+  public String toString() {
+    // REVIEW jvs 16-Jan-2005: For CAST and NEW, the type is really an
+    // operand and needs to be printed out.  But special-casing it here is
+    // ugly.
+    return computeDigest(
+        isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION));
+  }
 
-    public RelDataType getType()
-    {
-        return type;
-    }
+  public <R> R accept(RexVisitor<R> visitor) {
+    return visitor.visitCall(this);
+  }
 
-    public RexCall clone()
-    {
-        return new RexCall(type, op, operands);
-    }
+  public RelDataType getType() {
+    return type;
+  }
 
-    public SqlKind getKind()
-    {
-        return op.kind;
-    }
+  public RexCall clone() {
+    return new RexCall(type, op, operands);
+  }
 
-    public List<RexNode> getOperands()
-    {
-        return operands;
-    }
+  public SqlKind getKind() {
+    return op.kind;
+  }
 
-    public SqlOperator getOperator()
-    {
-        return op;
-    }
+  public List<RexNode> getOperands() {
+    return operands;
+  }
 
-    /**
-     * Creates a new call to the same operator with different operands.
-     *
-     * @param type Return type
-     * @param operands Operands to call
-     *
-     * @return New call
-     */
-    public RexCall clone(RelDataType type, List<RexNode> operands)
-    {
-        return new RexCall(type, op, operands);
-    }
+  public SqlOperator getOperator() {
+    return op;
+  }
+
+  /**
+   * Creates a new call to the same operator with different operands.
+   *
+   * @param type     Return type
+   * @param operands Operands to call
+   * @return New call
+   */
+  public RexCall clone(RelDataType type, List<RexNode> operands) {
+    return new RexCall(type, op, operands);
+  }
 }
 
 // End RexCall.java

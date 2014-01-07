@@ -24,27 +24,23 @@ import org.eigenbase.sql.validate.*;
 /**
  * Returns the type of the operand at a particular 0-based ordinal position.
  */
-public class OrdinalReturnTypeInference
-    implements SqlReturnTypeInference
-{
-    //~ Instance fields --------------------------------------------------------
+public class OrdinalReturnTypeInference implements SqlReturnTypeInference {
+  //~ Instance fields --------------------------------------------------------
 
-    private final int ordinal;
+  private final int ordinal;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public OrdinalReturnTypeInference(int ordinal)
-    {
-        this.ordinal = ordinal;
-    }
+  public OrdinalReturnTypeInference(int ordinal) {
+    this.ordinal = ordinal;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelDataType inferReturnType(
-        SqlOperatorBinding opBinding)
-    {
-        return opBinding.getOperandType(ordinal);
-    }
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    return opBinding.getOperandType(ordinal);
+  }
 }
 
 // End OrdinalReturnTypeInference.java

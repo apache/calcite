@@ -30,103 +30,100 @@ import org.eigenbase.sql.type.*;
  */
 class SqlItemOperator extends SqlSpecialOperator {
 
-    private static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
-        SqlTypeStrategies.or(
-            SqlTypeStrategies.family(SqlTypeFamily.ARRAY),
-            SqlTypeStrategies.family(SqlTypeFamily.MAP),
-            SqlTypeStrategies.family(SqlTypeFamily.ANY));
+  private static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
+      SqlTypeStrategies.or(
+          SqlTypeStrategies.family(SqlTypeFamily.ARRAY),
+          SqlTypeStrategies.family(SqlTypeFamily.MAP),
+          SqlTypeStrategies.family(SqlTypeFamily.ANY));
 
-    public SqlItemOperator() {
-        super("ITEM", SqlKind.OTHER_FUNCTION, 100, true, null, null, null);
-    }
+  public SqlItemOperator() {
+    super("ITEM", SqlKind.OTHER_FUNCTION, 100, true, null, null, null);
+  }
 
-    @Override
-    public int reduceExpr(int ordinal, List<Object> list) {
-        SqlNode left = (SqlNode) list.get(ordinal - 1);
-        SqlNode right = (SqlNode) list.get(ordinal + 1);
-        final SqlParserUtil.ToTreeListItem treeListItem =
-            (SqlParserUtil.ToTreeListItem) list.get(ordinal);
-        SqlParserUtil.replaceSublist(
-            list,
-            ordinal - 1,
-            ordinal + 2,
-            createCall(
-                left.getParserPosition()
-                    .plus(right.getParserPosition())
-                    .plus(treeListItem.getPos()),
+  @Override
+  public int reduceExpr(int ordinal, List<Object> list) {
+    SqlNode left = (SqlNode) list.get(ordinal - 1);
+    SqlNode right = (SqlNode) list.get(ordinal + 1);
+    final SqlParserUtil.ToTreeListItem treeListItem =
+        (SqlParserUtil.ToTreeListItem) list.get(ordinal);
+    SqlParserUtil.replaceSublist(
+        list,
+        ordinal - 1,
+        ordinal + 2,
+        createCall(
+            left.getParserPosition()
+                .plus(right.getParserPosition())
+                .plus(treeListItem.getPos()),
             left,
             right));
-        return ordinal - 1;
-    }
+    return ordinal - 1;
+  }
 
-    @Override
-    public void unparse(
-        SqlWriter writer, SqlNode[] operands, int leftPrec, int rightPrec)
-    {
-        operands[0].unparse(writer, leftPrec, 0);
-        final SqlWriter.Frame frame = writer.startList("[", "]");
-        operands[1].unparse(writer, 0, 0);
-        writer.endList(frame);
-    }
+  @Override
+  public void unparse(
+      SqlWriter writer, SqlNode[] operands, int leftPrec, int rightPrec) {
+    operands[0].unparse(writer, leftPrec, 0);
+    final SqlWriter.Frame frame = writer.startList("[", "]");
+    operands[1].unparse(writer, 0, 0);
+    writer.endList(frame);
+  }
 
-    @Override
-    public SqlOperandCountRange getOperandCountRange() {
-        return SqlOperandCountRanges.of(2);
-    }
+  @Override
+  public SqlOperandCountRange getOperandCountRange() {
+    return SqlOperandCountRanges.of(2);
+  }
 
-    @Override
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        if (!ARRAY_OR_MAP.checkSingleOperandType(
-                callBinding, callBinding.getCall().operands[0], 0,
-                throwOnFailure))
-        {
-            return false;
-        }
-        final RelDataType operandType = callBinding.getOperandType(0);
-        final SqlSingleOperandTypeChecker checker = getChecker(operandType);
-        return checker.checkSingleOperandType(
-            callBinding, callBinding.getCall().operands[1], 0, throwOnFailure);
+  @Override
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    if (!ARRAY_OR_MAP.checkSingleOperandType(
+        callBinding, callBinding.getCall().operands[0], 0,
+        throwOnFailure)) {
+      return false;
     }
+    final RelDataType operandType = callBinding.getOperandType(0);
+    final SqlSingleOperandTypeChecker checker = getChecker(operandType);
+    return checker.checkSingleOperandType(
+        callBinding, callBinding.getCall().operands[1], 0, throwOnFailure);
+  }
 
-    private SqlSingleOperandTypeChecker getChecker(RelDataType operandType) {
-        switch (operandType.getSqlTypeName()) {
-        case ARRAY:
-            return SqlTypeStrategies.family(SqlTypeFamily.INTEGER);
-        case MAP:
-            return SqlTypeStrategies.family(
-                operandType.getKeyType().getSqlTypeName().getFamily());
-        case ANY:
-            return SqlTypeStrategies.or(
-                SqlTypeStrategies.family(SqlTypeFamily.INTEGER),
-                SqlTypeStrategies.family(SqlTypeFamily.CHARACTER));
-        default:
-            throw new AssertionError(operandType.getSqlTypeName());
-        }
+  private SqlSingleOperandTypeChecker getChecker(RelDataType operandType) {
+    switch (operandType.getSqlTypeName()) {
+    case ARRAY:
+      return SqlTypeStrategies.family(SqlTypeFamily.INTEGER);
+    case MAP:
+      return SqlTypeStrategies.family(
+          operandType.getKeyType().getSqlTypeName().getFamily());
+    case ANY:
+      return SqlTypeStrategies.or(
+          SqlTypeStrategies.family(SqlTypeFamily.INTEGER),
+          SqlTypeStrategies.family(SqlTypeFamily.CHARACTER));
+    default:
+      throw new AssertionError(operandType.getSqlTypeName());
     }
+  }
 
-    @Override
-    public String getAllowedSignatures(String name) {
-        return "<ARRAY>[<INTEGER>]\n"
-            + "<MAP>[<VALUE>]";
-    }
+  @Override
+  public String getAllowedSignatures(String name) {
+    return "<ARRAY>[<INTEGER>]\n"
+        + "<MAP>[<VALUE>]";
+  }
 
-    @Override
-    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-        final RelDataType operandType = opBinding.getOperandType(0);
-        switch (operandType.getSqlTypeName()) {
-        case ARRAY:
-            return operandType.getComponentType();
-        case MAP:
-            return operandType.getValueType();
-        case ANY:
-            return opBinding.getTypeFactory().createSqlType(SqlTypeName.ANY);
-        default:
-            throw new AssertionError();
-        }
+  @Override
+  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+    final RelDataType operandType = opBinding.getOperandType(0);
+    switch (operandType.getSqlTypeName()) {
+    case ARRAY:
+      return operandType.getComponentType();
+    case MAP:
+      return operandType.getValueType();
+    case ANY:
+      return opBinding.getTypeFactory().createSqlType(SqlTypeName.ANY);
+    default:
+      throw new AssertionError();
     }
+  }
 }
 
 // End SqlItemOperator.java

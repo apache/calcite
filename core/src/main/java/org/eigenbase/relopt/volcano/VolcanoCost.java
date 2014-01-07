@@ -25,216 +25,191 @@ import org.eigenbase.relopt.*;
  * <p>This class is immutable: none of the methods (besides {@link #set})
  * modifies any member variables.</p>
  */
-class VolcanoCost
-    implements RelOptCost
-{
-    //~ Static fields/initializers ---------------------------------------------
+class VolcanoCost implements RelOptCost {
+  //~ Static fields/initializers ---------------------------------------------
 
-    static final VolcanoCost INFINITY =
-        new VolcanoCost(
-            Double.POSITIVE_INFINITY,
-            Double.POSITIVE_INFINITY,
-            Double.POSITIVE_INFINITY)
-        {
-            public String toString()
-            {
-                return "{inf}";
-            }
-        };
-
-    static final VolcanoCost HUGE =
-        new VolcanoCost(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE) {
-            public String toString()
-            {
-                return "{huge}";
-            }
-        };
-
-    static final VolcanoCost ZERO =
-        new VolcanoCost(0.0, 0.0, 0.0) {
-            public String toString()
-            {
-                return "{0}";
-            }
-        };
-
-    static final VolcanoCost TINY =
-        new VolcanoCost(1.0, 1.0, 0.0) {
-            public String toString()
-            {
-                return "{tiny}";
-            }
-        };
-
-    //~ Instance fields --------------------------------------------------------
-
-    double dCpu;
-    double dIo;
-    double dRows;
-
-    //~ Constructors -----------------------------------------------------------
-
-    VolcanoCost(
-        double dRows,
-        double dCpu,
-        double dIo)
-    {
-        set(dRows, dCpu, dIo);
-    }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public double getCpu()
-    {
-        return dCpu;
-    }
-
-    public boolean isInfinite()
-    {
-        return (this == INFINITY) || (this.dRows == Double.POSITIVE_INFINITY)
-            || (this.dCpu == Double.POSITIVE_INFINITY)
-            || (this.dIo == Double.POSITIVE_INFINITY);
-    }
-
-    public double getIo()
-    {
-        return dIo;
-    }
-
-    public boolean isLe(RelOptCost other)
-    {
-        VolcanoCost that = (VolcanoCost) other;
-        if (true) {
-            return this == that
-                || this.dRows <= that.dRows;
+  static final VolcanoCost INFINITY =
+      new VolcanoCost(
+          Double.POSITIVE_INFINITY,
+          Double.POSITIVE_INFINITY,
+          Double.POSITIVE_INFINITY) {
+        public String toString() {
+          return "{inf}";
         }
-        return (this == that)
-            || ((this.dRows <= that.dRows)
-                && (this.dCpu <= that.dCpu)
-                && (this.dIo <= that.dIo));
-    }
+      };
 
-    public boolean isLt(RelOptCost other)
-    {
-        if (true)  {
-            VolcanoCost that = (VolcanoCost) other;
-            return this.dRows < that.dRows;
+  static final VolcanoCost HUGE =
+      new VolcanoCost(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE) {
+        public String toString() {
+          return "{huge}";
         }
-        return isLe(other) && !equals(other);
-    }
+      };
 
-    public double getRows()
-    {
-        return dRows;
-    }
+  static final VolcanoCost ZERO =
+      new VolcanoCost(0.0, 0.0, 0.0) {
+        public String toString() {
+          return "{0}";
+        }
+      };
 
-    public boolean equals(RelOptCost other)
-    {
-        if (!(other instanceof VolcanoCost)) {
-            return false;
+  static final VolcanoCost TINY =
+      new VolcanoCost(1.0, 1.0, 0.0) {
+        public String toString() {
+          return "{tiny}";
         }
-        VolcanoCost that = (VolcanoCost) other;
-        return (this == that)
-            || ((this.dRows == that.dRows)
-                && (this.dCpu == that.dCpu)
-                && (this.dIo == that.dIo));
-    }
+      };
 
-    public boolean isEqWithEpsilon(RelOptCost other)
-    {
-        if (!(other instanceof VolcanoCost)) {
-            return false;
-        }
-        VolcanoCost that = (VolcanoCost) other;
-        return (this == that)
-            || ((Math.abs(this.dRows - that.dRows) < RelOptUtil.EPSILON)
-                && (Math.abs(this.dCpu - that.dCpu) < RelOptUtil.EPSILON)
-                && (Math.abs(this.dIo - that.dIo) < RelOptUtil.EPSILON));
-    }
+  //~ Instance fields --------------------------------------------------------
 
-    public RelOptCost minus(RelOptCost other)
-    {
-        if (this == INFINITY) {
-            return this;
-        }
-        VolcanoCost that = (VolcanoCost) other;
-        return new VolcanoCost(
-            this.dRows - that.dRows,
-            this.dCpu - that.dCpu,
-            this.dIo - that.dIo);
-    }
+  double dCpu;
+  double dIo;
+  double dRows;
 
-    public RelOptCost multiplyBy(double factor)
-    {
-        if (this == INFINITY) {
-            return this;
-        }
-        return new VolcanoCost(dRows * factor, dCpu * factor, dIo * factor);
-    }
+  //~ Constructors -----------------------------------------------------------
 
-    public double divideBy(RelOptCost cost)
-    {
-        // Compute the geometric average of the ratios of all of the factors
-        // which are non-zero and finite.
-        VolcanoCost that = (VolcanoCost) cost;
-        double d = 1;
-        double n = 0;
-        if ((this.dRows != 0)
-            && !Double.isInfinite(this.dRows)
-            && (that.dRows != 0)
-            && !Double.isInfinite(that.dRows))
-        {
-            d *= this.dRows / that.dRows;
-            ++n;
-        }
-        if ((this.dCpu != 0)
-            && !Double.isInfinite(this.dCpu)
-            && (that.dCpu != 0)
-            && !Double.isInfinite(that.dCpu))
-        {
-            d *= this.dCpu / that.dCpu;
-            ++n;
-        }
-        if ((this.dIo != 0)
-            && !Double.isInfinite(this.dIo)
-            && (that.dIo != 0)
-            && !Double.isInfinite(that.dIo))
-        {
-            d *= this.dIo / that.dIo;
-            ++n;
-        }
-        if (n == 0) {
-            return 1.0;
-        }
-        return Math.pow(d, 1 / n);
-    }
+  VolcanoCost(
+      double dRows,
+      double dCpu,
+      double dIo) {
+    set(dRows, dCpu, dIo);
+  }
 
-    public RelOptCost plus(RelOptCost other)
-    {
-        VolcanoCost that = (VolcanoCost) other;
-        if ((this == INFINITY) || (that == INFINITY)) {
-            return INFINITY;
-        }
-        return new VolcanoCost(
-            this.dRows + that.dRows,
-            this.dCpu + that.dCpu,
-            this.dIo + that.dIo);
-    }
+  //~ Methods ----------------------------------------------------------------
 
-    public void set(
-        double dRows,
-        double dCpu,
-        double dIo)
-    {
-        this.dRows = dRows;
-        this.dCpu = dCpu;
-        this.dIo = dIo;
-    }
+  public double getCpu() {
+    return dCpu;
+  }
 
-    public String toString()
-    {
-        return "{" + dRows + " rows, " + dCpu + " cpu, " + dIo + " io}";
+  public boolean isInfinite() {
+    return (this == INFINITY) || (this.dRows == Double.POSITIVE_INFINITY)
+        || (this.dCpu == Double.POSITIVE_INFINITY)
+        || (this.dIo == Double.POSITIVE_INFINITY);
+  }
+
+  public double getIo() {
+    return dIo;
+  }
+
+  public boolean isLe(RelOptCost other) {
+    VolcanoCost that = (VolcanoCost) other;
+    if (true) {
+      return this == that
+          || this.dRows <= that.dRows;
     }
+    return (this == that)
+        || ((this.dRows <= that.dRows)
+        && (this.dCpu <= that.dCpu)
+        && (this.dIo <= that.dIo));
+  }
+
+  public boolean isLt(RelOptCost other) {
+    if (true) {
+      VolcanoCost that = (VolcanoCost) other;
+      return this.dRows < that.dRows;
+    }
+    return isLe(other) && !equals(other);
+  }
+
+  public double getRows() {
+    return dRows;
+  }
+
+  public boolean equals(RelOptCost other) {
+    if (!(other instanceof VolcanoCost)) {
+      return false;
+    }
+    VolcanoCost that = (VolcanoCost) other;
+    return (this == that)
+        || ((this.dRows == that.dRows)
+        && (this.dCpu == that.dCpu)
+        && (this.dIo == that.dIo));
+  }
+
+  public boolean isEqWithEpsilon(RelOptCost other) {
+    if (!(other instanceof VolcanoCost)) {
+      return false;
+    }
+    VolcanoCost that = (VolcanoCost) other;
+    return (this == that)
+        || ((Math.abs(this.dRows - that.dRows) < RelOptUtil.EPSILON)
+        && (Math.abs(this.dCpu - that.dCpu) < RelOptUtil.EPSILON)
+        && (Math.abs(this.dIo - that.dIo) < RelOptUtil.EPSILON));
+  }
+
+  public RelOptCost minus(RelOptCost other) {
+    if (this == INFINITY) {
+      return this;
+    }
+    VolcanoCost that = (VolcanoCost) other;
+    return new VolcanoCost(
+        this.dRows - that.dRows,
+        this.dCpu - that.dCpu,
+        this.dIo - that.dIo);
+  }
+
+  public RelOptCost multiplyBy(double factor) {
+    if (this == INFINITY) {
+      return this;
+    }
+    return new VolcanoCost(dRows * factor, dCpu * factor, dIo * factor);
+  }
+
+  public double divideBy(RelOptCost cost) {
+    // Compute the geometric average of the ratios of all of the factors
+    // which are non-zero and finite.
+    VolcanoCost that = (VolcanoCost) cost;
+    double d = 1;
+    double n = 0;
+    if ((this.dRows != 0)
+        && !Double.isInfinite(this.dRows)
+        && (that.dRows != 0)
+        && !Double.isInfinite(that.dRows)) {
+      d *= this.dRows / that.dRows;
+      ++n;
+    }
+    if ((this.dCpu != 0)
+        && !Double.isInfinite(this.dCpu)
+        && (that.dCpu != 0)
+        && !Double.isInfinite(that.dCpu)) {
+      d *= this.dCpu / that.dCpu;
+      ++n;
+    }
+    if ((this.dIo != 0)
+        && !Double.isInfinite(this.dIo)
+        && (that.dIo != 0)
+        && !Double.isInfinite(that.dIo)) {
+      d *= this.dIo / that.dIo;
+      ++n;
+    }
+    if (n == 0) {
+      return 1.0;
+    }
+    return Math.pow(d, 1 / n);
+  }
+
+  public RelOptCost plus(RelOptCost other) {
+    VolcanoCost that = (VolcanoCost) other;
+    if ((this == INFINITY) || (that == INFINITY)) {
+      return INFINITY;
+    }
+    return new VolcanoCost(
+        this.dRows + that.dRows,
+        this.dCpu + that.dCpu,
+        this.dIo + that.dIo);
+  }
+
+  public void set(
+      double dRows,
+      double dCpu,
+      double dIo) {
+    this.dRows = dRows;
+    this.dCpu = dCpu;
+    this.dIo = dIo;
+  }
+
+  public String toString() {
+    return "{" + dRows + " rows, " + dCpu + " cpu, " + dIo + " io}";
+  }
 }
 
 // End VolcanoCost.java

@@ -102,9 +102,11 @@ public class RelWriterTest {
       + "  ]\n"
       + "}";
 
-  /** Unit test for {@link org.eigenbase.rel.RelJsonWriter} on
+  /**
+   * Unit test for {@link org.eigenbase.rel.RelJsonWriter} on
    * a simple tree of relational expressions, consisting of a table, a filter
-   * and an aggregate node. */
+   * and an aggregate node.
+   */
   @Test public void testWriter() {
     String s =
         Frameworks.withPlanner(
@@ -146,7 +148,9 @@ public class RelWriterTest {
     assertThat(s, is(XX));
   }
 
-  /** Unit test for {@link org.eigenbase.rel.RelJsonReader}. */
+  /**
+   * Unit test for {@link org.eigenbase.rel.RelJsonReader}.
+   */
   @Test public void testReader() {
     String s =
         Frameworks.withPlanner(

@@ -26,76 +26,69 @@ import org.eigenbase.sql.*;
  * <p>The type parameter <code>R</code> is the return type of each <code>
  * visit()</code> method. If the methods do not need to return a value, use
  * {@link Void}.
+ *
  * @see SqlBasicVisitor
  * @see SqlNode#accept(SqlVisitor)
  * @see SqlOperator#acceptCall
  */
-public interface SqlVisitor<R>
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SqlVisitor<R> {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Visits a literal.
-     *
-     * @param literal Literal
-     *
-     * @see SqlLiteral#accept(SqlVisitor)
-     */
-    R visit(SqlLiteral literal);
+  /**
+   * Visits a literal.
+   *
+   * @param literal Literal
+   * @see SqlLiteral#accept(SqlVisitor)
+   */
+  R visit(SqlLiteral literal);
 
-    /**
-     * Visits a call to a {@link SqlOperator}.
-     *
-     * @param call Call
-     *
-     * @see SqlCall#accept(SqlVisitor)
-     */
-    R visit(SqlCall call);
+  /**
+   * Visits a call to a {@link SqlOperator}.
+   *
+   * @param call Call
+   * @see SqlCall#accept(SqlVisitor)
+   */
+  R visit(SqlCall call);
 
-    /**
-     * Visits a list of {@link SqlNode} objects.
-     *
-     * @param nodeList list of nodes
-     *
-     * @see SqlNodeList#accept(SqlVisitor)
-     */
-    R visit(SqlNodeList nodeList);
+  /**
+   * Visits a list of {@link SqlNode} objects.
+   *
+   * @param nodeList list of nodes
+   * @see SqlNodeList#accept(SqlVisitor)
+   */
+  R visit(SqlNodeList nodeList);
 
-    /**
-     * Visits an identifier.
-     *
-     * @param id identifier
-     *
-     * @see SqlIdentifier#accept(SqlVisitor)
-     */
-    R visit(SqlIdentifier id);
+  /**
+   * Visits an identifier.
+   *
+   * @param id identifier
+   * @see SqlIdentifier#accept(SqlVisitor)
+   */
+  R visit(SqlIdentifier id);
 
-    /**
-     * Visits a datatype specification.
-     *
-     * @param type datatype specification
-     *
-     * @see SqlDataTypeSpec#accept(SqlVisitor)
-     */
-    R visit(SqlDataTypeSpec type);
+  /**
+   * Visits a datatype specification.
+   *
+   * @param type datatype specification
+   * @see SqlDataTypeSpec#accept(SqlVisitor)
+   */
+  R visit(SqlDataTypeSpec type);
 
-    /**
-     * Visits a dynamic parameter.
-     *
-     * @param param Dynamic parameter
-     *
-     * @see SqlDynamicParam#accept(SqlVisitor)
-     */
-    R visit(SqlDynamicParam param);
+  /**
+   * Visits a dynamic parameter.
+   *
+   * @param param Dynamic parameter
+   * @see SqlDynamicParam#accept(SqlVisitor)
+   */
+  R visit(SqlDynamicParam param);
 
-    /**
-     * Visits an interval qualifier
-     *
-     * @param intervalQualifier Interval qualifier
-     *
-     * @see SqlIntervalQualifier#accept(SqlVisitor)
-     */
-    R visit(SqlIntervalQualifier intervalQualifier);
+  /**
+   * Visits an interval qualifier
+   *
+   * @param intervalQualifier Interval qualifier
+   * @see SqlIntervalQualifier#accept(SqlVisitor)
+   */
+  R visit(SqlIntervalQualifier intervalQualifier);
 }
 
 // End SqlVisitor.java

@@ -26,52 +26,48 @@ import org.eigenbase.relopt.*;
  * <code>UnionRelBase</code> is an abstract base class for implementations of
  * {@link UnionRel}.
  */
-public abstract class UnionRelBase
-    extends SetOpRel
-{
-    //~ Constructors -----------------------------------------------------------
+public abstract class UnionRelBase extends SetOpRel {
+  //~ Constructors -----------------------------------------------------------
 
-    protected UnionRelBase(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        List<RelNode> inputs,
-        boolean all)
-    {
-        super(cluster, traits, inputs, all);
+  protected UnionRelBase(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      List<RelNode> inputs,
+      boolean all) {
+    super(cluster, traits, inputs, all);
+  }
+
+  /**
+   * Creates a UnionRelBase by parsing serialized output.
+   */
+  protected UnionRelBase(RelInput input) {
+    super(input);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelNode
+  public double getRows() {
+    double dRows = estimateRowCount(this);
+    if (!all) {
+      dRows *= 0.5;
     }
+    return dRows;
+  }
 
-    /** Creates a UnionRelBase by parsing serialized output. */
-    protected UnionRelBase(RelInput input) {
-        super(input);
+  /**
+   * Helper method for computing row count for UNION ALL.
+   *
+   * @param rel node representing UNION ALL
+   * @return estimated row count for rel
+   */
+  public static double estimateRowCount(RelNode rel) {
+    double dRows = 0;
+    for (RelNode input : rel.getInputs()) {
+      dRows += RelMetadataQuery.getRowCount(input);
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    // implement RelNode
-    public double getRows()
-    {
-        double dRows = estimateRowCount(this);
-        if (!all) {
-            dRows *= 0.5;
-        }
-        return dRows;
-    }
-
-    /**
-     * Helper method for computing row count for UNION ALL.
-     *
-     * @param rel node representing UNION ALL
-     *
-     * @return estimated row count for rel
-     */
-    public static double estimateRowCount(RelNode rel)
-    {
-        double dRows = 0;
-        for (RelNode input : rel.getInputs()) {
-            dRows += RelMetadataQuery.getRowCount(input);
-        }
-        return dRows;
-    }
+    return dRows;
+  }
 }
 
 // End UnionRelBase.java

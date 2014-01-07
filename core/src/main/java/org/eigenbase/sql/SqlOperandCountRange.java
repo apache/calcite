@@ -21,16 +21,21 @@ package org.eigenbase.sql;
 /**
  * A class that describes how many operands an operator can take.
  */
-public interface SqlOperandCountRange
-{
-    /** Returns whether {@code count} is a valid number of operands. */
-    public boolean isValidCount(int count);
+public interface SqlOperandCountRange {
+  /**
+   * Returns whether {@code count} is a valid number of operands.
+   */
+  public boolean isValidCount(int count);
 
-    /** Returns an lower bound. -1 if there is no lower bound. */
-    public int getMin();
+  /**
+   * Returns an lower bound. -1 if there is no lower bound.
+   */
+  public int getMin();
 
-    /** Returns an upper bound. -1 if there is no upper bound. */
-    public int getMax();
+  /**
+   * Returns an upper bound. -1 if there is no upper bound.
+   */
+  public int getMax();
 
 }
 

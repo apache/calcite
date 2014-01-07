@@ -28,40 +28,36 @@ import org.eigenbase.sql.type.*;
  * <p>This operator has function syntax (with one argument), whereas {@link
  * SqlStdOperatorTable#explicitTableOperator} is a prefix operator.
  */
-public class SqlCollectionTableOperator
-    extends SqlFunctionalOperator
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlCollectionTableOperator extends SqlFunctionalOperator {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final int MODALITY_RELATIONAL = 1;
-    public static final int MODALITY_STREAM = 2;
+  public static final int MODALITY_RELATIONAL = 1;
+  public static final int MODALITY_STREAM = 2;
 
-    //~ Instance fields --------------------------------------------------------
+  //~ Instance fields --------------------------------------------------------
 
-    private final int modality;
+  private final int modality;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlCollectionTableOperator(String name, int modality)
-    {
-        super(
-            name,
-            SqlKind.COLLECTION_TABLE,
-            200,
-            true,
-            SqlTypeStrategies.rtiFirstArgType,
-            null,
-            SqlTypeStrategies.otcAny);
+  public SqlCollectionTableOperator(String name, int modality) {
+    super(
+        name,
+        SqlKind.COLLECTION_TABLE,
+        200,
+        true,
+        SqlTypeStrategies.rtiFirstArgType,
+        null,
+        SqlTypeStrategies.otcAny);
 
-        this.modality = modality;
-    }
+    this.modality = modality;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public int getModality()
-    {
-        return modality;
-    }
+  public int getModality() {
+    return modality;
+  }
 }
 
 // End SqlCollectionTableOperator.java

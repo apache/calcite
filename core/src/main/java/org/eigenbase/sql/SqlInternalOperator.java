@@ -19,65 +19,57 @@ package org.eigenbase.sql;
 
 import org.eigenbase.sql.type.*;
 
-
 /**
  * Generic operator for nodes with internal syntax.
  */
-public abstract class SqlInternalOperator
-    extends SqlSpecialOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public abstract class SqlInternalOperator extends SqlSpecialOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlInternalOperator(
-        String name,
-        SqlKind kind)
-    {
-        super(name, kind, 2, true, null, null, null);
-    }
+  public SqlInternalOperator(
+      String name,
+      SqlKind kind) {
+    super(name, kind, 2, true, null, null, null);
+  }
 
-    public SqlInternalOperator(
-        String name,
-        SqlKind kind,
-        int prec)
-    {
-        super(name, kind, prec, true, null, null, null);
-    }
+  public SqlInternalOperator(
+      String name,
+      SqlKind kind,
+      int prec) {
+    super(name, kind, prec, true, null, null, null);
+  }
 
-    public SqlInternalOperator(
-        String name,
-        SqlKind kind,
-        int prec,
-        boolean isLeftAssoc,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker)
-    {
-        super(
-            name,
-            kind,
-            prec,
-            isLeftAssoc,
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker);
-    }
+  public SqlInternalOperator(
+      String name,
+      SqlKind kind,
+      int prec,
+      boolean isLeftAssoc,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
+    super(
+        name,
+        kind,
+        prec,
+        isLeftAssoc,
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlSyntax getSyntax()
-    {
-        return SqlSyntax.Internal;
-    }
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.Internal;
+  }
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        throw new UnsupportedOperationException(
-            "unparse must be implemented by SqlCall subclass");
-    }
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    throw new UnsupportedOperationException(
+        "unparse must be implemented by SqlCall subclass");
+  }
 }
 
 // End SqlInternalOperator.java

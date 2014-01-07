@@ -26,39 +26,33 @@ import org.eigenbase.sql.*;
  * Implements {@link org.eigenbase.sql.validate.SqlValidatorTable} by
  * delegating to a parent table.
  */
-public abstract class DelegatingSqlValidatorTable implements SqlValidatorTable
-{
-    protected final SqlValidatorTable table;
+public abstract class DelegatingSqlValidatorTable implements SqlValidatorTable {
+  protected final SqlValidatorTable table;
 
-    /**
-     * Creates a DelegatingSqlValidatorTable.
-     *
-     * @param table Parent table
-     */
-    public DelegatingSqlValidatorTable(SqlValidatorTable table)
-    {
-        this.table = table;
-    }
+  /**
+   * Creates a DelegatingSqlValidatorTable.
+   *
+   * @param table Parent table
+   */
+  public DelegatingSqlValidatorTable(SqlValidatorTable table) {
+    this.table = table;
+  }
 
-    public RelDataType getRowType()
-    {
-        return table.getRowType();
-    }
+  public RelDataType getRowType() {
+    return table.getRowType();
+  }
 
-    public List<String> getQualifiedName()
-    {
-        return table.getQualifiedName();
-    }
+  public List<String> getQualifiedName() {
+    return table.getQualifiedName();
+  }
 
-    public SqlMonotonicity getMonotonicity(String columnName)
-    {
-        return table.getMonotonicity(columnName);
-    }
+  public SqlMonotonicity getMonotonicity(String columnName) {
+    return table.getMonotonicity(columnName);
+  }
 
-    public SqlAccessType getAllowedAccess()
-    {
-        return table.getAllowedAccess();
-    }
+  public SqlAccessType getAllowedAccess() {
+    return table.getAllowedAccess();
+  }
 }
 
 // End DelegatingSqlValidatorTable.java

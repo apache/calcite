@@ -26,7 +26,7 @@ import net.hydromatic.linq4j.function.Function1;
 /**
  * Helps to run benchmarks by running the same task repeatedly and averaging
  * the running times.
-*/
+ */
 public class Benchmark {
   /**
    * Certain tests are enabled only if logging is enabled at debug level or
@@ -46,7 +46,9 @@ public class Benchmark {
     this.statistician = new Statistician(description);
   }
 
-  /** Returns whether performance tests are enabled. */
+  /**
+   * Returns whether performance tests are enabled.
+   */
   public static boolean enabled() {
     return LOGGER.isLoggable(Level.FINE);
   }

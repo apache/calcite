@@ -24,50 +24,46 @@ import org.eigenbase.relopt.*;
  * Rule to remove an {@link AggregateRel} implementing DISTINCT if the
  * underlying relational expression is already distinct.
  */
-public class RemoveDistinctRule
-    extends RelOptRule
-{
-    public static final RemoveDistinctRule instance =
-        new RemoveDistinctRule();
+public class RemoveDistinctRule extends RelOptRule {
+  public static final RemoveDistinctRule instance =
+      new RemoveDistinctRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a RemoveDistinctRule.
-     */
-    private RemoveDistinctRule() {
-        // REVIEW jvs 14-Mar-2006: We have to explicitly mention the child here
-        // to make sure the rule re-fires after the child changes (e.g. via
-        // RemoveTrivialProjectRule), since that may change our information
-        // about whether the child is distinct.  If we clean up the inference of
-        // distinct to make it correct up-front, we can get rid of the reference
-        // to the child here.
-        super(
-            operand(
-                AggregateRel.class,
-                operand(RelNode.class, any())));
+  /**
+   * Creates a RemoveDistinctRule.
+   */
+  private RemoveDistinctRule() {
+    // REVIEW jvs 14-Mar-2006: We have to explicitly mention the child here
+    // to make sure the rule re-fires after the child changes (e.g. via
+    // RemoveTrivialProjectRule), since that may change our information
+    // about whether the child is distinct.  If we clean up the inference of
+    // distinct to make it correct up-front, we can get rid of the reference
+    // to the child here.
+    super(
+        operand(
+            AggregateRel.class,
+            operand(RelNode.class, any())));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void onMatch(RelOptRuleCall call) {
+    AggregateRel distinct = call.rel(0);
+    RelNode child = call.rel(1);
+    if (!distinct.getAggCallList().isEmpty()
+        || !child.isKey(distinct.getGroupSet())) {
+      return;
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public void onMatch(RelOptRuleCall call)
-    {
-        AggregateRel distinct = call.rel(0);
-        RelNode child = call.rel(1);
-        if (!distinct.getAggCallList().isEmpty()
-            || !child.isKey(distinct.getGroupSet()))
-        {
-            return;
-        }
-        // Distinct is "GROUP BY c1, c2" (where c1, c2 are a set of columns on
-        // which the input is unique, i.e. contain a key) and has no aggregate
-        // functions. It can be removed.
-        child = call.getPlanner().register(child, distinct);
-        call.transformTo(
-            convert(
-                child,
-                distinct.getTraitSet()));
-    }
+    // Distinct is "GROUP BY c1, c2" (where c1, c2 are a set of columns on
+    // which the input is unique, i.e. contain a key) and has no aggregate
+    // functions. It can be removed.
+    child = call.getPlanner().register(child, distinct);
+    call.transformTo(
+        convert(
+            child,
+            distinct.getTraitSet()));
+  }
 }
 
 // End RemoveDistinctRule.java

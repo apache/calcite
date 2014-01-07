@@ -28,58 +28,53 @@ import org.eigenbase.util.*;
  * If a rule fails to find a return type (by returning NULL), next rule is tried
  * until there are no more rules in which case NULL will be returned.
  */
-public class SqlReturnTypeInferenceChain
-    implements SqlReturnTypeInference
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlReturnTypeInferenceChain implements SqlReturnTypeInference {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlReturnTypeInference [] rules;
+  private final SqlReturnTypeInference[] rules;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a FallbackCascade from an array of rules
-     *
-     * @pre null!=rules
-     * @pre null!=rules[i]
-     * @pre rules.length > 0
-     */
-    public SqlReturnTypeInferenceChain(
-        SqlReturnTypeInference [] rules)
-    {
-        Util.pre(null != rules, "null!=rules");
-        Util.pre(rules.length > 0, "rules.length>0");
-        for (int i = 0; i < rules.length; i++) {
-            Util.pre(rules[i] != null, "transforms[i] != null");
-        }
-        this.rules = rules;
+  /**
+   * Creates a FallbackCascade from an array of rules
+   *
+   * @pre null!=rules
+   * @pre null!=rules[i]
+   * @pre rules.length > 0
+   */
+  public SqlReturnTypeInferenceChain(
+      SqlReturnTypeInference[] rules) {
+    Util.pre(null != rules, "null!=rules");
+    Util.pre(rules.length > 0, "rules.length>0");
+    for (int i = 0; i < rules.length; i++) {
+      Util.pre(rules[i] != null, "transforms[i] != null");
     }
+    this.rules = rules;
+  }
 
-    /**
-     * Creates a FallbackCascade from two rules
-     */
-    public SqlReturnTypeInferenceChain(
-        SqlReturnTypeInference rule1,
-        SqlReturnTypeInference rule2)
-    {
-        this(new SqlReturnTypeInference[] { rule1, rule2 });
+  /**
+   * Creates a FallbackCascade from two rules
+   */
+  public SqlReturnTypeInferenceChain(
+      SqlReturnTypeInference rule1,
+      SqlReturnTypeInference rule2) {
+    this(new SqlReturnTypeInference[]{rule1, rule2});
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    RelDataType ret = null;
+    for (int i = 0; i < rules.length; i++) {
+      SqlReturnTypeInference rule = rules[i];
+      ret = rule.inferReturnType(opBinding);
+      if (null != ret) {
+        break;
+      }
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public RelDataType inferReturnType(
-        SqlOperatorBinding opBinding)
-    {
-        RelDataType ret = null;
-        for (int i = 0; i < rules.length; i++) {
-            SqlReturnTypeInference rule = rules[i];
-            ret = rule.inferReturnType(opBinding);
-            if (null != ret) {
-                break;
-            }
-        }
-        return ret;
-    }
+    return ret;
+  }
 }
 
 // End SqlReturnTypeInferenceChain.java

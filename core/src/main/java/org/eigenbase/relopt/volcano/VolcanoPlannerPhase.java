@@ -22,9 +22,8 @@ package org.eigenbase.relopt.volcano;
  * VolcanoPlanner} passes through during optimization of a tree of {@link
  * org.eigenbase.rel.RelNode} objects.
  */
-public enum VolcanoPlannerPhase
-{
-    PRE_PROCESS_MDR, PRE_PROCESS, OPTIMIZE, CLEANUP,
+public enum VolcanoPlannerPhase {
+  PRE_PROCESS_MDR, PRE_PROCESS, OPTIMIZE, CLEANUP,
 }
 
 // End VolcanoPlannerPhase.java

@@ -28,25 +28,24 @@ import org.eigenbase.util.*;
  * The name-resolution scope of a SELECT clause. The objects visible are those
  * in the FROM clause, and objects inherited from the parent scope.
  *
- * <p/>
- * <p>This object is both a {@link SqlValidatorScope} and a {@link
- * SqlValidatorNamespace}. In the query
  *
- * <p/>
+ * <p>This object is both a {@link SqlValidatorScope} and a {@link
+ * SqlValidatorNamespace}. In the query</p>
+ *
  * <blockquote>
  * <pre>SELECT name FROM (
  *     SELECT *
  *     FROM emp
  *     WHERE gender = 'F')</code></blockquote>
- * <p/>
+ *
  * <p>we need to use the {@link SelectScope} as a
  * {@link SqlValidatorNamespace} when resolving 'name', and
  * as a {@link SqlValidatorScope} when resolving 'gender'.</p>
- * <p/>
+ *
  * <h3>Scopes</h3>
- * <p/>
- * <p>In the query
- * <p/>
+ *
+ * <p>In the query</p>
+ *
  * <blockquote>
  * <pre>
  * SELECT expr1
@@ -57,7 +56,7 @@ import org.eigenbase.util.*;
  * ORDER BY expr4</pre>
  * </blockquote>
  *
- * <p/>The scopes available at various points of the query are as follows:
+ * <p>The scopes available at various points of the query are as follows:</p>
  *
  * <ul>
  * <li>expr1 can see t1, t2, q3</li>
@@ -67,11 +66,9 @@ import org.eigenbase.util.*;
  * defined in the SELECT clause</li>
  * </ul>
  *
- * <p/>
  * <h3>Namespaces</h3>
  *
- * <p/>
- * <p>In the above query, there are 4 namespaces:
+ * <p>In the above query, there are 4 namespaces:</p>
  *
  * <ul>
  * <li>t1</li>
@@ -79,159 +76,147 @@ import org.eigenbase.util.*;
  * <li>(SELECT expr2 FROM t3) AS q3</li>
  * <li>(SELECT expr3 FROM t4)</li>
  * </ul>
+ *
  * @see SelectNamespace
  */
-public class SelectScope
-    extends ListScope
-{
-    //~ Instance fields --------------------------------------------------------
+public class SelectScope extends ListScope {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlSelect select;
-    protected final List<String> windowNames = new ArrayList<String>();
+  private final SqlSelect select;
+  protected final List<String> windowNames = new ArrayList<String>();
 
-    private List<SqlNode> expandedSelectList = null;
+  private List<SqlNode> expandedSelectList = null;
 
-    /**
-     * List of column names which sort this scope. Empty if this scope is not
-     * sorted. Null if has not been computed yet.
-     */
-    private SqlNodeList orderList;
+  /**
+   * List of column names which sort this scope. Empty if this scope is not
+   * sorted. Null if has not been computed yet.
+   */
+  private SqlNodeList orderList;
 
-    /**
-     * Scope to use to resolve windows
-     */
-    private final SqlValidatorScope windowParent;
+  /**
+   * Scope to use to resolve windows
+   */
+  private final SqlValidatorScope windowParent;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a scope corresponding to a SELECT clause.
-     *
-     * @param parent Parent scope, must not be null
-     * @param winParent Scope for window parent, may be null
-     * @param select Select clause
-     */
-    SelectScope(
-        SqlValidatorScope parent,
-        SqlValidatorScope winParent,
-        SqlSelect select)
-    {
-        super(parent);
-        this.select = select;
-        this.windowParent = winParent;
+  /**
+   * Creates a scope corresponding to a SELECT clause.
+   *
+   * @param parent    Parent scope, must not be null
+   * @param winParent Scope for window parent, may be null
+   * @param select    Select clause
+   */
+  SelectScope(
+      SqlValidatorScope parent,
+      SqlValidatorScope winParent,
+      SqlSelect select) {
+    super(parent);
+    this.select = select;
+    this.windowParent = winParent;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlValidatorTable getTable() {
+    return null;
+  }
+
+  public SqlSelect getNode() {
+    return select;
+  }
+
+  public SqlWindow lookupWindow(String name) {
+    final SqlNodeList windowList = select.getWindowList();
+    for (int i = 0; i < windowList.size(); i++) {
+      SqlWindow window = (SqlWindow) windowList.get(i);
+      final SqlIdentifier declId = window.getDeclName();
+      assert declId.isSimple();
+      if (declId.names[0].equals(name)) {
+        return window;
+      }
     }
 
-    //~ Methods ----------------------------------------------------------------
+    // if not in the select scope, then check window scope
+    if (windowParent != null) {
+      return windowParent.lookupWindow(name);
+    } else {
+      return null;
+    }
+  }
 
-    public SqlValidatorTable getTable()
-    {
-        return null;
+  public SqlMonotonicity getMonotonicity(SqlNode expr) {
+    SqlMonotonicity monotonicity = expr.getMonotonicity(this);
+    if (monotonicity != SqlMonotonicity.NotMonotonic) {
+      return monotonicity;
     }
 
-    public SqlSelect getNode()
-    {
-        return select;
+    // TODO: compare fully qualified names
+    final SqlNodeList orderList = getOrderList();
+    if ((orderList.size() > 0)) {
+      SqlNode order0 = orderList.get(0);
+      monotonicity = SqlMonotonicity.Increasing;
+      if ((order0 instanceof SqlCall)
+          && (((SqlCall) order0).getOperator()
+          == SqlStdOperatorTable.descendingOperator)) {
+        monotonicity = monotonicity.reverse();
+        order0 = ((SqlCall) order0).getOperands()[0];
+      }
+      if (expr.equalsDeep(order0, false)) {
+        return monotonicity;
+      }
     }
 
-    public SqlWindow lookupWindow(String name)
-    {
-        final SqlNodeList windowList = select.getWindowList();
-        for (int i = 0; i < windowList.size(); i++) {
-            SqlWindow window = (SqlWindow) windowList.get(i);
-            final SqlIdentifier declId = window.getDeclName();
-            assert declId.isSimple();
-            if (declId.names[0].equals(name)) {
-                return window;
-            }
+    return SqlMonotonicity.NotMonotonic;
+  }
+
+  public SqlNodeList getOrderList() {
+    if (orderList == null) {
+      // Compute on demand first call.
+      orderList = new SqlNodeList(SqlParserPos.ZERO);
+      if (children.size() == 1) {
+        final SqlValidatorNamespace child = children.get(0).right;
+        final List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs =
+            child.getMonotonicExprs();
+        if (monotonicExprs.size() > 0) {
+          orderList.add(monotonicExprs.get(0).left);
         }
+      }
+    }
+    return orderList;
+  }
 
-        // if not in the select scope, then check window scope
-        if (windowParent != null) {
-            return windowParent.lookupWindow(name);
-        } else {
-            return null;
-        }
+  public void addWindowName(String winName) {
+    windowNames.add(winName);
+  }
+
+  public boolean existingWindowName(String winName) {
+    for (String windowName : windowNames) {
+      if (windowName.equalsIgnoreCase(winName)) {
+        return true;
+      }
     }
 
-    public SqlMonotonicity getMonotonicity(SqlNode expr)
-    {
-        SqlMonotonicity monotonicity = expr.getMonotonicity(this);
-        if (monotonicity != SqlMonotonicity.NotMonotonic) {
-            return monotonicity;
-        }
-
-        // TODO: compare fully qualified names
-        final SqlNodeList orderList = getOrderList();
-        if ((orderList.size() > 0)) {
-            SqlNode order0 = orderList.get(0);
-            monotonicity = SqlMonotonicity.Increasing;
-            if ((order0 instanceof SqlCall)
-                && (((SqlCall) order0).getOperator()
-                    == SqlStdOperatorTable.descendingOperator))
-            {
-                monotonicity = monotonicity.reverse();
-                order0 = ((SqlCall) order0).getOperands()[0];
-            }
-            if (expr.equalsDeep(order0, false)) {
-                return monotonicity;
-            }
-        }
-
-        return SqlMonotonicity.NotMonotonic;
+    // if the name wasn't found then check the parent(s)
+    SqlValidatorScope walker = parent;
+    while ((null != walker) && !(walker instanceof EmptyScope)) {
+      if (walker instanceof SelectScope) {
+        final SelectScope parentScope = (SelectScope) walker;
+        return parentScope.existingWindowName(winName);
+      }
+      walker = parent;
     }
 
-    public SqlNodeList getOrderList()
-    {
-        if (orderList == null) {
-            // Compute on demand first call.
-            orderList = new SqlNodeList(SqlParserPos.ZERO);
-            if (children.size() == 1) {
-                final SqlValidatorNamespace child = children.get(0).right;
-                final List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs =
-                    child.getMonotonicExprs();
-                if (monotonicExprs.size() > 0) {
-                    orderList.add(monotonicExprs.get(0).left);
-                }
-            }
-        }
-        return orderList;
-    }
+    return false;
+  }
 
-    public void addWindowName(String winName)
-    {
-        windowNames.add(winName);
-    }
+  public List<SqlNode> getExpandedSelectList() {
+    return expandedSelectList;
+  }
 
-    public boolean existingWindowName(String winName)
-    {
-        for (String windowName : windowNames) {
-            if (windowName.equalsIgnoreCase(winName)) {
-                return true;
-            }
-        }
-
-        // if the name wasn't found then check the parent(s)
-        SqlValidatorScope walker = parent;
-        while ((null != walker) && !(walker instanceof EmptyScope)) {
-            if (walker instanceof SelectScope) {
-                final SelectScope parentScope = (SelectScope) walker;
-                return parentScope.existingWindowName(winName);
-            }
-            walker = parent;
-        }
-
-        return false;
-    }
-
-    public List<SqlNode> getExpandedSelectList()
-    {
-        return expandedSelectList;
-    }
-
-    public void setExpandedSelectList(List<SqlNode> selectList)
-    {
-        expandedSelectList = selectList;
-    }
+  public void setExpandedSelectList(List<SqlNode> selectList) {
+    expandedSelectList = selectList;
+  }
 }
 
 // End SelectScope.java

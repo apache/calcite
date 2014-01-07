@@ -277,9 +277,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
   /**
    * Reduces a list of expressions.
    *
-   * @param rel Relational expression
+   * @param rel     Relational expression
    * @param expList List of expressions, modified in place
-   *
    * @return whether reduction found something to change, and succeeded
    */
   static boolean reduceExpressions(RelNode rel, List<RexNode> expList) {
@@ -359,13 +358,14 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * Locates expressions that can be reduced to literals or converted to
    * expressions with redundant casts removed.
    *
-   * @param typeFactory Type factory
-   * @param exps list of candidate expressions to be examined for reduction
-   * @param constExps returns the list of expressions that can be constant
-   *   reduced
-   * @param addCasts indicator for each expression that can be constant
-   *   reduced, whether a cast of the resulting reduced expression is
-   *   potentially necessary
+   * @param typeFactory    Type factory
+   * @param exps           list of candidate expressions to be examined for
+   *                       reduction
+   * @param constExps      returns the list of expressions that can be constant
+   *                       reduced
+   * @param addCasts       indicator for each expression that can be constant
+   *                       reduced, whether a cast of the resulting reduced
+   *                       expression is potentially necessary
    * @param removableCasts returns the list of cast expressions where the cast
    */
   private static void findReducibleExps(
@@ -406,7 +406,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       this.addCasts = addCasts;
     }
 
-    @Override public RexNode visitCall(final RexCall call) {
+    @Override
+    public RexNode visitCall(final RexCall call) {
       int i = reducibleExps.indexOf(call);
       if (i == -1) {
         return super.visitCall(call);
@@ -658,7 +659,9 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
   }
 
   interface Executor {
-    /** Reduces expressions. Returns whether failed. */
+    /**
+     * Reduces expressions. Returns whether failed.
+     */
     boolean execute(RexBuilder rexBuilder, List<RexNode> constExps,
         List<RexNode> reducedValues);
   }

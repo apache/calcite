@@ -36,210 +36,205 @@ import net.hydromatic.linq4j.Ord;
  * column; if there is precisely one expression, the result may be 'unboxed',
  * and consist of the raw value type.</p>
  */
-public final class ProjectRel
-    extends ProjectRelBase
-{
-    //~ Constructors -----------------------------------------------------------
+public final class ProjectRel extends ProjectRelBase {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a ProjectRel with no sort keys.
-     *
-     * @param cluster Cluster this relational expression belongs to
-     * @param child input relational expression
-     * @param exps set of expressions for the input columns
-     * @param fieldNames aliases of the expressions
-     * @param flags values as in {@link ProjectRelBase.Flags}
-     */
-    public ProjectRel(
-        RelOptCluster cluster,
-        RelNode child,
-        List<RexNode> exps,
-        List<String> fieldNames,
-        int flags)
-    {
-        this(
-            cluster,
-            cluster.traitSetOf(RelCollationImpl.EMPTY),
-            child,
+  /**
+   * Creates a ProjectRel with no sort keys.
+   *
+   * @param cluster    Cluster this relational expression belongs to
+   * @param child      input relational expression
+   * @param exps       set of expressions for the input columns
+   * @param fieldNames aliases of the expressions
+   * @param flags      values as in {@link ProjectRelBase.Flags}
+   */
+  public ProjectRel(
+      RelOptCluster cluster,
+      RelNode child,
+      List<RexNode> exps,
+      List<String> fieldNames,
+      int flags) {
+    this(
+        cluster,
+        cluster.traitSetOf(RelCollationImpl.EMPTY),
+        child,
+        exps,
+        RexUtil.createStructType(
+            cluster.getTypeFactory(),
             exps,
-            RexUtil.createStructType(
-                cluster.getTypeFactory(),
-                exps,
-                fieldNames),
-            flags);
-    }
+            fieldNames),
+        flags);
+  }
 
-    /**
-     * Creates a ProjectRel, deriving a trait set.
-     *
-     * @param cluster Cluster this relational expression belongs to
-     * @param child input relational expression
-     * @param exps List of expressions for the input columns
-     * @param rowType output row type
-     * @param flags values as in {@link ProjectRelBase.Flags}
-     * @param collationList List of sort keys
-     *
-     * @deprecated Use constructor without explicit collation-list;
-     * collations can be derived from the trait-set;
-     * this constructor will be removed after optiq-0.4.16.
-     */
-    public ProjectRel(
-        RelOptCluster cluster,
-        RelNode child,
-        List<RexNode> exps,
-        RelDataType rowType,
-        int flags,
-        final List<RelCollation> collationList)
-    {
-        this(
-            cluster,
-            cluster.traitSetOf(
-                collationList.isEmpty()
-                    ? RelCollationImpl.EMPTY
-                    : collationList.get(0)),
-            child,
-            exps,
-            rowType,
-            flags);
-        Bug.upgrade("remove after optiq-0.4.16");
-    }
+  /**
+   * Creates a ProjectRel, deriving a trait set.
+   *
+   * @param cluster       Cluster this relational expression belongs to
+   * @param child         input relational expression
+   * @param exps          List of expressions for the input columns
+   * @param rowType       output row type
+   * @param flags         values as in {@link ProjectRelBase.Flags}
+   * @param collationList List of sort keys
+   * @deprecated Use constructor without explicit collation-list;
+   * collations can be derived from the trait-set;
+   * this constructor will be removed after optiq-0.4.16.
+   */
+  public ProjectRel(
+      RelOptCluster cluster,
+      RelNode child,
+      List<RexNode> exps,
+      RelDataType rowType,
+      int flags,
+      final List<RelCollation> collationList) {
+    this(
+        cluster,
+        cluster.traitSetOf(
+            collationList.isEmpty()
+                ? RelCollationImpl.EMPTY
+                : collationList.get(0)),
+        child,
+        exps,
+        rowType,
+        flags);
+    Bug.upgrade("remove after optiq-0.4.16");
+  }
 
-    /**
-     * Creates a ProjectRel.
-     *
-     * @param cluster Cluster this relational expression belongs to
-     * @param traitSet traits of this rel
-     * @param child input relational expression
-     * @param exps List of expressions for the input columns
-     * @param rowType output row type
-     * @param flags values as in {@link ProjectRelBase.Flags}
-     */
-    public ProjectRel(
-        RelOptCluster cluster,
-        RelTraitSet traitSet,
-        RelNode child,
-        List<RexNode> exps,
-        RelDataType rowType,
-        int flags)
-    {
-        super(cluster, traitSet, child, exps, rowType, flags);
-    }
+  /**
+   * Creates a ProjectRel.
+   *
+   * @param cluster  Cluster this relational expression belongs to
+   * @param traitSet traits of this rel
+   * @param child    input relational expression
+   * @param exps     List of expressions for the input columns
+   * @param rowType  output row type
+   * @param flags    values as in {@link ProjectRelBase.Flags}
+   */
+  public ProjectRel(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode child,
+      List<RexNode> exps,
+      RelDataType rowType,
+      int flags) {
+    super(cluster, traitSet, child, exps, rowType, flags);
+  }
 
-    /**
-     * Creates a ProjectRel.
-     *
-     * @param cluster Cluster this relational expression belongs to
-     * @param traitSet traits of this rel
-     * @param child input relational expression
-     * @param exps List of expressions for the input columns
-     * @param rowType output row type
-     * @param flags values as in {@link ProjectRelBase.Flags}
-     * @param collationList List of sort keys
-     *
-     * @deprecated Use constructor without explicit collation-list;
-     * collations can be derived from the trait-set;
-     * this constructor will be removed after optiq-0.4.16.
-     */
-    public ProjectRel(
-        RelOptCluster cluster,
-        RelTraitSet traitSet,
-        RelNode child,
-        List<RexNode> exps,
-        RelDataType rowType,
-        int flags,
-        final List<RelCollation> collationList)
-    {
-        super(
-            cluster,
-            traitSet,
-            child,
-            exps,
-            rowType,
-            flags,
-            collationList);
-    }
+  /**
+   * Creates a ProjectRel.
+   *
+   * @param cluster       Cluster this relational expression belongs to
+   * @param traitSet      traits of this rel
+   * @param child         input relational expression
+   * @param exps          List of expressions for the input columns
+   * @param rowType       output row type
+   * @param flags         values as in {@link ProjectRelBase.Flags}
+   * @param collationList List of sort keys
+   * @deprecated Use constructor without explicit collation-list;
+   * collations can be derived from the trait-set;
+   * this constructor will be removed after optiq-0.4.16.
+   */
+  public ProjectRel(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode child,
+      List<RexNode> exps,
+      RelDataType rowType,
+      int flags,
+      final List<RelCollation> collationList) {
+    super(
+        cluster,
+        traitSet,
+        child,
+        exps,
+        rowType,
+        flags,
+        collationList);
+  }
 
-    /** Creates a ProjectRel by parsing serialized output. */
-    public ProjectRel(RelInput input) {
-        super(input);
-    }
+  /**
+   * Creates a ProjectRel by parsing serialized output.
+   */
+  public ProjectRel(RelInput input) {
+    super(input);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.containsIfApplicable(Convention.NONE);
-        return new ProjectRel(
-            getCluster(),
-            traitSet,
-            sole(inputs),
-            getProjects(),
-            rowType,
-            getFlags());
-    }
+  @Override
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.containsIfApplicable(Convention.NONE);
+    return new ProjectRel(
+        getCluster(),
+        traitSet,
+        sole(inputs),
+        getProjects(),
+        rowType,
+        getFlags());
+  }
 
-    @Override public RelNode accept(RelShuttle shuttle) {
-        return shuttle.visit(this);
-    }
+  @Override
+  public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
 
-    /**
-     * Returns a permutation, if this projection is merely a permutation of its
-     * input fields, otherwise null.
-     */
-    public Permutation getPermutation()
-    {
-        final int fieldCount = rowType.getFieldList().size();
-        if (fieldCount != getChild().getRowType().getFieldList().size()) {
-            return null;
-        }
-        Permutation permutation = new Permutation(fieldCount);
-        for (int i = 0; i < fieldCount; ++i) {
-            final RexNode exp = exps.get(i);
-            if (exp instanceof RexInputRef) {
-                permutation.set(i, ((RexInputRef) exp).getIndex());
-            } else {
-                return null;
-            }
-        }
-        return permutation;
+  /**
+   * Returns a permutation, if this projection is merely a permutation of its
+   * input fields, otherwise null.
+   */
+  public Permutation getPermutation() {
+    final int fieldCount = rowType.getFieldList().size();
+    if (fieldCount != getChild().getRowType().getFieldList().size()) {
+      return null;
     }
+    Permutation permutation = new Permutation(fieldCount);
+    for (int i = 0; i < fieldCount; ++i) {
+      final RexNode exp = exps.get(i);
+      if (exp instanceof RexInputRef) {
+        permutation.set(i, ((RexInputRef) exp).getIndex());
+      } else {
+        return null;
+      }
+    }
+    return permutation;
+  }
 
-    /**
-     * Checks whether this is a functional mapping.
-     * Every output is a source field, but
-     * a source field may appear as zero, one, or more output fields.
-     */
-    public boolean isMapping() {
-        for (RexNode exp : exps) {
-            if (!(exp instanceof RexInputRef)) {
-                return false;
-            }
-        }
-        return true;
+  /**
+   * Checks whether this is a functional mapping.
+   * Every output is a source field, but
+   * a source field may appear as zero, one, or more output fields.
+   */
+  public boolean isMapping() {
+    for (RexNode exp : exps) {
+      if (!(exp instanceof RexInputRef)) {
+        return false;
+      }
     }
+    return true;
+  }
 
-    /**
-     * Returns a mapping, or null if this projection is not a mapping.
-     *
-     * <p>The mapping is an inverse surjection.
-     * Every target has a source field, but
-     * a source field may appear as zero, one, or more target fields.
-     * Thus you can safely call
-     * {@link org.eigenbase.util.mapping.Mappings.TargetMapping#getTarget(int)}
-     */
-    public Mappings.TargetMapping getMapping() {
-        Mappings.TargetMapping mapping =
-            Mappings.create(
-                MappingType.InverseSurjection,
-                getChild().getRowType().getFieldCount(),
-                exps.size());
-        for (Ord<RexNode> exp : Ord.zip(exps)) {
-            if (!(exp.e instanceof RexInputRef)) {
-                return null;
-            }
-            mapping.set(((RexInputRef) exp.e).getIndex(), exp.i);
-        }
-        return mapping;
+  /**
+   * Returns a mapping, or null if this projection is not a mapping.
+   *
+   * <p>The mapping is an inverse surjection.
+   * Every target has a source field, but
+   * a source field may appear as zero, one, or more target fields.
+   * Thus you can safely call
+   * {@link org.eigenbase.util.mapping.Mappings.TargetMapping#getTarget(int)}
+   */
+  public Mappings.TargetMapping getMapping() {
+    Mappings.TargetMapping mapping =
+        Mappings.create(
+            MappingType.InverseSurjection,
+            getChild().getRowType().getFieldCount(),
+            exps.size());
+    for (Ord<RexNode> exp : Ord.zip(exps)) {
+      if (!(exp.e instanceof RexInputRef)) {
+        return null;
+      }
+      mapping.set(((RexInputRef) exp.e).getIndex(), exp.i);
     }
+    return mapping;
+  }
 }
 
 // End ProjectRel.java

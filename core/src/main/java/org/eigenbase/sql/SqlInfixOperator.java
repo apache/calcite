@@ -26,67 +26,61 @@ import org.eigenbase.sql.type.*;
  * <p>For example, the <code>BETWEEN</code> operator is ternary, and has syntax
  * <code><i>exp1</i> BETWEEN <i>exp2</i> AND <i>exp3</i></code>.
  */
-public class SqlInfixOperator
-    extends SqlSpecialOperator
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlInfixOperator extends SqlSpecialOperator {
+  //~ Instance fields --------------------------------------------------------
 
-    private final String [] names;
+  private final String[] names;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlInfixOperator(
-        String [] names,
-        SqlKind kind,
-        int precedence,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker)
-    {
-        super(
-            names[0],
-            kind,
-            precedence,
-            true,
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker);
-        assert names.length > 1;
-        this.names = names;
+  protected SqlInfixOperator(
+      String[] names,
+      SqlKind kind,
+      int precedence,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
+    super(
+        names[0],
+        kind,
+        precedence,
+        true,
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker);
+    assert names.length > 1;
+    this.names = names;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.Special;
+  }
+
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    assert operands.length == (names.length + 1);
+    final boolean needWhitespace = needsSpace();
+    for (int i = 0; i < operands.length; i++) {
+      if (i > 0) {
+        writer.setNeedWhitespace(needWhitespace);
+        writer.keyword(names[i - 1]);
+        writer.setNeedWhitespace(needWhitespace);
+      }
+      operands[i].unparse(
+          writer,
+          leftPrec,
+          getLeftPrec());
     }
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public SqlSyntax getSyntax()
-    {
-        return SqlSyntax.Special;
-    }
-
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        assert operands.length == (names.length + 1);
-        final boolean needWhitespace = needsSpace();
-        for (int i = 0; i < operands.length; i++) {
-            if (i > 0) {
-                writer.setNeedWhitespace(needWhitespace);
-                writer.keyword(names[i - 1]);
-                writer.setNeedWhitespace(needWhitespace);
-            }
-            operands[i].unparse(
-                writer,
-                leftPrec,
-                getLeftPrec());
-        }
-    }
-
-    boolean needsSpace()
-    {
-        return true;
-    }
+  boolean needsSpace() {
+    return true;
+  }
 }
 
 // End SqlInfixOperator.java

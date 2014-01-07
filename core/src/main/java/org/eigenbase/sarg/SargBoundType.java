@@ -20,11 +20,10 @@ package org.eigenbase.sarg;
 /**
  * SargBoundType defines the possible endpoint boundaries (upper or lower).
  */
-public enum SargBoundType
-{
-    LOWER,
+public enum SargBoundType {
+  LOWER,
 
-    UPPER
+  UPPER
 }
 
 // End SargBoundType.java

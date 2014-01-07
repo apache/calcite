@@ -32,46 +32,45 @@ package org.eigenbase.relopt;
  * #equals(Object)} for proper {@link RelTraitDef#canonize canonization} of your
  * RelTrait objects.</p>
  */
-public interface RelTrait
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RelTrait {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Returns the RelTraitDef that defines this RelTrait.
-     *
-     * @return the RelTraitDef that defines this RelTrait
-     */
-    RelTraitDef getTraitDef();
+  /**
+   * Returns the RelTraitDef that defines this RelTrait.
+   *
+   * @return the RelTraitDef that defines this RelTrait
+   */
+  RelTraitDef getTraitDef();
 
-    /**
-     * See <a href="#EqualsHashCodeNote">note about equals() and hashCode()</a>.
-     */
-    int hashCode();
+  /**
+   * See <a href="#EqualsHashCodeNote">note about equals() and hashCode()</a>.
+   */
+  int hashCode();
 
-    /**
-     * See <a href="#EqualsHashCodeNote">note about equals() and hashCode()</a>.
-     */
-    boolean equals(Object o);
+  /**
+   * See <a href="#EqualsHashCodeNote">note about equals() and hashCode()</a>.
+   */
+  boolean equals(Object o);
 
-    /**
-     * Returns whether this trait subsumes a given trait.
-     *
-     * <p>Must form a partial order: must be reflective (t subsumes t),
-     * anti-symmetric (if t1 subsumes t2 and t1 != t2 then t2 does not subsume
-     * t1),
-     * and transitive (if t1 subsumes t2 and t2 subsumes t3, then t1 subsumes
-     * t3)</p>
-     *
-     * <p>May traits cannot be substituted, in which case, this method should
-     * return {@code equals(trait)}.</p>
-     */
-    boolean subsumes(RelTrait trait);
+  /**
+   * Returns whether this trait subsumes a given trait.
+   *
+   * <p>Must form a partial order: must be reflective (t subsumes t),
+   * anti-symmetric (if t1 subsumes t2 and t1 != t2 then t2 does not subsume
+   * t1),
+   * and transitive (if t1 subsumes t2 and t2 subsumes t3, then t1 subsumes
+   * t3)</p>
+   *
+   * <p>May traits cannot be substituted, in which case, this method should
+   * return {@code equals(trait)}.</p>
+   */
+  boolean subsumes(RelTrait trait);
 
-    /**
-     * Returns a succinct name for this trait. The planner may use this String
-     * to describe the trait.
-     */
-    String toString();
+  /**
+   * Returns a succinct name for this trait. The planner may use this String
+   * to describe the trait.
+   */
+  String toString();
 }
 
 // End RelTrait.java

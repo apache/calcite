@@ -36,15 +36,19 @@ package org.eigenbase.rel;
  * the rule to maintain.</p>
  */
 public class InvalidRelException extends Exception {
-    /** Creates an InvalidRelException. */
-    public InvalidRelException(String message) {
-        super(message);
-    }
+  /**
+   * Creates an InvalidRelException.
+   */
+  public InvalidRelException(String message) {
+    super(message);
+  }
 
-    /** Creates an InvalidRelException with a cause. */
-    public InvalidRelException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  /**
+   * Creates an InvalidRelException with a cause.
+   */
+  public InvalidRelException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }
 
 // End InvalidRelException.java

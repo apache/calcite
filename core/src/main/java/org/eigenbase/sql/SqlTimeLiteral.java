@@ -22,82 +22,73 @@ import java.util.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 
-
 /**
  * A SQL literal representing a TIME value, for example <code>TIME
  * '14:33:44.567'</code>.
  *
  * <p>Create values using {@link SqlLiteral#createTime}.
  */
-public class SqlTimeLiteral
-    extends SqlAbstractDateTimeLiteral
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
+  //~ Constructors -----------------------------------------------------------
 
-    SqlTimeLiteral(
-        Calendar t,
-        int precision,
-        boolean hasTZ,
-        SqlParserPos pos)
-    {
-        super(
-            t,
-            hasTZ,
-            SqlTypeName.TIME,
-            precision,
-            SqlParserUtil.TimeFormatStr,
-            pos);
+  SqlTimeLiteral(
+      Calendar t,
+      int precision,
+      boolean hasTZ,
+      SqlParserPos pos) {
+    super(
+        t,
+        hasTZ,
+        SqlTypeName.TIME,
+        precision,
+        SqlParserUtil.TimeFormatStr,
+        pos);
+  }
+
+  SqlTimeLiteral(
+      Calendar t,
+      int precision,
+      boolean hasTZ,
+      String format,
+      SqlParserPos pos) {
+    super(t, hasTZ, SqlTypeName.TIME, precision, format, pos);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlNode clone(SqlParserPos pos) {
+    return new SqlTimeLiteral(
+        (Calendar) value,
+        precision,
+        hasTimeZone,
+        formatString,
+        pos);
+  }
+
+  public String toString() {
+    return "TIME '" + toFormattedString() + "'";
+  }
+
+  /**
+   * Returns e.g. '03:05:67.456'.
+   */
+  public String toFormattedString() {
+    String result = getTime().toString(formatString);
+    final Calendar cal = getCal();
+    if (precision > 0) {
+      assert (precision <= 3);
+
+      // get the millisecond count.  millisecond => at most 3 digits.
+      String digits = Long.toString(cal.getTimeInMillis());
+      result =
+          result + "."
+          + digits.substring(digits.length() - 3,
+              digits.length() - 3 + precision);
+    } else {
+      assert (0 == cal.get(Calendar.MILLISECOND));
     }
-
-    SqlTimeLiteral(
-        Calendar t,
-        int precision,
-        boolean hasTZ,
-        String format,
-        SqlParserPos pos)
-    {
-        super(t, hasTZ, SqlTypeName.TIME, precision, format, pos);
-    }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public SqlNode clone(SqlParserPos pos)
-    {
-        return new SqlTimeLiteral(
-            (Calendar) value,
-            precision,
-            hasTimeZone,
-            formatString,
-            pos);
-    }
-
-    public String toString()
-    {
-        return "TIME '" + toFormattedString() + "'";
-    }
-
-    /**
-     * Returns e.g. '03:05:67.456'.
-     */
-    public String toFormattedString()
-    {
-        String result = getTime().toString(formatString);
-        final Calendar cal = getCal();
-        if (precision > 0) {
-            assert (precision <= 3);
-
-            // get the millisecond count.  millisecond => at most 3 digits.
-            String digits = Long.toString(cal.getTimeInMillis());
-            result =
-                result + "."
-                + digits.substring(
-                    digits.length() - 3,
-                    digits.length() - 3 + precision);
-        } else {
-            assert (0 == cal.get(Calendar.MILLISECOND));
-        }
-        return result;
-    }
+    return result;
+  }
 }
 
 // End SqlTimeLiteral.java

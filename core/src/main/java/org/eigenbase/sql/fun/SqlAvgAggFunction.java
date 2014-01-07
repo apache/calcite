@@ -31,67 +31,60 @@ import com.google.common.collect.ImmutableList;
  * (<code>int</code>, <code>long</code>, <code>float</code>, <code>
  * double</code>), and the result is the same type.
  */
-public class SqlAvgAggFunction
-    extends SqlAggFunction
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlAvgAggFunction extends SqlAggFunction {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType type;
-    private final Subtype subtype;
+  private final RelDataType type;
+  private final Subtype subtype;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a SqlAvgAggFunction
-     *
-     *
-     * @param type Data type
-     * @param subtype Specific function, e.g. AVG or STDDEV_POP
-     */
-    public SqlAvgAggFunction(
-        RelDataType type,
-        Subtype subtype)
-    {
-        super(
-            subtype.name(),
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiFirstArgType,
-            null,
-            SqlTypeStrategies.otcNumeric,
-            SqlFunctionCategory.Numeric);
-        this.type = type;
-        this.subtype = subtype;
-    }
+  /**
+   * Creates a SqlAvgAggFunction
+   *
+   * @param type    Data type
+   * @param subtype Specific function, e.g. AVG or STDDEV_POP
+   */
+  public SqlAvgAggFunction(
+      RelDataType type,
+      Subtype subtype) {
+    super(
+        subtype.name(),
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiFirstArgType,
+        null,
+        SqlTypeStrategies.otcNumeric,
+        SqlFunctionCategory.Numeric);
+    this.type = type;
+    this.subtype = subtype;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
-    {
-        return ImmutableList.of(type);
-    }
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+    return ImmutableList.of(type);
+  }
 
-    public RelDataType getReturnType(RelDataTypeFactory typeFactory)
-    {
-        return type;
-    }
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+    return type;
+  }
 
-    /**
-     * Returns the specific function, e.g. AVG or STDDEV_POP.
-     *
-     * @return Subtype
-     */
-    public Subtype getSubtype()
-    {
-        return subtype;
-    }
+  /**
+   * Returns the specific function, e.g. AVG or STDDEV_POP.
+   *
+   * @return Subtype
+   */
+  public Subtype getSubtype() {
+    return subtype;
+  }
 
-    public enum Subtype {
-        AVG,
-        STDDEV_POP,
-        STDDEV_SAMP,
-        VAR_POP,
-        VAR_SAMP
-    }
+  public enum Subtype {
+    AVG,
+    STDDEV_POP,
+    STDDEV_SAMP,
+    VAR_POP,
+    VAR_SAMP
+  }
 }
 
 // End SqlAvgAggFunction.java

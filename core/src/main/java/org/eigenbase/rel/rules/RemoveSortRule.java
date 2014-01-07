@@ -25,31 +25,30 @@ import org.eigenbase.relopt.*;
  * Requires {@link RelCollationTraitDef}.
  */
 public class RemoveSortRule extends RelOptRule {
-    public static final RemoveSortRule INSTANCE = new RemoveSortRule();
+  public static final RemoveSortRule INSTANCE = new RemoveSortRule();
 
-    private RemoveSortRule() {
-        super(
-            operand(SortRel.class, any()),
-            "RemoveSortRule");
-    }
+  private RemoveSortRule() {
+    super(
+        operand(SortRel.class, any()),
+        "RemoveSortRule");
+  }
 
-    @Override
-    public void onMatch(RelOptRuleCall call) {
-        if (!call.getPlanner().getRelTraitDefs()
-            .contains(RelCollationTraitDef.INSTANCE))
-        {
-            // Collation is not an active trait.
-            return;
-        }
-        final SortRel sort = call.rel(0);
-        if (sort.offset != null || sort.fetch != null) {
-            // Don't remove sort if would also remove OFFSET or LIMIT.
-            return;
-        }
-        final RelCollation collation = sort.getCollation();
-        final RelTraitSet traits = sort.getTraitSet().replace(collation);
-        call.transformTo(convert(sort.getChild(), traits));
+  @Override
+  public void onMatch(RelOptRuleCall call) {
+    if (!call.getPlanner().getRelTraitDefs()
+        .contains(RelCollationTraitDef.INSTANCE)) {
+      // Collation is not an active trait.
+      return;
     }
+    final SortRel sort = call.rel(0);
+    if (sort.offset != null || sort.fetch != null) {
+      // Don't remove sort if would also remove OFFSET or LIMIT.
+      return;
+    }
+    final RelCollation collation = sort.getCollation();
+    final RelTraitSet traits = sort.getTraitSet().replace(collation);
+    call.transformTo(convert(sort.getChild(), traits));
+  }
 }
 
 // End RemoveSortRule.java

@@ -25,72 +25,66 @@ import org.eigenbase.sql.*;
  * verifying that the type of each argument is assignable to a predefined set of
  * parameter types (under the SQL definition of "assignable").
  */
-public class AssignableOperandTypeChecker
-    implements SqlOperandTypeChecker
-{
-    //~ Instance fields --------------------------------------------------------
+public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType [] paramTypes;
+  private final RelDataType[] paramTypes;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Instantiates this strategy with a specific set of parameter types.
-     *
-     * @param paramTypes parameter types for operands; index in this array
-     * corresponds to operand number
-     */
-    public AssignableOperandTypeChecker(RelDataType [] paramTypes)
-    {
-        this.paramTypes = paramTypes;
-    }
+  /**
+   * Instantiates this strategy with a specific set of parameter types.
+   *
+   * @param paramTypes parameter types for operands; index in this array
+   *                   corresponds to operand number
+   */
+  public AssignableOperandTypeChecker(RelDataType[] paramTypes) {
+    this.paramTypes = paramTypes;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // implement SqlOperandTypeChecker
-    public SqlOperandCountRange getOperandCountRange()
-    {
-        return SqlOperandCountRanges.of(paramTypes.length);
-    }
+  // implement SqlOperandTypeChecker
+  public SqlOperandCountRange getOperandCountRange() {
+    return SqlOperandCountRanges.of(paramTypes.length);
+  }
 
-    // implement SqlOperandTypeChecker
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        for (int i = 0; i < callBinding.getOperandCount(); ++i) {
-            RelDataType argType =
-                callBinding.getValidator().deriveType(
-                    callBinding.getScope(),
-                    callBinding.getCall().operands[i]);
-            if (!SqlTypeUtil.canAssignFrom(paramTypes[i], argType)) {
-                if (throwOnFailure) {
-                    throw callBinding.newValidationSignatureError();
-                } else {
-                    return false;
-                }
-            }
+  // implement SqlOperandTypeChecker
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    for (int i = 0; i < callBinding.getOperandCount(); ++i) {
+      RelDataType argType =
+          callBinding.getValidator().deriveType(
+              callBinding.getScope(),
+              callBinding.getCall().operands[i]);
+      if (!SqlTypeUtil.canAssignFrom(paramTypes[i], argType)) {
+        if (throwOnFailure) {
+          throw callBinding.newValidationSignatureError();
+        } else {
+          return false;
         }
-        return true;
+      }
     }
+    return true;
+  }
 
-    // implement SqlOperandTypeChecker
-    public String getAllowedSignatures(SqlOperator op, String opName)
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.append(opName);
-        sb.append("(");
-        for (int i = 0; i < paramTypes.length; ++i) {
-            if (i > 0) {
-                sb.append(", ");
-            }
-            sb.append("<");
-            sb.append(paramTypes[i].getFamily().toString());
-            sb.append(">");
-        }
-        sb.append(")");
-        return sb.toString();
+  // implement SqlOperandTypeChecker
+  public String getAllowedSignatures(SqlOperator op, String opName) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(opName);
+    sb.append("(");
+    for (int i = 0; i < paramTypes.length; ++i) {
+      if (i > 0) {
+        sb.append(", ");
+      }
+      sb.append("<");
+      sb.append(paramTypes[i].getFamily().toString());
+      sb.append(">");
     }
+    sb.append(")");
+    return sb.toString();
+  }
 }
 
 // End AssignableOperandTypeChecker.java

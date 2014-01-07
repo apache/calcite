@@ -25,38 +25,35 @@ import org.eigenbase.relopt.*;
  * Union call by eliminating the Union operator altogether in the case the call
  * consists of only one input.
  */
-public class UnionEliminatorRule
-    extends RelOptRule
-{
-    public static final UnionEliminatorRule instance =
-        new UnionEliminatorRule();
+public class UnionEliminatorRule extends RelOptRule {
+  public static final UnionEliminatorRule instance =
+      new UnionEliminatorRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a UnionEliminatorRule.
-     */
-    private UnionEliminatorRule() {
-        super(operand(UnionRel.class, any()));
+  /**
+   * Creates a UnionEliminatorRule.
+   */
+  private UnionEliminatorRule() {
+    super(operand(UnionRel.class, any()));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void onMatch(RelOptRuleCall call) {
+    UnionRel union = call.rel(0);
+    if (union.getInputs().size() != 1) {
+      return;
+    }
+    if (!union.all) {
+      return;
     }
 
-    //~ Methods ----------------------------------------------------------------
+    // REVIEW jvs 14-Mar-2006:  why don't we need to register
+    // the equivalence here like we do in RemoveDistinctRule?
 
-    public void onMatch(RelOptRuleCall call)
-    {
-        UnionRel union = call.rel(0);
-        if (union.getInputs().size() != 1) {
-            return;
-        }
-        if (!union.all) {
-            return;
-        }
-
-        // REVIEW jvs 14-Mar-2006:  why don't we need to register
-        // the equivalence here like we do in RemoveDistinctRule?
-
-        call.transformTo(union.getInputs().get(0));
-    }
+    call.transformTo(union.getInputs().get(0));
+  }
 }
 
 // End UnionEliminatorRule.java

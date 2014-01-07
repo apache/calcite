@@ -47,78 +47,78 @@ import org.eigenbase.util.Pair;
  * So <code>RexInputRef(3,Integer)</code> is the correct reference for the field
  * DEPTNO2.</p>
  */
-public class RexInputRef
-    extends RexSlot
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class RexInputRef extends RexSlot {
+  //~ Static fields/initializers ---------------------------------------------
 
-    // list of common names, to reduce memory allocations
-    private static final List<String> names = new SelfPopulatingList("$", 30);
+  // list of common names, to reduce memory allocations
+  private static final List<String> names = new SelfPopulatingList("$", 30);
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates an input variable.
-     *
-     * @param index Index of the field in the underlying rowtype
-     * @param type Type of the column
-     */
-    public RexInputRef(
-        int index,
-        RelDataType type)
-    {
-        super(
-            createName(index),
-            index,
-            type);
-    }
+  /**
+   * Creates an input variable.
+   *
+   * @param index Index of the field in the underlying rowtype
+   * @param type  Type of the column
+   */
+  public RexInputRef(
+      int index,
+      RelDataType type) {
+    super(
+        createName(index),
+        index,
+        type);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /** Creates a reference to a given field in a row type. */
-    public static RexInputRef of(int index, RelDataType rowType) {
-        return of(index, rowType.getFieldList());
-    }
+  /**
+   * Creates a reference to a given field in a row type.
+   */
+  public static RexInputRef of(int index, RelDataType rowType) {
+    return of(index, rowType.getFieldList());
+  }
 
-    /** Creates a reference to a given field in a list of fields. */
-    public static RexInputRef of(int index, List<RelDataTypeField> fields) {
-        return new RexInputRef(index, fields.get(index).getType());
-    }
+  /**
+   * Creates a reference to a given field in a list of fields.
+   */
+  public static RexInputRef of(int index, List<RelDataTypeField> fields) {
+    return new RexInputRef(index, fields.get(index).getType());
+  }
 
-    /** Creates a reference to a given field in a list of fields. */
-    public static Pair<RexNode, String> of2(
-        int index,
-        List<RelDataTypeField> fields)
-    {
-        final RelDataTypeField field = fields.get(index);
-        return Pair.of(
-            (RexNode) new RexInputRef(index, field.getType()),
-            field.getName());
-    }
+  /**
+   * Creates a reference to a given field in a list of fields.
+   */
+  public static Pair<RexNode, String> of2(
+      int index,
+      List<RelDataTypeField> fields) {
+    final RelDataTypeField field = fields.get(index);
+    return Pair.of(
+        (RexNode) new RexInputRef(index, field.getType()),
+        field.getName());
+  }
 
-    @Override public SqlKind getKind() {
-        return SqlKind.INPUT_REF;
-    }
+  @Override
+  public SqlKind getKind() {
+    return SqlKind.INPUT_REF;
+  }
 
-    public RexInputRef clone()
-    {
-        // All fields are immutable, so there's no point in creating a copy.
-        return this;
-    }
+  public RexInputRef clone() {
+    // All fields are immutable, so there's no point in creating a copy.
+    return this;
+  }
 
-    public <R> R accept(RexVisitor<R> visitor)
-    {
-        return visitor.visitInputRef(this);
-    }
+  public <R> R accept(RexVisitor<R> visitor) {
+    return visitor.visitInputRef(this);
+  }
 
-    /**
-     * Creates a name for an input reference, of the form "$index". If the index
-     * is low, uses a cache of common names, to reduce gc.
-     */
-    public static String createName(int index)
-    {
-        return names.get(index);
-    }
+  /**
+   * Creates a name for an input reference, of the form "$index". If the index
+   * is low, uses a cache of common names, to reduce gc.
+   */
+  public static String createName(int index) {
+    return names.get(index);
+  }
 }
 
 // End RexInputRef.java

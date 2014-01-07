@@ -23,49 +23,45 @@ package org.eigenbase.rel;
  * RelNode} objects as the role of Element. Other components in the pattern:
  * {@link RelNode#childrenAccept(RelVisitor)}.
  */
-public abstract class RelVisitor
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class RelVisitor {
+  //~ Instance fields --------------------------------------------------------
 
-    private RelNode root;
+  private RelNode root;
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Visits a node during a traversal.
-     *
-     * @param node Node to visit
-     * @param ordinal Ordinal of node within its parent
-     * @param parent Parent of the node, or null if it is the root of the
-     * traversal
-     */
-    public void visit(
-        RelNode node,
-        int ordinal,
-        RelNode parent)
-    {
-        node.childrenAccept(this);
-    }
+  /**
+   * Visits a node during a traversal.
+   *
+   * @param node    Node to visit
+   * @param ordinal Ordinal of node within its parent
+   * @param parent  Parent of the node, or null if it is the root of the
+   *                traversal
+   */
+  public void visit(
+      RelNode node,
+      int ordinal,
+      RelNode parent) {
+    node.childrenAccept(this);
+  }
 
-    /**
-     * Replaces the root node of this traversal.
-     *
-     * @param node The new root node
-     */
-    public void replaceRoot(RelNode node)
-    {
-        this.root = node;
-    }
+  /**
+   * Replaces the root node of this traversal.
+   *
+   * @param node The new root node
+   */
+  public void replaceRoot(RelNode node) {
+    this.root = node;
+  }
 
-    /**
-     * Starts an iteration.
-     */
-    public RelNode go(RelNode p)
-    {
-        this.root = p;
-        visit(p, 0, null);
-        return root;
-    }
+  /**
+   * Starts an iteration.
+   */
+  public RelNode go(RelNode p) {
+    this.root = p;
+    visit(p, 0, null);
+    return root;
+  }
 }
 
 // End RelVisitor.java

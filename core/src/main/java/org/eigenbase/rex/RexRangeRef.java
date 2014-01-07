@@ -36,51 +36,44 @@ import org.eigenbase.reltype.*;
  * RexRangeRef; it will return a <code>{@link RexInputRef}(5,Integer)</code>,
  * and the {@link org.eigenbase.rex.RexRangeRef} will disappear.</p>
  */
-public class RexRangeRef
-    extends RexNode
-{
-    //~ Instance fields --------------------------------------------------------
+public class RexRangeRef extends RexNode {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType type;
-    private final int offset;
+  private final RelDataType type;
+  private final int offset;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a range reference.
-     *
-     * @param rangeType Type of the record returned
-     * @param offset Offset of the first column within the input record
-     */
-    RexRangeRef(
-        RelDataType rangeType,
-        int offset)
-    {
-        this.type = rangeType;
-        this.offset = offset;
-    }
+  /**
+   * Creates a range reference.
+   *
+   * @param rangeType Type of the record returned
+   * @param offset    Offset of the first column within the input record
+   */
+  RexRangeRef(
+      RelDataType rangeType,
+      int offset) {
+    this.type = rangeType;
+    this.offset = offset;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelDataType getType()
-    {
-        return type;
-    }
+  public RelDataType getType() {
+    return type;
+  }
 
-    public int getOffset()
-    {
-        return offset;
-    }
+  public int getOffset() {
+    return offset;
+  }
 
-    public RexRangeRef clone()
-    {
-        return new RexRangeRef(type, offset);
-    }
+  public RexRangeRef clone() {
+    return new RexRangeRef(type, offset);
+  }
 
-    public <R> R accept(RexVisitor<R> visitor)
-    {
-        return visitor.visitRangeRef(this);
-    }
+  public <R> R accept(RexVisitor<R> visitor) {
+    return visitor.visitRangeRef(this);
+  }
 }
 
 // End RexRangeRef.java

@@ -91,8 +91,10 @@ public class RelJson {
     return constructor;
   }
 
-  /** Converts a type name to a class. E.g. {@code getClass("ProjectRel")}
-   * returns {@link org.eigenbase.rel.ProjectRel}.class. */
+  /**
+   * Converts a type name to a class. E.g. {@code getClass("ProjectRel")}
+   * returns {@link org.eigenbase.rel.ProjectRel}.class.
+   */
   public Class typeNameToClass(String type) {
     if (!type.contains(".")) {
       for (String package_ : packages) {
@@ -110,7 +112,9 @@ public class RelJson {
     }
   }
 
-  /** Inverse of {@link #typeNameToClass}. */
+  /**
+   * Inverse of {@link #typeNameToClass}.
+   */
   public String classToTypeName(Class<? extends RelNode> class_) {
     final String canonicalName = class_.getName();
     for (String package_ : packages) {

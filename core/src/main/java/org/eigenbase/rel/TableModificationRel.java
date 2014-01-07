@@ -29,46 +29,42 @@ import net.hydromatic.optiq.prepare.Prepare;
  * the modified rows. (For INSERT, the new values; for DELETE, the old values;
  * for UPDATE, all old values plus updated new values.)
  */
-public final class TableModificationRel
-    extends TableModificationRelBase
-{
-    //~ Constructors -----------------------------------------------------------
+public final class TableModificationRel extends TableModificationRelBase {
+  //~ Constructors -----------------------------------------------------------
 
-    public TableModificationRel(
-        RelOptCluster cluster,
-        RelOptTable table,
-        Prepare.CatalogReader schema,
-        RelNode child,
-        Operation operation,
-        List<String> updateColumnList,
-        boolean flattened)
-    {
-        super(
-            cluster,
-            cluster.traitSetOf(Convention.NONE),
-            table,
-            schema,
-            child,
-            operation,
-            updateColumnList,
-            flattened);
-    }
+  public TableModificationRel(
+      RelOptCluster cluster,
+      RelOptTable table,
+      Prepare.CatalogReader schema,
+      RelNode child,
+      Operation operation,
+      List<String> updateColumnList,
+      boolean flattened) {
+    super(
+        cluster,
+        cluster.traitSetOf(Convention.NONE),
+        table,
+        schema,
+        child,
+        operation,
+        updateColumnList,
+        flattened);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    @Override
-    public TableModificationRel copy(RelTraitSet traitSet, List<RelNode> inputs)
-    {
-        assert traitSet.containsIfApplicable(Convention.NONE);
-        return new TableModificationRel(
-            getCluster(),
-            table,
-            catalogReader,
-            sole(inputs),
-            getOperation(),
-            getUpdateColumnList(),
-            isFlattened());
-    }
+  @Override
+  public TableModificationRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.containsIfApplicable(Convention.NONE);
+    return new TableModificationRel(
+        getCluster(),
+        table,
+        catalogReader,
+        sole(inputs),
+        getOperation(),
+        getUpdateColumnList(),
+        isFlattened());
+  }
 }
 
 // End TableModificationRel.java

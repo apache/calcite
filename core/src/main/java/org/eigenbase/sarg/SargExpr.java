@@ -26,50 +26,49 @@ import org.eigenbase.rex.*;
  * SargExpr represents an expression defining a possibly non-contiguous search
  * subset of a scalar domain of a given datatype.
  */
-public interface SargExpr
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SargExpr {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Overrides the default Object.toString. The result must be safe for use in
-     * a RelNode digest.
-     */
-    public String toString();
+  /**
+   * Overrides the default Object.toString. The result must be safe for use in
+   * a RelNode digest.
+   */
+  public String toString();
 
-    /**
-     * @return datatype for coordinates of search domain
-     */
-    public RelDataType getDataType();
+  /**
+   * @return datatype for coordinates of search domain
+   */
+  public RelDataType getDataType();
 
-    /**
-     * Resolves this expression into a fixed {@link SargIntervalSequence}.
-     *
-     * <p>TODO jvs 17-Jan-2006: add binding for dynamic params so they can be
-     * evaluated as well
-     *
-     * @return immutable ordered sequence of disjoint intervals
-     */
-    public SargIntervalSequence evaluate();
+  /**
+   * Resolves this expression into a fixed {@link SargIntervalSequence}.
+   *
+   * <p>TODO jvs 17-Jan-2006: add binding for dynamic params so they can be
+   * evaluated as well
+   *
+   * @return immutable ordered sequence of disjoint intervals
+   */
+  public SargIntervalSequence evaluate();
 
-    /**
-     * Resolves the complement of this expression into a fixed {@link
-     * SargIntervalSequence}.
-     *
-     * @return immutable ordered sequence of disjoint intervals
-     */
-    public SargIntervalSequence evaluateComplemented();
+  /**
+   * Resolves the complement of this expression into a fixed {@link
+   * SargIntervalSequence}.
+   *
+   * @return immutable ordered sequence of disjoint intervals
+   */
+  public SargIntervalSequence evaluateComplemented();
 
-    /**
-     * @return the factory which produced this expression
-     */
-    public SargFactory getFactory();
+  /**
+   * @return the factory which produced this expression
+   */
+  public SargFactory getFactory();
 
-    /**
-     * Collects all dynamic parameters referenced by this expression.
-     *
-     * @param dynamicParams receives dynamic parameter references
-     */
-    public void collectDynamicParams(Set<RexDynamicParam> dynamicParams);
+  /**
+   * Collects all dynamic parameters referenced by this expression.
+   *
+   * @param dynamicParams receives dynamic parameter references
+   */
+  public void collectDynamicParams(Set<RexDynamicParam> dynamicParams);
 }
 
 // End SargExpr.java

@@ -32,35 +32,32 @@ import org.eigenbase.util14.*;
  * exception, which reminds code authors to wrap it in another exception
  * containing the line/column context.
  */
-public class SqlValidatorException
-    extends Exception
-    implements EigenbaseValidatorException
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlValidatorException extends Exception
+    implements EigenbaseValidatorException {
+  //~ Static fields/initializers ---------------------------------------------
 
-    private static Logger tracer =
-        Logger.getLogger("org.eigenbase.util.EigenbaseException");
+  private static Logger tracer =
+      Logger.getLogger("org.eigenbase.util.EigenbaseException");
 
-    static final long serialVersionUID = -831683113957131387L;
+  static final long serialVersionUID = -831683113957131387L;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a new SqlValidatorException object.
-     *
-     * @param message error message
-     * @param cause underlying cause
-     */
-    public SqlValidatorException(
-        String message,
-        Throwable cause)
-    {
-        super(message, cause);
+  /**
+   * Creates a new SqlValidatorException object.
+   *
+   * @param message error message
+   * @param cause   underlying cause
+   */
+  public SqlValidatorException(
+      String message,
+      Throwable cause) {
+    super(message, cause);
 
-        // TODO: see note in EigenbaseException constructor
-        tracer.throwing("SqlValidatorException", "constructor", this);
-        tracer.severe(toString());
-    }
+    // TODO: see note in EigenbaseException constructor
+    tracer.throwing("SqlValidatorException", "constructor", this);
+    tracer.severe(toString());
+  }
 }
 
 // End SqlValidatorException.java

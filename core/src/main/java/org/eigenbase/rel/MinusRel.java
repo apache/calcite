@@ -28,40 +28,42 @@ import org.eigenbase.relopt.*;
  * the results).
  */
 public final class MinusRel extends MinusRelBase {
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public MinusRel(
-        RelOptCluster cluster,
-        List<RelNode> inputs,
-        boolean all)
-    {
-        super(
-            cluster,
-            cluster.traitSetOf(Convention.NONE),
-            inputs,
-            all);
-    }
+  public MinusRel(
+      RelOptCluster cluster,
+      List<RelNode> inputs,
+      boolean all) {
+    super(
+        cluster,
+        cluster.traitSetOf(Convention.NONE),
+        inputs,
+        all);
+  }
 
-    /** Creates a MinusRel by parsing serialized output. */
-    public MinusRel(RelInput input) {
-        super(input);
-    }
+  /**
+   * Creates a MinusRel by parsing serialized output.
+   */
+  public MinusRel(RelInput input) {
+    super(input);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    @Override public MinusRel copy(
-        RelTraitSet traitSet, List<RelNode> inputs, boolean all)
-    {
-        assert traitSet.containsIfApplicable(Convention.NONE);
-        return new MinusRel(
-            getCluster(),
-            inputs,
-            all);
-    }
+  @Override
+  public MinusRel copy(
+      RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+    assert traitSet.containsIfApplicable(Convention.NONE);
+    return new MinusRel(
+        getCluster(),
+        inputs,
+        all);
+  }
 
-    @Override public RelNode accept(RelShuttle shuttle) {
-        return shuttle.visit(this);
-    }
+  @Override
+  public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
 }
 
 // End MinusRel.java

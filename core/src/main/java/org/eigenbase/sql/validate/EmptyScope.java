@@ -30,107 +30,89 @@ import org.eigenbase.sql.*;
  * <p>It is convenient, because we never need to check whether a scope's parent
  * is null. (This scope knows not to ask about its parents, just like Adam.)
  */
-class EmptyScope
-    implements SqlValidatorScope
-{
-    //~ Instance fields --------------------------------------------------------
+class EmptyScope implements SqlValidatorScope {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final SqlValidatorImpl validator;
+  protected final SqlValidatorImpl validator;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    EmptyScope(SqlValidatorImpl validator)
-    {
-        this.validator = validator;
-    }
+  EmptyScope(SqlValidatorImpl validator) {
+    this.validator = validator;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlValidator getValidator()
-    {
-        return validator;
-    }
+  public SqlValidator getValidator() {
+    return validator;
+  }
 
-    public SqlIdentifier fullyQualify(SqlIdentifier identifier)
-    {
-        return identifier;
-    }
+  public SqlIdentifier fullyQualify(SqlIdentifier identifier) {
+    return identifier;
+  }
 
-    public SqlNode getNode()
-    {
-        throw new UnsupportedOperationException();
-    }
+  public SqlNode getNode() {
+    throw new UnsupportedOperationException();
+  }
 
-    public SqlValidatorNamespace resolve(
-        String name,
-        SqlValidatorScope [] ancestorOut,
-        int [] offsetOut)
-    {
-        return null;
-    }
+  public SqlValidatorNamespace resolve(
+      String name,
+      SqlValidatorScope[] ancestorOut,
+      int[] offsetOut) {
+    return null;
+  }
 
-    public void findAllColumnNames(List<SqlMoniker> result)
-    {
-    }
+  public void findAllColumnNames(List<SqlMoniker> result) {
+  }
 
-    public void findAllTableNames(List<SqlMoniker> result)
-    {
-    }
+  public void findAllTableNames(List<SqlMoniker> result) {
+  }
 
-    public void findAliases(List<SqlMoniker> result)
-    {
-    }
+  public void findAliases(List<SqlMoniker> result) {
+  }
 
-    public RelDataType resolveColumn(String name, SqlNode ctx)
-    {
-        return null;
-    }
+  public RelDataType resolveColumn(String name, SqlNode ctx) {
+    return null;
+  }
 
-    public SqlValidatorScope getOperandScope(SqlCall call)
-    {
-        return this;
-    }
+  public SqlValidatorScope getOperandScope(SqlCall call) {
+    return this;
+  }
 
-    public void validateExpr(SqlNode expr)
-    {
-        // valid
-    }
+  public void validateExpr(SqlNode expr) {
+    // valid
+  }
 
-    public String findQualifyingTableName(
-        String columnName,
-        SqlNode ctx)
-    {
-        throw validator.newValidationError(
-            ctx,
-            EigenbaseResource.instance().ColumnNotFound.ex(columnName));
-    }
+  public String findQualifyingTableName(
+      String columnName,
+      SqlNode ctx) {
+    throw validator.newValidationError(
+        ctx,
+        EigenbaseResource.instance().ColumnNotFound.ex(columnName));
+  }
 
-    public void addChild(SqlValidatorNamespace ns, String alias)
-    {
-        // cannot add to the empty scope
-        throw new UnsupportedOperationException();
-    }
+  public void addChild(SqlValidatorNamespace ns, String alias) {
+    // cannot add to the empty scope
+    throw new UnsupportedOperationException();
+  }
 
-    public SqlWindow lookupWindow(String name)
-    {
-        // No windows defined in this scope.
-        return null;
-    }
+  public SqlWindow lookupWindow(String name) {
+    // No windows defined in this scope.
+    return null;
+  }
 
-    public SqlMonotonicity getMonotonicity(SqlNode expr)
-    {
-        return
-            ((expr instanceof SqlLiteral)
-                || (expr instanceof SqlDynamicParam)
-                || (expr instanceof SqlDataTypeSpec)) ? SqlMonotonicity.Constant
+  public SqlMonotonicity getMonotonicity(SqlNode expr) {
+    return
+        ((expr instanceof SqlLiteral)
+            || (expr instanceof SqlDynamicParam)
+            || (expr instanceof SqlDataTypeSpec)) ? SqlMonotonicity.Constant
             : SqlMonotonicity.NotMonotonic;
-    }
+  }
 
-    public SqlNodeList getOrderList()
-    {
-        // scope is not ordered
-        return null;
-    }
+  public SqlNodeList getOrderList() {
+    // scope is not ordered
+    return null;
+  }
 }
 
 // End EmptyScope.java

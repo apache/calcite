@@ -26,48 +26,43 @@ import org.eigenbase.relopt.*;
  * {@link org.eigenbase.relopt.hep.HepPlanner} in cases where alternate
  * implementations are available and it is desirable to minimize converters.
  */
-public class TraitMatchingRule
-    extends RelOptRule
-{
-    //~ Instance fields --------------------------------------------------------
+public class TraitMatchingRule extends RelOptRule {
+  //~ Instance fields --------------------------------------------------------
 
-    private final ConverterRule converter;
+  private final ConverterRule converter;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a new TraitMatchingRule.
-     *
-     * @param converterRule rule to be restricted; rule must take a single
-     * operand expecting a single input
-     */
-    public TraitMatchingRule(ConverterRule converterRule)
-    {
-        super(
-            operand(
-                converterRule.getOperand().getMatchedClass(),
-                operand(RelNode.class, any())),
-            "TraitMatchingRule: " + converterRule);
-        assert converterRule.getOperand().childPolicy
-               == RelOptRuleOperandChildPolicy.ANY;
-        this.converter = converterRule;
+  /**
+   * Creates a new TraitMatchingRule.
+   *
+   * @param converterRule rule to be restricted; rule must take a single
+   *                      operand expecting a single input
+   */
+  public TraitMatchingRule(ConverterRule converterRule) {
+    super(
+        operand(
+            converterRule.getOperand().getMatchedClass(),
+            operand(RelNode.class, any())),
+        "TraitMatchingRule: " + converterRule);
+    assert converterRule.getOperand().childPolicy
+        == RelOptRuleOperandChildPolicy.ANY;
+    this.converter = converterRule;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelOptRule
+  public Convention getOutConvention() {
+    return converter.getOutConvention();
+  }
+
+  public void onMatch(RelOptRuleCall call) {
+    RelNode input = call.rel(1);
+    if (input.getTraitSet().contains(converter.getOutTrait())) {
+      converter.onMatch(call);
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    // implement RelOptRule
-    public Convention getOutConvention()
-    {
-        return converter.getOutConvention();
-    }
-
-    public void onMatch(RelOptRuleCall call)
-    {
-        RelNode input = call.rel(1);
-        if (input.getTraitSet().contains(converter.getOutTrait())) {
-            converter.onMatch(call);
-        }
-    }
+  }
 }
 
 // End TraitMatchingRule.java

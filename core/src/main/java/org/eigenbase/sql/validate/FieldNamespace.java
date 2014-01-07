@@ -27,57 +27,49 @@ import org.eigenbase.sql.*;
  * record or multiset type - but this class exists to make fields behave
  * similarly to other records for purposes of name resolution.
  */
-class FieldNamespace
-    extends AbstractNamespace
-{
-    //~ Constructors -----------------------------------------------------------
+class FieldNamespace extends AbstractNamespace {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a FieldNamespace.
-     *
-     * @param validator Validator
-     * @param dataType Data type of field
-     */
-    FieldNamespace(
-        SqlValidatorImpl validator,
-        RelDataType dataType)
-    {
-        super(validator, null);
-        assert dataType != null;
-        this.rowType = dataType;
+  /**
+   * Creates a FieldNamespace.
+   *
+   * @param validator Validator
+   * @param dataType  Data type of field
+   */
+  FieldNamespace(
+      SqlValidatorImpl validator,
+      RelDataType dataType) {
+    super(validator, null);
+    assert dataType != null;
+    this.rowType = dataType;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void setRowType(RelDataType rowType) {
+    throw new UnsupportedOperationException();
+  }
+
+  protected RelDataType validateImpl() {
+    return rowType;
+  }
+
+  public SqlNode getNode() {
+    return null;
+  }
+
+  public SqlValidatorNamespace lookupChild(String name) {
+    if (rowType.isStruct()) {
+      return validator.lookupFieldNamespace(
+          rowType,
+          name);
     }
+    return null;
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public void setRowType(RelDataType rowType)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    protected RelDataType validateImpl()
-    {
-        return rowType;
-    }
-
-    public SqlNode getNode()
-    {
-        return null;
-    }
-
-    public SqlValidatorNamespace lookupChild(String name)
-    {
-        if (rowType.isStruct()) {
-            return validator.lookupFieldNamespace(
-                rowType,
-                name);
-        }
-        return null;
-    }
-
-    public boolean fieldExists(String name)
-    {
-        return false;
-    }
+  public boolean fieldExists(String name) {
+    return false;
+  }
 }
 
 // End FieldNamespace.java

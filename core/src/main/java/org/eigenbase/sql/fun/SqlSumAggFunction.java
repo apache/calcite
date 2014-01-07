@@ -31,43 +31,37 @@ import com.google.common.collect.ImmutableList;
  * <code>long</code>, <code>float</code>, <code>double</code>), and the result
  * is the same type.
  */
-public class SqlSumAggFunction
-    extends SqlAggFunction
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlSumAggFunction extends SqlAggFunction {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType type;
+  private final RelDataType type;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlSumAggFunction(RelDataType type)
-    {
-        super(
-            "SUM",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiFirstArgType,
-            null,
-            SqlTypeStrategies.otcNumeric,
-            SqlFunctionCategory.Numeric);
-        this.type = type;
-    }
+  public SqlSumAggFunction(RelDataType type) {
+    super(
+        "SUM",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiFirstArgType,
+        null,
+        SqlTypeStrategies.otcNumeric,
+        SqlFunctionCategory.Numeric);
+    this.type = type;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
-    {
-        return ImmutableList.of(type);
-    }
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+    return ImmutableList.of(type);
+  }
 
-    public RelDataType getType()
-    {
-        return type;
-    }
+  public RelDataType getType() {
+    return type;
+  }
 
-    public RelDataType getReturnType(RelDataTypeFactory typeFactory)
-    {
-        return type;
-    }
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+    return type;
+  }
 }
 
 // End SqlSumAggFunction.java

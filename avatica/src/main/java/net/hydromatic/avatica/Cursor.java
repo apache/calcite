@@ -61,7 +61,7 @@ public interface Cursor extends Closeable {
   /**
    * Accessor of a column value.
    */
-  interface Accessor {
+  public interface Accessor {
     boolean wasNull();
 
     String getString();

@@ -29,131 +29,121 @@ import org.eigenbase.util.*;
  * Namespace whose contents are defined by the type of an {@link
  * org.eigenbase.sql.SqlIdentifier identifier}.
  */
-public class IdentifierNamespace
-    extends AbstractNamespace
-{
-    //~ Instance fields --------------------------------------------------------
+public class IdentifierNamespace extends AbstractNamespace {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlIdentifier id;
+  private final SqlIdentifier id;
 
-    /**
-     * The underlying table. Set on validate.
-     */
-    private SqlValidatorTable table;
+  /**
+   * The underlying table. Set on validate.
+   */
+  private SqlValidatorTable table;
 
-    /**
-     * List of monotonic expressions. Set on validate.
-     */
-    private List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs;
+  /**
+   * List of monotonic expressions. Set on validate.
+   */
+  private List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates an IdentifierNamespace.
-     *
-     * @param validator Validator
-     * @param id Identifier node
-     * @param enclosingNode Enclosing node
-     */
-    IdentifierNamespace(
-        SqlValidatorImpl validator,
-        SqlIdentifier id,
-        SqlNode enclosingNode)
-    {
-        super(validator, enclosingNode);
-        this.id = id;
+  /**
+   * Creates an IdentifierNamespace.
+   *
+   * @param validator     Validator
+   * @param id            Identifier node
+   * @param enclosingNode Enclosing node
+   */
+  IdentifierNamespace(
+      SqlValidatorImpl validator,
+      SqlIdentifier id,
+      SqlNode enclosingNode) {
+    super(validator, enclosingNode);
+    this.id = id;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public RelDataType validateImpl() {
+    table = validator.catalogReader.getTable(Arrays.asList(id.names));
+    if (table == null) {
+      throw validator.newValidationError(
+          id,
+          EigenbaseResource.instance().TableNameNotFound.ex(
+              id.toString()));
     }
+    if (validator.shouldExpandIdentifiers()) {
+      // TODO:  expand qualifiers for column references also
+      List<String> qualifiedNames = table.getQualifiedName();
+      if (qualifiedNames != null) {
+        // Assign positions to the components of the fully-qualified
+        // identifier, as best we can. We assume that qualification
+        // adds names to the front, e.g. FOO.BAR becomes BAZ.FOO.BAR.
+        SqlParserPos[] poses = new SqlParserPos[qualifiedNames.size()];
+        Arrays.fill(
+            poses,
+            id.getParserPosition());
+        int offset = qualifiedNames.size() - id.names.length;
 
-    //~ Methods ----------------------------------------------------------------
-
-    public RelDataType validateImpl()
-    {
-        table = validator.catalogReader.getTable(Arrays.asList(id.names));
-        if (table == null) {
-            throw validator.newValidationError(
-                id,
-                EigenbaseResource.instance().TableNameNotFound.ex(
-                    id.toString()));
+        // Test offset in case catalog supports fewer
+        // qualifiers than catalog reader.
+        if (offset >= 0) {
+          for (int i = 0; i < id.names.length; i++) {
+            poses[i + offset] = id.getComponentParserPosition(i);
+          }
         }
-        if (validator.shouldExpandIdentifiers()) {
-            // TODO:  expand qualifiers for column references also
-            List<String> qualifiedNames = table.getQualifiedName();
-            if (qualifiedNames != null) {
-                // Assign positions to the components of the fully-qualified
-                // identifier, as best we can. We assume that qualification
-                // adds names to the front, e.g. FOO.BAR becomes BAZ.FOO.BAR.
-                SqlParserPos [] poses = new SqlParserPos[qualifiedNames.size()];
-                Arrays.fill(
-                    poses,
-                    id.getParserPosition());
-                int offset = qualifiedNames.size() - id.names.length;
-
-                // Test offset in case catalog supports fewer
-                // qualifiers than catalog reader.
-                if (offset >= 0) {
-                    for (int i = 0; i < id.names.length; i++) {
-                        poses[i + offset] = id.getComponentParserPosition(i);
-                    }
-                }
-              final String[] names =
-                  qualifiedNames.toArray(new String[qualifiedNames.size()]);
-              id.setNames(names, poses);
-            }
-        }
-
-        // Build a list of monotonic expressions.
-        monotonicExprs = new ArrayList<Pair<SqlNode, SqlMonotonicity>>();
-        RelDataType rowType = table.getRowType();
-        List<RelDataTypeField> fields = rowType.getFieldList();
-        for (int i = 0; i < fields.size(); i++) {
-            final String fieldName = fields.get(i).getName();
-            final SqlMonotonicity monotonicity =
-                table.getMonotonicity(fieldName);
-            if (monotonicity != SqlMonotonicity.NotMonotonic) {
-                monotonicExprs.add(
-                    new Pair<SqlNode, SqlMonotonicity>(
-                        new SqlIdentifier(fieldName, SqlParserPos.ZERO),
-                        monotonicity));
-            }
-        }
-
-        // Validation successful.
-        return rowType;
+        final String[] names =
+            qualifiedNames.toArray(new String[qualifiedNames.size()]);
+        id.setNames(names, poses);
+      }
     }
 
-    public SqlIdentifier getId()
-    {
-        return id;
+    // Build a list of monotonic expressions.
+    monotonicExprs = new ArrayList<Pair<SqlNode, SqlMonotonicity>>();
+    RelDataType rowType = table.getRowType();
+    List<RelDataTypeField> fields = rowType.getFieldList();
+    for (int i = 0; i < fields.size(); i++) {
+      final String fieldName = fields.get(i).getName();
+      final SqlMonotonicity monotonicity =
+          table.getMonotonicity(fieldName);
+      if (monotonicity != SqlMonotonicity.NotMonotonic) {
+        monotonicExprs.add(
+            new Pair<SqlNode, SqlMonotonicity>(
+                new SqlIdentifier(fieldName, SqlParserPos.ZERO),
+                monotonicity));
+      }
     }
 
-    public SqlNode getNode()
-    {
-        return id;
-    }
+    // Validation successful.
+    return rowType;
+  }
 
-    public SqlValidatorTable getTable()
-    {
-        return table;
-    }
+  public SqlIdentifier getId() {
+    return id;
+  }
 
-    public SqlValidatorNamespace resolve(
-        String name,
-        SqlValidatorScope [] ancestorOut,
-        int [] offsetOut)
-    {
-        return null;
-    }
+  public SqlNode getNode() {
+    return id;
+  }
 
-    public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs()
-    {
-        return monotonicExprs;
-    }
+  public SqlValidatorTable getTable() {
+    return table;
+  }
 
-    public SqlMonotonicity getMonotonicity(String columnName)
-    {
-        final SqlValidatorTable table = getTable();
-        return table.getMonotonicity(columnName);
-    }
+  public SqlValidatorNamespace resolve(
+      String name,
+      SqlValidatorScope[] ancestorOut,
+      int[] offsetOut) {
+    return null;
+  }
+
+  public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
+    return monotonicExprs;
+  }
+
+  public SqlMonotonicity getMonotonicity(String columnName) {
+    final SqlValidatorTable table = getTable();
+    return table.getMonotonicity(columnName);
+  }
 }
 
 // End IdentifierNamespace.java

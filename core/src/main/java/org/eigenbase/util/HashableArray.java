@@ -22,59 +22,53 @@ package org.eigenbase.util;
  * #hashCode} and an {@link #equals} function, so it can be used as a key in a
  * {@link java.util.Hashtable}.
  */
-public class HashableArray
-{
-    //~ Instance fields --------------------------------------------------------
+public class HashableArray {
+  //~ Instance fields --------------------------------------------------------
 
-    Object [] a;
+  Object[] a;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public HashableArray(Object [] a)
-    {
-        this.a = a;
+  public HashableArray(Object[] a) {
+    this.a = a;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // override Object
+  public int hashCode() {
+    return arrayHashCode(a);
+  }
+
+  // override Object
+  public boolean equals(Object o) {
+    return (o instanceof HashableArray)
+        && arraysAreEqual(this.a, ((HashableArray) o).a);
+  }
+
+  public static int arrayHashCode(Object[] a) {
+    // hash algorithm borrowed from java.lang.String
+    int h = 0;
+    for (int i = 0; i < a.length; i++) {
+      h = (31 * h) + a[i].hashCode();
     }
+    return h;
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    // override Object
-    public int hashCode()
-    {
-        return arrayHashCode(a);
+  /**
+   * Returns whether two arrays are equal (deep compare).
+   */
+  public static boolean arraysAreEqual(Object[] a1, Object[] a2) {
+    if (a1.length != a2.length) {
+      return false;
     }
-
-    // override Object
-    public boolean equals(Object o)
-    {
-        return (o instanceof HashableArray)
-            && arraysAreEqual(this.a, ((HashableArray) o).a);
+    for (int i = 0; i < a1.length; i++) {
+      if (!a1[i].equals(a2[i])) {
+        return false;
+      }
     }
-
-    public static int arrayHashCode(Object [] a)
-    {
-        // hash algorithm borrowed from java.lang.String
-        int h = 0;
-        for (int i = 0; i < a.length; i++) {
-            h = (31 * h) + a[i].hashCode();
-        }
-        return h;
-    }
-
-    /**
-     * Returns whether two arrays are equal (deep compare).
-     */
-    public static boolean arraysAreEqual(Object [] a1, Object [] a2)
-    {
-        if (a1.length != a2.length) {
-            return false;
-        }
-        for (int i = 0; i < a1.length; i++) {
-            if (!a1[i].equals(a2[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
+    return true;
+  }
 }
 
 // End HashableArray.java

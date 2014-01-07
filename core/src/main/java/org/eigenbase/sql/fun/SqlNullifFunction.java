@@ -25,52 +25,48 @@ import org.eigenbase.sql.validate.*;
 /**
  * The <code>NULLIF</code> function.
  */
-public class SqlNullifFunction
-    extends SqlFunction
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlNullifFunction extends SqlFunction {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlNullifFunction()
-    {
-        // NOTE jvs 26-July-2006:  We fill in the type strategies here,
-        // but normally they are not used because the validator invokes
-        // rewriteCall to convert NULLIF into CASE early.  However,
-        // validator rewrite can optionally be disabled, in which case these
-        // strategies are used.
-        super(
-            "NULLIF",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiFirstArgTypeForceNullable,
-            null,
-            SqlTypeStrategies.otcComparableUnorderedX2,
-            SqlFunctionCategory.System);
-    }
+  public SqlNullifFunction() {
+    // NOTE jvs 26-July-2006:  We fill in the type strategies here,
+    // but normally they are not used because the validator invokes
+    // rewriteCall to convert NULLIF into CASE early.  However,
+    // validator rewrite can optionally be disabled, in which case these
+    // strategies are used.
+    super(
+        "NULLIF",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiFirstArgTypeForceNullable,
+        null,
+        SqlTypeStrategies.otcComparableUnorderedX2,
+        SqlFunctionCategory.System);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // override SqlOperator
-    public SqlNode rewriteCall(SqlValidator validator, SqlCall call)
-    {
-        SqlNode [] operands = call.getOperands();
-        SqlParserPos pos = call.getParserPosition();
+  // override SqlOperator
+  public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+    SqlNode[] operands = call.getOperands();
+    SqlParserPos pos = call.getParserPosition();
 
-        checkOperandCount(
-            validator,
-            getOperandTypeChecker(),
-            call);
-        assert (operands.length == 2);
+    checkOperandCount(
+        validator,
+        getOperandTypeChecker(),
+        call);
+    assert (operands.length == 2);
 
-        SqlNodeList whenList = new SqlNodeList(pos);
-        SqlNodeList thenList = new SqlNodeList(pos);
-        whenList.add(operands[1]);
-        thenList.add(SqlLiteral.createNull(SqlParserPos.ZERO));
-        return SqlStdOperatorTable.caseOperator.createSwitchedCall(
-            pos,
-            operands[0],
-            whenList,
-            thenList,
-            operands[0].clone(operands[0].getParserPosition()));
-    }
+    SqlNodeList whenList = new SqlNodeList(pos);
+    SqlNodeList thenList = new SqlNodeList(pos);
+    whenList.add(operands[1]);
+    thenList.add(SqlLiteral.createNull(SqlParserPos.ZERO));
+    return SqlStdOperatorTable.caseOperator.createSwitchedCall(
+        pos,
+        operands[0],
+        whenList,
+        thenList,
+        operands[0].clone(operands[0].getParserPosition()));
+  }
 }
 
 // End SqlNullifFunction.java

@@ -22,100 +22,87 @@ import java.io.*;
 /**
  * Default implementation of {@link RelDataTypeField}.
  */
-public class RelDataTypeFieldImpl
-    implements RelDataTypeField,
-        Serializable
-{
-    //~ Instance fields --------------------------------------------------------
+public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType type;
-    private final String name;
-    private final int index;
+  private final RelDataType type;
+  private final String name;
+  private final int index;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * @pre name != null
-     * @pre type != null
-     */
-    public RelDataTypeFieldImpl(
-        String name,
-        int index,
-        RelDataType type)
-    {
-        assert (name != null);
-        assert (type != null);
-        this.name = name;
-        this.index = index;
-        this.type = type;
+  /**
+   * @pre name != null
+   * @pre type != null
+   */
+  public RelDataTypeFieldImpl(
+      String name,
+      int index,
+      RelDataType type) {
+    assert (name != null);
+    assert (type != null);
+    this.name = name;
+    this.index = index;
+    this.type = type;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  @Override
+  public int hashCode() {
+    return index
+        ^ name.hashCode()
+        ^ type.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    @Override
-    public int hashCode()
-    {
-        return index
-            ^ name.hashCode()
-            ^ type.hashCode();
+    if (!(obj instanceof RelDataTypeFieldImpl)) {
+      return false;
     }
+    RelDataTypeFieldImpl that = (RelDataTypeFieldImpl) obj;
+    return this.index == that.index
+        && this.name.equals(that.name)
+        && this.type.equals(that.type);
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof RelDataTypeFieldImpl)) {
-            return false;
-        }
-        RelDataTypeFieldImpl that = (RelDataTypeFieldImpl) obj;
-        return this.index == that.index
-            && this.name.equals(that.name)
-            && this.type.equals(that.type);
-    }
+  // implement RelDataTypeField
+  public String getName() {
+    return name;
+  }
 
-    // implement RelDataTypeField
-    public String getName()
-    {
-        return name;
-    }
+  // implement RelDataTypeField
+  public int getIndex() {
+    return index;
+  }
 
-    // implement RelDataTypeField
-    public int getIndex()
-    {
-        return index;
-    }
+  // implement RelDataTypeField
+  public RelDataType getType() {
+    return type;
+  }
 
-    // implement RelDataTypeField
-    public RelDataType getType()
-    {
-        return type;
-    }
+  // implement Map.Entry
+  public final String getKey() {
+    return getName();
+  }
 
-    // implement Map.Entry
-    public final String getKey()
-    {
-        return getName();
-    }
+  // implement Map.Entry
+  public final RelDataType getValue() {
+    return getType();
+  }
 
-    // implement Map.Entry
-    public final RelDataType getValue()
-    {
-        return getType();
-    }
+  // implement Map.Entry
+  public RelDataType setValue(RelDataType value) {
+    throw new UnsupportedOperationException();
+  }
 
-    // implement Map.Entry
-    public RelDataType setValue(RelDataType value)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    // for debugging
-    public String toString()
-    {
-        return "#" + index + ": " + name + " " + type;
-    }
+  // for debugging
+  public String toString() {
+    return "#" + index + ": " + name + " " + type;
+  }
 }
 
 // End RelDataTypeFieldImpl.java

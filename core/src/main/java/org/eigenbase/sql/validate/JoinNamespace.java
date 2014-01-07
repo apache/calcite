@@ -23,59 +23,54 @@ import org.eigenbase.sql.*;
 /**
  * Namespace representing the row type produced by joining two relations.
  */
-class JoinNamespace
-    extends AbstractNamespace
-{
-    //~ Instance fields --------------------------------------------------------
+class JoinNamespace extends AbstractNamespace {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlJoin join;
+  private final SqlJoin join;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    JoinNamespace(SqlValidatorImpl validator, SqlJoin join)
-    {
-        super(validator, null);
-        this.join = join;
+  JoinNamespace(SqlValidatorImpl validator, SqlJoin join) {
+    super(validator, null);
+    this.join = join;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  protected RelDataType validateImpl() {
+    RelDataType leftType =
+        validator.getNamespace(join.getLeft()).getRowType();
+    RelDataType rightType =
+        validator.getNamespace(join.getRight()).getRowType();
+    if (join.getJoinType() == SqlJoinOperator.JoinType.Left) {
+      rightType =
+          validator.getTypeFactory().createTypeWithNullability(
+              rightType,
+              true);
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    protected RelDataType validateImpl()
-    {
-        RelDataType leftType =
-            validator.getNamespace(join.getLeft()).getRowType();
-        RelDataType rightType =
-            validator.getNamespace(join.getRight()).getRowType();
-        if (join.getJoinType() == SqlJoinOperator.JoinType.Left) {
-            rightType =
-                validator.getTypeFactory().createTypeWithNullability(
-                    rightType,
-                    true);
-        }
-        if (join.getJoinType() == SqlJoinOperator.JoinType.Right) {
-            leftType =
-                validator.getTypeFactory().createTypeWithNullability(
-                    leftType,
-                    true);
-        }
-        if (join.getJoinType() == SqlJoinOperator.JoinType.Full) {
-            leftType =
-                validator.getTypeFactory().createTypeWithNullability(
-                    leftType,
-                    true);
-            rightType =
-                validator.getTypeFactory().createTypeWithNullability(
-                    rightType,
-                    true);
-        }
-        final RelDataType [] types = { leftType, rightType };
-        return validator.getTypeFactory().createJoinType(types);
+    if (join.getJoinType() == SqlJoinOperator.JoinType.Right) {
+      leftType =
+          validator.getTypeFactory().createTypeWithNullability(
+              leftType,
+              true);
     }
-
-    public SqlNode getNode()
-    {
-        return join;
+    if (join.getJoinType() == SqlJoinOperator.JoinType.Full) {
+      leftType =
+          validator.getTypeFactory().createTypeWithNullability(
+              leftType,
+              true);
+      rightType =
+          validator.getTypeFactory().createTypeWithNullability(
+              rightType,
+              true);
     }
+    final RelDataType[] types = {leftType, rightType};
+    return validator.getTypeFactory().createJoinType(types);
+  }
+
+  public SqlNode getNode() {
+    return join;
+  }
 }
 
 // End JoinNamespace.java

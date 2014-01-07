@@ -35,70 +35,64 @@ import org.eigenbase.sql.*;
  * <li>Created by {@code net.sf.farrago.query.FarragoReduceValuesRule}</li>
  * <li>Triggers {@link org.eigenbase.rel.rules.RemoveEmptyRule}</li>
  * </ul>
+ *
  * @see org.eigenbase.rel.ValuesRel
  */
-public class EmptyRel
-    extends AbstractRelNode
-{
-    //~ Constructors -----------------------------------------------------------
+public class EmptyRel extends AbstractRelNode {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a new EmptyRel.
-     *
-     * @param cluster Cluster
-     * @param rowType row type for tuples which would be produced by this rel if
-     * it actually produced any, but it doesn't (see, philosophy is good for
-     * something after all!)
-     */
-    public EmptyRel(
-        RelOptCluster cluster,
-        RelDataType rowType)
-    {
-        super(
-            cluster,
-            cluster.traitSetOf(Convention.NONE));
-        this.rowType = rowType;
-    }
+  /**
+   * Creates a new EmptyRel.
+   *
+   * @param cluster Cluster
+   * @param rowType row type for tuples which would be produced by this rel if
+   *                it actually produced any, but it doesn't (see, philosophy is
+   *                good for something after all!)
+   */
+  public EmptyRel(
+      RelOptCluster cluster,
+      RelDataType rowType) {
+    super(
+        cluster,
+        cluster.traitSetOf(Convention.NONE));
+    this.rowType = rowType;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs)
-    {
-        assert traitSet.comprises(Convention.NONE);
-        assert inputs.isEmpty();
-        // immutable with no children
-        return this;
-    }
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.comprises(Convention.NONE);
+    assert inputs.isEmpty();
+    // immutable with no children
+    return this;
+  }
 
-    // implement RelNode
-    protected RelDataType deriveRowType()
-    {
-        return rowType;
-    }
+  // implement RelNode
+  protected RelDataType deriveRowType() {
+    return rowType;
+  }
 
-    // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner)
-    {
-        return planner.makeZeroCost();
-    }
+  // implement RelNode
+  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    return planner.makeZeroCost();
+  }
 
-    // implement RelNode
-    public double getRows()
-    {
-        return 0.0;
-    }
+  // implement RelNode
+  public double getRows() {
+    return 0.0;
+  }
 
-    // implement RelNode
-    public RelWriter explainTerms(RelWriter pw) {
-        return super.explainTerms(pw)
-            // For rel digest, include the row type to discriminate
-            // this from other empties with different row types.
-            // For normal EXPLAIN PLAN, omit the type.
-            .itemIf(
-                "type",
-                rowType,
-                pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES);
-    }
+  // implement RelNode
+  public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw)
+        // For rel digest, include the row type to discriminate
+        // this from other empties with different row types.
+        // For normal EXPLAIN PLAN, omit the type.
+        .itemIf(
+            "type",
+            rowType,
+            pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES);
+  }
 }
 
 // End EmptyRel.java

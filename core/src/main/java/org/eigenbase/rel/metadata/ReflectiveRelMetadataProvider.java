@@ -33,89 +33,84 @@ import org.eigenbase.util.*;
  * ReflectUtil.
  */
 public abstract class ReflectiveRelMetadataProvider
-    implements RelMetadataProvider,
-        ReflectiveVisitor
-{
-    //~ Instance fields --------------------------------------------------------
+    implements RelMetadataProvider, ReflectiveVisitor {
+  //~ Instance fields --------------------------------------------------------
 
-    private final Map<String, List<Class>> parameterTypeMap;
+  private final Map<String, List<Class>> parameterTypeMap;
 
-    private final ReflectiveVisitDispatcher<ReflectiveRelMetadataProvider,
-        RelNode> visitDispatcher;
+  private final ReflectiveVisitDispatcher<ReflectiveRelMetadataProvider,
+      RelNode> visitDispatcher;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a ReflectiveRelMetadataProvider.
-     */
-    protected ReflectiveRelMetadataProvider()
-    {
-        parameterTypeMap = new HashMap<String, List<Class>>();
-        visitDispatcher =
-            ReflectUtil.createDispatcher(
-                ReflectiveRelMetadataProvider.class,
-                RelNode.class);
+  /**
+   * Creates a ReflectiveRelMetadataProvider.
+   */
+  protected ReflectiveRelMetadataProvider() {
+    parameterTypeMap = new HashMap<String, List<Class>>();
+    visitDispatcher =
+        ReflectUtil.createDispatcher(
+            ReflectiveRelMetadataProvider.class,
+            RelNode.class);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Maps the parameter type signature to look up for a given metadata query.
+   *
+   * @param metadataQueryName name of metadata query to map
+   * @param parameterTypes    argument types (beyond the overloaded rel type) to
+   *                          map
+   */
+  protected void mapParameterTypes(
+      String metadataQueryName,
+      List<Class> parameterTypes) {
+    parameterTypeMap.put(metadataQueryName, parameterTypes);
+  }
+
+  // implement RelMetadataProvider
+  public Object getRelMetadata(
+      RelNode rel,
+      String metadataQueryName,
+      Object[] args) {
+    List<Class> parameterTypes = parameterTypeMap.get(metadataQueryName);
+    if (parameterTypes == null) {
+      parameterTypes = Collections.emptyList();
+    }
+    Method method =
+        visitDispatcher.lookupVisitMethod(
+            getClass(),
+            rel.getClass(),
+            metadataQueryName,
+            parameterTypes);
+
+    if (method == null) {
+      return null;
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Maps the parameter type signature to look up for a given metadata query.
-     *
-     * @param metadataQueryName name of metadata query to map
-     * @param parameterTypes argument types (beyond the overloaded rel type) to
-     * map
-     */
-    protected void mapParameterTypes(
-        String metadataQueryName,
-        List<Class> parameterTypes)
-    {
-        parameterTypeMap.put(metadataQueryName, parameterTypes);
+    Object[] allArgs;
+    if (args != null) {
+      allArgs = new Object[args.length + 1];
+      allArgs[0] = rel;
+      System.arraycopy(args, 0, allArgs, 1, args.length);
+    } else {
+      allArgs = new Object[]{rel};
     }
 
-    // implement RelMetadataProvider
-    public Object getRelMetadata(
-        RelNode rel,
-        String metadataQueryName,
-        Object [] args)
-    {
-        List<Class> parameterTypes = parameterTypeMap.get(metadataQueryName);
-        if (parameterTypes == null) {
-            parameterTypes = Collections.emptyList();
-        }
-        Method method =
-            visitDispatcher.lookupVisitMethod(
-                getClass(),
-                rel.getClass(),
-                metadataQueryName,
-                parameterTypes);
-
-        if (method == null) {
-            return null;
-        }
-
-        Object [] allArgs;
-        if (args != null) {
-            allArgs = new Object[args.length + 1];
-            allArgs[0] = rel;
-            System.arraycopy(args, 0, allArgs, 1, args.length);
-        } else {
-            allArgs = new Object[] { rel };
-        }
-
-        try {
-            return method.invoke(this, allArgs);
-        } catch (Throwable ex) {
-            // TODO jvs 28-Mar-2006:  share code with ReflectUtil
-            if (ex instanceof RuntimeException) {
-                throw (RuntimeException) ex;
-            } else if (ex instanceof Error) {
-                throw (Error) ex;
-            } else {
-                throw Util.newInternal(ex);
-            }
-        }
+    try {
+      return method.invoke(this, allArgs);
+    } catch (Throwable ex) {
+      // TODO jvs 28-Mar-2006:  share code with ReflectUtil
+      if (ex instanceof RuntimeException) {
+        throw (RuntimeException) ex;
+      } else if (ex instanceof Error) {
+        throw (Error) ex;
+      } else {
+        throw Util.newInternal(ex);
+      }
     }
+  }
 }
 
 // End ReflectiveRelMetadataProvider.java

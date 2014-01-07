@@ -25,50 +25,47 @@ import org.eigenbase.rex.*;
  * PushFilterPastProjectRule implements the rule for pushing a {@link FilterRel}
  * past a {@link ProjectRel}.
  */
-public class PushFilterPastProjectRule
-    extends RelOptRule
-{
-    public static final PushFilterPastProjectRule instance =
-        new PushFilterPastProjectRule();
+public class PushFilterPastProjectRule extends RelOptRule {
+  public static final PushFilterPastProjectRule instance =
+      new PushFilterPastProjectRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a PushFilterPastProjectRule.
-     */
-    private PushFilterPastProjectRule() {
-        super(
-            operand(
-                FilterRel.class,
-                operand(ProjectRel.class, any())));
-    }
+  /**
+   * Creates a PushFilterPastProjectRule.
+   */
+  private PushFilterPastProjectRule() {
+    super(
+        operand(
+            FilterRel.class,
+            operand(ProjectRel.class, any())));
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // implement RelOptRule
-    public void onMatch(RelOptRuleCall call)
-    {
-        FilterRel filterRel = call.rel(0);
-        ProjectRel projRel = call.rel(1);
+  // implement RelOptRule
+  public void onMatch(RelOptRuleCall call) {
+    FilterRel filterRel = call.rel(0);
+    ProjectRel projRel = call.rel(1);
 
-        // convert the filter to one that references the child of the project
-        RexNode newCondition =
-            RelOptUtil.pushFilterPastProject(filterRel.getCondition(), projRel);
+    // convert the filter to one that references the child of the project
+    RexNode newCondition =
+        RelOptUtil.pushFilterPastProject(filterRel.getCondition(), projRel);
 
-        FilterRel newFilterRel =
-            new FilterRel(
-                filterRel.getCluster(),
-                projRel.getChild(),
-                newCondition);
+    FilterRel newFilterRel =
+        new FilterRel(
+            filterRel.getCluster(),
+            projRel.getChild(),
+            newCondition);
 
-        ProjectRel newProjRel =
-            (ProjectRel) CalcRel.createProject(
-                newFilterRel,
-                projRel.getNamedProjects(),
-                false);
+    ProjectRel newProjRel =
+        (ProjectRel) CalcRel.createProject(
+            newFilterRel,
+            projRel.getNamedProjects(),
+            false);
 
-        call.transformTo(newProjRel);
-    }
+    call.transformTo(newProjRel);
+  }
 }
 
 // End PushFilterPastProjectRule.java

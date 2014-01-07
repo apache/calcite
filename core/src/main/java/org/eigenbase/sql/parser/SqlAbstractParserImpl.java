@@ -31,618 +31,595 @@ import com.google.common.collect.ImmutableSet;
 /**
  * Abstract base for parsers generated from CommonParser.jj.
  */
-public abstract class SqlAbstractParserImpl
-{
-    //~ Static fields/initializers ---------------------------------------------
+public abstract class SqlAbstractParserImpl {
+  //~ Static fields/initializers ---------------------------------------------
 
-    private static final ImmutableSet<String> sql92ReservedWordSet =
-        ImmutableSet.of(
-            "ABSOLUTE",
-            "ACTION",
-            "ADD",
-            "ALL",
-            "ALLOCATE",
-            "ALTER",
-            "AND",
-            "ANY",
-            "ARE",
-            "AS",
-            "ASC",
-            "ASSERTION",
-            "AT",
-            "AUTHORIZATION",
-            "AVG",
-            "BEGIN",
-            "BETWEEN",
-            "BIT",
-            "BIT_LENGTH",
-            "BOTH",
-            "BY",
-            "CASCADE",
-            "CASCADED",
-            "CASE",
-            "CAST",
-            "CATALOG",
-            "CHAR",
-            "CHARACTER",
-            "CHARACTER_LENGTH",
-            "CHAR_LENGTH",
-            "CHECK",
-            "CLOSE",
-            "COALESCE",
-            "COLLATE",
-            "COLLATION",
-            "COLUMN",
-            "COMMIT",
-            "CONNECT",
-            "CONNECTION",
-            "CONSTRAINT",
-            "CONSTRAINTS",
-            "CONTINUE",
-            "CONVERT",
-            "CORRESPONDING",
-            "COUNT",
-            "CREATE",
-            "CROSS",
-            "CURRENT",
-            "CURRENT_DATE",
-            "CURRENT_TIME",
-            "CURRENT_TIMESTAMP",
-            "CURRENT_USER",
-            "CURSOR",
-            "DATE",
-            "DAY",
-            "DEALLOCATE",
-            "DEC",
-            "DECIMAL",
-            "DECLARE",
-            "DEFAULT",
-            "DEFERRABLE",
-            "DEFERRED",
-            "DELETE",
-            "DESC",
-            "DESCRIBE",
-            "DESCRIPTOR",
-            "DIAGNOSTICS",
-            "DISCONNECT",
-            "DISTINCT",
-            "DOMAIN",
-            "DOUBLE",
-            "DROP",
-            "ELSE",
-            "END",
-            "END-EXEC",
-            "ESCAPE",
-            "EXCEPT",
-            "EXCEPTION",
-            "EXEC",
-            "EXECUTE",
-            "EXISTS",
-            "EXTERNAL",
-            "EXTRACT",
-            "FALSE",
-            "FETCH",
-            "FIRST",
-            "FLOAT",
-            "FOR",
-            "FOREIGN",
-            "FOUND",
-            "FROM",
-            "FULL",
-            "GET",
-            "GLOBAL",
-            "GO",
-            "GOTO",
-            "GRANT",
-            "GROUP",
-            "HAVING",
-            "HOUR",
-            "IDENTITY",
-            "IMMEDIATE",
-            "IN",
-            "INDICATOR",
-            "INITIALLY",
-            "INNER",
-            "INADD",
-            "INSENSITIVE",
-            "INSERT",
-            "INT",
-            "INTEGER",
-            "INTERSECT",
-            "INTERVAL",
-            "INTO",
-            "IS",
-            "ISOLATION",
-            "JOIN",
-            "KEY",
-            "LANGUAGE",
-            "LAST",
-            "LEADING",
-            "LEFT",
-            "LEVEL",
-            "LIKE",
-            "LOCAL",
-            "LOWER",
-            "MATCH",
-            "MAX",
-            "MIN",
-            "MINUTE",
-            "MODULE",
-            "MONTH",
-            "NAMES",
-            "NATIONAL",
-            "NATURAL",
-            "NCHAR",
-            "NEXT",
-            "NO",
-            "NOT",
-            "NULL",
-            "NULLIF",
-            "NUMERIC",
-            "OCTET_LENGTH",
-            "OF",
-            "ON",
-            "ONLY",
-            "OPEN",
-            "OPTION",
-            "OR",
-            "ORDER",
-            "OUTER",
-            "OUTADD",
-            "OVERLAPS",
-            "PAD",
-            "PARTIAL",
-            "POSITION",
-            "PRECISION",
-            "PREPARE",
-            "PRESERVE",
-            "PRIMARY",
-            "PRIOR",
-            "PRIVILEGES",
-            "PROCEDURE",
-            "PUBLIC",
-            "READ",
-            "REAL",
-            "REFERENCES",
-            "RELATIVE",
-            "RESTRICT",
-            "REVOKE",
-            "RIGHT",
-            "ROLLBACK",
-            "ROWS",
-            "SCHEMA",
-            "SCROLL",
-            "SECOND",
-            "SECTION",
-            "SELECT",
-            "SESSION",
-            "SESSION_USER",
-            "SET",
-            "SIZE",
-            "SMALLINT",
-            "SOME",
-            "SPACE",
-            "SQL",
-            "SQLCODE",
-            "SQLERROR",
-            "SQLSTATE",
-            "SUBSTRING",
-            "SUM",
-            "SYSTEM_USER",
-            "TABLE",
-            "TEMPORARY",
-            "THEN",
-            "TIME",
-            "TIMESTAMP",
-            "TIMEZONE_HOUR",
-            "TIMEZONE_MINUTE",
-            "TO",
-            "TRAILING",
-            "TRANSACTION",
-            "TRANSLATE",
-            "TRANSLATION",
-            "TRIM",
-            "TRUE",
-            "UNION",
-            "UNIQUE",
-            "UNKNOWN",
-            "UPDATE",
-            "UPPER",
-            "USAGE",
-            "USER",
-            "USING",
-            "VALUE",
-            "VALUES",
-            "VARCHAR",
-            "VARYING",
-            "VIEW",
-            "WHEN",
-            "WHENEVER",
-            "WHERE",
-            "WITH",
-            "WORK",
-            "WRITE",
-            "YEAR",
-            "ZONE");
+  private static final ImmutableSet<String> sql92ReservedWordSet =
+      ImmutableSet.of(
+          "ABSOLUTE",
+          "ACTION",
+          "ADD",
+          "ALL",
+          "ALLOCATE",
+          "ALTER",
+          "AND",
+          "ANY",
+          "ARE",
+          "AS",
+          "ASC",
+          "ASSERTION",
+          "AT",
+          "AUTHORIZATION",
+          "AVG",
+          "BEGIN",
+          "BETWEEN",
+          "BIT",
+          "BIT_LENGTH",
+          "BOTH",
+          "BY",
+          "CASCADE",
+          "CASCADED",
+          "CASE",
+          "CAST",
+          "CATALOG",
+          "CHAR",
+          "CHARACTER",
+          "CHARACTER_LENGTH",
+          "CHAR_LENGTH",
+          "CHECK",
+          "CLOSE",
+          "COALESCE",
+          "COLLATE",
+          "COLLATION",
+          "COLUMN",
+          "COMMIT",
+          "CONNECT",
+          "CONNECTION",
+          "CONSTRAINT",
+          "CONSTRAINTS",
+          "CONTINUE",
+          "CONVERT",
+          "CORRESPONDING",
+          "COUNT",
+          "CREATE",
+          "CROSS",
+          "CURRENT",
+          "CURRENT_DATE",
+          "CURRENT_TIME",
+          "CURRENT_TIMESTAMP",
+          "CURRENT_USER",
+          "CURSOR",
+          "DATE",
+          "DAY",
+          "DEALLOCATE",
+          "DEC",
+          "DECIMAL",
+          "DECLARE",
+          "DEFAULT",
+          "DEFERRABLE",
+          "DEFERRED",
+          "DELETE",
+          "DESC",
+          "DESCRIBE",
+          "DESCRIPTOR",
+          "DIAGNOSTICS",
+          "DISCONNECT",
+          "DISTINCT",
+          "DOMAIN",
+          "DOUBLE",
+          "DROP",
+          "ELSE",
+          "END",
+          "END-EXEC",
+          "ESCAPE",
+          "EXCEPT",
+          "EXCEPTION",
+          "EXEC",
+          "EXECUTE",
+          "EXISTS",
+          "EXTERNAL",
+          "EXTRACT",
+          "FALSE",
+          "FETCH",
+          "FIRST",
+          "FLOAT",
+          "FOR",
+          "FOREIGN",
+          "FOUND",
+          "FROM",
+          "FULL",
+          "GET",
+          "GLOBAL",
+          "GO",
+          "GOTO",
+          "GRANT",
+          "GROUP",
+          "HAVING",
+          "HOUR",
+          "IDENTITY",
+          "IMMEDIATE",
+          "IN",
+          "INDICATOR",
+          "INITIALLY",
+          "INNER",
+          "INADD",
+          "INSENSITIVE",
+          "INSERT",
+          "INT",
+          "INTEGER",
+          "INTERSECT",
+          "INTERVAL",
+          "INTO",
+          "IS",
+          "ISOLATION",
+          "JOIN",
+          "KEY",
+          "LANGUAGE",
+          "LAST",
+          "LEADING",
+          "LEFT",
+          "LEVEL",
+          "LIKE",
+          "LOCAL",
+          "LOWER",
+          "MATCH",
+          "MAX",
+          "MIN",
+          "MINUTE",
+          "MODULE",
+          "MONTH",
+          "NAMES",
+          "NATIONAL",
+          "NATURAL",
+          "NCHAR",
+          "NEXT",
+          "NO",
+          "NOT",
+          "NULL",
+          "NULLIF",
+          "NUMERIC",
+          "OCTET_LENGTH",
+          "OF",
+          "ON",
+          "ONLY",
+          "OPEN",
+          "OPTION",
+          "OR",
+          "ORDER",
+          "OUTER",
+          "OUTADD",
+          "OVERLAPS",
+          "PAD",
+          "PARTIAL",
+          "POSITION",
+          "PRECISION",
+          "PREPARE",
+          "PRESERVE",
+          "PRIMARY",
+          "PRIOR",
+          "PRIVILEGES",
+          "PROCEDURE",
+          "PUBLIC",
+          "READ",
+          "REAL",
+          "REFERENCES",
+          "RELATIVE",
+          "RESTRICT",
+          "REVOKE",
+          "RIGHT",
+          "ROLLBACK",
+          "ROWS",
+          "SCHEMA",
+          "SCROLL",
+          "SECOND",
+          "SECTION",
+          "SELECT",
+          "SESSION",
+          "SESSION_USER",
+          "SET",
+          "SIZE",
+          "SMALLINT",
+          "SOME",
+          "SPACE",
+          "SQL",
+          "SQLCODE",
+          "SQLERROR",
+          "SQLSTATE",
+          "SUBSTRING",
+          "SUM",
+          "SYSTEM_USER",
+          "TABLE",
+          "TEMPORARY",
+          "THEN",
+          "TIME",
+          "TIMESTAMP",
+          "TIMEZONE_HOUR",
+          "TIMEZONE_MINUTE",
+          "TO",
+          "TRAILING",
+          "TRANSACTION",
+          "TRANSLATE",
+          "TRANSLATION",
+          "TRIM",
+          "TRUE",
+          "UNION",
+          "UNIQUE",
+          "UNKNOWN",
+          "UPDATE",
+          "UPPER",
+          "USAGE",
+          "USER",
+          "USING",
+          "VALUE",
+          "VALUES",
+          "VARCHAR",
+          "VARYING",
+          "VIEW",
+          "WHEN",
+          "WHENEVER",
+          "WHERE",
+          "WITH",
+          "WORK",
+          "WRITE",
+          "YEAR",
+          "ZONE");
 
-    //~ Enums ------------------------------------------------------------------
+  //~ Enums ------------------------------------------------------------------
+
+  /**
+   * Type-safe enum for context of acceptable expressions.
+   */
+  protected enum ExprContext {
+    /**
+     * Accept any kind of expression in this context.
+     */
+    ACCEPT_ALL,
 
     /**
-     * Type-safe enum for context of acceptable expressions.
+     * Accept any kind of expression in this context, with the exception of
+     * CURSOR constructors.
      */
-    protected enum ExprContext
-    {
-        /**
-         * Accept any kind of expression in this context.
-         */
-        ACCEPT_ALL,
+    ACCEPT_NONCURSOR,
 
-        /**
-         * Accept any kind of expression in this context, with the exception of
-         * CURSOR constructors.
-         */
-        ACCEPT_NONCURSOR,
+    /**
+     * Accept only query expressions in this context.
+     */
+    ACCEPT_QUERY,
 
-        /**
-         * Accept only query expressions in this context.
-         */
-        ACCEPT_QUERY,
+    /**
+     * Accept only non-query expressions in this context.
+     */
+    ACCEPT_NONQUERY,
 
-        /**
-         * Accept only non-query expressions in this context.
-         */
-        ACCEPT_NONQUERY,
+    /**
+     * Accept only parenthesized queries or non-query expressions in this
+     * context.
+     */
+    ACCEPT_SUBQUERY,
 
-        /**
-         * Accept only parenthesized queries or non-query expressions in this
-         * context.
-         */
-        ACCEPT_SUBQUERY,
+    /**
+     * Accept only CURSOR constructors, parenthesized queries, or non-query
+     * expressions in this context.
+     */
+    ACCEPT_CURSOR
+  }
 
-        /**
-         * Accept only CURSOR constructors, parenthesized queries, or non-query
-         * expressions in this context.
-         */
-        ACCEPT_CURSOR
+  //~ Instance fields --------------------------------------------------------
+
+  /**
+   * Operator table containing the standard SQL operators and functions.
+   */
+  protected final SqlStdOperatorTable opTab = SqlStdOperatorTable.instance();
+
+  protected int nDynamicParams;
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * @return immutable set of all reserved words defined by SQL-92
+   * @sql.92 Section 5.2
+   */
+  public static Set<String> getSql92ReservedWords() {
+    return sql92ReservedWordSet;
+  }
+
+  /**
+   * Creates a call.
+   *
+   * @param funName           Name of function
+   * @param pos               Position in source code
+   * @param funcType          Type of function
+   * @param functionQualifier Qualifier
+   * @param operands          Operands to call
+   * @return Call
+   */
+  protected SqlCall createCall(
+      SqlIdentifier funName,
+      SqlParserPos pos,
+      SqlFunctionCategory funcType,
+      SqlLiteral functionQualifier,
+      SqlNode[] operands) {
+    SqlOperator fun = null;
+
+    // First, try a half-hearted resolution as a builtin function.
+    // If we find one, use it; this will guarantee that we
+    // preserve the correct syntax (i.e. don't quote builtin function
+    /// name when regenerating SQL).
+    if (funName.isSimple()) {
+      List<SqlOperator> list =
+          opTab.lookupOperatorOverloads(
+              funName,
+              null,
+              SqlSyntax.Function);
+      if (list.size() == 1) {
+        fun = list.get(0);
+      }
     }
 
-    //~ Instance fields --------------------------------------------------------
+    // Otherwise, just create a placeholder function.  Later, during
+    // validation, it will be resolved into a real function reference.
+    if (fun == null) {
+      fun = new SqlFunction(funName, null, null, null, null, funcType);
+    }
 
+    return fun.createCall(functionQualifier, pos, operands);
+  }
+
+  /**
+   * Returns metadata about this parser: keywords, etc.
+   */
+  public abstract Metadata getMetadata();
+
+  /**
+   * Removes or transforms misleading information from a parse exception or
+   * error, and converts to {@link SqlParseException}.
+   *
+   * @param ex dirty excn
+   * @return clean excn
+   */
+  public abstract SqlParseException normalizeException(Throwable ex);
+
+  /**
+   * Reinitializes parser with new input.
+   *
+   * @param reader provides new input
+   */
+  public abstract void ReInit(Reader reader);
+
+  /**
+   * Sets the tab stop size.
+   *
+   * @param tabSize Tab stop size
+   */
+  public abstract void setTabSize(int tabSize);
+
+  //~ Inner Interfaces -------------------------------------------------------
+
+  /**
+   * Metadata about the parser. For example:
+   *
+   * <ul>
+   * <li>"KEY" is a keyword: it is meaningful in certain contexts, such as
+   * "CREATE FOREIGN KEY", but can be used as an identifier, as in <code>
+   * "CREATE TABLE t (key INTEGER)"</code>.
+   * <li>"SELECT" is a reserved word. It can not be used as an identifier.
+   * <li>"CURRENT_USER" is the name of a context variable. It cannot be used
+   * as an identifier.
+   * <li>"ABS" is the name of a reserved function. It cannot be used as an
+   * identifier.
+   * <li>"DOMAIN" is a reserved word as specified by the SQL:92 standard.
+   * </ul>
+   */
+  public interface Metadata {
     /**
-     * Operator table containing the standard SQL operators and functions.
+     * Returns true if token is a keyword but not a reserved word. For
+     * example, "KEY".
      */
-    protected final SqlStdOperatorTable opTab = SqlStdOperatorTable.instance();
-
-    protected int nDynamicParams;
-
-    //~ Methods ----------------------------------------------------------------
+    boolean isNonReservedKeyword(String token);
 
     /**
-     * @return immutable set of all reserved words defined by SQL-92
+     * Returns whether token is the name of a context variable such as
+     * "CURRENT_USER".
+     */
+    boolean isContextVariableName(String token);
+
+    /**
+     * Returns whether token is a reserved function name such as
+     * "CURRENT_USER".
+     */
+    boolean isReservedFunctionName(String token);
+
+    /**
+     * Returns whether token is a keyword. (That is, a non-reserved keyword,
+     * a context variable, or a reserved function name.)
+     */
+    boolean isKeyword(String token);
+
+    /**
+     * Returns whether token is a reserved word.
+     */
+    boolean isReservedWord(String token);
+
+    /**
+     * Returns whether token is a reserved word as specified by the SQL:92
+     * standard.
+     */
+    boolean isSql92ReservedWord(String token);
+
+    /**
+     * Returns comma-separated list of JDBC keywords.
+     */
+    String getJdbcKeywords();
+
+    /**
+     * Returns a list of all tokens in alphabetical order.
+     */
+    List<String> getTokens();
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
+
+  /**
+   * Default implementation of the {@link Metadata} interface.
+   */
+  public static class MetadataImpl implements Metadata {
+    private final Set<String> reservedFunctionNames = new HashSet<String>();
+    private final Set<String> contextVariableNames = new HashSet<String>();
+    private final Set<String> nonReservedKeyWordSet = new HashSet<String>();
+
+    /**
+     * Set of all tokens.
+     */
+    private final SortedSet<String> tokenSet = new TreeSet<String>();
+
+    /**
+     * Immutable list of all tokens, in alphabetical order.
+     */
+    private final List<String> tokenList;
+    private final Set<String> reservedWords = new HashSet<String>();
+    private final String sql92ReservedWords;
+
+    /**
+     * Creates a MetadataImpl.
      *
-     * @sql.92 Section 5.2
+     * @param sqlParser Parser
      */
-    public static Set<String> getSql92ReservedWords()
-    {
-        return sql92ReservedWordSet;
+    public MetadataImpl(SqlAbstractParserImpl sqlParser) {
+      initList(sqlParser, reservedFunctionNames, "ReservedFunctionName");
+      initList(sqlParser, contextVariableNames, "ContextVariable");
+      initList(sqlParser, nonReservedKeyWordSet, "NonReservedKeyWord");
+      tokenList = ImmutableList.copyOf(tokenSet);
+      sql92ReservedWords = constructSql92ReservedWordList();
+      Set<String> reservedWordSet = new TreeSet<String>();
+      reservedWordSet.addAll(tokenSet);
+      reservedWordSet.removeAll(nonReservedKeyWordSet);
+      reservedWords.addAll(reservedWordSet);
     }
 
     /**
-     * Creates a call.
-     *
-     * @param funName Name of function
-     * @param pos Position in source code
-     * @param funcType Type of function
-     * @param functionQualifier Qualifier
-     * @param operands Operands to call
-     *
-     * @return Call
+     * Initializes lists of keywords.
      */
-    protected SqlCall createCall(
-        SqlIdentifier funName,
-        SqlParserPos pos,
-        SqlFunctionCategory funcType,
-        SqlLiteral functionQualifier,
-        SqlNode [] operands)
-    {
-        SqlOperator fun = null;
-
-        // First, try a half-hearted resolution as a builtin function.
-        // If we find one, use it; this will guarantee that we
-        // preserve the correct syntax (i.e. don't quote builtin function
-        /// name when regenerating SQL).
-        if (funName.isSimple()) {
-            List<SqlOperator> list =
-                opTab.lookupOperatorOverloads(
-                    funName,
-                    null,
-                    SqlSyntax.Function);
-            if (list.size() == 1) {
-                fun = list.get(0);
+    private void initList(
+        SqlAbstractParserImpl parserImpl,
+        Set<String> keywords,
+        String name) {
+      parserImpl.ReInit(new StringReader("1"));
+      try {
+        Object o = virtualCall(parserImpl, name);
+        Util.discard(o);
+        throw Util.newInternal("expected call to fail");
+      } catch (SqlParseException parseException) {
+        // First time through, build the list of all tokens.
+        final String[] tokenImages = parseException.getTokenImages();
+        if (tokenSet.isEmpty()) {
+          for (String token : tokenImages) {
+            String tokenVal = SqlParserUtil.getTokenVal(token);
+            if (tokenVal != null) {
+              tokenSet.add(tokenVal);
             }
+          }
         }
 
-        // Otherwise, just create a placeholder function.  Later, during
-        // validation, it will be resolved into a real function reference.
-        if (fun == null) {
-            fun = new SqlFunction(funName, null, null, null, null, funcType);
+        // Add the tokens which would have been expected in this
+        // syntactic context to the list we're building.
+        final int[][] expectedTokenSequences =
+            parseException.getExpectedTokenSequences();
+        for (final int[] tokens : expectedTokenSequences) {
+          assert tokens.length == 1;
+          final int tokenId = tokens[0];
+          String token = tokenImages[tokenId];
+          String tokenVal = SqlParserUtil.getTokenVal(token);
+          if (tokenVal != null) {
+            keywords.add(tokenVal);
+          }
         }
-
-        return fun.createCall(functionQualifier, pos, operands);
+      } catch (Throwable e) {
+        throw Util.newInternal(
+            e,
+            "Unexpected error while building token lists");
+      }
     }
 
     /**
-     * Returns metadata about this parser: keywords, etc.
-     */
-    public abstract Metadata getMetadata();
-
-    /**
-     * Removes or transforms misleading information from a parse exception or
-     * error, and converts to {@link SqlParseException}.
+     * Uses reflection to invoke a method on this parser. The method must be
+     * public and have no parameters.
      *
-     * @param ex dirty excn
-     *
-     * @return clean excn
+     * @param parserImpl Parser
+     * @param name       Name of method. For example "ReservedFunctionName".
+     * @return Result of calling method
      */
-    public abstract SqlParseException normalizeException(Throwable ex);
-
-    /**
-     * Reinitializes parser with new input.
-     *
-     * @param reader provides new input
-     */
-    public abstract void ReInit(Reader reader);
-
-    /**
-     * Sets the tab stop size.
-     *
-     * @param tabSize Tab stop size
-     */
-    public abstract void setTabSize(int tabSize);
-
-    //~ Inner Interfaces -------------------------------------------------------
-
-    /**
-     * Metadata about the parser. For example:
-     *
-     * <ul>
-     * <li>"KEY" is a keyword: it is meaningful in certain contexts, such as
-     * "CREATE FOREIGN KEY", but can be used as an identifier, as in <code>
-     * "CREATE TABLE t (key INTEGER)"</code>.
-     * <li>"SELECT" is a reserved word. It can not be used as an identifier.
-     * <li>"CURRENT_USER" is the name of a context variable. It cannot be used
-     * as an identifier.
-     * <li>"ABS" is the name of a reserved function. It cannot be used as an
-     * identifier.
-     * <li>"DOMAIN" is a reserved word as specified by the SQL:92 standard.
-     * </ul>
-     */
-    public interface Metadata
-    {
-        /**
-         * Returns true if token is a keyword but not a reserved word. For
-         * example, "KEY".
-         */
-        boolean isNonReservedKeyword(String token);
-
-        /**
-         * Returns whether token is the name of a context variable such as
-         * "CURRENT_USER".
-         */
-        boolean isContextVariableName(String token);
-
-        /**
-         * Returns whether token is a reserved function name such as
-         * "CURRENT_USER".
-         */
-        boolean isReservedFunctionName(String token);
-
-        /**
-         * Returns whether token is a keyword. (That is, a non-reserved keyword,
-         * a context variable, or a reserved function name.)
-         */
-        boolean isKeyword(String token);
-
-        /**
-         * Returns whether token is a reserved word.
-         */
-        boolean isReservedWord(String token);
-
-        /**
-         * Returns whether token is a reserved word as specified by the SQL:92
-         * standard.
-         */
-        boolean isSql92ReservedWord(String token);
-
-        /**
-         * Returns comma-separated list of JDBC keywords.
-         */
-        String getJdbcKeywords();
-
-        /**
-         * Returns a list of all tokens in alphabetical order.
-         */
-        List<String> getTokens();
+    private Object virtualCall(
+        SqlAbstractParserImpl parserImpl,
+        String name)
+        throws Throwable {
+      Class<?> clazz = parserImpl.getClass();
+      try {
+        final Method method = clazz.getMethod(name, (Class[]) null);
+        return method.invoke(parserImpl, (Object[]) null);
+      } catch (NoSuchMethodException e) {
+        throw Util.newInternal(e);
+      } catch (IllegalAccessException e) {
+        throw Util.newInternal(e);
+      } catch (InvocationTargetException e) {
+        Throwable cause = e.getCause();
+        throw parserImpl.normalizeException(cause);
+      }
     }
 
-    //~ Inner Classes ----------------------------------------------------------
-
     /**
-     * Default implementation of the {@link Metadata} interface.
+     * Builds a comma-separated list of JDBC reserved words.
      */
-    public static class MetadataImpl
-        implements Metadata
-    {
-        private final Set<String> reservedFunctionNames = new HashSet<String>();
-        private final Set<String> contextVariableNames = new HashSet<String>();
-        private final Set<String> nonReservedKeyWordSet = new HashSet<String>();
-
-        /**
-         * Set of all tokens.
-         */
-        private final SortedSet<String> tokenSet = new TreeSet<String>();
-
-        /**
-         * Immutable list of all tokens, in alphabetical order.
-         */
-        private final List<String> tokenList;
-        private final Set<String> reservedWords = new HashSet<String>();
-        private final String sql92ReservedWords;
-
-        /**
-         * Creates a MetadataImpl.
-         *
-         * @param sqlParser Parser
-         */
-        public MetadataImpl(SqlAbstractParserImpl sqlParser)
-        {
-            initList(sqlParser, reservedFunctionNames, "ReservedFunctionName");
-            initList(sqlParser, contextVariableNames, "ContextVariable");
-            initList(sqlParser, nonReservedKeyWordSet, "NonReservedKeyWord");
-            tokenList = ImmutableList.copyOf(tokenSet);
-            sql92ReservedWords = constructSql92ReservedWordList();
-            Set<String> reservedWordSet = new TreeSet<String>();
-            reservedWordSet.addAll(tokenSet);
-            reservedWordSet.removeAll(nonReservedKeyWordSet);
-            reservedWords.addAll(reservedWordSet);
+    private String constructSql92ReservedWordList() {
+      StringBuilder sb = new StringBuilder();
+      TreeSet<String> jdbcReservedSet = new TreeSet<String>();
+      jdbcReservedSet.addAll(tokenSet);
+      jdbcReservedSet.removeAll(sql92ReservedWordSet);
+      jdbcReservedSet.removeAll(nonReservedKeyWordSet);
+      int j = 0;
+      for (String jdbcReserved : jdbcReservedSet) {
+        if (j++ > 0) {
+          sb.append(",");
         }
-
-        /**
-         * Initializes lists of keywords.
-         */
-        private void initList(
-            SqlAbstractParserImpl parserImpl,
-            Set<String> keywords,
-            String name)
-        {
-            parserImpl.ReInit(new StringReader("1"));
-            try {
-                Object o = virtualCall(parserImpl, name);
-                Util.discard(o);
-                throw Util.newInternal("expected call to fail");
-            } catch (SqlParseException parseException) {
-                // First time through, build the list of all tokens.
-                final String [] tokenImages = parseException.getTokenImages();
-                if (tokenSet.isEmpty()) {
-                    for (String token : tokenImages) {
-                        String tokenVal = SqlParserUtil.getTokenVal(token);
-                        if (tokenVal != null) {
-                            tokenSet.add(tokenVal);
-                        }
-                    }
-                }
-
-                // Add the tokens which would have been expected in this
-                // syntactic context to the list we're building.
-                final int [][] expectedTokenSequences =
-                    parseException.getExpectedTokenSequences();
-                for (final int[] tokens : expectedTokenSequences) {
-                    assert tokens.length == 1;
-                    final int tokenId = tokens[0];
-                    String token = tokenImages[tokenId];
-                    String tokenVal = SqlParserUtil.getTokenVal(token);
-                    if (tokenVal != null) {
-                        keywords.add(tokenVal);
-                    }
-                }
-            } catch (Throwable e) {
-                throw Util.newInternal(
-                    e,
-                    "Unexpected error while building token lists");
-            }
-        }
-
-        /**
-         * Uses reflection to invoke a method on this parser. The method must be
-         * public and have no parameters.
-         *
-         * @param parserImpl Parser
-         * @param name Name of method. For example "ReservedFunctionName".
-         *
-         * @return Result of calling method
-         */
-        private Object virtualCall(
-            SqlAbstractParserImpl parserImpl,
-            String name)
-            throws Throwable
-        {
-            Class<?> clazz = parserImpl.getClass();
-            try {
-                final Method method = clazz.getMethod(name, (Class []) null);
-                return method.invoke(parserImpl, (Object []) null);
-            } catch (NoSuchMethodException e) {
-                throw Util.newInternal(e);
-            } catch (IllegalAccessException e) {
-                throw Util.newInternal(e);
-            } catch (InvocationTargetException e) {
-                Throwable cause = e.getCause();
-                throw parserImpl.normalizeException(cause);
-            }
-        }
-
-        /**
-         * Builds a comma-separated list of JDBC reserved words.
-         */
-        private String constructSql92ReservedWordList()
-        {
-            StringBuilder sb = new StringBuilder();
-            TreeSet<String> jdbcReservedSet = new TreeSet<String>();
-            jdbcReservedSet.addAll(tokenSet);
-            jdbcReservedSet.removeAll(sql92ReservedWordSet);
-            jdbcReservedSet.removeAll(nonReservedKeyWordSet);
-            int j = 0;
-            for (String jdbcReserved : jdbcReservedSet) {
-                if (j++ > 0) {
-                    sb.append(",");
-                }
-                sb.append(jdbcReserved);
-            }
-            return sb.toString();
-        }
-
-        public List<String> getTokens()
-        {
-            return tokenList;
-        }
-
-        public boolean isSql92ReservedWord(String token)
-        {
-            return sql92ReservedWordSet.contains(token);
-        }
-
-        public String getJdbcKeywords()
-        {
-            return sql92ReservedWords;
-        }
-
-        public boolean isKeyword(String token)
-        {
-            return isNonReservedKeyword(token)
-                || isReservedFunctionName(token)
-                || isContextVariableName(token)
-                || isReservedWord(token);
-        }
-
-        public boolean isNonReservedKeyword(String token)
-        {
-            return nonReservedKeyWordSet.contains(token);
-        }
-
-        public boolean isReservedFunctionName(String token)
-        {
-            return reservedFunctionNames.contains(token);
-        }
-
-        public boolean isContextVariableName(String token)
-        {
-            return contextVariableNames.contains(token);
-        }
-
-        public boolean isReservedWord(String token)
-        {
-            return reservedWords.contains(token);
-        }
+        sb.append(jdbcReserved);
+      }
+      return sb.toString();
     }
+
+    public List<String> getTokens() {
+      return tokenList;
+    }
+
+    public boolean isSql92ReservedWord(String token) {
+      return sql92ReservedWordSet.contains(token);
+    }
+
+    public String getJdbcKeywords() {
+      return sql92ReservedWords;
+    }
+
+    public boolean isKeyword(String token) {
+      return isNonReservedKeyword(token)
+          || isReservedFunctionName(token)
+          || isContextVariableName(token)
+          || isReservedWord(token);
+    }
+
+    public boolean isNonReservedKeyword(String token) {
+      return nonReservedKeyWordSet.contains(token);
+    }
+
+    public boolean isReservedFunctionName(String token) {
+      return reservedFunctionNames.contains(token);
+    }
+
+    public boolean isContextVariableName(String token) {
+      return contextVariableNames.contains(token);
+    }
+
+    public boolean isReservedWord(String token) {
+      return reservedWords.contains(token);
+    }
+  }
 }
 
 // End SqlAbstractParserImpl.java

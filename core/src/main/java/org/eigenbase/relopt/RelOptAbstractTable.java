@@ -29,78 +29,69 @@ import com.google.common.collect.ImmutableList;
 /**
  * Partial implementation of {@link RelOptTable}.
  */
-public abstract class RelOptAbstractTable
-    implements RelOptTable
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class RelOptAbstractTable implements RelOptTable {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final RelOptSchema schema;
-    protected final RelDataType rowType;
-    protected final String name;
+  protected final RelOptSchema schema;
+  protected final RelDataType rowType;
+  protected final String name;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    protected RelOptAbstractTable(
-        RelOptSchema schema,
-        String name,
-        RelDataType rowType)
-    {
-        this.schema = schema;
-        this.name = name;
-        this.rowType = rowType;
-    }
+  protected RelOptAbstractTable(
+      RelOptSchema schema,
+      String name,
+      RelDataType rowType) {
+    this.schema = schema;
+    this.name = name;
+    this.rowType = rowType;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public String getName()
-    {
-        return name;
-    }
+  public String getName() {
+    return name;
+  }
 
-    public List<String> getQualifiedName()
-    {
-        return ImmutableList.of(name);
-    }
+  public List<String> getQualifiedName() {
+    return ImmutableList.of(name);
+  }
 
-    public double getRowCount()
-    {
-        return 100;
-    }
+  public double getRowCount() {
+    return 100;
+  }
 
-    public RelDataType getRowType()
-    {
-        return rowType;
-    }
+  public RelDataType getRowType() {
+    return rowType;
+  }
 
-    public RelOptSchema getRelOptSchema()
-    {
-        return schema;
-    }
+  public RelOptSchema getRelOptSchema() {
+    return schema;
+  }
 
-    // Override to define collations.
-    public List<RelCollation> getCollationList()
-    {
-        return Collections.emptyList();
-    }
+  // Override to define collations.
+  public List<RelCollation> getCollationList() {
+    return Collections.emptyList();
+  }
 
-    public <T> T unwrap(Class<T> clazz) {
-        return clazz.isInstance(this)
-            ? clazz.cast(this)
-            : null;
-    }
+  public <T> T unwrap(Class<T> clazz) {
+    return clazz.isInstance(this)
+        ? clazz.cast(this)
+        : null;
+  }
 
-    // Override to define keys
-    public boolean isKey(BitSet columns) {
-        return false;
-    }
+  // Override to define keys
+  public boolean isKey(BitSet columns) {
+    return false;
+  }
 
-    public RelNode toRel(ToRelContext context) {
-        return new TableAccessRel(context.getCluster(), this);
-    }
+  public RelNode toRel(ToRelContext context) {
+    return new TableAccessRel(context.getCluster(), this);
+  }
 
-    public Expression getExpression(Class clazz) {
-        throw new UnsupportedOperationException();
-    }
+  public Expression getExpression(Class clazz) {
+    throw new UnsupportedOperationException();
+  }
 }
 
 // End RelOptAbstractTable.java

@@ -30,31 +30,29 @@ import net.hydromatic.linq4j.expressions.Types;
  * interface, {@link #getKey()} must be equivalent to {@link #getName()}
  * and {@link #getValue()} must be equivalent to {@link #getType()}.
  */
-public interface RelDataTypeField
-    extends /*Types.RecordField, */Map.Entry<String, RelDataType>
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RelDataTypeField extends Map.Entry<String, RelDataType> {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Gets the name of this field, which is unique within its containing type.
-     *
-     * @return field name
-     */
-    public String getName();
+  /**
+   * Gets the name of this field, which is unique within its containing type.
+   *
+   * @return field name
+   */
+  public String getName();
 
-    /**
-     * Gets the ordinal of this field within its containing type.
-     *
-     * @return 0-based ordinal
-     */
-    public int getIndex();
+  /**
+   * Gets the ordinal of this field within its containing type.
+   *
+   * @return 0-based ordinal
+   */
+  public int getIndex();
 
-    /**
-     * Gets the type of this field.
-     *
-     * @return field type
-     */
-    public RelDataType getType();
+  /**
+   * Gets the type of this field.
+   *
+   * @return field type
+   */
+  public RelDataType getType();
 }
 
 // End RelDataTypeField.java

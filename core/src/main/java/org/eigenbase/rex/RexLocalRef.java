@@ -34,73 +34,65 @@ import org.eigenbase.util.*;
  *
  * <p>Variables are immutable.
  */
-public class RexLocalRef
-    extends RexSlot
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class RexLocalRef extends RexSlot {
+  //~ Static fields/initializers ---------------------------------------------
 
-    // array of common names, to reduce memory allocations
-    private static final List<String> names = new SelfPopulatingList("$t", 30);
+  // array of common names, to reduce memory allocations
+  private static final List<String> names = new SelfPopulatingList("$t", 30);
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a local variable.
-     *
-     * @param index Index of the field in the underlying rowtype
-     * @param type Type of the column
-     *
-     * @pre type != null
-     * @pre index >= 0
-     */
-    public RexLocalRef(
-        int index,
-        RelDataType type)
-    {
-        super(
-            createName(index),
-            index,
-            type);
+  /**
+   * Creates a local variable.
+   *
+   * @param index Index of the field in the underlying rowtype
+   * @param type  Type of the column
+   * @pre type != null
+   * @pre index >= 0
+   */
+  public RexLocalRef(
+      int index,
+      RelDataType type) {
+    super(
+        createName(index),
+        index,
+        type);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  @Override
+  public SqlKind getKind() {
+    return SqlKind.LOCAL_REF;
+  }
+
+  public RexLocalRef clone() {
+    // Since refs are immutable and identity is based on value,
+    // there's no point returning a copy.
+    return this;
+  }
+
+  public boolean equals(Object obj) {
+    if (obj instanceof RexLocalRef) {
+      RexLocalRef that = (RexLocalRef) obj;
+      return (this.type == that.type) && (this.index == that.index);
     }
+    return false;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  public int hashCode() {
+    return Util.hash(
+        type.hashCode(),
+        index);
+  }
 
-    @Override public SqlKind getKind() {
-        return SqlKind.LOCAL_REF;
-    }
+  public <R> R accept(RexVisitor<R> visitor) {
+    return visitor.visitLocalRef(this);
+  }
 
-    public RexLocalRef clone()
-    {
-        // Since refs are immutable and identity is based on value,
-        // there's no point returning a copy.
-        return this;
-    }
-
-    public boolean equals(Object obj)
-    {
-        if (obj instanceof RexLocalRef) {
-            RexLocalRef that = (RexLocalRef) obj;
-            return (this.type == that.type) && (this.index == that.index);
-        }
-        return false;
-    }
-
-    public int hashCode()
-    {
-        return Util.hash(
-            type.hashCode(),
-            index);
-    }
-
-    public <R> R accept(RexVisitor<R> visitor)
-    {
-        return visitor.visitLocalRef(this);
-    }
-
-    private static String createName(int index)
-    {
-        return names.get(index);
-    }
+  private static String createName(int index) {
+    return names.get(index);
+  }
 }
 
 // End RexLocalRef.java

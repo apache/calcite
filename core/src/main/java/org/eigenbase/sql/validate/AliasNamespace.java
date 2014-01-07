@@ -31,102 +31,96 @@ import org.eigenbase.sql.fun.*;
  * re-map column names; a <code>relation AS t</code> clause just uses the same
  * namespace as <code>relation</code>.
  */
-public class AliasNamespace
-    extends AbstractNamespace
-{
-    //~ Instance fields --------------------------------------------------------
+public class AliasNamespace extends AbstractNamespace {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final SqlCall call;
+  protected final SqlCall call;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates an AliasNamespace.
-     *
-     * @param validator Validator
-     * @param call Call to AS operator
-     * @param enclosingNode Enclosing node
-     */
-    protected AliasNamespace(
-        SqlValidatorImpl validator,
-        SqlCall call,
-        SqlNode enclosingNode)
-    {
-        super(validator, enclosingNode);
-        this.call = call;
-        assert call.getOperator() == SqlStdOperatorTable.asOperator;
+  /**
+   * Creates an AliasNamespace.
+   *
+   * @param validator     Validator
+   * @param call          Call to AS operator
+   * @param enclosingNode Enclosing node
+   */
+  protected AliasNamespace(
+      SqlValidatorImpl validator,
+      SqlCall call,
+      SqlNode enclosingNode) {
+    super(validator, enclosingNode);
+    this.call = call;
+    assert call.getOperator() == SqlStdOperatorTable.asOperator;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  protected RelDataType validateImpl() {
+    final List<String> nameList = new ArrayList<String>();
+    final SqlValidatorNamespace childNs =
+        validator.getNamespace(call.getOperands()[0]);
+    final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
+    for (int i = 2; i < call.getOperands().length; ++i) {
+      final SqlNode operand = call.getOperands()[i];
+      String name = ((SqlIdentifier) operand).getSimple();
+      if (nameList.contains(name)) {
+        throw validator.newValidationError(
+            operand,
+            EigenbaseResource.instance().AliasListDuplicate.ex(
+                name));
+      }
+      nameList.add(name);
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    protected RelDataType validateImpl()
-    {
-        final List<String> nameList = new ArrayList<String>();
-        final SqlValidatorNamespace childNs =
-            validator.getNamespace(call.getOperands()[0]);
-        final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
-        for (int i = 2; i < call.getOperands().length; ++i) {
-            final SqlNode operand = call.getOperands()[i];
-            String name = ((SqlIdentifier) operand).getSimple();
-            if (nameList.contains(name)) {
-                throw validator.newValidationError(
-                    operand,
-                    EigenbaseResource.instance().AliasListDuplicate.ex(
-                        name));
-            }
-            nameList.add(name);
+    if (nameList.size() != rowType.getFieldCount()) {
+      StringBuilder buf = new StringBuilder();
+      buf.append("(");
+      int k = 0;
+      for (RelDataTypeField field : rowType.getFieldList()) {
+        if (k++ > 0) {
+          buf.append(", ");
         }
-        if (nameList.size() != rowType.getFieldCount()) {
-            StringBuilder buf = new StringBuilder();
-            buf.append("(");
-            int k = 0;
-            for (RelDataTypeField field : rowType.getFieldList()) {
-                if (k++ > 0) {
-                    buf.append(", ");
-                }
-                buf.append("'");
-                buf.append(field.getName());
-                buf.append("'");
-            }
-            buf.append(")");
+        buf.append("'");
+        buf.append(field.getName());
+        buf.append("'");
+      }
+      buf.append(")");
 
-            // Position error at first name in list.
-            throw validator.newValidationError(
-                call.getOperands()[2],
-                EigenbaseResource.instance().AliasListDegree.ex(
-                    rowType.getFieldCount(),
-                    buf.toString(),
-                    nameList.size()));
-        }
-        final List<RelDataType> typeList = new ArrayList<RelDataType>();
-        for (RelDataTypeField field : rowType.getFieldList()) {
-            typeList.add(field.getType());
-        }
-        return validator.getTypeFactory().createStructType(
-            typeList,
-            nameList);
+      // Position error at first name in list.
+      throw validator.newValidationError(
+          call.getOperands()[2],
+          EigenbaseResource.instance().AliasListDegree.ex(
+              rowType.getFieldCount(),
+              buf.toString(),
+              nameList.size()));
     }
-
-    public SqlNode getNode()
-    {
-        return call;
+    final List<RelDataType> typeList = new ArrayList<RelDataType>();
+    for (RelDataTypeField field : rowType.getFieldList()) {
+      typeList.add(field.getType());
     }
+    return validator.getTypeFactory().createStructType(
+        typeList,
+        nameList);
+  }
 
-    public String translate(String name)
-    {
-        final RelDataType underlyingRowType =
-            validator.getValidatedNodeType(call.getOperands()[0]);
-        int i = 0;
-        for (RelDataTypeField field : rowType.getFieldList()) {
-            if (field.getName().equals(name)) {
-                return underlyingRowType.getFieldList().get(i).getName();
-            }
-            ++i;
-        }
-        throw new AssertionError(
-            "unknown field '" + name
-            + "' in rowtype " + underlyingRowType);
+  public SqlNode getNode() {
+    return call;
+  }
+
+  public String translate(String name) {
+    final RelDataType underlyingRowType =
+        validator.getValidatedNodeType(call.getOperands()[0]);
+    int i = 0;
+    for (RelDataTypeField field : rowType.getFieldList()) {
+      if (field.getName().equals(name)) {
+        return underlyingRowType.getFieldList().get(i).getName();
+      }
+      ++i;
     }
+    throw new AssertionError(
+        "unknown field '" + name
+        + "' in rowtype " + underlyingRowType);
+  }
 }
 
 // End AliasNamespace.java

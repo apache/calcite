@@ -27,7 +27,7 @@ import org.eigenbase.util.*;
  * the parameters found on the left side of the over clause, and objects
  * inherited from the parent scope.
  *
- * <p>This object is both a {@link SqlValidatorScope} only. In the query
+ * <p>This object is both a {@link SqlValidatorScope} only. In the query</p>
  *
  * <blockquote>
  * <pre>SELECT name FROM (
@@ -38,59 +38,53 @@ import org.eigenbase.util.*;
  * </pre>
  * </blockquote>
  *
- * <p/>
  * <p>We need to use the {@link OverScope} as a {@link SqlValidatorNamespace}
  * when resolving names used in the window specification.</p>
  */
-public class OverScope
-    extends ListScope
-{
-    //~ Instance fields --------------------------------------------------------
+public class OverScope extends ListScope {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlCall overCall;
+  private final SqlCall overCall;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a scope corresponding to a SELECT clause.
-     *
-     * @param parent Parent scope, or null
-     * @param overCall Call to OVER operator
-     */
-    OverScope(
-        SqlValidatorScope parent,
-        SqlCall overCall)
-    {
-        super(parent);
-        this.overCall = overCall;
+  /**
+   * Creates a scope corresponding to a SELECT clause.
+   *
+   * @param parent   Parent scope, or null
+   * @param overCall Call to OVER operator
+   */
+  OverScope(
+      SqlValidatorScope parent,
+      SqlCall overCall) {
+    super(parent);
+    this.overCall = overCall;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlNode getNode() {
+    return overCall;
+  }
+
+  public SqlMonotonicity getMonotonicity(SqlNode expr) {
+    SqlMonotonicity monotonicity = expr.getMonotonicity(this);
+    if (monotonicity != SqlMonotonicity.NotMonotonic) {
+      return monotonicity;
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public SqlNode getNode()
-    {
-        return overCall;
-    }
-
-    public SqlMonotonicity getMonotonicity(SqlNode expr)
-    {
-        SqlMonotonicity monotonicity = expr.getMonotonicity(this);
-        if (monotonicity != SqlMonotonicity.NotMonotonic) {
-            return monotonicity;
+    if (children.size() == 1) {
+      final SqlValidatorNamespace child = children.get(0).right;
+      final List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs =
+          child.getMonotonicExprs();
+      for (Pair<SqlNode, SqlMonotonicity> pair : monotonicExprs) {
+        if (expr.equalsDeep(pair.left, false)) {
+          return pair.right;
         }
-
-        if (children.size() == 1) {
-            final SqlValidatorNamespace child = children.get(0).right;
-            final List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs =
-                child.getMonotonicExprs();
-            for (Pair<SqlNode, SqlMonotonicity> pair : monotonicExprs) {
-                if (expr.equalsDeep(pair.left, false)) {
-                    return pair.right;
-                }
-            }
-        }
-        return super.getMonotonicity(expr);
+      }
     }
+    return super.getMonotonicity(expr);
+  }
 }
 
 // End OverScope.java

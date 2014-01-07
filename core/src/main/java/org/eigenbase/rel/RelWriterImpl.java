@@ -35,162 +35,158 @@ import com.google.common.collect.ImmutableList;
  * Implementation of {@link org.eigenbase.rel.RelWriter}.
  */
 public class RelWriterImpl implements RelWriter {
-    //~ Instance fields --------------------------------------------------------
+  //~ Instance fields --------------------------------------------------------
 
-    protected final PrintWriter pw;
-    private final SqlExplainLevel detailLevel;
-    private final boolean withIdPrefix;
-    protected final Spacer spacer = new Spacer();
-    private final List<Pair<String, Object>> values =
-        new ArrayList<Pair<String, Object>>();
+  protected final PrintWriter pw;
+  private final SqlExplainLevel detailLevel;
+  private final boolean withIdPrefix;
+  protected final Spacer spacer = new Spacer();
+  private final List<Pair<String, Object>> values =
+      new ArrayList<Pair<String, Object>>();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public RelWriterImpl(PrintWriter pw) {
-        this(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, true);
+  public RelWriterImpl(PrintWriter pw) {
+    this(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, true);
+  }
+
+  public RelWriterImpl(
+      PrintWriter pw, SqlExplainLevel detailLevel,
+      boolean withIdPrefix) {
+    this.pw = pw;
+    this.detailLevel = detailLevel;
+    this.withIdPrefix = withIdPrefix;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  protected void explain_(
+      RelNode rel,
+      List<Pair<String, Object>> values) {
+    List<RelNode> inputs = rel.getInputs();
+
+    if (!RelMetadataQuery.isVisibleInExplain(
+        rel,
+        detailLevel)) {
+      // render children in place of this, at same level
+      explainInputs(inputs);
+      return;
     }
 
-    public RelWriterImpl(
-        PrintWriter pw, SqlExplainLevel detailLevel,
-        boolean withIdPrefix)
-    {
-        this.pw = pw;
-        this.detailLevel = detailLevel;
-        this.withIdPrefix = withIdPrefix;
+    StringBuilder s = new StringBuilder();
+    spacer.spaces(s);
+    if (withIdPrefix) {
+      s.append(rel.getId()).append(":");
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    protected void explain_(
-        RelNode rel,
-        List<Pair<String, Object>> values)
-    {
-        List<RelNode> inputs = rel.getInputs();
-
-        if (!RelMetadataQuery.isVisibleInExplain(
-                rel,
-                detailLevel))
-        {
-            // render children in place of this, at same level
-            explainInputs(inputs);
-            return;
+    s.append(rel.getRelTypeName());
+    if (detailLevel != SqlExplainLevel.NO_ATTRIBUTES) {
+      int j = 0;
+      for (Pair<String, Object> value : values) {
+        if (value.right instanceof RelNode) {
+          continue;
         }
-
-        StringBuilder s = new StringBuilder();
-        spacer.spaces(s);
-        if (withIdPrefix) {
-            s.append(rel.getId()).append(":");
+        if (j++ == 0) {
+          s.append("(");
+        } else {
+          s.append(", ");
         }
-        s.append(rel.getRelTypeName());
-        if (detailLevel != SqlExplainLevel.NO_ATTRIBUTES) {
-            int j = 0;
-            for (Pair<String, Object> value : values) {
-                if (value.right instanceof RelNode) {
-                    continue;
-                }
-                if (j++ == 0) {
-                    s.append("(");
-                } else {
-                    s.append(", ");
-                }
-                s.append(value.left)
-                    .append("=[")
-                    .append(value.right)
-                    .append("]");
-            }
-            if (j > 0) {
-                s.append(")");
-            }
-        }
-        if (detailLevel == SqlExplainLevel.ALL_ATTRIBUTES) {
-            s.append(": rowcount = ")
-                .append(RelMetadataQuery.getRowCount(rel))
-                .append(", cumulative cost = ")
-                .append(RelMetadataQuery.getCumulativeCost(rel));
-            if (!withIdPrefix) {
-                // If we didn't print the rel id at the start of the line, print
-                // it at the end.
-                s.append(", id = ").append(rel.getId());
-            }
-        }
-        pw.println(s);
-        spacer.add(2);
-        explainInputs(inputs);
-        spacer.subtract(2);
+        s.append(value.left)
+            .append("=[")
+            .append(value.right)
+            .append("]");
+      }
+      if (j > 0) {
+        s.append(")");
+      }
     }
+    if (detailLevel == SqlExplainLevel.ALL_ATTRIBUTES) {
+      s.append(": rowcount = ")
+          .append(RelMetadataQuery.getRowCount(rel))
+          .append(", cumulative cost = ")
+          .append(RelMetadataQuery.getCumulativeCost(rel));
+      if (!withIdPrefix) {
+        // If we didn't print the rel id at the start of the line, print
+        // it at the end.
+        s.append(", id = ").append(rel.getId());
+      }
+    }
+    pw.println(s);
+    spacer.add(2);
+    explainInputs(inputs);
+    spacer.subtract(2);
+  }
 
-    private void explainInputs(List<RelNode> inputs) {
-        for (RelNode input : inputs) {
-            input.explain(this);
-        }
+  private void explainInputs(List<RelNode> inputs) {
+    for (RelNode input : inputs) {
+      input.explain(this);
     }
+  }
 
-    public final void explain(RelNode rel, List<Pair<String, Object>> valueList)
-    {
-        explain_(rel, valueList);
-    }
+  public final void explain(RelNode rel, List<Pair<String, Object>> valueList) {
+    explain_(rel, valueList);
+  }
 
-    public SqlExplainLevel getDetailLevel()
-    {
-        return detailLevel;
-    }
+  public SqlExplainLevel getDetailLevel() {
+    return detailLevel;
+  }
 
-    public RelWriter input(String term, RelNode input) {
-        values.add(Pair.of(term, (Object) input));
-        return this;
-    }
+  public RelWriter input(String term, RelNode input) {
+    values.add(Pair.of(term, (Object) input));
+    return this;
+  }
 
-    public RelWriter item(String term, Object value) {
-        values.add(Pair.of(term, value));
-        return this;
-    }
+  public RelWriter item(String term, Object value) {
+    values.add(Pair.of(term, value));
+    return this;
+  }
 
-    public RelWriter itemIf(String term, Object value, boolean condition)
-    {
-        if (condition) {
-            item(term, value);
-        }
-        return this;
+  public RelWriter itemIf(String term, Object value, boolean condition) {
+    if (condition) {
+      item(term, value);
     }
+    return this;
+  }
 
-    public RelWriter done(RelNode node) {
-        int i = 0;
-        if (values.size() > 0 && values.get(0).left.equals("subset")) {
-            ++i;
-        }
-        for (RelNode input : node.getInputs()) {
-            assert values.get(i).right == input;
-            ++i;
-        }
-        for (RexNode expr : node.getChildExps()) {
-            assert values.get(i).right == expr;
-            ++i;
-        }
-        final List<Pair<String, Object>> valuesCopy =
-            ImmutableList.copyOf(values);
-        values.clear();
-        explain_(node, valuesCopy);
-        pw.flush();
-        return this;
+  public RelWriter done(RelNode node) {
+    int i = 0;
+    if (values.size() > 0 && values.get(0).left.equals("subset")) {
+      ++i;
     }
+    for (RelNode input : node.getInputs()) {
+      assert values.get(i).right == input;
+      ++i;
+    }
+    for (RexNode expr : node.getChildExps()) {
+      assert values.get(i).right == expr;
+      ++i;
+    }
+    final List<Pair<String, Object>> valuesCopy =
+        ImmutableList.copyOf(values);
+    values.clear();
+    explain_(node, valuesCopy);
+    pw.flush();
+    return this;
+  }
 
-    public boolean nest() {
-        return false;
-    }
+  public boolean nest() {
+    return false;
+  }
 
-    /** Converts the collected terms and values to a string. Does not write to
-     * the parent writer. */
-    public String simple() {
-        final StringBuilder buf = new StringBuilder("(");
-        for (Ord<Pair<String, Object>> ord : Ord.zip(values)) {
-            if (ord.i > 0) {
-                buf.append(", ");
-            }
-            buf.append(ord.e.left).append("=[").append(ord.e.right).append("]");
-        }
-        buf.append(")");
-        return buf.toString();
+  /**
+   * Converts the collected terms and values to a string. Does not write to
+   * the parent writer.
+   */
+  public String simple() {
+    final StringBuilder buf = new StringBuilder("(");
+    for (Ord<Pair<String, Object>> ord : Ord.zip(values)) {
+      if (ord.i > 0) {
+        buf.append(", ");
+      }
+      buf.append(ord.e.left).append("=[").append(ord.e.right).append("]");
     }
+    buf.append(")");
+    return buf.toString();
+  }
 }
 
 // End RelWriterImpl.java

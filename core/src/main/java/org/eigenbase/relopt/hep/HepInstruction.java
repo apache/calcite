@@ -26,198 +26,161 @@ import org.eigenbase.relopt.*;
  * instruction set is defined here via inner classes; if these grow too big,
  * they should be moved out to top-level classes.
  */
-abstract class HepInstruction
-{
-    //~ Methods ----------------------------------------------------------------
+abstract class HepInstruction {
+  //~ Methods ----------------------------------------------------------------
 
-    void initialize(boolean clearCache)
-    {
+  void initialize(boolean clearCache) {
+  }
+
+  // typesafe dispatch via the visitor pattern
+  abstract void execute(HepPlanner planner);
+
+  //~ Inner Classes ----------------------------------------------------------
+
+  static class RuleClass<R extends RelOptRule> extends HepInstruction {
+    Class<R> ruleClass;
+
+    /**
+     * Actual rule set instantiated during planning by filtering all of the
+     * planner's rules through ruleClass.
+     */
+    Set<RelOptRule> ruleSet;
+
+    void initialize(boolean clearCache) {
+      if (!clearCache) {
+        return;
+      }
+
+      ruleSet = null;
     }
 
-    // typesafe dispatch via the visitor pattern
-    abstract void execute(HepPlanner planner);
+    void execute(HepPlanner planner) {
+      planner.executeInstruction(this);
+    }
+  }
 
-    //~ Inner Classes ----------------------------------------------------------
+  static class RuleCollection extends HepInstruction {
+    /**
+     * Collection of rules to apply.
+     */
+    Collection<RelOptRule> rules;
 
-    static class RuleClass<R extends RelOptRule>
-        extends HepInstruction
-    {
-        Class<R> ruleClass;
+    void execute(HepPlanner planner) {
+      planner.executeInstruction(this);
+    }
+  }
 
-        /**
-         * Actual rule set instantiated during planning by filtering all of the
-         * planner's rules through ruleClass.
-         */
-        Set<RelOptRule> ruleSet;
+  static class ConverterRules extends HepInstruction {
+    boolean guaranteed;
 
-        void initialize(boolean clearCache)
-        {
-            if (!clearCache) {
-                return;
-            }
+    /**
+     * Actual rule set instantiated during planning by filtering all of the
+     * planner's rules, looking for the desired converters.
+     */
+    Set<RelOptRule> ruleSet;
 
-            ruleSet = null;
-        }
+    void execute(HepPlanner planner) {
+      planner.executeInstruction(this);
+    }
+  }
 
-        void execute(HepPlanner planner)
-        {
-            planner.executeInstruction(this);
-        }
+  static class CommonRelSubExprRules extends HepInstruction {
+    Set<RelOptRule> ruleSet;
+
+    void execute(HepPlanner planner) {
+      planner.executeInstruction(this);
+    }
+  }
+
+  static class RuleInstance extends HepInstruction {
+    /**
+     * Description to look for, or null if rule specified explicitly.
+     */
+    String ruleDescription;
+
+    /**
+     * Explicitly specified rule, or rule looked up by planner from
+     * description.
+     */
+    RelOptRule rule;
+
+    void initialize(boolean clearCache) {
+      if (!clearCache) {
+        return;
+      }
+
+      if (ruleDescription != null) {
+        // Look up anew each run.
+        rule = null;
+      }
     }
 
-    static class RuleCollection
-        extends HepInstruction
-    {
-        /**
-         * Collection of rules to apply.
-         */
-        Collection<RelOptRule> rules;
+    void execute(HepPlanner planner) {
+      planner.executeInstruction(this);
+    }
+  }
 
-        void execute(HepPlanner planner)
-        {
-            planner.executeInstruction(this);
-        }
+  static class MatchOrder extends HepInstruction {
+    HepMatchOrder order;
+
+    void execute(HepPlanner planner) {
+      planner.executeInstruction(this);
+    }
+  }
+
+  static class MatchLimit extends HepInstruction {
+    int limit;
+
+    void execute(HepPlanner planner) {
+      planner.executeInstruction(this);
+    }
+  }
+
+  static class Subprogram extends HepInstruction {
+    HepProgram subprogram;
+
+    void initialize(boolean clearCache) {
+      subprogram.initialize(clearCache);
     }
 
-    static class ConverterRules
-        extends HepInstruction
-    {
-        boolean guaranteed;
+    void execute(HepPlanner planner) {
+      planner.executeInstruction(this);
+    }
+  }
 
-        /**
-         * Actual rule set instantiated during planning by filtering all of the
-         * planner's rules, looking for the desired converters.
-         */
-        Set<RelOptRule> ruleSet;
+  static class BeginGroup extends HepInstruction {
+    EndGroup endGroup;
 
-        void execute(HepPlanner planner)
-        {
-            planner.executeInstruction(this);
-        }
+    void initialize(boolean clearCache) {
     }
 
-    static class CommonRelSubExprRules
-        extends HepInstruction
-    {
-        Set<RelOptRule> ruleSet;
+    void execute(HepPlanner planner) {
+      planner.executeInstruction(this);
+    }
+  }
 
-        void execute(HepPlanner planner)
-        {
-            planner.executeInstruction(this);
-        }
+  static class EndGroup extends HepInstruction {
+    /**
+     * Actual rule set instantiated during planning by collecting grouped
+     * rules.
+     */
+    Set<RelOptRule> ruleSet;
+
+    boolean collecting;
+
+    void initialize(boolean clearCache) {
+      if (!clearCache) {
+        return;
+      }
+
+      ruleSet = new HashSet<RelOptRule>();
+      collecting = true;
     }
 
-    static class RuleInstance
-        extends HepInstruction
-    {
-        /**
-         * Description to look for, or null if rule specified explicitly.
-         */
-        String ruleDescription;
-
-        /**
-         * Explicitly specified rule, or rule looked up by planner from
-         * description.
-         */
-        RelOptRule rule;
-
-        void initialize(boolean clearCache)
-        {
-            if (!clearCache) {
-                return;
-            }
-
-            if (ruleDescription != null) {
-                // Look up anew each run.
-                rule = null;
-            }
-        }
-
-        void execute(HepPlanner planner)
-        {
-            planner.executeInstruction(this);
-        }
+    void execute(HepPlanner planner) {
+      planner.executeInstruction(this);
     }
-
-    static class MatchOrder
-        extends HepInstruction
-    {
-        HepMatchOrder order;
-
-        void execute(HepPlanner planner)
-        {
-            planner.executeInstruction(this);
-        }
-    }
-
-    static class MatchLimit
-        extends HepInstruction
-    {
-        int limit;
-
-        void execute(HepPlanner planner)
-        {
-            planner.executeInstruction(this);
-        }
-    }
-
-    static class Subprogram
-        extends HepInstruction
-    {
-        HepProgram subprogram;
-
-        void initialize(boolean clearCache)
-        {
-            subprogram.initialize(clearCache);
-        }
-
-        void execute(HepPlanner planner)
-        {
-            planner.executeInstruction(this);
-        }
-    }
-
-    static class BeginGroup
-        extends HepInstruction
-    {
-        EndGroup endGroup;
-
-        void initialize(boolean clearCache)
-        {
-        }
-
-        void execute(HepPlanner planner)
-        {
-            planner.executeInstruction(this);
-        }
-    }
-
-    static class EndGroup
-        extends HepInstruction
-    {
-        /**
-         * Actual rule set instantiated during planning by collecting grouped
-         * rules.
-         */
-        Set<RelOptRule> ruleSet;
-
-        boolean collecting;
-
-        void initialize(boolean clearCache)
-        {
-            if (!clearCache) {
-                return;
-            }
-
-            ruleSet = new HashSet<RelOptRule>();
-            collecting = true;
-        }
-
-        void execute(HepPlanner planner)
-        {
-            planner.executeInstruction(this);
-        }
-    }
+  }
 }
 
 // End HepInstruction.java

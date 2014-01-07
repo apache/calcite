@@ -31,84 +31,81 @@ import org.eigenbase.util.Pair;
  *
  * @see MergeFilterOntoCalcRule
  */
-public class MergeProjectOntoCalcRule
-    extends RelOptRule
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class MergeProjectOntoCalcRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final MergeProjectOntoCalcRule instance =
-        new MergeProjectOntoCalcRule();
+  public static final MergeProjectOntoCalcRule instance =
+      new MergeProjectOntoCalcRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    private MergeProjectOntoCalcRule() {
-        super(
-            operand(
-                ProjectRel.class,
-                operand(CalcRel.class, any())));
+  private MergeProjectOntoCalcRule() {
+    super(
+        operand(
+            ProjectRel.class,
+            operand(CalcRel.class, any())));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void onMatch(RelOptRuleCall call) {
+    final ProjectRel project = call.rel(0);
+    final CalcRel calc = call.rel(1);
+
+    // Don't merge a project which contains windowed aggregates onto a
+    // calc. That would effectively be pushing a windowed aggregate down
+    // through a filter. Transform the project into an identical calc,
+    // which we'll have chance to merge later, after the over is
+    // expanded.
+    final RelOptCluster cluster = project.getCluster();
+    RexProgram program =
+        RexProgram.create(
+            calc.getRowType(),
+            project.getProjects(),
+            null,
+            project.getRowType(),
+            cluster.getRexBuilder());
+    if (RexOver.containsOver(program)) {
+      CalcRel projectAsCalc =
+          new CalcRel(
+              cluster,
+              project.getTraitSet(),
+              calc,
+              project.getRowType(),
+              program,
+              Collections.<RelCollation>emptyList());
+      call.transformTo(projectAsCalc);
+      return;
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public void onMatch(RelOptRuleCall call)
-    {
-        final ProjectRel project = call.rel(0);
-        final CalcRel calc = call.rel(1);
-
-        // Don't merge a project which contains windowed aggregates onto a
-        // calc. That would effectively be pushing a windowed aggregate down
-        // through a filter. Transform the project into an identical calc,
-        // which we'll have chance to merge later, after the over is
-        // expanded.
-        final RelOptCluster cluster = project.getCluster();
-        RexProgram program =
-            RexProgram.create(
-                calc.getRowType(),
-                project.getProjects(),
-                null,
-                project.getRowType(),
-                cluster.getRexBuilder());
-        if (RexOver.containsOver(program)) {
-            CalcRel projectAsCalc =
-                new CalcRel(
-                    cluster,
-                    project.getTraitSet(),
-                    calc,
-                    project.getRowType(),
-                    program,
-                    Collections.<RelCollation>emptyList());
-            call.transformTo(projectAsCalc);
-            return;
-        }
-
-        // Create a program containing the project node's expressions.
-        final RexBuilder rexBuilder = cluster.getRexBuilder();
-        final RexProgramBuilder progBuilder =
-            new RexProgramBuilder(
-                calc.getRowType(),
-                rexBuilder);
-        for (Pair<RexNode, String> field : project.getNamedProjects()) {
-            progBuilder.addProject(field.left, field.right);
-        }
-        RexProgram topProgram = progBuilder.getProgram();
-        RexProgram bottomProgram = calc.getProgram();
-
-        // Merge the programs together.
-        RexProgram mergedProgram =
-            RexProgramBuilder.mergePrograms(
-                topProgram,
-                bottomProgram,
-                rexBuilder);
-        final CalcRel newCalc =
-            new CalcRel(
-                cluster,
-                project.getTraitSet(),
-                calc.getChild(),
-                project.getRowType(),
-                mergedProgram,
-                Collections.<RelCollation>emptyList());
-        call.transformTo(newCalc);
+    // Create a program containing the project node's expressions.
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final RexProgramBuilder progBuilder =
+        new RexProgramBuilder(
+            calc.getRowType(),
+            rexBuilder);
+    for (Pair<RexNode, String> field : project.getNamedProjects()) {
+      progBuilder.addProject(field.left, field.right);
     }
+    RexProgram topProgram = progBuilder.getProgram();
+    RexProgram bottomProgram = calc.getProgram();
+
+    // Merge the programs together.
+    RexProgram mergedProgram =
+        RexProgramBuilder.mergePrograms(
+            topProgram,
+            bottomProgram,
+            rexBuilder);
+    final CalcRel newCalc =
+        new CalcRel(
+            cluster,
+            project.getTraitSet(),
+            calc.getChild(),
+            project.getRowType(),
+            mergedProgram,
+            Collections.<RelCollation>emptyList());
+    call.transformTo(newCalc);
+  }
 }
 
 // End MergeProjectOntoCalcRule.java

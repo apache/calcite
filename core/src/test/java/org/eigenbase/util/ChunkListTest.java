@@ -30,7 +30,9 @@ import static org.junit.Assert.*;
  * Unit and performance test for {@link ChunkList}.
  */
 public class ChunkListTest {
-  /** Unit test for {@link ChunkList}. */
+  /**
+   * Unit test for {@link ChunkList}.
+   */
   @Test public void testChunkList() {
     final ChunkList<Integer> list = new ChunkList<Integer>();
     assertEquals(0, list.size());
@@ -124,8 +126,10 @@ public class ChunkListTest {
     assertEquals("[y, x]", list2.toString());
   }
 
-  /** Unit test for {@link ChunkList} that applies random
-   * operations. */
+  /**
+   * Unit test for {@link ChunkList} that applies random
+   * operations.
+   */
   @Test public void testRandom() {
     final int ITERATION_COUNT = 10000;
     checkRandom(new Random(1), new ChunkList<Integer>(), ITERATION_COUNT);
@@ -309,7 +313,7 @@ public class ChunkListTest {
         }
         new Benchmark(
             "get from " + size.right + " values, " + (size.left / 1000)
-            + " times, " + pair.right,
+                + " times, " + pair.right,
             new Function1<Benchmark.Statistician, Void>() {
               public Void apply(Benchmark.Statistician statistician) {
                 final List<Integer> list = pair.left.apply();

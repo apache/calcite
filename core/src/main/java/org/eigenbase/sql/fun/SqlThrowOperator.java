@@ -32,35 +32,31 @@ import org.eigenbase.sql.type.*;
  * ELSE throw("what's wrong with you man?")<br>
  * END
  */
-public class SqlThrowOperator
-    extends SqlInternalOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlThrowOperator extends SqlInternalOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlThrowOperator()
-    {
-        super(
-            "$throw",
-            SqlKind.OTHER,
-            2,
-            true,
-            SqlTypeStrategies.rtiBoolean,
-            null,
-            SqlTypeStrategies.otcCharString);
-    }
+  public SqlThrowOperator() {
+    super(
+        "$throw",
+        SqlKind.OTHER,
+        2,
+        true,
+        SqlTypeStrategies.rtiBoolean,
+        null,
+        SqlTypeStrategies.otcCharString);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        final SqlWriter.Frame frame = writer.startFunCall(getName());
-        operands[0].unparse(writer, 0, 0);
-        writer.endFunCall(frame);
-    }
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall(getName());
+    operands[0].unparse(writer, 0, 0);
+    writer.endFunCall(frame);
+  }
 }
 
 // End SqlThrowOperator.java

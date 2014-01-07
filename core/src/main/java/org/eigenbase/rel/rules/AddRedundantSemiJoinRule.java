@@ -27,70 +27,67 @@ import org.eigenbase.relopt.*;
  *
  * <p>JoinRel(X, Y) -> JoinRel(SemiJoinRel(X, Y), Y)
  */
-public class AddRedundantSemiJoinRule
-    extends RelOptRule
-{
-    public static final AddRedundantSemiJoinRule instance =
-        new AddRedundantSemiJoinRule();
+public class AddRedundantSemiJoinRule extends RelOptRule {
+  public static final AddRedundantSemiJoinRule instance =
+      new AddRedundantSemiJoinRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates an AddRedundantSemiJoinRule.
-     */
-    private AddRedundantSemiJoinRule() {
-        super(operand(JoinRel.class, any()));
+  /**
+   * Creates an AddRedundantSemiJoinRule.
+   */
+  private AddRedundantSemiJoinRule() {
+    super(operand(JoinRel.class, any()));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void onMatch(RelOptRuleCall call) {
+    JoinRel origJoinRel = call.rel(0);
+    if (origJoinRel.isSemiJoinDone()) {
+      return;
     }
 
-    //~ Methods ----------------------------------------------------------------
+    // can't process outer joins using semijoins
+    if (origJoinRel.getJoinType() != JoinRelType.INNER) {
+      return;
+    }
 
-    public void onMatch(RelOptRuleCall call)
-    {
-        JoinRel origJoinRel = call.rel(0);
-        if (origJoinRel.isSemiJoinDone()) {
-            return;
-        }
+    // determine if we have a valid join condition
+    List<Integer> leftKeys = new ArrayList<Integer>();
+    List<Integer> rightKeys = new ArrayList<Integer>();
+    RelOptUtil.splitJoinCondition(
+        origJoinRel.getLeft(),
+        origJoinRel.getRight(),
+        origJoinRel.getCondition(),
+        leftKeys,
+        rightKeys);
+    if (leftKeys.size() == 0) {
+      return;
+    }
 
-        // can't process outer joins using semijoins
-        if (origJoinRel.getJoinType() != JoinRelType.INNER) {
-            return;
-        }
-
-        // determine if we have a valid join condition
-        List<Integer> leftKeys = new ArrayList<Integer>();
-        List<Integer> rightKeys = new ArrayList<Integer>();
-        RelOptUtil.splitJoinCondition(
+    RelNode semiJoin =
+        new SemiJoinRel(
+            origJoinRel.getCluster(),
             origJoinRel.getLeft(),
             origJoinRel.getRight(),
             origJoinRel.getCondition(),
             leftKeys,
             rightKeys);
-        if (leftKeys.size() == 0) {
-            return;
-        }
 
-        RelNode semiJoin =
-            new SemiJoinRel(
-                origJoinRel.getCluster(),
-                origJoinRel.getLeft(),
-                origJoinRel.getRight(),
-                origJoinRel.getCondition(),
-                leftKeys,
-                rightKeys);
+    RelNode newJoinRel =
+        new JoinRel(
+            origJoinRel.getCluster(),
+            semiJoin,
+            origJoinRel.getRight(),
+            origJoinRel.getCondition(),
+            JoinRelType.INNER,
+            Collections.<String>emptySet(),
+            true,
+            origJoinRel.getSystemFieldList());
 
-        RelNode newJoinRel =
-            new JoinRel(
-                origJoinRel.getCluster(),
-                semiJoin,
-                origJoinRel.getRight(),
-                origJoinRel.getCondition(),
-                JoinRelType.INNER,
-                Collections.<String>emptySet(),
-                true,
-                origJoinRel.getSystemFieldList());
-
-        call.transformTo(newJoinRel);
-    }
+    call.transformTo(newJoinRel);
+  }
 }
 
 // End AddRedundantSemiJoinRule.java

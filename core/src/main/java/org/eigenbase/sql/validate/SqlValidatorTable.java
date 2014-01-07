@@ -24,25 +24,25 @@ import org.eigenbase.sql.*;
 
 /**
  * Supplies a {@link SqlValidator} with the metadata for a table.
+ *
  * @see SqlValidatorCatalogReader
  */
-public interface SqlValidatorTable
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SqlValidatorTable {
+  //~ Methods ----------------------------------------------------------------
 
-    RelDataType getRowType();
+  RelDataType getRowType();
 
-    List<String> getQualifiedName();
+  List<String> getQualifiedName();
 
-    /**
-     * Returns whether a given column is monotonic.
-     */
-    SqlMonotonicity getMonotonicity(String columnName);
+  /**
+   * Returns whether a given column is monotonic.
+   */
+  SqlMonotonicity getMonotonicity(String columnName);
 
-    /**
-     * Returns the access type of the table
-     */
-    SqlAccessType getAllowedAccess();
+  /**
+   * Returns the access type of the table
+   */
+  SqlAccessType getAllowedAccess();
 }
 
 // End SqlValidatorTable.java

@@ -33,157 +33,138 @@ package org.eigenbase.sql;
  * as a literal, viz: {@link SqlLiteral#createSample(SqlSampleSpec,
  * SqlParserPos)}.
  */
-public abstract class SqlSampleSpec
-{
-    //~ Constructors -----------------------------------------------------------
+public abstract class SqlSampleSpec {
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlSampleSpec()
-    {
+  protected SqlSampleSpec() {
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Creates a sample which substitutes one relation for another.
+   */
+  public static SqlSampleSpec createNamed(String name) {
+    return new SqlSubstitutionSampleSpec(name);
+  }
+
+  /**
+   * Creates a table sample without repeatability.
+   *
+   * @param isBernoulli      true if Bernoulli style sampling is to be used;
+   *                         false for implementation specific sampling
+   * @param samplePercentage likelihood of a row appearing in the sample
+   */
+  public static SqlSampleSpec createTableSample(
+      boolean isBernoulli,
+      float samplePercentage) {
+    return new SqlTableSampleSpec(isBernoulli, samplePercentage);
+  }
+
+  /**
+   * Creates a table sample with repeatability.
+   *
+   * @param isBernoulli      true if Bernoulli style sampling is to be used;
+   *                         false for implementation specific sampling
+   * @param samplePercentage likelihood of a row appearing in the sample
+   * @param repeatableSeed   seed value used to reproduce the same sample
+   */
+  public static SqlSampleSpec createTableSample(
+      boolean isBernoulli,
+      float samplePercentage,
+      int repeatableSeed) {
+    return new SqlTableSampleSpec(
+        isBernoulli,
+        samplePercentage,
+        repeatableSeed);
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
+
+  public static class SqlSubstitutionSampleSpec extends SqlSampleSpec {
+    private final String name;
+
+    private SqlSubstitutionSampleSpec(String name) {
+      this.name = name;
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Creates a sample which substitutes one relation for another.
-     */
-    public static SqlSampleSpec createNamed(String name)
-    {
-        return new SqlSubstitutionSampleSpec(name);
+    public String getName() {
+      return name;
     }
 
-    /**
-     * Creates a table sample without repeatability.
-     *
-     * @param isBernoulli true if Bernoulli style sampling is to be used; false
-     * for implementation specific sampling
-     * @param samplePercentage likelihood of a row appearing in the sample
-     */
-    public static SqlSampleSpec createTableSample(
-        boolean isBernoulli,
-        float samplePercentage)
-    {
-        return new SqlTableSampleSpec(isBernoulli, samplePercentage);
+    public String toString() {
+      return "SUBSTITUTE("
+          + SqlDialect.EIGENBASE.quoteStringLiteral(name)
+          + ")";
+    }
+  }
+
+  public static class SqlTableSampleSpec extends SqlSampleSpec {
+    private final boolean isBernoulli;
+    private final float samplePercentage;
+    private final boolean isRepeatable;
+    private final int repeatableSeed;
+
+    private SqlTableSampleSpec(boolean isBernoulli, float samplePercentage) {
+      this.isBernoulli = isBernoulli;
+      this.samplePercentage = samplePercentage;
+      this.isRepeatable = false;
+      this.repeatableSeed = 0;
     }
 
-    /**
-     * Creates a table sample with repeatability.
-     *
-     * @param isBernoulli true if Bernoulli style sampling is to be used; false
-     * for implementation specific sampling
-     * @param samplePercentage likelihood of a row appearing in the sample
-     * @param repeatableSeed seed value used to reproduce the same sample
-     */
-    public static SqlSampleSpec createTableSample(
+    private SqlTableSampleSpec(
         boolean isBernoulli,
         float samplePercentage,
-        int repeatableSeed)
-    {
-        return new SqlTableSampleSpec(
-            isBernoulli,
-            samplePercentage,
-            repeatableSeed);
+        int repeatableSeed) {
+      this.isBernoulli = isBernoulli;
+      this.samplePercentage = samplePercentage;
+      this.isRepeatable = true;
+      this.repeatableSeed = repeatableSeed;
     }
 
-    //~ Inner Classes ----------------------------------------------------------
-
-    public static class SqlSubstitutionSampleSpec
-        extends SqlSampleSpec
-    {
-        private final String name;
-
-        private SqlSubstitutionSampleSpec(String name)
-        {
-            this.name = name;
-        }
-
-        public String getName()
-        {
-            return name;
-        }
-
-        public String toString()
-        {
-            return "SUBSTITUTE("
-                + SqlDialect.EIGENBASE.quoteStringLiteral(name)
-                + ")";
-        }
+    /**
+     * Indicates Bernoulli vs. System sampling.
+     */
+    public boolean isBernoulli() {
+      return isBernoulli;
     }
 
-    public static class SqlTableSampleSpec
-        extends SqlSampleSpec
-    {
-        private final boolean isBernoulli;
-        private final float samplePercentage;
-        private final boolean isRepeatable;
-        private final int repeatableSeed;
-
-        private SqlTableSampleSpec(boolean isBernoulli, float samplePercentage)
-        {
-            this.isBernoulli = isBernoulli;
-            this.samplePercentage = samplePercentage;
-            this.isRepeatable = false;
-            this.repeatableSeed = 0;
-        }
-
-        private SqlTableSampleSpec(
-            boolean isBernoulli,
-            float samplePercentage,
-            int repeatableSeed)
-        {
-            this.isBernoulli = isBernoulli;
-            this.samplePercentage = samplePercentage;
-            this.isRepeatable = true;
-            this.repeatableSeed = repeatableSeed;
-        }
-
-        /**
-         * Indicates Bernoulli vs. System sampling.
-         */
-        public boolean isBernoulli()
-        {
-            return isBernoulli;
-        }
-
-        /**
-         * Returns sampling percentage. Range is 0.0 to 1.0, exclusive
-         */
-        public float getSamplePercentage()
-        {
-            return samplePercentage;
-        }
-
-        /**
-         * Indicates whether repeatable seed should be used.
-         */
-        public boolean isRepeatable()
-        {
-            return isRepeatable;
-        }
-
-        /**
-         * Seed to produce repeatable samples.
-         */
-        public int getRepeatableSeed()
-        {
-            return repeatableSeed;
-        }
-
-        public String toString()
-        {
-            StringBuilder b = new StringBuilder();
-            b.append(isBernoulli ? "BERNOULLI" : "SYSTEM");
-            b.append('(');
-            b.append(samplePercentage * 100.0);
-            b.append(')');
-
-            if (isRepeatable) {
-                b.append(" REPEATABLE(");
-                b.append(repeatableSeed);
-                b.append(')');
-            }
-            return b.toString();
-        }
+    /**
+     * Returns sampling percentage. Range is 0.0 to 1.0, exclusive
+     */
+    public float getSamplePercentage() {
+      return samplePercentage;
     }
+
+    /**
+     * Indicates whether repeatable seed should be used.
+     */
+    public boolean isRepeatable() {
+      return isRepeatable;
+    }
+
+    /**
+     * Seed to produce repeatable samples.
+     */
+    public int getRepeatableSeed() {
+      return repeatableSeed;
+    }
+
+    public String toString() {
+      StringBuilder b = new StringBuilder();
+      b.append(isBernoulli ? "BERNOULLI" : "SYSTEM");
+      b.append('(');
+      b.append(samplePercentage * 100.0);
+      b.append(')');
+
+      if (isRepeatable) {
+        b.append(" REPEATABLE(");
+        b.append(repeatableSeed);
+        b.append(')');
+      }
+      return b.toString();
+    }
+  }
 }
 
 // End SqlSampleSpec.java

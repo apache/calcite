@@ -29,60 +29,51 @@ import org.eigenbase.sql.type.*;
  *
  * <p>Create values using {@link SqlLiteral#createDate}.
  */
-public class SqlDateLiteral
-    extends SqlAbstractDateTimeLiteral
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlDateLiteral extends SqlAbstractDateTimeLiteral {
+  //~ Constructors -----------------------------------------------------------
 
-    SqlDateLiteral(Calendar d, SqlParserPos pos)
-    {
-        super(d, false, SqlTypeName.DATE, 0, SqlParserUtil.DateFormatStr, pos);
+  SqlDateLiteral(Calendar d, SqlParserPos pos) {
+    super(d, false, SqlTypeName.DATE, 0, SqlParserUtil.DateFormatStr, pos);
+  }
+
+  SqlDateLiteral(Calendar d, String format, SqlParserPos pos) {
+    super(d, false, SqlTypeName.DATE, 0, format, pos);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlNode clone(SqlParserPos pos) {
+    return new SqlDateLiteral((Calendar) value, pos);
+  }
+
+  public String toString() {
+    return "DATE '" + toFormattedString() + "'";
+  }
+
+  /**
+   * Returns e.g. '1969-07-21'.
+   */
+  public String toFormattedString() {
+    return getDate().toString(formatString);
+  }
+
+  public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
+    return typeFactory.createSqlType(getTypeName());
+  }
+
+  public void unparse(
+      SqlWriter writer,
+      int leftPrec,
+      int rightPrec) {
+    switch (writer.getDialect().getDatabaseProduct()) {
+    case MSSQL:
+      writer.literal("'" + this.toFormattedString() + "'");
+      break;
+    default:
+      writer.literal(this.toString());
+      break;
     }
-
-    SqlDateLiteral(Calendar d, String format, SqlParserPos pos)
-    {
-        super(d, false, SqlTypeName.DATE, 0, format, pos);
-    }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public SqlNode clone(SqlParserPos pos)
-    {
-        return new SqlDateLiteral((Calendar) value, pos);
-    }
-
-    public String toString()
-    {
-        return "DATE '" + toFormattedString() + "'";
-    }
-
-    /**
-     * Returns e.g. '1969-07-21'.
-     */
-    public String toFormattedString()
-    {
-        return getDate().toString(formatString);
-    }
-
-    public RelDataType createSqlType(RelDataTypeFactory typeFactory)
-    {
-        return typeFactory.createSqlType(getTypeName());
-    }
-
-    public void unparse(
-        SqlWriter writer,
-        int leftPrec,
-        int rightPrec)
-    {
-        switch (writer.getDialect().getDatabaseProduct()) {
-        case MSSQL:
-            writer.literal("'" + this.toFormattedString() + "'");
-            break;
-        default:
-            writer.literal(this.toString());
-            break;
-        }
-    }
+  }
 }
 
 // End SqlDateLiteral.java

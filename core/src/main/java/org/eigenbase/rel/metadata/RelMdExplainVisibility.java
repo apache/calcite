@@ -26,32 +26,28 @@ import org.eigenbase.sql.*;
  * RelMdExplainVisibility supplies a default implementation of {@link
  * RelMetadataQuery#isVisibleInExplain} for the standard logical algebra.
  */
-public class RelMdExplainVisibility
-    extends ReflectiveRelMetadataProvider
-{
-    //~ Constructors -----------------------------------------------------------
+public class RelMdExplainVisibility extends ReflectiveRelMetadataProvider {
+  //~ Constructors -----------------------------------------------------------
 
-    public RelMdExplainVisibility()
-    {
-        // Tell superclass reflection about parameter types expected
-        // for various metadata queries.
+  public RelMdExplainVisibility() {
+    // Tell superclass reflection about parameter types expected
+    // for various metadata queries.
 
-        // This corresponds to isVisibileInExplain(RelNode, SqlExplainLevel);
-        // note that we don't specify the rel type because we always overload
-        // on that.
-        mapParameterTypes(
-            "isVisibleInExplain",
-            Collections.singletonList((Class) SqlExplainLevel.class));
-    }
+    // This corresponds to isVisibileInExplain(RelNode, SqlExplainLevel);
+    // note that we don't specify the rel type because we always overload
+    // on that.
+    mapParameterTypes(
+        "isVisibleInExplain",
+        Collections.singletonList((Class) SqlExplainLevel.class));
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // Catch-all rule when none of the others apply.
-    public Boolean isVisibleInExplain(RelNode rel)
-    {
-        // no information available
-        return null;
-    }
+  // Catch-all rule when none of the others apply.
+  public Boolean isVisibleInExplain(RelNode rel) {
+    // no information available
+    return null;
+  }
 }
 
 // End RelMdExplainVisibility.java

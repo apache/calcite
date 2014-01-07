@@ -47,37 +47,37 @@ import org.eigenbase.relopt.*;
  * can. It is the optimizer's responsibility to find these ways, by applying
  * transformation rules.</p>
  */
-public final class TableAccessRel
-    extends TableAccessRelBase
-{
-    //~ Constructors -----------------------------------------------------------
+public final class TableAccessRel extends TableAccessRelBase {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a TableAccessRel.
-     *
-     * @param cluster Cluster
-     * @param table Table
-     */
-    public TableAccessRel(
-        RelOptCluster cluster,
-        RelOptTable table)
-    {
-        super(
-            cluster,
-            cluster.traitSetOf(Convention.NONE),
-            table);
-    }
+  /**
+   * Creates a TableAccessRel.
+   *
+   * @param cluster Cluster
+   * @param table   Table
+   */
+  public TableAccessRel(
+      RelOptCluster cluster,
+      RelOptTable table) {
+    super(
+        cluster,
+        cluster.traitSetOf(Convention.NONE),
+        table);
+  }
 
-    /** Creates a TableAccessRel by parsing serialized output. */
-    public TableAccessRel(RelInput input) {
-        super(input);
-    }
+  /**
+   * Creates a TableAccessRel by parsing serialized output.
+   */
+  public TableAccessRel(RelInput input) {
+    super(input);
+  }
 
-    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert traitSet.comprises(Convention.NONE);
-        assert inputs.isEmpty();
-        return this;
-    }
+  @Override
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert traitSet.comprises(Convention.NONE);
+    assert inputs.isEmpty();
+    return this;
+  }
 }
 
 // End TableAccessRel.java

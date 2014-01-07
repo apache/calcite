@@ -29,96 +29,91 @@ import com.google.common.collect.ImmutableList;
  * <code>FilterRelBase</code> is an abstract base class for implementations of
  * {@link FilterRel}.
  */
-public abstract class FilterRelBase
-    extends SingleRel
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class FilterRelBase extends SingleRel {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final RexNode condition;
+  protected final RexNode condition;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a filter.
-     *
-     * @param cluster {@link RelOptCluster}  this relational expression belongs
-     * to
-     * @param traits the traits of this rel
-     * @param child input relational expression
-     * @param condition boolean expression which determines whether a row is
-     * allowed to pass
-     */
-    protected FilterRelBase(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        RelNode child,
-        RexNode condition)
-    {
-        super(cluster, traits, child);
-        assert condition != null;
-        assert RexUtil.isFlat(condition) : condition;
-        this.condition = condition;
+  /**
+   * Creates a filter.
+   *
+   * @param cluster   {@link RelOptCluster}  this relational expression belongs
+   *                  to
+   * @param traits    the traits of this rel
+   * @param child     input relational expression
+   * @param condition boolean expression which determines whether a row is
+   *                  allowed to pass
+   */
+  protected FilterRelBase(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      RelNode child,
+      RexNode condition) {
+    super(cluster, traits, child);
+    assert condition != null;
+    assert RexUtil.isFlat(condition) : condition;
+    this.condition = condition;
+  }
+
+  /**
+   * Creates a FilterRelBase by parsing serialized output.
+   */
+  protected FilterRelBase(RelInput input) {
+    this(
+        input.getCluster(), input.getTraitSet(), input.getInput(),
+        input.getExpression("condition"));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  @Override
+  public List<RexNode> getChildExps() {
+    return ImmutableList.of(condition);
+  }
+
+  public RexNode getCondition() {
+    return condition;
+  }
+
+  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    double dRows = RelMetadataQuery.getRowCount(this);
+    double dCpu = RelMetadataQuery.getRowCount(getChild());
+    double dIo = 0;
+    return planner.makeCost(dRows, dCpu, dIo);
+  }
+
+  // override RelNode
+  public double getRows() {
+    return estimateFilteredRows(
+        getChild(),
+        condition);
+  }
+
+  public static double estimateFilteredRows(RelNode child, RexProgram program) {
+    // convert the program's RexLocalRef condition to an expanded RexNode
+    RexLocalRef programCondition = program.getCondition();
+    RexNode condition;
+    if (programCondition == null) {
+      condition = null;
+    } else {
+      condition = program.expandLocalRef(programCondition);
     }
+    return estimateFilteredRows(
+        child,
+        condition);
+  }
 
-    /** Creates a FilterRelBase by parsing serialized output. */
-    protected FilterRelBase(RelInput input) {
-        this(
-            input.getCluster(), input.getTraitSet(), input.getInput(),
-            input.getExpression("condition"));
-    }
+  public static double estimateFilteredRows(RelNode child, RexNode condition) {
+    return RelMetadataQuery.getRowCount(child)
+        * RelMetadataQuery.getSelectivity(child, condition);
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    @Override public List<RexNode> getChildExps() {
-        return ImmutableList.of(condition);
-    }
-
-    public RexNode getCondition()
-    {
-        return condition;
-    }
-
-    public RelOptCost computeSelfCost(RelOptPlanner planner)
-    {
-        double dRows = RelMetadataQuery.getRowCount(this);
-        double dCpu = RelMetadataQuery.getRowCount(getChild());
-        double dIo = 0;
-        return planner.makeCost(dRows, dCpu, dIo);
-    }
-
-    // override RelNode
-    public double getRows()
-    {
-        return estimateFilteredRows(
-            getChild(),
-            condition);
-    }
-
-    public static double estimateFilteredRows(RelNode child, RexProgram program)
-    {
-        // convert the program's RexLocalRef condition to an expanded RexNode
-        RexLocalRef programCondition = program.getCondition();
-        RexNode condition;
-        if (programCondition == null) {
-            condition = null;
-        } else {
-            condition = program.expandLocalRef(programCondition);
-        }
-        return estimateFilteredRows(
-            child,
-            condition);
-    }
-
-    public static double estimateFilteredRows(RelNode child, RexNode condition)
-    {
-        return RelMetadataQuery.getRowCount(child)
-            * RelMetadataQuery.getSelectivity(child, condition);
-    }
-
-    public RelWriter explainTerms(RelWriter pw) {
-        return super.explainTerms(pw)
-            .item("condition", condition);
-    }
+  public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw)
+        .item("condition", condition);
+  }
 }
 
 // End FilterRelBase.java

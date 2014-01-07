@@ -33,43 +33,40 @@ import com.google.common.collect.ImmutableList;
  *
  * @see FilterToCalcRule
  */
-public class ProjectToCalcRule
-    extends RelOptRule
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class ProjectToCalcRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final ProjectToCalcRule instance = new ProjectToCalcRule();
+  public static final ProjectToCalcRule instance = new ProjectToCalcRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    private ProjectToCalcRule() {
-        super(operand(ProjectRel.class, any()));
-    }
+  private ProjectToCalcRule() {
+    super(operand(ProjectRel.class, any()));
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public void onMatch(RelOptRuleCall call)
-    {
-        final ProjectRel project = call.rel(0);
-        final RelNode child = project.getChild();
-        final RelDataType rowType = project.getRowType();
-        final RexProgram program =
-            RexProgram.create(
-                child.getRowType(),
-                project.getProjects(),
-                null,
-                project.getRowType(),
-                project.getCluster().getRexBuilder());
-        final CalcRel calc =
-            new CalcRel(
-                project.getCluster(),
-                project.getTraitSet(),
-                child,
-                rowType,
-                program,
-                ImmutableList.<RelCollation>of());
-        call.transformTo(calc);
-    }
+  public void onMatch(RelOptRuleCall call) {
+    final ProjectRel project = call.rel(0);
+    final RelNode child = project.getChild();
+    final RelDataType rowType = project.getRowType();
+    final RexProgram program =
+        RexProgram.create(
+            child.getRowType(),
+            project.getProjects(),
+            null,
+            project.getRowType(),
+            project.getCluster().getRexBuilder());
+    final CalcRel calc =
+        new CalcRel(
+            project.getCluster(),
+            project.getTraitSet(),
+            child,
+            rowType,
+            program,
+            ImmutableList.<RelCollation>of());
+    call.transformTo(calc);
+  }
 }
 
 // End ProjectToCalcRule.java

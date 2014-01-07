@@ -26,121 +26,109 @@ import org.eigenbase.util.*;
 /**
  * A <code>SqlParser</code> parses a SQL statement.
  */
-public class SqlParser
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlParser {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlParserImpl parser;
-    private String originalInput;
+  private final SqlParserImpl parser;
+  private String originalInput;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a <code>SqlParser</code> which reads input from a string.
-     */
-    public SqlParser(String s)
-    {
-        parser = new SqlParserImpl(new StringReader(s));
-        parser.setTabSize(1);
-        this.originalInput = s;
+  /**
+   * Creates a <code>SqlParser</code> which reads input from a string.
+   */
+  public SqlParser(String s) {
+    parser = new SqlParserImpl(new StringReader(s));
+    parser.setTabSize(1);
+    this.originalInput = s;
+  }
+
+  /**
+   * Creates a <code>SqlParser</code> which reads input from a reader.
+   */
+  public SqlParser(Reader reader) {
+    if (reader instanceof StringReader) {
+      try {
+        char[] buffer = new char[4096];
+        int count = reader.read(buffer);
+        this.originalInput = new String(buffer, 0, count);
+        reader.reset();
+      } catch (IOException e) {
+      }
     }
+    parser = new SqlParserImpl(reader);
+    parser.setTabSize(1);
+  }
 
-    /**
-     * Creates a <code>SqlParser</code> which reads input from a reader.
-     */
-    public SqlParser(Reader reader)
-    {
-        if (reader instanceof StringReader) {
-            try {
-                char [] buffer = new char[4096];
-                int count = reader.read(buffer);
-                this.originalInput = new String(buffer, 0, count);
-                reader.reset();
-            } catch (IOException e) {
-            }
-        }
-        parser = new SqlParserImpl(reader);
-        parser.setTabSize(1);
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Parses a SQL expression.
+   *
+   * @throws SqlParseException if there is a parse error
+   */
+  public SqlNode parseExpression()
+      throws SqlParseException {
+    try {
+      return parser.SqlExpressionEof();
+    } catch (Throwable ex) {
+      if ((ex instanceof EigenbaseContextException)
+          && (originalInput != null)) {
+        ((EigenbaseContextException) ex).setOriginalStatement(
+            originalInput);
+      }
+      throw parser.normalizeException(ex);
     }
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Parses a SQL expression.
-     *
-     * @throws SqlParseException if there is a parse error
-     */
-    public SqlNode parseExpression()
-        throws SqlParseException
-    {
-        try {
-            return parser.SqlExpressionEof();
-        } catch (Throwable ex) {
-            if ((ex instanceof EigenbaseContextException)
-                && (originalInput != null))
-            {
-                ((EigenbaseContextException) ex).setOriginalStatement(
-                    originalInput);
-            }
-            throw parser.normalizeException(ex);
-        }
+  /**
+   * Parses a <code>SELECT</code> statement.
+   *
+   * @return A {@link org.eigenbase.sql.SqlSelect} for a regular <code>
+   * SELECT</code> statement; a {@link org.eigenbase.sql.SqlBinaryOperator}
+   * for a <code>UNION</code>, <code>INTERSECT</code>, or <code>EXCEPT</code>.
+   * @throws SqlParseException if there is a parse error
+   */
+  public SqlNode parseQuery()
+      throws SqlParseException {
+    try {
+      return parser.SqlQueryEof();
+    } catch (Throwable ex) {
+      if ((ex instanceof EigenbaseContextException)
+          && (originalInput != null)) {
+        ((EigenbaseContextException) ex).setOriginalStatement(
+            originalInput);
+      }
+      throw parser.normalizeException(ex);
     }
+  }
 
-    /**
-     * Parses a <code>SELECT</code> statement.
-     *
-     * @return A {@link org.eigenbase.sql.SqlSelect} for a regular <code>
-     * SELECT</code> statement; a {@link org.eigenbase.sql.SqlBinaryOperator}
-     * for a <code>UNION</code>, <code>INTERSECT</code>, or <code>EXCEPT</code>.
-     *
-     * @throws SqlParseException if there is a parse error
-     */
-    public SqlNode parseQuery()
-        throws SqlParseException
-    {
-        try {
-            return parser.SqlQueryEof();
-        } catch (Throwable ex) {
-            if ((ex instanceof EigenbaseContextException)
-                && (originalInput != null))
-            {
-                ((EigenbaseContextException) ex).setOriginalStatement(
-                    originalInput);
-            }
-            throw parser.normalizeException(ex);
-        }
+  /**
+   * Parses an SQL statement.
+   *
+   * @return top-level SqlNode representing stmt
+   * @throws SqlParseException if there is a parse error
+   */
+  public SqlNode parseStmt()
+      throws SqlParseException {
+    try {
+      return parser.SqlStmtEof();
+    } catch (Throwable ex) {
+      if ((ex instanceof EigenbaseContextException)
+          && (originalInput != null)) {
+        ((EigenbaseContextException) ex).setOriginalStatement(
+            originalInput);
+      }
+      throw parser.normalizeException(ex);
     }
+  }
 
-    /**
-     * Parses an SQL statement.
-     *
-     * @return top-level SqlNode representing stmt
-     *
-     * @throws SqlParseException if there is a parse error
-     */
-    public SqlNode parseStmt()
-        throws SqlParseException
-    {
-        try {
-            return parser.SqlStmtEof();
-        } catch (Throwable ex) {
-            if ((ex instanceof EigenbaseContextException)
-                && (originalInput != null))
-            {
-                ((EigenbaseContextException) ex).setOriginalStatement(
-                    originalInput);
-            }
-            throw parser.normalizeException(ex);
-        }
-    }
-
-    /**
-     * Returns the underlying generated parser.
-     */
-    public SqlParserImpl getParserImpl()
-    {
-        return parser;
-    }
+  /**
+   * Returns the underlying generated parser.
+   */
+  public SqlParserImpl getParserImpl() {
+    return parser;
+  }
 }
 
 // End SqlParser.java

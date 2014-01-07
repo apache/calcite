@@ -23,29 +23,26 @@ import org.eigenbase.sql.*;
 /**
  * Returns the rowtype of a cursor of the operand at a particular 0-based
  * ordinal position.
+ *
  * @see OrdinalReturnTypeInference
  */
-public class CursorReturnTypeInference
-    implements SqlReturnTypeInference
-{
-    //~ Instance fields --------------------------------------------------------
+public class CursorReturnTypeInference implements SqlReturnTypeInference {
+  //~ Instance fields --------------------------------------------------------
 
-    private final int ordinal;
+  private final int ordinal;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public CursorReturnTypeInference(int ordinal)
-    {
-        this.ordinal = ordinal;
-    }
+  public CursorReturnTypeInference(int ordinal) {
+    this.ordinal = ordinal;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelDataType inferReturnType(
-        SqlOperatorBinding opBinding)
-    {
-        return opBinding.getCursorOperand(ordinal);
-    }
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    return opBinding.getCursorOperand(ordinal);
+  }
 }
 
 // End CursorReturnTypeInference.java

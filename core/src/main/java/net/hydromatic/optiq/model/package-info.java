@@ -21,12 +21,15 @@
  *
  * <p>Models are specified using a <code>model=&lt;uri&gt;</code> parameter on
  * the JDBC connect string. Optiq loads the model while initializing the
- * connection. It first parses the JSON, then uses a {@link ModelHandler} as
- * visitor over the parse tree.</p>
+ * connection. It first parses the JSON, then uses a
+ * {@link net.hydromatic.optiq.model.ModelHandler} as visitor over the parse
+ * tree.</p>
  *
  * <p>There are standard implementations of schema and table, but the user can
- * provide their own by implementing the {@link SchemaFactory} or {@link
- * TableFactory} interfaces and including a custom schema in the model.</p>
+ * provide their own by implementing the
+ * {@link net.hydromatic.optiq.SchemaFactory}
+ * or {@link net.hydromatic.optiq.TableFactory}
+ * interfaces and including a custom schema in the model.</p>
  *
  * <p>There are several examples of schemas in the
  * <a href="https://github.com/julianhyde/blog/master/optiq-csv/TUTORIAL.md">optiq-csv

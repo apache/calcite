@@ -25,77 +25,70 @@ import org.eigenbase.sql.parser.*;
  * statement. It warrants its own node type just because we have a lot of
  * methods to put somewhere.
  */
-public class SqlCase
-    extends SqlCall
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlCase extends SqlCall {
+  //~ Static fields/initializers ---------------------------------------------
 
-    /**
-     * VALUE_OPERAND = 0
-     */
-    public static final int VALUE_OPERAND = 0;
+  /**
+   * VALUE_OPERAND = 0
+   */
+  public static final int VALUE_OPERAND = 0;
 
-    /**
-     * WHEN_OPERANDS = 1
-     */
-    public static final int WHEN_OPERANDS = 1;
+  /**
+   * WHEN_OPERANDS = 1
+   */
+  public static final int WHEN_OPERANDS = 1;
 
-    /**
-     * THEN_OPERANDS = 2
-     */
-    public static final int THEN_OPERANDS = 2;
+  /**
+   * THEN_OPERANDS = 2
+   */
+  public static final int THEN_OPERANDS = 2;
 
-    /**
-     * ELSE_OPERAND = 3
-     */
-    public static final int ELSE_OPERAND = 3;
+  /**
+   * ELSE_OPERAND = 3
+   */
+  public static final int ELSE_OPERAND = 3;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a SqlCase expression.
-     *
-     * <p>The operands are an array of SqlNodes where
-     *
-     * <ul>
-     * <li>operands[0] is a SqlNodeList of all WHEN expressions
-     * <li>operands[1] is a SqlNodeList of all THEN expressions
-     * <li>operands[2] is a SqlNode representing the implicit or explicit ELSE
-     * expression
-     * </ul>
-     *
-     * <p>See {@link #VALUE_OPERAND}, {@link #WHEN_OPERANDS},
-     * {@link #THEN_OPERANDS}, {@link #ELSE_OPERAND}.
-     */
-    SqlCase(
-        SqlCaseOperator operator,
-        SqlNode [] operands,
-        SqlParserPos pos)
-    {
-        super(operator, operands, pos);
-    }
+  /**
+   * Creates a SqlCase expression.
+   *
+   * <p>The operands are an array of SqlNodes where
+   *
+   * <ul>
+   * <li>operands[0] is a SqlNodeList of all WHEN expressions
+   * <li>operands[1] is a SqlNodeList of all THEN expressions
+   * <li>operands[2] is a SqlNode representing the implicit or explicit ELSE
+   * expression
+   * </ul>
+   *
+   * <p>See {@link #VALUE_OPERAND}, {@link #WHEN_OPERANDS},
+   * {@link #THEN_OPERANDS}, {@link #ELSE_OPERAND}.
+   */
+  SqlCase(
+      SqlCaseOperator operator,
+      SqlNode[] operands,
+      SqlParserPos pos) {
+    super(operator, operands, pos);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlNode getValueOperand()
-    {
-        return operands[VALUE_OPERAND];
-    }
+  public SqlNode getValueOperand() {
+    return operands[VALUE_OPERAND];
+  }
 
-    public SqlNodeList getWhenOperands()
-    {
-        return (SqlNodeList) operands[WHEN_OPERANDS];
-    }
+  public SqlNodeList getWhenOperands() {
+    return (SqlNodeList) operands[WHEN_OPERANDS];
+  }
 
-    public SqlNodeList getThenOperands()
-    {
-        return (SqlNodeList) operands[THEN_OPERANDS];
-    }
+  public SqlNodeList getThenOperands() {
+    return (SqlNodeList) operands[THEN_OPERANDS];
+  }
 
-    public SqlNode getElseOperand()
-    {
-        return operands[ELSE_OPERAND];
-    }
+  public SqlNode getElseOperand() {
+    return operands[ELSE_OPERAND];
+  }
 }
 
 // End SqlCase.java

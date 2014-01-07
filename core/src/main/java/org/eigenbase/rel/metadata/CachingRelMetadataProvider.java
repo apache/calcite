@@ -27,86 +27,81 @@ import org.eigenbase.util.*;
  * CachingRelMetadataProvider implements the {@link RelMetadataProvider}
  * interface by caching results from an underlying provider.
  */
-public class CachingRelMetadataProvider
-    implements RelMetadataProvider
-{
-    //~ Instance fields --------------------------------------------------------
+public class CachingRelMetadataProvider implements RelMetadataProvider {
+  //~ Instance fields --------------------------------------------------------
 
-    private final Map<List, CacheEntry> cache;
+  private final Map<List, CacheEntry> cache;
 
-    private final RelMetadataProvider underlyingProvider;
+  private final RelMetadataProvider underlyingProvider;
 
-    private final RelOptPlanner planner;
+  private final RelOptPlanner planner;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public CachingRelMetadataProvider(
-        RelMetadataProvider underlyingProvider,
-        RelOptPlanner planner)
-    {
-        this.underlyingProvider = underlyingProvider;
-        this.planner = planner;
+  public CachingRelMetadataProvider(
+      RelMetadataProvider underlyingProvider,
+      RelOptPlanner planner) {
+    this.underlyingProvider = underlyingProvider;
+    this.planner = planner;
 
-        cache = new HashMap<List, CacheEntry>();
+    cache = new HashMap<List, CacheEntry>();
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelMetadataProvider
+  public Object getRelMetadata(
+      RelNode rel,
+      String metadataQueryName,
+      Object[] args) {
+    // TODO jvs 30-Mar-2006: Use meta-metadata to decide which metadata
+    // query results can stay fresh until the next Ice Age.
+
+    // Compute hash key.
+    List<Object> hashKey;
+    if (args != null) {
+      hashKey = new ArrayList<Object>(args.length + 2);
+      hashKey.add(rel);
+      hashKey.add(metadataQueryName);
+      hashKey.addAll(Arrays.asList(args));
+    } else {
+      hashKey = Arrays.asList(rel, metadataQueryName);
     }
 
-    //~ Methods ----------------------------------------------------------------
+    long timestamp = planner.getRelMetadataTimestamp(rel);
 
-    // implement RelMetadataProvider
-    public Object getRelMetadata(
-        RelNode rel,
-        String metadataQueryName,
-        Object [] args)
-    {
-        // TODO jvs 30-Mar-2006: Use meta-metadata to decide which metadata
-        // query results can stay fresh until the next Ice Age.
-
-        // Compute hash key.
-        List<Object> hashKey;
-        if (args != null) {
-            hashKey = new ArrayList<Object>(args.length + 2);
-            hashKey.add(rel);
-            hashKey.add(metadataQueryName);
-            hashKey.addAll(Arrays.asList(args));
-        } else {
-            hashKey = Arrays.asList(rel, metadataQueryName);
-        }
-
-        long timestamp = planner.getRelMetadataTimestamp(rel);
-
-        // Perform cache lookup.
-        CacheEntry entry = cache.get(hashKey);
-        if (entry != null) {
-            if (timestamp == entry.timestamp) {
-                return entry.result;
-            } else {
-                // Cache results are stale.
-            }
-        }
-
-        // Cache miss or stale.
-        Object result =
-            underlyingProvider.getRelMetadata(
-                rel,
-                metadataQueryName,
-                args);
-        if (result != null) {
-            entry = new CacheEntry();
-            entry.timestamp = timestamp;
-            entry.result = result;
-            cache.put(hashKey, entry);
-        }
-        return result;
+    // Perform cache lookup.
+    CacheEntry entry = cache.get(hashKey);
+    if (entry != null) {
+      if (timestamp == entry.timestamp) {
+        return entry.result;
+      } else {
+        // Cache results are stale.
+      }
     }
 
-    //~ Inner Classes ----------------------------------------------------------
-
-    private static class CacheEntry
-    {
-        long timestamp;
-
-        Object result;
+    // Cache miss or stale.
+    Object result =
+        underlyingProvider.getRelMetadata(
+            rel,
+            metadataQueryName,
+            args);
+    if (result != null) {
+      entry = new CacheEntry();
+      entry.timestamp = timestamp;
+      entry.result = result;
+      cache.put(hashKey, entry);
     }
+    return result;
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
+
+  private static class CacheEntry {
+    long timestamp;
+
+    Object result;
+  }
 }
 
 // End CachingRelMetadataProvider.java

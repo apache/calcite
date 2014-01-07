@@ -23,35 +23,30 @@ import org.eigenbase.rex.*;
 /**
  * SargMutableEndpoint exposes methods for modifying a {@link SargEndpoint}.
  */
-public class SargMutableEndpoint
-    extends SargEndpoint
-{
-    //~ Constructors -----------------------------------------------------------
+public class SargMutableEndpoint extends SargEndpoint {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * @see SargFactory#newEndpoint
-     */
-    SargMutableEndpoint(SargFactory factory, RelDataType dataType)
-    {
-        super(factory, dataType);
-    }
+  /**
+   * @see SargFactory#newEndpoint
+   */
+  SargMutableEndpoint(SargFactory factory, RelDataType dataType) {
+    super(factory, dataType);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // publicize SargEndpoint
-    public void setInfinity(int infinitude)
-    {
-        super.setInfinity(infinitude);
-    }
+  // publicize SargEndpoint
+  public void setInfinity(int infinitude) {
+    super.setInfinity(infinitude);
+  }
 
-    // publicize SargEndpoint
-    public void setFinite(
-        SargBoundType boundType,
-        SargStrictness strictness,
-        RexNode coordinate)
-    {
-        super.setFinite(boundType, strictness, coordinate);
-    }
+  // publicize SargEndpoint
+  public void setFinite(
+      SargBoundType boundType,
+      SargStrictness strictness,
+      RexNode coordinate) {
+    super.setFinite(boundType, strictness, coordinate);
+  }
 }
 
 // End SargMutableEndpoint.java

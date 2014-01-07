@@ -22,17 +22,16 @@ package org.eigenbase.javac;
  * regular Java compiler. Classes implementing this interface should accept the
  * same arguments as Sun's javac.
  */
-public interface JavaCompiler
-{
-    //~ Methods ----------------------------------------------------------------
+public interface JavaCompiler {
+  //~ Methods ----------------------------------------------------------------
 
-    public void compile();
+  public void compile();
 
-    public JavaCompilerArgs getArgs();
+  public JavaCompilerArgs getArgs();
 
-    public ClassLoader getClassLoader();
+  public ClassLoader getClassLoader();
 
-    public int getTotalByteCodeSize();
+  public int getTotalByteCodeSize();
 }
 
 // End JavaCompiler.java

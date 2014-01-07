@@ -19,43 +19,39 @@ package org.eigenbase.util.mapping;
 
 /**
  * An immutable pair of integers.
+ *
  * @see Mapping#iterator()
  */
-public class IntPair
-{
-    //~ Instance fields --------------------------------------------------------
+public class IntPair {
+  //~ Instance fields --------------------------------------------------------
 
-    public final int source;
-    public final int target;
+  public final int source;
+  public final int target;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public IntPair(int source, int target)
-    {
-        this.source = source;
-        this.target = target;
+  public IntPair(int source, int target) {
+    this.source = source;
+    this.target = target;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public String toString() {
+    return source + "-" + target;
+  }
+
+  public boolean equals(Object obj) {
+    if (obj instanceof IntPair) {
+      IntPair that = (IntPair) obj;
+      return (this.source == that.source) && (this.target == that.target);
     }
+    return false;
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public String toString()
-    {
-        return source + "-" + target;
-    }
-
-    public boolean equals(Object obj)
-    {
-        if (obj instanceof IntPair) {
-            IntPair that = (IntPair) obj;
-            return (this.source == that.source) && (this.target == that.target);
-        }
-        return false;
-    }
-
-    public int hashCode()
-    {
-        return this.source ^ (this.target << 4);
-    }
+  public int hashCode() {
+    return this.source ^ (this.target << 4);
+  }
 }
 
 // End IntPair.java

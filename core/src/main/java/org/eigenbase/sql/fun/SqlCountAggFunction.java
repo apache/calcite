@@ -33,51 +33,45 @@ import com.google.common.collect.ImmutableList;
  * have gone into it. With one argument (or more), it returns the number of rows
  * for which that argument (or all) is not <code>null</code>.
  */
-public class SqlCountAggFunction
-    extends SqlAggFunction
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlCountAggFunction extends SqlAggFunction {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final RelDataType type = null; // TODO:
+  public static final RelDataType type = null; // TODO:
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlCountAggFunction()
-    {
-        super(
-            "COUNT",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiBigint,
-            null,
-            SqlTypeStrategies.otcAny,
-            SqlFunctionCategory.Numeric);
+  public SqlCountAggFunction() {
+    super(
+        "COUNT",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiBigint,
+        null,
+        SqlTypeStrategies.otcAny,
+        SqlFunctionCategory.Numeric);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+    return ImmutableList.of(type);
+  }
+
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+    return typeFactory.createSqlType(SqlTypeName.BIGINT);
+  }
+
+  public RelDataType deriveType(
+      SqlValidator validator,
+      SqlValidatorScope scope,
+      SqlCall call) {
+    // Check for COUNT(*) function.  If it is we don't
+    // want to try and derive the "*"
+    if (call.isCountStar()) {
+      return validator.getTypeFactory().createSqlType(
+          SqlTypeName.BIGINT);
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
-    {
-        return ImmutableList.of(type);
-    }
-
-    public RelDataType getReturnType(RelDataTypeFactory typeFactory)
-    {
-        return typeFactory.createSqlType(SqlTypeName.BIGINT);
-    }
-
-    public RelDataType deriveType(
-        SqlValidator validator,
-        SqlValidatorScope scope,
-        SqlCall call)
-    {
-        // Check for COUNT(*) function.  If it is we don't
-        // want to try and derive the "*"
-        if (call.isCountStar()) {
-            return validator.getTypeFactory().createSqlType(
-                SqlTypeName.BIGINT);
-        }
-        return super.deriveType(validator, scope, call);
-    }
+    return super.deriveType(validator, scope, call);
+  }
 }
 
 // End SqlCountAggFunction.java

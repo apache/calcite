@@ -25,62 +25,57 @@ import org.eigenbase.sql.*;
  * ChainedSqlOperatorTable implements the {@link SqlOperatorTable} interface by
  * chaining together any number of underlying operator table instances.
  */
-public class ChainedSqlOperatorTable
-    implements SqlOperatorTable
-{
-    //~ Instance fields --------------------------------------------------------
+public class ChainedSqlOperatorTable implements SqlOperatorTable {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final List<SqlOperatorTable> tableList;
+  protected final List<SqlOperatorTable> tableList;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a table based on a given list.
-     */
-    public ChainedSqlOperatorTable(List<SqlOperatorTable> tableList) {
-        this.tableList = tableList;
+  /**
+   * Creates a table based on a given list.
+   */
+  public ChainedSqlOperatorTable(List<SqlOperatorTable> tableList) {
+    this.tableList = tableList;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Adds an underlying table. The order in which tables are added is
+   * significant; tables added earlier have higher lookup precedence. A table
+   * is not added if it is already on the list.
+   *
+   * @param table table to add
+   */
+  public void add(SqlOperatorTable table) {
+    if (!tableList.contains(table)) {
+      tableList.add(table);
     }
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Adds an underlying table. The order in which tables are added is
-     * significant; tables added earlier have higher lookup precedence. A table
-     * is not added if it is already on the list.
-     *
-     * @param table table to add
-     */
-    public void add(SqlOperatorTable table)
-    {
-        if (!tableList.contains(table)) {
-            tableList.add(table);
-        }
+  // implement SqlOperatorTable
+  public List<SqlOperator> lookupOperatorOverloads(
+      SqlIdentifier opName,
+      SqlFunctionCategory category,
+      SqlSyntax syntax) {
+    List<SqlOperator> list = new ArrayList<SqlOperator>();
+    for (int i = 0; i < tableList.size(); ++i) {
+      SqlOperatorTable table = tableList.get(i);
+      list.addAll(
+          table.lookupOperatorOverloads(opName, category, syntax));
     }
+    return list;
+  }
 
-    // implement SqlOperatorTable
-    public List<SqlOperator> lookupOperatorOverloads(
-        SqlIdentifier opName,
-        SqlFunctionCategory category,
-        SqlSyntax syntax)
-    {
-        List<SqlOperator> list = new ArrayList<SqlOperator>();
-        for (int i = 0; i < tableList.size(); ++i) {
-            SqlOperatorTable table = tableList.get(i);
-            list.addAll(
-                table.lookupOperatorOverloads(opName, category, syntax));
-        }
-        return list;
+  // implement SqlOperatorTable
+  public List<SqlOperator> getOperatorList() {
+    List<SqlOperator> list = new ArrayList<SqlOperator>();
+    for (SqlOperatorTable table : tableList) {
+      list.addAll(table.getOperatorList());
     }
-
-    // implement SqlOperatorTable
-    public List<SqlOperator> getOperatorList()
-    {
-        List<SqlOperator> list = new ArrayList<SqlOperator>();
-        for (SqlOperatorTable table : tableList) {
-            list.addAll(table.getOperatorList());
-        }
-        return list;
-    }
+    return list;
+  }
 }
 
 // End ChainedSqlOperatorTable.java

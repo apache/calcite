@@ -38,7 +38,9 @@ public class RelOptMaterialization {
   public final RelOptTable table;
   public final RelNode queryRel;
 
-  /** Creates a RelOptMaterialization. */
+  /**
+   * Creates a RelOptMaterialization.
+   */
   public RelOptMaterialization(RelNode tableRel, RelNode queryRel,
       RelOptTable starRelOptTable) {
     this.tableRel = tableRel;
@@ -53,10 +55,12 @@ public class RelOptMaterialization {
     this.queryRel = queryRel;
   }
 
-  /** Converts a relational expression to one that uses a
+  /**
+   * Converts a relational expression to one that uses a
    * {@link net.hydromatic.optiq.impl.StarTable}.
    * The relational expression is already in leaf-join-form, per
-   * {@link #toLeafJoinForm(org.eigenbase.rel.RelNode)}. */
+   * {@link #toLeafJoinForm(org.eigenbase.rel.RelNode)}.
+   */
   public static RelNode tryUseStar(RelNode rel,
       final RelOptTable starRelOptTable) {
     final StarTable starTable = starRelOptTable.unwrap(StarTable.class);
@@ -80,7 +84,8 @@ public class RelOptMaterialization {
             return scan;
           }
 
-          @Override public RelNode visit(JoinRel join) {
+          @Override
+          public RelNode visit(JoinRel join) {
             for (;;) {
               RelNode rel = super.visit(join);
               if (rel == join || !(rel instanceof JoinRel)) {
@@ -161,20 +166,22 @@ public class RelOptMaterialization {
             if (rightTable instanceof StarTable
                 && ((StarTable) rightTable).tables.contains(leftTable)) {
               assert false; // TODO:
-                Mappings.TargetMapping mapping =
-                    Mappings.append(leftMapping, rightMapping);
-                throw new Util.FoundOne(
-                    CalcRel.createProject(
-                        new TableAccessRel(cluster, rightRelOptTable),
-                        Mappings.asList(mapping.inverse())));
+              Mappings.TargetMapping mapping =
+                  Mappings.append(leftMapping, rightMapping);
+              throw new Util.FoundOne(
+                  CalcRel.createProject(
+                      new TableAccessRel(cluster, rightRelOptTable),
+                      Mappings.asList(mapping.inverse())));
             }
           }
         });
   }
 
-  /** Converts a relational expression to a form where
+  /**
+   * Converts a relational expression to a form where
    * {@link org.eigenbase.rel.JoinRel}s are
-   * as close to leaves as possible. */
+   * as close to leaves as possible.
+   */
   public static RelNode toLeafJoinForm(RelNode rel) {
     HepProgram program = HepProgram.builder()
         .addRuleInstance(PullUpProjectsAboveJoinRule.instanceRightProjectChild)

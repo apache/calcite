@@ -22,39 +22,34 @@ import org.eigenbase.sql.*;
 
 /**
  * Namespace representing the type of a dynamic parameter.
+ *
  * @see ParameterScope
  */
-class ParameterNamespace
-    extends AbstractNamespace
-{
-    //~ Instance fields --------------------------------------------------------
+class ParameterNamespace extends AbstractNamespace {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType type;
+  private final RelDataType type;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public ParameterNamespace(SqlValidatorImpl validator, RelDataType type)
-    {
-        super(validator, null);
-        this.type = type;
-    }
+  public ParameterNamespace(SqlValidatorImpl validator, RelDataType type) {
+    super(validator, null);
+    this.type = type;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlNode getNode()
-    {
-        return null;
-    }
+  public SqlNode getNode() {
+    return null;
+  }
 
-    public RelDataType validateImpl()
-    {
-        return type;
-    }
+  public RelDataType validateImpl() {
+    return type;
+  }
 
-    public RelDataType getRowType()
-    {
-        return type;
-    }
+  public RelDataType getRowType() {
+    return type;
+  }
 }
 
 // End ParameterNamespace.java

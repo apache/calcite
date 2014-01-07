@@ -25,44 +25,42 @@ import org.eigenbase.relopt.*;
  * <code>UnionRel</code> returns the union of the rows of its inputs, optionally
  * eliminating duplicates.
  */
-public final class UnionRel
-    extends UnionRelBase
-{
-    //~ Constructors -----------------------------------------------------------
+public final class UnionRel extends UnionRelBase {
+  //~ Constructors -----------------------------------------------------------
 
-    public UnionRel(
-        RelOptCluster cluster,
-        List<RelNode> inputs,
-        boolean all)
-    {
-        super(
-            cluster,
-            cluster.traitSetOf(Convention.NONE),
-            inputs,
-            all);
-    }
+  public UnionRel(
+      RelOptCluster cluster,
+      List<RelNode> inputs,
+      boolean all) {
+    super(
+        cluster,
+        cluster.traitSetOf(Convention.NONE),
+        inputs,
+        all);
+  }
 
-    /** Creates a UnionRel by parsing serialized output. */
-    public UnionRel(RelInput input) {
-        super(input);
-    }
+  /**
+   * Creates a UnionRel by parsing serialized output.
+   */
+  public UnionRel(RelInput input) {
+    super(input);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public UnionRel copy(
-        RelTraitSet traitSet, List<RelNode> inputs, boolean all)
-    {
-        assert traitSet.containsIfApplicable(Convention.NONE);
-        return new UnionRel(
-            getCluster(),
-            inputs,
-            all);
-    }
+  public UnionRel copy(
+      RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+    assert traitSet.containsIfApplicable(Convention.NONE);
+    return new UnionRel(
+        getCluster(),
+        inputs,
+        all);
+  }
 
-    @Override
-    public RelNode accept(RelShuttle shuttle) {
-        return shuttle.visit(this);
-    }
+  @Override
+  public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
 }
 
 // End UnionRel.java

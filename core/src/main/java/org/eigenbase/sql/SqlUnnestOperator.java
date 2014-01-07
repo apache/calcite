@@ -23,40 +23,35 @@ import org.eigenbase.sql.type.*;
 /**
  * The <code>UNNEST<code>operator.
  */
-public class SqlUnnestOperator
-    extends SqlFunctionalOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlUnnestOperator extends SqlFunctionalOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlUnnestOperator()
-    {
-        super(
-            "UNNEST",
-            SqlKind.UNNEST,
-            200,
-            true,
-            null,
-            null,
-            SqlTypeStrategies.otcMultisetOrRecordTypeMultiset);
+  public SqlUnnestOperator() {
+    super(
+        "UNNEST",
+        SqlKind.UNNEST,
+        200,
+        true,
+        null,
+        null,
+        SqlTypeStrategies.otcMultisetOrRecordTypeMultiset);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    RelDataType type = opBinding.getOperandType(0);
+    if (type.isStruct()) {
+      type = type.getFieldList().get(0).getType();
     }
+    MultisetSqlType t = (MultisetSqlType) type;
+    return t.getComponentType();
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public RelDataType inferReturnType(
-        SqlOperatorBinding opBinding)
-    {
-        RelDataType type = opBinding.getOperandType(0);
-        if (type.isStruct()) {
-            type = type.getFieldList().get(0).getType();
-        }
-        MultisetSqlType t = (MultisetSqlType) type;
-        return t.getComponentType();
-    }
-
-    public boolean argumentMustBeScalar(int ordinal)
-    {
-        return false;
-    }
+  public boolean argumentMustBeScalar(int ordinal) {
+    return false;
+  }
 }
 
 // End SqlUnnestOperator.java

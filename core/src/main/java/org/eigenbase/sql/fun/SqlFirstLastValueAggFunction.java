@@ -25,43 +25,37 @@ import org.eigenbase.sql.type.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * <code>FIRST_VALUE</code> and <code>LAST_VALUE</code> aggregate functions
  * return the first or the last value in a list of values that are input to the
  * function.
  */
-public class SqlFirstLastValueAggFunction
-    extends SqlAggFunction
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlFirstLastValueAggFunction extends SqlAggFunction {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final RelDataType type = null; // TODO:
+  public static final RelDataType type = null; // TODO:
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlFirstLastValueAggFunction(boolean firstFlag)
-    {
-        super(
-            (firstFlag) ? "FIRST_VALUE" : "LAST_VALUE",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiFirstArgType,
-            null,
-            SqlTypeStrategies.otcAny,
-            SqlFunctionCategory.Numeric);
-    }
+  public SqlFirstLastValueAggFunction(boolean firstFlag) {
+    super(
+        (firstFlag) ? "FIRST_VALUE" : "LAST_VALUE",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiFirstArgType,
+        null,
+        SqlTypeStrategies.otcAny,
+        SqlFunctionCategory.Numeric);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
-    {
-        return ImmutableList.of(type);
-    }
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+    return ImmutableList.of(type);
+  }
 
-    public RelDataType getReturnType(RelDataTypeFactory typeFactory)
-    {
-        return type;
-    }
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+    return type;
+  }
 }
 
 // End SqlFirstLastValueAggFunction.java

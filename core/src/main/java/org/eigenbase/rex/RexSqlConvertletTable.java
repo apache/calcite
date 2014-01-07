@@ -20,14 +20,13 @@ package org.eigenbase.rex;
 /**
  * Collection of {@link RexSqlConvertlet}s.
  */
-public interface RexSqlConvertletTable
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RexSqlConvertletTable {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Returns the convertlet applicable to a given expression.
-     */
-    public RexSqlConvertlet get(RexCall call);
+  /**
+   * Returns the convertlet applicable to a given expression.
+   */
+  public RexSqlConvertlet get(RexCall call);
 }
 
 // End RexSqlConvertletTable.java

@@ -29,86 +29,74 @@ import org.eigenbase.util14.Unwrappable;
 /**
  * Adapter to make a JDBC connection into a {@link javax.sql.DataSource}.
  */
-public class JdbcDataSource
-    extends Unwrappable
-    implements DataSource
-{
-    //~ Instance fields --------------------------------------------------------
+public class JdbcDataSource extends Unwrappable implements DataSource {
+  //~ Instance fields --------------------------------------------------------
 
-    private final String url;
-    private PrintWriter logWriter;
-    private int loginTimeout;
+  private final String url;
+  private PrintWriter logWriter;
+  private int loginTimeout;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a JDBC data source.
-     *
-     * @param url URL of JDBC connection (must not be null)
-     *
-     * @pre url != null
-     */
-    public JdbcDataSource(String url)
-    {
-        assert (url != null);
-        this.url = url;
+  /**
+   * Creates a JDBC data source.
+   *
+   * @param url URL of JDBC connection (must not be null)
+   * @pre url != null
+   */
+  public JdbcDataSource(String url) {
+    assert (url != null);
+    this.url = url;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public Connection getConnection()
+      throws SQLException {
+    if (url.startsWith("jdbc:hsqldb:")) {
+      // Hsqldb requires a username, but doesn't support username as part
+      // of the URL, durn it. Assume that the username is "sa".
+      return DriverManager.getConnection(url, "sa", "");
+    } else {
+      return DriverManager.getConnection(url);
     }
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  public String getUrl() {
+    return url;
+  }
 
-    public Connection getConnection()
-        throws SQLException
-    {
-        if (url.startsWith("jdbc:hsqldb:")) {
-            // Hsqldb requires a username, but doesn't support username as part
-            // of the URL, durn it. Assume that the username is "sa".
-            return DriverManager.getConnection(url, "sa", "");
-        } else {
-            return DriverManager.getConnection(url);
-        }
-    }
+  public Connection getConnection(
+      String username,
+      String password)
+      throws SQLException {
+    return DriverManager.getConnection(url, username, password);
+  }
 
-    public String getUrl()
-    {
-        return url;
-    }
+  public void setLogWriter(PrintWriter out)
+      throws SQLException {
+    logWriter = out;
+  }
 
-    public Connection getConnection(
-        String username,
-        String password)
-        throws SQLException
-    {
-        return DriverManager.getConnection(url, username, password);
-    }
+  public PrintWriter getLogWriter()
+      throws SQLException {
+    return logWriter;
+  }
 
-    public void setLogWriter(PrintWriter out)
-        throws SQLException
-    {
-        logWriter = out;
-    }
+  public void setLoginTimeout(int seconds)
+      throws SQLException {
+    loginTimeout = seconds;
+  }
 
-    public PrintWriter getLogWriter()
-        throws SQLException
-    {
-        return logWriter;
-    }
+  public int getLoginTimeout()
+      throws SQLException {
+    return loginTimeout;
+  }
 
-    public void setLoginTimeout(int seconds)
-        throws SQLException
-    {
-        loginTimeout = seconds;
-    }
-
-    public int getLoginTimeout()
-        throws SQLException
-    {
-        return loginTimeout;
-    }
-
-    // for JDK 1.7
-    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        return null;
-    }
+  // for JDK 1.7
+  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+    return null;
+  }
 }
 
 // End JdbcDataSource.java

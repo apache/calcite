@@ -27,46 +27,42 @@ import com.google.common.collect.ImmutableList;
  * by using one {@link SqlReturnTypeInference} rule and a combination of {@link
  * SqlTypeTransform}s
  */
-public class SqlTypeTransformCascade
-    implements SqlReturnTypeInference
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlTypeTransformCascade implements SqlReturnTypeInference {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlReturnTypeInference rule;
-    private final ImmutableList<SqlTypeTransform> transforms;
+  private final SqlReturnTypeInference rule;
+  private final ImmutableList<SqlTypeTransform> transforms;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a SqlTypeTransformCascade from a rule and an array of one or more
-     * transforms.
-     */
-    public SqlTypeTransformCascade(
-        SqlReturnTypeInference rule,
-        SqlTypeTransform... transforms)
-    {
-        assert rule != null;
-        assert transforms.length > 0;
-        this.rule = rule;
-        this.transforms = ImmutableList.copyOf(transforms);
+  /**
+   * Creates a SqlTypeTransformCascade from a rule and an array of one or more
+   * transforms.
+   */
+  public SqlTypeTransformCascade(
+      SqlReturnTypeInference rule,
+      SqlTypeTransform... transforms) {
+    assert rule != null;
+    assert transforms.length > 0;
+    this.rule = rule;
+    this.transforms = ImmutableList.copyOf(transforms);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    RelDataType ret = rule.inferReturnType(opBinding);
+    if (ret == null) {
+      // inferReturnType may return null; transformType does not accept or
+      // return null types
+      return null;
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public RelDataType inferReturnType(
-        SqlOperatorBinding opBinding)
-    {
-        RelDataType ret = rule.inferReturnType(opBinding);
-        if (ret == null) {
-            // inferReturnType may return null; transformType does not accept or
-            // return null types
-            return null;
-        }
-        for (SqlTypeTransform transform : transforms) {
-            ret = transform.transformType(opBinding, ret);
-        }
-        return ret;
+    for (SqlTypeTransform transform : transforms) {
+      ret = transform.transformType(opBinding, ret);
     }
+    return ret;
+  }
 }
 
 // End SqlTypeTransformCascade.java

@@ -46,82 +46,69 @@ import org.eigenbase.sql.SqlKind;
  *     AND gender = 'F')</pre>
  * </blockquote>
  */
-public class RexFieldAccess
-    extends RexNode
-{
-    //~ Instance fields --------------------------------------------------------
+public class RexFieldAccess extends RexNode {
+  //~ Instance fields --------------------------------------------------------
 
-    private RexNode expr;
-    private final RelDataTypeField field;
+  private RexNode expr;
+  private final RelDataTypeField field;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    RexFieldAccess(
-        RexNode expr,
-        RelDataTypeField field)
-    {
-        this.expr = expr;
-        this.field = field;
-        computeDigest();
-    }
+  RexFieldAccess(
+      RexNode expr,
+      RelDataTypeField field) {
+    this.expr = expr;
+    this.field = field;
+    computeDigest();
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelDataTypeField getField()
-    {
-        return field;
-    }
+  public RelDataTypeField getField() {
+    return field;
+  }
 
-    public RelDataType getType()
-    {
-        return field.getType();
-    }
+  public RelDataType getType() {
+    return field.getType();
+  }
 
-    public RexFieldAccess clone()
-    {
-        return new RexFieldAccess(expr, field);
-    }
+  public RexFieldAccess clone() {
+    return new RexFieldAccess(expr, field);
+  }
 
-    public SqlKind getKind()
-    {
-        return SqlKind.FIELD_ACCESS;
-    }
+  public SqlKind getKind() {
+    return SqlKind.FIELD_ACCESS;
+  }
 
-    public <R> R accept(RexVisitor<R> visitor)
-    {
-        return visitor.visitFieldAccess(this);
-    }
+  public <R> R accept(RexVisitor<R> visitor) {
+    return visitor.visitFieldAccess(this);
+  }
 
-    /**
-     * Returns the expression whose field is being accessed.
-     */
-    public RexNode getReferenceExpr()
-    {
-        return expr;
-    }
+  /**
+   * Returns the expression whose field is being accessed.
+   */
+  public RexNode getReferenceExpr() {
+    return expr;
+  }
 
-    public void setReferenceExpr(RexNode expr)
-    {
-        this.expr = expr;
-    }
+  public void setReferenceExpr(RexNode expr) {
+    this.expr = expr;
+  }
 
-    /**
-     * Returns the name of the field.
-     */
-    public String getName()
-    {
-        return field.getName();
-    }
+  /**
+   * Returns the name of the field.
+   */
+  public String getName() {
+    return field.getName();
+  }
 
-    public String toString()
-    {
-        return computeDigest();
-    }
+  public String toString() {
+    return computeDigest();
+  }
 
-    private String computeDigest()
-    {
-        return (this.digest = expr + "." + field.getName());
-    }
+  private String computeDigest() {
+    return (this.digest = expr + "." + field.getName());
+  }
 }
 
 // End RexFieldAccess.java

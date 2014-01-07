@@ -30,64 +30,61 @@ import org.eigenbase.rex.*;
  *
  * @see MergeFilterOntoCalcRule
  */
-public class MergeFilterOntoCalcRule
-    extends RelOptRule
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class MergeFilterOntoCalcRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final MergeFilterOntoCalcRule instance =
-        new MergeFilterOntoCalcRule();
+  public static final MergeFilterOntoCalcRule instance =
+      new MergeFilterOntoCalcRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    private MergeFilterOntoCalcRule() {
-        super(
-            operand(
-                FilterRelBase.class,
-                operand(CalcRel.class, any())));
+  private MergeFilterOntoCalcRule() {
+    super(
+        operand(
+            FilterRelBase.class,
+            operand(CalcRel.class, any())));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void onMatch(RelOptRuleCall call) {
+    final FilterRel filter = call.rel(0);
+    final CalcRel calc = call.rel(1);
+
+    // Don't merge a filter onto a calc which contains windowed aggregates.
+    // That would effectively be pushing a multiset down through a filter.
+    // We'll have chance to merge later, when the over is expanded.
+    if (calc.getProgram().containsAggs()) {
+      return;
     }
 
-    //~ Methods ----------------------------------------------------------------
+    // Create a program containing the filter.
+    final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
+    final RexProgramBuilder progBuilder =
+        new RexProgramBuilder(
+            calc.getRowType(),
+            rexBuilder);
+    progBuilder.addIdentity();
+    progBuilder.addCondition(filter.getCondition());
+    RexProgram topProgram = progBuilder.getProgram();
+    RexProgram bottomProgram = calc.getProgram();
 
-    public void onMatch(RelOptRuleCall call)
-    {
-        final FilterRel filter = call.rel(0);
-        final CalcRel calc = call.rel(1);
-
-        // Don't merge a filter onto a calc which contains windowed aggregates.
-        // That would effectively be pushing a multiset down through a filter.
-        // We'll have chance to merge later, when the over is expanded.
-        if (calc.getProgram().containsAggs()) {
-            return;
-        }
-
-        // Create a program containing the filter.
-        final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
-        final RexProgramBuilder progBuilder =
-            new RexProgramBuilder(
-                calc.getRowType(),
-                rexBuilder);
-        progBuilder.addIdentity();
-        progBuilder.addCondition(filter.getCondition());
-        RexProgram topProgram = progBuilder.getProgram();
-        RexProgram bottomProgram = calc.getProgram();
-
-        // Merge the programs together.
-        RexProgram mergedProgram =
-            RexProgramBuilder.mergePrograms(
-                topProgram,
-                bottomProgram,
-                rexBuilder);
-        final CalcRel newCalc =
-            new CalcRel(
-                calc.getCluster(),
-                calc.getTraitSet(),
-                calc.getChild(),
-                filter.getRowType(),
-                mergedProgram,
-                Collections.<RelCollation>emptyList());
-        call.transformTo(newCalc);
-    }
+    // Merge the programs together.
+    RexProgram mergedProgram =
+        RexProgramBuilder.mergePrograms(
+            topProgram,
+            bottomProgram,
+            rexBuilder);
+    final CalcRel newCalc =
+        new CalcRel(
+            calc.getCluster(),
+            calc.getTraitSet(),
+            calc.getChild(),
+            filter.getRowType(),
+            mergedProgram,
+            Collections.<RelCollation>emptyList());
+    call.transformTo(newCalc);
+  }
 }
 
 // End MergeFilterOntoCalcRule.java

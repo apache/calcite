@@ -28,66 +28,60 @@ import org.eigenbase.sql.type.*;
  * <code>'green' MEMBER OF MULTISET['red','almost green','blue']</code> returns
  * <code>false</code>.
  */
-public class SqlMultisetMemberOfOperator
-    extends SqlBinaryOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlMultisetMemberOfOperator()
-    {
-        // TODO check if precedence is correct
-        super(
-            "MEMBER OF",
-            SqlKind.OTHER,
-            30,
-            true,
-            SqlTypeStrategies.rtiNullableBoolean,
-            null,
-            null);
+  public SqlMultisetMemberOfOperator() {
+    // TODO check if precedence is correct
+    super(
+        "MEMBER OF",
+        SqlKind.OTHER,
+        30,
+        true,
+        SqlTypeStrategies.rtiNullableBoolean,
+        null,
+        null);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    if (!SqlTypeStrategies.otcMultiset.checkSingleOperandType(
+        callBinding,
+        callBinding.getCall().operands[1],
+        0,
+        throwOnFailure)) {
+      return false;
     }
 
-    //~ Methods ----------------------------------------------------------------
+    MultisetSqlType mt =
+        (MultisetSqlType) callBinding.getValidator().deriveType(
+            callBinding.getScope(),
+            callBinding.getCall().operands[1]);
 
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        if (!SqlTypeStrategies.otcMultiset.checkSingleOperandType(
-                callBinding,
-                callBinding.getCall().operands[1],
-                0,
-                throwOnFailure))
-        {
-            return false;
-        }
+    RelDataType t0 =
+        callBinding.getValidator().deriveType(
+            callBinding.getScope(),
+            callBinding.getCall().operands[0]);
+    RelDataType t1 = mt.getComponentType();
 
-        MultisetSqlType mt =
-            (MultisetSqlType) callBinding.getValidator().deriveType(
-                callBinding.getScope(),
-                callBinding.getCall().operands[1]);
-
-        RelDataType t0 =
-            callBinding.getValidator().deriveType(
-                callBinding.getScope(),
-                callBinding.getCall().operands[0]);
-        RelDataType t1 = mt.getComponentType();
-
-        if (t0.getFamily() != t1.getFamily()) {
-            if (throwOnFailure) {
-                throw callBinding.newValidationError(
-                    EigenbaseResource.instance().TypeNotComparableNear.ex(
-                        t0.toString(),
-                        t1.toString()));
-            }
-            return false;
-        }
-        return true;
+    if (t0.getFamily() != t1.getFamily()) {
+      if (throwOnFailure) {
+        throw callBinding.newValidationError(
+            EigenbaseResource.instance().TypeNotComparableNear.ex(
+                t0.toString(),
+                t1.toString()));
+      }
+      return false;
     }
+    return true;
+  }
 
-    public SqlOperandCountRange getOperandCountRange()
-    {
-        return SqlOperandCountRanges.of(2);
-    }
+  public SqlOperandCountRange getOperandCountRange() {
+    return SqlOperandCountRanges.of(2);
+  }
 }
 
 // End SqlMultisetMemberOfOperator.java

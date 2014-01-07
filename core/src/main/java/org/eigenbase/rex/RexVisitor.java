@@ -24,27 +24,26 @@ package org.eigenbase.rex;
  * @see RexShuttle
  * @see RexVisitorImpl
  */
-public interface RexVisitor<R>
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RexVisitor<R> {
+  //~ Methods ----------------------------------------------------------------
 
-    R visitInputRef(RexInputRef inputRef);
+  R visitInputRef(RexInputRef inputRef);
 
-    R visitLocalRef(RexLocalRef localRef);
+  R visitLocalRef(RexLocalRef localRef);
 
-    R visitLiteral(RexLiteral literal);
+  R visitLiteral(RexLiteral literal);
 
-    R visitCall(RexCall call);
+  R visitCall(RexCall call);
 
-    R visitOver(RexOver over);
+  R visitOver(RexOver over);
 
-    R visitCorrelVariable(RexCorrelVariable correlVariable);
+  R visitCorrelVariable(RexCorrelVariable correlVariable);
 
-    R visitDynamicParam(RexDynamicParam dynamicParam);
+  R visitDynamicParam(RexDynamicParam dynamicParam);
 
-    R visitRangeRef(RexRangeRef rangeRef);
+  R visitRangeRef(RexRangeRef rangeRef);
 
-    R visitFieldAccess(RexFieldAccess fieldAccess);
+  R visitFieldAccess(RexFieldAccess fieldAccess);
 }
 
 // End RexVisitor.java

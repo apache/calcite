@@ -23,42 +23,37 @@ package org.eigenbase.sql;
  *
  * <pre><code> &#64;sql.2003 Part 2 Section 23.1</code></pre>
  */
-public enum SqlStateCodes
-{
-    CardinalityViolation("cardinality violation", "21", "000"),
+public enum SqlStateCodes {
+  CardinalityViolation("cardinality violation", "21", "000"),
 
-    NullValueNotAllowed("null value not allowed", "22", "004"),
+  NullValueNotAllowed("null value not allowed", "22", "004"),
 
-    NumericValueOutOfRange("numeric value out of range", "22", "003");
+  NumericValueOutOfRange("numeric value out of range", "22", "003");
 
-    private final String msg;
-    private final String stateClass;
-    private final String stateSubClass;
+  private final String msg;
+  private final String stateClass;
+  private final String stateSubClass;
 
-    SqlStateCodes(
-        String msg,
-        String stateClass,
-        String stateSubClass)
-    {
-        this.msg = msg;
-        this.stateClass = stateClass;
-        this.stateSubClass = stateSubClass;
-    }
+  SqlStateCodes(
+      String msg,
+      String stateClass,
+      String stateSubClass) {
+    this.msg = msg;
+    this.stateClass = stateClass;
+    this.stateSubClass = stateSubClass;
+  }
 
-    public String getStateClass()
-    {
-        return stateClass;
-    }
+  public String getStateClass() {
+    return stateClass;
+  }
 
-    public String getStateSubClass()
-    {
-        return stateSubClass;
-    }
+  public String getStateSubClass() {
+    return stateSubClass;
+  }
 
-    public String getState()
-    {
-        return stateClass + stateSubClass;
-    }
+  public String getState() {
+    return stateClass + stateSubClass;
+  }
 }
 
 // End SqlStateCodes.java

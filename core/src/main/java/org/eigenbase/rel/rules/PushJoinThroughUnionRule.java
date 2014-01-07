@@ -28,87 +28,85 @@ import com.google.common.collect.ImmutableSet;
  * PushJoinThroughUnionRule implements the rule for pushing a
  * {@link JoinRel} past a non-distinct {@link UnionRel}.
  */
-public class PushJoinThroughUnionRule extends RelOptRule
-{
-    public static final PushJoinThroughUnionRule instanceUnionOnLeft =
-        new PushJoinThroughUnionRule(
-            operand(
-                JoinRel.class,
-                operand(UnionRel.class, any()),
-                operand(RelNode.class, any())),
-            "union on left");
+public class PushJoinThroughUnionRule extends RelOptRule {
+  public static final PushJoinThroughUnionRule instanceUnionOnLeft =
+      new PushJoinThroughUnionRule(
+          operand(
+              JoinRel.class,
+              operand(UnionRel.class, any()),
+              operand(RelNode.class, any())),
+          "union on left");
 
-    public static final PushJoinThroughUnionRule instanceUnionOnRight =
-        new PushJoinThroughUnionRule(
-            operand(
-                JoinRel.class,
-                operand(RelNode.class, any()),
-                operand(UnionRel.class, any())),
-            "union on right");
+  public static final PushJoinThroughUnionRule instanceUnionOnRight =
+      new PushJoinThroughUnionRule(
+          operand(
+              JoinRel.class,
+              operand(RelNode.class, any()),
+              operand(UnionRel.class, any())),
+          "union on right");
 
-    private PushJoinThroughUnionRule(RelOptRuleOperand operand, String id) {
-        super(
-            operand,
-            "PushJoinThroughUnionRule: " + id);
+  private PushJoinThroughUnionRule(RelOptRuleOperand operand, String id) {
+    super(
+        operand,
+        "PushJoinThroughUnionRule: " + id);
+  }
+
+  public void onMatch(RelOptRuleCall call) {
+    JoinRel joinRel = call.rel(0);
+    UnionRel unionRel;
+    RelNode otherInput;
+    boolean unionOnLeft;
+    if (call.rel(1) instanceof UnionRel) {
+      unionRel = call.rel(1);
+      otherInput = call.rel(2);
+      unionOnLeft = true;
+    } else {
+      otherInput = call.rel(1);
+      unionRel = call.rel(2);
+      unionOnLeft = false;
     }
-
-    public void onMatch(RelOptRuleCall call)
-    {
-        JoinRel joinRel = call.rel(0);
-        UnionRel unionRel;
-        RelNode otherInput;
-        boolean unionOnLeft;
-        if (call.rel(1) instanceof UnionRel) {
-            unionRel = call.rel(1);
-            otherInput = call.rel(2);
-            unionOnLeft = true;
-        } else {
-            otherInput = call.rel(1);
-            unionRel = call.rel(2);
-            unionOnLeft = false;
-        }
-        if (!unionRel.all) {
-            return;
-        }
-        if (!joinRel.getVariablesStopped().isEmpty()) {
-            return;
-        }
-        // The UNION ALL cannot be on the null generating side
-        // of an outer join (otherwise we might generate incorrect
-        // rows for the other side for join keys which lack a match
-        // in one or both branches of the union)
-        if (unionOnLeft) {
-            if (joinRel.getJoinType().generatesNullsOnLeft()) {
-                return;
-            }
-        } else {
-            if (joinRel.getJoinType().generatesNullsOnRight()) {
-                return;
-            }
-        }
-        List<RelNode> newUnionInputs = new ArrayList<RelNode>();
-        RelOptCluster cluster = unionRel.getCluster();
-        for (RelNode input : unionRel.getInputs()) {
-            RelNode joinLeft, joinRight;
-            if (unionOnLeft) {
-                joinLeft = input;
-                joinRight = otherInput;
-            } else {
-                joinLeft = otherInput;
-                joinRight = input;
-            }
-            newUnionInputs.add(
-                new JoinRel(
-                    cluster,
-                    joinLeft,
-                    joinRight,
-                    joinRel.getCondition(),
-                    joinRel.getJoinType(),
-                    ImmutableSet.<String>of()));
-        }
-        UnionRel newUnionRel = new UnionRel(cluster, newUnionInputs, true);
-        call.transformTo(newUnionRel);
+    if (!unionRel.all) {
+      return;
     }
+    if (!joinRel.getVariablesStopped().isEmpty()) {
+      return;
+    }
+    // The UNION ALL cannot be on the null generating side
+    // of an outer join (otherwise we might generate incorrect
+    // rows for the other side for join keys which lack a match
+    // in one or both branches of the union)
+    if (unionOnLeft) {
+      if (joinRel.getJoinType().generatesNullsOnLeft()) {
+        return;
+      }
+    } else {
+      if (joinRel.getJoinType().generatesNullsOnRight()) {
+        return;
+      }
+    }
+    List<RelNode> newUnionInputs = new ArrayList<RelNode>();
+    RelOptCluster cluster = unionRel.getCluster();
+    for (RelNode input : unionRel.getInputs()) {
+      RelNode joinLeft, joinRight;
+      if (unionOnLeft) {
+        joinLeft = input;
+        joinRight = otherInput;
+      } else {
+        joinLeft = otherInput;
+        joinRight = input;
+      }
+      newUnionInputs.add(
+          new JoinRel(
+              cluster,
+              joinLeft,
+              joinRight,
+              joinRel.getCondition(),
+              joinRel.getJoinType(),
+              ImmutableSet.<String>of()));
+    }
+    UnionRel newUnionRel = new UnionRel(cluster, newUnionInputs, true);
+    call.transformTo(newUnionRel);
+  }
 }
 
 // End PushJoinThroughUnionRule.java

@@ -27,14 +27,13 @@ import org.eigenbase.relopt.RelTrait;
  * <p>An ordering consists of a list of one or more column ordinals and the
  * direction of the ordering.
  */
-public interface RelCollation extends RelTrait
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RelCollation extends RelTrait {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Returns the ordinals and directions of the columns in this ordering.
-     */
-    List<RelFieldCollation> getFieldCollations();
+  /**
+   * Returns the ordinals and directions of the columns in this ordering.
+   */
+  List<RelFieldCollation> getFieldCollations();
 }
 
 // End RelCollation.java

@@ -141,8 +141,10 @@ public class RelJsonWriter implements RelWriter {
     return true;
   }
 
-  /** Returns a JSON string describing the relational expressions that were just
-   * explained. */
+  /**
+   * Returns a JSON string describing the relational expressions that were just
+   * explained.
+   */
   public String asString() {
     final Map<String, Object> map = jsonBuilder.map();
     map.put("rels", relList);

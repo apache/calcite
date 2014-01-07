@@ -29,181 +29,175 @@ import org.eigenbase.sql.*;
  * output row types by expanding references to cursor parameters.
  */
 public class TableFunctionReturnTypeInference
-    extends ExplicitReturnTypeInference
-{
-    //~ Instance fields --------------------------------------------------------
+    extends ExplicitReturnTypeInference {
+  //~ Instance fields --------------------------------------------------------
 
-    private final List<String> paramNames;
+  private final List<String> paramNames;
 
-    private Set<RelColumnMapping> columnMappings;
+  private Set<RelColumnMapping> columnMappings;
 
-    private final boolean isPassthrough;
+  private final boolean isPassthrough;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public TableFunctionReturnTypeInference(
-        RelDataType unexpandedOutputType,
-        List<String> paramNames,
-        boolean isPassthrough)
-    {
-        super(unexpandedOutputType);
-        this.paramNames = paramNames;
-        this.isPassthrough = isPassthrough;
-    }
+  public TableFunctionReturnTypeInference(
+      RelDataType unexpandedOutputType,
+      List<String> paramNames,
+      boolean isPassthrough) {
+    super(unexpandedOutputType);
+    this.paramNames = paramNames;
+    this.isPassthrough = isPassthrough;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public Set<RelColumnMapping> getColumnMappings()
-    {
-        return columnMappings;
-    }
+  public Set<RelColumnMapping> getColumnMappings() {
+    return columnMappings;
+  }
 
-    public RelDataType inferReturnType(
-        SqlOperatorBinding opBinding)
-    {
-        columnMappings = new HashSet<RelColumnMapping>();
-        RelDataType unexpandedOutputType = getExplicitType();
-        List<RelDataType> expandedOutputTypes = new ArrayList<RelDataType>();
-        List<String> expandedFieldNames = new ArrayList<String>();
-        for (RelDataTypeField field : unexpandedOutputType.getFieldList()) {
-            RelDataType fieldType = field.getType();
-            String fieldName = field.getName();
-            if (fieldType.getSqlTypeName() != SqlTypeName.CURSOR) {
-                expandedOutputTypes.add(fieldType);
-                expandedFieldNames.add(fieldName);
-                continue;
-            }
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    columnMappings = new HashSet<RelColumnMapping>();
+    RelDataType unexpandedOutputType = getExplicitType();
+    List<RelDataType> expandedOutputTypes = new ArrayList<RelDataType>();
+    List<String> expandedFieldNames = new ArrayList<String>();
+    for (RelDataTypeField field : unexpandedOutputType.getFieldList()) {
+      RelDataType fieldType = field.getType();
+      String fieldName = field.getName();
+      if (fieldType.getSqlTypeName() != SqlTypeName.CURSOR) {
+        expandedOutputTypes.add(fieldType);
+        expandedFieldNames.add(fieldName);
+        continue;
+      }
 
-            // Look up position of cursor parameter with same name as output
-            // field, also counting how many cursors appear before it
-            // (need this for correspondence with RelNode child position).
-            int paramOrdinal = -1;
-            int iCursor = 0;
-            for (int i = 0; i < paramNames.size(); ++i) {
-                if (paramNames.get(i).equals(fieldName)) {
-                    paramOrdinal = i;
-                    break;
-                }
-                RelDataType cursorType = opBinding.getCursorOperand(i);
-                if (cursorType != null) {
-                    ++iCursor;
-                }
-            }
-            assert (paramOrdinal != -1);
-
-            // Translate to actual argument type.
-            boolean isRowOp = false;
-            List<String> columnNames = new ArrayList<String>();
-            RelDataType cursorType = opBinding.getCursorOperand(paramOrdinal);
-            if (cursorType == null) {
-                isRowOp = true;
-                String parentCursorName =
-                    opBinding.getColumnListParamInfo(
-                        paramOrdinal,
-                        fieldName,
-                        columnNames);
-                assert (parentCursorName != null);
-                paramOrdinal = -1;
-                iCursor = 0;
-                for (int i = 0; i < paramNames.size(); ++i) {
-                    if (paramNames.get(i).equals(parentCursorName)) {
-                        paramOrdinal = i;
-                        break;
-                    }
-                    cursorType = opBinding.getCursorOperand(i);
-                    if (cursorType != null) {
-                        ++iCursor;
-                    }
-                }
-                cursorType = opBinding.getCursorOperand(paramOrdinal);
-                assert (cursorType != null);
-            }
-
-            // And expand. Function output is always nullable... except system
-            // fields.
-            int iInputColumn;
-            if (isRowOp) {
-                for (String columnName : columnNames) {
-                    iInputColumn = -1;
-                    RelDataTypeField cursorField = null;
-                    for (RelDataTypeField cField : cursorType.getFieldList()) {
-                        ++iInputColumn;
-                        if (cField.getName().equals(columnName)) {
-                            cursorField = cField;
-                            break;
-                        }
-                    }
-                    addOutputColumn(
-                        expandedFieldNames,
-                        expandedOutputTypes,
-                        iInputColumn,
-                        iCursor,
-                        opBinding,
-                        cursorField);
-                }
-            } else {
-                iInputColumn = -1;
-                for (RelDataTypeField cursorField : cursorType.getFieldList()) {
-                    ++iInputColumn;
-                    addOutputColumn(
-                        expandedFieldNames,
-                        expandedOutputTypes,
-                        iInputColumn,
-                        iCursor,
-                        opBinding,
-                        cursorField);
-                }
-            }
+      // Look up position of cursor parameter with same name as output
+      // field, also counting how many cursors appear before it
+      // (need this for correspondence with RelNode child position).
+      int paramOrdinal = -1;
+      int iCursor = 0;
+      for (int i = 0; i < paramNames.size(); ++i) {
+        if (paramNames.get(i).equals(fieldName)) {
+          paramOrdinal = i;
+          break;
         }
-        return opBinding.getTypeFactory().createStructType(
-            expandedOutputTypes,
-            expandedFieldNames);
-    }
-
-    private void addOutputColumn(
-        List<String> expandedFieldNames,
-        List<RelDataType> expandedOutputTypes,
-        int iInputColumn,
-        int iCursor,
-        SqlOperatorBinding opBinding,
-        RelDataTypeField cursorField)
-    {
-        columnMappings.add(
-            new RelColumnMapping(
-                expandedFieldNames.size(),
-                iCursor,
-                iInputColumn,
-                !isPassthrough));
-
-        // As a special case, system fields are implicitly NOT NULL.
-        // A badly behaved UDX can still provide NULL values, so the
-        // system must ensure that each generated system field has a
-        // reasonable value.
-        boolean nullable = true;
-        if (opBinding instanceof SqlCallBinding) {
-            SqlCallBinding sqlCallBinding = (SqlCallBinding) opBinding;
-            if (sqlCallBinding.getValidator().isSystemField(
-                    cursorField))
-            {
-                nullable = false;
-            }
+        RelDataType cursorType = opBinding.getCursorOperand(i);
+        if (cursorType != null) {
+          ++iCursor;
         }
-        RelDataType nullableType =
-            opBinding.getTypeFactory().createTypeWithNullability(
-                cursorField.getType(),
-                nullable);
+      }
+      assert (paramOrdinal != -1);
 
-        // Make sure there are no duplicates in the output column names
-        for (String fieldName : expandedFieldNames) {
-            if (fieldName.equals(cursorField.getName())) {
-                throw opBinding.newError(
-                    EigenbaseResource.instance().DuplicateColumnName.ex(
-                        cursorField.getName()));
-            }
+      // Translate to actual argument type.
+      boolean isRowOp = false;
+      List<String> columnNames = new ArrayList<String>();
+      RelDataType cursorType = opBinding.getCursorOperand(paramOrdinal);
+      if (cursorType == null) {
+        isRowOp = true;
+        String parentCursorName =
+            opBinding.getColumnListParamInfo(
+                paramOrdinal,
+                fieldName,
+                columnNames);
+        assert (parentCursorName != null);
+        paramOrdinal = -1;
+        iCursor = 0;
+        for (int i = 0; i < paramNames.size(); ++i) {
+          if (paramNames.get(i).equals(parentCursorName)) {
+            paramOrdinal = i;
+            break;
+          }
+          cursorType = opBinding.getCursorOperand(i);
+          if (cursorType != null) {
+            ++iCursor;
+          }
         }
-        expandedOutputTypes.add(nullableType);
-        expandedFieldNames.add(cursorField.getName());
+        cursorType = opBinding.getCursorOperand(paramOrdinal);
+        assert (cursorType != null);
+      }
+
+      // And expand. Function output is always nullable... except system
+      // fields.
+      int iInputColumn;
+      if (isRowOp) {
+        for (String columnName : columnNames) {
+          iInputColumn = -1;
+          RelDataTypeField cursorField = null;
+          for (RelDataTypeField cField : cursorType.getFieldList()) {
+            ++iInputColumn;
+            if (cField.getName().equals(columnName)) {
+              cursorField = cField;
+              break;
+            }
+          }
+          addOutputColumn(
+              expandedFieldNames,
+              expandedOutputTypes,
+              iInputColumn,
+              iCursor,
+              opBinding,
+              cursorField);
+        }
+      } else {
+        iInputColumn = -1;
+        for (RelDataTypeField cursorField : cursorType.getFieldList()) {
+          ++iInputColumn;
+          addOutputColumn(
+              expandedFieldNames,
+              expandedOutputTypes,
+              iInputColumn,
+              iCursor,
+              opBinding,
+              cursorField);
+        }
+      }
     }
+    return opBinding.getTypeFactory().createStructType(
+        expandedOutputTypes,
+        expandedFieldNames);
+  }
+
+  private void addOutputColumn(
+      List<String> expandedFieldNames,
+      List<RelDataType> expandedOutputTypes,
+      int iInputColumn,
+      int iCursor,
+      SqlOperatorBinding opBinding,
+      RelDataTypeField cursorField) {
+    columnMappings.add(
+        new RelColumnMapping(
+            expandedFieldNames.size(),
+            iCursor,
+            iInputColumn,
+            !isPassthrough));
+
+    // As a special case, system fields are implicitly NOT NULL.
+    // A badly behaved UDX can still provide NULL values, so the
+    // system must ensure that each generated system field has a
+    // reasonable value.
+    boolean nullable = true;
+    if (opBinding instanceof SqlCallBinding) {
+      SqlCallBinding sqlCallBinding = (SqlCallBinding) opBinding;
+      if (sqlCallBinding.getValidator().isSystemField(
+          cursorField)) {
+        nullable = false;
+      }
+    }
+    RelDataType nullableType =
+        opBinding.getTypeFactory().createTypeWithNullability(
+            cursorField.getType(),
+            nullable);
+
+    // Make sure there are no duplicates in the output column names
+    for (String fieldName : expandedFieldNames) {
+      if (fieldName.equals(cursorField.getName())) {
+        throw opBinding.newError(
+            EigenbaseResource.instance().DuplicateColumnName.ex(
+                cursorField.getName()));
+      }
+    }
+    expandedOutputTypes.add(nullableType);
+    expandedFieldNames.add(cursorField.getName());
+  }
 }
 
 // End TableFunctionReturnTypeInference.java

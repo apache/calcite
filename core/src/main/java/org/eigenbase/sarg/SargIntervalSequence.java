@@ -27,85 +27,77 @@ import com.google.common.collect.ImmutableList;
  * would have been combined into one bigger one before creation of the
  * sequence.) Intervals are maintained in coordinate order.
  */
-public class SargIntervalSequence
-{
-    //~ Instance fields --------------------------------------------------------
+public class SargIntervalSequence {
+  //~ Instance fields --------------------------------------------------------
 
-    final List<SargInterval> list;
+  final List<SargInterval> list;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    SargIntervalSequence()
-    {
-        list = new ArrayList<SargInterval>();
+  SargIntervalSequence() {
+    list = new ArrayList<SargInterval>();
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * @return true if this sequence represents a point range.
+   */
+  public boolean isPoint() {
+    return ((list.size() == 1) && list.get(0).isPoint());
+  }
+
+  /**
+   * @return true if this sequence represents an empty range.
+   */
+  public boolean isEmpty() {
+    return ((list.size() == 1) && list.get(0).isEmpty());
+  }
+
+  /**
+   * @return true if this sequence represents a non-point, non-empty range.
+   */
+  public boolean isRange() {
+    return ((list.size() > 1)
+        || ((list.size() == 1) && list.get(0).isRange()));
+  }
+
+  /**
+   * @return unmodifiable list representing this sequence
+   */
+  public List<SargInterval> getList() {
+    return ImmutableList.copyOf(list);
+  }
+
+  void addInterval(SargInterval interval) {
+    list.add(interval);
+  }
+
+  // override Object
+  public String toString() {
+    // Special case:  empty sequence implies empty set.
+    if (list.isEmpty()) {
+      return "()";
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * @return true if this sequence represents a point range.
-     */
-    public boolean isPoint()
-    {
-        return ((list.size() == 1) && list.get(0).isPoint());
+    // Special case:  don't return UNION of a single interval.
+    if (list.size() == 1) {
+      return list.get(0).toString();
     }
 
-    /**
-     * @return true if this sequence represents an empty range.
-     */
-    public boolean isEmpty()
-    {
-        return ((list.size() == 1) && list.get(0).isEmpty());
+    StringBuilder sb = new StringBuilder();
+
+    sb.append(SargSetOperator.UNION);
+    sb.append("(");
+
+    for (SargInterval interval : list) {
+      sb.append(" ");
+      sb.append(interval);
     }
 
-    /**
-     * @return true if this sequence represents a non-point, non-empty range.
-     */
-    public boolean isRange()
-    {
-        return ((list.size() > 1)
-            || ((list.size() == 1) && list.get(0).isRange()));
-    }
-
-    /**
-     * @return unmodifiable list representing this sequence
-     */
-    public List<SargInterval> getList()
-    {
-        return ImmutableList.copyOf(list);
-    }
-
-    void addInterval(SargInterval interval)
-    {
-        list.add(interval);
-    }
-
-    // override Object
-    public String toString()
-    {
-        // Special case:  empty sequence implies empty set.
-        if (list.isEmpty()) {
-            return "()";
-        }
-
-        // Special case:  don't return UNION of a single interval.
-        if (list.size() == 1) {
-            return list.get(0).toString();
-        }
-
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(SargSetOperator.UNION);
-        sb.append("(");
-
-        for (SargInterval interval : list) {
-            sb.append(" ");
-            sb.append(interval);
-        }
-
-        sb.append(" )");
-        return sb.toString();
-    }
+    sb.append(" )");
+    return sb.toString();
+  }
 }
 
 // End SargIntervalSequence.java

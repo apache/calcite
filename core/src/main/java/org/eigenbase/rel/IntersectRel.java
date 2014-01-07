@@ -27,40 +27,42 @@ import org.eigenbase.relopt.*;
  * intersection is performed (implying no duplicates in the results).
  */
 public final class IntersectRel extends IntersectRelBase {
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public IntersectRel(
-        RelOptCluster cluster,
-        List<RelNode> inputs,
-        boolean all)
-    {
-        super(
-            cluster,
-            cluster.traitSetOf(Convention.NONE),
-            inputs,
-            all);
-    }
+  public IntersectRel(
+      RelOptCluster cluster,
+      List<RelNode> inputs,
+      boolean all) {
+    super(
+        cluster,
+        cluster.traitSetOf(Convention.NONE),
+        inputs,
+        all);
+  }
 
-    /** Creates an IntersectRel by parsing serialized output. */
-    public IntersectRel(RelInput input) {
-        super(input);
-    }
+  /**
+   * Creates an IntersectRel by parsing serialized output.
+   */
+  public IntersectRel(RelInput input) {
+    super(input);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    @Override public IntersectRel copy(
-        RelTraitSet traitSet, List<RelNode> inputs, boolean all)
-    {
-        assert traitSet.containsIfApplicable(Convention.NONE);
-        return new IntersectRel(
-            getCluster(),
-            inputs,
-            all);
-    }
+  @Override
+  public IntersectRel copy(
+      RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+    assert traitSet.containsIfApplicable(Convention.NONE);
+    return new IntersectRel(
+        getCluster(),
+        inputs,
+        all);
+  }
 
-    @Override public RelNode accept(RelShuttle shuttle) {
-        return shuttle.visit(this);
-    }
+  @Override
+  public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
 }
 
 // End IntersectRel.java

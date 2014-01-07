@@ -28,67 +28,61 @@ import org.eigenbase.sql.SqlDialect;
  *
  * <p>The easiest way to do build a SqlString is to use a {@link SqlBuilder}.
  */
-public class SqlString
-{
-    private final String s;
-    private SqlDialect dialect;
+public class SqlString {
+  private final String s;
+  private SqlDialect dialect;
 
-    /**
-     * Creates a SqlString.
-     *
-     * @param s Contents of string
-     */
-    public SqlString(SqlDialect dialect, String s)
-    {
-        this.dialect = dialect;
-        this.s = s;
-        assert s != null;
-        assert dialect != null;
-    }
+  /**
+   * Creates a SqlString.
+   *
+   * @param s Contents of string
+   */
+  public SqlString(SqlDialect dialect, String s) {
+    this.dialect = dialect;
+    this.s = s;
+    assert s != null;
+    assert dialect != null;
+  }
 
-    @Override
-    public int hashCode()
-    {
-        return s.hashCode();
-    }
+  @Override
+  public int hashCode() {
+    return s.hashCode();
+  }
 
-    @Override
-    public boolean equals(Object obj)
-    {
-        return obj instanceof SqlString
-           && s.equals(((SqlString) obj).s);
-    }
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof SqlString
+        && s.equals(((SqlString) obj).s);
+  }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Returns the SQL string.
-     *
-     * @see #getSql()
-     * @return SQL string
-     */
-    @Override
-    public String toString()
-    {
-        return s;
-    }
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Returns the SQL string.
+   *
+   * @return SQL string
+   * @see #getSql()
+   */
+  @Override
+  public String toString() {
+    return s;
+  }
 
-    /**
-     * Returns the SQL string.
-     * @return SQL string
-     */
-    public String getSql()
-    {
-        return s;
-    }
+  /**
+   * Returns the SQL string.
+   *
+   * @return SQL string
+   */
+  public String getSql() {
+    return s;
+  }
 
-    /**
-     * Returns the dialect.
-     */
-    public SqlDialect getDialect()
-    {
-        return dialect;
-    }
+  /**
+   * Returns the dialect.
+   */
+  public SqlDialect getDialect() {
+    return dialect;
+  }
 }
 
 // End SqlString.java

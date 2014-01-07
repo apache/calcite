@@ -33,94 +33,91 @@ import org.eigenbase.rex.*;
  *
  * @see org.eigenbase.rel.rules.RemoveTrivialCalcRule
  */
-public class RemoveTrivialProjectRule
-    extends RelOptRule
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class RemoveTrivialProjectRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final RemoveTrivialProjectRule instance =
-        new RemoveTrivialProjectRule();
+  public static final RemoveTrivialProjectRule instance =
+      new RemoveTrivialProjectRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    private RemoveTrivialProjectRule()
-    {
-        // Create a specialized operand to detect non-matches early. This keeps
-        // the rule queue short.
-        super(
-            new RelOptRuleOperand(ProjectRel.class, null, any()) {
-                @Override public boolean matches(RelNode rel) {
-                    return super.matches(rel)
-                           && isTrivial((ProjectRel) rel);
-                }
-            });
+  private RemoveTrivialProjectRule() {
+    // Create a specialized operand to detect non-matches early. This keeps
+    // the rule queue short.
+    super(
+        new RelOptRuleOperand(ProjectRel.class, null, any()) {
+          @Override
+          public boolean matches(RelNode rel) {
+            return super.matches(rel)
+                && isTrivial((ProjectRel) rel);
+          }
+        });
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void onMatch(RelOptRuleCall call) {
+    ProjectRel project = call.rel(0);
+    assert isTrivial(project);
+    RelNode stripped = project.getChild();
+    RelNode child = call.getPlanner().register(stripped, project);
+    call.transformTo(
+        convert(
+            child,
+            project.getTraitSet()));
+  }
+
+  /**
+   * Returns the child of a project if the project is trivial, otherwise
+   * the project itself.
+   */
+  public static RelNode strip(ProjectRel project) {
+    return isTrivial(project) ? project.getChild() : project;
+  }
+
+  public static boolean isTrivial(ProjectRelBase project) {
+    RelNode child = project.getChild();
+    final RelDataType childRowType = child.getRowType();
+    if (!childRowType.isStruct()) {
+      return false;
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public void onMatch(RelOptRuleCall call)
-    {
-        ProjectRel project = call.rel(0);
-        assert isTrivial(project);
-        RelNode stripped = project.getChild();
-        RelNode child = call.getPlanner().register(stripped, project);
-        call.transformTo(
-            convert(
-                child,
-                project.getTraitSet()));
+    if (!project.isBoxed()) {
+      return false;
     }
-
-    /** Returns the child of a project if the project is trivial, otherwise
-     * the project itself. */
-    public static RelNode strip(ProjectRel project) {
-        return isTrivial(project) ? project.getChild() : project;
+    if (!isIdentity(
+        project.getProjects(),
+        project.getRowType(),
+        childRowType)) {
+      return false;
     }
+    return true;
+  }
 
-    public static boolean isTrivial(ProjectRelBase project) {
-        RelNode child = project.getChild();
-        final RelDataType childRowType = child.getRowType();
-        if (!childRowType.isStruct()) {
-            return false;
-        }
-        if (!project.isBoxed()) {
-            return false;
-        }
-        if (!isIdentity(
-                project.getProjects(),
-                project.getRowType(),
-                childRowType))
-        {
-            return false;
-        }
-        return true;
+  public static boolean isIdentity(
+      List<RexNode> exps,
+      RelDataType rowType,
+      RelDataType childRowType) {
+    List<RelDataTypeField> fields = rowType.getFieldList();
+    List<RelDataTypeField> childFields = childRowType.getFieldList();
+    int fieldCount = childFields.size();
+    if (exps.size() != fieldCount) {
+      return false;
     }
-
-    public static boolean isIdentity(
-        List<RexNode> exps,
-        RelDataType rowType,
-        RelDataType childRowType)
-    {
-        List<RelDataTypeField> fields = rowType.getFieldList();
-        List<RelDataTypeField> childFields = childRowType.getFieldList();
-        int fieldCount = childFields.size();
-        if (exps.size() != fieldCount) {
-            return false;
-        }
-        for (int i = 0; i < exps.size(); i++) {
-            RexNode exp = exps.get(i);
-            if (!(exp instanceof RexInputRef)) {
-                return false;
-            }
-            RexInputRef var = (RexInputRef) exp;
-            if (var.getIndex() != i) {
-                return false;
-            }
-            if (!fields.get(i).getName().equals(childFields.get(i).getName())) {
-                return false;
-            }
-        }
-        return true;
+    for (int i = 0; i < exps.size(); i++) {
+      RexNode exp = exps.get(i);
+      if (!(exp instanceof RexInputRef)) {
+        return false;
+      }
+      RexInputRef var = (RexInputRef) exp;
+      if (var.getIndex() != i) {
+        return false;
+      }
+      if (!fields.get(i).getName().equals(childFields.get(i).getName())) {
+        return false;
+      }
     }
+    return true;
+  }
 }
 
 // End RemoveTrivialProjectRule.java

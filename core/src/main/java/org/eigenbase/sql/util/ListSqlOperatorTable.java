@@ -25,63 +25,57 @@ import org.eigenbase.sql.*;
  * Implementation of the {@link SqlOperatorTable} interface by using a list of
  * {@link SqlOperator operators}.
  */
-public class ListSqlOperatorTable
-    implements SqlOperatorTable
-{
-    //~ Instance fields --------------------------------------------------------
+public class ListSqlOperatorTable implements SqlOperatorTable {
+  //~ Instance fields --------------------------------------------------------
 
-    private final List<SqlOperator> operatorList;
+  private final List<SqlOperator> operatorList;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public ListSqlOperatorTable() {
-        this(new ArrayList<SqlOperator>());
+  public ListSqlOperatorTable() {
+    this(new ArrayList<SqlOperator>());
+  }
+
+  public ListSqlOperatorTable(List<SqlOperator> operatorList) {
+    this.operatorList = operatorList;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void add(SqlOperator op) {
+    operatorList.add(op);
+  }
+
+  public List<SqlOperator> lookupOperatorOverloads(
+      SqlIdentifier opName,
+      SqlFunctionCategory category,
+      SqlSyntax syntax) {
+    final ArrayList<SqlOperator> list = new ArrayList<SqlOperator>();
+    for (SqlOperator operator : operatorList) {
+      if (operator.getSyntax() != syntax) {
+        continue;
+      }
+      if (!opName.isSimple()
+          || !operator.isName(opName.getSimple())) {
+        continue;
+      }
+      SqlFunctionCategory functionCategory;
+      if (operator instanceof SqlFunction) {
+        functionCategory = ((SqlFunction) operator).getFunctionType();
+      } else {
+        functionCategory = SqlFunctionCategory.System;
+      }
+      if (category != functionCategory) {
+        continue;
+      }
+      list.add(operator);
     }
+    return list;
+  }
 
-    public ListSqlOperatorTable(List<SqlOperator> operatorList) {
-        this.operatorList = operatorList;
-    }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public void add(SqlOperator op)
-    {
-        operatorList.add(op);
-    }
-
-    public List<SqlOperator> lookupOperatorOverloads(
-        SqlIdentifier opName,
-        SqlFunctionCategory category,
-        SqlSyntax syntax)
-    {
-        final ArrayList<SqlOperator> list = new ArrayList<SqlOperator>();
-        for (SqlOperator operator : operatorList) {
-            if (operator.getSyntax() != syntax) {
-                continue;
-            }
-            if (!opName.isSimple()
-                || !operator.isName(opName.getSimple()))
-            {
-                continue;
-            }
-            SqlFunctionCategory functionCategory;
-            if (operator instanceof SqlFunction) {
-                functionCategory = ((SqlFunction) operator).getFunctionType();
-            } else {
-                functionCategory = SqlFunctionCategory.System;
-            }
-            if (category != functionCategory) {
-                continue;
-            }
-            list.add(operator);
-        }
-        return list;
-    }
-
-    public List<SqlOperator> getOperatorList()
-    {
-        return operatorList;
-    }
+  public List<SqlOperator> getOperatorList() {
+    return operatorList;
+  }
 }
 
 // End ListSqlOperatorTable.java

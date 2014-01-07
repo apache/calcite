@@ -47,99 +47,93 @@ import org.eigenbase.relopt.*;
  * ProjectRel}s cannot be pulled.
  */
 public class PullUpProjectsOnTopOfMultiJoinRule
-    extends PullUpProjectsAboveJoinRule
-{
-    //~ Static fields/initializers ---------------------------------------------
+    extends PullUpProjectsAboveJoinRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final PullUpProjectsOnTopOfMultiJoinRule
-        instanceTwoProjectChildren =
-            new PullUpProjectsOnTopOfMultiJoinRule(
-                operand(
-                    JoinRel.class,
-                    operand(
-                        ProjectRel.class,
-                        operand(MultiJoinRel.class, any())),
-                    operand(
-                        ProjectRel.class,
-                        operand(MultiJoinRel.class, any()))),
-                "PullUpProjectsOnTopOfMultiJoinRule: with two ProjectRel children");
+  public static final PullUpProjectsOnTopOfMultiJoinRule
+      instanceTwoProjectChildren =
+      new PullUpProjectsOnTopOfMultiJoinRule(
+          operand(
+              JoinRel.class,
+              operand(
+                  ProjectRel.class,
+                  operand(MultiJoinRel.class, any())),
+              operand(
+                  ProjectRel.class,
+                  operand(MultiJoinRel.class, any()))),
+          "PullUpProjectsOnTopOfMultiJoinRule: with two ProjectRel children");
 
-    public static final PullUpProjectsOnTopOfMultiJoinRule
-        instanceLeftProjectChild =
-            new PullUpProjectsOnTopOfMultiJoinRule(
-                operand(
-                    JoinRel.class,
-                    some(
-                        operand(
-                            ProjectRel.class,
-                            operand(MultiJoinRel.class, any())))),
-                "PullUpProjectsOnTopOfMultiJoinRule: with ProjectRel on left");
+  public static final PullUpProjectsOnTopOfMultiJoinRule
+      instanceLeftProjectChild =
+      new PullUpProjectsOnTopOfMultiJoinRule(
+          operand(
+              JoinRel.class,
+              some(
+                  operand(
+                      ProjectRel.class,
+                      operand(MultiJoinRel.class, any())))),
+          "PullUpProjectsOnTopOfMultiJoinRule: with ProjectRel on left");
 
-    public static final PullUpProjectsOnTopOfMultiJoinRule
-        instanceRightProjectChild =
-            new PullUpProjectsOnTopOfMultiJoinRule(
-                operand(
-                    JoinRel.class,
-                    operand(RelNode.class, any()),
-                    operand(
-                        ProjectRel.class,
-                        operand(MultiJoinRel.class, any()))),
-        "PullUpProjectsOnTopOfMultiJoinRule: with ProjectRel on right");
+  public static final PullUpProjectsOnTopOfMultiJoinRule
+      instanceRightProjectChild =
+      new PullUpProjectsOnTopOfMultiJoinRule(
+          operand(
+              JoinRel.class,
+              operand(RelNode.class, any()),
+              operand(
+                  ProjectRel.class,
+                  operand(MultiJoinRel.class, any()))),
+          "PullUpProjectsOnTopOfMultiJoinRule: with ProjectRel on right");
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public PullUpProjectsOnTopOfMultiJoinRule(
-        RelOptRuleOperand operand,
-        String description)
-    {
-        super(operand, description);
+  public PullUpProjectsOnTopOfMultiJoinRule(
+      RelOptRuleOperand operand,
+      String description) {
+    super(operand, description);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // override PullUpProjectsAboveJoinRule
+  protected boolean hasLeftChild(RelOptRuleCall call) {
+    return (call.rels.length != 4);
+  }
+
+  // override PullUpProjectsAboveJoinRule
+  protected boolean hasRightChild(RelOptRuleCall call) {
+    return call.rels.length > 3;
+  }
+
+  // override PullUpProjectsAboveJoinRule
+  protected ProjectRel getRightChild(RelOptRuleCall call) {
+    if (call.rels.length == 4) {
+      return call.rel(2);
+    } else {
+      return call.rel(3);
+    }
+  }
+
+  // override PullUpProjectsAboveJoinRule
+  protected RelNode getProjectChild(
+      RelOptRuleCall call,
+      ProjectRel project,
+      boolean leftChild) {
+    // locate the appropriate MultiJoinRel based on which rule was fired
+    // and which projection we're dealing with
+    MultiJoinRel multiJoin;
+    if (leftChild) {
+      multiJoin = call.rel(2);
+    } else if (call.rels.length == 4) {
+      multiJoin = call.rel(3);
+    } else {
+      multiJoin = call.rel(4);
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    // override PullUpProjectsAboveJoinRule
-    protected boolean hasLeftChild(RelOptRuleCall call)
-    {
-        return (call.rels.length != 4);
-    }
-
-    // override PullUpProjectsAboveJoinRule
-    protected boolean hasRightChild(RelOptRuleCall call)
-    {
-        return call.rels.length > 3;
-    }
-
-    // override PullUpProjectsAboveJoinRule
-    protected ProjectRel getRightChild(RelOptRuleCall call)
-    {
-        if (call.rels.length == 4) {
-            return call.rel(2);
-        } else {
-            return call.rel(3);
-        }
-    }
-
-    // override PullUpProjectsAboveJoinRule
-    protected RelNode getProjectChild(
-        RelOptRuleCall call,
-        ProjectRel project,
-        boolean leftChild)
-    {
-        // locate the appropriate MultiJoinRel based on which rule was fired
-        // and which projection we're dealing with
-        MultiJoinRel multiJoin;
-        if (leftChild) {
-            multiJoin = call.rel(2);
-        } else if (call.rels.length == 4) {
-            multiJoin = call.rel(3);
-        } else {
-            multiJoin = call.rel(4);
-        }
-
-        // create a new MultiJoinRel that reflects the columns in the projection
-        // above the MultiJoinRel
-        return RelOptUtil.projectMultiJoin(multiJoin, project);
-    }
+    // create a new MultiJoinRel that reflects the columns in the projection
+    // above the MultiJoinRel
+    return RelOptUtil.projectMultiJoin(multiJoin, project);
+  }
 }
 
 // End PullUpProjectsOnTopOfMultiJoinRule.java

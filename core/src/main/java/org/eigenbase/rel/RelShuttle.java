@@ -17,7 +17,9 @@
 */
 package org.eigenbase.rel;
 
-/** Visitor that has methods for the common logical relational expressions. */
+/**
+ * Visitor that has methods for the common logical relational expressions.
+ */
 public interface RelShuttle {
   RelNode visit(TableAccessRelBase scan);
 

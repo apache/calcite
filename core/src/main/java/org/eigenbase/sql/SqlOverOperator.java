@@ -35,84 +35,78 @@ import org.eigenbase.sql.validate.*;
  * </ul>
  * </p>
  */
-public class SqlOverOperator
-    extends SqlBinaryOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlOverOperator extends SqlBinaryOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlOverOperator()
-    {
-        super(
-            "OVER",
-            SqlKind.OVER,
-            20,
-            true,
-            SqlTypeStrategies.rtiFirstArgTypeForceNullable,
-            null,
-            SqlTypeStrategies.otcAnyX2);
+  public SqlOverOperator() {
+    super(
+        "OVER",
+        SqlKind.OVER,
+        20,
+        true,
+        SqlTypeStrategies.rtiFirstArgTypeForceNullable,
+        null,
+        SqlTypeStrategies.otcAnyX2);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void validateCall(
+      SqlCall call,
+      SqlValidator validator,
+      SqlValidatorScope scope,
+      SqlValidatorScope operandScope) {
+    assert call.getOperator() == this;
+    final SqlNode[] operands = call.getOperands();
+    assert operands.length == 2;
+    SqlCall aggCall = (SqlCall) operands[0];
+    if (!aggCall.getOperator().isAggregator()) {
+      throw validator.newValidationError(
+          aggCall,
+          EigenbaseResource.instance().OverNonAggregate.ex());
     }
+    validator.validateWindow(operands[1], scope, aggCall);
+    validator.validateAggregateParams(aggCall, scope);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  public RelDataType deriveType(
+      SqlValidator validator,
+      SqlValidatorScope scope,
+      SqlCall call) {
+    // Do not try to derive the types of the operands. We will do that
+    // later, top down.
+    return validateOperands(validator, scope, call);
+  }
 
-    public void validateCall(
-        SqlCall call,
-        SqlValidator validator,
-        SqlValidatorScope scope,
-        SqlValidatorScope operandScope)
-    {
-        assert call.getOperator() == this;
-        final SqlNode [] operands = call.getOperands();
-        assert operands.length == 2;
-        SqlCall aggCall = (SqlCall) operands[0];
-        if (!aggCall.getOperator().isAggregator()) {
-            throw validator.newValidationError(
-                aggCall,
-                EigenbaseResource.instance().OverNonAggregate.ex());
+  /**
+   * Accepts a {@link SqlVisitor}, and tells it to visit each child.
+   *
+   * @param visitor Visitor
+   */
+  public <R> void acceptCall(
+      SqlVisitor<R> visitor,
+      SqlCall call,
+      boolean onlyExpressions,
+      SqlBasicVisitor.ArgHandler<R> argHandler) {
+    if (onlyExpressions) {
+      for (int i = 0; i < call.operands.length; i++) {
+        SqlNode operand = call.operands[i];
+
+        // if the second parm is an Identifier then it's supposed to
+        // be a name from a window clause and isn't part of the
+        // group by check
+        if (operand == null) {
+          continue;
         }
-        validator.validateWindow(operands[1], scope, aggCall);
-        validator.validateAggregateParams(aggCall, scope);
-    }
-
-    public RelDataType deriveType(
-        SqlValidator validator,
-        SqlValidatorScope scope,
-        SqlCall call)
-    {
-        // Do not try to derive the types of the operands. We will do that
-        // later, top down.
-        return validateOperands(validator, scope, call);
-    }
-
-    /**
-     * Accepts a {@link SqlVisitor}, and tells it to visit each child.
-     *
-     * @param visitor Visitor
-     */
-    public <R> void acceptCall(
-        SqlVisitor<R> visitor,
-        SqlCall call,
-        boolean onlyExpressions,
-        SqlBasicVisitor.ArgHandler<R> argHandler)
-    {
-        if (onlyExpressions) {
-            for (int i = 0; i < call.operands.length; i++) {
-                SqlNode operand = call.operands[i];
-
-                // if the second parm is an Identifier then it's supposed to
-                // be a name from a window clause and isn't part of the
-                // group by check
-                if (operand == null) {
-                    continue;
-                }
-                if ((i == 1) && (operand instanceof SqlIdentifier)) {
-                    continue;
-                }
-                argHandler.visitChild(visitor, call, i, operand);
-            }
-        } else {
-            super.acceptCall(visitor, call, onlyExpressions, argHandler);
+        if ((i == 1) && (operand instanceof SqlIdentifier)) {
+          continue;
         }
+        argHandler.visitChild(visitor, call, i, operand);
+      }
+    } else {
+      super.acceptCall(visitor, call, onlyExpressions, argHandler);
     }
+  }
 }
 
 // End SqlOverOperator.java

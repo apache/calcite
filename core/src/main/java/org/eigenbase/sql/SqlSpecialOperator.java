@@ -22,88 +22,78 @@ import java.util.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.util.*;
 
-
 /**
  * Generic operator for nodes with special syntax.
  */
-public class SqlSpecialOperator
-    extends SqlOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlSpecialOperator extends SqlOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlSpecialOperator(
-        String name,
-        SqlKind kind)
-    {
-        super(name, kind, 2, true, null, null, null);
-    }
+  public SqlSpecialOperator(
+      String name,
+      SqlKind kind) {
+    super(name, kind, 2, true, null, null, null);
+  }
 
-    public SqlSpecialOperator(
-        String name,
-        SqlKind kind,
-        int prec)
-    {
-        super(name, kind, prec, true, null, null, null);
-    }
+  public SqlSpecialOperator(
+      String name,
+      SqlKind kind,
+      int prec) {
+    super(name, kind, prec, true, null, null, null);
+  }
 
-    public SqlSpecialOperator(
-        String name,
-        SqlKind kind,
-        int prec,
-        boolean leftAssoc,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker)
-    {
-        super(
-            name,
-            kind,
-            prec,
-            leftAssoc,
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker);
-    }
+  public SqlSpecialOperator(
+      String name,
+      SqlKind kind,
+      int prec,
+      boolean leftAssoc,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
+    super(
+        name,
+        kind,
+        prec,
+        leftAssoc,
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlSyntax getSyntax()
-    {
-        return SqlSyntax.Special;
-    }
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.Special;
+  }
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        throw new UnsupportedOperationException(
-            "unparse must be implemented by SqlCall subclass");
-    }
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    throw new UnsupportedOperationException(
+        "unparse must be implemented by SqlCall subclass");
+  }
 
-    /**
-     * Reduces a list of operators and arguments according to the rules of
-     * precedence and associativity. Returns the ordinal of the node which
-     * replaced the expression.
-     *
-     * <p>The default implementation throws {@link
-     * UnsupportedOperationException}.
-     *
-     * @param ordinal indicating the ordinal of the current operator in the list
-     * on which a possible reduction can be made
-     * @param list List of alternating {@link
-     * org.eigenbase.sql.parser.SqlParserUtil.ToTreeListItem} and {@link
-     * SqlNode}
-     *
-     * @return ordinal of the node which replaced the expression
-     */
-    public int reduceExpr(
-        int ordinal,
-        List<Object> list)
-    {
-        throw Util.needToImplement(this);
-    }
+  /**
+   * Reduces a list of operators and arguments according to the rules of
+   * precedence and associativity. Returns the ordinal of the node which
+   * replaced the expression.
+   *
+   * <p>The default implementation throws {@link
+   * UnsupportedOperationException}.
+   *
+   * @param ordinal indicating the ordinal of the current operator in the list
+   *                on which a possible reduction can be made
+   * @param list    List of alternating {@link
+   *                org.eigenbase.sql.parser.SqlParserUtil.ToTreeListItem} and {@link
+   *                SqlNode}
+   * @return ordinal of the node which replaced the expression
+   */
+  public int reduceExpr(
+      int ordinal,
+      List<Object> list) {
+    throw Util.needToImplement(this);
+  }
 }
 
 // End SqlSpecialOperator.java

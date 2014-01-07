@@ -23,8 +23,7 @@ import org.eigenbase.sql.*;
 /**
  * Strategies to check for allowed operand types of an operator call.
  */
-public abstract class OperandsTypeChecking
-{
+public abstract class OperandsTypeChecking {
 }
 
 // End OperandsTypeChecking.java

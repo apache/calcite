@@ -20,68 +20,62 @@ package org.eigenbase.sql.type;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFamily;
 
-
 /**
  * SQL map type.
  */
-public class MapSqlType
-    extends AbstractSqlType
-{
-    //~ Instance fields --------------------------------------------------------
+public class MapSqlType extends AbstractSqlType {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType keyType;
-    private final RelDataType valueType;
+  private final RelDataType keyType;
+  private final RelDataType valueType;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a MapSqlType. This constructor should only be called
-     * from a factory method.
-     */
-    public MapSqlType(
-        RelDataType keyType, RelDataType valueType, boolean isNullable)
-    {
-        super(SqlTypeName.MAP, isNullable, null);
-        assert keyType != null;
-        assert valueType != null;
-        this.keyType = keyType;
-        this.valueType = valueType;
-        computeDigest();
-    }
+  /**
+   * Creates a MapSqlType. This constructor should only be called
+   * from a factory method.
+   */
+  public MapSqlType(
+      RelDataType keyType, RelDataType valueType, boolean isNullable) {
+    super(SqlTypeName.MAP, isNullable, null);
+    assert keyType != null;
+    assert valueType != null;
+    this.keyType = keyType;
+    this.valueType = valueType;
+    computeDigest();
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    @Override
-    public RelDataType getValueType() {
-        return valueType;
-    }
+  @Override
+  public RelDataType getValueType() {
+    return valueType;
+  }
 
-    @Override
-    public RelDataType getKeyType() {
-        return keyType;
-    }
+  @Override
+  public RelDataType getKeyType() {
+    return keyType;
+  }
 
-    // implement RelDataTypeImpl
-    protected void generateTypeString(StringBuilder sb, boolean withDetail)
-    {
-        sb.append("(")
-            .append(
-                withDetail
-                 ? keyType.getFullTypeString()
-                 : keyType.toString())
-            .append(", ")
-            .append(
-                withDetail
-                    ? valueType.getFullTypeString()
-                    : valueType.toString())
-            .append(") MAP");
-    }
+  // implement RelDataTypeImpl
+  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+    sb.append("(")
+        .append(
+            withDetail
+                ? keyType.getFullTypeString()
+                : keyType.toString())
+        .append(", ")
+        .append(
+            withDetail
+                ? valueType.getFullTypeString()
+                : valueType.toString())
+        .append(") MAP");
+  }
 
-    // implement RelDataType
-    public RelDataTypeFamily getFamily()
-    {
-        return this;
-    }
+  // implement RelDataType
+  public RelDataTypeFamily getFamily() {
+    return this;
+  }
 }
 
 // End MapSqlType.java

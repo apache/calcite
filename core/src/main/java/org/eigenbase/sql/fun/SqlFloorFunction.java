@@ -24,32 +24,28 @@ import org.eigenbase.sql.validate.*;
 /**
  * Definition of the "FLOOR" builtin SQL function.
  */
-public class SqlFloorFunction
-    extends SqlFunction
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlFloorFunction extends SqlFunction {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlFloorFunction()
-    {
-        super(
-            "FLOOR",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiFirstArgType,
-            null,
-            SqlTypeStrategies.otcNumeric,
-            SqlFunctionCategory.Numeric);
-    }
+  public SqlFloorFunction() {
+    super(
+        "FLOOR",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiFirstArgType,
+        null,
+        SqlTypeStrategies.otcNumeric,
+        SqlFunctionCategory.Numeric);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlMonotonicity getMonotonicity(
-        SqlCall call,
-        SqlValidatorScope scope)
-    {
-        // Monotonic iff its first argument is, but not strict.
-        SqlNode node = (SqlNode) call.operands[0];
-        return scope.getMonotonicity(node).unstrict();
-    }
+  public SqlMonotonicity getMonotonicity(
+      SqlCall call,
+      SqlValidatorScope scope) {
+    // Monotonic iff its first argument is, but not strict.
+    SqlNode node = (SqlNode) call.operands[0];
+    return scope.getMonotonicity(node).unstrict();
+  }
 }
 
 // End SqlFloorFunction.java

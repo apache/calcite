@@ -27,15 +27,13 @@ import org.eigenbase.util.*;
  * significant (from least inclusive to most inclusive) and should not be
  * changed.
  */
-public enum RelDataTypeComparability
-{
-    None("No comparisons allowed"), Unordered("Only equals/not-equals allowed"),
-    All("All comparisons allowed");
+public enum RelDataTypeComparability {
+  None("No comparisons allowed"), Unordered("Only equals/not-equals allowed"),
+  All("All comparisons allowed");
 
-    RelDataTypeComparability(String description)
-    {
-        Util.discard(description);
-    }
+  RelDataTypeComparability(String description) {
+    Util.discard(description);
+  }
 }
 
 // End RelDataTypeComparability.java

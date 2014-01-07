@@ -29,100 +29,94 @@ import com.google.common.collect.ImmutableList;
  * Operand type-checking strategy which checks operands for inclusion in type
  * families.
  */
-public class FamilyOperandTypeChecker
-    implements SqlSingleOperandTypeChecker
-{
-    //~ Instance fields --------------------------------------------------------
+public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final ImmutableList<SqlTypeFamily> families;
+  protected final ImmutableList<SqlTypeFamily> families;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /** Package private. Create using {@link SqlTypeStrategies#family}. */
-    FamilyOperandTypeChecker(List<SqlTypeFamily> families)
-    {
-        this.families = ImmutableList.copyOf(families);
+  /**
+   * Package private. Create using {@link SqlTypeStrategies#family}.
+   */
+  FamilyOperandTypeChecker(List<SqlTypeFamily> families) {
+    this.families = ImmutableList.copyOf(families);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement SqlSingleOperandTypeChecker
+  public boolean checkSingleOperandType(
+      SqlCallBinding callBinding,
+      SqlNode node,
+      int iFormalOperand,
+      boolean throwOnFailure) {
+    SqlTypeFamily family = families.get(iFormalOperand);
+    if (family == SqlTypeFamily.ANY) {
+      // no need to check
+      return true;
+    }
+    if (SqlUtil.isNullLiteral(node, false)) {
+      if (throwOnFailure) {
+        throw callBinding.getValidator().newValidationError(
+            node,
+            EigenbaseResource.instance().NullIllegal.ex());
+      } else {
+        return false;
+      }
+    }
+    RelDataType type =
+        callBinding.getValidator().deriveType(
+            callBinding.getScope(),
+            node);
+    SqlTypeName typeName = type.getSqlTypeName();
+
+    // Pass type checking for operators if it's of type 'ANY'.
+    if (typeName.getFamily() == SqlTypeFamily.ANY) {
+      return true;
     }
 
-    //~ Methods ----------------------------------------------------------------
+    if (!family.getTypeNames().contains(typeName)) {
+      if (throwOnFailure) {
+        throw callBinding.newValidationSignatureError();
+      }
+      return false;
+    }
+    return true;
+  }
 
-    // implement SqlSingleOperandTypeChecker
-    public boolean checkSingleOperandType(
-        SqlCallBinding callBinding,
-        SqlNode node,
-        int iFormalOperand,
-        boolean throwOnFailure)
-    {
-        SqlTypeFamily family = families.get(iFormalOperand);
-        if (family == SqlTypeFamily.ANY) {
-            // no need to check
-            return true;
-        }
-        if (SqlUtil.isNullLiteral(node, false)) {
-            if (throwOnFailure) {
-                throw callBinding.getValidator().newValidationError(
-                    node,
-                    EigenbaseResource.instance().NullIllegal.ex());
-            } else {
-                return false;
-            }
-        }
-        RelDataType type =
-            callBinding.getValidator().deriveType(
-                callBinding.getScope(),
-                node);
-        SqlTypeName typeName = type.getSqlTypeName();
-
-        // Pass type checking for operators if it's of type 'ANY'.
-        if (typeName.getFamily() == SqlTypeFamily.ANY) {
-            return true;
-        }
-
-        if (!family.getTypeNames().contains(typeName)) {
-            if (throwOnFailure) {
-                throw callBinding.newValidationSignatureError();
-            }
-            return false;
-        }
-        return true;
+  // implement SqlOperandTypeChecker
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    if (families.size() != callBinding.getOperandCount()) {
+      // assume this is an inapplicable sub-rule of a composite rule;
+      // don't throw
+      return false;
     }
 
-    // implement SqlOperandTypeChecker
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        if (families.size() != callBinding.getOperandCount()) {
-            // assume this is an inapplicable sub-rule of a composite rule;
-            // don't throw
-            return false;
-        }
-
-        for (int i = 0; i < callBinding.getOperandCount(); i++) {
-            SqlNode operand = callBinding.getCall().operands[i];
-            if (!checkSingleOperandType(
-                    callBinding,
-                    operand,
-                    i,
-                    throwOnFailure))
-            {
-                return false;
-            }
-        }
-        return true;
+    for (int i = 0; i < callBinding.getOperandCount(); i++) {
+      SqlNode operand = callBinding.getCall().operands[i];
+      if (!checkSingleOperandType(
+          callBinding,
+          operand,
+          i,
+          throwOnFailure)) {
+        return false;
+      }
     }
+    return true;
+  }
 
-    // implement SqlOperandTypeChecker
-    public SqlOperandCountRange getOperandCountRange()
-    {
-        return SqlOperandCountRanges.of(families.size());
-    }
+  // implement SqlOperandTypeChecker
+  public SqlOperandCountRange getOperandCountRange() {
+    return SqlOperandCountRanges.of(families.size());
+  }
 
-    // implement SqlOperandTypeChecker
-    public String getAllowedSignatures(SqlOperator op, String opName)
-    {
-        return SqlUtil.getAliasedSignature(op, opName, families);
-    }
+  // implement SqlOperandTypeChecker
+  public String getAllowedSignatures(SqlOperator op, String opName) {
+    return SqlUtil.getAliasedSignature(op, opName, families);
+  }
 }
 
 // End FamilyOperandTypeChecker.java

@@ -23,62 +23,56 @@ import org.eigenbase.util.*;
 /**
  * MultisetSqlType represents a standard SQL2003 multiset type.
  */
-public class MultisetSqlType
-    extends AbstractSqlType
-{
-    //~ Instance fields --------------------------------------------------------
+public class MultisetSqlType extends AbstractSqlType {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType elementType;
+  private final RelDataType elementType;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Constructs a new MultisetSqlType. This constructor should only be called
-     * from a factory method.
-     *
-     * @pre null!=elementType
-     */
-    public MultisetSqlType(RelDataType elementType, boolean isNullable)
-    {
-        super(SqlTypeName.MULTISET, isNullable, null);
-        Util.pre(null != elementType, "null!=elementType");
-        this.elementType = elementType;
-        computeDigest();
+  /**
+   * Constructs a new MultisetSqlType. This constructor should only be called
+   * from a factory method.
+   *
+   * @pre null!=elementType
+   */
+  public MultisetSqlType(RelDataType elementType, boolean isNullable) {
+    super(SqlTypeName.MULTISET, isNullable, null);
+    Util.pre(null != elementType, "null!=elementType");
+    this.elementType = elementType;
+    computeDigest();
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelDataTypeImpl
+  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+    if (withDetail) {
+      sb.append(elementType.getFullTypeString());
+    } else {
+      sb.append(elementType.toString());
     }
+    sb.append(" MULTISET");
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  // implement RelDataType
+  public RelDataType getComponentType() {
+    return elementType;
+  }
 
-    // implement RelDataTypeImpl
-    protected void generateTypeString(StringBuilder sb, boolean withDetail)
-    {
-        if (withDetail) {
-            sb.append(elementType.getFullTypeString());
-        } else {
-            sb.append(elementType.toString());
-        }
-        sb.append(" MULTISET");
-    }
+  // implement RelDataType
+  public RelDataTypeFamily getFamily() {
+    // TODO jvs 2-Dec-2004:  This gives each multiset type its
+    // own family.  But that's not quite correct; the family should
+    // be based on the element type for proper comparability
+    // semantics (per 4.10.4 of SQL/2003).  So either this should
+    // make up canonical families dynamically, or the
+    // comparison type-checking should not rely on this.  I
+    // think the same goes for ROW types.
+    return this;
+  }
 
-    // implement RelDataType
-    public RelDataType getComponentType()
-    {
-        return elementType;
-    }
-
-    // implement RelDataType
-    public RelDataTypeFamily getFamily()
-    {
-        // TODO jvs 2-Dec-2004:  This gives each multiset type its
-        // own family.  But that's not quite correct; the family should
-        // be based on the element type for proper comparability
-        // semantics (per 4.10.4 of SQL/2003).  So either this should
-        // make up canonical families dynamically, or the
-        // comparison type-checking should not rely on this.  I
-        // think the same goes for ROW types.
-        return this;
-    }
-
-    // TODO jvs 25-Jan-2005:  same goes for getPrecedenceList()
+  // TODO jvs 25-Jan-2005:  same goes for getPrecedenceList()
 }
 
 // End MultisetSqlType.java

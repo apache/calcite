@@ -34,76 +34,67 @@ import org.eigenbase.sql.*;
  *
  * is valid.
  */
-public class OrderByScope
-    extends DelegatingScope
-{
-    //~ Instance fields --------------------------------------------------------
+public class OrderByScope extends DelegatingScope {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlNodeList orderList;
-    private final SqlSelect select;
+  private final SqlNodeList orderList;
+  private final SqlSelect select;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    OrderByScope(
-        SqlValidatorScope parent,
-        SqlNodeList orderList,
-        SqlSelect select)
-    {
-        super(parent);
-        this.orderList = orderList;
-        this.select = select;
+  OrderByScope(
+      SqlValidatorScope parent,
+      SqlNodeList orderList,
+      SqlSelect select) {
+    super(parent);
+    this.orderList = orderList;
+    this.select = select;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlNode getNode() {
+    return orderList;
+  }
+
+  public void findAllColumnNames(List<SqlMoniker> result) {
+    final SqlValidatorNamespace ns = validator.getNamespace(select);
+    addColumnNames(ns, result);
+  }
+
+  public SqlIdentifier fullyQualify(SqlIdentifier identifier) {
+    // If it's a simple identifier, look for an alias.
+    if (identifier.isSimple()
+        && validator.getConformance().isSortByAlias()) {
+      String name = identifier.names[0];
+      final SqlValidatorNamespace selectNs =
+          validator.getNamespace(select);
+      final RelDataType rowType = selectNs.getRowType();
+      if (SqlValidatorUtil.lookupField(rowType, name) != null) {
+        return identifier;
+      }
     }
+    return super.fullyQualify(identifier);
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public SqlNode getNode()
-    {
-        return orderList;
+  public RelDataType resolveColumn(String name, SqlNode ctx) {
+    final SqlValidatorNamespace selectNs = validator.getNamespace(select);
+    final RelDataType rowType = selectNs.getRowType();
+    final RelDataType dataType =
+        SqlValidatorUtil.lookupFieldType(rowType, name);
+    if (dataType != null) {
+      return dataType;
     }
+    final SqlValidatorScope selectScope = validator.getSelectScope(select);
+    return selectScope.resolveColumn(name, ctx);
+  }
 
-    public void findAllColumnNames(List<SqlMoniker> result)
-    {
-        final SqlValidatorNamespace ns = validator.getNamespace(select);
-        addColumnNames(ns, result);
-    }
+  public void validateExpr(SqlNode expr) {
+    SqlNode expanded = validator.expandOrderExpr(select, expr);
 
-    public SqlIdentifier fullyQualify(SqlIdentifier identifier)
-    {
-        // If it's a simple identifier, look for an alias.
-        if (identifier.isSimple()
-            && validator.getConformance().isSortByAlias())
-        {
-            String name = identifier.names[0];
-            final SqlValidatorNamespace selectNs =
-                validator.getNamespace(select);
-            final RelDataType rowType = selectNs.getRowType();
-            if (SqlValidatorUtil.lookupField(rowType, name) != null) {
-                return identifier;
-            }
-        }
-        return super.fullyQualify(identifier);
-    }
-
-    public RelDataType resolveColumn(String name, SqlNode ctx)
-    {
-        final SqlValidatorNamespace selectNs = validator.getNamespace(select);
-        final RelDataType rowType = selectNs.getRowType();
-        final RelDataType dataType =
-            SqlValidatorUtil.lookupFieldType(rowType, name);
-        if (dataType != null) {
-            return dataType;
-        }
-        final SqlValidatorScope selectScope = validator.getSelectScope(select);
-        return selectScope.resolveColumn(name, ctx);
-    }
-
-    public void validateExpr(SqlNode expr)
-    {
-        SqlNode expanded = validator.expandOrderExpr(select, expr);
-
-        // expression needs to be valid in parent scope too
-        parent.validateExpr(expanded);
-    }
+    // expression needs to be valid in parent scope too
+    parent.validateExpr(expanded);
+  }
 }
 
 // End OrderByScope.java

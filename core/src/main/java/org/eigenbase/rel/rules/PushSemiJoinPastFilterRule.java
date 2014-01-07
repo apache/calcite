@@ -25,48 +25,45 @@ import org.eigenbase.relopt.*;
  * a tree past a filter in order to trigger other rules that will convert
  * semijoins. SemiJoinRel(FilterRel(X), Y) --> FilterRel(SemiJoinRel(X, Y))
  */
-public class PushSemiJoinPastFilterRule
-    extends RelOptRule
-{
-    public static final PushSemiJoinPastFilterRule instance =
-        new PushSemiJoinPastFilterRule();
+public class PushSemiJoinPastFilterRule extends RelOptRule {
+  public static final PushSemiJoinPastFilterRule instance =
+      new PushSemiJoinPastFilterRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a PushSemiJoinPastFilterRule.
-     */
-    private PushSemiJoinPastFilterRule() {
-        super(
-            operand(
-                SemiJoinRel.class,
-                some(operand(FilterRel.class, any()))));
-    }
+  /**
+   * Creates a PushSemiJoinPastFilterRule.
+   */
+  private PushSemiJoinPastFilterRule() {
+    super(
+        operand(
+            SemiJoinRel.class,
+            some(operand(FilterRel.class, any()))));
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // implement RelOptRule
-    public void onMatch(RelOptRuleCall call)
-    {
-        SemiJoinRel semiJoin = call.rel(0);
-        FilterRel filter = call.rel(1);
+  // implement RelOptRule
+  public void onMatch(RelOptRuleCall call) {
+    SemiJoinRel semiJoin = call.rel(0);
+    FilterRel filter = call.rel(1);
 
-        RelNode newSemiJoin =
-            new SemiJoinRel(
-                semiJoin.getCluster(),
-                filter.getChild(),
-                semiJoin.getRight(),
-                semiJoin.getCondition(),
-                semiJoin.getLeftKeys(),
-                semiJoin.getRightKeys());
+    RelNode newSemiJoin =
+        new SemiJoinRel(
+            semiJoin.getCluster(),
+            filter.getChild(),
+            semiJoin.getRight(),
+            semiJoin.getCondition(),
+            semiJoin.getLeftKeys(),
+            semiJoin.getRightKeys());
 
-        RelNode newFilter =
-            CalcRel.createFilter(
-                newSemiJoin,
-                filter.getCondition());
+    RelNode newFilter =
+        CalcRel.createFilter(
+            newSemiJoin,
+            filter.getCondition());
 
-        call.transformTo(newFilter);
-    }
+    call.transformTo(newFilter);
+  }
 }
 
 // End PushSemiJoinPastFilterRule.java

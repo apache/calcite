@@ -23,33 +23,29 @@ import org.eigenbase.rex.*;
  * SargBinding represents the binding of a {@link SargExpr} to a particular
  * {@link RexInputRef}.
  */
-public class SargBinding
-{
-    //~ Instance fields --------------------------------------------------------
+public class SargBinding {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SargExpr expr;
+  private final SargExpr expr;
 
-    private final RexInputRef inputRef;
+  private final RexInputRef inputRef;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SargBinding(SargExpr expr, RexInputRef inputRef)
-    {
-        this.expr = expr;
-        this.inputRef = inputRef;
-    }
+  public SargBinding(SargExpr expr, RexInputRef inputRef) {
+    this.expr = expr;
+    this.inputRef = inputRef;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SargExpr getExpr()
-    {
-        return expr;
-    }
+  public SargExpr getExpr() {
+    return expr;
+  }
 
-    public RexInputRef getInputRef()
-    {
-        return inputRef;
-    }
+  public RexInputRef getInputRef() {
+    return inputRef;
+  }
 }
 
 // End SargBinding.java

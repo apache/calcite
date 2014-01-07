@@ -31,65 +31,59 @@ import org.eigenbase.util.Pair;
  * <p>TODO: describe usage for row-value construction and row-type construction
  * (SQL supports both).
  */
-public class SqlRowOperator
-    extends SqlSpecialOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlRowOperator extends SqlSpecialOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlRowOperator()
-    {
-        super(
-            "ROW",
-            SqlKind.ROW,
-            MaxPrec,
-            false,
-            null,
-            SqlTypeStrategies.otiReturnType,
-            SqlTypeStrategies.otcVariadic);
-    }
+  public SqlRowOperator() {
+    super(
+        "ROW",
+        SqlKind.ROW,
+        MaxPrec,
+        false,
+        null,
+        SqlTypeStrategies.otiReturnType,
+        SqlTypeStrategies.otcVariadic);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // implement SqlOperator
-    public SqlSyntax getSyntax()
-    {
-        // Function syntax would work too.
-        return SqlSyntax.Special;
-    }
+  // implement SqlOperator
+  public SqlSyntax getSyntax() {
+    // Function syntax would work too.
+    return SqlSyntax.Special;
+  }
 
-    public RelDataType inferReturnType(
-        final SqlOperatorBinding opBinding)
-    {
-        // The type of a ROW(e1,e2) expression is a record with the types
-        // {e1type,e2type}.  According to the standard, field names are
-        // implementation-defined.
-        return opBinding.getTypeFactory().createStructType(
-            new AbstractList<Map.Entry<String, RelDataType>>() {
-                public Map.Entry<String, RelDataType> get(int index) {
-                    return Pair.of(
-                        SqlUtil.deriveAliasFromOrdinal(index),
-                        opBinding.getOperandType(index));
-                }
-                public int size() {
-                    return opBinding.getOperandCount();
-                }
-            });
-    }
+  public RelDataType inferReturnType(
+      final SqlOperatorBinding opBinding) {
+    // The type of a ROW(e1,e2) expression is a record with the types
+    // {e1type,e2type}.  According to the standard, field names are
+    // implementation-defined.
+    return opBinding.getTypeFactory().createStructType(
+        new AbstractList<Map.Entry<String, RelDataType>>() {
+          public Map.Entry<String, RelDataType> get(int index) {
+            return Pair.of(
+                SqlUtil.deriveAliasFromOrdinal(index),
+                opBinding.getOperandType(index));
+          }
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        SqlUtil.unparseFunctionSyntax(this, writer, operands, true, null);
-    }
+          public int size() {
+            return opBinding.getOperandCount();
+          }
+        });
+  }
 
-    // override SqlOperator
-    public boolean requiresDecimalExpansion()
-    {
-        return false;
-    }
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    SqlUtil.unparseFunctionSyntax(this, writer, operands, true, null);
+  }
+
+  // override SqlOperator
+  public boolean requiresDecimalExpansion() {
+    return false;
+  }
 }
 
 // End SqlRowOperator.java

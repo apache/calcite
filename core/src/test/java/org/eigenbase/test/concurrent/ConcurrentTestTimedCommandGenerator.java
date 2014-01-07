@@ -20,6 +20,8 @@ package org.eigenbase.test.concurrent;
 import java.io.PrintStream;
 import java.util.*;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * ConcurrentTestTimedCommandGenerator extends {@link
  * ConcurrentTestCommandGenerator} and repeats the configured command
@@ -31,120 +33,114 @@ import java.util.*;
  * the test will take.
  */
 public class ConcurrentTestTimedCommandGenerator
-    extends ConcurrentTestCommandGenerator
-{
-    //~ Instance fields --------------------------------------------------------
+    extends ConcurrentTestCommandGenerator {
+  //~ Instance fields --------------------------------------------------------
 
-    private int runTimeSeconds;
-    private long endTimeMillis;
+  private int runTimeSeconds;
+  private long endTimeMillis;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Constructs a new ConcurrentTestTimedCommandGenerator that will run
-     * for at least the given amount of time. See {@link
-     * ConcurrentTestTimedCommandGenerator} for more information on the
-     * semantics of run-time length.
-     *
-     * @param runTimeSeconds minimum run-time length, in seconds
-     */
-    public ConcurrentTestTimedCommandGenerator(int runTimeSeconds)
-    {
-        super();
+  /**
+   * Constructs a new ConcurrentTestTimedCommandGenerator that will run
+   * for at least the given amount of time. See {@link
+   * ConcurrentTestTimedCommandGenerator} for more information on the
+   * semantics of run-time length.
+   *
+   * @param runTimeSeconds minimum run-time length, in seconds
+   */
+  public ConcurrentTestTimedCommandGenerator(int runTimeSeconds) {
+    super();
 
-        this.runTimeSeconds = runTimeSeconds;
+    this.runTimeSeconds = runTimeSeconds;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Retrieves an Iterator based on the configured commands. This Iterator,
+   * when it reaches the end of the command list will compare the current time
+   * with the test's end time. If there is time left, the Iterator will repeat
+   * the command sequence.
+   *
+   * <p>The test's end time is computed by taking the value of <code>
+   * System.currentTimeMillis()</code> the first time this method is called
+   * (across all thread IDs) and adding the configured run time.
+   *
+   * @param threadId the thread ID to get an Iterator on
+   */
+  Iterable<ConcurrentTestCommand> getCommandIterable(final int threadId) {
+    synchronized (this) {
+      if (endTimeMillis == 0L) {
+        endTimeMillis =
+            System.currentTimeMillis() + (runTimeSeconds * 1000);
+      }
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Retrieves an Iterator based on the configured commands. This Iterator,
-     * when it reaches the end of the command list will compare the current time
-     * with the test's end time. If there is time left, the Iterator will repeat
-     * the command sequence.
-     *
-     * <p>The test's end time is computed by taking the value of <code>
-     * System.currentTimeMillis()</code> the first time this method is called
-     * (across all thread IDs) and adding the configured run time.
-     *
-     * @param threadId the thread ID to get an Iterator on
-     */
-    Iterator getCommandIterator(Integer threadId)
-    {
-        synchronized (this) {
-            if (endTimeMillis == 0L) {
-                endTimeMillis =
-                    System.currentTimeMillis() + (runTimeSeconds * 1000);
-            }
-        }
-
-        return new TimedIterator(
+    return new Iterable<ConcurrentTestCommand>() {
+      public Iterator<ConcurrentTestCommand> iterator() {
+        return new TimedIterator<ConcurrentTestCommand>(
             getCommands(threadId),
             endTimeMillis);
+      }
+    };
+  }
+
+  /**
+   * Outputs command sequence and notes how long the sequence will be
+   * repeated.
+   */
+  void printCommands(
+      PrintStream out,
+      Integer threadId) {
+    super.printCommands(out, threadId);
+    out.println("Repeat sequence for " + runTimeSeconds + " seconds");
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
+
+  /**
+   * TimedIterator is an Iterator that repeats a given collection's elements
+   * until <code>System.currentTimeMillis() >= endTimeMillis</code>.
+   */
+  private class TimedIterator<E> implements Iterator<E> {
+    private final List<E> commands;
+    private long endTimeMillis;
+    private int commandIndex;
+
+    private TimedIterator(
+        Collection<E> commands,
+        long endTimeMillis) {
+      this.commands = ImmutableList.copyOf(commands);
+      this.endTimeMillis = endTimeMillis;
+      this.commandIndex = 0;
     }
 
-    /**
-     * Outputs command sequence and notes how long the sequence will be
-     * repeated.
-     */
-    void printCommands(
-        PrintStream out,
-        Integer threadId)
-    {
-        super.printCommands(out, threadId);
-        out.println("Repeat sequence for " + runTimeSeconds + " seconds");
+    public boolean hasNext() {
+      if (commandIndex < commands.size()) {
+        return true;
+      }
+
+      if (System.currentTimeMillis() < endTimeMillis) {
+        commandIndex = 0;
+        return commands.size() > 0; // handle empty array
+      }
+
+      return false;
     }
 
-    //~ Inner Classes ----------------------------------------------------------
+    public E next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
 
-    /**
-     * TimedIterator is an Iterator that repeats a given collection's elements
-     * until <code>System.currentTimeMillis() >= endTimeMillis</code>.
-     */
-    private class TimedIterator
-        implements Iterator
-    {
-        private Object [] commands;
-        private long endTimeMillis;
-        private int commandIndex;
-
-        private TimedIterator(
-            Collection commands,
-            long endTimeMillis)
-        {
-            this.commands = commands.toArray();
-            this.endTimeMillis = endTimeMillis;
-            this.commandIndex = 0;
-        }
-
-        public boolean hasNext()
-        {
-            if (commandIndex < commands.length) {
-                return true;
-            }
-
-            if (System.currentTimeMillis() < endTimeMillis) {
-                commandIndex = 0;
-                return commands.length > 0; // handle empty array
-            }
-
-            return false;
-        }
-
-        public Object next()
-        {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
-            }
-
-            return commands[commandIndex++];
-        }
-
-        public void remove()
-        {
-            throw new UnsupportedOperationException();
-        }
+      return commands.get(commandIndex++);
     }
+
+    public void remove() {
+      throw new UnsupportedOperationException();
+    }
+  }
 }
 
 // End ConcurrentTestTimedCommandGenerator.java

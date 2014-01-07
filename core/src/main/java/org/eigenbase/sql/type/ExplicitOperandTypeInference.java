@@ -28,30 +28,26 @@ import com.google.common.collect.ImmutableList;
  * ExplicitOperandTypeInferences implements {@link SqlOperandTypeInference} by
  * explicity supplying a type for each parameter.
  */
-public class ExplicitOperandTypeInference
-    implements SqlOperandTypeInference
-{
-    //~ Instance fields --------------------------------------------------------
+public class ExplicitOperandTypeInference implements SqlOperandTypeInference {
+  //~ Instance fields --------------------------------------------------------
 
-    private final ImmutableList<RelDataType> paramTypes;
+  private final ImmutableList<RelDataType> paramTypes;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public ExplicitOperandTypeInference(List<RelDataType> paramTypes)
-    {
-        this.paramTypes = ImmutableList.copyOf(paramTypes);
-    }
+  public ExplicitOperandTypeInference(List<RelDataType> paramTypes) {
+    this.paramTypes = ImmutableList.copyOf(paramTypes);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public void inferOperandTypes(
-        SqlCallBinding callBinding,
-        RelDataType returnType,
-        RelDataType [] operandTypes)
-    {
-        assert operandTypes.length == paramTypes.size();
-        paramTypes.toArray(operandTypes);
-    }
+  public void inferOperandTypes(
+      SqlCallBinding callBinding,
+      RelDataType returnType,
+      RelDataType[] operandTypes) {
+    assert operandTypes.length == paramTypes.size();
+    paramTypes.toArray(operandTypes);
+  }
 }
 
 // End ExplicitOperandTypeInference.java

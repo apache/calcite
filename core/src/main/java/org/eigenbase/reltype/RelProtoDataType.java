@@ -26,8 +26,7 @@ import net.hydromatic.linq4j.function.Function1;
  * @see org.eigenbase.reltype.RelDataTypeImpl#proto
  */
 public interface RelProtoDataType
-    extends Function1<RelDataTypeFactory, RelDataType>
-{
+    extends Function1<RelDataTypeFactory, RelDataType> {
 }
 
 // End RelProtoDataType.java

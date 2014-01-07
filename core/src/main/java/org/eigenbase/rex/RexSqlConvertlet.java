@@ -22,21 +22,19 @@ import org.eigenbase.sql.*;
 /**
  * Converts a {@link RexNode} expression into a {@link SqlNode} expression.
  */
-public interface RexSqlConvertlet
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RexSqlConvertlet {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Converts a {@link RexCall} to a {@link SqlNode} expression.
-     *
-     * @param converter to use in translating
-     * @param call RexCall to translate
-     *
-     * @return SqlNode, or null if translation was unavailable
-     */
-    SqlNode convertCall(
-        RexToSqlNodeConverter converter,
-        RexCall call);
+  /**
+   * Converts a {@link RexCall} to a {@link SqlNode} expression.
+   *
+   * @param converter to use in translating
+   * @param call      RexCall to translate
+   * @return SqlNode, or null if translation was unavailable
+   */
+  SqlNode convertCall(
+      RexToSqlNodeConverter converter,
+      RexCall call);
 }
 
 // End RexSqlConvertlet.java

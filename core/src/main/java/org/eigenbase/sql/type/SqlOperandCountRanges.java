@@ -21,56 +21,56 @@ import org.eigenbase.sql.SqlOperandCountRange;
 
 /**
  * Helpers for {@link SqlOperandCountRange}.
-*/
+ */
 public abstract class SqlOperandCountRanges {
-    public static SqlOperandCountRange of(int length) {
-        return new RangeImpl(length, length);
+  public static SqlOperandCountRange of(int length) {
+    return new RangeImpl(length, length);
+  }
+
+  public static SqlOperandCountRange between(int min, int max) {
+    assert min < max;
+    return new RangeImpl(min, max);
+  }
+
+  public static SqlOperandCountRange any() {
+    return new VariadicImpl();
+  }
+
+  private static class VariadicImpl implements SqlOperandCountRange {
+    public boolean isValidCount(int count) {
+      return true;
     }
 
-    public static SqlOperandCountRange between(int min, int max) {
-        assert min < max;
-        return new RangeImpl(min, max);
+    public int getMin() {
+      return 0;
     }
 
-    public static SqlOperandCountRange any() {
-        return new VariadicImpl();
+    public int getMax() {
+      return -1;
+    }
+  }
+
+  private static class RangeImpl implements SqlOperandCountRange {
+    private final int min;
+    private final int max;
+
+    public RangeImpl(int min, int max) {
+      this.min = min;
+      this.max = max;
     }
 
-    private static class VariadicImpl implements SqlOperandCountRange {
-        public boolean isValidCount(int count) {
-            return true;
-        }
-
-        public int getMin() {
-            return 0;
-        }
-
-        public int getMax() {
-            return -1;
-        }
+    public boolean isValidCount(int count) {
+      return count >= min && count <= max;
     }
 
-    private static class RangeImpl implements SqlOperandCountRange {
-        private final int min;
-        private final int max;
-
-        public RangeImpl(int min, int max) {
-            this.min = min;
-            this.max = max;
-        }
-
-        public boolean isValidCount(int count) {
-            return count >= min && count <= max;
-        }
-
-        public int getMin() {
-            return min;
-        }
-
-        public int getMax() {
-            return max;
-        }
+    public int getMin() {
+      return min;
     }
+
+    public int getMax() {
+      return max;
+    }
+  }
 }
 
 // End SqlOperandCountRanges.java

@@ -37,273 +37,248 @@ import com.google.common.collect.Iterables;
  * should set during construction.</p>
  */
 public abstract class RelDataTypeImpl
-    implements RelDataType,
-        RelDataTypeFamily
-{
-    //~ Instance fields --------------------------------------------------------
+    implements RelDataType, RelDataTypeFamily {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final List<RelDataTypeField> fieldList;
-    protected String digest;
+  protected final List<RelDataTypeField> fieldList;
+  protected String digest;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a RelDataTypeImpl.
-     *
-     * @param fieldList List of fields
-     */
-    protected RelDataTypeImpl(List<? extends RelDataTypeField> fieldList)
-    {
-        if (fieldList != null) {
-            // Create a defensive copy of the list.
-            this.fieldList = ImmutableList.copyOf(fieldList);
-        } else {
-            this.fieldList = null;
-        }
+  /**
+   * Creates a RelDataTypeImpl.
+   *
+   * @param fieldList List of fields
+   */
+  protected RelDataTypeImpl(List<? extends RelDataTypeField> fieldList) {
+    if (fieldList != null) {
+      // Create a defensive copy of the list.
+      this.fieldList = ImmutableList.copyOf(fieldList);
+    } else {
+      this.fieldList = null;
     }
+  }
 
-    /**
-     * Default constructor, to allow derived classes such as {@link
-     * BasicSqlType} to be {@link Serializable}.
-     *
-     * <p>(The serialization specification says that a class can be serializable
-     * even if its base class is not serializable, provided that the base class
-     * has a public or protected zero-args constructor.)
-     */
-    protected RelDataTypeImpl()
-    {
-        this(null);
+  /**
+   * Default constructor, to allow derived classes such as {@link
+   * BasicSqlType} to be {@link Serializable}.
+   *
+   * <p>(The serialization specification says that a class can be serializable
+   * even if its base class is not serializable, provided that the base class
+   * has a public or protected zero-args constructor.)
+   */
+  protected RelDataTypeImpl() {
+    this(null);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelDataType
+  public RelDataTypeField getField(String fieldName) {
+    for (RelDataTypeField field : fieldList) {
+      if (field.getName().equals(fieldName)) {
+        return field;
+      }
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    // implement RelDataType
-    public RelDataTypeField getField(String fieldName)
-    {
-        for (RelDataTypeField field : fieldList) {
-            if (field.getName().equals(fieldName)) {
-                return field;
-            }
-        }
-        // Extra field
-        if (fieldList.size() > 0) {
-            final RelDataTypeField lastField = Iterables.getLast(fieldList);
-            if (lastField.getName().equals("_extra")) {
-                return new RelDataTypeFieldImpl(
-                    fieldName, -1, lastField.getType());
-            }
-        }
-        return null;
+    // Extra field
+    if (fieldList.size() > 0) {
+      final RelDataTypeField lastField = Iterables.getLast(fieldList);
+      if (lastField.getName().equals("_extra")) {
+        return new RelDataTypeFieldImpl(
+            fieldName, -1, lastField.getType());
+      }
     }
+    return null;
+  }
 
-    // implement RelDataType
-    public int getFieldOrdinal(String fieldName)
-    {
-        for (int i = 0; i < fieldList.size(); i++) {
-            RelDataTypeField field = fieldList.get(i);
-            if (field.getName().equals(fieldName)) {
-                return i;
-            }
-        }
-        return -1;
+  // implement RelDataType
+  public int getFieldOrdinal(String fieldName) {
+    for (int i = 0; i < fieldList.size(); i++) {
+      RelDataTypeField field = fieldList.get(i);
+      if (field.getName().equals(fieldName)) {
+        return i;
+      }
     }
+    return -1;
+  }
 
-    // implement RelDataType
-    public List<RelDataTypeField> getFieldList()
-    {
-        assert isStruct();
-        return fieldList;
+  // implement RelDataType
+  public List<RelDataTypeField> getFieldList() {
+    assert isStruct();
+    return fieldList;
+  }
+
+  public List<String> getFieldNames() {
+    return Pair.left(fieldList);
+  }
+
+  // implement RelDataType
+  public int getFieldCount() {
+    assert isStruct() : this;
+    return fieldList.size();
+  }
+
+  // implement RelDataType
+  public RelDataType getComponentType() {
+    // this is not a collection type
+    return null;
+  }
+
+  public RelDataType getKeyType() {
+    // this is not a map type
+    return null;
+  }
+
+  public RelDataType getValueType() {
+    // this is not a map type
+    return null;
+  }
+
+  // implement RelDataType
+  public boolean isStruct() {
+    return fieldList != null;
+  }
+
+  // implement RelDataType
+  public boolean equals(Object obj) {
+    if (obj instanceof RelDataTypeImpl) {
+      final RelDataTypeImpl that = (RelDataTypeImpl) obj;
+      return this.digest.equals(that.digest);
     }
+    return false;
+  }
 
-    public List<String> getFieldNames() {
-        return Pair.left(fieldList);
+  // implement RelDataType
+  public int hashCode() {
+    return digest.hashCode();
+  }
+
+  // implement RelDataType
+  public String getFullTypeString() {
+    return digest;
+  }
+
+  // implement RelDataType
+  public boolean isNullable() {
+    return false;
+  }
+
+  // implement RelDataType
+  public Charset getCharset() {
+    return null;
+  }
+
+  // implement RelDataType
+  public SqlCollation getCollation()
+      throws RuntimeException {
+    return null;
+  }
+
+  // implement RelDataType
+  public SqlIntervalQualifier getIntervalQualifier() {
+    return null;
+  }
+
+  // implement RelDataType
+  public int getPrecision() {
+    return PRECISION_NOT_SPECIFIED;
+  }
+
+  // implement RelDataType
+  public int getScale() {
+    return SCALE_NOT_SPECIFIED;
+  }
+
+  // implement RelDataType
+  public SqlTypeName getSqlTypeName() {
+    return null;
+  }
+
+  // implement RelDataType
+  public SqlIdentifier getSqlIdentifier() {
+    SqlTypeName typeName = getSqlTypeName();
+    if (typeName == null) {
+      return null;
     }
+    return new SqlIdentifier(
+        typeName.name(),
+        SqlParserPos.ZERO);
+  }
 
-    // implement RelDataType
-    public int getFieldCount()
-    {
-        assert isStruct() : this;
-        return fieldList.size();
+  // implement RelDataType
+  public RelDataTypeFamily getFamily() {
+    // by default, put each type into its own family
+    return this;
+  }
+
+  /**
+   * Generates a string representation of this type.
+   *
+   * @param sb         StringBuffer into which to generate the string
+   * @param withDetail when true, all detail information needed to compute a
+   *                   unique digest (and return from getFullTypeString) should
+   *                   be included;
+   */
+  protected abstract void generateTypeString(
+      StringBuilder sb,
+      boolean withDetail);
+
+  /**
+   * Computes the digest field. This should be called in every non-abstract
+   * subclass constructor once the type is fully defined.
+   */
+  protected void computeDigest() {
+    StringBuilder sb = new StringBuilder();
+    generateTypeString(sb, true);
+    if (!isNullable()) {
+      sb.append(" NOT NULL");
     }
+    digest = sb.toString();
+  }
 
-    // implement RelDataType
-    public RelDataType getComponentType()
-    {
-        // this is not a collection type
-        return null;
-    }
+  // implement RelDataType
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    generateTypeString(sb, false);
+    return sb.toString();
+  }
 
-    public RelDataType getKeyType() {
-        // this is not a map type
-        return null;
-    }
+  // implement RelDataType
+  public RelDataTypePrecedenceList getPrecedenceList() {
+    // by default, make each type have a precedence list containing
+    // only other types in the same family
+    return new RelDataTypePrecedenceList() {
+      public boolean containsType(RelDataType type) {
+        return getFamily() == type.getFamily();
+      }
 
-    public RelDataType getValueType() {
-        // this is not a map type
-        return null;
-    }
+      public int compareTypePrecedence(
+          RelDataType type1,
+          RelDataType type2) {
+        assert (containsType(type1));
+        assert (containsType(type2));
+        return 0;
+      }
+    };
+  }
 
-    // implement RelDataType
-    public boolean isStruct()
-    {
-        return fieldList != null;
-    }
+  // implement RelDataType
+  public RelDataTypeComparability getComparability() {
+    return RelDataTypeComparability.All;
+  }
 
-    // implement RelDataType
-    public boolean equals(Object obj)
-    {
-        if (obj instanceof RelDataTypeImpl) {
-            final RelDataTypeImpl that = (RelDataTypeImpl) obj;
-            return this.digest.equals(that.digest);
-        }
-        return false;
-    }
-
-    // implement RelDataType
-    public int hashCode()
-    {
-        return digest.hashCode();
-    }
-
-    // implement RelDataType
-    public String getFullTypeString()
-    {
-        return digest;
-    }
-
-    // implement RelDataType
-    public boolean isNullable()
-    {
-        return false;
-    }
-
-    // implement RelDataType
-    public Charset getCharset()
-    {
-        return null;
-    }
-
-    // implement RelDataType
-    public SqlCollation getCollation()
-        throws RuntimeException
-    {
-        return null;
-    }
-
-    // implement RelDataType
-    public SqlIntervalQualifier getIntervalQualifier()
-    {
-        return null;
-    }
-
-    // implement RelDataType
-    public int getPrecision()
-    {
-        return PRECISION_NOT_SPECIFIED;
-    }
-
-    // implement RelDataType
-    public int getScale()
-    {
-        return SCALE_NOT_SPECIFIED;
-    }
-
-    // implement RelDataType
-    public SqlTypeName getSqlTypeName()
-    {
-        return null;
-    }
-
-    // implement RelDataType
-    public SqlIdentifier getSqlIdentifier()
-    {
-        SqlTypeName typeName = getSqlTypeName();
-        if (typeName == null) {
-            return null;
-        }
-        return new SqlIdentifier(
-            typeName.name(),
-            SqlParserPos.ZERO);
-    }
-
-    // implement RelDataType
-    public RelDataTypeFamily getFamily()
-    {
-        // by default, put each type into its own family
-        return this;
-    }
-
-    /**
-     * Generates a string representation of this type.
-     *
-     * @param sb StringBuffer into which to generate the string
-     * @param withDetail when true, all detail information needed to compute a
-     * unique digest (and return from getFullTypeString) should be included;
-     */
-    protected abstract void generateTypeString(
-        StringBuilder sb,
-        boolean withDetail);
-
-    /**
-     * Computes the digest field. This should be called in every non-abstract
-     * subclass constructor once the type is fully defined.
-     */
-    protected void computeDigest()
-    {
-        StringBuilder sb = new StringBuilder();
-        generateTypeString(sb, true);
-        if (!isNullable()) {
-            sb.append(" NOT NULL");
-        }
-        digest = sb.toString();
-    }
-
-    // implement RelDataType
-    public String toString()
-    {
-        StringBuilder sb = new StringBuilder();
-        generateTypeString(sb, false);
-        return sb.toString();
-    }
-
-    // implement RelDataType
-    public RelDataTypePrecedenceList getPrecedenceList()
-    {
-        // by default, make each type have a precedence list containing
-        // only other types in the same family
-        return new RelDataTypePrecedenceList() {
-            public boolean containsType(RelDataType type)
-            {
-                return getFamily() == type.getFamily();
-            }
-
-            public int compareTypePrecedence(
-                RelDataType type1,
-                RelDataType type2)
-            {
-                assert (containsType(type1));
-                assert (containsType(type2));
-                return 0;
-            }
-        };
-    }
-
-    // implement RelDataType
-    public RelDataTypeComparability getComparability()
-    {
-        return RelDataTypeComparability.All;
-    }
-
-    /** Returns an implementation of
-     * {@link RelProtoDataType}
-     * that copies a given type using th given type factory. */
-    public static RelProtoDataType proto(final RelDataType protoType) {
-        return new RelProtoDataType() {
-            public RelDataType apply(RelDataTypeFactory a0) {
-                return a0.copyType(protoType);
-            }
-        };
-    }
+  /**
+   * Returns an implementation of
+   * {@link RelProtoDataType}
+   * that copies a given type using th given type factory.
+   */
+  public static RelProtoDataType proto(final RelDataType protoType) {
+    return new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory a0) {
+        return a0.copyType(protoType);
+      }
+    };
+  }
 }
 
 // End RelDataTypeImpl.java

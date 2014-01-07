@@ -26,72 +26,65 @@ import org.eigenbase.sql.validate.*;
  * tacked on for whether to remove duplicates (e.g. UNION ALL does not remove
  * duplicates).
  */
-public class SqlSetOperator
-    extends SqlBinaryOperator
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlSetOperator extends SqlBinaryOperator {
+  //~ Instance fields --------------------------------------------------------
 
-    private final boolean all;
+  private final boolean all;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlSetOperator(
-        String name,
-        SqlKind kind,
-        int prec,
-        boolean all)
-    {
-        super(
-            name,
-            kind,
-            prec,
-            true,
-            SqlTypeStrategies.rtiLeastRestrictive,
-            null,
-            SqlTypeStrategies.otcSetop);
-        this.all = all;
-    }
+  public SqlSetOperator(
+      String name,
+      SqlKind kind,
+      int prec,
+      boolean all) {
+    super(
+        name,
+        kind,
+        prec,
+        true,
+        SqlTypeStrategies.rtiLeastRestrictive,
+        null,
+        SqlTypeStrategies.otcSetop);
+    this.all = all;
+  }
 
-    public SqlSetOperator(
-        String name,
-        SqlKind kind,
-        int prec,
-        boolean all,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker)
-    {
-        super(
-            name,
-            kind,
-            prec,
-            true,
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker);
-        this.all = all;
-    }
+  public SqlSetOperator(
+      String name,
+      SqlKind kind,
+      int prec,
+      boolean all,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
+    super(
+        name,
+        kind,
+        prec,
+        true,
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker);
+    this.all = all;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public boolean isAll()
-    {
-        return all;
-    }
+  public boolean isAll() {
+    return all;
+  }
 
-    public boolean isDistinct()
-    {
-        return !all;
-    }
+  public boolean isDistinct() {
+    return !all;
+  }
 
-    public void validateCall(
-        SqlCall call,
-        SqlValidator validator,
-        SqlValidatorScope scope,
-        SqlValidatorScope operandScope)
-    {
-        validator.validateQuery(call, operandScope);
-    }
+  public void validateCall(
+      SqlCall call,
+      SqlValidator validator,
+      SqlValidatorScope scope,
+      SqlValidatorScope operandScope) {
+    validator.validateQuery(call, operandScope);
+  }
 }
 
 // End SqlSetOperator.java

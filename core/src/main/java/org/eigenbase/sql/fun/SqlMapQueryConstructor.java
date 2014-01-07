@@ -19,22 +19,18 @@ package org.eigenbase.sql.fun;
 
 import org.eigenbase.sql.SqlKind;
 
-
 /**
  * Definition of the MAP query constructor, <code>
  * MAP (&lt;query&gt;)</code>.
  *
  * <p>Like the MAP type, not standard SQL.</p>
  */
-public class SqlMapQueryConstructor
-    extends SqlMultisetQueryConstructor
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlMapQueryConstructor extends SqlMultisetQueryConstructor {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlMapQueryConstructor()
-    {
-        super("MAP", SqlKind.MAP_QUERY_CONSTRUCTOR);
-    }
+  public SqlMapQueryConstructor() {
+    super("MAP", SqlKind.MAP_QUERY_CONSTRUCTOR);
+  }
 }
 
 // End SqlMapQueryConstructor.java

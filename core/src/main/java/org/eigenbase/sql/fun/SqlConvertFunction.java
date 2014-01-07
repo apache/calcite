@@ -23,46 +23,41 @@ import org.eigenbase.sql.*;
  * Common base for the <code>CONVERT</code> and <code>TRANSLATE</code>
  * functions.
  */
-public class SqlConvertFunction
-    extends SqlFunction
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlConvertFunction extends SqlFunction {
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlConvertFunction(String name)
-    {
-        super(
-            name,
-            SqlKind.OTHER_FUNCTION,
-            null,
-            null,
-            null,
-            SqlFunctionCategory.String);
+  protected SqlConvertFunction(String name) {
+    super(
+        name,
+        SqlKind.OTHER_FUNCTION,
+        null,
+        null,
+        null,
+        SqlFunctionCategory.String);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall(getName());
+    operands[0].unparse(writer, leftPrec, rightPrec);
+    writer.sep("USING");
+    operands[1].unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(frame);
+  }
+
+  public String getSignatureTemplate(final int operandsCount) {
+    switch (operandsCount) {
+    case 2:
+      return "{0}({1} USING {2})";
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        final SqlWriter.Frame frame = writer.startFunCall(getName());
-        operands[0].unparse(writer, leftPrec, rightPrec);
-        writer.sep("USING");
-        operands[1].unparse(writer, leftPrec, rightPrec);
-        writer.endFunCall(frame);
-    }
-
-    public String getSignatureTemplate(final int operandsCount)
-    {
-        switch (operandsCount) {
-        case 2:
-            return "{0}({1} USING {2})";
-        }
-        assert (false);
-        return null;
-    }
+    assert (false);
+    return null;
+  }
 }
 
 // End SqlConvertFunction.java

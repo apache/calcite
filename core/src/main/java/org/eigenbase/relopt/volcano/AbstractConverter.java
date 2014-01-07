@@ -36,90 +36,83 @@ import org.eigenbase.relopt.*;
  * source subset is abstract), the set is flagged, so this converter will be
  * expanded as soon as a non-abstract relexp is added to the set.</p>
  */
-public class AbstractConverter
-    extends ConverterRelImpl
-{
-    //~ Constructors -----------------------------------------------------------
+public class AbstractConverter extends ConverterRelImpl {
+  //~ Constructors -----------------------------------------------------------
 
-    public AbstractConverter(
-        RelOptCluster cluster,
-        RelSubset rel,
-        RelTraitDef traitDef,
-        RelTraitSet traits)
-    {
-        super(cluster, traitDef, traits, rel);
+  public AbstractConverter(
+      RelOptCluster cluster,
+      RelSubset rel,
+      RelTraitDef traitDef,
+      RelTraitSet traits) {
+    super(cluster, traitDef, traits, rel);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    return new AbstractConverter(
+        getCluster(),
+        (RelSubset) sole(inputs),
+        traitDef,
+        traitSet);
+  }
+
+  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    return planner.makeInfiniteCost();
+  }
+
+  public RelWriter explainTerms(RelWriter pw) {
+    super.explainTerms(pw);
+    for (RelTrait trait : traitSet) {
+      pw.item(trait.getTraitDef().getSimpleName(), trait);
     }
+    return pw;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Inner Classes ----------------------------------------------------------
 
-
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return new AbstractConverter(
-            getCluster(),
-            (RelSubset) sole(inputs),
-            traitDef,
-            traitSet);
-    }
-
-    public RelOptCost computeSelfCost(RelOptPlanner planner)
-    {
-        return planner.makeInfiniteCost();
-    }
-
-    public RelWriter explainTerms(RelWriter pw) {
-        super.explainTerms(pw);
-        for (RelTrait trait : traitSet) {
-            pw.item(trait.getTraitDef().getSimpleName(), trait);
-        }
-        return pw;
-    }
-
-    //~ Inner Classes ----------------------------------------------------------
+  /**
+   * Rule which converts an {@link AbstractConverter} into a chain of
+   * converters from the source relation to the target traits.
+   *
+   * <p>The chain produced is mimimal: we have previously built the transitive
+   * closure of the graph of conversions, so we choose the shortest chain.</p>
+   *
+   * <p>Unlike the {@link AbstractConverter} they are replacing, these
+   * converters are guaranteed to be able to convert any relation of their
+   * calling convention. Furthermore, because they introduce subsets of other
+   * calling conventions along the way, these subsets may spawn more efficient
+   * conversions which are not generally applicable.</p>
+   *
+   * <p>AbstractConverters can be messy, so they restrain themselves: they
+   * don't fire if the target subset already has an implementation (with less
+   * than infinite cost).</p>
+   */
+  public static class ExpandConversionRule extends RelOptRule {
+    public static final ExpandConversionRule instance =
+        new ExpandConversionRule();
 
     /**
-     * Rule which converts an {@link AbstractConverter} into a chain of
-     * converters from the source relation to the target traits.
-     *
-     * <p>The chain produced is mimimal: we have previously built the transitive
-     * closure of the graph of conversions, so we choose the shortest chain.</p>
-     *
-     * <p>Unlike the {@link AbstractConverter} they are replacing, these
-     * converters are guaranteed to be able to convert any relation of their
-     * calling convention. Furthermore, because they introduce subsets of other
-     * calling conventions along the way, these subsets may spawn more efficient
-     * conversions which are not generally applicable.</p>
-     *
-     * <p>AbstractConverters can be messy, so they restrain themselves: they
-     * don't fire if the target subset already has an implementation (with less
-     * than infinite cost).</p>
+     * Creates an ExpandConversionRule.
      */
-    public static class ExpandConversionRule
-        extends RelOptRule
-    {
-        public static final ExpandConversionRule instance =
-            new ExpandConversionRule();
-
-        /**
-         * Creates an ExpandConversionRule.
-         */
-        private ExpandConversionRule() {
-            super(operand(AbstractConverter.class, any()));
-        }
-
-        public void onMatch(RelOptRuleCall call)
-        {
-            final VolcanoPlanner planner = (VolcanoPlanner) call.getPlanner();
-            AbstractConverter converter = call.rel(0);
-            final RelNode child = converter.getChild();
-            RelNode converted =
-                planner.changeTraitsUsingConverters(
-                    child,
-                    converter.traitSet);
-            if (converted != null) {
-                call.transformTo(converted);
-            }
-        }
+    private ExpandConversionRule() {
+      super(operand(AbstractConverter.class, any()));
     }
+
+    public void onMatch(RelOptRuleCall call) {
+      final VolcanoPlanner planner = (VolcanoPlanner) call.getPlanner();
+      AbstractConverter converter = call.rel(0);
+      final RelNode child = converter.getChild();
+      RelNode converted =
+          planner.changeTraitsUsingConverters(
+              child,
+              converter.traitSet);
+      if (converted != null) {
+        call.transformTo(converted);
+      }
+    }
+  }
 }
 
 // End AbstractConverter.java

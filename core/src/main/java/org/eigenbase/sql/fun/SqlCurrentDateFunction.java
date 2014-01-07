@@ -24,41 +24,35 @@ import org.eigenbase.sql.validate.*;
 /**
  * The <code>CURRENT_DATE</code> function.
  */
-public class SqlCurrentDateFunction
-    extends SqlFunction
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlCurrentDateFunction extends SqlFunction {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlCurrentDateFunction()
-    {
-        super(
-            "CURRENT_DATE",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiDate,
-            null,
-            SqlTypeStrategies.otcNiladic,
-            SqlFunctionCategory.TimeDate);
-    }
+  public SqlCurrentDateFunction() {
+    super(
+        "CURRENT_DATE",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiDate,
+        null,
+        SqlTypeStrategies.otcNiladic,
+        SqlFunctionCategory.TimeDate);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlSyntax getSyntax()
-    {
-        return SqlSyntax.FunctionId;
-    }
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.FunctionId;
+  }
 
-    public SqlMonotonicity getMonotonicity(
-        SqlCall call,
-        SqlValidatorScope scope)
-    {
-        return SqlMonotonicity.Increasing;
-    }
+  public SqlMonotonicity getMonotonicity(
+      SqlCall call,
+      SqlValidatorScope scope) {
+    return SqlMonotonicity.Increasing;
+  }
 
-    // Plans referencing context variables should never be cached
-    public boolean isDynamicFunction()
-    {
-        return true;
-    }
+  // Plans referencing context variables should never be cached
+  public boolean isDynamicFunction() {
+    return true;
+  }
 }
 
 // End SqlCurrentDateFunction.java

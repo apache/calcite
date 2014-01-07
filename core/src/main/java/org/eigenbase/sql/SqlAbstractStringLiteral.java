@@ -23,31 +23,27 @@ import org.eigenbase.sql.type.*;
 /**
  * Abstract base for chararacter and binary string literals.
  */
-abstract class SqlAbstractStringLiteral
-    extends SqlLiteral
-{
-    //~ Constructors -----------------------------------------------------------
+abstract class SqlAbstractStringLiteral extends SqlLiteral {
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlAbstractStringLiteral(
-        Object value,
-        SqlTypeName typeName,
-        SqlParserPos pos)
-    {
-        super(value, typeName, pos);
-    }
+  protected SqlAbstractStringLiteral(
+      Object value,
+      SqlTypeName typeName,
+      SqlParserPos pos) {
+    super(value, typeName, pos);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Helper routine for {@link SqlUtil#concatenateLiterals}.
-     *
-     * @param lits homogeneous StringLiteral[] args.
-     *
-     * @return StringLiteral with concatenated value. this == lits[0], used only
-     * for method dispatch.
-     */
-    protected abstract SqlAbstractStringLiteral concat1(
-        SqlLiteral [] lits);
+  /**
+   * Helper routine for {@link SqlUtil#concatenateLiterals}.
+   *
+   * @param lits homogeneous StringLiteral[] args.
+   * @return StringLiteral with concatenated value. this == lits[0], used only
+   * for method dispatch.
+   */
+  protected abstract SqlAbstractStringLiteral concat1(
+      SqlLiteral[] lits);
 }
 
 // End SqlAbstractStringLiteral.java

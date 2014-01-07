@@ -32,21 +32,20 @@ import java.util.*;
  * {@link org.eigenbase.relopt.RelOptRule#RelOptRule(org.eigenbase.relopt.RelOptRuleOperand, String)}
  * constructor.
  */
-public interface VolcanoPlannerPhaseRuleMappingInitializer
-{
-    //~ Methods ----------------------------------------------------------------
+public interface VolcanoPlannerPhaseRuleMappingInitializer {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Initializes a {@link VolcanoPlannerPhase}-to-rule map. Rules are
-     * specified by description (see above). When this method is called, the map
-     * will already be pre-initialized with empty sets for each
-     * VolcanoPlannerPhase. Implementations must not return having added or
-     * removed keys from the map, although it is safe to temporarily add or
-     * remove keys.
-     *
-     * @param phaseRuleMap a {@link VolcanoPlannerPhase}-to-rule map
-     */
-    public void initialize(Map<VolcanoPlannerPhase, Set<String>> phaseRuleMap);
+  /**
+   * Initializes a {@link VolcanoPlannerPhase}-to-rule map. Rules are
+   * specified by description (see above). When this method is called, the map
+   * will already be pre-initialized with empty sets for each
+   * VolcanoPlannerPhase. Implementations must not return having added or
+   * removed keys from the map, although it is safe to temporarily add or
+   * remove keys.
+   *
+   * @param phaseRuleMap a {@link VolcanoPlannerPhase}-to-rule map
+   */
+  public void initialize(Map<VolcanoPlannerPhase, Set<String>> phaseRuleMap);
 }
 
 // End VolcanoPlannerPhaseRuleMappingInitializer.java

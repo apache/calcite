@@ -23,135 +23,121 @@ import java.util.List;
  * Default implementation of {@link RexVisitor}, which visits each node but does
  * nothing while it's there.
  */
-public class RexVisitorImpl<R>
-    implements RexVisitor<R>
-{
-    //~ Instance fields --------------------------------------------------------
+public class RexVisitorImpl<R> implements RexVisitor<R> {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final boolean deep;
+  protected final boolean deep;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    protected RexVisitorImpl(boolean deep)
-    {
-        this.deep = deep;
+  protected RexVisitorImpl(boolean deep) {
+    this.deep = deep;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public R visitInputRef(RexInputRef inputRef) {
+    return null;
+  }
+
+  public R visitLocalRef(RexLocalRef localRef) {
+    return null;
+  }
+
+  public R visitLiteral(RexLiteral literal) {
+    return null;
+  }
+
+  public R visitOver(RexOver over) {
+    R r = visitCall(over);
+    if (!deep) {
+      return null;
+    }
+    final RexWindow window = over.getWindow();
+    for (RexFieldCollation orderKey : window.orderKeys) {
+      orderKey.left.accept(this);
+    }
+    for (RexNode partitionKey : window.partitionKeys) {
+      partitionKey.accept(this);
+    }
+    return r;
+  }
+
+  public R visitCorrelVariable(RexCorrelVariable correlVariable) {
+    return null;
+  }
+
+  public R visitCall(RexCall call) {
+    if (!deep) {
+      return null;
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public R visitInputRef(RexInputRef inputRef)
-    {
-        return null;
+    R r = null;
+    for (RexNode operand : call.operands) {
+      r = operand.accept(this);
     }
+    return r;
+  }
 
-    public R visitLocalRef(RexLocalRef localRef)
-    {
-        return null;
+  public R visitDynamicParam(RexDynamicParam dynamicParam) {
+    return null;
+  }
+
+  public R visitRangeRef(RexRangeRef rangeRef) {
+    return null;
+  }
+
+  public R visitFieldAccess(RexFieldAccess fieldAccess) {
+    if (!deep) {
+      return null;
     }
+    final RexNode expr = fieldAccess.getReferenceExpr();
+    return expr.accept(this);
+  }
 
-    public R visitLiteral(RexLiteral literal)
-    {
-        return null;
-    }
-
-    public R visitOver(RexOver over)
-    {
-        R r = visitCall(over);
-        if (!deep) {
-            return null;
-        }
-        final RexWindow window = over.getWindow();
-        for (RexFieldCollation orderKey : window.orderKeys) {
-            orderKey.left.accept(this);
-        }
-        for (RexNode partitionKey : window.partitionKeys) {
-            partitionKey.accept(this);
-        }
-        return r;
-    }
-
-    public R visitCorrelVariable(RexCorrelVariable correlVariable)
-    {
-        return null;
-    }
-
-    public R visitCall(RexCall call)
-    {
-        if (!deep) {
-            return null;
-        }
-
-        R r = null;
-        for (RexNode operand : call.operands) {
-            r = operand.accept(this);
-        }
-        return r;
-    }
-
-    public R visitDynamicParam(RexDynamicParam dynamicParam)
-    {
-        return null;
-    }
-
-    public R visitRangeRef(RexRangeRef rangeRef)
-    {
-        return null;
-    }
-
-    public R visitFieldAccess(RexFieldAccess fieldAccess)
-    {
-        if (!deep) {
-            return null;
-        }
-        final RexNode expr = fieldAccess.getReferenceExpr();
-        return expr.accept(this);
-    }
-
-    /**
-     * <p>Visits an array of expressions, returning the logical 'and' of their
-     * results.
-     *
-     * <p>If any of them returns false, returns false immediately; if they all
-     * return true, returns true.
-     *
-     * @see #visitArrayOr
-     * @see RexShuttle#visitArray
-     */
-    public static boolean visitArrayAnd(
-        RexVisitor<Boolean> visitor,
-        List<RexNode> exprs)
-    {
-        for (RexNode expr : exprs) {
-            final boolean b = expr.accept(visitor);
-            if (!b) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * <p>Visits an array of expressions, returning the logical 'or' of their
-     * results.
-     *
-     * <p>If any of them returns true, returns true immediately; if they all
-     * return false, returns false.
-     *
-     * @see #visitArrayAnd
-     * @see RexShuttle#visitArray
-     */
-    public static boolean visitArrayOr(
-        RexVisitor<Boolean> visitor,
-        List<RexNode> exprs)
-    {
-        for (RexNode expr : exprs) {
-            final boolean b = expr.accept(visitor);
-            if (b) {
-                return true;
-            }
-        }
+  /**
+   * <p>Visits an array of expressions, returning the logical 'and' of their
+   * results.
+   *
+   * <p>If any of them returns false, returns false immediately; if they all
+   * return true, returns true.
+   *
+   * @see #visitArrayOr
+   * @see RexShuttle#visitArray
+   */
+  public static boolean visitArrayAnd(
+      RexVisitor<Boolean> visitor,
+      List<RexNode> exprs) {
+    for (RexNode expr : exprs) {
+      final boolean b = expr.accept(visitor);
+      if (!b) {
         return false;
+      }
     }
+    return true;
+  }
+
+  /**
+   * <p>Visits an array of expressions, returning the logical 'or' of their
+   * results.
+   *
+   * <p>If any of them returns true, returns true immediately; if they all
+   * return false, returns false.
+   *
+   * @see #visitArrayAnd
+   * @see RexShuttle#visitArray
+   */
+  public static boolean visitArrayOr(
+      RexVisitor<Boolean> visitor,
+      List<RexNode> exprs) {
+    for (RexNode expr : exprs) {
+      final boolean b = expr.accept(visitor);
+      if (b) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 // End RexVisitorImpl.java

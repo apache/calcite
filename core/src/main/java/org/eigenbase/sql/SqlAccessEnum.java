@@ -20,9 +20,8 @@ package org.eigenbase.sql;
 /**
  * Enumeration representing different access types
  */
-public enum SqlAccessEnum
-{
-    SELECT, UPDATE, INSERT, DELETE;
+public enum SqlAccessEnum {
+  SELECT, UPDATE, INSERT, DELETE;
 }
 
 // End SqlAccessEnum.java

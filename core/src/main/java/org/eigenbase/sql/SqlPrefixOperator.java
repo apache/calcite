@@ -25,92 +25,85 @@ import org.eigenbase.util.*;
 /**
  * A unary operator.
  */
-public class SqlPrefixOperator
-    extends SqlOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlPrefixOperator extends SqlOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlPrefixOperator(
-        String name,
-        SqlKind kind,
-        int prec,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker)
-    {
-        super(
-            name,
-            kind,
-            leftPrec(0, true),
-            rightPrec(prec, true),
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker);
+  public SqlPrefixOperator(
+      String name,
+      SqlKind kind,
+      int prec,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
+    super(
+        name,
+        kind,
+        leftPrec(0, true),
+        rightPrec(prec, true),
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.Prefix;
+  }
+
+  public String getSignatureTemplate(final int operandsCount) {
+    Util.discard(operandsCount);
+    return "{0}{1}";
+  }
+
+  protected RelDataType adjustType(
+      SqlValidator validator,
+      SqlCall call,
+      RelDataType type) {
+    if (SqlTypeUtil.inCharFamily(type)) {
+      // Determine coercibility and resulting collation name of
+      // unary operator if needed.
+      RelDataType operandType =
+          validator.getValidatedNodeType(call.operands[0]);
+      if (null == operandType) {
+        throw Util.newInternal(
+            "operand's type should have been derived");
+      }
+      if (SqlTypeUtil.inCharFamily(operandType)) {
+        SqlCollation collation = operandType.getCollation();
+        assert null != collation
+            : "An implicit or explicit collation should have been set";
+        type =
+            validator.getTypeFactory()
+                .createTypeWithCharsetAndCollation(
+                    type,
+                    type.getCharset(),
+                    new SqlCollation(
+                        collation.getCollationName(),
+                        collation.getCoercibility()));
+      }
+    }
+    return type;
+  }
+
+  public SqlMonotonicity getMonotonicity(
+      SqlCall call,
+      SqlValidatorScope scope) {
+    if (getName().equals("-")) {
+      return scope.getMonotonicity(call.getOperands()[0]).reverse();
     }
 
-    //~ Methods ----------------------------------------------------------------
+    return super.getMonotonicity(call, scope);
+  }
 
-    public SqlSyntax getSyntax()
-    {
-        return SqlSyntax.Prefix;
+  @Override
+  public boolean validRexOperands(int count, boolean fail) {
+    if (count != 1) {
+      assert !fail : "wrong operand count " + count + " for " + this;
+      return false;
     }
-
-    public String getSignatureTemplate(final int operandsCount)
-    {
-        Util.discard(operandsCount);
-        return "{0}{1}";
-    }
-
-    protected RelDataType adjustType(
-        SqlValidator validator,
-        SqlCall call,
-        RelDataType type)
-    {
-        if (SqlTypeUtil.inCharFamily(type)) {
-            // Determine coercibility and resulting collation name of
-            // unary operator if needed.
-            RelDataType operandType =
-                validator.getValidatedNodeType(call.operands[0]);
-            if (null == operandType) {
-                throw Util.newInternal(
-                    "operand's type should have been derived");
-            }
-            if (SqlTypeUtil.inCharFamily(operandType)) {
-                SqlCollation collation = operandType.getCollation();
-                assert null != collation
-                    : "An implicit or explicit collation should have been set";
-                type =
-                    validator.getTypeFactory()
-                    .createTypeWithCharsetAndCollation(
-                        type,
-                        type.getCharset(),
-                        new SqlCollation(
-                            collation.getCollationName(),
-                            collation.getCoercibility()));
-            }
-        }
-        return type;
-    }
-
-    public SqlMonotonicity getMonotonicity(
-        SqlCall call,
-        SqlValidatorScope scope)
-    {
-        if (getName().equals("-")) {
-            return scope.getMonotonicity(call.getOperands()[0]).reverse();
-        }
-
-        return super.getMonotonicity(call, scope);
-    }
-
-    @Override
-    public boolean validRexOperands(int count, boolean fail) {
-        if (count != 1) {
-            assert !fail : "wrong operand count " + count + " for " + this;
-            return false;
-        }
-        return true;
-    }
+    return true;
+  }
 }
 
 // End SqlPrefixOperator.java

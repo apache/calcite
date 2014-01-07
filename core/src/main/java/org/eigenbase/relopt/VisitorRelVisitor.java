@@ -26,32 +26,29 @@ import org.eigenbase.rex.*;
  * Walks over a tree of {@link RelNode relational expressions}, walking a {@link
  * RexShuttle} over every expression in that tree.
  */
-public class VisitorRelVisitor
-    extends RelVisitor
-{
-    //~ Instance fields --------------------------------------------------------
+public class VisitorRelVisitor extends RelVisitor {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final RexVisitor<?> visitor;
+  protected final RexVisitor<?> visitor;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public VisitorRelVisitor(RexVisitor<?> visitor) {
-        this.visitor = visitor;
+  public VisitorRelVisitor(RexVisitor<?> visitor) {
+    this.visitor = visitor;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void visit(
+      RelNode p,
+      int ordinal,
+      RelNode parent) {
+    List<RexNode> childExps = p.getChildExps();
+    for (RexNode childExp : childExps) {
+      childExp.accept(visitor);
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public void visit(
-        RelNode p,
-        int ordinal,
-        RelNode parent)
-    {
-        List<RexNode> childExps = p.getChildExps();
-        for (RexNode childExp : childExps) {
-            childExp.accept(visitor);
-        }
-        p.childrenAccept(this);
-    }
+    p.childrenAccept(this);
+  }
 }
 
 // End VisitorRelVisitor.java

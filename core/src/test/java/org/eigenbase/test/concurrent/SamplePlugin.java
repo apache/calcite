@@ -30,45 +30,42 @@ import java.util.Arrays;
  * you can then do "@describeResultSet" to show columns returned by query.
  */
 public class SamplePlugin extends ConcurrentTestPlugin {
-    private static final String DESCRIBE_RESULT_SET_CMD = "@describeResultSet";
+  private static final String DESCRIBE_RESULT_SET_CMD = "@describeResultSet";
 
-    public ConcurrentTestPluginCommand getCommandFor(String name, String params)
-    {
-        if (name.equals(DESCRIBE_RESULT_SET_CMD)) {
-            return new DescribeResultSet();
+  public ConcurrentTestPluginCommand getCommandFor(String name, String params) {
+    if (name.equals(DESCRIBE_RESULT_SET_CMD)) {
+      return new DescribeResultSet();
+    }
+    assert (false);
+    return null;
+  }
+
+  public Iterable<String> getSupportedThreadCommands() {
+    return Arrays.asList(new String[]{DESCRIBE_RESULT_SET_CMD});
+  }
+
+  static class DescribeResultSet implements ConcurrentTestPluginCommand {
+
+    public void execute(TestContext testContext) throws IOException {
+      Statement stmt =
+          (PreparedStatement) testContext.getCurrentStatement();
+      if (stmt == null) {
+        testContext.storeMessage("No current statement");
+      } else if (!(stmt instanceof PreparedStatement)) {
+      } else {
+        try {
+          ResultSetMetaData metadata =
+              ((PreparedStatement) stmt).getMetaData();
+          for (int i = 1; i <= metadata.getColumnCount(); i++) {
+            testContext.storeMessage(
+                metadata.getColumnName(i) + ": "
+                    + metadata.getColumnTypeName(i));
+          }
+        } catch (SQLException e) {
+          throw new IllegalStateException(e.toString());
         }
-        assert (false);
-        return null;
+      }
     }
-
-    public Iterable<String> getSupportedThreadCommands()
-    {
-        return Arrays.asList(new String[] { DESCRIBE_RESULT_SET_CMD });
-    }
-
-    static class DescribeResultSet implements ConcurrentTestPluginCommand {
-
-        public void execute(TestContext testContext) throws IOException
-        {
-            Statement stmt =
-                (PreparedStatement) testContext.getCurrentStatement();
-            if (stmt == null) {
-                testContext.storeMessage("No current statement");
-            } else if (!(stmt instanceof PreparedStatement)) {
-            } else {
-                try {
-                    ResultSetMetaData metadata =
-                        ((PreparedStatement) stmt).getMetaData();
-                    for (int i = 1; i <= metadata.getColumnCount(); i++) {
-                        testContext.storeMessage(
-                            metadata.getColumnName(i) + ": "
-                            + metadata.getColumnTypeName(i));
-                    }
-                } catch (SQLException e) {
-                    throw new IllegalStateException(e.toString());
-                }
-            }
-        }
-    }
+  }
 }
 // End SamplePlugin.java

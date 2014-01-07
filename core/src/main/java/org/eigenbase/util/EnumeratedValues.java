@@ -23,7 +23,6 @@ import java.util.*;
 
 import org.eigenbase.util14.*;
 
-
 /**
  * <code>EnumeratedValues</code> is a helper class for declaring a set of
  * symbolic constants which have names, ordinals, and possibly descriptions. The
@@ -34,68 +33,60 @@ import org.eigenbase.util14.*;
  * members. Give it a private constructor, and a <code>public static final <i>
  * ClassName</i> instance</code> member to hold the singleton instance.</p>
  */
-public class EnumeratedValues
-    extends Enum14
-{
-    //~ Constructors -----------------------------------------------------------
+public class EnumeratedValues extends Enum14 {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a new empty, mutable enumeration.
-     */
-    public EnumeratedValues()
-    {
-    }
+  /**
+   * Creates a new empty, mutable enumeration.
+   */
+  public EnumeratedValues() {
+  }
 
-    /**
-     * Creates an enumeration, with an array of values, and freezes it.
-     */
-    public EnumeratedValues(Value [] values)
-    {
-        super(values);
-    }
+  /**
+   * Creates an enumeration, with an array of values, and freezes it.
+   */
+  public EnumeratedValues(Value[] values) {
+    super(values);
+  }
 
-    /**
-     * Creates an enumeration, initialize it with an array of strings, and
-     * freezes it.
-     */
-    public EnumeratedValues(String [] names)
-    {
-        super(names);
-    }
+  /**
+   * Creates an enumeration, initialize it with an array of strings, and
+   * freezes it.
+   */
+  public EnumeratedValues(String[] names) {
+    super(names);
+  }
 
-    /**
-     * Create an enumeration, initializes it with arrays of code/name pairs, and
-     * freezes it.
-     */
-    public EnumeratedValues(
-        String [] names,
-        int [] codes)
-    {
-        super(names, codes);
-    }
+  /**
+   * Create an enumeration, initializes it with arrays of code/name pairs, and
+   * freezes it.
+   */
+  public EnumeratedValues(
+      String[] names,
+      int[] codes) {
+    super(names, codes);
+  }
 
-    /**
-     * Create an enumeration, initializes it with arrays of code/name pairs, and
-     * freezes it.
-     */
-    public EnumeratedValues(
-        String [] names,
-        int [] codes,
-        String [] descriptions)
-    {
-        super(names, codes, descriptions);
-    }
+  /**
+   * Create an enumeration, initializes it with arrays of code/name pairs, and
+   * freezes it.
+   */
+  public EnumeratedValues(
+      String[] names,
+      int[] codes,
+      String[] descriptions) {
+    super(names, codes, descriptions);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Creates a mutable enumeration from an existing enumeration, which may
-     * already be immutable.
-     */
-    public EnumeratedValues getMutableClone()
-    {
-        return (EnumeratedValues) clone();
-    }
+  /**
+   * Creates a mutable enumeration from an existing enumeration, which may
+   * already be immutable.
+   */
+  public EnumeratedValues getMutableClone() {
+    return (EnumeratedValues) clone();
+  }
 }
 
 // End EnumeratedValues.java

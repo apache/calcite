@@ -25,30 +25,26 @@ import org.eigenbase.util.*;
  *
  * @see RexPermuteInputsShuttle
  */
-public class RexPermutationShuttle
-    extends RexShuttle
-{
-    //~ Instance fields --------------------------------------------------------
+public class RexPermutationShuttle extends RexShuttle {
+  //~ Instance fields --------------------------------------------------------
 
-    private final Permutation permutation;
+  private final Permutation permutation;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public RexPermutationShuttle(Permutation permutation)
-    {
-        this.permutation = permutation;
-    }
+  public RexPermutationShuttle(Permutation permutation) {
+    this.permutation = permutation;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RexNode visitLocalRef(RexLocalRef local)
-    {
-        final int index = local.getIndex();
-        int target = permutation.getTarget(index);
-        return new RexLocalRef(
-            target,
-            local.getType());
-    }
+  public RexNode visitLocalRef(RexLocalRef local) {
+    final int index = local.getIndex();
+    int target = permutation.getTarget(index);
+    return new RexLocalRef(
+        target,
+        local.getType());
+  }
 }
 
 // End RexPermutationShuttle.java

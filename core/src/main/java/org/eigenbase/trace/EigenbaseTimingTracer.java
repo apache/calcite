@@ -25,61 +25,58 @@ import java.util.logging.*;
  * EigenbaseTimingTracer provides a mechanism for tracing the timing of a call
  * sequence at nanosecond resolution.
  */
-public class EigenbaseTimingTracer
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class EigenbaseTimingTracer {
+  //~ Static fields/initializers ---------------------------------------------
 
-    private static final DecimalFormat decimalFormat =
-        new DecimalFormat("###,###,###,###,###");
+  private static final DecimalFormat decimalFormat =
+      new DecimalFormat("###,###,###,###,###");
 
-    //~ Instance fields --------------------------------------------------------
+  //~ Instance fields --------------------------------------------------------
 
-    private final Logger logger;
+  private final Logger logger;
 
-    private long lastNanoTime;
+  private long lastNanoTime;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a new timing tracer, publishing an initial event (at elapsed time
-     * 0).
-     *
-     * @param logger logger on which to log timing events; level FINE will be
-     * used
-     * @param startEvent event to trace as start of timing
-     */
-    public EigenbaseTimingTracer(
-        Logger logger,
-        String startEvent)
-    {
-        if (!logger.isLoggable(Level.FINE)) {
-            this.logger = null;
-            return;
-        } else {
-            this.logger = logger;
-        }
-        lastNanoTime = System.nanoTime();
-        logger.fine(startEvent + ":  elapsed nanos=0");
+  /**
+   * Creates a new timing tracer, publishing an initial event (at elapsed time
+   * 0).
+   *
+   * @param logger     logger on which to log timing events; level FINE will be
+   *                   used
+   * @param startEvent event to trace as start of timing
+   */
+  public EigenbaseTimingTracer(
+      Logger logger,
+      String startEvent) {
+    if (!logger.isLoggable(Level.FINE)) {
+      this.logger = null;
+      return;
+    } else {
+      this.logger = logger;
     }
+    lastNanoTime = System.nanoTime();
+    logger.fine(startEvent + ":  elapsed nanos=0");
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Publishes an event with the time elapsed since the previous event.
-     *
-     * @param event event to trace
-     */
-    public void traceTime(String event)
-    {
-        if (logger == null) {
-            return;
-        }
-        long newNanoTime = System.nanoTime();
-        long elapsed = newNanoTime - lastNanoTime;
-        lastNanoTime = newNanoTime;
-        logger.fine(
-            event + ":  elapsed nanos=" + decimalFormat.format(elapsed));
+  /**
+   * Publishes an event with the time elapsed since the previous event.
+   *
+   * @param event event to trace
+   */
+  public void traceTime(String event) {
+    if (logger == null) {
+      return;
     }
+    long newNanoTime = System.nanoTime();
+    long elapsed = newNanoTime - lastNanoTime;
+    lastNanoTime = newNanoTime;
+    logger.fine(
+        event + ":  elapsed nanos=" + decimalFormat.format(elapsed));
+  }
 }
 
 // End EigenbaseTimingTracer.java

@@ -1,40 +1,45 @@
 <html>
 <head>
-<title>Package org.eigenbase.test.concurrent</title>
+    <title>Package org.eigenbase.test.concurrent</title>
 </head>
 <body>
 
 A framework for concurrent jdbc unit tests.
 
 <p>
-The class <code>ConcurrentCommandGenerator</code> providea a java API for constructing
-concurrent jdbc tests: an instance of the class represents a test case, which
-contains several sequences of SQL commands (abstracted as subclasses of
-<code>ConcurrentCommand</code>). Each sequence is run in its own thread as a
-separate jdbc client (ie a separate <code>java.sql.Connection</code>). There are
-facilties to synchronize these command threads. Only a simple command sequence
-is supported: no branching, no looping.
+    The class <code>ConcurrentCommandGenerator</code> providea a java API for
+    constructing
+    concurrent jdbc tests: an instance of the class represents a test case,
+    which
+    contains several sequences of SQL commands (abstracted as subclasses of
+    <code>ConcurrentCommand</code>). Each sequence is run in its own thread as a
+    separate jdbc client (ie a separate <code>java.sql.Connection</code>). There
+    are
+    facilties to synchronize these command threads. Only a simple command
+    sequence
+    is supported: no branching, no looping.
 
 <p>
-An alternative is to define a test by writing a test script
-in <code>mtsql</code> format, as described below. An instance
-of <code>ConcurrentCommandScript</code> parses and executes a script.
+    An alternative is to define a test by writing a test script
+    in <code>mtsql</code> format, as described below. An instance
+    of <code>ConcurrentCommandScript</code> parses and executes a script.
 
 <table border="1" width="100%">
-  <tr>
-    <th>Revision</th>
-    <td>$Id$</td>
-  </tr>
-  <tr>
-    <th>Copyright</th>
-    <td>Copyright (C) 2005 The Eigenbase Project
-    <br>Copyright (C) 2005 SQLstream, Inc.
-    <br>Copyright (C) 2005 Dynamo BI Corporation</td>
-  </tr>
-  <tr>
-    <th>Author</th>
-    <td>Stephan Zuercher</td>
-  </tr>
+    <tr>
+        <th>Revision</th>
+        <td>$Id$</td>
+    </tr>
+    <tr>
+        <th>Copyright</th>
+        <td>Copyright (C) 2005 The Eigenbase Project
+            <br>Copyright (C) 2005 SQLstream, Inc.
+            <br>Copyright (C) 2005 Dynamo BI Corporation
+        </td>
+    </tr>
+    <tr>
+        <th>Author</th>
+        <td>Stephan Zuercher</td>
+    </tr>
 </table>
 
 <hr>
@@ -42,8 +47,10 @@ of <code>ConcurrentCommandScript</code> parses and executes a script.
 <h3>Script Format</h3>
 
 <h4>Syntax:</h4>
+
 <p>
-The syntactic structure of an <i>mtsql</i> script is:
+    The syntactic structure of an <i>mtsql</i> script is:
+
 <p><pre>
     &lt;directive&gt;*
     &lt;setup section&gt;?
@@ -62,55 +69,75 @@ The syntactic structure of an <i>mtsql</i> script is:
 </pre>
 
 <p>
-Blank lines and comments are allowed anywhere.
-A comment starts with two hyphens and runs to the end of the line.
-Command names start with an '&#64;'.
-Some commands run to the end of the line; but a command that contains SQL can
-span lines and ends with a semicolon.
+    Blank lines and comments are allowed anywhere.
+    A comment starts with two hyphens and runs to the end of the line.
+    Command names start with an '&#64;'.
+    Some commands run to the end of the line; but a command that contains SQL
+    can
+    span lines and ends with a semicolon.
 
 <h4>Semantics:</h4>
+
 <p>
-Running a section means running its commands in sequence.
-First the setup section (if any) is run.
-Next all the thread sections are run at once, each in its own thread.
-When all these threads complete, the cleanup section (if any) is run.
+    Running a section means running its commands in sequence.
+    First the setup section (if any) is run.
+    Next all the thread sections are run at once, each in its own thread.
+    When all these threads complete, the cleanup section (if any) is run.
+
 <p>
 
 <h4>Synchronization:</h4>
+
 <p>
-The threads are synchronized by inserting synchronization points (&#64;sync). 
+    The threads are synchronized by inserting synchronization points (&#64;sync).
+
 <p>
-When a thread reaches a &#64;sync, it waits until all threads are waiting on
-the same &#64;sync: then all threads proceed. &#64;sync points have no
-names. Clearly all thread sections must contain the same number of &#64;sync
-points.
+    When a thread reaches a &#64;sync, it waits until all threads are waiting on
+    the same &#64;sync: then all threads proceed. &#64;sync points have no
+    names. Clearly all thread sections must contain the same number of &#64;sync
+    points.
+
 <p>
-The directive &#64;lockstep has the same effect as adding a &#64;sync after each command
-in every thread section. Clearly it requires that all thread sections have the
-same number of commands. The default is the antonym &#64;nolockstep.
+    The directive &#64;lockstep has the same effect as adding a &#64;sync after
+    each command
+    in every thread section. Clearly it requires that all thread sections have
+    the
+    same number of commands. The default is the antonym &#64;nolockstep.
+
 <p>
-The directive &#64;disable means "skip this script". The deault is the antonym
-&#64;enable.
+    The directive &#64;disable means "skip this script". The deault is the
+    antonym
+    &#64;enable.
 
 
 <h4>Error handling: </h4>
+
 <p>
-When a sql command fails, the rest of its section is skipped. However, if the
-attribute <i>force</i> is true the error is ignored, and the section continues.
-<i>force</i> has an independent value in each section.
-Within a section it can be toggled using the sql directive
-<code>!SET FORCE <i>val</i></code>, where <i>val</i> can be <i>true, false, on, off.</i>
-(This is modelled after sqlline and sqllineClient. Other sqlline <i>!-</i>directives are ignored.)
+    When a sql command fails, the rest of its section is skipped. However, if
+    the
+    attribute <i>force</i> is true the error is ignored, and the section
+    continues.
+    <i>force</i> has an independent value in each section.
+    Within a section it can be toggled using the sql directive
+    <code>!SET FORCE <i>val</i></code>, where <i>val</i> can be <i>true, false,
+    on, off.</i>
+    (This is modelled after sqlline and sqllineClient. Other sqlline <i>!-</i>directives
+    are ignored.)
+
 <p>
-An error in a thread section will stop that thread, but the other threads
-continue (with one fewer partner to synchronize with), and finally the cleanup
-section runs. If the setup section quits, then only the cleanup section is run.
+    An error in a thread section will stop that thread, but the other threads
+    continue (with one fewer partner to synchronize with), and finally the
+    cleanup
+    section runs. If the setup section quits, then only the cleanup section is
+    run.
+
 <p>
 
 <h4>Basic Commands (allowed in any section):</h4>
+
 <p><pre>
 &lt;SQL statement&gt;&semi;
-  An SQL statement terminated by a semicolon. The statement can span lines.
+    An SQL statement terminated by a semicolon. The statement can span lines.
 </pre>
 <p><pre>
 &#64;include FILE 
@@ -119,6 +146,7 @@ section runs. If the setup section quits, then only the cleanup section is run.
 </pre>
 
 <h4>Threaded Commands (allowed only in a &#64;thread section):</h4>
+
 <p><pre>
 &#64;sleep N        -- thread sleeps for N milliseconds
 &#64;echo MESSAGE   -- prints the message to stdout
@@ -163,44 +191,55 @@ section runs. If the setup section quits, then only the cleanup section is run.
 </pre>
 
 <h4>Substituted Variables</h4>
+
 <p>
-Needed mainly to pass arguments to the command of &#64;shell, but also useful to
-parameterize SQL statements, timeout values etc.
+    Needed mainly to pass arguments to the command of &#64;shell, but also
+    useful to
+    parameterize SQL statements, timeout values etc.
+
 <p>
 <ul>
-<li>Variable Expansion: If VAR is a declared variable, $VAR is replaced by the value of VAR. Quotes are ignored.
-  $$ expands to $. A variable cannot expand to a mtsql command name.</li>
-<li>Variable Declaration: Before being used, a script variable must be explicitly declared in the script (or an included script)
-by a &#64;var command.<br>
+    <li>Variable Expansion: If VAR is a declared variable, $VAR is replaced by
+        the value of VAR. Quotes are ignored.
+        $$ expands to $. A variable cannot expand to a mtsql command name.
+    </li>
+    <li>Variable Declaration: Before being used, a script variable must be
+        explicitly declared in the script (or an included script)
+        by a &#64;var command.<br>
 <pre>
 &#64;var VAR 
     Declares a variable VAR
 &#64;var VAR1  VAR2 ... VARn
     Declares n variables.
 </pre>
-<p>
-The initial value of a script variable VAR is taken from the shell environment variable of the same name.
-The value can be set to a different value when the script is run, by employing a phrase VAR=VALUE on the mtsql command line.
+        <p>
+            The initial value of a script variable VAR is taken from the shell
+            environment variable of the same name.
+            The value can be set to a different value when the script is run, by
+            employing a phrase VAR=VALUE on the mtsql command line.
 
-<p>
-<h4>Stand-Alone Tool</h4>
-<p>
-A command-line tool that runs an mtsql script against a specified jdbc connection,a
-nd prints the query results. (But see &#64;print command to filter the output.)
-<p>
-Usage: mtsql [-qvg] -u SERVER -d DRIVER [-n USER] [-p PASSWORD] [VAR=VALUE]* SCRIPT [SCRIPT]*
-Flags: -q : (quiet) do not print results.
-       -v : (verbose) trace as script is parsed.
-       -g : (debug) print command lists before starting the threads
-       -u SERVER : sets the target; a jdbc URL.
-       -d DRIVER : sets the jdbc driver; a class on the classpath
-       VAR=VALUE : binds the script variable VAR to the VALUE; VAR must be
-         declared at the beginning of the script(s) in a &#64;var command.
+        <p>
+        <h4>Stand-Alone Tool</h4>
+
+        <p>
+            A command-line tool that runs an mtsql script against a specified
+            jdbc connection,a
+            nd prints the query results. (But see &#64;print command to filter
+            the output.)
+
+        <p>
+            Usage: mtsql [-qvg] -u SERVER -d DRIVER [-n USER] [-p PASSWORD]
+            [VAR=VALUE]* SCRIPT [SCRIPT]*
+            Flags: -q : (quiet) do not print results.
+            -v : (verbose) trace as script is parsed.
+            -g : (debug) print command lists before starting the threads
+            -u SERVER : sets the target; a jdbc URL.
+            -d DRIVER : sets the jdbc driver; a class on the classpath
+            VAR=VALUE : binds the script variable VAR to the VALUE; VAR must be
+            declared at the beginning of the script(s) in a &#64;var command.
 
 
-
-
-<h4>Example Script</h4>
+        <h4>Example Script</h4>
 
 <pre>-- redundant:
 &#64;nolockstep
@@ -235,13 +274,13 @@ Flags: -q : (quiet) do not print results.
 	&#64;sync
 &#64;end</pre>
 
-<h3>Example Output File</h3>
+        <h3>Example Output File</h3>
 
-The output from each thread is stored in a temporary file until the
-test completes.  At that point, the files are merged together into a
-single <tt>.log</tt> file containing the results of each thread, in
-the order the threads were defined.  The output for the example script
-looks like:
+        The output from each thread is stored in a temporary file until the
+        test completes. At that point, the files are merged together into a
+        single <tt>.log</tt> file containing the results of each thread, in
+        the order the threads were defined. The output for the example script
+        looks like:
 
 <pre>-- thread 1
 &gt; select * from sales.bids;
@@ -296,13 +335,13 @@ looks like:
 &gt; commit;
 -- end of thread writer</pre>
 
-(Yes the results of the select statements are obviously wrong.)
+        (Yes the results of the select statements are obviously wrong.)
 
-<h3>Open Issues</h3>
+        <h3>Open Issues</h3>
 
-<ul>
-	<li>Repeating tests for a period of time isn't supported.</li>
-</ul>
+        <ul>
+            <li>Repeating tests for a period of time isn't supported.</li>
+        </ul>
 
 </body>
 </html>

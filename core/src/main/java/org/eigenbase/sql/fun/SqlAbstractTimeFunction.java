@@ -26,76 +26,69 @@ import org.eigenbase.sql.validate.*;
 /**
  * Base class for time functions such as "LOCALTIME", "LOCALTIME(n)".
  */
-public class SqlAbstractTimeFunction
-    extends SqlFunction
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlAbstractTimeFunction extends SqlFunction {
+  //~ Static fields/initializers ---------------------------------------------
 
-    private static final SqlOperandTypeChecker otcCustom =
-        SqlTypeStrategies.or(
-            SqlTypeStrategies.otcPositiveIntLit,
-            SqlTypeStrategies.otcNiladic);
+  private static final SqlOperandTypeChecker otcCustom =
+      SqlTypeStrategies.or(
+          SqlTypeStrategies.otcPositiveIntLit,
+          SqlTypeStrategies.otcNiladic);
 
-    //~ Instance fields --------------------------------------------------------
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlTypeName typeName;
+  private final SqlTypeName typeName;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlAbstractTimeFunction(String name, SqlTypeName typeName)
-    {
-        super(
-            name,
-            SqlKind.OTHER_FUNCTION,
-            null,
-            null,
-            otcCustom,
-            SqlFunctionCategory.TimeDate);
-        this.typeName = typeName;
+  protected SqlAbstractTimeFunction(String name, SqlTypeName typeName) {
+    super(
+        name,
+        SqlKind.OTHER_FUNCTION,
+        null,
+        null,
+        otcCustom,
+        SqlFunctionCategory.TimeDate);
+    this.typeName = typeName;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.FunctionId;
+  }
+
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    // REVIEW jvs 20-Feb-2005: Need to take care of time zones.
+    int precision = 0;
+    if (opBinding.getOperandCount() == 1) {
+      RelDataType type = opBinding.getOperandType(0);
+      if (SqlTypeUtil.isNumeric(type)) {
+        precision = opBinding.getIntLiteralOperand(0);
+      }
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public SqlSyntax getSyntax()
-    {
-        return SqlSyntax.FunctionId;
+    assert (precision >= 0);
+    if (precision > SqlTypeName.MAX_DATETIME_PRECISION) {
+      throw opBinding.newError(
+          EigenbaseResource.instance().ArgumentMustBeValidPrecision.ex(
+              opBinding.getOperator().getName(),
+              "0",
+              String.valueOf(SqlTypeName.MAX_DATETIME_PRECISION)));
     }
+    return opBinding.getTypeFactory().createSqlType(typeName, precision);
+  }
 
-    public RelDataType inferReturnType(
-        SqlOperatorBinding opBinding)
-    {
-        // REVIEW jvs 20-Feb-2005: Need to take care of time zones.
-        int precision = 0;
-        if (opBinding.getOperandCount() == 1) {
-            RelDataType type = opBinding.getOperandType(0);
-            if (SqlTypeUtil.isNumeric(type)) {
-                precision = opBinding.getIntLiteralOperand(0);
-            }
-        }
-        assert (precision >= 0);
-        if (precision > SqlTypeName.MAX_DATETIME_PRECISION) {
-            throw opBinding.newError(
-                EigenbaseResource.instance().ArgumentMustBeValidPrecision.ex(
-                    opBinding.getOperator().getName(),
-                    "0",
-                    String.valueOf(SqlTypeName.MAX_DATETIME_PRECISION)));
-        }
-        return opBinding.getTypeFactory().createSqlType(typeName, precision);
-    }
+  // All of the time functions are increasing. Not strictly increasing.
+  public SqlMonotonicity getMonotonicity(
+      SqlCall call,
+      SqlValidatorScope scope) {
+    return SqlMonotonicity.Increasing;
+  }
 
-    // All of the time functions are increasing. Not strictly increasing.
-    public SqlMonotonicity getMonotonicity(
-        SqlCall call,
-        SqlValidatorScope scope)
-    {
-        return SqlMonotonicity.Increasing;
-    }
-
-    // Plans referencing context variables should never be cached
-    public boolean isDynamicFunction()
-    {
-        return true;
-    }
+  // Plans referencing context variables should never be cached
+  public boolean isDynamicFunction() {
+    return true;
+  }
 }
 
 // End SqlAbstractTimeFunction.java

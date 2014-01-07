@@ -27,44 +27,41 @@ import org.eigenbase.sql.parser.*;
  * qualified names of sql objects, alternative valid sql objects that can be
  * used in the SQL statement (dubbed as hints)
  */
-public interface SqlValidatorWithHints
-    extends SqlValidator
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SqlValidatorWithHints extends SqlValidator {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Looks up completion hints for a syntatically correct SQL statement that
-     * has been parsed into an expression tree. (Note this should be called
-     * after {@link #validate(org.eigenbase.sql.SqlNode)}.
-     *
-     * @param topNode top of expression tree in which to lookup completion hints
-     * @param pos indicates the position in the sql statement we want to get
-     * completion hints for. For example, "select a.ename, b.deptno from
-     * sales.emp a join sales.dept b "on a.deptno=b.deptno where empno=1";
-     * setting pos to 'Line 1, Column 17' returns all the possible column names
-     * that can be selected from sales.dept table setting pos to 'Line 1, Column
-     * 31' returns all the possible table names in 'sales' schema
-     *
-     * @return an array of {@link SqlMoniker} (sql identifiers) that can fill in
-     * at the indicated position
-     */
-    public List<SqlMoniker> lookupHints(SqlNode topNode, SqlParserPos pos);
+  /**
+   * Looks up completion hints for a syntatically correct SQL statement that
+   * has been parsed into an expression tree. (Note this should be called
+   * after {@link #validate(org.eigenbase.sql.SqlNode)}.
+   *
+   * @param topNode top of expression tree in which to lookup completion hints
+   * @param pos     indicates the position in the sql statement we want to get
+   *                completion hints for. For example, "select a.ename, b.deptno
+   *                from sales.emp a join sales.dept b "on a.deptno=b.deptno
+   *                where empno=1"; setting pos to 'Line 1, Column 17' returns
+   *                all the possible column names that can be selected from
+   *                sales.dept table setting pos to 'Line 1, Column 31' returns
+   *                all the possible table names in 'sales' schema
+   * @return an array of {@link SqlMoniker} (sql identifiers) that can fill in
+   * at the indicated position
+   */
+  public List<SqlMoniker> lookupHints(SqlNode topNode, SqlParserPos pos);
 
-    /**
-     * Looks up the fully qualified name for a {@link SqlIdentifier} at a given
-     * Parser Position in a parsed expression tree Note: call this only after
-     * {@link #validate} has been called.
-     *
-     * @param topNode top of expression tree in which to lookup the qualfied
-     * name for the SqlIdentifier
-     * @param pos indicates the position of the {@link SqlIdentifier} in the sql
-     * statement we want to get the qualified name for
-     *
-     * @return a string of the fully qualified name of the {@link SqlIdentifier}
-     * if the Parser position represents a valid {@link SqlIdentifier}. Else
-     * return an empty string
-     */
-    public SqlMoniker lookupQualifiedName(SqlNode topNode, SqlParserPos pos);
+  /**
+   * Looks up the fully qualified name for a {@link SqlIdentifier} at a given
+   * Parser Position in a parsed expression tree Note: call this only after
+   * {@link #validate} has been called.
+   *
+   * @param topNode top of expression tree in which to lookup the qualfied
+   *                name for the SqlIdentifier
+   * @param pos     indicates the position of the {@link SqlIdentifier} in the sql
+   *                statement we want to get the qualified name for
+   * @return a string of the fully qualified name of the {@link SqlIdentifier}
+   * if the Parser position represents a valid {@link SqlIdentifier}. Else
+   * return an empty string
+   */
+  public SqlMoniker lookupQualifiedName(SqlNode topNode, SqlParserPos pos);
 }
 
 // End SqlValidatorWithHints.java

@@ -20,22 +20,21 @@ package org.eigenbase.sql.test;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.test.*;
 
-
 /**
  * Concrete subclass of {@link SqlOperatorBaseTest} which checks against
  * a {@link SqlValidator}. Tests that involve execution trivially succeed.
  */
-public class SqlOperatorTest
-    extends SqlOperatorBaseTest
-{
+public class SqlOperatorTest extends SqlOperatorBaseTest {
   private static final SqlTester DEFAULT_TESTER =
       (SqlTester) new SqlValidatorTestCase(null)
           .getTester(SqlConformance.Default);
 
-    /** Creates a SqlOperatorTest. */
-    public SqlOperatorTest() {
-        super(false, DEFAULT_TESTER);
-    }
+  /**
+   * Creates a SqlOperatorTest.
+   */
+  public SqlOperatorTest() {
+    super(false, DEFAULT_TESTER);
+  }
 }
 
 // End SqlOperatorTest.java

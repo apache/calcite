@@ -28,151 +28,135 @@ import com.google.common.collect.ImmutableList;
 /**
  * Simple implementation of {@link RelCollation}.
  */
-public class RelCollationImpl
-    implements RelCollation
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class RelCollationImpl implements RelCollation {
+  //~ Static fields/initializers ---------------------------------------------
 
-    /**
-     * A collation indicating that a relation is not sorted. Ordering by no
-     * columns.
-     */
-    public static final RelCollation EMPTY =
-        RelCollationTraitDef.INSTANCE.canonize(
-            new RelCollationImpl(ImmutableList.<RelFieldCollation>of()));
+  /**
+   * A collation indicating that a relation is not sorted. Ordering by no
+   * columns.
+   */
+  public static final RelCollation EMPTY =
+      RelCollationTraitDef.INSTANCE.canonize(
+          new RelCollationImpl(ImmutableList.<RelFieldCollation>of()));
 
-    /**
-     * A collation that cannot be replicated by applying a sort. The only
-     * implementation choice is to apply operations that preserve order.
-     */
-    public static final RelCollation PRESERVE =
-        RelCollationTraitDef.INSTANCE.canonize(
-            new RelCollationImpl(
-                ImmutableList.<RelFieldCollation>of(new RelFieldCollation(-1)))
-            {
-                public String toString() {
-                    return "PRESERVE";
-                }
-            });
-
-    //~ Instance fields --------------------------------------------------------
-
-    private final ImmutableList<RelFieldCollation> fieldCollations;
-
-    //~ Constructors -----------------------------------------------------------
-
-    protected RelCollationImpl(ImmutableList<RelFieldCollation> fieldCollations)
-    {
-        this.fieldCollations = fieldCollations;
-    }
-
-    public static RelCollation of(RelFieldCollation... fieldCollations)
-    {
-        return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
-    }
-
-    public static RelCollation of(List<RelFieldCollation> fieldCollations)
-    {
-        return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
-    }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public RelTraitDef getTraitDef() {
-        return RelCollationTraitDef.INSTANCE;
-    }
-
-    public List<RelFieldCollation> getFieldCollations()
-    {
-        return fieldCollations;
-    }
-
-    public int hashCode()
-    {
-        return fieldCollations.hashCode();
-    }
-
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if (obj instanceof RelCollationImpl) {
-            RelCollationImpl that = (RelCollationImpl) obj;
-            return this.fieldCollations.equals(that.fieldCollations);
-        }
-        return false;
-    }
-
-    public boolean subsumes(RelTrait trait) {
-        return this == trait
-            || trait instanceof RelCollationImpl
-            && isPrefix(
-                fieldCollations,
-                ((RelCollationImpl) trait).fieldCollations);
-    }
-
-    private static <E> boolean isPrefix(List<E> list0, List<E> list1) {
-        return list0.equals(list1)
-            || list0.size() > list1.size()
-            && list0.subList(0, list1.size()).equals(list1);
-    }
-
-    public String toString()
-    {
-        return fieldCollations.toString();
-    }
-
-    /**
-     * Creates a list containing one collation containing one field.
-     */
-    public static List<RelCollation> createSingleton(int fieldIndex)
-    {
-        return ImmutableList.of(
-            of(
-                ImmutableList.of(
-                    new RelFieldCollation(
-                        fieldIndex,
-                        RelFieldCollation.Direction.Ascending,
-                        RelFieldCollation.NullDirection.UNSPECIFIED))));
-    }
-
-    /**
-     * Checks that a collection of collations is valid.
-     *
-     * @param rowType Row type of the relational expression
-     * @param collationList List of collations
-     * @param fail Whether to fail if invalid
-     *
-     * @return Whether valid
-     */
-    public static boolean isValid(
-        RelDataType rowType,
-        List<RelCollation> collationList,
-        boolean fail)
-    {
-        final int fieldCount = rowType.getFieldCount();
-        for (RelCollation collation : collationList) {
-            for (
-                RelFieldCollation fieldCollation
-                : collation.getFieldCollations())
-            {
-                final int index = fieldCollation.getFieldIndex();
-                if ((index < 0) || (index >= fieldCount)) {
-                    assert !fail;
-                    return false;
-                }
+  /**
+   * A collation that cannot be replicated by applying a sort. The only
+   * implementation choice is to apply operations that preserve order.
+   */
+  public static final RelCollation PRESERVE =
+      RelCollationTraitDef.INSTANCE.canonize(
+          new RelCollationImpl(
+              ImmutableList.<RelFieldCollation>of(new RelFieldCollation(-1))) {
+            public String toString() {
+              return "PRESERVE";
             }
-        }
-        return true;
-    }
+          });
 
-    public static boolean equal(
-        List<RelCollation> collationList1,
-        List<RelCollation> collationList2)
-    {
-        return collationList1.equals(collationList2);
+  //~ Instance fields --------------------------------------------------------
+
+  private final ImmutableList<RelFieldCollation> fieldCollations;
+
+  //~ Constructors -----------------------------------------------------------
+
+  protected RelCollationImpl(ImmutableList<RelFieldCollation> fieldCollations) {
+    this.fieldCollations = fieldCollations;
+  }
+
+  public static RelCollation of(RelFieldCollation... fieldCollations) {
+    return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
+  }
+
+  public static RelCollation of(List<RelFieldCollation> fieldCollations) {
+    return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public RelTraitDef getTraitDef() {
+    return RelCollationTraitDef.INSTANCE;
+  }
+
+  public List<RelFieldCollation> getFieldCollations() {
+    return fieldCollations;
+  }
+
+  public int hashCode() {
+    return fieldCollations.hashCode();
+  }
+
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
+    if (obj instanceof RelCollationImpl) {
+      RelCollationImpl that = (RelCollationImpl) obj;
+      return this.fieldCollations.equals(that.fieldCollations);
+    }
+    return false;
+  }
+
+  public boolean subsumes(RelTrait trait) {
+    return this == trait
+        || trait instanceof RelCollationImpl
+        && isPrefix(fieldCollations,
+            ((RelCollationImpl) trait).fieldCollations);
+  }
+
+  private static <E> boolean isPrefix(List<E> list0, List<E> list1) {
+    return list0.equals(list1)
+        || list0.size() > list1.size()
+        && list0.subList(0, list1.size()).equals(list1);
+  }
+
+  public String toString() {
+    return fieldCollations.toString();
+  }
+
+  /**
+   * Creates a list containing one collation containing one field.
+   */
+  public static List<RelCollation> createSingleton(int fieldIndex) {
+    return ImmutableList.of(
+        of(
+            ImmutableList.of(
+                new RelFieldCollation(
+                    fieldIndex,
+                    RelFieldCollation.Direction.Ascending,
+                    RelFieldCollation.NullDirection.UNSPECIFIED))));
+  }
+
+  /**
+   * Checks that a collection of collations is valid.
+   *
+   * @param rowType       Row type of the relational expression
+   * @param collationList List of collations
+   * @param fail          Whether to fail if invalid
+   * @return Whether valid
+   */
+  public static boolean isValid(
+      RelDataType rowType,
+      List<RelCollation> collationList,
+      boolean fail) {
+    final int fieldCount = rowType.getFieldCount();
+    for (RelCollation collation : collationList) {
+      for (
+          RelFieldCollation fieldCollation
+          : collation.getFieldCollations()) {
+        final int index = fieldCollation.getFieldIndex();
+        if ((index < 0) || (index >= fieldCount)) {
+          assert !fail;
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  public static boolean equal(
+      List<RelCollation> collationList1,
+      List<RelCollation> collationList2) {
+    return collationList1.equals(collationList2);
+  }
 }
 
 // End RelCollationImpl.java

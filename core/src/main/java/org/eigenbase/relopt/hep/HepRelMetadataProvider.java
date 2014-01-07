@@ -24,31 +24,28 @@ import org.eigenbase.rel.metadata.*;
  * HepRelMetadataProvider implements the {@link RelMetadataProvider} interface
  * by combining metadata from the rels inside of a {@link HepRelVertex}.
  */
-class HepRelMetadataProvider
-    implements RelMetadataProvider
-{
-    //~ Methods ----------------------------------------------------------------
+class HepRelMetadataProvider implements RelMetadataProvider {
+  //~ Methods ----------------------------------------------------------------
 
-    // implement RelMetadataProvider
-    public Object getRelMetadata(
-        RelNode rel,
-        String metadataQueryName,
-        Object [] args)
-    {
-        if (!(rel instanceof HepRelVertex)) {
-            return null;
-        }
-
-        HepRelVertex vertex = (HepRelVertex) rel;
-
-        // Use current implementation.
-        Object result =
-            rel.getCluster().getMetadataProvider().getRelMetadata(
-                vertex.getCurrentRel(),
-                metadataQueryName,
-                args);
-        return result;
+  // implement RelMetadataProvider
+  public Object getRelMetadata(
+      RelNode rel,
+      String metadataQueryName,
+      Object[] args) {
+    if (!(rel instanceof HepRelVertex)) {
+      return null;
     }
+
+    HepRelVertex vertex = (HepRelVertex) rel;
+
+    // Use current implementation.
+    Object result =
+        rel.getCluster().getMetadataProvider().getRelMetadata(
+            vertex.getCurrentRel(),
+            metadataQueryName,
+            args);
+    return result;
+  }
 }
 
 // End HepRelMetadataProvider.java

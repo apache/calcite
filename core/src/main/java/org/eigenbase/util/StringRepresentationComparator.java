@@ -23,27 +23,22 @@ import java.util.*;
  * StringRepresentationComparator compares two objects by comparing their {@link
  * Object#toString()} representations.
  */
-public class StringRepresentationComparator<T>
-    implements Comparator<T>
-{
-    //~ Methods ----------------------------------------------------------------
+public class StringRepresentationComparator<T> implements Comparator<T> {
+  //~ Methods ----------------------------------------------------------------
 
-    // implement Comparator
-    public int compare(T o1, T o2)
-    {
-        return o1.toString().compareTo(o2.toString());
-    }
+  // implement Comparator
+  public int compare(T o1, T o2) {
+    return o1.toString().compareTo(o2.toString());
+  }
 
-    // implement Comparator
-    public boolean equals(Object obj)
-    {
-        return obj.getClass().getName().equals(getClass().getName());
-    }
+  // implement Comparator
+  public boolean equals(Object obj) {
+    return obj.getClass().getName().equals(getClass().getName());
+  }
 
-    public int hashCode()
-    {
-        return getClass().getName().hashCode();
-    }
+  public int hashCode() {
+    return getClass().getName().hashCode();
+  }
 }
 
 // End StringRepresentationComparator.java

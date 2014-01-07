@@ -27,31 +27,26 @@ import org.eigenbase.sql.validate.*;
  * used in a RexCall, the operands are the initial values to be used for the new
  * instance.
  */
-public class SqlNewOperator
-    extends SqlPrefixOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlNewOperator extends SqlPrefixOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlNewOperator()
-    {
-        super("NEW", SqlKind.NEW_SPECIFICATION, 0, null, null, null);
-    }
+  public SqlNewOperator() {
+    super("NEW", SqlKind.NEW_SPECIFICATION, 0, null, null, null);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // override SqlOperator
-    public SqlNode rewriteCall(SqlValidator validator, SqlCall call)
-    {
-        // New specification is purely syntactic, so we rewrite it as a
-        // direct call to the constructor method.
-        return call.getOperands()[0];
-    }
+  // override SqlOperator
+  public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+    // New specification is purely syntactic, so we rewrite it as a
+    // direct call to the constructor method.
+    return call.getOperands()[0];
+  }
 
-    // override SqlOperator
-    public boolean requiresDecimalExpansion()
-    {
-        return false;
-    }
+  // override SqlOperator
+  public boolean requiresDecimalExpansion() {
+    return false;
+  }
 }
 
 // End SqlNewOperator.java

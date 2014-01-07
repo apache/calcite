@@ -41,16 +41,22 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
     }
   }
 
-  /** Creates an empty ChunkList. */
+  /**
+   * Creates an empty ChunkList.
+   */
   public ChunkList() {
   }
 
-  /** Creates a ChunkList whose contents are a given Collection. */
+  /**
+   * Creates a ChunkList whose contents are a given Collection.
+   */
   public ChunkList(Collection<E> collection) {
     addAll(collection);
   }
 
-  /** For debugging and testing. */
+  /**
+   * For debugging and testing.
+   */
   boolean isValid(boolean fail) {
     if ((first == null) != (last == null)) {
       assert !fail;

@@ -33,174 +33,172 @@ import com.google.common.collect.ImmutableList;
  * Relational expression which imposes a particular sort order on its input
  * without otherwise changing its content.
  */
-public class SortRel
-    extends SingleRel
-{
-    //~ Instance fields --------------------------------------------------------
+public class SortRel extends SingleRel {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final RelCollation collation;
-    protected final ImmutableList<RexNode> fieldExps;
-    public final RexNode offset;
-    public final RexNode fetch;
+  protected final RelCollation collation;
+  protected final ImmutableList<RexNode> fieldExps;
+  public final RexNode offset;
+  public final RexNode fetch;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a sorter.
-     *
-     * @param cluster Cluster this relational expression belongs to
-     * @param traits Traits
-     * @param child input relational expression
-     * @param collation array of sort specifications
-     */
-    public SortRel(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        RelNode child,
-        RelCollation collation)
-    {
-        this(cluster, traits, child, collation, null, null);
+  /**
+   * Creates a sorter.
+   *
+   * @param cluster   Cluster this relational expression belongs to
+   * @param traits    Traits
+   * @param child     input relational expression
+   * @param collation array of sort specifications
+   */
+  public SortRel(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      RelNode child,
+      RelCollation collation) {
+    this(cluster, traits, child, collation, null, null);
+  }
+
+  /**
+   * Creates a sorter.
+   *
+   * @param cluster   Cluster this relational expression belongs to
+   * @param traits    Traits
+   * @param child     input relational expression
+   * @param collation array of sort specifications
+   * @param offset    Expression for number of rows to discard before returning
+   *                  first row
+   * @param fetch     Expression for number of rows to fetch
+   */
+  public SortRel(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      RelNode child,
+      RelCollation collation,
+      RexNode offset,
+      RexNode fetch) {
+    super(cluster, traits, child);
+    this.collation = collation;
+    this.offset = offset;
+    this.fetch = fetch;
+
+    assert traits.containsIfApplicable(collation)
+        : "traits=" + traits + ", collation=" + collation;
+    assert !(fetch == null
+        && offset == null
+        && collation.getFieldCollations().isEmpty())
+        : "trivial sort";
+    ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    for (RelFieldCollation field : collation.getFieldCollations()) {
+      int index = field.getFieldIndex();
+      builder.add(
+          cluster.getRexBuilder().makeInputRef(
+              getRowType().getFieldList().get(index).getType(), index));
     }
+    fieldExps = builder.build();
+  }
 
-    /**
-     * Creates a sorter.
-     *
-     * @param cluster Cluster this relational expression belongs to
-     * @param traits Traits
-     * @param child input relational expression
-     * @param collation array of sort specifications
-     * @param offset Expression for number of rows to discard before returning
-     *               first row
-     * @param fetch Expression for number of rows to fetch
-     */
-    public SortRel(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        RelNode child,
-        RelCollation collation,
-        RexNode offset,
-        RexNode fetch)
-    {
-        super(cluster, traits, child);
-        this.collation = collation;
-        this.offset = offset;
-        this.fetch = fetch;
+  /**
+   * Creates a SortRel by parsing serialized output.
+   */
+  public SortRel(RelInput input) {
+    this(
+        input.getCluster(), input.getTraitSet().plus(input.getCollation()),
+        input.getInput(),
+        RelCollationTraitDef.INSTANCE.canonize(input.getCollation()),
+        input.getExpression("offset"), input.getExpression("fetch"));
+  }
 
-        assert traits.containsIfApplicable(collation)
-            : "traits=" + traits + ", collation=" + collation;
-        assert !(fetch == null
-            && offset == null
-            && collation.getFieldCollations().isEmpty())
-            : "trivial sort";
-        ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-        for (RelFieldCollation field : collation.getFieldCollations()) {
-            int index = field.getFieldIndex();
-            builder.add(
-                cluster.getRexBuilder().makeInputRef(
-                    getRowType().getFieldList().get(index).getType(), index));
-        }
-        fieldExps = builder.build();
-    }
+  //~ Methods ----------------------------------------------------------------
 
-    /** Creates a SortRel by parsing serialized output. */
-    public SortRel(RelInput input) {
-        this(
-            input.getCluster(), input.getTraitSet().plus(input.getCollation()),
-            input.getInput(),
-            RelCollationTraitDef.INSTANCE.canonize(input.getCollation()),
-            input.getExpression("offset"), input.getExpression("fetch"));
-    }
+  @Override
+  public SortRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    return copy(traitSet, sole(inputs), collation);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  public SortRel copy(
+      RelTraitSet traitSet,
+      RelNode newInput,
+      RelCollation newCollation) {
+    return copy(traitSet, newInput, newCollation, offset, fetch);
+  }
 
-    @Override public SortRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return copy(traitSet, sole(inputs), collation);
-    }
+  public SortRel copy(
+      RelTraitSet traitSet,
+      RelNode newInput,
+      RelCollation newCollation,
+      RexNode offset,
+      RexNode fetch) {
+    assert traitSet.contains(Convention.NONE);
+    return new SortRel(
+        getCluster(),
+        traitSet,
+        newInput,
+        newCollation,
+        offset,
+        fetch);
+  }
 
-    public SortRel copy(
-        RelTraitSet traitSet,
-        RelNode newInput,
-        RelCollation newCollation)
-    {
-      return copy(traitSet, newInput, newCollation, offset, fetch);
-    }
+  @Override
+  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    // Higher cost if rows are wider discourages pushing a project through a
+    // sort.
+    double rowCount = RelMetadataQuery.getRowCount(this);
+    double bytesPerRow = getRowType().getFieldCount() * 4;
+    return planner.makeCost(
+        Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);
+  }
 
-    public SortRel copy(
-        RelTraitSet traitSet,
-        RelNode newInput,
-        RelCollation newCollation,
-        RexNode offset,
-        RexNode fetch)
-    {
-        assert traitSet.contains(Convention.NONE);
-        return new SortRel(
-            getCluster(),
-            traitSet,
-            newInput,
-            newCollation,
-            offset,
-            fetch);
-    }
+  @Override
+  public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner) {
-        // Higher cost if rows are wider discourages pushing a project through a
-        // sort.
-        double rowCount = RelMetadataQuery.getRowCount(this);
-        double bytesPerRow = getRowType().getFieldCount() * 4;
-        return planner.makeCost(
-            Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);
-    }
+  @Override
+  public List<RexNode> getChildExps() {
+    return fieldExps;
+  }
 
-    @Override public RelNode accept(RelShuttle shuttle) {
-        return shuttle.visit(this);
-    }
+  /**
+   * Returns the array of {@link RelFieldCollation}s asked for by the sort
+   * specification, from most significant to least significant.
+   *
+   * <p>See also {@link #getCollationList()}, inherited from {@link RelNode},
+   * which lists all known collations. For example,
+   * <code>ORDER BY time_id</code> might also be sorted by
+   * <code>the_year, the_month</code> because of a known monotonicity
+   * constraint among the columns. {@code getCollations} would return
+   * <code>[time_id]</code> and {@code getCollationList} would return
+   * <code>[ [time_id], [the_year, the_month] ]</code>.</p>
+   */
+  public RelCollation getCollation() {
+    return collation;
+  }
 
-    @Override public List<RexNode> getChildExps() {
-        return fieldExps;
-    }
+  @Override
+  public List<RelCollation> getCollationList() {
+    // TODO: include each prefix of the collation, e.g [[x, y], [x], []]
+    return Collections.singletonList(getCollation());
+  }
 
-    /**
-     * Returns the array of {@link RelFieldCollation}s asked for by the sort
-     * specification, from most significant to least significant.
-     *
-     * <p>See also {@link #getCollationList()}, inherited from {@link RelNode},
-     * which lists all known collations. For example,
-     * <code>ORDER BY time_id</code> might also be sorted by
-     * <code>the_year, the_month</code> because of a known monotonicity
-     * constraint among the columns. {@code getCollations} would return
-     * <code>[time_id]</code> and {@code getCollationList} would return
-     * <code>[ [time_id], [the_year, the_month] ]</code>.</p>
-     */
-    public RelCollation getCollation()
-    {
-        return collation;
-    }
-
-    @Override
-    public List<RelCollation> getCollationList() {
-        // TODO: include each prefix of the collation, e.g [[x, y], [x], []]
-        return Collections.singletonList(getCollation());
-    }
-
-    public RelWriter explainTerms(RelWriter pw) {
-        super.explainTerms(pw);
-        assert fieldExps.size() == collation.getFieldCollations().size();
-      if (pw.nest()) {
-        pw.item("collation", collation);
-      } else {
-        for (Ord<RexNode> ord : Ord.zip(fieldExps)) {
-            pw.item("sort" + ord.i, ord.e);
-        }
-        for (Ord<RelFieldCollation> ord
-            : Ord.zip(collation.getFieldCollations()))
-        {
-            pw.item("dir" + ord.i, ord.e.shortString());
-        }
+  public RelWriter explainTerms(RelWriter pw) {
+    super.explainTerms(pw);
+    assert fieldExps.size() == collation.getFieldCollations().size();
+    if (pw.nest()) {
+      pw.item("collation", collation);
+    } else {
+      for (Ord<RexNode> ord : Ord.zip(fieldExps)) {
+        pw.item("sort" + ord.i, ord.e);
       }
-        pw.itemIf("offset", offset, offset != null);
-        pw.itemIf("fetch", fetch, fetch != null);
-        return pw;
+      for (Ord<RelFieldCollation> ord
+          : Ord.zip(collation.getFieldCollations())) {
+        pw.item("dir" + ord.i, ord.e.shortString());
+      }
     }
+    pw.itemIf("offset", offset, offset != null);
+    pw.itemIf("fetch", fetch, fetch != null);
+    return pw;
+  }
 }
 
 // End SortRel.java

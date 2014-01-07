@@ -29,37 +29,34 @@ import org.eigenbase.rex.*;
  *
  * @see org.eigenbase.rel.rules.RemoveTrivialProjectRule
  */
-public class RemoveTrivialCalcRule
-    extends RelOptRule
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class RemoveTrivialCalcRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final RemoveTrivialCalcRule instance =
-        new RemoveTrivialCalcRule();
+  public static final RemoveTrivialCalcRule instance =
+      new RemoveTrivialCalcRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    private RemoveTrivialCalcRule() {
-        super(operand(CalcRel.class, any()));
+  private RemoveTrivialCalcRule() {
+    super(operand(CalcRel.class, any()));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelOptRule
+  public void onMatch(RelOptRuleCall call) {
+    CalcRel calc = call.rel(0);
+    RexProgram program = calc.getProgram();
+    if (!program.isTrivial()) {
+      return;
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    // implement RelOptRule
-    public void onMatch(RelOptRuleCall call)
-    {
-        CalcRel calc = call.rel(0);
-        RexProgram program = calc.getProgram();
-        if (!program.isTrivial()) {
-            return;
-        }
-        RelNode child = calc.getInput(0);
-        child = call.getPlanner().register(child, calc);
-        call.transformTo(
-            convert(
-                child,
-                calc.getTraitSet()));
-    }
+    RelNode child = calc.getInput(0);
+    child = call.getPlanner().register(child, calc);
+    call.transformTo(
+        convert(
+            child,
+            calc.getTraitSet()));
+  }
 }
 
 // End RemoveTrivialCalcRule.java

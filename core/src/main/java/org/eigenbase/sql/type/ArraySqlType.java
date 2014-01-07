@@ -21,55 +21,48 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFamily;
 import org.eigenbase.util.Util;
 
-
 /**
  * SQL array type.
  */
-public class ArraySqlType
-    extends AbstractSqlType
-{
-    //~ Instance fields --------------------------------------------------------
+public class ArraySqlType extends AbstractSqlType {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType elementType;
+  private final RelDataType elementType;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates an ArraySqlType. This constructor should only be called
-     * from a factory method.
-     */
-    public ArraySqlType(RelDataType elementType, boolean isNullable)
-    {
-        super(SqlTypeName.ARRAY, isNullable, null);
-        assert elementType != null;
-        this.elementType = elementType;
-        computeDigest();
+  /**
+   * Creates an ArraySqlType. This constructor should only be called
+   * from a factory method.
+   */
+  public ArraySqlType(RelDataType elementType, boolean isNullable) {
+    super(SqlTypeName.ARRAY, isNullable, null);
+    assert elementType != null;
+    this.elementType = elementType;
+    computeDigest();
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelDataTypeImpl
+  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+    if (withDetail) {
+      sb.append(elementType.getFullTypeString());
+    } else {
+      sb.append(elementType.toString());
     }
+    sb.append(" ARRAY");
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  // implement RelDataType
+  public RelDataType getComponentType() {
+    return elementType;
+  }
 
-    // implement RelDataTypeImpl
-    protected void generateTypeString(StringBuilder sb, boolean withDetail)
-    {
-        if (withDetail) {
-            sb.append(elementType.getFullTypeString());
-        } else {
-            sb.append(elementType.toString());
-        }
-        sb.append(" ARRAY");
-    }
-
-    // implement RelDataType
-    public RelDataType getComponentType()
-    {
-        return elementType;
-    }
-
-    // implement RelDataType
-    public RelDataTypeFamily getFamily()
-    {
-        return this;
-    }
+  // implement RelDataType
+  public RelDataTypeFamily getFamily() {
+    return this;
+  }
 }
 
 // End ArraySqlType.java

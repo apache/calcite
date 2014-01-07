@@ -41,206 +41,193 @@ package org.eigenbase.util.mapping;
  * Mappings#create(MappingType, int, int)} to create an efficient implementation
  * of that mapping.
  */
-public enum MappingType
-{
-    //            ordinal source target function inverse
-    //            ======= ====== ====== ======== =================
+public enum MappingType {
+  //            ordinal source target function inverse
+  //            ======= ====== ====== ======== =================
 
-    //                  0      1      1 true     0 Bijection
-    Bijection,
+  //                  0      1      1 true     0 Bijection
+  Bijection,
 
-    //                  1   <= 1      1 true     4 InverseSurjection
-    Surjection,
+  //                  1   <= 1      1 true     4 InverseSurjection
+  Surjection,
 
-    //                  2   >= 1      1 true     8 InverseInjection
-    Injection,
+  //                  2   >= 1      1 true     8 InverseInjection
+  Injection,
 
-    //                  3    any      1 true     12 InverseFunction
-    Function,
+  //                  3    any      1 true     12 InverseFunction
+  Function,
 
-    /**
-     * An inverse surjection has a source for every target, and no source has
-     * more than one target.
-     */
-    //                  4      1   <= 1 partial  1 Surjection
-    InverseSurjection,
+  /**
+   * An inverse surjection has a source for every target, and no source has
+   * more than one target.
+   */
+  //                  4      1   <= 1 partial  1 Surjection
+  InverseSurjection,
 
-    /**
-     * A partial surjection has no more than one source for any target, and no
-     * more than one target for any source.
-     */
-    //                  5   <= 1   <= 1 partial  5 PartialSurjection
-    PartialSurjection,
+  /**
+   * A partial surjection has no more than one source for any target, and no
+   * more than one target for any source.
+   */
+  //                  5   <= 1   <= 1 partial  5 PartialSurjection
+  PartialSurjection,
 
-    //                  6   >= 1   <= 1 partial  9 InversePartialInjection
-    PartialInjection,
+  //                  6   >= 1   <= 1 partial  9 InversePartialInjection
+  PartialInjection,
 
-    //                  7    any   <= 1 partial  13 InversePartialFunction
-    PartialFunction,
+  //                  7    any   <= 1 partial  13 InversePartialFunction
+  PartialFunction,
 
-    //                  8      1   >= 1 multi    2 Injection
-    InverseInjection,
+  //                  8      1   >= 1 multi    2 Injection
+  InverseInjection,
 
-    //                  9   <= 1   >= 1 multi    6 PartialInjection
-    InversePartialInjection,
+  //                  9   <= 1   >= 1 multi    6 PartialInjection
+  InversePartialInjection,
 
-    //                 10   >= 1   >= 1 multi    10
-    Ten,
+  //                 10   >= 1   >= 1 multi    10
+  Ten,
 
-    //                 11    any   >= 1 multi    14
-    Eleven,
+  //                 11    any   >= 1 multi    14
+  Eleven,
 
-    /**
-     * An inverse function has a source for every target, but a source might
-     * have 0, 1 or more targets.
-     *
-     * <p>Obeys the constaints {@link MappingType#isMandatorySource()}, {@link
-     * MappingType#isSingleSource()}.
-     *
-     * <p>Similar types:
-     *
-     * <ul>
-     * <li> {@link #InverseSurjection} is stronger (a source may not have
-     * multiple targets);
-     * <li>{@link #InversePartialFunction} is weaker (a target may have 0 or 1
-     * sources).
-     * </ul>
-     */
-    //                 12      1    any multi    3 Function
-    InverseFunction,
+  /**
+   * An inverse function has a source for every target, but a source might
+   * have 0, 1 or more targets.
+   *
+   * <p>Obeys the constaints {@link MappingType#isMandatorySource()}, {@link
+   * MappingType#isSingleSource()}.
+   *
+   * <p>Similar types:
+   *
+   * <ul>
+   * <li> {@link #InverseSurjection} is stronger (a source may not have
+   * multiple targets);
+   * <li>{@link #InversePartialFunction} is weaker (a target may have 0 or 1
+   * sources).
+   * </ul>
+   */
+  //                 12      1    any multi    3 Function
+  InverseFunction,
 
-    //                 13   <= 1    any multi    7 PartialFunction
-    InversePartialFunction,
+  //                 13   <= 1    any multi    7 PartialFunction
+  InversePartialFunction,
 
-    //                 14   >= 1    any multi    11
-    Fourteen,
+  //                 14   >= 1    any multi    11
+  Fourteen,
 
-    //                 15    any    any multi    15 MultiFunction
-    MultiFunction;
+  //                 15    any    any multi    15 MultiFunction
+  MultiFunction;
 
-    private final int inverseOrdinal;
+  private final int inverseOrdinal;
 
-    private MappingType()
-    {
-        this.inverseOrdinal = ((ordinal() & 3) << 2)
-            | ((ordinal() & 12) >> 2);
-    }
+  private MappingType() {
+    this.inverseOrdinal = ((ordinal() & 3) << 2)
+        | ((ordinal() & 12) >> 2);
+  }
 
-    public MappingType inverse()
-    {
-        return MappingType.values()[this.inverseOrdinal];
-    }
+  public MappingType inverse() {
+    return MappingType.values()[this.inverseOrdinal];
+  }
 
-    /**
-     * Returns whether this mapping type is (possibly a weaker form of) a given
-     * mapping type.
-     *
-     * <p>For example, a {@link #Bijection} is a {@link #Function}, but not
-     * every {link #Function} is a {@link #Bijection}.
-     */
-    public boolean isA(MappingType mappingType)
-    {
-        return (ordinal() & mappingType.ordinal()) == ordinal();
-    }
+  /**
+   * Returns whether this mapping type is (possibly a weaker form of) a given
+   * mapping type.
+   *
+   * <p>For example, a {@link #Bijection} is a {@link #Function}, but not
+   * every {link #Function} is a {@link #Bijection}.
+   */
+  public boolean isA(MappingType mappingType) {
+    return (ordinal() & mappingType.ordinal()) == ordinal();
+  }
 
-    /**
-     * A mapping is a total function if every source has precisely one target.
-     */
-    public boolean isFunction()
-    {
-        return (ordinal() & (OptionalTarget | MultipleTarget)) == 0;
-    }
+  /**
+   * A mapping is a total function if every source has precisely one target.
+   */
+  public boolean isFunction() {
+    return (ordinal() & (OptionalTarget | MultipleTarget)) == 0;
+  }
 
-    /**
-     * A mapping is a partial function if every source has at most one target.
-     */
-    public boolean isPartialFunction()
-    {
-        return (ordinal() & MultipleTarget) == 0;
-    }
+  /**
+   * A mapping is a partial function if every source has at most one target.
+   */
+  public boolean isPartialFunction() {
+    return (ordinal() & MultipleTarget) == 0;
+  }
 
-    /**
-     * A mapping is a surjection if it is a function and every target has at
-     * least one source.
-     */
-    public boolean isSurjection()
-    {
-        return (ordinal() & (OptionalTarget | MultipleTarget | OptionalSource))
-            == 0;
-    }
+  /**
+   * A mapping is a surjection if it is a function and every target has at
+   * least one source.
+   */
+  public boolean isSurjection() {
+    return (ordinal() & (OptionalTarget | MultipleTarget | OptionalSource))
+        == 0;
+  }
 
-    /**
-     * A mapping is an injection if it is a function and no target has more than
-     * one source. (In other words, every source has precisely one target.)
-     */
-    public boolean isInjection()
-    {
-        return (ordinal() & (OptionalTarget | MultipleTarget | MultipleSource))
-            == 0;
-    }
+  /**
+   * A mapping is an injection if it is a function and no target has more than
+   * one source. (In other words, every source has precisely one target.)
+   */
+  public boolean isInjection() {
+    return (ordinal() & (OptionalTarget | MultipleTarget | MultipleSource))
+        == 0;
+  }
 
-    /**
-     * A mapping is a bijection if it is a surjection and it is an injection.
-     * (In other words,
-     */
-    public boolean isBijection()
-    {
-        return (ordinal()
-            & (OptionalTarget | MultipleTarget | OptionalSource
-                | MultipleSource)) == 0;
-    }
+  /**
+   * A mapping is a bijection if it is a surjection and it is an injection.
+   * (In other words,
+   */
+  public boolean isBijection() {
+    return (ordinal()
+        & (OptionalTarget | MultipleTarget | OptionalSource
+        | MultipleSource)) == 0;
+  }
 
-    /**
-     * Constraint that every source has at least one target.
-     */
-    public boolean isMandatoryTarget()
-    {
-        return !((ordinal() & OptionalTarget) == OptionalTarget);
-    }
+  /**
+   * Constraint that every source has at least one target.
+   */
+  public boolean isMandatoryTarget() {
+    return !((ordinal() & OptionalTarget) == OptionalTarget);
+  }
 
-    /**
-     * Constraint that every source has at most one target.
-     */
-    public boolean isSingleTarget()
-    {
-        return !((ordinal() & MultipleTarget) == MultipleTarget);
-    }
+  /**
+   * Constraint that every source has at most one target.
+   */
+  public boolean isSingleTarget() {
+    return !((ordinal() & MultipleTarget) == MultipleTarget);
+  }
 
-    /**
-     * Constraint that every target has at least one source.
-     */
-    public boolean isMandatorySource()
-    {
-        return !((ordinal() & OptionalSource) == OptionalSource);
-    }
+  /**
+   * Constraint that every target has at least one source.
+   */
+  public boolean isMandatorySource() {
+    return !((ordinal() & OptionalSource) == OptionalSource);
+  }
 
-    /**
-     * Constraint that every target has at most one source.
-     */
-    public boolean isSingleSource()
-    {
-        return !((ordinal() & MultipleSource) == MultipleSource);
-    }
+  /**
+   * Constraint that every target has at most one source.
+   */
+  public boolean isSingleSource() {
+    return !((ordinal() & MultipleSource) == MultipleSource);
+  }
 
-    /**
-     * Allow less than one source for a given target.
-     */
-    private static final int OptionalSource = 1;
+  /**
+   * Allow less than one source for a given target.
+   */
+  private static final int OptionalSource = 1;
 
-    /**
-     * Allow more than one source for a given target.
-     */
-    private static final int MultipleSource = 2;
+  /**
+   * Allow more than one source for a given target.
+   */
+  private static final int MultipleSource = 2;
 
-    /**
-     * Allow less than one target for a given source.
-     */
-    private static final int OptionalTarget = 4;
+  /**
+   * Allow less than one target for a given source.
+   */
+  private static final int OptionalTarget = 4;
 
-    /**
-     * Allow more than one target for a given source.
-     */
-    private static final int MultipleTarget = 8;
+  /**
+   * Allow more than one target for a given source.
+   */
+  private static final int MultipleTarget = 8;
 }
 
 // End MappingType.java

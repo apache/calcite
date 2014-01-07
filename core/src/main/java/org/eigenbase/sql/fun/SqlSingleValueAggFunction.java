@@ -25,49 +25,42 @@ import org.eigenbase.sql.type.*;
 
 import com.google.common.collect.ImmutableList;
 
-
 /**
  * <code>SINGLE_VALUE</code> aggregate function returns the input value if there
  * is only one value in the input; Otherwise it triggers a run-time error.
  */
-public class SqlSingleValueAggFunction
-    extends SqlAggFunction
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlSingleValueAggFunction extends SqlAggFunction {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType type;
+  private final RelDataType type;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlSingleValueAggFunction(
-        RelDataType type)
-    {
-        super(
-            "SINGLE_VALUE",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiFirstArgType,
-            null,
-            SqlTypeStrategies.otcAny,
-            SqlFunctionCategory.System);
-        this.type = type;
-    }
+  public SqlSingleValueAggFunction(
+      RelDataType type) {
+    super(
+        "SINGLE_VALUE",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiFirstArgType,
+        null,
+        SqlTypeStrategies.otcAny,
+        SqlFunctionCategory.System);
+    this.type = type;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
-    {
-        return ImmutableList.of(type);
-    }
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+    return ImmutableList.of(type);
+  }
 
-    public RelDataType getReturnType(RelDataTypeFactory typeFactory)
-    {
-        return type;
-    }
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+    return type;
+  }
 
-    public RelDataType getType()
-    {
-        return type;
-    }
+  public RelDataType getType() {
+    return type;
+  }
 }
 
 // End SqlSingleValueAggFunction.java

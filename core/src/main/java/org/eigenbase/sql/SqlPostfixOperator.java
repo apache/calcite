@@ -25,81 +25,75 @@ import org.eigenbase.util.*;
 /**
  * A postfix unary operator.
  */
-public class SqlPostfixOperator
-    extends SqlOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlPostfixOperator extends SqlOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlPostfixOperator(
-        String name,
-        SqlKind kind,
-        int prec,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker)
-    {
-        super(
-            name,
-            kind,
-            leftPrec(prec, true),
-            rightPrec(prec, true),
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker);
+  public SqlPostfixOperator(
+      String name,
+      SqlKind kind,
+      int prec,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
+    super(
+        name,
+        kind,
+        leftPrec(prec, true),
+        rightPrec(prec, true),
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.Postfix;
+  }
+
+  public String getSignatureTemplate(final int operandsCount) {
+    Util.discard(operandsCount);
+    return "{1} {0}";
+  }
+
+  protected RelDataType adjustType(
+      SqlValidator validator,
+      SqlCall call,
+      RelDataType type) {
+    if (SqlTypeUtil.inCharFamily(type)) {
+      // Determine coercibility and resulting collation name of
+      // unary operator if needed.
+      RelDataType operandType =
+          validator.getValidatedNodeType(call.operands[0]);
+      if (null == operandType) {
+        throw Util.newInternal(
+            "operand's type should have been derived");
+      }
+      if (SqlTypeUtil.inCharFamily(operandType)) {
+        SqlCollation collation = operandType.getCollation();
+        assert null != collation
+            : "An implicit or explicit collation should have been set";
+        type =
+            validator.getTypeFactory()
+                .createTypeWithCharsetAndCollation(
+                    type,
+                    type.getCharset(),
+                    new SqlCollation(
+                        collation.getCollationName(),
+                        collation.getCoercibility()));
+      }
     }
+    return type;
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public SqlSyntax getSyntax()
-    {
-        return SqlSyntax.Postfix;
+  @Override
+  public boolean validRexOperands(int count, boolean fail) {
+    if (count != 1) {
+      assert !fail : "wrong operand count " + count + " for " + this;
+      return false;
     }
-
-    public String getSignatureTemplate(final int operandsCount)
-    {
-        Util.discard(operandsCount);
-        return "{1} {0}";
-    }
-
-    protected RelDataType adjustType(
-        SqlValidator validator,
-        SqlCall call,
-        RelDataType type)
-    {
-        if (SqlTypeUtil.inCharFamily(type)) {
-            // Determine coercibility and resulting collation name of
-            // unary operator if needed.
-            RelDataType operandType =
-                validator.getValidatedNodeType(call.operands[0]);
-            if (null == operandType) {
-                throw Util.newInternal(
-                    "operand's type should have been derived");
-            }
-            if (SqlTypeUtil.inCharFamily(operandType)) {
-                SqlCollation collation = operandType.getCollation();
-                assert null != collation
-                    : "An implicit or explicit collation should have been set";
-                type =
-                    validator.getTypeFactory()
-                    .createTypeWithCharsetAndCollation(
-                        type,
-                        type.getCharset(),
-                        new SqlCollation(
-                            collation.getCollationName(),
-                            collation.getCoercibility()));
-            }
-        }
-        return type;
-    }
-
-    @Override
-    public boolean validRexOperands(int count, boolean fail) {
-        if (count != 1) {
-            assert !fail : "wrong operand count " + count + " for " + this;
-            return false;
-        }
-        return true;
-    }
+    return true;
+  }
 }
 
 // End SqlPostfixOperator.java

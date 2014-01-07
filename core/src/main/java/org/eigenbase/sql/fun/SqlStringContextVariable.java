@@ -24,42 +24,36 @@ import org.eigenbase.sql.validate.*;
 /**
  * Base class for functions such as "USER", "CURRENT_ROLE", and "CURRENT_PATH".
  */
-public class SqlStringContextVariable
-    extends SqlFunction
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlStringContextVariable extends SqlFunction {
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlStringContextVariable(String name)
-    {
-        super(
-            name,
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiVarchar2000,
-            null,
-            SqlTypeStrategies.otcNiladic,
-            SqlFunctionCategory.System);
-    }
+  protected SqlStringContextVariable(String name) {
+    super(
+        name,
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiVarchar2000,
+        null,
+        SqlTypeStrategies.otcNiladic,
+        SqlFunctionCategory.System);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlSyntax getSyntax()
-    {
-        return SqlSyntax.FunctionId;
-    }
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.FunctionId;
+  }
 
-    // All of the string constants are monotonic.
-    public SqlMonotonicity getMonotonicity(
-        SqlCall call,
-        SqlValidatorScope scope)
-    {
-        return SqlMonotonicity.Constant;
-    }
+  // All of the string constants are monotonic.
+  public SqlMonotonicity getMonotonicity(
+      SqlCall call,
+      SqlValidatorScope scope) {
+    return SqlMonotonicity.Constant;
+  }
 
-    // Plans referencing context variables should never be cached
-    public boolean isDynamicFunction()
-    {
-        return true;
-    }
+  // Plans referencing context variables should never be cached
+  public boolean isDynamicFunction() {
+    return true;
+  }
 }
 
 // End SqlStringContextVariable.java

@@ -25,83 +25,79 @@ import org.eigenbase.reltype.*;
 /**
  * Abstract base class for {@link RexInputRef} and {@link RexLocalRef}.
  */
-public abstract class RexSlot
-    extends RexVariable
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class RexSlot extends RexVariable {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final int index;
+  protected final int index;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a slot.
-     *
-     * @param index Index of the field in the underlying rowtype
-     * @param type Type of the column
-     */
-    protected RexSlot(
-        String name,
-        int index,
-        RelDataType type)
-    {
-        super(name, type);
-        assert index >= 0;
-        this.index = index;
+  /**
+   * Creates a slot.
+   *
+   * @param index Index of the field in the underlying rowtype
+   * @param type  Type of the column
+   */
+  protected RexSlot(
+      String name,
+      int index,
+      RelDataType type) {
+    super(name, type);
+    assert index >= 0;
+    this.index = index;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public int getIndex() {
+    return index;
+  }
+
+  /**
+   * Thread-safe list that populates itself if you make a reference beyond
+   * the end of the list. Useful if you are using the same entries repeatedly.
+   * Once populated, accesses are very efficient.
+   */
+  protected static class SelfPopulatingList
+      extends CopyOnWriteArrayList<String> {
+    private final String prefix;
+
+    SelfPopulatingList(final String prefix, final int initialSize) {
+      super(fromTo(prefix, 0, initialSize));
+      this.prefix = prefix;
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public int getIndex()
-    {
-        return index;
-    }
-
-    /** Thread-safe list that populates itself if you make a reference beyond
-     * the end of the list. Useful if you are using the same entries repeatedly.
-     * Once populated, accesses are very efficient. */
-    protected static class SelfPopulatingList
-        extends CopyOnWriteArrayList<String>
-    {
-        private final String prefix;
-
-        SelfPopulatingList(final String prefix, final int initialSize) {
-            super(fromTo(prefix, 0, initialSize));
-            this.prefix = prefix;
-        }
-
-        private static AbstractList<String> fromTo(
-            final String prefix,
-            final int start,
-            final int end)
-        {
-            return new AbstractList<String>() {
-                public String get(int index) {
-                    return prefix + (index + start);
-                }
-
-                public int size() {
-                    return end - start;
-                }
-            };
-        }
-
-        @Override
+    private static AbstractList<String> fromTo(
+        final String prefix,
+        final int start,
+        final int end) {
+      return new AbstractList<String>() {
         public String get(int index) {
-            for (;;) {
-                try {
-                    return super.get(index);
-                } catch (IndexOutOfBoundsException e) {
-                    if (index < 0) {
-                        throw new IllegalArgumentException();
-                    }
-                    addAll(
-                        fromTo(
-                            prefix, size(), Math.max(index + 1, size() * 2)));
-                }
-            }
+          return prefix + (index + start);
         }
+
+        public int size() {
+          return end - start;
+        }
+      };
     }
+
+    @Override
+    public String get(int index) {
+      for (;;) {
+        try {
+          return super.get(index);
+        } catch (IndexOutOfBoundsException e) {
+          if (index < 0) {
+            throw new IllegalArgumentException();
+          }
+          addAll(
+              fromTo(
+                  prefix, size(), Math.max(index + 1, size() * 2)));
+        }
+      }
+    }
+  }
 }
 
 // End RexSlot.java

@@ -33,106 +33,106 @@ import com.google.common.collect.ImmutableSet;
  * <code>TableFunctionRelBase</code> is an abstract base class for
  * implementations of {@link TableFunctionRel}.
  */
-public abstract class TableFunctionRelBase
-    extends AbstractRelNode
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class TableFunctionRelBase extends AbstractRelNode {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RexNode rexCall;
+  private final RexNode rexCall;
 
-    protected final ImmutableList<RelNode> inputs;
+  protected final ImmutableList<RelNode> inputs;
 
-    protected final ImmutableSet<RelColumnMapping> columnMappings;
+  protected final ImmutableSet<RelColumnMapping> columnMappings;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a <code>TableFunctionRelBase</code>.
-     *
-     * @param cluster Cluster that this relational expression belongs to
-     * @param inputs 0 or more relational inputs
-     * @param rexCall function invocation expression
-     * @param rowType row type produced by function
-     * @param columnMappings column mappings associated with this function
-     */
-    protected TableFunctionRelBase(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        List<RelNode> inputs,
-        RexNode rexCall,
-        RelDataType rowType,
-        Set<RelColumnMapping> columnMappings)
-    {
-        super(cluster, traits);
-        this.rexCall = rexCall;
-        this.rowType = rowType;
-        this.inputs = ImmutableList.copyOf(inputs);
-        this.columnMappings =
-            columnMappings == null ? null : ImmutableSet.copyOf(columnMappings);
+  /**
+   * Creates a <code>TableFunctionRelBase</code>.
+   *
+   * @param cluster        Cluster that this relational expression belongs to
+   * @param inputs         0 or more relational inputs
+   * @param rexCall        function invocation expression
+   * @param rowType        row type produced by function
+   * @param columnMappings column mappings associated with this function
+   */
+  protected TableFunctionRelBase(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      List<RelNode> inputs,
+      RexNode rexCall,
+      RelDataType rowType,
+      Set<RelColumnMapping> columnMappings) {
+    super(cluster, traits);
+    this.rexCall = rexCall;
+    this.rowType = rowType;
+    this.inputs = ImmutableList.copyOf(inputs);
+    this.columnMappings =
+        columnMappings == null ? null : ImmutableSet.copyOf(columnMappings);
+  }
+
+  /**
+   * Creates a TableFunctionRelBase by parsing serialized output.
+   */
+  protected TableFunctionRelBase(RelInput input) {
+    this(
+        input.getCluster(), input.getTraitSet(), input.getInputs(),
+        input.getExpression("invocation"), input.getRowType("rowType"),
+        ImmutableSet.<RelColumnMapping>of());
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  @Override
+  public List<RelNode> getInputs() {
+    return inputs;
+  }
+
+  @Override
+  public List<RexNode> getChildExps() {
+    return ImmutableList.of(rexCall);
+  }
+
+  @Override
+  public double getRows() {
+    // Calculate result as the sum of the input rowcount estimates,
+    // assuming there are any, otherwise use the superclass default.  So
+    // for a no-input UDX, behave like an AbstractRelNode; for a one-input
+    // UDX, behave like a SingleRel; for a multi-input UDX, behave like
+    // UNION ALL.  TODO jvs 10-Sep-2007: UDX-supplied costing metadata.
+    if (inputs.size() == 0) {
+      return super.getRows();
     }
-
-    /** Creates a TableFunctionRelBase by parsing serialized output. */
-    protected TableFunctionRelBase(RelInput input) {
-        this(
-            input.getCluster(), input.getTraitSet(), input.getInputs(),
-            input.getExpression("invocation"), input.getRowType("rowType"),
-            ImmutableSet.<RelColumnMapping>of());
+    double nRows = 0.0;
+    for (RelNode input : inputs) {
+      Double d = RelMetadataQuery.getRowCount(input);
+      if (d != null) {
+        nRows += d;
+      }
     }
+    return nRows;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  public RexNode getCall() {
+    // NOTE jvs 7-May-2006:  Within this rexCall, instances
+    // of RexInputRef refer to entire input RelNodes rather
+    // than their fields.
+    return rexCall;
+  }
 
-    @Override public List<RelNode> getInputs() {
-        return inputs;
+  public RelWriter explainTerms(RelWriter pw) {
+    super.explainTerms(pw);
+    for (Ord<RelNode> ord : Ord.zip(inputs)) {
+      pw.input("input#" + ord.i, ord.e);
     }
+    return pw.item("invocation", rexCall)
+        .item("rowType", rowType);
+  }
 
-    @Override public List<RexNode> getChildExps() {
-        return ImmutableList.of(rexCall);
-    }
-
-    @Override public double getRows() {
-        // Calculate result as the sum of the input rowcount estimates,
-        // assuming there are any, otherwise use the superclass default.  So
-        // for a no-input UDX, behave like an AbstractRelNode; for a one-input
-        // UDX, behave like a SingleRel; for a multi-input UDX, behave like
-        // UNION ALL.  TODO jvs 10-Sep-2007: UDX-supplied costing metadata.
-        if (inputs.size() == 0) {
-            return super.getRows();
-        }
-        double nRows = 0.0;
-        for (RelNode input : inputs) {
-            Double d = RelMetadataQuery.getRowCount(input);
-            if (d != null) {
-                nRows += d;
-            }
-        }
-        return nRows;
-    }
-
-    public RexNode getCall()
-    {
-        // NOTE jvs 7-May-2006:  Within this rexCall, instances
-        // of RexInputRef refer to entire input RelNodes rather
-        // than their fields.
-        return rexCall;
-    }
-
-    public RelWriter explainTerms(RelWriter pw) {
-        super.explainTerms(pw);
-        for (Ord<RelNode> ord : Ord.zip(inputs)) {
-            pw.input("input#" + ord.i, ord.e);
-        }
-        return pw.item("invocation", rexCall)
-            .item("rowType", rowType);
-    }
-
-    /**
-     * @return set of mappings known for this table function, or null if unknown
-     * (not the same as empty!)
-     */
-    public Set<RelColumnMapping> getColumnMappings()
-    {
-        return columnMappings;
-    }
+  /**
+   * @return set of mappings known for this table function, or null if unknown
+   * (not the same as empty!)
+   */
+  public Set<RelColumnMapping> getColumnMappings() {
+    return columnMappings;
+  }
 }
 
 // End TableFunctionRelBase.java

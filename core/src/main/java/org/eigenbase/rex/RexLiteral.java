@@ -117,520 +117,493 @@ import net.hydromatic.avatica.ByteString;
  * </tr>
  * </table>
  */
-public class RexLiteral
-    extends RexNode
-{
-    //~ Instance fields --------------------------------------------------------
+public class RexLiteral extends RexNode {
+  //~ Instance fields --------------------------------------------------------
 
-    /**
-     * The value of this literal. Must be consistent with its type, as per
-     * {@link #valueMatchesType}. For example, you can't store an {@link
-     * Integer} value here just because you feel like it -- all numbers are
-     * represented by a {@link BigDecimal}. But since this field is private, it
-     * doesn't really matter how the values are stored.
-     */
-    private final Comparable value;
+  /**
+   * The value of this literal. Must be consistent with its type, as per
+   * {@link #valueMatchesType}. For example, you can't store an {@link
+   * Integer} value here just because you feel like it -- all numbers are
+   * represented by a {@link BigDecimal}. But since this field is private, it
+   * doesn't really matter how the values are stored.
+   */
+  private final Comparable value;
 
-    /**
-     * The real type of this literal, as reported by {@link #getType}.
-     */
-    private final RelDataType type;
+  /**
+   * The real type of this literal, as reported by {@link #getType}.
+   */
+  private final RelDataType type;
 
-    // TODO jvs 26-May-2006:  Use SqlTypeFamily instead; it exists
-    // for exactly this purpose (to avoid the confusion which results
-    // from overloading SqlTypeName).
-    /**
-     * An indication of the broad type of this literal -- even if its type isn't
-     * a SQL type. Sometimes this will be different than the SQL type; for
-     * example, all exact numbers, including integers have typeName {@link
-     * SqlTypeName#DECIMAL}. See {@link #valueMatchesType} for the definitive
-     * story.
-     */
-    private final SqlTypeName typeName;
+  // TODO jvs 26-May-2006:  Use SqlTypeFamily instead; it exists
+  // for exactly this purpose (to avoid the confusion which results
+  // from overloading SqlTypeName).
+  /**
+   * An indication of the broad type of this literal -- even if its type isn't
+   * a SQL type. Sometimes this will be different than the SQL type; for
+   * example, all exact numbers, including integers have typeName {@link
+   * SqlTypeName#DECIMAL}. See {@link #valueMatchesType} for the definitive
+   * story.
+   */
+  private final SqlTypeName typeName;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a <code>RexLiteral</code>.
-     */
-    RexLiteral(
-        Comparable value,
-        RelDataType type,
-        SqlTypeName typeName)
-    {
-        assert type != null;
-        assert value == null || valueMatchesType(value, typeName, true);
-        assert (value == null) == type.isNullable();
-        assert typeName != SqlTypeName.ANY;
-        this.value = value;
-        this.type = type;
-        this.typeName = typeName;
-        this.digest = toJavaString(value, typeName);
+  /**
+   * Creates a <code>RexLiteral</code>.
+   */
+  RexLiteral(
+      Comparable value,
+      RelDataType type,
+      SqlTypeName typeName) {
+    assert type != null;
+    assert value == null || valueMatchesType(value, typeName, true);
+    assert (value == null) == type.isNullable();
+    assert typeName != SqlTypeName.ANY;
+    this.value = value;
+    this.type = type;
+    this.typeName = typeName;
+    this.digest = toJavaString(value, typeName);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * @return whether value is appropriate for its type (we have rules about
+   * these things)
+   */
+  public static boolean valueMatchesType(
+      Comparable value,
+      SqlTypeName typeName,
+      boolean strict) {
+    if (value == null) {
+      return true;
+    }
+    switch (typeName) {
+    case BOOLEAN:
+      // Unlike SqlLiteral, we do not allow boolean null.
+      return value instanceof Boolean;
+    case NULL:
+      return false; // value should have been null
+    case INTEGER: // not allowed -- use Decimal
+    case TINYINT:
+    case SMALLINT:
+      if (strict) {
+        throw Util.unexpected(typeName);
+      }
+      // fall through
+    case DECIMAL:
+    case DOUBLE:
+    case FLOAT:
+    case REAL:
+    case BIGINT:
+      return value instanceof BigDecimal;
+    case DATE:
+    case TIME:
+    case TIMESTAMP:
+      return value instanceof Calendar;
+    case INTERVAL_DAY_TIME:
+    case INTERVAL_YEAR_MONTH:
+      return value instanceof BigDecimal;
+    case VARBINARY: // not allowed -- use Binary
+      if (strict) {
+        throw Util.unexpected(typeName);
+      }
+      // fall through
+    case BINARY:
+      return value instanceof ByteString;
+    case VARCHAR: // not allowed -- use Char
+      if (strict) {
+        throw Util.unexpected(typeName);
+      }
+      // fall through
+    case CHAR:
+      // A SqlLiteral's charset and collation are optional; not so a
+      // RexLiteral.
+      return (value instanceof NlsString)
+          && (((NlsString) value).getCharset() != null)
+          && (((NlsString) value).getCollation() != null);
+    case SYMBOL:
+      return (value instanceof EnumeratedValues.Value)
+          || (value instanceof Enum);
+    case ANY:
+      // Literal of type ANY is not legal. "CAST(2 AS ANY)" remains
+      // an integer literal surrounded by a cast function.
+      return false;
+    default:
+      throw Util.unexpected(typeName);
+    }
+  }
+
+  private static String toJavaString(
+      Comparable value,
+      SqlTypeName typeName) {
+    if (value == null) {
+      return "null";
+    }
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    printAsJava(value, pw, typeName, false);
+    pw.flush();
+    return sw.toString();
+  }
+
+  /**
+   * Prints the value this literal as a Java string constant.
+   */
+  public void printAsJava(PrintWriter pw) {
+    printAsJava(value, pw, typeName, true);
+  }
+
+  /**
+   * Prints a value as a Java string. The value must be consistent with the
+   * type, as per {@link #valueMatchesType}.
+   *
+   * <p>Typical return values:
+   *
+   * <ul>
+   * <li>true</li>
+   * <li>null</li>
+   * <li>"Hello, world!"</li>
+   * <li>1.25</li>
+   * <li>1234ABCD</li>
+   * </ul>
+   *
+   * @param value    Value
+   * @param pw       Writer to write to
+   * @param typeName Type family
+   */
+  private static void printAsJava(
+      Comparable value,
+      PrintWriter pw,
+      SqlTypeName typeName,
+      boolean java) {
+    switch (typeName) {
+    case CHAR:
+      NlsString nlsString = (NlsString) value;
+      if (java) {
+        Util.printJavaString(
+            pw,
+            nlsString.getValue(),
+            true);
+      } else {
+        boolean includeCharset =
+            (nlsString.getCharsetName() != null)
+                && !nlsString.getCharsetName().equals(
+                    SaffronProperties.instance().defaultCharset.get());
+        pw.print(nlsString.asSql(includeCharset, false));
+      }
+      break;
+    case BOOLEAN:
+      assert value instanceof Boolean;
+      pw.print(((Boolean) value).booleanValue());
+      break;
+    case DECIMAL:
+      assert value instanceof BigDecimal;
+      pw.print(value.toString());
+      break;
+    case DOUBLE:
+      assert value instanceof BigDecimal;
+      pw.print(Util.toScientificNotation((BigDecimal) value));
+      break;
+    case BIGINT:
+      assert value instanceof BigDecimal;
+      pw.print(((BigDecimal) value).longValue());
+      pw.print('L');
+      break;
+    case BINARY:
+      assert value instanceof ByteString;
+      pw.print("X'");
+      pw.print((((ByteString) value).toString(16)));
+      pw.print("'");
+      break;
+    case NULL:
+      assert value == null;
+      pw.print("null");
+      break;
+    case SYMBOL:
+      assert value instanceof SqlLiteral.SqlSymbol;
+      pw.print("FLAG(");
+      pw.print(value);
+      pw.print(")");
+      break;
+    case DATE:
+      printDatetime(pw, new ZonelessDate(), value);
+      break;
+    case TIME:
+      printDatetime(pw, new ZonelessTime(), value);
+      break;
+    case TIMESTAMP:
+      printDatetime(pw, new ZonelessTimestamp(), value);
+      break;
+    case INTERVAL_DAY_TIME:
+    case INTERVAL_YEAR_MONTH:
+      if (value instanceof BigDecimal) {
+        pw.print(value.toString());
+      } else {
+        assert value == null;
+        pw.print("null");
+      }
+      break;
+    default:
+      assert valueMatchesType(value, typeName, true);
+      throw Util.needToImplement(typeName);
+    }
+  }
+
+  private static void printDatetime(
+      PrintWriter pw,
+      ZonelessDatetime datetime,
+      Comparable value) {
+    assert (value instanceof Calendar);
+    datetime.setZonelessTime(
+        ((Calendar) value).getTimeInMillis());
+    pw.print(datetime);
+  }
+
+  /**
+   * Converts a Jdbc string into a RexLiteral. This method accepts a string,
+   * as returned by the Jdbc method ResultSet.getString(), and restores the
+   * string into an equivalent RexLiteral. It allows one to use Jdbc strings
+   * as a common format for data.
+   *
+   * <p>If a null literal is provided, then a null pointer will be returned.
+   *
+   * @param type     data type of literal to be read
+   * @param typeName type family of literal
+   * @param literal  the (non-SQL encoded) string representation, as returned
+   *                 by the Jdbc call to return a column as a string
+   * @return a typed RexLiteral, or null
+   */
+  public static RexLiteral fromJdbcString(
+      RelDataType type,
+      SqlTypeName typeName,
+      String literal) {
+    if (literal == null) {
+      return null;
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * @return whether value is appropriate for its type (we have rules about
-     * these things)
-     */
-    public static boolean valueMatchesType(
-        Comparable value,
-        SqlTypeName typeName,
-        boolean strict)
-    {
-        if (value == null) {
-            return true;
+    switch (typeName) {
+    case CHAR:
+      Charset charset = type.getCharset();
+      SqlCollation collation = type.getCollation();
+      NlsString str =
+          new NlsString(
+              literal,
+              charset.name(),
+              collation);
+      return new RexLiteral(str, type, typeName);
+    case BOOLEAN:
+      boolean b = ConversionUtil.toBoolean(literal);
+      return new RexLiteral(b, type, typeName);
+    case DECIMAL:
+    case DOUBLE:
+      BigDecimal d = new BigDecimal(literal);
+      return new RexLiteral(d, type, typeName);
+    case BINARY:
+      byte[] bytes = ConversionUtil.toByteArrayFromString(literal, 16);
+      return new RexLiteral(new ByteString(bytes), type, typeName);
+    case NULL:
+      return new RexLiteral(null, type, typeName);
+    case INTERVAL_DAY_TIME:
+      long millis =
+          SqlParserUtil.intervalToMillis(
+              literal,
+              type.getIntervalQualifier());
+      return new RexLiteral(BigDecimal.valueOf(millis), type, typeName);
+    case INTERVAL_YEAR_MONTH:
+      long months =
+          SqlParserUtil.intervalToMonths(
+              literal,
+              type.getIntervalQualifier());
+      return new RexLiteral(BigDecimal.valueOf(months), type, typeName);
+    case DATE:
+    case TIME:
+    case TIMESTAMP:
+      String format = getCalendarFormat(typeName);
+      TimeZone tz = DateTimeUtil.gmtZone;
+      Calendar cal = null;
+      if (typeName == SqlTypeName.DATE) {
+        cal =
+            DateTimeUtil.parseDateFormat(
+                literal,
+                format,
+                tz);
+      } else {
+        // Allow fractional seconds for times and timestamps
+        DateTimeUtil.PrecisionTime ts =
+            DateTimeUtil.parsePrecisionDateTimeLiteral(
+                literal,
+                format,
+                tz);
+        if (ts != null) {
+          cal = ts.getCalendar();
         }
-        switch (typeName) {
-        case BOOLEAN:
-            // Unlike SqlLiteral, we do not allow boolean null.
-            return value instanceof Boolean;
-        case NULL:
-            return false; // value should have been null
-        case INTEGER: // not allowed -- use Decimal
-        case TINYINT:
-        case SMALLINT:
-            if (strict) {
-                throw Util.unexpected(typeName);
-            }
-            // fall through
-        case DECIMAL:
-        case DOUBLE:
-        case FLOAT:
-        case REAL:
-        case BIGINT:
-            return value instanceof BigDecimal;
-        case DATE:
-        case TIME:
-        case TIMESTAMP:
-            return value instanceof Calendar;
-        case INTERVAL_DAY_TIME:
-        case INTERVAL_YEAR_MONTH:
-            return value instanceof BigDecimal;
-        case VARBINARY: // not allowed -- use Binary
-            if (strict) {
-                throw Util.unexpected(typeName);
-            }
-            // fall through
-        case BINARY:
-            return value instanceof ByteString;
-        case VARCHAR: // not allowed -- use Char
-            if (strict) {
-                throw Util.unexpected(typeName);
-            }
-            // fall through
-        case CHAR:
-            // A SqlLiteral's charset and collation are optional; not so a
-            // RexLiteral.
-            return (value instanceof NlsString)
-                && (((NlsString) value).getCharset() != null)
-                && (((NlsString) value).getCollation() != null);
-        case SYMBOL:
-            return (value instanceof EnumeratedValues.Value)
-                || (value instanceof Enum);
-        case ANY:
-            // Literal of type ANY is not legal. "CAST(2 AS ANY)" remains
-            // an integer literal surrounded by a cast function.
-            return false;
-        default:
-            throw Util.unexpected(typeName);
-        }
+      }
+      if (cal == null) {
+        throw Util.newInternal(
+            "fromJdbcString: invalid date/time value '"
+                + literal + "'");
+      }
+      return new RexLiteral(cal, type, typeName);
+    case SYMBOL:
+
+      // Symbols are for internal use
+    default:
+      throw Util.newInternal("fromJdbcString: unsupported type");
     }
+  }
 
-    private static String toJavaString(
-        Comparable value,
-        SqlTypeName typeName)
-    {
-        if (value == null) {
-            return "null";
-        }
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        printAsJava(value, pw, typeName, false);
-        pw.flush();
-        return sw.toString();
+  private static String getCalendarFormat(SqlTypeName typeName) {
+    switch (typeName) {
+    case DATE:
+      return SqlParserUtil.DateFormatStr;
+    case TIME:
+      return SqlParserUtil.TimeFormatStr;
+    case TIMESTAMP:
+      return SqlParserUtil.TimestampFormatStr;
+    default:
+      throw Util.newInternal("getCalendarFormat: unknown type");
     }
+  }
 
-    /**
-     * Prints the value this literal as a Java string constant.
-     */
-    public void printAsJava(PrintWriter pw)
-    {
-        printAsJava(value, pw, typeName, true);
+  public SqlTypeName getTypeName() {
+    return typeName;
+  }
+
+  public RelDataType getType() {
+    return type;
+  }
+
+  @Override
+  public SqlKind getKind() {
+    return SqlKind.LITERAL;
+  }
+
+  /**
+   * Returns the value of this literal.
+   */
+  public Comparable getValue() {
+    assert valueMatchesType(value, typeName, true) : value;
+    return value;
+  }
+
+  /**
+   * Returns the value of this literal, in the form that the calculator
+   * program builder wants it.
+   */
+  public Object getValue2() {
+    if (value == null) {
+      return null;
     }
-
-    /**
-     * Prints a value as a Java string. The value must be consistent with the
-     * type, as per {@link #valueMatchesType}.
-     *
-     * <p>Typical return values:
-     *
-     * <ul>
-     * <li>true</li>
-     * <li>null</li>
-     * <li>"Hello, world!"</li>
-     * <li>1.25</li>
-     * <li>1234ABCD</li>
-     * </ul>
-     *
-     * @param value Value
-     * @param pw Writer to write to
-     * @param typeName Type family
-     */
-    private static void printAsJava(
-        Comparable value,
-        PrintWriter pw,
-        SqlTypeName typeName,
-        boolean java)
-    {
-        switch (typeName) {
-        case CHAR:
-            NlsString nlsString = (NlsString) value;
-            if (java) {
-                Util.printJavaString(
-                    pw,
-                    nlsString.getValue(),
-                    true);
-            } else {
-                boolean includeCharset =
-                    (nlsString.getCharsetName() != null)
-                    && !nlsString.getCharsetName().equals(
-                        SaffronProperties.instance().defaultCharset.get());
-                pw.print(nlsString.asSql(includeCharset, false));
-            }
-            break;
-        case BOOLEAN:
-            assert value instanceof Boolean;
-            pw.print(((Boolean) value).booleanValue());
-            break;
-        case DECIMAL:
-            assert value instanceof BigDecimal;
-            pw.print(value.toString());
-            break;
-        case DOUBLE:
-            assert value instanceof BigDecimal;
-            pw.print(Util.toScientificNotation((BigDecimal) value));
-            break;
-        case BIGINT:
-          assert value instanceof BigDecimal;
-          pw.print(((BigDecimal) value).longValue());
-          pw.print('L');
-          break;
-        case BINARY:
-            assert value instanceof ByteString;
-            pw.print("X'");
-            pw.print((((ByteString) value).toString(16)));
-            pw.print("'");
-            break;
-        case NULL:
-            assert value == null;
-            pw.print("null");
-            break;
-        case SYMBOL:
-            assert value instanceof SqlLiteral.SqlSymbol;
-            pw.print("FLAG(");
-            pw.print(value);
-            pw.print(")");
-            break;
-        case DATE:
-            printDatetime(pw, new ZonelessDate(), value);
-            break;
-        case TIME:
-            printDatetime(pw, new ZonelessTime(), value);
-            break;
-        case TIMESTAMP:
-            printDatetime(pw, new ZonelessTimestamp(), value);
-            break;
-        case INTERVAL_DAY_TIME:
-        case INTERVAL_YEAR_MONTH:
-            if (value instanceof BigDecimal) {
-                pw.print(value.toString());
-            } else {
-                assert value == null;
-                pw.print("null");
-            }
-            break;
-        default:
-            assert valueMatchesType(value, typeName, true);
-            throw Util.needToImplement(typeName);
-        }
+    switch (typeName) {
+    case BINARY:
+      return ((ByteBuffer) value).array();
+    case CHAR:
+      return ((NlsString) value).getValue();
+    case DECIMAL:
+      return new Long(((BigDecimal) value).unscaledValue().longValue());
+    case DATE:
+      return (int) (((Calendar) value).getTimeInMillis()
+          / DateTimeUtil.MILLIS_PER_DAY);
+    case TIME:
+      return (int) (((Calendar) value).getTimeInMillis()
+          % DateTimeUtil.MILLIS_PER_DAY);
+    case TIMESTAMP:
+      return new Long(((Calendar) value).getTimeInMillis());
+    default:
+      return value;
     }
+  }
 
-    private static void printDatetime(
-        PrintWriter pw,
-        ZonelessDatetime datetime,
-        Comparable value)
-    {
-        assert (value instanceof Calendar);
-        datetime.setZonelessTime(
-            ((Calendar) value).getTimeInMillis());
-        pw.print(datetime);
+  /**
+   * Returns the value of this literal, in the form that the rex-to-lix
+   * translator wants it.
+   */
+  public Object getValue3() {
+    switch (typeName) {
+    case DECIMAL:
+      assert value instanceof BigDecimal;
+      return value;
+    default:
+      return getValue2();
     }
+  }
 
-    /**
-     * Converts a Jdbc string into a RexLiteral. This method accepts a string,
-     * as returned by the Jdbc method ResultSet.getString(), and restores the
-     * string into an equivalent RexLiteral. It allows one to use Jdbc strings
-     * as a common format for data.
-     *
-     * <p>If a null literal is provided, then a null pointer will be returned.
-     *
-     * @param type data type of literal to be read
-     * @param typeName type family of literal
-     * @param literal the (non-SQL encoded) string representation, as returned
-     * by the Jdbc call to return a column as a string
-     *
-     * @return a typed RexLiteral, or null
-     */
-    public static RexLiteral fromJdbcString(
-        RelDataType type,
-        SqlTypeName typeName,
-        String literal)
-    {
-        if (literal == null) {
-            return null;
-        }
+  public static boolean booleanValue(RexNode node) {
+    return ((Boolean) ((RexLiteral) node).value).booleanValue();
+  }
 
-        switch (typeName) {
-        case CHAR:
-            Charset charset = type.getCharset();
-            SqlCollation collation = type.getCollation();
-            NlsString str =
-                new NlsString(
-                    literal,
-                    charset.name(),
-                    collation);
-            return new RexLiteral(str, type, typeName);
-        case BOOLEAN:
-            boolean b = ConversionUtil.toBoolean(literal);
-            return new RexLiteral(b, type, typeName);
-        case DECIMAL:
-        case DOUBLE:
-            BigDecimal d = new BigDecimal(literal);
-            return new RexLiteral(d, type, typeName);
-        case BINARY:
-            byte [] bytes = ConversionUtil.toByteArrayFromString(literal, 16);
-            return new RexLiteral(new ByteString(bytes), type, typeName);
-        case NULL:
-            return new RexLiteral(null, type, typeName);
-        case INTERVAL_DAY_TIME:
-            long millis =
-                SqlParserUtil.intervalToMillis(
-                    literal,
-                    type.getIntervalQualifier());
-            return new RexLiteral(BigDecimal.valueOf(millis), type, typeName);
-        case INTERVAL_YEAR_MONTH:
-            long months =
-                SqlParserUtil.intervalToMonths(
-                    literal,
-                    type.getIntervalQualifier());
-            return new RexLiteral(BigDecimal.valueOf(months), type, typeName);
-        case DATE:
-        case TIME:
-        case TIMESTAMP:
-            String format = getCalendarFormat(typeName);
-            TimeZone tz = DateTimeUtil.gmtZone;
-            Calendar cal = null;
-            if (typeName == SqlTypeName.DATE) {
-                cal =
-                    DateTimeUtil.parseDateFormat(
-                        literal,
-                        format,
-                        tz);
-            } else {
-                // Allow fractional seconds for times and timestamps
-                DateTimeUtil.PrecisionTime ts =
-                    DateTimeUtil.parsePrecisionDateTimeLiteral(
-                        literal,
-                        format,
-                        tz);
-                if (ts != null) {
-                    cal = ts.getCalendar();
-                }
-            }
-            if (cal == null) {
-                throw Util.newInternal(
-                    "fromJdbcString: invalid date/time value '"
-                    + literal + "'");
-            }
-            return new RexLiteral(cal, type, typeName);
-        case SYMBOL:
-
-        // Symbols are for internal use
-        default:
-            throw Util.newInternal("fromJdbcString: unsupported type");
-        }
+  public boolean isAlwaysTrue() {
+    if (typeName != SqlTypeName.BOOLEAN) {
+      return false;
     }
+    return booleanValue(this);
+  }
 
-    private static String getCalendarFormat(SqlTypeName typeName)
-    {
-        switch (typeName) {
-        case DATE:
-            return SqlParserUtil.DateFormatStr;
-        case TIME:
-            return SqlParserUtil.TimeFormatStr;
-        case TIMESTAMP:
-            return SqlParserUtil.TimestampFormatStr;
-        default:
-            throw Util.newInternal("getCalendarFormat: unknown type");
-        }
+  public boolean isAlwaysFalse() {
+    if (typeName != SqlTypeName.BOOLEAN) {
+      return false;
     }
+    return !booleanValue(this);
+  }
 
-    public SqlTypeName getTypeName()
-    {
-        return typeName;
-    }
+  public boolean equals(Object obj) {
+    return (obj instanceof RexLiteral)
+        && equals(((RexLiteral) obj).value, value)
+        && equals(((RexLiteral) obj).type, type);
+  }
 
-    public RelDataType getType()
-    {
-        return type;
-    }
+  public int hashCode() {
+    return Util.hashV(value, type);
+  }
 
-    @Override public SqlKind getKind() {
-        return SqlKind.LITERAL;
-    }
+  public static int intValue(RexNode node) {
+    final Comparable value = findValue(node);
+    return ((Number) value).intValue();
+  }
 
-    /**
-     * Returns the value of this literal.
-     */
-    public Comparable getValue()
-    {
-        assert valueMatchesType(value, typeName, true) : value;
-        return value;
-    }
+  public static String stringValue(RexNode node) {
+    final Comparable value = findValue(node);
+    return (value == null) ? null : ((NlsString) value).getValue();
+  }
 
-    /**
-     * Returns the value of this literal, in the form that the calculator
-     * program builder wants it.
-     */
-    public Object getValue2()
-    {
-        if (value == null) {
-            return null;
-        }
-        switch (typeName) {
-        case BINARY:
-            return ((ByteBuffer) value).array();
-        case CHAR:
-            return ((NlsString) value).getValue();
-        case DECIMAL:
-            return new Long(((BigDecimal) value).unscaledValue().longValue());
-        case DATE:
-            return (int) (((Calendar) value).getTimeInMillis()
-                / DateTimeUtil.MILLIS_PER_DAY);
-        case TIME:
-            return (int) (((Calendar) value).getTimeInMillis()
-                % DateTimeUtil.MILLIS_PER_DAY);
-        case TIMESTAMP:
-            return new Long(((Calendar) value).getTimeInMillis());
-        default:
-            return value;
-        }
+  private static Comparable findValue(RexNode node) {
+    if (node instanceof RexLiteral) {
+      return ((RexLiteral) node).value;
     }
+    if (node instanceof RexCall) {
+      final RexCall call = (RexCall) node;
+      final SqlOperator operator = call.getOperator();
+      if (operator == SqlStdOperatorTable.castFunc) {
+        return findValue(call.getOperands().get(0));
+      }
+      if (operator == SqlStdOperatorTable.prefixMinusOperator) {
+        final BigDecimal value =
+            (BigDecimal) findValue(call.getOperands().get(0));
+        return value.negate();
+      }
+    }
+    throw Util.newInternal("not a literal: " + node);
+  }
 
-    /**
-     * Returns the value of this literal, in the form that the rex-to-lix
-     * translator wants it.
-     */
-    public Object getValue3()
-    {
-        switch (typeName) {
-        case DECIMAL:
-            assert value instanceof BigDecimal;
-            return value;
-        default:
-            return getValue2();
-        }
-    }
+  public static boolean isNullLiteral(RexNode node) {
+    return (node instanceof RexLiteral)
+        && (((RexLiteral) node).value == null);
+  }
 
-    public static boolean booleanValue(RexNode node)
-    {
-        return ((Boolean) ((RexLiteral) node).value).booleanValue();
-    }
+  public RexLiteral clone() {
+    return new RexLiteral(value, type, typeName);
+  }
 
-    public boolean isAlwaysTrue()
-    {
-        if (typeName != SqlTypeName.BOOLEAN) {
-            return false;
-        }
-        return booleanValue(this);
-    }
+  private static boolean equals(
+      Object o1,
+      Object o2) {
+    return (o1 == null) ? (o2 == null) : o1.equals(o2);
+  }
 
-    public boolean isAlwaysFalse()
-    {
-        if (typeName != SqlTypeName.BOOLEAN) {
-            return false;
-        }
-        return !booleanValue(this);
-    }
-
-    public boolean equals(Object obj)
-    {
-        return (obj instanceof RexLiteral)
-            && equals(((RexLiteral) obj).value, value)
-            && equals(((RexLiteral) obj).type, type);
-    }
-
-    public int hashCode()
-    {
-        return Util.hashV(value, type);
-    }
-
-    public static int intValue(RexNode node)
-    {
-        final Comparable value = findValue(node);
-        return ((Number) value).intValue();
-    }
-
-    public static String stringValue(RexNode node)
-    {
-        final Comparable value = findValue(node);
-        return (value == null) ? null : ((NlsString) value).getValue();
-    }
-
-    private static Comparable findValue(RexNode node)
-    {
-        if (node instanceof RexLiteral) {
-            return ((RexLiteral) node).value;
-        }
-        if (node instanceof RexCall) {
-            final RexCall call = (RexCall) node;
-            final SqlOperator operator = call.getOperator();
-            if (operator == SqlStdOperatorTable.castFunc) {
-                return findValue(call.getOperands().get(0));
-            }
-            if (operator == SqlStdOperatorTable.prefixMinusOperator) {
-                final BigDecimal value =
-                    (BigDecimal) findValue(call.getOperands().get(0));
-                return value.negate();
-            }
-        }
-        throw Util.newInternal("not a literal: " + node);
-    }
-
-    public static boolean isNullLiteral(RexNode node)
-    {
-        return (node instanceof RexLiteral)
-            && (((RexLiteral) node).value == null);
-    }
-
-    public RexLiteral clone()
-    {
-        return new RexLiteral(value, type, typeName);
-    }
-
-    private static boolean equals(
-        Object o1,
-        Object o2)
-    {
-        return (o1 == null) ? (o2 == null) : o1.equals(o2);
-    }
-
-    public <R> R accept(RexVisitor<R> visitor)
-    {
-        return visitor.visitLiteral(this);
-    }
+  public <R> R accept(RexVisitor<R> visitor) {
+    return visitor.visitLiteral(this);
+  }
 }
 
 // End RexLiteral.java

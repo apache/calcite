@@ -36,145 +36,129 @@ import org.eigenbase.util.*;
  *
  * <p>The interval string, such as '1:00:05.345', is not parsed yet.</p>
  */
-public class SqlIntervalLiteral
-    extends SqlLiteral
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlIntervalLiteral extends SqlLiteral {
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlIntervalLiteral(
-        int sign,
-        String intervalStr,
+  protected SqlIntervalLiteral(
+      int sign,
+      String intervalStr,
+      SqlIntervalQualifier intervalQualifier,
+      SqlTypeName sqlTypeName,
+      SqlParserPos pos) {
+    this(
+        new IntervalValue(intervalQualifier, sign, intervalStr),
+        sqlTypeName,
+        pos);
+  }
+
+  private SqlIntervalLiteral(
+      IntervalValue intervalValue,
+      SqlTypeName sqlTypeName,
+      SqlParserPos pos) {
+    super(
+        intervalValue,
+        sqlTypeName,
+        pos);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlNode clone(SqlParserPos pos) {
+    return new SqlIntervalLiteral(
+        (IntervalValue) value,
+        getTypeName(),
+        pos);
+  }
+
+  public void unparse(
+      SqlWriter writer,
+      int leftPrec,
+      int rightPrec) {
+    IntervalValue interval = (IntervalValue) value;
+    writer.keyword("INTERVAL");
+    if (interval.getSign() == -1) {
+      writer.print("-");
+    }
+    writer.literal("'" + value.toString() + "'");
+    writer.keyword(interval.intervalQualifier.toString());
+  }
+
+  public int signum() {
+    return ((IntervalValue) value).signum();
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
+
+  /**
+   * A Interval value.
+   */
+  public static class IntervalValue {
+    private final SqlIntervalQualifier intervalQualifier;
+    private final String intervalStr;
+    private final int sign;
+
+    /**
+     * Creates an interval value.
+     *
+     * @param intervalQualifier Interval qualifier
+     * @param sign              Sign (+1 or -1)
+     * @param intervalStr       Interval string
+     */
+    IntervalValue(
         SqlIntervalQualifier intervalQualifier,
-        SqlTypeName sqlTypeName,
-        SqlParserPos pos)
-    {
-        this(
-            new IntervalValue(intervalQualifier, sign, intervalStr),
-            sqlTypeName,
-            pos);
+        int sign,
+        String intervalStr) {
+      assert (sign == -1) || (sign == 1);
+      assert intervalQualifier != null;
+      assert intervalStr != null;
+      this.intervalQualifier = intervalQualifier;
+      this.sign = sign;
+      this.intervalStr = intervalStr;
     }
 
-    private SqlIntervalLiteral(
-        IntervalValue intervalValue,
-        SqlTypeName sqlTypeName,
-        SqlParserPos pos)
-    {
-        super(
-            intervalValue,
-            sqlTypeName,
-            pos);
+    public boolean equals(Object obj) {
+      if (!(obj instanceof IntervalValue)) {
+        return false;
+      }
+      IntervalValue that = (IntervalValue) obj;
+      return this.intervalStr.equals(that.intervalStr)
+          && (this.sign == that.sign)
+          && this.intervalQualifier.equalsDeep(that.intervalQualifier, false);
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public SqlNode clone(SqlParserPos pos)
-    {
-        return new SqlIntervalLiteral(
-            (IntervalValue) value,
-            getTypeName(),
-            pos);
+    public int hashCode() {
+      int h = Util.hash(sign, intervalStr);
+      int i = Util.hash(h, intervalQualifier);
+      return i;
     }
 
-    public void unparse(
-        SqlWriter writer,
-        int leftPrec,
-        int rightPrec)
-    {
-        IntervalValue interval = (IntervalValue) value;
-        writer.keyword("INTERVAL");
-        if (interval.getSign() == -1) {
-            writer.print("-");
-        }
-        writer.literal("'" + value.toString() + "'");
-        writer.keyword(interval.intervalQualifier.toString());
+    public SqlIntervalQualifier getIntervalQualifier() {
+      return intervalQualifier;
+    }
+
+    public String getIntervalLiteral() {
+      return intervalStr;
+    }
+
+    public int getSign() {
+      return sign;
     }
 
     public int signum() {
-        return ((IntervalValue) value).signum();
+      for (int i = 0; i < intervalStr.length(); i++) {
+        char ch = intervalStr.charAt(i);
+        if (ch >= '1' && ch <= '9') {
+          // If non zero return sign.
+          return getSign();
+        }
+      }
+      return 0;
     }
 
-    //~ Inner Classes ----------------------------------------------------------
-
-    /**
-     * A Interval value.
-     */
-    public static class IntervalValue
-    {
-        private final SqlIntervalQualifier intervalQualifier;
-        private final String intervalStr;
-        private final int sign;
-
-        /**
-         * Creates an interval value.
-         *
-         * @param intervalQualifier Interval qualifier
-         * @param sign Sign (+1 or -1)
-         * @param intervalStr Interval string
-         */
-        IntervalValue(
-            SqlIntervalQualifier intervalQualifier,
-            int sign,
-            String intervalStr)
-        {
-            assert (sign == -1) || (sign == 1);
-            assert intervalQualifier != null;
-            assert intervalStr != null;
-            this.intervalQualifier = intervalQualifier;
-            this.sign = sign;
-            this.intervalStr = intervalStr;
-        }
-
-        public boolean equals(Object obj)
-        {
-            if (!(obj instanceof IntervalValue)) {
-                return false;
-            }
-            IntervalValue that = (IntervalValue) obj;
-            return this.intervalStr.equals(that.intervalStr)
-                && (this.sign == that.sign)
-                && this.intervalQualifier.equalsDeep(
-                    that.intervalQualifier,
-                    false);
-        }
-
-        public int hashCode()
-        {
-            int h = Util.hash(sign, intervalStr);
-            int i = Util.hash(h, intervalQualifier);
-            return i;
-        }
-
-        public SqlIntervalQualifier getIntervalQualifier()
-        {
-            return intervalQualifier;
-        }
-
-        public String getIntervalLiteral()
-        {
-            return intervalStr;
-        }
-
-        public int getSign()
-        {
-            return sign;
-        }
-
-        public int signum() {
-            for (int i = 0; i < intervalStr.length(); i++) {
-                char ch = intervalStr.charAt(i);
-                if (ch >= '1' && ch <= '9') {
-                    // If non zero return sign.
-                    return getSign();
-                }
-            }
-            return 0;
-        }
-
-        public String toString()
-        {
-            return intervalStr;
-        }
+    public String toString() {
+      return intervalStr;
     }
+  }
 }
 
 // End SqlIntervalLiteral.java

@@ -25,8 +25,7 @@ package org.eigenbase.util;
  * in order to use reflective visitation, but serves to advise users of the
  * class of the intended use of the class and refer them to auxilliary classes.
  */
-public interface ReflectiveVisitor
-{
+public interface ReflectiveVisitor {
 }
 
 // End ReflectiveVisitor.java

@@ -21,11 +21,10 @@ package org.eigenbase.sarg;
  * Defines the boundary strictness of an endpoint: either open (either strictly
  * less than or greater than) or closed (exactly equal).
  */
-public enum SargStrictness
-{
-    OPEN,
+public enum SargStrictness {
+  OPEN,
 
-    CLOSED
+  CLOSED
 }
 
 // End SargStrictness.java

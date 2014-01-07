@@ -20,37 +20,33 @@ package org.eigenbase.util;
 /**
  * CancelFlag is used to post and check cancellation requests.
  */
-public class CancelFlag
-{
-    //~ Instance fields --------------------------------------------------------
+public class CancelFlag {
+  //~ Instance fields --------------------------------------------------------
 
-    private boolean cancelRequested;
+  private boolean cancelRequested;
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * @return whether a cancellation has been requested
-     */
-    public boolean isCancelRequested()
-    {
-        return cancelRequested;
-    }
+  /**
+   * @return whether a cancellation has been requested
+   */
+  public boolean isCancelRequested() {
+    return cancelRequested;
+  }
 
-    /**
-     * Requests a cancellation.
-     */
-    public void requestCancel()
-    {
-        cancelRequested = true;
-    }
+  /**
+   * Requests a cancellation.
+   */
+  public void requestCancel() {
+    cancelRequested = true;
+  }
 
-    /**
-     * Clears any pending cancellation request.
-     */
-    public void clearCancel()
-    {
-        cancelRequested = false;
-    }
+  /**
+   * Clears any pending cancellation request.
+   */
+  public void clearCancel() {
+    cancelRequested = false;
+  }
 }
 
 // End CancelFlag.java

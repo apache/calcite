@@ -29,99 +29,88 @@ import org.eigenbase.rex.*;
  * <p>See the comment against <code>net.sf.saffron.oj.xlat.QueryInfo</code> on
  * why you should put fields in that class, not this one.</p>
  */
-public class RelOptCluster
-{
-    //~ Instance fields --------------------------------------------------------
+public class RelOptCluster {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataTypeFactory typeFactory;
-    private final RelOptQuery query;
-    private final RelOptPlanner planner;
-    private RexNode originalExpression;
-    private final RexBuilder rexBuilder;
-    private RelMetadataProvider metadataProvider;
-    private final RelTraitSet emptyTraitSet;
+  private final RelDataTypeFactory typeFactory;
+  private final RelOptQuery query;
+  private final RelOptPlanner planner;
+  private RexNode originalExpression;
+  private final RexBuilder rexBuilder;
+  private RelMetadataProvider metadataProvider;
+  private final RelTraitSet emptyTraitSet;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a cluster.
-     */
-    RelOptCluster(
-        RelOptQuery query,
-        RelOptPlanner planner,
-        RelDataTypeFactory typeFactory,
-        RexBuilder rexBuilder)
-    {
-        assert planner != null;
-        assert typeFactory != null;
-        this.query = query;
-        this.planner = planner;
-        this.typeFactory = typeFactory;
-        this.rexBuilder = rexBuilder;
-        this.originalExpression = rexBuilder.makeLiteral("?");
+  /**
+   * Creates a cluster.
+   */
+  RelOptCluster(
+      RelOptQuery query,
+      RelOptPlanner planner,
+      RelDataTypeFactory typeFactory,
+      RexBuilder rexBuilder) {
+    assert planner != null;
+    assert typeFactory != null;
+    this.query = query;
+    this.planner = planner;
+    this.typeFactory = typeFactory;
+    this.rexBuilder = rexBuilder;
+    this.originalExpression = rexBuilder.makeLiteral("?");
 
-        // set up a default rel metadata provider,
-        // giving the planner first crack at everything
-        metadataProvider = new DefaultRelMetadataProvider();
-        this.emptyTraitSet = planner.emptyTraitSet();
+    // set up a default rel metadata provider,
+    // giving the planner first crack at everything
+    metadataProvider = new DefaultRelMetadataProvider();
+    this.emptyTraitSet = planner.emptyTraitSet();
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public RelOptQuery getQuery() {
+    return query;
+  }
+
+  public RexNode getOriginalExpression() {
+    return originalExpression;
+  }
+
+  public void setOriginalExpression(RexNode originalExpression) {
+    this.originalExpression = originalExpression;
+  }
+
+  public RelOptPlanner getPlanner() {
+    return planner;
+  }
+
+  public RelDataTypeFactory getTypeFactory() {
+    return typeFactory;
+  }
+
+  public RexBuilder getRexBuilder() {
+    return rexBuilder;
+  }
+
+  public RelMetadataProvider getMetadataProvider() {
+    return metadataProvider;
+  }
+
+  /**
+   * Overrides the default metadata provider for this cluster.
+   *
+   * @param metadataProvider custom provider
+   */
+  public void setMetadataProvider(RelMetadataProvider metadataProvider) {
+    this.metadataProvider = metadataProvider;
+  }
+
+  public RelTraitSet traitSetOf(RelTrait... traits) {
+    RelTraitSet traitSet = emptyTraitSet;
+    assert traitSet.size() == planner.getRelTraitDefs().size();
+    for (RelTrait trait : traits) {
+      traitSet = traitSet.replace(trait);
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public RelOptQuery getQuery()
-    {
-        return query;
-    }
-
-    public RexNode getOriginalExpression()
-    {
-        return originalExpression;
-    }
-
-    public void setOriginalExpression(RexNode originalExpression)
-    {
-        this.originalExpression = originalExpression;
-    }
-
-    public RelOptPlanner getPlanner()
-    {
-        return planner;
-    }
-
-    public RelDataTypeFactory getTypeFactory()
-    {
-        return typeFactory;
-    }
-
-    public RexBuilder getRexBuilder()
-    {
-        return rexBuilder;
-    }
-
-    public RelMetadataProvider getMetadataProvider()
-    {
-        return metadataProvider;
-    }
-
-    /**
-     * Overrides the default metadata provider for this cluster.
-     *
-     * @param metadataProvider custom provider
-     */
-    public void setMetadataProvider(RelMetadataProvider metadataProvider)
-    {
-        this.metadataProvider = metadataProvider;
-    }
-
-    public RelTraitSet traitSetOf(RelTrait... traits)
-    {
-        RelTraitSet traitSet = emptyTraitSet;
-        assert traitSet.size() == planner.getRelTraitDefs().size();
-        for (RelTrait trait : traits) {
-            traitSet = traitSet.replace(trait);
-        }
-        return traitSet;
-    }
+    return traitSet;
+  }
 }
 
 // End RelOptCluster.java

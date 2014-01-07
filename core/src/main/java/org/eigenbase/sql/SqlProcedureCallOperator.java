@@ -27,45 +27,41 @@ import org.eigenbase.sql.validate.*;
  * SqlProcedureCallOperator represents the CALL statement. It takes a single
  * operand which is the real SqlCall.
  */
-public class SqlProcedureCallOperator
-    extends SqlPrefixOperator
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlProcedureCallOperator extends SqlPrefixOperator {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlProcedureCallOperator()
-    {
-        super("CALL", SqlKind.PROCEDURE_CALL, 0, null, null, null);
-    }
+  public SqlProcedureCallOperator() {
+    super("CALL", SqlKind.PROCEDURE_CALL, 0, null, null, null);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // override SqlOperator
-    public SqlNode rewriteCall(SqlValidator validator, SqlCall call)
-    {
-        // for now, rewrite "CALL f(x)" to "SELECT f(x) FROM VALUES(0)"
-        // TODO jvs 18-Jan-2005:  rewrite to SELECT * FROM TABLE f(x)
-        // once we support function calls as tables
-        SqlStdOperatorTable opTab = SqlStdOperatorTable.instance();
-        return SqlStdOperatorTable.selectOperator.createCall(
-            null,
-            new SqlNodeList(
-                Collections.singletonList(
-                    call.getOperands()[0]),
-                SqlParserPos.ZERO),
-            SqlStdOperatorTable.valuesOperator.createCall(
+  // override SqlOperator
+  public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+    // for now, rewrite "CALL f(x)" to "SELECT f(x) FROM VALUES(0)"
+    // TODO jvs 18-Jan-2005:  rewrite to SELECT * FROM TABLE f(x)
+    // once we support function calls as tables
+    SqlStdOperatorTable opTab = SqlStdOperatorTable.instance();
+    return SqlStdOperatorTable.selectOperator.createCall(
+        null,
+        new SqlNodeList(
+            Collections.singletonList(
+                call.getOperands()[0]),
+            SqlParserPos.ZERO),
+        SqlStdOperatorTable.valuesOperator.createCall(
+            SqlParserPos.ZERO,
+            SqlStdOperatorTable.rowConstructor.createCall(
                 SqlParserPos.ZERO,
-                SqlStdOperatorTable.rowConstructor.createCall(
-                    SqlParserPos.ZERO,
-                    SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO))),
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            SqlParserPos.ZERO);
-    }
+                SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO))),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        SqlParserPos.ZERO);
+  }
 }
 
 // End SqlProcedureCallOperator.java

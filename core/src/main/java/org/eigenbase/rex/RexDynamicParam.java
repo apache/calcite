@@ -23,50 +23,43 @@ import org.eigenbase.sql.SqlKind;
 /**
  * Dynamic parameter reference in a row-expression.
  */
-public class RexDynamicParam
-    extends RexVariable
-{
-    //~ Instance fields --------------------------------------------------------
+public class RexDynamicParam extends RexVariable {
+  //~ Instance fields --------------------------------------------------------
 
-    private final int index;
+  private final int index;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a dynamic parameter.
-     *
-     * @param type inferred type of parameter
-     * @param index 0-based index of dynamic parameter in statement
-     */
-    public RexDynamicParam(
-        RelDataType type,
-        int index)
-    {
-        super("?" + index, type);
-        this.index = index;
-    }
+  /**
+   * Creates a dynamic parameter.
+   *
+   * @param type  inferred type of parameter
+   * @param index 0-based index of dynamic parameter in statement
+   */
+  public RexDynamicParam(
+      RelDataType type,
+      int index) {
+    super("?" + index, type);
+    this.index = index;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RexDynamicParam clone()
-    {
-        return new RexDynamicParam(type, index);
-    }
+  public RexDynamicParam clone() {
+    return new RexDynamicParam(type, index);
+  }
 
-    public SqlKind getKind()
-    {
-        return SqlKind.DYNAMIC_PARAM;
-    }
+  public SqlKind getKind() {
+    return SqlKind.DYNAMIC_PARAM;
+  }
 
-    public int getIndex()
-    {
-        return index;
-    }
+  public int getIndex() {
+    return index;
+  }
 
-    public <R> R accept(RexVisitor<R> visitor)
-    {
-        return visitor.visitDynamicParam(this);
-    }
+  public <R> R accept(RexVisitor<R> visitor) {
+    return visitor.visitDynamicParam(this);
+  }
 }
 
 // End RexDynamicParam.java

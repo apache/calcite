@@ -22,86 +22,77 @@ import org.eigenbase.sql.parser.*;
 /**
  * Parse tree node representing a {@code JOIN} clause.
  */
-public class SqlJoin
-    extends SqlCall
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlJoin extends SqlCall {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final int LEFT_OPERAND = 0;
+  public static final int LEFT_OPERAND = 0;
 
-    /**
-     * Operand says whether this is a natural join. Must be constant TRUE or
-     * FALSE.
-     */
-    public static final int IS_NATURAL_OPERAND = 1;
+  /**
+   * Operand says whether this is a natural join. Must be constant TRUE or
+   * FALSE.
+   */
+  public static final int IS_NATURAL_OPERAND = 1;
 
-    /**
-     * Value must be a {@link SqlLiteral}, one of the integer codes for {@link
-     * SqlJoinOperator.JoinType}.
-     */
-    public static final int TYPE_OPERAND = 2;
-    public static final int RIGHT_OPERAND = 3;
+  /**
+   * Value must be a {@link SqlLiteral}, one of the integer codes for {@link
+   * SqlJoinOperator.JoinType}.
+   */
+  public static final int TYPE_OPERAND = 2;
+  public static final int RIGHT_OPERAND = 3;
 
-    /**
-     * Value must be a {@link SqlLiteral}, one of the integer codes for {@link
-     * SqlJoinOperator.ConditionType}.
-     */
-    public static final int CONDITION_TYPE_OPERAND = 4;
-    public static final int CONDITION_OPERAND = 5;
+  /**
+   * Value must be a {@link SqlLiteral}, one of the integer codes for {@link
+   * SqlJoinOperator.ConditionType}.
+   */
+  public static final int CONDITION_TYPE_OPERAND = 4;
+  public static final int CONDITION_OPERAND = 5;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlJoin(
-        SqlJoinOperator operator,
-        SqlNode [] operands,
-        SqlParserPos pos)
-    {
-        super(operator, operands, pos);
-    }
+  public SqlJoin(
+      SqlJoinOperator operator,
+      SqlNode[] operands,
+      SqlParserPos pos) {
+    super(operator, operands, pos);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public final SqlNode getCondition()
-    {
-        return operands[CONDITION_OPERAND];
-    }
+  public final SqlNode getCondition() {
+    return operands[CONDITION_OPERAND];
+  }
 
-    /**
-     * Returns a {@link SqlJoinOperator.ConditionType}
-     *
-     * @post return != null
-     */
-    public final SqlJoinOperator.ConditionType getConditionType()
-    {
-        return (SqlJoinOperator.ConditionType) SqlLiteral.symbolValue(
-            operands[CONDITION_TYPE_OPERAND]);
-    }
+  /**
+   * Returns a {@link SqlJoinOperator.ConditionType}
+   *
+   * @post return != null
+   */
+  public final SqlJoinOperator.ConditionType getConditionType() {
+    return (SqlJoinOperator.ConditionType) SqlLiteral.symbolValue(
+        operands[CONDITION_TYPE_OPERAND]);
+  }
 
-    /**
-     * Returns a {@link SqlJoinOperator.JoinType}
-     *
-     * @post return != null
-     */
-    public final SqlJoinOperator.JoinType getJoinType()
-    {
-        return (SqlJoinOperator.JoinType) SqlLiteral.symbolValue(
-            operands[TYPE_OPERAND]);
-    }
+  /**
+   * Returns a {@link SqlJoinOperator.JoinType}
+   *
+   * @post return != null
+   */
+  public final SqlJoinOperator.JoinType getJoinType() {
+    return (SqlJoinOperator.JoinType) SqlLiteral.symbolValue(
+        operands[TYPE_OPERAND]);
+  }
 
-    public final SqlNode getLeft()
-    {
-        return operands[LEFT_OPERAND];
-    }
+  public final SqlNode getLeft() {
+    return operands[LEFT_OPERAND];
+  }
 
-    public final boolean isNatural()
-    {
-        return SqlLiteral.booleanValue(operands[IS_NATURAL_OPERAND]);
-    }
+  public final boolean isNatural() {
+    return SqlLiteral.booleanValue(operands[IS_NATURAL_OPERAND]);
+  }
 
-    public final SqlNode getRight()
-    {
-        return operands[RIGHT_OPERAND];
-    }
+  public final SqlNode getRight() {
+    return operands[RIGHT_OPERAND];
+  }
 }
 
 // End SqlJoin.java

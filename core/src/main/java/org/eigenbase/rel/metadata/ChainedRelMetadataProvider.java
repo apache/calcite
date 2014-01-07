@@ -26,56 +26,51 @@ import org.eigenbase.rel.*;
  * interface via the {@link
  * org.eigenbase.util.Glossary#ChainOfResponsibilityPattern}.
  */
-public class ChainedRelMetadataProvider
-    implements RelMetadataProvider
-{
-    //~ Instance fields --------------------------------------------------------
+public class ChainedRelMetadataProvider implements RelMetadataProvider {
+  //~ Instance fields --------------------------------------------------------
 
-    private List<RelMetadataProvider> providers;
+  private List<RelMetadataProvider> providers;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a new empty chain.
-     */
-    public ChainedRelMetadataProvider()
-    {
-        providers = new ArrayList<RelMetadataProvider>();
+  /**
+   * Creates a new empty chain.
+   */
+  public ChainedRelMetadataProvider() {
+    providers = new ArrayList<RelMetadataProvider>();
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Adds a provider, giving it higher priority than all those already in
+   * chain. Chain order matters, since the first provider which answers a
+   * query is used.
+   *
+   * @param provider provider to add
+   */
+  public void addProvider(
+      RelMetadataProvider provider) {
+    providers.add(0, provider);
+  }
+
+  // implement RelMetadataProvider
+  public Object getRelMetadata(
+      RelNode rel,
+      String metadataQueryName,
+      Object[] args) {
+    for (RelMetadataProvider provider : providers) {
+      Object result =
+          provider.getRelMetadata(
+              rel,
+              metadataQueryName,
+              args);
+      if (result != null) {
+        return result;
+      }
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Adds a provider, giving it higher priority than all those already in
-     * chain. Chain order matters, since the first provider which answers a
-     * query is used.
-     *
-     * @param provider provider to add
-     */
-    public void addProvider(
-        RelMetadataProvider provider)
-    {
-        providers.add(0, provider);
-    }
-
-    // implement RelMetadataProvider
-    public Object getRelMetadata(
-        RelNode rel,
-        String metadataQueryName,
-        Object [] args)
-    {
-        for (RelMetadataProvider provider : providers) {
-            Object result =
-                provider.getRelMetadata(
-                    rel,
-                    metadataQueryName,
-                    args);
-            if (result != null) {
-                return result;
-            }
-        }
-        return null;
-    }
+    return null;
+  }
 }
 
 // End ChainedRelMetadataProvider.java

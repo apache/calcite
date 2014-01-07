@@ -26,38 +26,35 @@ import org.eigenbase.sql.validate.*;
  * <p>This interface is an example of the {@link
  * org.eigenbase.util.Glossary#StrategyPattern strategy pattern}.</p>
  */
-public interface SqlOperandTypeChecker
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SqlOperandTypeChecker {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Checks the types of all operands to an operator call.
-     *
-     * @param callBinding description of the call to be checked
-     * @param throwOnFailure whether to throw an exception if check fails
-     * (otherwise returns false in that case)
-     *
-     * @return whether check succeeded
-     */
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure);
+  /**
+   * Checks the types of all operands to an operator call.
+   *
+   * @param callBinding    description of the call to be checked
+   * @param throwOnFailure whether to throw an exception if check fails
+   *                       (otherwise returns false in that case)
+   * @return whether check succeeded
+   */
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure);
 
-    /**
-     * @return range of operand counts allowed in a call
-     */
-    public SqlOperandCountRange getOperandCountRange();
+  /**
+   * @return range of operand counts allowed in a call
+   */
+  public SqlOperandCountRange getOperandCountRange();
 
-    /**
-     * Returns a string describing the allowed formal signatures of a call, e.g.
-     * "SUBSTR(VARCHAR, INTEGER, INTEGER)".
-     *
-     * @param op the operator being checked
-     * @param opName name to use for the operator in case of aliasing
-     *
-     * @return generated string
-     */
-    public String getAllowedSignatures(SqlOperator op, String opName);
+  /**
+   * Returns a string describing the allowed formal signatures of a call, e.g.
+   * "SUBSTR(VARCHAR, INTEGER, INTEGER)".
+   *
+   * @param op     the operator being checked
+   * @param opName name to use for the operator in case of aliasing
+   * @return generated string
+   */
+  public String getAllowedSignatures(SqlOperator op, String opName);
 }
 
 // End SqlOperandTypeChecker.java

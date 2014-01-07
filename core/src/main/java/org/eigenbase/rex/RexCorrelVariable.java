@@ -27,33 +27,29 @@ import org.eigenbase.sql.SqlKind;
  * Each row is received from one side of the join, a correlating variable is
  * assigned a value, and the other side of the join is restarted.</p>
  */
-public class RexCorrelVariable
-    extends RexVariable
-{
-    //~ Constructors -----------------------------------------------------------
+public class RexCorrelVariable extends RexVariable {
+  //~ Constructors -----------------------------------------------------------
 
-    RexCorrelVariable(
-        String varName,
-        RelDataType type)
-    {
-        super(varName, type);
-    }
+  RexCorrelVariable(
+      String varName,
+      RelDataType type) {
+    super(varName, type);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RexCorrelVariable clone()
-    {
-        return new RexCorrelVariable(name, type);
-    }
+  public RexCorrelVariable clone() {
+    return new RexCorrelVariable(name, type);
+  }
 
-    public <R> R accept(RexVisitor<R> visitor)
-    {
-        return visitor.visitCorrelVariable(this);
-    }
+  public <R> R accept(RexVisitor<R> visitor) {
+    return visitor.visitCorrelVariable(this);
+  }
 
-    @Override public SqlKind getKind() {
-        return SqlKind.CORREL_VARIABLE;
-    }
+  @Override
+  public SqlKind getKind() {
+    return SqlKind.CORREL_VARIABLE;
+  }
 }
 
 // End RexCorrelVariable.java

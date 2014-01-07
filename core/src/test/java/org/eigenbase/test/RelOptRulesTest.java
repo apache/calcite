@@ -51,85 +51,82 @@ import org.junit.Test;
  * <li>Run the test one last time; this time it should pass.
  * </ol>
  */
-public class RelOptRulesTest
-    extends RelOptTestBase
-{
-    //~ Methods ----------------------------------------------------------------
+public class RelOptRulesTest extends RelOptTestBase {
+  //~ Methods ----------------------------------------------------------------
 
-    protected DiffRepository getDiffRepos()
-    {
-        return DiffRepository.lookup(RelOptRulesTest.class);
-    }
+  protected DiffRepository getDiffRepos() {
+    return DiffRepository.lookup(RelOptRulesTest.class);
+  }
 
-    @Test public void testUnionToDistinctRule() {
-        checkPlanning(
-            UnionToDistinctRule.instance,
-            "select * from dept union select * from dept");
-    }
+  @Test public void testUnionToDistinctRule() {
+    checkPlanning(
+        UnionToDistinctRule.instance,
+        "select * from dept union select * from dept");
+  }
 
-    @Test public void testExtractJoinFilterRule() {
-        checkPlanning(
-            ExtractJoinFilterRule.instance,
-            "select 1 from emp inner join dept on emp.deptno=dept.deptno");
-    }
+  @Test public void testExtractJoinFilterRule() {
+    checkPlanning(
+        ExtractJoinFilterRule.instance,
+        "select 1 from emp inner join dept on emp.deptno=dept.deptno");
+  }
 
-    @Test public void testAddRedundantSemiJoinRule() {
-        checkPlanning(
-            AddRedundantSemiJoinRule.instance,
-            "select 1 from emp inner join dept on emp.deptno = dept.deptno");
-    }
+  @Test public void testAddRedundantSemiJoinRule() {
+    checkPlanning(
+        AddRedundantSemiJoinRule.instance,
+        "select 1 from emp inner join dept on emp.deptno = dept.deptno");
+  }
 
-    @Test public void testPushFilterThroughOuterJoin() {
-        checkPlanning(
-            PushFilterPastJoinRule.FILTER_ON_JOIN,
-            "select 1 from sales.dept d left outer join sales.emp e"
-            + " on d.deptno = e.deptno"
-            + " where d.name = 'Charlie'");
-    }
+  @Test public void testPushFilterThroughOuterJoin() {
+    checkPlanning(
+        PushFilterPastJoinRule.FILTER_ON_JOIN,
+        "select 1 from sales.dept d left outer join sales.emp e"
+        + " on d.deptno = e.deptno"
+        + " where d.name = 'Charlie'");
+  }
 
-    @Test public void testReduceAverage() {
-        checkPlanning(
-            ReduceAggregatesRule.instance,
-            "select name, max(name), avg(deptno), min(name)"
-            + " from sales.dept group by name");
-    }
+  @Test public void testReduceAverage() {
+    checkPlanning(
+        ReduceAggregatesRule.instance,
+        "select name, max(name), avg(deptno), min(name)"
+        + " from sales.dept group by name");
+  }
 
-    @Test public void testPushProjectPastFilter() {
-        checkPlanning(
-            PushProjectPastFilterRule.instance,
-            "select empno + deptno from emp where sal = 10 * comm "
-            + "and upper(ename) = 'FOO'");
-    }
+  @Test public void testPushProjectPastFilter() {
+    checkPlanning(
+        PushProjectPastFilterRule.instance,
+        "select empno + deptno from emp where sal = 10 * comm "
+        + "and upper(ename) = 'FOO'");
+  }
 
-    @Test public void testPushProjectPastJoin() {
-        checkPlanning(
-            PushProjectPastJoinRule.instance,
-            "select e.sal + b.comm from emp e inner join bonus b "
-            + "on e.ename = b.ename and e.deptno = 10");
-    }
+  @Test public void testPushProjectPastJoin() {
+    checkPlanning(
+        PushProjectPastJoinRule.instance,
+        "select e.sal + b.comm from emp e inner join bonus b "
+        + "on e.ename = b.ename and e.deptno = 10");
+  }
 
-    @Test public void testPushProjectPastSetOp() {
-        checkPlanning(
-            PushProjectPastSetOpRule.instance,
-            "select sal from "
-            + "(select * from emp e1 union all select * from emp e2)");
-    }
+  @Test public void testPushProjectPastSetOp() {
+    checkPlanning(
+        PushProjectPastSetOpRule.instance,
+        "select sal from "
+        + "(select * from emp e1 union all select * from emp e2)");
+  }
 
-    @Test public void testPushJoinThroughUnionOnLeft() {
-        checkPlanning(
-            PushJoinThroughUnionRule.instanceUnionOnLeft,
-            "select r1.sal from "
-            + "(select * from emp e1 union all select * from emp e2) r1, "
-            + "emp r2");
-    }
+  @Test public void testPushJoinThroughUnionOnLeft() {
+    checkPlanning(
+        PushJoinThroughUnionRule.instanceUnionOnLeft,
+        "select r1.sal from "
+        + "(select * from emp e1 union all select * from emp e2) r1, "
+        + "emp r2");
+  }
 
-    @Test public void testPushJoinThroughUnionOnRight() {
-        checkPlanning(
-            PushJoinThroughUnionRule.instanceUnionOnRight,
-            "select r1.sal from "
-            + "emp r1, "
-            + "(select * from emp e1 union all select * from emp e2) r2");
-    }
+  @Test public void testPushJoinThroughUnionOnRight() {
+    checkPlanning(
+        PushJoinThroughUnionRule.instanceUnionOnRight,
+        "select r1.sal from "
+        + "emp r1, "
+        + "(select * from emp e1 union all select * from emp e2) r2");
+  }
 }
 
 // End RelOptRulesTest.java

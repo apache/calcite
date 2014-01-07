@@ -49,119 +49,107 @@ import net.hydromatic.linq4j.function.Functions;
  * perhaps <em>protected</em>) <em>static final</em> member called <code>
  * tracer</code>.
  */
-public abstract class EigenbaseTrace
-{
-    //~ Static fields/initializers ---------------------------------------------
+public abstract class EigenbaseTrace {
+  //~ Static fields/initializers ---------------------------------------------
 
-    /**
-     * The "org.eigenbase.sql.parser" tracer reports parser events in {@link
-     * org.eigenbase.sql.parser.SqlParser} and other classes (at level {@link
-     * Level#FINE} or higher).
-     */
-    public static final Logger parserTracer = getParserTracer();
+  /**
+   * The "org.eigenbase.sql.parser" tracer reports parser events in {@link
+   * org.eigenbase.sql.parser.SqlParser} and other classes (at level {@link
+   * Level#FINE} or higher).
+   */
+  public static final Logger parserTracer = getParserTracer();
 
-    private static final ThreadLocal<Function2<Void, File, String>>
-        DYNAMIC_HANDLER =
-        new ThreadLocal<Function2<Void, File, String>>()
-        {
-            @Override
-            protected Function2<Void, File, String> initialValue()
-            {
-                return Functions.ignore2();
-            }
-        };
+  private static final ThreadLocal<Function2<Void, File, String>>
+      DYNAMIC_HANDLER =
+      new ThreadLocal<Function2<Void, File, String>>() {
+        @Override
+        protected Function2<Void, File, String> initialValue() {
+          return Functions.ignore2();
+        }
+      };
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * The "org.eigenbase.relopt.RelOptPlanner" tracer prints the query
-     * optimization process.
-     *
-     * <p>Levels:
-     *
-     * <ul>
-     * <li>{@link Level#FINE} prints rules as they fire;
-     * <li>{@link Level#FINER} prints and validates the whole expression pool
-     * and rule queue as each rule fires;
-     * <li>{@link Level#FINEST} prints finer details like rule importances.
-     * </ul>
-     */
-    public static Logger getPlannerTracer()
-    {
-        return Logger.getLogger(RelOptPlanner.class.getName());
-    }
+  /**
+   * The "org.eigenbase.relopt.RelOptPlanner" tracer prints the query
+   * optimization process.
+   *
+   * <p>Levels:
+   *
+   * <ul>
+   * <li>{@link Level#FINE} prints rules as they fire;
+   * <li>{@link Level#FINER} prints and validates the whole expression pool
+   * and rule queue as each rule fires;
+   * <li>{@link Level#FINEST} prints finer details like rule importances.
+   * </ul>
+   */
+  public static Logger getPlannerTracer() {
+    return Logger.getLogger(RelOptPlanner.class.getName());
+  }
 
-    /**
-     * The "net.hydromatic.optiq.prepare.Prepare" tracer prints the generated
-     * program at level {@link java.util.logging.Level#FINE} or higher.
-     */
-    public static Logger getStatementTracer()
-    {
-        return Logger.getLogger(Prepare.class.getName());
-    }
+  /**
+   * The "net.hydromatic.optiq.prepare.Prepare" tracer prints the generated
+   * program at level {@link java.util.logging.Level#FINE} or higher.
+   */
+  public static Logger getStatementTracer() {
+    return Logger.getLogger(Prepare.class.getName());
+  }
 
-    /**
-     * The "org.eigenbase.rel.RelImplementorImpl" tracer reports when
-     * expressions are bound to variables ({@link Level#FINE})
-     */
-    public static Logger getRelImplementorTracer()
-    {
-        return Logger.getLogger(RelImplementorImpl.class.getName());
-    }
+  /**
+   * The "org.eigenbase.rel.RelImplementorImpl" tracer reports when
+   * expressions are bound to variables ({@link Level#FINE})
+   */
+  public static Logger getRelImplementorTracer() {
+    return Logger.getLogger(RelImplementorImpl.class.getName());
+  }
 
-    /**
-     * The tracer "org.eigenbase.sql.timing" traces timing for various stages of
-     * query processing.
-     *
-     * @see EigenbaseTimingTracer
-     */
-    public static Logger getSqlTimingTracer()
-    {
-        return Logger.getLogger("org.eigenbase.sql.timing");
-    }
+  /**
+   * The tracer "org.eigenbase.sql.timing" traces timing for various stages of
+   * query processing.
+   *
+   * @see EigenbaseTimingTracer
+   */
+  public static Logger getSqlTimingTracer() {
+    return Logger.getLogger("org.eigenbase.sql.timing");
+  }
 
-    /**
-     * The "org.eigenbase.sql.parser" tracer reports parse events.
-     */
-    public static Logger getParserTracer()
-    {
-        return Logger.getLogger("org.eigenbase.sql.parser");
-    }
+  /**
+   * The "org.eigenbase.sql.parser" tracer reports parse events.
+   */
+  public static Logger getParserTracer() {
+    return Logger.getLogger("org.eigenbase.sql.parser");
+  }
 
-    /**
-     * The "org.eigenbase.sql2rel" tracer reports parse events.
-     */
-    public static Logger getSqlToRelTracer()
-    {
-        return Logger.getLogger("org.eigenbase.sql2rel");
-    }
+  /**
+   * The "org.eigenbase.sql2rel" tracer reports parse events.
+   */
+  public static Logger getSqlToRelTracer() {
+    return Logger.getLogger("org.eigenbase.sql2rel");
+  }
 
-    /**
-     * The "org.eigenbase.jmi.JmiChangeSet" tracer reports JmiChangeSet events.
-     */
-    public static Logger getJmiChangeSetTracer()
-    {
-        return Logger.getLogger("org.eigenbase.jmi.JmiChangeSet");
-    }
+  /**
+   * The "org.eigenbase.jmi.JmiChangeSet" tracer reports JmiChangeSet events.
+   */
+  public static Logger getJmiChangeSetTracer() {
+    return Logger.getLogger("org.eigenbase.jmi.JmiChangeSet");
+  }
 
-    /**
-     * The "org.eigenbase.util.property.Property" tracer reports errors related
-     * to all manner of properties.
-     */
-    public static Logger getPropertyTracer()
-    {
-        return Logger.getLogger(Property.class.getName());
-    }
+  /**
+   * The "org.eigenbase.util.property.Property" tracer reports errors related
+   * to all manner of properties.
+   */
+  public static Logger getPropertyTracer() {
+    return Logger.getLogger(Property.class.getName());
+  }
 
-    /**
-     * Thread-local handler that is called with dynamically generated Java code.
-     * It exists for unit-testing.
-     * The handler is never null; the default handler does nothing.
-     */
-    public static ThreadLocal<Function2<Void, File, String>> getDynamicHandler()
-    {
-        return DYNAMIC_HANDLER;
-    }
+  /**
+   * Thread-local handler that is called with dynamically generated Java code.
+   * It exists for unit-testing.
+   * The handler is never null; the default handler does nothing.
+   */
+  public static ThreadLocal<Function2<Void, File, String>> getDynamicHandler() {
+    return DYNAMIC_HANDLER;
+  }
 }
 
 // End EigenbaseTrace.java

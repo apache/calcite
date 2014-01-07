@@ -50,142 +50,126 @@ import org.eigenbase.reltype.*;
  *
  * @see RexNode
  */
-public class RexChecker
-    extends RexVisitorImpl<Boolean>
-{
-    //~ Instance fields --------------------------------------------------------
+public class RexChecker extends RexVisitorImpl<Boolean> {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final boolean fail;
-    protected final List<RelDataType> inputTypeList;
-    protected int failCount;
+  protected final boolean fail;
+  protected final List<RelDataType> inputTypeList;
+  protected int failCount;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a RexChecker with a given input row type.
-     *
-     * <p>If <code>fail</code> is true, the checker will throw an {@link
-     * AssertionError} if an invalid node is found and assertions are enabled.
-     *
-     * <p>Otherwise, each method returns whether its part of the tree is valid.
-     *
-     * @param inputRowType Input row type
-     * @param fail Whether to throw an {@link AssertionError} if an invalid node
-     * is detected
-     */
-    public RexChecker(final RelDataType inputRowType, boolean fail)
-    {
-        this(RelOptUtil.getFieldTypeList(inputRowType), fail);
+  /**
+   * Creates a RexChecker with a given input row type.
+   *
+   * <p>If <code>fail</code> is true, the checker will throw an {@link
+   * AssertionError} if an invalid node is found and assertions are enabled.
+   *
+   * <p>Otherwise, each method returns whether its part of the tree is valid.
+   *
+   * @param inputRowType Input row type
+   * @param fail         Whether to throw an {@link AssertionError} if an invalid node
+   *                     is detected
+   */
+  public RexChecker(final RelDataType inputRowType, boolean fail) {
+    this(RelOptUtil.getFieldTypeList(inputRowType), fail);
+  }
+
+  /**
+   * Creates a RexChecker with a given set of input fields.
+   *
+   * <p>If <code>fail</code> is true, the checker will throw an {@link
+   * AssertionError} if an invalid node is found and assertions are enabled.
+   *
+   * <p>Otherwise, each method returns whether its part of the tree is valid.
+   *
+   * @param inputTypeList Input row type
+   * @param fail          Whether to throw an {@link AssertionError} if an invalid node
+   *                      is detected
+   */
+  public RexChecker(List<RelDataType> inputTypeList, boolean fail) {
+    super(true);
+    this.inputTypeList = inputTypeList;
+    this.fail = fail;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Returns the number of failures encountered.
+   *
+   * @return Number of failures
+   */
+  public int getFailureCount() {
+    return failCount;
+  }
+
+  public Boolean visitInputRef(RexInputRef ref) {
+    final int index = ref.getIndex();
+    if ((index < 0) || (index >= inputTypeList.size())) {
+      assert !fail
+          : "RexInputRef index " + index
+          + " out of range 0.." + (inputTypeList.size() - 1);
+      ++failCount;
+      return false;
     }
-
-    /**
-     * Creates a RexChecker with a given set of input fields.
-     *
-     * <p>If <code>fail</code> is true, the checker will throw an {@link
-     * AssertionError} if an invalid node is found and assertions are enabled.
-     *
-     * <p>Otherwise, each method returns whether its part of the tree is valid.
-     *
-     * @param inputTypeList Input row type
-     * @param fail Whether to throw an {@link AssertionError} if an invalid node
-     * is detected
-     */
-    public RexChecker(List<RelDataType> inputTypeList, boolean fail)
-    {
-        super(true);
-        this.inputTypeList = inputTypeList;
-        this.fail = fail;
+    if (!ref.getType().isStruct()
+        && !RelOptUtil.eq("ref", ref.getType(), "input",
+            inputTypeList.get(index), fail)) {
+      assert !fail;
+      ++failCount;
+      return false;
     }
+    return true;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  public Boolean visitLocalRef(RexLocalRef ref) {
+    assert !fail : "RexLocalRef illegal outside program";
+    ++failCount;
+    return false;
+  }
 
-    /**
-     * Returns the number of failures encountered.
-     *
-     * @return Number of failures
-     */
-    public int getFailureCount()
-    {
-        return failCount;
-    }
-
-    public Boolean visitInputRef(RexInputRef ref)
-    {
-        final int index = ref.getIndex();
-        if ((index < 0) || (index >= inputTypeList.size())) {
-            assert !fail
-                : "RexInputRef index " + index
-                + " out of range 0.." + (inputTypeList.size() - 1);
-            ++failCount;
-            return false;
-        }
-        if (!ref.getType().isStruct()
-            && !RelOptUtil.eq(
-                "ref",
-                ref.getType(),
-                "input",
-                inputTypeList.get(index),
-                fail))
-        {
-            assert !fail;
-            ++failCount;
-            return false;
-        }
-        return true;
-    }
-
-    public Boolean visitLocalRef(RexLocalRef ref)
-    {
-        assert !fail : "RexLocalRef illegal outside program";
-        ++failCount;
+  public Boolean visitCall(RexCall call) {
+    for (RexNode operand : call.getOperands()) {
+      Boolean valid = operand.accept(this);
+      if (valid != null && !valid) {
         return false;
+      }
     }
+    return true;
+  }
 
-    public Boolean visitCall(RexCall call)
-    {
-        for (RexNode operand : call.getOperands()) {
-            Boolean valid = operand.accept(this);
-            if (valid != null && !valid) {
-                return false;
-            }
-        }
-        return true;
+  public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
+    super.visitFieldAccess(fieldAccess);
+    final RelDataType refType = fieldAccess.getReferenceExpr().getType();
+    assert refType.isStruct();
+    final RelDataTypeField field = fieldAccess.getField();
+    final int index = field.getIndex();
+    if ((index < 0) || (index > refType.getFieldList().size())) {
+      assert !fail;
+      ++failCount;
+      return false;
     }
+    final RelDataTypeField typeField = refType.getFieldList().get(index);
+    if (!RelOptUtil.eq(
+        "type1",
+        typeField.getType(),
+        "type2",
+        fieldAccess.getType(),
+        fail)) {
+      assert !fail;
+      ++failCount;
+      return false;
+    }
+    return true;
+  }
 
-    public Boolean visitFieldAccess(RexFieldAccess fieldAccess)
-    {
-        super.visitFieldAccess(fieldAccess);
-        final RelDataType refType = fieldAccess.getReferenceExpr().getType();
-        assert refType.isStruct();
-        final RelDataTypeField field = fieldAccess.getField();
-        final int index = field.getIndex();
-        if ((index < 0) || (index > refType.getFieldList().size())) {
-            assert !fail;
-            ++failCount;
-            return false;
-        }
-        final RelDataTypeField typeField = refType.getFieldList().get(index);
-        if (!RelOptUtil.eq(
-                "type1",
-                typeField.getType(),
-                "type2",
-                fieldAccess.getType(),
-                fail))
-        {
-            assert !fail;
-            ++failCount;
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Returns whether an expression is valid.
-     */
-    public final boolean isValid(RexNode expr)
-    {
-        return expr.accept(this);
-    }
+  /**
+   * Returns whether an expression is valid.
+   */
+  public final boolean isValid(RexNode expr) {
+    return expr.accept(this);
+  }
 }
 
 // End RexChecker.java

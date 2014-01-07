@@ -24,32 +24,30 @@ import org.eigenbase.sql.*;
  * SubqueryConverter provides the interface for classes that convert subqueries
  * into equivalent expressions.
  */
-public interface SubqueryConverter
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SubqueryConverter {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * @return true if the subquery can be converted
-     */
-    public boolean canConvertSubquery();
+  /**
+   * @return true if the subquery can be converted
+   */
+  public boolean canConvertSubquery();
 
-    /**
-     * Converts the subquery to an equivalent expression.
-     *
-     * @param subquery the SqlNode tree corresponding to a subquery
-     * @param parentConverter sqlToRelConverter of the parent query
-     * @param isExists whether the subquery is part of an EXISTS expression
-     * @param isExplain whether the subquery is part of an EXPLAIN PLAN
-     * statement
-     *
-     * @return the equivalent expression or null if the subquery couldn't be
-     * converted
-     */
-    public RexNode convertSubquery(
-        SqlCall subquery,
-        SqlToRelConverter parentConverter,
-        boolean isExists,
-        boolean isExplain);
+  /**
+   * Converts the subquery to an equivalent expression.
+   *
+   * @param subquery        the SqlNode tree corresponding to a subquery
+   * @param parentConverter sqlToRelConverter of the parent query
+   * @param isExists        whether the subquery is part of an EXISTS expression
+   * @param isExplain       whether the subquery is part of an EXPLAIN PLAN
+   *                        statement
+   * @return the equivalent expression or null if the subquery couldn't be
+   * converted
+   */
+  public RexNode convertSubquery(
+      SqlCall subquery,
+      SqlToRelConverter parentConverter,
+      boolean isExists,
+      boolean isExplain);
 }
 
 // End SubqueryConverter.java

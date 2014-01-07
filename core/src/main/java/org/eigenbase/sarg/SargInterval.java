@@ -47,41 +47,36 @@ import org.eigenbase.reltype.*;
  * -infinity. So the interval [null,7) would include the null value and any
  * non-null value less than 7.
  */
-public class SargInterval
-    extends SargIntervalBase
-{
-    //~ Constructors -----------------------------------------------------------
+public class SargInterval extends SargIntervalBase {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a SargInterval.
-     */
-    SargInterval(
-        SargFactory factory,
-        RelDataType dataType)
-    {
-        super(factory, dataType);
+  /**
+   * Creates a SargInterval.
+   */
+  SargInterval(
+      SargFactory factory,
+      RelDataType dataType) {
+    super(factory, dataType);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  void copyFrom(SargIntervalBase other) {
+    assert (getDataType() == other.getDataType());
+    lowerBound.copyFrom(other.getLowerBound());
+    upperBound.copyFrom(other.getUpperBound());
+  }
+
+  boolean contains(SargInterval other) {
+    assert (getDataType() == other.getDataType());
+    if (getLowerBound().compareTo(other.getLowerBound()) > 0) {
+      return false;
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    void copyFrom(SargIntervalBase other)
-    {
-        assert (getDataType() == other.getDataType());
-        lowerBound.copyFrom(other.getLowerBound());
-        upperBound.copyFrom(other.getUpperBound());
+    if (getUpperBound().compareTo(other.getUpperBound()) < 0) {
+      return false;
     }
-
-    boolean contains(SargInterval other)
-    {
-        assert (getDataType() == other.getDataType());
-        if (getLowerBound().compareTo(other.getLowerBound()) > 0) {
-            return false;
-        }
-        if (getUpperBound().compareTo(other.getUpperBound()) < 0) {
-            return false;
-        }
-        return true;
-    }
+    return true;
+  }
 }
 
 // End SargInterval.java

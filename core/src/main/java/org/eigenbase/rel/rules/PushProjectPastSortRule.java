@@ -25,46 +25,43 @@ import com.google.common.collect.ImmutableList;
 /**
  * Planner rule that pushes a {@link ProjectRel} past a {@link SortRel}.
  */
-public class PushProjectPastSortRule
-    extends RelOptRule
-{
-    public static final PushProjectPastSortRule INSTANCE =
-        new PushProjectPastSortRule();
+public class PushProjectPastSortRule extends RelOptRule {
+  public static final PushProjectPastSortRule INSTANCE =
+      new PushProjectPastSortRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a PushProjectPastSortRule.
-     */
-    private PushProjectPastSortRule() {
-        super(
-            operand(
-                ProjectRel.class,
-                operand(SortRel.class, any())));
+  /**
+   * Creates a PushProjectPastSortRule.
+   */
+  private PushProjectPastSortRule() {
+    super(
+        operand(
+            ProjectRel.class,
+            operand(SortRel.class, any())));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelOptRule
+  public void onMatch(RelOptRuleCall call) {
+    ProjectRel project = call.rel(0);
+    SortRel sort = call.rel(1);
+    if (sort.getClass() != SortRel.class) {
+      return;
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    // implement RelOptRule
-    public void onMatch(RelOptRuleCall call)
-    {
-        ProjectRel project = call.rel(0);
-        SortRel sort = call.rel(1);
-        if (sort.getClass() != SortRel.class) {
-            return;
-        }
-        RelNode newProject =
-            project.copy(
-                project.getTraitSet(), ImmutableList.of(sort.getChild()));
-        final SortRel newSort =
-            sort.copy(
-                sort.getTraitSet(),
-                newProject,
-                sort.getCollation(),
-                sort.offset,
-                sort.fetch);
-        call.transformTo(newSort);
-    }
+    RelNode newProject =
+        project.copy(
+            project.getTraitSet(), ImmutableList.of(sort.getChild()));
+    final SortRel newSort =
+        sort.copy(
+            sort.getTraitSet(),
+            newProject,
+            sort.getCollation(),
+            sort.offset,
+            sort.fetch);
+    call.transformTo(newSort);
+  }
 }
 
 // End PushProjectPastSortRule.java

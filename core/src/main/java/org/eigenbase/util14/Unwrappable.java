@@ -22,19 +22,16 @@ import java.sql.*;
 /**
  * Crotchety implementation for {@link Wrapper}.
  */
-public abstract class Unwrappable implements Wrapper
-{
-    // implement Wrapper
-    public boolean isWrapperFor(Class<?> iface)
-    {
-        return false;
-    }
+public abstract class Unwrappable implements Wrapper {
+  // implement Wrapper
+  public boolean isWrapperFor(Class<?> iface) {
+    return false;
+  }
 
-    // implement Wrapper
-    public <T> T unwrap(Class<T> iface)
-    {
-        throw new UnsupportedOperationException("unwrap");
-    }
+  // implement Wrapper
+  public <T> T unwrap(Class<T> iface) {
+    throw new UnsupportedOperationException("unwrap");
+  }
 }
 
 // End Unwrappable.java

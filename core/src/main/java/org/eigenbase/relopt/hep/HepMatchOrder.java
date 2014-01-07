@@ -21,25 +21,24 @@ package org.eigenbase.relopt.hep;
  * HepMatchOrder specifies the order of graph traversal when looking for rule
  * matches.
  */
-public enum HepMatchOrder
-{
-    /**
-     * Match in arbitrary order. This is the default because it is the most
-     * efficient, and most rules don't care about order.
-     */
-    ARBITRARY,
+public enum HepMatchOrder {
+  /**
+   * Match in arbitrary order. This is the default because it is the most
+   * efficient, and most rules don't care about order.
+   */
+  ARBITRARY,
 
-    /**
-     * Match from leaves up. A match attempt at a descendant precedes all match
-     * attempts at its ancestors.
-     */
-    BOTTOM_UP,
+  /**
+   * Match from leaves up. A match attempt at a descendant precedes all match
+   * attempts at its ancestors.
+   */
+  BOTTOM_UP,
 
-    /**
-     * Match from root down. A match attempt at an ancestor always precedes all
-     * match attempts at its descendants.
-     */
-    TOP_DOWN
+  /**
+   * Match from root down. A match attempt at an ancestor always precedes all
+   * match attempts at its descendants.
+   */
+  TOP_DOWN
 }
 
 // End HepMatchOrder.java

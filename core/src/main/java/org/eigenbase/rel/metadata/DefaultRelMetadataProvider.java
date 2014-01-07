@@ -23,34 +23,31 @@ package org.eigenbase.rel.metadata;
  * rules for the standard logical algebra; coverage corresponds to the methods
  * declared in {@link RelMetadataQuery}.
  */
-public class DefaultRelMetadataProvider
-    extends ChainedRelMetadataProvider
-{
-    //~ Constructors -----------------------------------------------------------
+public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a new default provider. This provider defines "catch-all"
-     * handlers for generic RelNodes, so it should always be given lowest
-     * priority when chaining.
-     */
-    public DefaultRelMetadataProvider()
-    {
-        addProvider(new RelMdPercentageOriginalRows());
+  /**
+   * Creates a new default provider. This provider defines "catch-all"
+   * handlers for generic RelNodes, so it should always be given lowest
+   * priority when chaining.
+   */
+  public DefaultRelMetadataProvider() {
+    addProvider(new RelMdPercentageOriginalRows());
 
-        addProvider(new RelMdColumnOrigins());
+    addProvider(new RelMdColumnOrigins());
 
-        addProvider(new RelMdRowCount());
+    addProvider(new RelMdRowCount());
 
-        addProvider(new RelMdUniqueKeys());
+    addProvider(new RelMdUniqueKeys());
 
-        addProvider(new RelMdColumnUniqueness());
+    addProvider(new RelMdColumnUniqueness());
 
-        addProvider(new RelMdPopulationSize());
+    addProvider(new RelMdPopulationSize());
 
-        addProvider(new RelMdDistinctRowCount());
+    addProvider(new RelMdDistinctRowCount());
 
-        addProvider(new RelMdSelectivity());
-    }
+    addProvider(new RelMdSelectivity());
+  }
 }
 
 // End DefaultRelMetadataProvider.java

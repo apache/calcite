@@ -2,9 +2,11 @@
 // add it to source control.
 
 package org.eigenbase.resource;
+
 import java.io.IOException;
 import java.util.Locale;
 import java.util.ResourceBundle;
+
 import org.eigenbase.resgen.*;
 
 /**
@@ -17,8 +19,8 @@ import org.eigenbase.resgen.*;
  */
 
 public class EigenbaseResource_en_US extends EigenbaseResource {
-    public EigenbaseResource_en_US() throws IOException {
-    }
+  public EigenbaseResource_en_US() throws IOException {
+  }
 }
 
 // End EigenbaseResource_en_US.java

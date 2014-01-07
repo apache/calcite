@@ -34,89 +34,81 @@ package org.eigenbase.util;
  * </blockquote>
  * </p>
  */
-public abstract class MainApp
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class MainApp {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final String [] args;
-    private OptionsList options = new OptionsList();
-    private int exitCode;
+  protected final String[] args;
+  private OptionsList options = new OptionsList();
+  private int exitCode;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    protected MainApp(String [] args)
-    {
-        this.args = args;
-        exitCode = 0;
+  protected MainApp(String[] args) {
+    this.args = args;
+    exitCode = 0;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Does the work of the application. Derived classes must implement this
+   * method; they can throw any exception they like, and {@link #run} will
+   * clean up after them.
+   */
+  public abstract void mainImpl()
+      throws Exception;
+
+  /**
+   * Does the work of the application, handles any errors, then calls {@link
+   * System#exit} to terminate the application.
+   */
+  public final void run() {
+    try {
+      initializeOptions();
+      mainImpl();
+    } catch (Throwable e) {
+      handle(e);
     }
+    System.exit(exitCode);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  /**
+   * Sets the code which this program will return to the operating system.
+   *
+   * @param exitCode Exit code
+   * @see System#exit
+   */
+  public void setExitCode(int exitCode) {
+    this.exitCode = exitCode;
+  }
 
-    /**
-     * Does the work of the application. Derived classes must implement this
-     * method; they can throw any exception they like, and {@link #run} will
-     * clean up after them.
-     */
-    public abstract void mainImpl()
-        throws Exception;
+  /**
+   * Handles an error. Derived classes may override this method to provide
+   * their own error-handling.
+   *
+   * @param throwable Error to handle.
+   */
+  public void handle(Throwable throwable) {
+    throwable.printStackTrace();
+  }
 
-    /**
-     * Does the work of the application, handles any errors, then calls {@link
-     * System#exit} to terminate the application.
-     */
-    public final void run()
-    {
-        try {
-            initializeOptions();
-            mainImpl();
-        } catch (Throwable e) {
-            handle(e);
-        }
-        System.exit(exitCode);
-    }
+  public void parseOptions(OptionsList.OptionHandler values) {
+    options.parse(args);
+  }
 
-    /**
-     * Sets the code which this program will return to the operating system.
-     *
-     * @param exitCode Exit code
-     *
-     * @see System#exit
-     */
-    public void setExitCode(int exitCode)
-    {
-        this.exitCode = exitCode;
-    }
-
-    /**
-     * Handles an error. Derived classes may override this method to provide
-     * their own error-handling.
-     *
-     * @param throwable Error to handle.
-     */
-    public void handle(Throwable throwable)
-    {
-        throwable.printStackTrace();
-    }
-
-    public void parseOptions(OptionsList.OptionHandler values)
-    {
-        options.parse(args);
-    }
-
-    /**
-     * Initializes the application.
-     */
-    protected void initializeOptions()
-    {
-        options.add(
-            new OptionsList.BooleanOption(
-                "-h",
-                "help",
-                "Prints command-line parameters",
-                false,
-                false,
-                false));
-    }
+  /**
+   * Initializes the application.
+   */
+  protected void initializeOptions() {
+    options.add(
+        new OptionsList.BooleanOption(
+            "-h",
+            "help",
+            "Prints command-line parameters",
+            false,
+            false,
+            false));
+  }
 }
 
 // End MainApp.java

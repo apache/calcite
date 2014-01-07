@@ -45,196 +45,190 @@ import net.hydromatic.optiq.util.BitSets;
  * a project before the aggregate to reorder the columns, and permutes them back
  * afterwards.
  */
-public class PullConstantsThroughAggregatesRule
-    extends RelOptRule
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class PullConstantsThroughAggregatesRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-    /**
-     * The singleton.
-     */
-    public static final PullConstantsThroughAggregatesRule instance =
-        new PullConstantsThroughAggregatesRule();
+  /**
+   * The singleton.
+   */
+  public static final PullConstantsThroughAggregatesRule instance =
+      new PullConstantsThroughAggregatesRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Private: use singleton
-     */
-    private PullConstantsThroughAggregatesRule() {
-        super(
-            operand(
-                AggregateRel.class,
-                operand(CalcRel.class, any())));
+  /**
+   * Private: use singleton
+   */
+  private PullConstantsThroughAggregatesRule() {
+    super(
+        operand(
+            AggregateRel.class,
+            operand(CalcRel.class, any())));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  // implement RelOptRule
+  public void onMatch(RelOptRuleCall call) {
+    AggregateRel aggregate = call.rel(0);
+    CalcRel child = call.rel(1);
+    final RexProgram program = child.getProgram();
+
+    final RelDataType childRowType = child.getRowType();
+    final int groupCount = aggregate.getGroupSet().cardinality();
+    IntList constantList = new IntList();
+    Map<Integer, RexNode> constants = new HashMap<Integer, RexNode>();
+    for (int i : BitSets.toIter(aggregate.getGroupSet())) {
+      final RexLocalRef ref = program.getProjectList().get(i);
+      if (program.isConstant(ref)) {
+        constantList.add(i);
+        constants.put(
+            i,
+            program.gatherExpr(ref));
+      }
     }
 
-    //~ Methods ----------------------------------------------------------------
+    // None of the group expressions are constant. Nothing to do.
+    if (constantList.size() == 0) {
+      return;
+    }
+    final int newGroupCount = groupCount - constantList.size();
+    final RelNode newAggregate;
 
-    // implement RelOptRule
-    public void onMatch(RelOptRuleCall call)
-    {
-        AggregateRel aggregate = call.rel(0);
-        CalcRel child = call.rel(1);
-        final RexProgram program = child.getProgram();
+    // If the constants are on the trailing edge of the group list, we just
+    // reduce the group count.
+    if (constantList.get(0) == newGroupCount) {
+      // Clone aggregate calls.
+      final List<AggregateCall> newAggCalls =
+          new ArrayList<AggregateCall>();
+      for (AggregateCall aggCall : aggregate.getAggCallList()) {
+        newAggCalls.add(
+            new AggregateCall(
+                aggCall.getAggregation(),
+                aggCall.isDistinct(),
+                aggCall.getArgList(),
+                aggCall.getType(),
+                aggCall.getName()));
+      }
+      newAggregate =
+          new AggregateRel(
+              aggregate.getCluster(),
+              child,
+              BitSets.range(newGroupCount),
+              newAggCalls);
+    } else {
+      // Create the mapping from old field positions to new field
+      // positions.
+      final Permutation mapping =
+          new Permutation(childRowType.getFieldCount());
+      mapping.identity();
 
-        final RelDataType childRowType = child.getRowType();
-        final int groupCount = aggregate.getGroupSet().cardinality();
-        IntList constantList = new IntList();
-        Map<Integer, RexNode> constants = new HashMap<Integer, RexNode>();
-        for (int i : BitSets.toIter(aggregate.getGroupSet())) {
-            final RexLocalRef ref = program.getProjectList().get(i);
-            if (program.isConstant(ref)) {
-                constantList.add(i);
-                constants.put(
-                    i,
-                    program.gatherExpr(ref));
-            }
-        }
-
-        // None of the group expressions are constant. Nothing to do.
-        if (constantList.size() == 0) {
-            return;
-        }
-        final int newGroupCount = groupCount - constantList.size();
-        final RelNode newAggregate;
-
-        // If the constants are on the trailing edge of the group list, we just
-        // reduce the group count.
-        if (constantList.get(0) == newGroupCount) {
-            // Clone aggregate calls.
-            final List<AggregateCall> newAggCalls =
-                new ArrayList<AggregateCall>();
-            for (AggregateCall aggCall : aggregate.getAggCallList()) {
-                newAggCalls.add(
-                    new AggregateCall(
-                        aggCall.getAggregation(),
-                        aggCall.isDistinct(),
-                        aggCall.getArgList(),
-                        aggCall.getType(),
-                        aggCall.getName()));
-            }
-            newAggregate =
-                new AggregateRel(
-                    aggregate.getCluster(),
-                    child,
-                    BitSets.range(newGroupCount),
-                    newAggCalls);
+      // Ensure that the first positions in the mapping are for the new
+      // group columns.
+      for (
+          int i = 0, groupOrdinal = 0, constOrdinal = newGroupCount;
+          i < groupCount;
+          ++i) {
+        if (i >= groupCount) {
+          mapping.set(i, i);
+        } else if (constants.containsKey(i)) {
+          mapping.set(i, constOrdinal++);
         } else {
-            // Create the mapping from old field positions to new field
-            // positions.
-            final Permutation mapping =
-                new Permutation(childRowType.getFieldCount());
-            mapping.identity();
-
-            // Ensure that the first positions in the mapping are for the new
-            // group columns.
-            for (
-                int i = 0, groupOrdinal = 0, constOrdinal = newGroupCount;
-                i < groupCount;
-                ++i)
-            {
-                if (i >= groupCount) {
-                    mapping.set(i, i);
-                } else if (constants.containsKey(i)) {
-                    mapping.set(i, constOrdinal++);
-                } else {
-                    mapping.set(i, groupOrdinal++);
-                }
-            }
-
-            // Create a projection to permute fields into these positions.
-            final RelNode project = createProjection(mapping, child);
-
-            // Adjust aggregate calls for new field positions.
-            final List<AggregateCall> newAggCalls =
-                new ArrayList<AggregateCall>();
-            for (AggregateCall aggCall : aggregate.getAggCallList()) {
-                final int argCount = aggCall.getArgList().size();
-                final List<Integer> args = new ArrayList<Integer>(argCount);
-                for (int j = 0; j < argCount; j++) {
-                    final Integer arg = aggCall.getArgList().get(j);
-                    args.add(mapping.getTarget(arg));
-                }
-                newAggCalls.add(
-                    new AggregateCall(
-                        aggCall.getAggregation(),
-                        aggCall.isDistinct(),
-                        args,
-                        aggCall.getType(),
-                        aggCall.getName()));
-            }
-
-            // Aggregate on projection.
-            newAggregate =
-                new AggregateRel(
-                    aggregate.getCluster(),
-                    project,
-                    BitSets.range(newGroupCount),
-                    newAggCalls);
+          mapping.set(i, groupOrdinal++);
         }
+      }
 
-        // Create a projection back again.
-        List<Pair<RexNode, String>> projects =
-            new ArrayList<Pair<RexNode, String>>();
-        int source = 0;
-        for (RelDataTypeField field : aggregate.getRowType().getFieldList()) {
-            RexNode expr;
-            final int i = field.getIndex();
-            if (i >= groupCount) {
-                // Aggregate expressions' names and positions are unchanged.
-                expr =
-                    RelOptUtil.createInputRef(
-                        newAggregate,
-                        i - constantList.size());
-            } else if (constantList.contains(i)) {
-                // Re-generate the constant expression in the project.
-                expr = constants.get(i);
-            } else {
-                // Project the aggregation expression, in its original
-                // position.
-                expr = RelOptUtil.createInputRef(newAggregate, source);
-                ++source;
-            }
-            projects.add(Pair.of(expr, field.getName()));
+      // Create a projection to permute fields into these positions.
+      final RelNode project = createProjection(mapping, child);
+
+      // Adjust aggregate calls for new field positions.
+      final List<AggregateCall> newAggCalls =
+          new ArrayList<AggregateCall>();
+      for (AggregateCall aggCall : aggregate.getAggCallList()) {
+        final int argCount = aggCall.getArgList().size();
+        final List<Integer> args = new ArrayList<Integer>(argCount);
+        for (int j = 0; j < argCount; j++) {
+          final Integer arg = aggCall.getArgList().get(j);
+          args.add(mapping.getTarget(arg));
         }
-        final RelNode inverseProject =
-            CalcRel.createProject(newAggregate, projects, false);
+        newAggCalls.add(
+            new AggregateCall(
+                aggCall.getAggregation(),
+                aggCall.isDistinct(),
+                args,
+                aggCall.getType(),
+                aggCall.getName()));
+      }
 
-        call.transformTo(inverseProject);
+      // Aggregate on projection.
+      newAggregate =
+          new AggregateRel(
+              aggregate.getCluster(),
+              project,
+              BitSets.range(newGroupCount),
+              newAggCalls);
     }
 
-    /**
-     * Creates a projection which permutes the fields of a given relational
-     * expression.
-     *
-     * <p>For example, given a relational expression [A, B, C, D] and a mapping
-     * [2:1, 3:0], returns a projection [$3 AS C, $2 AS B].
-     *
-     * @param mapping Mapping to apply to source columns
-     * @param child Relational expression
-     *
-     * @return Relational expressions with permutation applied
-     */
-    private static RelNode createProjection(
-        final Mapping mapping,
-        RelNode child)
-    {
-        // Every target has precisely one source; every source has at most
-        // one target.
-        assert mapping.getMappingType().isA(MappingType.InverseSurjection);
-        final RelDataType childRowType = child.getRowType();
-        assert mapping.getSourceCount() == childRowType.getFieldCount();
-        List<Pair<RexNode, String>> projects =
-            new ArrayList<Pair<RexNode, String>>();
-        for (int target = 0; target < mapping.getTargetCount(); ++target) {
-            int source = mapping.getSource(target);
-            projects.add(
-                Pair.of(
-                    RelOptUtil.createInputRef(child, source),
-                    childRowType.getFieldList().get(source).getName()));
-        }
-        return CalcRel.createProject(child, projects, false);
+    // Create a projection back again.
+    List<Pair<RexNode, String>> projects =
+        new ArrayList<Pair<RexNode, String>>();
+    int source = 0;
+    for (RelDataTypeField field : aggregate.getRowType().getFieldList()) {
+      RexNode expr;
+      final int i = field.getIndex();
+      if (i >= groupCount) {
+        // Aggregate expressions' names and positions are unchanged.
+        expr =
+            RelOptUtil.createInputRef(
+                newAggregate,
+                i - constantList.size());
+      } else if (constantList.contains(i)) {
+        // Re-generate the constant expression in the project.
+        expr = constants.get(i);
+      } else {
+        // Project the aggregation expression, in its original
+        // position.
+        expr = RelOptUtil.createInputRef(newAggregate, source);
+        ++source;
+      }
+      projects.add(Pair.of(expr, field.getName()));
     }
+    final RelNode inverseProject =
+        CalcRel.createProject(newAggregate, projects, false);
+
+    call.transformTo(inverseProject);
+  }
+
+  /**
+   * Creates a projection which permutes the fields of a given relational
+   * expression.
+   *
+   * <p>For example, given a relational expression [A, B, C, D] and a mapping
+   * [2:1, 3:0], returns a projection [$3 AS C, $2 AS B].
+   *
+   * @param mapping Mapping to apply to source columns
+   * @param child   Relational expression
+   * @return Relational expressions with permutation applied
+   */
+  private static RelNode createProjection(
+      final Mapping mapping,
+      RelNode child) {
+    // Every target has precisely one source; every source has at most
+    // one target.
+    assert mapping.getMappingType().isA(MappingType.InverseSurjection);
+    final RelDataType childRowType = child.getRowType();
+    assert mapping.getSourceCount() == childRowType.getFieldCount();
+    List<Pair<RexNode, String>> projects =
+        new ArrayList<Pair<RexNode, String>>();
+    for (int target = 0; target < mapping.getTargetCount(); ++target) {
+      int source = mapping.getSource(target);
+      projects.add(
+          Pair.of(
+              RelOptUtil.createInputRef(child, source),
+              childRowType.getFieldList().get(source).getName()));
+    }
+    return CalcRel.createProject(child, projects, false);
+  }
 }
 
 // End PullConstantsThroughAggregatesRule.java

@@ -25,34 +25,32 @@ import org.eigenbase.rel.*;
  * own protocol for walking over a tree, and correspondingly have their own
  * implementors, which are subclasses of <code>RelImplementor</code>.
  */
-public interface RelImplementor
-{
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Implements a relational expression according to a calling convention.
-     *
-     * @param parent Parent relational expression
-     * @param ordinal Ordinal of child within its parent
-     * @param child Child relational expression
-     *
-     * @return Interpretation of the return value is left to the implementor
-     */
-    Object visitChild(
-        RelNode parent,
-        int ordinal,
-        RelNode child);
+public interface RelImplementor {
+  //~ Methods ----------------------------------------------------------------
 
   /**
-     * Called from {@link #visitChild} after the frame has been set up. Specific
-     * implementors should override this method.
-     *
-     * @param child Child relational expression
-     * @param ordinal Ordinal of child within its parent
-     * @param arg Additional parameter; type depends on implementor
-     * @return Interpretation of the return value is left to the implementor
-     */
-    Object visitChildInternal(RelNode child, int ordinal, Object arg);
+   * Implements a relational expression according to a calling convention.
+   *
+   * @param parent  Parent relational expression
+   * @param ordinal Ordinal of child within its parent
+   * @param child   Child relational expression
+   * @return Interpretation of the return value is left to the implementor
+   */
+  Object visitChild(
+      RelNode parent,
+      int ordinal,
+      RelNode child);
+
+  /**
+   * Called from {@link #visitChild} after the frame has been set up. Specific
+   * implementors should override this method.
+   *
+   * @param child   Child relational expression
+   * @param ordinal Ordinal of child within its parent
+   * @param arg     Additional parameter; type depends on implementor
+   * @return Interpretation of the return value is left to the implementor
+   */
+  Object visitChildInternal(RelNode child, int ordinal, Object arg);
 }
 
 // End RelImplementor.java

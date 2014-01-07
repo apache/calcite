@@ -36,13 +36,17 @@ public interface RelInput {
 
   RelOptTable getTable(String table);
 
-  /** Returns the input relational expression. Throws if there is not precisely
-   * one input. */
+  /**
+   * Returns the input relational expression. Throws if there is not precisely
+   * one input.
+   */
   RelNode getInput();
 
   List<RelNode> getInputs();
 
-  /** Returns an expression. */
+  /**
+   * Returns an expression.
+   */
   RexNode getExpression(String tag);
 
   BitSet getBitSet(String tag);
@@ -51,13 +55,19 @@ public interface RelInput {
 
   Object get(String tag);
 
-  /** Returns a {@code float} value. Throws if wrong type. */
+  /**
+   * Returns a {@code float} value. Throws if wrong type.
+   */
   String getString(String tag);
 
-  /** Returns a {@code float} value. Throws if not present or wrong type. */
+  /**
+   * Returns a {@code float} value. Throws if not present or wrong type.
+   */
   float getFloat(String tag);
 
-  /** Returns an enum value. Throws if not a valid member. */
+  /**
+   * Returns an enum value. Throws if not a valid member.
+   */
   <E extends Enum<E>> E getEnum(String tag, Class<E> enumClass);
 
   List<RexNode> getExpressionList(String tag);

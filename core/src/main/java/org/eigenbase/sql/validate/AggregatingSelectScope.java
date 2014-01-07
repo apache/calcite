@@ -30,172 +30,161 @@ import org.eigenbase.sql.fun.*;
  * identifiers or expressions which are not group-expressions.
  */
 public class AggregatingSelectScope
-    extends DelegatingScope
-    implements AggregatingScope
-{
-    //~ Instance fields --------------------------------------------------------
+    extends DelegatingScope implements AggregatingScope {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlSelect select;
-    private final boolean distinct;
-    private final List<SqlNode> groupExprList;
+  private final SqlSelect select;
+  private final boolean distinct;
+  private final List<SqlNode> groupExprList;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates an AggregatingSelectScope
-     *
-     * @param selectScope Parent scope
-     * @param select Enclosing SELECT node
-     * @param distinct Whether SELECT is DISTINCT
-     */
-    AggregatingSelectScope(
-        SqlValidatorScope selectScope,
-        SqlSelect select,
-        boolean distinct)
-    {
-        // The select scope is the parent in the sense that all columns which
-        // are available in the select scope are available. Whether they are
-        // valid as aggregation expressions... now that's a different matter.
-        super(selectScope);
-        this.select = select;
-        this.distinct = distinct;
-        if (distinct) {
-            groupExprList = null;
-        } else if (select.getGroup() != null) {
-            // We deep-copy the group-list in case subsequent validation
-            // modifies it and makes it no longer equivalent. While copying,
-            // we fully qualify all identifiers.
-            SqlNodeList sqlNodeList =
-                (SqlNodeList) this.select.getGroup().accept(
-                    new SqlValidatorUtil.DeepCopier(parent));
-            this.groupExprList = sqlNodeList.getList();
+  /**
+   * Creates an AggregatingSelectScope
+   *
+   * @param selectScope Parent scope
+   * @param select      Enclosing SELECT node
+   * @param distinct    Whether SELECT is DISTINCT
+   */
+  AggregatingSelectScope(
+      SqlValidatorScope selectScope,
+      SqlSelect select,
+      boolean distinct) {
+    // The select scope is the parent in the sense that all columns which
+    // are available in the select scope are available. Whether they are
+    // valid as aggregation expressions... now that's a different matter.
+    super(selectScope);
+    this.select = select;
+    this.distinct = distinct;
+    if (distinct) {
+      groupExprList = null;
+    } else if (select.getGroup() != null) {
+      // We deep-copy the group-list in case subsequent validation
+      // modifies it and makes it no longer equivalent. While copying,
+      // we fully qualify all identifiers.
+      SqlNodeList sqlNodeList =
+          (SqlNodeList) this.select.getGroup().accept(
+              new SqlValidatorUtil.DeepCopier(parent));
+      this.groupExprList = sqlNodeList.getList();
+    } else {
+      groupExprList = null;
+    }
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Returns the expressions that are in the GROUP BY clause (or the SELECT
+   * DISTINCT clause, if distinct) and that can therefore be referenced
+   * without being wrapped in aggregate functions.
+   *
+   * <p>The expressions are fully-qualified, and any "*" in select clauses are
+   * expanded.
+   *
+   * @return list of grouping expressions
+   */
+  private List<SqlNode> getGroupExprs() {
+    if (distinct) {
+      // Cannot compute this in the constructor: select list has not been
+      // expanded yet.
+      assert select.isDistinct();
+
+      // Remove the AS operator so the expressions are consistent with
+      // OrderExpressionExpander.
+      List<SqlNode> groupExprs = new ArrayList<SqlNode>();
+      for (
+          SqlNode selectItem
+          : ((SelectScope) parent).getExpandedSelectList()) {
+        if (SqlUtil.isCallTo(
+            selectItem,
+            SqlStdOperatorTable.asOperator)) {
+          groupExprs.add(((SqlCall) selectItem).getOperands()[0]);
         } else {
-            groupExprList = null;
+          groupExprs.add(selectItem);
         }
+      }
+      return groupExprs;
+    } else if (select.getGroup() != null) {
+      return groupExprList;
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
+  public SqlNode getNode() {
+    return select;
+  }
+
+  public SqlValidatorScope getOperandScope(SqlCall call) {
+    if (call.getOperator().isAggregator()) {
+      // If we're the 'SUM' node in 'select a + sum(b + c) from t
+      // group by a', then we should validate our arguments in
+      // the non-aggregating scope, where 'b' and 'c' are valid
+      // column references.
+      return parent;
+    } else if (call instanceof SqlWindow) {
+      return parent;
+    } else {
+      // Check whether expression is constant within the group.
+      //
+      // If not, throws. Example, 'empno' in
+      //    SELECT empno FROM emp GROUP BY deptno
+      //
+      // If it perfectly matches an expression in the GROUP BY
+      // clause, we validate its arguments in the non-aggregating
+      // scope. Example, 'empno + 1' in
+      //
+      //   SELET empno + 1 FROM emp GROUP BY empno + 1
+
+      final boolean matches = checkAggregateExpr(call, false);
+      if (matches) {
+        return parent;
+      }
+    }
+    return super.getOperandScope(call);
+  }
+
+  public boolean checkAggregateExpr(SqlNode expr, boolean deep) {
+    // Fully-qualify any identifiers in expr.
+    if (deep) {
+      expr = validator.expand(expr, this);
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Returns the expressions that are in the GROUP BY clause (or the SELECT
-     * DISTINCT clause, if distinct) and that can therefore be referenced
-     * without being wrapped in aggregate functions.
-     *
-     * <p>The expressions are fully-qualified, and any "*" in select clauses are
-     * expanded.
-     *
-     * @return list of grouping expressions
-     */
-    private List<SqlNode> getGroupExprs()
-    {
-        if (distinct) {
-            // Cannot compute this in the constructor: select list has not been
-            // expanded yet.
-            assert select.isDistinct();
-
-            // Remove the AS operator so the expressions are consistent with
-            // OrderExpressionExpander.
-            List<SqlNode> groupExprs = new ArrayList<SqlNode>();
-            for (
-                SqlNode selectItem
-                : ((SelectScope) parent).getExpandedSelectList())
-            {
-                if (SqlUtil.isCallTo(
-                        selectItem,
-                        SqlStdOperatorTable.asOperator))
-                {
-                    groupExprs.add(((SqlCall) selectItem).getOperands()[0]);
-                } else {
-                    groupExprs.add(selectItem);
-                }
-            }
-            return groupExprs;
-        } else if (select.getGroup() != null) {
-            return groupExprList;
-        } else {
-            return Collections.emptyList();
-        }
+    // Make sure expression is valid, throws if not.
+    List<SqlNode> groupExprs = getGroupExprs();
+    final AggChecker aggChecker =
+        new AggChecker(
+            validator,
+            this,
+            groupExprs,
+            distinct);
+    if (deep) {
+      expr.accept(aggChecker);
     }
 
-    public SqlNode getNode()
-    {
-        return select;
-    }
+    // Return whether expression exactly matches one of the group
+    // expressions.
+    return aggChecker.isGroupExpr(expr);
+  }
 
-    public SqlValidatorScope getOperandScope(SqlCall call)
-    {
-        if (call.getOperator().isAggregator()) {
-            // If we're the 'SUM' node in 'select a + sum(b + c) from t
-            // group by a', then we should validate our arguments in
-            // the non-aggregating scope, where 'b' and 'c' are valid
-            // column references.
-            return parent;
-        } else if (call instanceof SqlWindow) {
-            return parent;
-        } else {
-            // Check whether expression is constant within the group.
-            //
-            // If not, throws. Example, 'empno' in
-            //    SELECT empno FROM emp GROUP BY deptno
-            //
-            // If it perfectly matches an expression in the GROUP BY
-            // clause, we validate its arguments in the non-aggregating
-            // scope. Example, 'empno + 1' in
-            //
-            //   SELET empno + 1 FROM emp GROUP BY empno + 1
+  public void validateExpr(SqlNode expr) {
+    checkAggregateExpr(expr, true);
+  }
 
-            final boolean matches = checkAggregateExpr(call, false);
-            if (matches) {
-                return parent;
-            }
-        }
-        return super.getOperandScope(call);
-    }
-
-    public boolean checkAggregateExpr(SqlNode expr, boolean deep)
-    {
-        // Fully-qualify any identifiers in expr.
-        if (deep) {
-            expr = validator.expand(expr, this);
-        }
-
-        // Make sure expression is valid, throws if not.
-        List<SqlNode> groupExprs = getGroupExprs();
-        final AggChecker aggChecker =
-            new AggChecker(
-                validator,
-                this,
-                groupExprs,
-                distinct);
-        if (deep) {
-            expr.accept(aggChecker);
-        }
-
-        // Return whether expression exactly matches one of the group
-        // expressions.
-        return aggChecker.isGroupExpr(expr);
-    }
-
-    public void validateExpr(SqlNode expr)
-    {
-        checkAggregateExpr(expr, true);
-    }
-
-    /**
-     * Adds a GROUP BY expression.
-     *
-     * <p>This method is used when the GROUP BY list is validated, and
-     * expressions are expanded, in which case they are not structurally
-     * identical to the unexpanded form.  We leave the previous expression in
-     * the list (in case there are occurrences of the expression's unexpanded
-     * form in the parse tree.
-     *
-     * @param expr Expression
-     */
-    public void addGroupExpr(SqlNode expr)
-    {
-        groupExprList.add(expr);
-    }
+  /**
+   * Adds a GROUP BY expression.
+   *
+   * <p>This method is used when the GROUP BY list is validated, and
+   * expressions are expanded, in which case they are not structurally
+   * identical to the unexpanded form.  We leave the previous expression in
+   * the list (in case there are occurrences of the expression's unexpanded
+   * form in the parse tree.
+   *
+   * @param expr Expression
+   */
+  public void addGroupExpr(SqlNode expr) {
+    groupExprList.add(expr);
+  }
 }
 
 // End AggregatingSelectScope.java

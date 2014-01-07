@@ -45,137 +45,132 @@ import org.eigenbase.util.*;
  * Don't try to cast the namespace or use <code>instanceof</code>; use {@link
  * SqlValidatorNamespace#unwrap(Class)} and {@link
  * SqlValidatorNamespace#isWrapperFor(Class)} instead.</p>
+ *
  * @see SqlValidator
  * @see SqlValidatorScope
  */
-public interface SqlValidatorNamespace
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SqlValidatorNamespace {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Returns the validator.
-     *
-     * @return validator
-     */
-    SqlValidator getValidator();
+  /**
+   * Returns the validator.
+   *
+   * @return validator
+   */
+  SqlValidator getValidator();
 
-    /**
-     * Returns the underlying table, or null if there is none.
-     */
-    SqlValidatorTable getTable();
+  /**
+   * Returns the underlying table, or null if there is none.
+   */
+  SqlValidatorTable getTable();
 
-    /**
-     * Returns the row type of this namespace, which comprises a list of names
-     * and types of the output columns. If the scope's type has not yet been
-     * derived, derives it. Never returns null.
-     *
-     * @post return != null
-     */
-    RelDataType getRowType();
+  /**
+   * Returns the row type of this namespace, which comprises a list of names
+   * and types of the output columns. If the scope's type has not yet been
+   * derived, derives it. Never returns null.
+   *
+   * @post return != null
+   */
+  RelDataType getRowType();
 
-    /**
-     * Allows RowType for the namespace to be explicitly set.
-     */
-    void setRowType(RelDataType rowType);
+  /**
+   * Allows RowType for the namespace to be explicitly set.
+   */
+  void setRowType(RelDataType rowType);
 
-    /**
-     * Returns the row type of this namespace, sans any system columns.
-     *
-     * @return Row type sans system columns
-     */
-    RelDataType getRowTypeSansSystemColumns();
+  /**
+   * Returns the row type of this namespace, sans any system columns.
+   *
+   * @return Row type sans system columns
+   */
+  RelDataType getRowTypeSansSystemColumns();
 
-    /**
-     * Validates this namespace.
-     *
-     * <p>If the scope has already been validated, does nothing.</p>
-     *
-     * <p>Please call {@link SqlValidatorImpl#validateNamespace} rather than
-     * calling this method directly.</p>
-     */
-    void validate();
+  /**
+   * Validates this namespace.
+   *
+   * <p>If the scope has already been validated, does nothing.</p>
+   *
+   * <p>Please call {@link SqlValidatorImpl#validateNamespace} rather than
+   * calling this method directly.</p>
+   */
+  void validate();
 
-    /**
-     * Returns the parse tree node at the root of this namespace.
-     *
-     * @return parse tree node
-     */
-    SqlNode getNode();
+  /**
+   * Returns the parse tree node at the root of this namespace.
+   *
+   * @return parse tree node
+   */
+  SqlNode getNode();
 
-    /**
-     * Returns the parse tree node that at is at the root of this namespace and
-     * includes all decorations. If there are no decorations, returns the same
-     * as {@link #getNode()}.
-     */
-    SqlNode getEnclosingNode();
+  /**
+   * Returns the parse tree node that at is at the root of this namespace and
+   * includes all decorations. If there are no decorations, returns the same
+   * as {@link #getNode()}.
+   */
+  SqlNode getEnclosingNode();
 
-    /**
-     * Looks up a child namespace of a given name.
-     *
-     * <p>For example, in the query <code>select e.name from emps as e</code>,
-     * <code>e</code> is an {@link IdentifierNamespace} which has a child <code>
-     * name</code> which is a {@link FieldNamespace}.
-     *
-     * @param name Name of namespace
-     *
-     * @return Namespace
-     */
-    SqlValidatorNamespace lookupChild(String name);
+  /**
+   * Looks up a child namespace of a given name.
+   *
+   * <p>For example, in the query <code>select e.name from emps as e</code>,
+   * <code>e</code> is an {@link IdentifierNamespace} which has a child <code>
+   * name</code> which is a {@link FieldNamespace}.
+   *
+   * @param name Name of namespace
+   * @return Namespace
+   */
+  SqlValidatorNamespace lookupChild(String name);
 
-    /**
-     * Returns whether this namespace has a field of a given name.
-     *
-     * @param name Field name
-     *
-     * @return Whether field exists
-     */
-    boolean fieldExists(String name);
+  /**
+   * Returns whether this namespace has a field of a given name.
+   *
+   * @param name Field name
+   * @return Whether field exists
+   */
+  boolean fieldExists(String name);
 
-    /**
-     * Returns a list of expressions which are monotonic in this namespace. For
-     * example, if the namespace represents a relation ordered by a column
-     * called "TIMESTAMP", then the list would contain a {@link
-     * org.eigenbase.sql.SqlIdentifier} called "TIMESTAMP".
-     */
-    List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs();
+  /**
+   * Returns a list of expressions which are monotonic in this namespace. For
+   * example, if the namespace represents a relation ordered by a column
+   * called "TIMESTAMP", then the list would contain a {@link
+   * org.eigenbase.sql.SqlIdentifier} called "TIMESTAMP".
+   */
+  List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs();
 
-    /**
-     * Returns whether and how a given column is sorted.
-     */
-    SqlMonotonicity getMonotonicity(String columnName);
+  /**
+   * Returns whether and how a given column is sorted.
+   */
+  SqlMonotonicity getMonotonicity(String columnName);
 
-    /**
-     * Makes all fields in this namespace nullable (typically because it is on
-     * the outer side of an outer join.
-     */
-    void makeNullable();
+  /**
+   * Makes all fields in this namespace nullable (typically because it is on
+   * the outer side of an outer join.
+   */
+  void makeNullable();
 
-    /**
-     * Translates a field name to the name in the underlying namespace.
-     */
-    String translate(String name);
+  /**
+   * Translates a field name to the name in the underlying namespace.
+   */
+  String translate(String name);
 
-    /**
-     * Returns this namespace, or a wrapped namespace, cast to a particular
-     * class.
-     *
-     * @param clazz Desired type
-     *
-     * @return This namespace cast to desired type
-     *
-     * @throws ClassCastException if no such interface is available
-     */
-    <T> T unwrap(Class<T> clazz);
+  /**
+   * Returns this namespace, or a wrapped namespace, cast to a particular
+   * class.
+   *
+   * @param clazz Desired type
+   * @return This namespace cast to desired type
+   * @throws ClassCastException if no such interface is available
+   */
+  <T> T unwrap(Class<T> clazz);
 
-    /**
-     * Returns whether this namespace implements a given interface, or wraps a
-     * class which does.
-     *
-     * @param clazz Interface
-     *
-     * @return Whether namespace implements given interface
-     */
-    boolean isWrapperFor(Class<?> clazz);
+  /**
+   * Returns whether this namespace implements a given interface, or wraps a
+   * class which does.
+   *
+   * @param clazz Interface
+   * @return Whether namespace implements given interface
+   */
+  boolean isWrapperFor(Class<?> clazz);
 }
 
 // End SqlValidatorNamespace.java

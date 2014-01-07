@@ -30,55 +30,48 @@ import com.google.common.collect.ImmutableList;
 /**
  * Operator which aggregates sets of values into a result.
  */
-public class SqlRankFunction
-    extends SqlAggFunction
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlRankFunction extends SqlAggFunction {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType type = null;
+  private final RelDataType type = null;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlRankFunction(String name)
-    {
-        super(
-            name,
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiInteger,
-            null,
-            SqlTypeStrategies.otcNiladic,
-            SqlFunctionCategory.Numeric);
-    }
+  public SqlRankFunction(String name) {
+    super(
+        name,
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiInteger,
+        null,
+        SqlTypeStrategies.otcNiladic,
+        SqlFunctionCategory.Numeric);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelDataType getReturnType(RelDataTypeFactory typeFactory)
-    {
-        return type;
-    }
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+    return type;
+  }
 
-    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
-    {
-        return ImmutableList.of(type);
-    }
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+    return ImmutableList.of(type);
+  }
 
-    public boolean isAggregator()
-    {
-        return true;
-    }
+  public boolean isAggregator() {
+    return true;
+  }
 
-    public void validateCall(
-        SqlCall call,
-        SqlValidator validator,
-        SqlValidatorScope scope,
-        SqlValidatorScope operandScope)
-    {
-        final SqlParserPos pos = call.getParserPosition();
-        throw SqlUtil.newContextException(
-            pos,
-            EigenbaseResource.instance().FunctionUndefined.ex(
-                call.toString()));
-    }
+  public void validateCall(
+      SqlCall call,
+      SqlValidator validator,
+      SqlValidatorScope scope,
+      SqlValidatorScope operandScope) {
+    final SqlParserPos pos = call.getParserPosition();
+    throw SqlUtil.newContextException(
+        pos,
+        EigenbaseResource.instance().FunctionUndefined.ex(
+            call.toString()));
+  }
 }
 
 // End SqlRankFunction.java

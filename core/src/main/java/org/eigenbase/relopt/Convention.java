@@ -22,55 +22,55 @@ import org.eigenbase.rel.RelNode;
 /**
  * Calling convention trait.
  */
-public interface Convention
-    extends RelTrait
-{
-    /**
-     * Convention that for a relational expression that does not support any
-     * convention. It is not implementable, and has to be transformed to
-     * something else in order to be implemented.
-     *
-     * <p>Relational expressions generally start off in this form.</p>
-     *
-     * <p>Such expressions always have infinite cost.</p>
-     */
-    Convention NONE = new Impl("NONE", RelNode.class);
+public interface Convention extends RelTrait {
+  /**
+   * Convention that for a relational expression that does not support any
+   * convention. It is not implementable, and has to be transformed to
+   * something else in order to be implemented.
+   *
+   * <p>Relational expressions generally start off in this form.</p>
+   *
+   * <p>Such expressions always have infinite cost.</p>
+   */
+  Convention NONE = new Impl("NONE", RelNode.class);
 
-    Class getInterface();
+  Class getInterface();
 
-    String getName();
+  String getName();
 
-    /** Default implementation. */
-    class Impl implements Convention {
-        private final String name;
-        private final Class<? extends RelNode> relClass;
+  /**
+   * Default implementation.
+   */
+  class Impl implements Convention {
+    private final String name;
+    private final Class<? extends RelNode> relClass;
 
-        public Impl(String name, Class<? extends RelNode> relClass) {
-            this.name = name;
-            this.relClass = relClass;
-        }
-
-        @Override
-        public String toString() {
-            return getName();
-        }
-
-        public boolean subsumes(RelTrait trait) {
-            return this == trait;
-        }
-
-        public Class getInterface() {
-            return relClass;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public RelTraitDef getTraitDef() {
-            return ConventionTraitDef.instance;
-        }
+    public Impl(String name, Class<? extends RelNode> relClass) {
+      this.name = name;
+      this.relClass = relClass;
     }
+
+    @Override
+    public String toString() {
+      return getName();
+    }
+
+    public boolean subsumes(RelTrait trait) {
+      return this == trait;
+    }
+
+    public Class getInterface() {
+      return relClass;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public RelTraitDef getTraitDef() {
+      return ConventionTraitDef.instance;
+    }
+  }
 }
 
 // End Convention.java

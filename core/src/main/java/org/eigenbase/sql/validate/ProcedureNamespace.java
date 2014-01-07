@@ -24,40 +24,35 @@ import org.eigenbase.sql.*;
  * Namespace whose contents are defined by the result of a call to a
  * user-defined procedure.
  */
-public class ProcedureNamespace
-    extends AbstractNamespace
-{
-    //~ Instance fields --------------------------------------------------------
+public class ProcedureNamespace extends AbstractNamespace {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlValidatorScope scope;
+  private final SqlValidatorScope scope;
 
-    private final SqlCall call;
+  private final SqlCall call;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    ProcedureNamespace(
-        SqlValidatorImpl validator,
-        SqlValidatorScope scope,
-        SqlCall call,
-        SqlNode enclosingNode)
-    {
-        super(validator, enclosingNode);
-        this.scope = scope;
-        this.call = call;
-    }
+  ProcedureNamespace(
+      SqlValidatorImpl validator,
+      SqlValidatorScope scope,
+      SqlCall call,
+      SqlNode enclosingNode) {
+    super(validator, enclosingNode);
+    this.scope = scope;
+    this.call = call;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelDataType validateImpl()
-    {
-        validator.inferUnknownTypes(validator.unknownType, scope, call);
-        return validator.deriveTypeImpl(scope, call);
-    }
+  public RelDataType validateImpl() {
+    validator.inferUnknownTypes(validator.unknownType, scope, call);
+    return validator.deriveTypeImpl(scope, call);
+  }
 
-    public SqlNode getNode()
-    {
-        return call;
-    }
+  public SqlNode getNode() {
+    return call;
+  }
 }
 
 // End ProcedureNamespace.java

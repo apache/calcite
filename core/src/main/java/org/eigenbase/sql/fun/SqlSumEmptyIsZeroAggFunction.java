@@ -31,43 +31,37 @@ import com.google.common.collect.ImmutableList;
  * are applied zero is returned instead of null. Can be used along with <code>
  * Count</code> to implement <code>Sum</code>.
  */
-public class SqlSumEmptyIsZeroAggFunction
-    extends SqlAggFunction
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlSumEmptyIsZeroAggFunction extends SqlAggFunction {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelDataType type;
+  private final RelDataType type;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlSumEmptyIsZeroAggFunction(RelDataType type)
-    {
-        super(
-            "$SUM0",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiFirstArgType,
-            null,
-            SqlTypeStrategies.otcNumeric,
-            SqlFunctionCategory.Numeric);
-        this.type = type;
-    }
+  public SqlSumEmptyIsZeroAggFunction(RelDataType type) {
+    super(
+        "$SUM0",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiFirstArgType,
+        null,
+        SqlTypeStrategies.otcNumeric,
+        SqlFunctionCategory.Numeric);
+    this.type = type;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
-    {
-        return ImmutableList.of(type);
-    }
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+    return ImmutableList.of(type);
+  }
 
-    public RelDataType getType()
-    {
-        return type;
-    }
+  public RelDataType getType() {
+    return type;
+  }
 
-    public RelDataType getReturnType(RelDataTypeFactory typeFactory)
-    {
-        return type;
-    }
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+    return type;
+  }
 }
 
 // End SqlSumEmptyIsZeroAggFunction.java

@@ -31,179 +31,163 @@ import net.hydromatic.optiq.prepare.Prepare;
  * <code>TableModificationRelBase</code> is an abstract base class for
  * implementations of {@link TableModificationRel}.
  */
-public abstract class TableModificationRelBase
-    extends SingleRel
-{
-    //~ Enums ------------------------------------------------------------------
+public abstract class TableModificationRelBase extends SingleRel {
+  //~ Enums ------------------------------------------------------------------
 
-    /**
-     * Enumeration of supported modification operations.
-     */
-    public enum Operation
-    {
-        INSERT, UPDATE, DELETE, MERGE;
+  /**
+   * Enumeration of supported modification operations.
+   */
+  public enum Operation {
+    INSERT, UPDATE, DELETE, MERGE;
+  }
+
+  //~ Instance fields --------------------------------------------------------
+
+  /**
+   * The connection to the optimizing session.
+   */
+  protected Prepare.CatalogReader catalogReader;
+
+  /**
+   * The table definition.
+   */
+  protected final RelOptTable table;
+  private final Operation operation;
+  private final List<String> updateColumnList;
+  private RelDataType inputRowType;
+  private final boolean flattened;
+
+  //~ Constructors -----------------------------------------------------------
+
+  protected TableModificationRelBase(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      RelOptTable table,
+      Prepare.CatalogReader catalogReader,
+      RelNode child,
+      Operation operation,
+      List<String> updateColumnList,
+      boolean flattened) {
+    super(cluster, traits, child);
+    this.table = table;
+    this.catalogReader = catalogReader;
+    this.operation = operation;
+    this.updateColumnList = updateColumnList;
+    if (table.getRelOptSchema() != null) {
+      cluster.getPlanner().registerSchema(table.getRelOptSchema());
+    }
+    this.flattened = flattened;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public Prepare.CatalogReader getCatalogReader() {
+    return catalogReader;
+  }
+
+  public RelOptTable getTable() {
+    return table;
+  }
+
+  public List<String> getUpdateColumnList() {
+    return updateColumnList;
+  }
+
+  public boolean isFlattened() {
+    return flattened;
+  }
+
+  public Operation getOperation() {
+    return operation;
+  }
+
+  public boolean isInsert() {
+    return operation == Operation.INSERT;
+  }
+
+  public boolean isUpdate() {
+    return operation == Operation.UPDATE;
+  }
+
+  public boolean isDelete() {
+    return operation == Operation.DELETE;
+  }
+
+  public boolean isMerge() {
+    return operation == Operation.MERGE;
+  }
+
+  // implement RelNode
+  public RelDataType deriveRowType() {
+    return RelOptUtil.createDmlRowType(
+        SqlKind.INSERT, getCluster().getTypeFactory());
+  }
+
+  // override RelNode
+  public RelDataType getExpectedInputRowType(int ordinalInParent) {
+    assert (ordinalInParent == 0);
+
+    if (inputRowType != null) {
+      return inputRowType;
     }
 
-    //~ Instance fields --------------------------------------------------------
-
-    /**
-     * The connection to the optimizing session.
-     */
-    protected Prepare.CatalogReader catalogReader;
-
-    /**
-     * The table definition.
-     */
-    protected final RelOptTable table;
-    private final Operation operation;
-    private final List<String> updateColumnList;
-    private RelDataType inputRowType;
-    private final boolean flattened;
-
-    //~ Constructors -----------------------------------------------------------
-
-    protected TableModificationRelBase(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        RelOptTable table,
-        Prepare.CatalogReader catalogReader,
-        RelNode child,
-        Operation operation,
-        List<String> updateColumnList,
-        boolean flattened)
-    {
-        super(cluster, traits, child);
-        this.table = table;
-        this.catalogReader = catalogReader;
-        this.operation = operation;
-        this.updateColumnList = updateColumnList;
-        if (table.getRelOptSchema() != null) {
-            cluster.getPlanner().registerSchema(table.getRelOptSchema());
-        }
-        this.flattened = flattened;
+    if (isUpdate()) {
+      inputRowType =
+          getCluster().getTypeFactory().createJoinType(
+              new RelDataType[]{
+                  table.getRowType(),
+                  RelOptUtil.createTypeFromProjection(
+                      table.getRowType(),
+                      getCluster().getTypeFactory(),
+                      updateColumnList)
+              });
+    } else if (isMerge()) {
+      inputRowType =
+          getCluster().getTypeFactory().createJoinType(
+              new RelDataType[]{
+                  getCluster().getTypeFactory().createJoinType(
+                      new RelDataType[]{
+                          table.getRowType(),
+                          table.getRowType()
+                      }),
+                  RelOptUtil.createTypeFromProjection(
+                      table.getRowType(),
+                      getCluster().getTypeFactory(),
+                      updateColumnList)
+              });
+    } else {
+      inputRowType = table.getRowType();
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public Prepare.CatalogReader getCatalogReader()
-    {
-        return catalogReader;
+    if (flattened) {
+      inputRowType =
+          SqlTypeUtil.flattenRecordType(
+              getCluster().getTypeFactory(),
+              inputRowType,
+              null);
     }
 
-    public RelOptTable getTable()
-    {
-        return table;
-    }
+    return inputRowType;
+  }
 
-    public List<String> getUpdateColumnList()
-    {
-        return updateColumnList;
-    }
+  public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw)
+        .item("table", table.getQualifiedName())
+        .item("operation", getOperation())
+        .item(
+            "updateColumnList",
+            (updateColumnList == null)
+                ? Collections.EMPTY_LIST
+                : updateColumnList)
+        .item("flattened", flattened);
+  }
 
-    public boolean isFlattened()
-    {
-        return flattened;
-    }
-
-    public Operation getOperation()
-    {
-        return operation;
-    }
-
-    public boolean isInsert()
-    {
-        return operation == Operation.INSERT;
-    }
-
-    public boolean isUpdate()
-    {
-        return operation == Operation.UPDATE;
-    }
-
-    public boolean isDelete()
-    {
-        return operation == Operation.DELETE;
-    }
-
-    public boolean isMerge()
-    {
-        return operation == Operation.MERGE;
-    }
-
-    // implement RelNode
-    public RelDataType deriveRowType()
-    {
-        return RelOptUtil.createDmlRowType(
-            SqlKind.INSERT, getCluster().getTypeFactory());
-    }
-
-    // override RelNode
-    public RelDataType getExpectedInputRowType(int ordinalInParent)
-    {
-        assert (ordinalInParent == 0);
-
-        if (inputRowType != null) {
-            return inputRowType;
-        }
-
-        if (isUpdate()) {
-            inputRowType =
-                getCluster().getTypeFactory().createJoinType(
-                    new RelDataType[] {
-                        table.getRowType(),
-                        RelOptUtil.createTypeFromProjection(
-                            table.getRowType(),
-                            getCluster().getTypeFactory(),
-                            updateColumnList)
-                    });
-        } else if (isMerge()) {
-            inputRowType =
-                getCluster().getTypeFactory().createJoinType(
-                    new RelDataType[] {
-                        getCluster().getTypeFactory().createJoinType(
-                            new RelDataType[] {
-                                table.getRowType(),
-                                table.getRowType()
-                            }),
-                        RelOptUtil.createTypeFromProjection(
-                            table.getRowType(),
-                            getCluster().getTypeFactory(),
-                            updateColumnList)
-                    });
-        } else {
-            inputRowType = table.getRowType();
-        }
-
-        if (flattened) {
-            inputRowType =
-                SqlTypeUtil.flattenRecordType(
-                    getCluster().getTypeFactory(),
-                    inputRowType,
-                    null);
-        }
-
-        return inputRowType;
-    }
-
-    public RelWriter explainTerms(RelWriter pw) {
-        return super.explainTerms(pw)
-            .item("table", table.getQualifiedName())
-            .item("operation", getOperation())
-            .item(
-                "updateColumnList",
-                (updateColumnList == null)
-                    ? Collections.EMPTY_LIST
-                    : updateColumnList)
-            .item("flattened", flattened);
-    }
-
-    // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner)
-    {
-        // REVIEW jvs 21-Apr-2006:  Just for now...
-        double rowCount = RelMetadataQuery.getRowCount(this);
-        return planner.makeCost(rowCount, 0, 0);
-    }
+  // implement RelNode
+  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    // REVIEW jvs 21-Apr-2006:  Just for now...
+    double rowCount = RelMetadataQuery.getRowCount(this);
+    return planner.makeCost(rowCount, 0, 0);
+  }
 }
 
 // End TableModificationRelBase.java

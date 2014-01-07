@@ -44,36 +44,34 @@ import org.eigenbase.relopt.*;
  * this class only allows one trait to be converted at a time; all other traits
  * are assumed to be preserved.</p>
  */
-public interface ConverterRel
-    extends RelNode
-{
-    //~ Methods ----------------------------------------------------------------
+public interface ConverterRel extends RelNode {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Returns the trait of the input relational expression.
-     *
-     * @return input trait
-     */
-    RelTraitSet getInputTraits();
+  /**
+   * Returns the trait of the input relational expression.
+   *
+   * @return input trait
+   */
+  RelTraitSet getInputTraits();
 
-    /**
-     * Returns the definition of trait which this converter works on.
-     *
-     * <p>The input relational expression (matched by the rule) must possess
-     * this trait and have the value given by {@link #getInputTraits()}, and the
-     * traits of the output of this converter given by {@link #getTraitSet()} will
-     * have one trait altered and the other orthogonal traits will be the same.
-     *
-     * @return trait which this converter modifies
-     */
-    RelTraitDef getTraitDef();
+  /**
+   * Returns the definition of trait which this converter works on.
+   *
+   * <p>The input relational expression (matched by the rule) must possess
+   * this trait and have the value given by {@link #getInputTraits()}, and the
+   * traits of the output of this converter given by {@link #getTraitSet()} will
+   * have one trait altered and the other orthogonal traits will be the same.
+   *
+   * @return trait which this converter modifies
+   */
+  RelTraitDef getTraitDef();
 
-    /**
-     * Returns the sole input relational expression
-     *
-     * @return child relational expression
-     */
-    RelNode getChild();
+  /**
+   * Returns the sole input relational expression
+   *
+   * @return child relational expression
+   */
+  RelNode getChild();
 }
 
 // End ConverterRel.java

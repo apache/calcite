@@ -22,41 +22,36 @@ import org.eigenbase.reltype.*;
 /**
  * A row-expression which references a field.
  */
-public abstract class RexVariable
-    extends RexNode
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class RexVariable extends RexNode {
+  //~ Instance fields --------------------------------------------------------
 
-    protected final String name;
-    protected final RelDataType type;
+  protected final String name;
+  protected final RelDataType type;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    protected RexVariable(
-        String name,
-        RelDataType type)
-    {
-        assert type != null;
-        assert name != null;
-        this.name = name;
-        this.digest = name;
-        this.type = type;
-    }
+  protected RexVariable(
+      String name,
+      RelDataType type) {
+    assert type != null;
+    assert name != null;
+    this.name = name;
+    this.digest = name;
+    this.type = type;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public RelDataType getType()
-    {
-        return type;
-    }
+  public RelDataType getType() {
+    return type;
+  }
 
-    /**
-     * Returns the name of this variable.
-     */
-    public String getName()
-    {
-        return name;
-    }
+  /**
+   * Returns the name of this variable.
+   */
+  public String getName() {
+    return name;
+  }
 }
 
 // End RexVariable.java

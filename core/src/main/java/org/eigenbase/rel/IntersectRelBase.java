@@ -29,40 +29,45 @@ import org.eigenbase.relopt.RelTraitSet;
  * {@link IntersectRel}.
  */
 public abstract class IntersectRelBase extends SetOpRel {
-    /** Creates an IntersectRelBase. */
-    public IntersectRelBase(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        List<RelNode> inputs,
-        boolean all)
-    {
-        super(cluster, traits, inputs, all);
-    }
+  /**
+   * Creates an IntersectRelBase.
+   */
+  public IntersectRelBase(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      List<RelNode> inputs,
+      boolean all) {
+    super(cluster, traits, inputs, all);
+  }
 
-    /** Creates an IntersectRelBase by parsing serialized output. */
-    protected IntersectRelBase(RelInput input) {
-        super(input);
-    }
+  /**
+   * Creates an IntersectRelBase by parsing serialized output.
+   */
+  protected IntersectRelBase(RelInput input) {
+    super(input);
+  }
 
-    @Override public double getRows() {
-        // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
-        double dRows = Double.MAX_VALUE;
-        for (RelNode input : inputs) {
-            dRows = Math.min(
-                dRows, RelMetadataQuery.getRowCount(input));
-        }
-        dRows *= 0.25;
-        return dRows;
+  @Override
+  public double getRows() {
+    // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
+    double dRows = Double.MAX_VALUE;
+    for (RelNode input : inputs) {
+      dRows = Math.min(
+          dRows, RelMetadataQuery.getRowCount(input));
     }
+    dRows *= 0.25;
+    return dRows;
+  }
 
-    @Override public boolean isKey(BitSet columns) {
-        for (RelNode input : inputs) {
-            if (input.isKey(columns)) {
-                return true;
-            }
-        }
-        return super.isKey(columns);
+  @Override
+  public boolean isKey(BitSet columns) {
+    for (RelNode input : inputs) {
+      if (input.isKey(columns)) {
+        return true;
+      }
     }
+    return super.isKey(columns);
+  }
 }
 
 // End IntersectRelBase.java

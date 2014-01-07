@@ -19,7 +19,6 @@ package org.eigenbase.util.mapping;
 
 import java.util.*;
 
-
 /**
  * A <dfn>Mapping</dfn> is a relationship between a source domain to target
  * domain of integers.
@@ -35,48 +34,47 @@ import java.util.*;
  */
 public interface Mapping
     extends Mappings.FunctionMapping,
-        Mappings.SourceMapping,
-        Mappings.TargetMapping,
-        Iterable<IntPair>
-{
-    //~ Methods ----------------------------------------------------------------
+    Mappings.SourceMapping,
+    Mappings.TargetMapping,
+    Iterable<IntPair> {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Returns an iterator over the elements in this mapping.
-     *
-     * <p>This method is optional; implementations may throw {@link
-     * UnsupportedOperationException}.
-     */
-    Iterator<IntPair> iterator();
+  /**
+   * Returns an iterator over the elements in this mapping.
+   *
+   * <p>This method is optional; implementations may throw {@link
+   * UnsupportedOperationException}.
+   */
+  Iterator<IntPair> iterator();
 
-    /**
-     * Returns the number of sources. Valid sources will be in the range 0 ..
-     * sourceCount.
-     */
-    int getSourceCount();
+  /**
+   * Returns the number of sources. Valid sources will be in the range 0 ..
+   * sourceCount.
+   */
+  int getSourceCount();
 
-    /**
-     * Returns the number of targets. Valid targets will be in the range 0 ..
-     * targetCount.
-     */
-    int getTargetCount();
+  /**
+   * Returns the number of targets. Valid targets will be in the range 0 ..
+   * targetCount.
+   */
+  int getTargetCount();
 
-    MappingType getMappingType();
+  MappingType getMappingType();
 
-    /**
-     * Returns whether this mapping is the identity.
-     */
-    boolean isIdentity();
+  /**
+   * Returns whether this mapping is the identity.
+   */
+  boolean isIdentity();
 
-    /**
-     * Removes all elements in the mapping.
-     */
-    void clear();
+  /**
+   * Removes all elements in the mapping.
+   */
+  void clear();
 
-    /**
-     * Returns the number of elements in the mapping.
-     */
-    int size();
+  /**
+   * Returns the number of elements in the mapping.
+   */
+  int size();
 }
 
 // End Mapping.java

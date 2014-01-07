@@ -28,75 +28,73 @@ import com.google.common.collect.ImmutableList;
  * Mock operator table for testing purposes. Contains the standard SQL operator
  * table, plus a list of operators.
  */
-public class MockSqlOperatorTable
-    extends ChainedSqlOperatorTable
-{
-    //~ Instance fields --------------------------------------------------------
+public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
+  //~ Instance fields --------------------------------------------------------
 
-    private final ListSqlOperatorTable listOpTab;
+  private final ListSqlOperatorTable listOpTab;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public MockSqlOperatorTable(SqlOperatorTable parentTable) {
-        super(ImmutableList.of(parentTable, new ListSqlOperatorTable()));
-        listOpTab = (ListSqlOperatorTable) tableList.get(1);
+  public MockSqlOperatorTable(SqlOperatorTable parentTable) {
+    super(ImmutableList.of(parentTable, new ListSqlOperatorTable()));
+    listOpTab = (ListSqlOperatorTable) tableList.get(1);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Adds an operator to this table.
+   */
+  public void addOperator(SqlOperator op) {
+    listOpTab.add(op);
+  }
+
+  public static void addRamp(MockSqlOperatorTable opTab) {
+    // Don't use anonymous inner classes. They can't be instantiated
+    // using reflection when we are deserializing from JSON.
+    opTab.addOperator(new RampFunction());
+    opTab.addOperator(new DedupFunction());
+  }
+
+  public static class RampFunction extends SqlFunction {
+    public RampFunction() {
+      super(
+          "RAMP",
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          SqlTypeStrategies.otcNumeric,
+          SqlFunctionCategory.UserDefinedFunction);
     }
 
-    //~ Methods ----------------------------------------------------------------
+    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory =
+          opBinding.getTypeFactory();
+      return typeFactory.builder()
+          .add("I", SqlTypeName.INTEGER)
+          .build();
+    }
+  }
 
-    /**
-     * Adds an operator to this table.
-     */
-    public void addOperator(SqlOperator op) {
-        listOpTab.add(op);
+  public static class DedupFunction extends SqlFunction {
+    public DedupFunction() {
+      super(
+          "DEDUP",
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          SqlTypeStrategies.otcVariadic,
+          SqlFunctionCategory.UserDefinedFunction);
     }
 
-    public static void addRamp(MockSqlOperatorTable opTab) {
-        // Don't use anonymous inner classes. They can't be instantiated
-        // using reflection when we are deserializing from JSON.
-        opTab.addOperator(new RampFunction());
-        opTab.addOperator(new DedupFunction());
+    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory =
+          opBinding.getTypeFactory();
+      return typeFactory.builder()
+          .add("NAME", SqlTypeName.VARCHAR, 1024)
+          .build();
     }
-
-    public static class RampFunction extends SqlFunction {
-        public RampFunction() {
-            super(
-                "RAMP",
-                SqlKind.OTHER_FUNCTION,
-                null,
-                null,
-                SqlTypeStrategies.otcNumeric,
-                SqlFunctionCategory.UserDefinedFunction);
-        }
-
-        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-            final RelDataTypeFactory typeFactory =
-                opBinding.getTypeFactory();
-            return typeFactory.builder()
-                .add("I", SqlTypeName.INTEGER)
-                .build();
-        }
-    }
-
-    public static class DedupFunction extends SqlFunction {
-        public DedupFunction() {
-            super(
-                "DEDUP",
-                SqlKind.OTHER_FUNCTION,
-                null,
-                null,
-                SqlTypeStrategies.otcVariadic,
-                SqlFunctionCategory.UserDefinedFunction);
-        }
-
-        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-            final RelDataTypeFactory typeFactory =
-                opBinding.getTypeFactory();
-            return typeFactory.builder()
-                .add("NAME", SqlTypeName.VARCHAR, 1024)
-                .build();
-        }
-    }
+  }
 }
 
 // End MockSqlOperatorTable.java

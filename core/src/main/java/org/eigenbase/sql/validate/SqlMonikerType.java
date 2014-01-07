@@ -22,9 +22,8 @@ package org.eigenbase.sql.validate;
  *
  * <p>Used in {@link SqlMoniker}.
  */
-public enum SqlMonikerType
-{
-    Column, Table, View, Schema, Repository, Function, Keyword;
+public enum SqlMonikerType {
+  Column, Table, View, Schema, Repository, Function, Keyword;
 }
 
 // End SqlMonikerType.java

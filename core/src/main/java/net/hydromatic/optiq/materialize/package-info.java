@@ -19,9 +19,11 @@
 /**
  * Management of materialized query results.
  *
- * <p>An actor ({@link MaterializeActor} maintains the state of all
+ * <p>An actor ({@link net.hydromatic.optiq.materialize.MaterializationActor})
+ * maintains the state of all
  * materializations in the system and is wrapped in a service
- * ({@link MaterializationService}) for access from other parts of the system.
+ * ({@link net.hydromatic.optiq.materialize.MaterializationService})
+ * for access from other parts of the system.</p>
  *
  * <p>Optimizer rules allow Optiq to rewrite queries using materializations, if
  * they are valid (that is, contain the same result as executing their defining

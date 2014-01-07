@@ -25,68 +25,60 @@ import org.eigenbase.util.*;
 /**
  * Abstract implementation of {@link org.eigenbase.rel.convert.ConverterRel}.
  */
-public abstract class ConverterRelImpl
-    extends SingleRel
-    implements ConverterRel
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class ConverterRelImpl extends SingleRel
+    implements ConverterRel {
+  //~ Instance fields --------------------------------------------------------
 
-    protected RelTraitSet inTraits;
-    protected final RelTraitDef traitDef;
+  protected RelTraitSet inTraits;
+  protected final RelTraitDef traitDef;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a ConverterRelImpl.
-     *
-     * @param cluster planner's cluster
-     * @param traitDef the RelTraitDef this converter converts
-     * @param traits the output traits of this converter
-     * @param child child rel (provides input traits)
-     */
-    protected ConverterRelImpl(
-        RelOptCluster cluster,
-        RelTraitDef traitDef,
-        RelTraitSet traits,
-        RelNode child)
-    {
-        super(cluster, traits, child);
-        this.inTraits = child.getTraitSet();
-        this.traitDef = traitDef;
-    }
+  /**
+   * Creates a ConverterRelImpl.
+   *
+   * @param cluster  planner's cluster
+   * @param traitDef the RelTraitDef this converter converts
+   * @param traits   the output traits of this converter
+   * @param child    child rel (provides input traits)
+   */
+  protected ConverterRelImpl(
+      RelOptCluster cluster,
+      RelTraitDef traitDef,
+      RelTraitSet traits,
+      RelNode child) {
+    super(cluster, traits, child);
+    this.inTraits = child.getTraitSet();
+    this.traitDef = traitDef;
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    // implement RelNode
-    public RelOptCost computeSelfCost(RelOptPlanner planner)
-    {
-        double dRows = RelMetadataQuery.getRowCount(getChild());
-        double dCpu = dRows;
-        double dIo = 0;
-        return planner.makeCost(dRows, dCpu, dIo);
-    }
+  // implement RelNode
+  public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    double dRows = RelMetadataQuery.getRowCount(getChild());
+    double dCpu = dRows;
+    double dIo = 0;
+    return planner.makeCost(dRows, dCpu, dIo);
+  }
 
-    protected Error cannotImplement()
-    {
-        return Util.newInternal(
-            getClass() + " cannot convert from "
+  protected Error cannotImplement() {
+    return Util.newInternal(
+        getClass() + " cannot convert from "
             + inTraits + " traits");
-    }
+  }
 
-    public boolean isDistinct()
-    {
-        return getChild().isDistinct();
-    }
+  public boolean isDistinct() {
+    return getChild().isDistinct();
+  }
 
-    public RelTraitSet getInputTraits()
-    {
-        return inTraits;
-    }
+  public RelTraitSet getInputTraits() {
+    return inTraits;
+  }
 
-    public RelTraitDef getTraitDef()
-    {
-        return traitDef;
-    }
+  public RelTraitDef getTraitDef() {
+    return traitDef;
+  }
 
 }
 

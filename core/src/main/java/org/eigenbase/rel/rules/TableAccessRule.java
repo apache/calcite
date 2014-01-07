@@ -29,41 +29,37 @@ import net.hydromatic.optiq.prepare.Prepare;
  * TableAccessRule converts a TableAccessRel to the result of calling {@link
  * RelOptTable#toRel}.
  */
-public class TableAccessRule
-    extends RelOptRule
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class TableAccessRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final TableAccessRule instance = new TableAccessRule();
+  public static final TableAccessRule instance = new TableAccessRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    private TableAccessRule() {
-        super(operand(TableAccessRel.class, any()));
-    }
+  private TableAccessRule() {
+    super(operand(TableAccessRel.class, any()));
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public void onMatch(RelOptRuleCall call)
-    {
-        final TableAccessRel oldRel = call.rel(0);
-        RelNode newRel =
-            oldRel.getTable().toRel(
-                new RelOptTable.ToRelContext() {
-                    public RelOptCluster getCluster() {
-                        return oldRel.getCluster();
-                    }
+  public void onMatch(RelOptRuleCall call) {
+    final TableAccessRel oldRel = call.rel(0);
+    RelNode newRel =
+        oldRel.getTable().toRel(
+            new RelOptTable.ToRelContext() {
+              public RelOptCluster getCluster() {
+                return oldRel.getCluster();
+              }
 
-                    public RelNode expandView(
-                        RelDataType rowType,
-                        String queryString,
-                        List<String> schemaPath)
-                    {
-                        throw new UnsupportedOperationException();
-                    }
-                });
-        call.transformTo(newRel);
-    }
+              public RelNode expandView(
+                  RelDataType rowType,
+                  String queryString,
+                  List<String> schemaPath) {
+                throw new UnsupportedOperationException();
+              }
+            });
+    call.transformTo(newRel);
+  }
 }
 
 // End TableAccessRule.java

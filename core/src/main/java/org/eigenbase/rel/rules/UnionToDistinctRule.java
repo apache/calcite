@@ -25,36 +25,33 @@ import org.eigenbase.relopt.*;
  * (<code>all</code> = <code>false</code>) into an {@link AggregateRel} on top
  * of a non-distinct {@link UnionRel} (<code>all</code> = <code>true</code>).
  */
-public class UnionToDistinctRule
-    extends RelOptRule
-{
-    public static final UnionToDistinctRule instance =
-        new UnionToDistinctRule();
+public class UnionToDistinctRule extends RelOptRule {
+  public static final UnionToDistinctRule instance =
+      new UnionToDistinctRule();
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a UnionToDistinctRule.
-     */
-    private UnionToDistinctRule() {
-        super(operand(UnionRel.class, any()));
+  /**
+   * Creates a UnionToDistinctRule.
+   */
+  private UnionToDistinctRule() {
+    super(operand(UnionRel.class, any()));
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void onMatch(RelOptRuleCall call) {
+    UnionRel union = call.rel(0);
+    if (union.all) {
+      return; // nothing to do
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public void onMatch(RelOptRuleCall call)
-    {
-        UnionRel union = call.rel(0);
-        if (union.all) {
-            return; // nothing to do
-        }
-        UnionRel unionAll =
-            new UnionRel(
-                union.getCluster(),
-                union.getInputs(),
-                true);
-        call.transformTo(RelOptUtil.createDistinctRel(unionAll));
-    }
+    UnionRel unionAll =
+        new UnionRel(
+            union.getCluster(),
+            union.getInputs(),
+            true);
+    call.transformTo(RelOptUtil.createDistinctRel(unionAll));
+  }
 }
 
 // End UnionToDistinctRule.java

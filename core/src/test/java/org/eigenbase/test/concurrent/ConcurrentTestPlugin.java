@@ -22,53 +22,54 @@ import java.util.ArrayList;
 /**
  * Used to extend functionality of mtsql.
  */
-public abstract class ConcurrentTestPlugin
-{
+public abstract class ConcurrentTestPlugin {
 
-    /**
-     * Should containing test be disabled?
-     *
-     * @return true if containing test should be disabled
-     */
-    public boolean isTestDisabled() {
-        return false;
-    }
+  /**
+   * Should containing test be disabled?
+   *
+   * @return true if containing test should be disabled
+   */
+  public boolean isTestDisabled() {
+    return false;
+  }
 
-    /**
-     * What commands are supported by this plugin within
-     * a thread or repeat section. Commands should start with '@'.
-     *
-     * @return List of supported commands
-     */
-    public Iterable<String> getSupportedThreadCommands() {
-        return new ArrayList<String>();
-    }
+  /**
+   * What commands are supported by this plugin within
+   * a thread or repeat section. Commands should start with '@'.
+   *
+   * @return List of supported commands
+   */
+  public Iterable<String> getSupportedThreadCommands() {
+    return new ArrayList<String>();
+  }
 
-    /**
-     * What commands are supported by this plugin before
-     * the setup section. Commands should start with '@'.
-     *
-     * @return List of supported commands
-     */
-    public Iterable<String> getSupportedPreSetupCommands() {
-        return new ArrayList<String>();
-    }
+  /**
+   * What commands are supported by this plugin before
+   * the setup section. Commands should start with '@'.
+   *
+   * @return List of supported commands
+   */
+  public Iterable<String> getSupportedPreSetupCommands() {
+    return new ArrayList<String>();
+  }
 
-    /**
-     *  Create and return plugin command for given name.
-     * @param name Name of command plugin
-     * @param params parameters for command.
-     * @return Initialized plugin command.
-     */
-    public abstract ConcurrentTestPluginCommand getCommandFor(
-        String name, String params);
+  /**
+   * Create and return plugin command for given name.
+   *
+   * @param name   Name of command plugin
+   * @param params parameters for command.
+   * @return Initialized plugin command.
+   */
+  public abstract ConcurrentTestPluginCommand getCommandFor(
+      String name, String params);
 
-    /**
-     *  Do pre-setup action for given command and parameters.
-     * @param name Name of command plugin
-     * @param params parameters for command.
-     */
-    public void preSetupFor(String name, String params) {
-    }
+  /**
+   * Do pre-setup action for given command and parameters.
+   *
+   * @param name   Name of command plugin
+   * @param params parameters for command.
+   */
+  public void preSetupFor(String name, String params) {
+  }
 }
 // End ConcurrentTestPlugin.java

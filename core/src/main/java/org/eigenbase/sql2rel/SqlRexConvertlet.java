@@ -24,13 +24,12 @@ import org.eigenbase.sql.*;
  * Thunk which converts a {@link SqlNode} expression into a {@link RexNode}
  * expression.
  */
-public interface SqlRexConvertlet
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SqlRexConvertlet {
+  //~ Methods ----------------------------------------------------------------
 
-    RexNode convertCall(
-        SqlRexContext cx,
-        SqlCall call);
+  RexNode convertCall(
+      SqlRexContext cx,
+      SqlCall call);
 }
 
 // End SqlRexConvertlet.java

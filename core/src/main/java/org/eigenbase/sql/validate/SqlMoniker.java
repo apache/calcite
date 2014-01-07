@@ -22,26 +22,25 @@ import org.eigenbase.sql.*;
 /**
  * An interface of an object identifier that represents a SqlIdentifier
  */
-public interface SqlMoniker
-{
-    //~ Methods ----------------------------------------------------------------
+public interface SqlMoniker {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Returns the type of object referred to by this moniker. Never null.
-     */
-    SqlMonikerType getType();
+  /**
+   * Returns the type of object referred to by this moniker. Never null.
+   */
+  SqlMonikerType getType();
 
-    /**
-     * Returns the array of component names.
-     */
-    String [] getFullyQualifiedNames();
+  /**
+   * Returns the array of component names.
+   */
+  String[] getFullyQualifiedNames();
 
-    /**
-     * Creates a {@link SqlIdentifier} containing the fully-qualified name.
-     */
-    SqlIdentifier toIdentifier();
+  /**
+   * Creates a {@link SqlIdentifier} containing the fully-qualified name.
+   */
+  SqlIdentifier toIdentifier();
 
-    String id();
+  String id();
 }
 
 // End SqlMoniker.java

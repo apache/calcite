@@ -26,71 +26,65 @@ import org.eigenbase.sql.*;
 /**
  * Parameter type-checking strategy types must be [nullable] Multiset,
  * [nullable] Multiset and the two types must have the same element type
+ *
  * @see MultisetSqlType#getComponentType
  */
-public class MultisetOperandTypeChecker
-    implements SqlOperandTypeChecker
-{
-    //~ Methods ----------------------------------------------------------------
+public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
+  //~ Methods ----------------------------------------------------------------
 
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        SqlCall call = callBinding.getCall();
-        SqlNode op0 = call.operands[0];
-        if (!SqlTypeStrategies.otcMultiset.checkSingleOperandType(
-                callBinding,
-                op0,
-                0,
-                throwOnFailure))
-        {
-            return false;
-        }
-
-        SqlNode op1 = call.operands[1];
-        if (!SqlTypeStrategies.otcMultiset.checkSingleOperandType(
-                callBinding,
-                op1,
-                0,
-                throwOnFailure))
-        {
-            return false;
-        }
-
-        // TODO: this won't work if element types are of ROW types and there is
-        // a mismatch.
-        RelDataType biggest =
-            callBinding.getTypeFactory().leastRestrictive(
-                Arrays.asList(
-                    callBinding.getValidator()
-                        .deriveType(callBinding.getScope(), op0)
-                        .getComponentType(),
-                    callBinding.getValidator()
-                        .deriveType(callBinding.getScope(), op1)
-                        .getComponentType()));
-        if (null == biggest) {
-            if (throwOnFailure) {
-                throw callBinding.newError(
-                    EigenbaseResource.instance().TypeNotComparable.ex(
-                        call.operands[0].getParserPosition().toString(),
-                        call.operands[1].getParserPosition().toString()));
-            }
-
-            return false;
-        }
-        return true;
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    SqlCall call = callBinding.getCall();
+    SqlNode op0 = call.operands[0];
+    if (!SqlTypeStrategies.otcMultiset.checkSingleOperandType(
+        callBinding,
+        op0,
+        0,
+        throwOnFailure)) {
+      return false;
     }
 
-    public SqlOperandCountRange getOperandCountRange()
-    {
-        return SqlOperandCountRanges.of(2);
+    SqlNode op1 = call.operands[1];
+    if (!SqlTypeStrategies.otcMultiset.checkSingleOperandType(
+        callBinding,
+        op1,
+        0,
+        throwOnFailure)) {
+      return false;
     }
 
-    public String getAllowedSignatures(SqlOperator op, String opName)
-    {
-        return "<MULTISET> " + opName + " <MULTISET>";
+    // TODO: this won't work if element types are of ROW types and there is
+    // a mismatch.
+    RelDataType biggest =
+        callBinding.getTypeFactory().leastRestrictive(
+            Arrays.asList(
+                callBinding.getValidator()
+                    .deriveType(callBinding.getScope(), op0)
+                    .getComponentType(),
+                callBinding.getValidator()
+                    .deriveType(callBinding.getScope(), op1)
+                    .getComponentType()));
+    if (null == biggest) {
+      if (throwOnFailure) {
+        throw callBinding.newError(
+            EigenbaseResource.instance().TypeNotComparable.ex(
+                call.operands[0].getParserPosition().toString(),
+                call.operands[1].getParserPosition().toString()));
+      }
+
+      return false;
     }
+    return true;
+  }
+
+  public SqlOperandCountRange getOperandCountRange() {
+    return SqlOperandCountRanges.of(2);
+  }
+
+  public String getAllowedSignatures(SqlOperator op, String opName) {
+    return "<MULTISET> " + opName + " <MULTISET>";
+  }
 }
 
 // End MultisetOperandTypeChecker.java

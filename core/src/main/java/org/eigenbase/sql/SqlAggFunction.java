@@ -25,46 +25,41 @@ import org.eigenbase.sql.validate.*;
  * Abstract base class for the definition of an aggregate function: an operator
  * which aggregates sets of values into a result.
  */
-public abstract class SqlAggFunction
-    extends SqlFunction
-    implements Aggregation
-{
-    //~ Constructors -----------------------------------------------------------
+public abstract class SqlAggFunction extends SqlFunction
+    implements Aggregation {
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlAggFunction(
-        String name,
-        SqlKind kind,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker,
-        SqlFunctionCategory funcType)
-    {
-        super(
-            name,
-            kind,
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker,
-            funcType);
-    }
+  public SqlAggFunction(
+      String name,
+      SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory funcType) {
+    super(
+        name,
+        kind,
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker,
+        funcType);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public boolean isQuantifierAllowed()
-    {
-        return true;
-    }
+  public boolean isQuantifierAllowed() {
+    return true;
+  }
 
-    // override SqlFunction
-    public void validateCall(
-        SqlCall call,
-        SqlValidator validator,
-        SqlValidatorScope scope,
-        SqlValidatorScope operandScope)
-    {
-        super.validateCall(call, validator, scope, operandScope);
-        validator.validateAggregateParams(call, scope);
-    }
+  // override SqlFunction
+  public void validateCall(
+      SqlCall call,
+      SqlValidator validator,
+      SqlValidatorScope scope,
+      SqlValidatorScope operandScope) {
+    super.validateCall(call, validator, scope, operandScope);
+    validator.validateAggregateParams(call, scope);
+  }
 }
 
 // End SqlAggFunction.java

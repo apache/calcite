@@ -29,36 +29,39 @@ import org.eigenbase.relopt.RelTraitSet;
  * {@link MinusRel}.
  */
 public abstract class MinusRelBase extends SetOpRel {
-    public MinusRelBase(
-        RelOptCluster cluster,
-        RelTraitSet traits,
-        List<RelNode> inputs,
-        boolean all)
-    {
-        super(cluster, traits, inputs, all);
-    }
+  public MinusRelBase(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      List<RelNode> inputs,
+      boolean all) {
+    super(cluster, traits, inputs, all);
+  }
 
-    /** Creates a MinusRelBase by parsing serialized output. */
-    protected MinusRelBase(RelInput input) {
-        super(input);
-    }
+  /**
+   * Creates a MinusRelBase by parsing serialized output.
+   */
+  protected MinusRelBase(RelInput input) {
+    super(input);
+  }
 
-    @Override public double getRows() {
-        // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
-        double dRows = RelMetadataQuery.getRowCount(inputs.get(0));
-        for (int i = 1; i < inputs.size(); i++) {
-            dRows -= 0.5 * RelMetadataQuery.getRowCount(inputs.get(i));
-        }
-        if (dRows < 0) {
-            dRows = 0;
-        }
-        return dRows;
+  @Override
+  public double getRows() {
+    // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
+    double dRows = RelMetadataQuery.getRowCount(inputs.get(0));
+    for (int i = 1; i < inputs.size(); i++) {
+      dRows -= 0.5 * RelMetadataQuery.getRowCount(inputs.get(i));
     }
+    if (dRows < 0) {
+      dRows = 0;
+    }
+    return dRows;
+  }
 
-    @Override public boolean isKey(BitSet columns) {
-        return inputs.get(0).isKey(columns)
-            || super.isKey(columns);
-    }
+  @Override
+  public boolean isKey(BitSet columns) {
+    return inputs.get(0).isKey(columns)
+        || super.isKey(columns);
+  }
 }
 
 // End MinusRelBase.java

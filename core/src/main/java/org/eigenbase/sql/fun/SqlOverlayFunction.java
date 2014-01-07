@@ -23,61 +23,56 @@ import org.eigenbase.sql.type.*;
 /**
  * The <code>OVERLAY</code> function.
  */
-public class SqlOverlayFunction
-    extends SqlFunction
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlOverlayFunction extends SqlFunction {
+  //~ Static fields/initializers ---------------------------------------------
 
-    private static final SqlOperandTypeChecker otcCustom =
-        SqlTypeStrategies.or(
-            SqlTypeStrategies.otcStringX2Int,
-            SqlTypeStrategies.otcStringX2IntX2);
+  private static final SqlOperandTypeChecker otcCustom =
+      SqlTypeStrategies.or(
+          SqlTypeStrategies.otcStringX2Int,
+          SqlTypeStrategies.otcStringX2IntX2);
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlOverlayFunction()
-    {
-        super(
-            "OVERLAY",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiNullableVaryingDyadicStringSumPrecision,
-            null,
-            otcCustom,
-            SqlFunctionCategory.String);
+  public SqlOverlayFunction() {
+    super(
+        "OVERLAY",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiNullableVaryingDyadicStringSumPrecision,
+        null,
+        otcCustom,
+        SqlFunctionCategory.String);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall(getName());
+    operands[0].unparse(writer, leftPrec, rightPrec);
+    writer.sep("PLACING");
+    operands[1].unparse(writer, leftPrec, rightPrec);
+    writer.sep("FROM");
+    operands[2].unparse(writer, leftPrec, rightPrec);
+    if (4 == operands.length) {
+      writer.sep("FOR");
+      operands[3].unparse(writer, leftPrec, rightPrec);
     }
+    writer.endFunCall(frame);
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        final SqlWriter.Frame frame = writer.startFunCall(getName());
-        operands[0].unparse(writer, leftPrec, rightPrec);
-        writer.sep("PLACING");
-        operands[1].unparse(writer, leftPrec, rightPrec);
-        writer.sep("FROM");
-        operands[2].unparse(writer, leftPrec, rightPrec);
-        if (4 == operands.length) {
-            writer.sep("FOR");
-            operands[3].unparse(writer, leftPrec, rightPrec);
-        }
-        writer.endFunCall(frame);
+  public String getSignatureTemplate(final int operandsCount) {
+    switch (operandsCount) {
+    case 3:
+      return "{0}({1} PLACING {2} FROM {3})";
+    case 4:
+      return "{0}({1} PLACING {2} FROM {3} FOR {4})";
     }
-
-    public String getSignatureTemplate(final int operandsCount)
-    {
-        switch (operandsCount) {
-        case 3:
-            return "{0}({1} PLACING {2} FROM {3})";
-        case 4:
-            return "{0}({1} PLACING {2} FROM {3} FOR {4})";
-        }
-        assert (false);
-        return null;
-    }
+    assert (false);
+    return null;
+  }
 }
 
 // End SqlOverlayFunction.java

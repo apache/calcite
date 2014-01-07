@@ -33,68 +33,65 @@ import org.eigenbase.relopt.*;
  * <code>{time_id}</code>. We have to allow a RelNode to belong to more than
  * one RelSubset (these RelSubsets are always in the same set).</p>
  */
-public class RelCollationTraitDef extends RelTraitDef<RelCollation>
-{
-    public static final RelCollationTraitDef INSTANCE =
-        new RelCollationTraitDef();
+public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
+  public static final RelCollationTraitDef INSTANCE =
+      new RelCollationTraitDef();
 
-    private RelCollationTraitDef() {
+  private RelCollationTraitDef() {
+  }
+
+  public Class<RelCollation> getTraitClass() {
+    return RelCollation.class;
+  }
+
+  public String getSimpleName() {
+    return "sort";
+  }
+
+  @Override
+  public boolean multiple() {
+    return true;
+  }
+
+  public RelCollation getDefault() {
+    return RelCollationImpl.EMPTY;
+  }
+
+  public RelNode convert(
+      RelOptPlanner planner,
+      RelNode rel,
+      RelCollation toCollation,
+      boolean allowInfiniteCostConverters) {
+    if (toCollation == RelCollationImpl.PRESERVE) {
+      return null;
     }
 
-    public Class<RelCollation> getTraitClass() {
-        return RelCollation.class;
+    if (toCollation.getFieldCollations().isEmpty()) {
+      // An empty sort doesn't make sense.
+      return null;
     }
 
-    public String getSimpleName() {
-        return "sort";
+    // Create a logical sort, then ask the planner to convert its remaining
+    // traits (e.g. convert it to an EnumerableSortRel if rel is enumerable
+    // convention)
+    final SortRel sort =
+        new SortRel(
+            rel.getCluster(),
+            rel.getCluster().traitSetOf(Convention.NONE, toCollation),
+            rel,
+            toCollation);
+    RelNode newRel = sort;
+    final RelTraitSet newTraitSet = rel.getTraitSet().replace(toCollation);
+    if (!newRel.getTraitSet().equals(newTraitSet)) {
+      newRel = planner.changeTraits(sort, newTraitSet);
     }
+    return newRel;
+  }
 
-    @Override
-    public boolean multiple() {
-        return true;
-    }
-
-    public RelCollation getDefault() {
-        return RelCollationImpl.EMPTY;
-    }
-
-    public RelNode convert(
-        RelOptPlanner planner,
-        RelNode rel,
-        RelCollation toCollation,
-        boolean allowInfiniteCostConverters)
-    {
-        if (toCollation == RelCollationImpl.PRESERVE) {
-            return null;
-        }
-
-        if (toCollation.getFieldCollations().isEmpty()) {
-            // An empty sort doesn't make sense.
-            return null;
-        }
-
-        // Create a logical sort, then ask the planner to convert its remaining
-        // traits (e.g. convert it to an EnumerableSortRel if rel is enumerable
-        // convention)
-        final SortRel sort =
-            new SortRel(
-                rel.getCluster(),
-                rel.getCluster().traitSetOf(Convention.NONE, toCollation),
-                rel,
-                toCollation);
-        RelNode newRel = sort;
-        final RelTraitSet newTraitSet = rel.getTraitSet().replace(toCollation);
-        if (!newRel.getTraitSet().equals(newTraitSet)) {
-            newRel = planner.changeTraits(sort, newTraitSet);
-        }
-        return newRel;
-    }
-
-    public boolean canConvert(
-        RelOptPlanner planner, RelCollation fromTrait, RelCollation toTrait)
-    {
-        return toTrait != RelCollationImpl.PRESERVE;
-    }
+  public boolean canConvert(
+      RelOptPlanner planner, RelCollation fromTrait, RelCollation toTrait) {
+    return toTrait != RelCollationImpl.PRESERVE;
+  }
 }
 
 // End RelCollationTraitDef.java

@@ -26,58 +26,54 @@ import org.eigenbase.util.Util;
  * RelNode is found to be missing one or more traits, they are copied from a
  * RelTraitSet given during construction.
  */
-public class RelTraitPropagationVisitor
-    extends RelVisitor
-{
-    //~ Instance fields --------------------------------------------------------
+public class RelTraitPropagationVisitor extends RelVisitor {
+  //~ Instance fields --------------------------------------------------------
 
-    private final RelTraitSet baseTraits;
-    private final RelOptPlanner planner;
+  private final RelTraitSet baseTraits;
+  private final RelOptPlanner planner;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public RelTraitPropagationVisitor(
-        RelOptPlanner planner,
-        RelTraitSet baseTraits)
-    {
-        this.planner = planner;
-        this.baseTraits = baseTraits;
+  public RelTraitPropagationVisitor(
+      RelOptPlanner planner,
+      RelTraitSet baseTraits) {
+    this.planner = planner;
+    this.baseTraits = baseTraits;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void visit(RelNode rel, int ordinal, RelNode parent) {
+    // REVIEW: SWZ: 1/31/06: We assume that any special RelNodes, such
+    // as the VolcanoPlanner's RelSubset always have a full complement
+    // of traits and that they either appear as registered or do nothing
+    // when childrenAccept is called on them.
+
+    if (planner.isRegistered(rel)) {
+      return;
     }
 
-    //~ Methods ----------------------------------------------------------------
+    RelTraitSet relTraits = rel.getTraitSet();
+    for (int i = 0; i < baseTraits.size(); i++) {
+      if (i >= relTraits.size()) {
+        // Copy traits that the new rel doesn't know about.
+        Util.discard(
+            RelOptUtil.addTrait(
+                rel,
+                baseTraits.getTrait(i)));
 
-    public void visit(RelNode rel, int ordinal, RelNode parent)
-    {
-        // REVIEW: SWZ: 1/31/06: We assume that any special RelNodes, such
-        // as the VolcanoPlanner's RelSubset always have a full complement
-        // of traits and that they either appear as registered or do nothing
-        // when childrenAccept is called on them.
-
-        if (planner.isRegistered(rel)) {
-            return;
-        }
-
-        RelTraitSet relTraits = rel.getTraitSet();
-        for (int i = 0; i < baseTraits.size(); i++) {
-            if (i >= relTraits.size()) {
-                // Copy traits that the new rel doesn't know about.
-                Util.discard(
-                    RelOptUtil.addTrait(
-                        rel,
-                        baseTraits.getTrait(i)));
-
-                // FIXME: Return the new rel. We can no longer traits in-place,
-                //   because rels and traits are immutable.
-                throw new AssertionError();
-            } else {
-                // Verify that the traits are from the same RelTraitDef
-                assert relTraits.getTrait(i).getTraitDef()
-                    == baseTraits.getTrait(i).getTraitDef();
-            }
-        }
-
-        rel.childrenAccept(this);
+        // FIXME: Return the new rel. We can no longer traits in-place,
+        //   because rels and traits are immutable.
+        throw new AssertionError();
+      } else {
+        // Verify that the traits are from the same RelTraitDef
+        assert relTraits.getTrait(i).getTraitDef()
+            == baseTraits.getTrait(i).getTraitDef();
+      }
     }
+
+    rel.childrenAccept(this);
+  }
 }
 
 // End RelTraitPropagationVisitor.java

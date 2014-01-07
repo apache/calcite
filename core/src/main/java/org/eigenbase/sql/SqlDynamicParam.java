@@ -27,77 +27,66 @@ import org.eigenbase.sql.validate.*;
  * SQL statement is the only property which distinguishes them, so this 0-based
  * index is recorded as soon as the parameter is encountered.
  */
-public class SqlDynamicParam
-    extends SqlNode
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlDynamicParam extends SqlNode {
+  //~ Instance fields --------------------------------------------------------
 
-    private final int index;
+  private final int index;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlDynamicParam(
-        int index,
-        SqlParserPos pos)
-    {
-        super(pos);
-        this.index = index;
+  public SqlDynamicParam(
+      int index,
+      SqlParserPos pos) {
+    super(pos);
+    this.index = index;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public SqlNode clone(SqlParserPos pos) {
+    return new SqlDynamicParam(index, pos);
+  }
+
+  public SqlKind getKind() {
+    return SqlKind.DYNAMIC_PARAM;
+  }
+
+  public int getIndex() {
+    return index;
+  }
+
+  public void unparse(
+      SqlWriter writer,
+      int leftPrec,
+      int rightPrec) {
+    writer.print("?");
+    writer.setNeedWhitespace(false);
+  }
+
+  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+    validator.validateDynamicParam(this);
+  }
+
+  public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+    return SqlMonotonicity.Constant;
+  }
+
+  public <R> R accept(SqlVisitor<R> visitor) {
+    return visitor.visit(this);
+  }
+
+  public boolean equalsDeep(SqlNode node, boolean fail) {
+    if (!(node instanceof SqlDynamicParam)) {
+      assert !fail : this + "!=" + node;
+      return false;
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    public SqlNode clone(SqlParserPos pos)
-    {
-        return new SqlDynamicParam(index, pos);
+    SqlDynamicParam that = (SqlDynamicParam) node;
+    if (this.index != that.index) {
+      assert !fail : this + "!=" + node;
+      return false;
     }
-
-    public SqlKind getKind()
-    {
-        return SqlKind.DYNAMIC_PARAM;
-    }
-
-    public int getIndex()
-    {
-        return index;
-    }
-
-    public void unparse(
-        SqlWriter writer,
-        int leftPrec,
-        int rightPrec)
-    {
-        writer.print("?");
-        writer.setNeedWhitespace(false);
-    }
-
-    public void validate(SqlValidator validator, SqlValidatorScope scope)
-    {
-        validator.validateDynamicParam(this);
-    }
-
-    public SqlMonotonicity getMonotonicity(SqlValidatorScope scope)
-    {
-        return SqlMonotonicity.Constant;
-    }
-
-    public <R> R accept(SqlVisitor<R> visitor)
-    {
-        return visitor.visit(this);
-    }
-
-    public boolean equalsDeep(SqlNode node, boolean fail)
-    {
-        if (!(node instanceof SqlDynamicParam)) {
-            assert !fail : this + "!=" + node;
-            return false;
-        }
-        SqlDynamicParam that = (SqlDynamicParam) node;
-        if (this.index != that.index) {
-            assert !fail : this + "!=" + node;
-            return false;
-        }
-        return true;
-    }
+    return true;
+  }
 }
 
 // End SqlDynamicParam.java

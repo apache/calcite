@@ -25,37 +25,33 @@ import org.eigenbase.sql.validate.*;
  * Base class for unary operators such as FLOOR/CEIL which are monotonic for
  * monotonic inputs.
  */
-public class SqlMonotonicUnaryFunction
-    extends SqlFunction
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlMonotonicUnaryFunction extends SqlFunction {
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlMonotonicUnaryFunction(
-        String name,
-        SqlKind kind,
-        SqlReturnTypeInference returnTypeInference,
-        SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker,
-        SqlFunctionCategory funcType)
-    {
-        super(
-            name,
-            kind,
-            returnTypeInference,
-            operandTypeInference,
-            operandTypeChecker,
-            funcType);
-    }
+  protected SqlMonotonicUnaryFunction(
+      String name,
+      SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory funcType) {
+    super(
+        name,
+        kind,
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker,
+        funcType);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public SqlMonotonicity getMonotonicity(
-        SqlCall call,
-        SqlValidatorScope scope)
-    {
-        SqlNode node = (SqlNode) call.operands[0];
-        return scope.getMonotonicity(node).unstrict();
-    }
+  public SqlMonotonicity getMonotonicity(
+      SqlCall call,
+      SqlValidatorScope scope) {
+    SqlNode node = (SqlNode) call.operands[0];
+    return scope.getMonotonicity(node).unstrict();
+  }
 }
 
 // End SqlMonotonicUnaryFunction.java

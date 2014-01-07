@@ -48,152 +48,144 @@ import org.eigenbase.rel.convert.*;
  * <p>Otherwise, a new instance of RelTraitDef must be constructed and
  * registered with each new planner instantiated.</p>
  */
-public abstract class RelTraitDef<T extends RelTrait>
-{
-    //~ Instance fields --------------------------------------------------------
+public abstract class RelTraitDef<T extends RelTrait> {
+  //~ Instance fields --------------------------------------------------------
 
-    private final WeakHashMap<RelTrait, WeakReference<RelTrait>> canonicalMap;
+  private final WeakHashMap<RelTrait, WeakReference<RelTrait>> canonicalMap;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public RelTraitDef()
-    {
-        this.canonicalMap =
-            new WeakHashMap<RelTrait, WeakReference<RelTrait>>();
-    }
+  public RelTraitDef() {
+    this.canonicalMap =
+        new WeakHashMap<RelTrait, WeakReference<RelTrait>>();
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Whether a relational expression may possess more than one instance of
-     * this trait simultaneously.
-     *
-     * <p>A subset has only one instance of a trait.</p>
-     */
-    public boolean multiple() {
-        return false;
-    }
+  /**
+   * Whether a relational expression may possess more than one instance of
+   * this trait simultaneously.
+   *
+   * <p>A subset has only one instance of a trait.</p>
+   */
+  public boolean multiple() {
+    return false;
+  }
 
-    /**
-     * @return the specific RelTrait type associated with this RelTraitDef.
-     */
-    public abstract Class<T> getTraitClass();
+  /**
+   * @return the specific RelTrait type associated with this RelTraitDef.
+   */
+  public abstract Class<T> getTraitClass();
 
-    /**
-     * @return a simple name for this RelTraitDef (for use in
-     * {@link org.eigenbase.rel.RelNode#explain(RelWriter)}).
-     */
-    public abstract String getSimpleName();
+  /**
+   * @return a simple name for this RelTraitDef (for use in
+   * {@link org.eigenbase.rel.RelNode#explain(RelWriter)}).
+   */
+  public abstract String getSimpleName();
 
-    /**
-     * Takes an arbitrary RelTrait and returns the canonical representation of
-     * that RelTrait. Canonized RelTrait objects may always be compared using
-     * the equality operator (<code>==</code>).
-     *
-     * <p>If an equal RelTrait has already been canonized and is still in use,
-     * it will be returned. Otherwise, the given RelTrait is made canonical and
-     * returned.
-     *
-     * @param trait a possibly non-canonical RelTrait
-     *
-     * @return a canonical RelTrait.
-     */
-    public final T canonize(T trait)
-    {
-        assert getTraitClass().isInstance(trait)
-            : getClass().getName()
-            + " cannot canonize a "
-            + trait.getClass().getName();
+  /**
+   * Takes an arbitrary RelTrait and returns the canonical representation of
+   * that RelTrait. Canonized RelTrait objects may always be compared using
+   * the equality operator (<code>==</code>).
+   *
+   * <p>If an equal RelTrait has already been canonized and is still in use,
+   * it will be returned. Otherwise, the given RelTrait is made canonical and
+   * returned.
+   *
+   * @param trait a possibly non-canonical RelTrait
+   * @return a canonical RelTrait.
+   */
+  public final T canonize(T trait) {
+    assert getTraitClass().isInstance(trait)
+        : getClass().getName()
+        + " cannot canonize a "
+        + trait.getClass().getName();
 
-        if (canonicalMap.containsKey(trait)) {
-            WeakReference<RelTrait> canonicalTraitRef = canonicalMap.get(trait);
-            if (canonicalTraitRef != null) {
-                // Make sure the canonical trait didn't disappear between
-                // containsKey and get.
-                @SuppressWarnings("unchecked")
-                T canonicalTrait = (T) canonicalTraitRef.get();
-                if (canonicalTrait != null) {
-                    // Make sure the canonical trait didn't disappear between
-                    // WeakHashMap.get() and WeakReference.get()
-                    return canonicalTrait;
-                }
-            }
+    if (canonicalMap.containsKey(trait)) {
+      WeakReference<RelTrait> canonicalTraitRef = canonicalMap.get(trait);
+      if (canonicalTraitRef != null) {
+        // Make sure the canonical trait didn't disappear between
+        // containsKey and get.
+        @SuppressWarnings("unchecked")
+        T canonicalTrait = (T) canonicalTraitRef.get();
+        if (canonicalTrait != null) {
+          // Make sure the canonical trait didn't disappear between
+          // WeakHashMap.get() and WeakReference.get()
+          return canonicalTrait;
         }
-
-        // Canonical trait wasn't in map or was *very* recently removed from
-        // the map. Removal, however, indicates that no other references to
-        // the canonical trait existed, so the caller's trait becomes
-        // canonical.
-        canonicalMap.put(
-            trait,
-            new WeakReference<RelTrait>(trait));
-
-        return trait;
+      }
     }
 
-    /**
-     * Converts the given RelNode to the given RelTrait.
-     *
-     * @param planner the planner requesting the conversion
-     * @param rel RelNode to convert
-     * @param toTrait RelTrait to convert to
-     * @param allowInfiniteCostConverters flag indicating whether infinite cost
-     * converters are allowed
-     *
-     * @return a converted RelNode or null if conversion is not possible
-     */
-    public abstract RelNode convert(
-        RelOptPlanner planner,
-        RelNode rel,
-        T toTrait,
-        boolean allowInfiniteCostConverters);
+    // Canonical trait wasn't in map or was *very* recently removed from
+    // the map. Removal, however, indicates that no other references to
+    // the canonical trait existed, so the caller's trait becomes
+    // canonical.
+    canonicalMap.put(
+        trait,
+        new WeakReference<RelTrait>(trait));
 
-    /**
-     * Tests whether the given RelTrait can be converted to another RelTrait.
-     *
-     * @param planner the planner requesting the conversion test
-     * @param fromTrait the RelTrait to convert from
-     * @param toTrait the RelTrait to convert to
-     *
-     * @return true if fromTrait can be converted to toTrait
-     */
-    public abstract boolean canConvert(
-        RelOptPlanner planner,
-        T fromTrait,
-        T toTrait);
+    return trait;
+  }
 
-    /**
-     * Provides notification of the registration of a particular {@link
-     * ConverterRule} with a {@link RelOptPlanner}. The default implementation
-     * does nothing.
-     *
-     * @param planner the planner registering the rule
-     * @param converterRule the registered converter rule
-     */
-    public void registerConverterRule(
-        RelOptPlanner planner,
-        ConverterRule converterRule)
-    {
-    }
+  /**
+   * Converts the given RelNode to the given RelTrait.
+   *
+   * @param planner                     the planner requesting the conversion
+   * @param rel                         RelNode to convert
+   * @param toTrait                     RelTrait to convert to
+   * @param allowInfiniteCostConverters flag indicating whether infinite cost
+   *                                    converters are allowed
+   * @return a converted RelNode or null if conversion is not possible
+   */
+  public abstract RelNode convert(
+      RelOptPlanner planner,
+      RelNode rel,
+      T toTrait,
+      boolean allowInfiniteCostConverters);
 
-    /**
-     * Provides notification that a particular {@link ConverterRule} has been
-     * de-registered from a {@link RelOptPlanner}. The default implementation
-     * does nothing.
-     *
-     * @param planner the planner registering the rule
-     * @param converterRule the registered converter rule
-     */
-    public void deregisterConverterRule(
-        RelOptPlanner planner,
-        ConverterRule converterRule)
-    {
-    }
+  /**
+   * Tests whether the given RelTrait can be converted to another RelTrait.
+   *
+   * @param planner   the planner requesting the conversion test
+   * @param fromTrait the RelTrait to convert from
+   * @param toTrait   the RelTrait to convert to
+   * @return true if fromTrait can be converted to toTrait
+   */
+  public abstract boolean canConvert(
+      RelOptPlanner planner,
+      T fromTrait,
+      T toTrait);
 
-    /**
-     * Returns the default member of this trait.
-     */
-    public abstract T getDefault();
+  /**
+   * Provides notification of the registration of a particular {@link
+   * ConverterRule} with a {@link RelOptPlanner}. The default implementation
+   * does nothing.
+   *
+   * @param planner       the planner registering the rule
+   * @param converterRule the registered converter rule
+   */
+  public void registerConverterRule(
+      RelOptPlanner planner,
+      ConverterRule converterRule) {
+  }
+
+  /**
+   * Provides notification that a particular {@link ConverterRule} has been
+   * de-registered from a {@link RelOptPlanner}. The default implementation
+   * does nothing.
+   *
+   * @param planner       the planner registering the rule
+   * @param converterRule the registered converter rule
+   */
+  public void deregisterConverterRule(
+      RelOptPlanner planner,
+      ConverterRule converterRule) {
+  }
+
+  /**
+   * Returns the default member of this trait.
+   */
+  public abstract T getDefault();
 }
 
 // End RelTraitDef.java

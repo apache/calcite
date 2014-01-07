@@ -74,271 +74,263 @@ import com.google.common.collect.ImmutableList;
  * AND composition, only the first rule is used for signature generation.
  */
 public class CompositeOperandTypeChecker
-    implements SqlSingleOperandTypeChecker
-{
-    //~ Enums ------------------------------------------------------------------
+    implements SqlSingleOperandTypeChecker {
+  //~ Enums ------------------------------------------------------------------
 
-    public enum Composition
-    {
-        AND, OR, SEQUENCE
+  public enum Composition {
+    AND, OR, SEQUENCE
+  }
+
+  //~ Instance fields --------------------------------------------------------
+
+  private final ImmutableList<SqlSingleOperandTypeChecker> allowedRules;
+  private final Composition composition;
+
+  //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Package private. Use {@link SqlTypeStrategies#and},
+   * {@link SqlTypeStrategies#or}.
+   */
+  CompositeOperandTypeChecker(
+      Composition composition,
+      ImmutableList<SqlSingleOperandTypeChecker> allowedRules) {
+    assert null != allowedRules;
+    assert allowedRules.size() > 1;
+    this.allowedRules = allowedRules;
+    this.composition = composition;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public ImmutableList<SqlSingleOperandTypeChecker> getRules() {
+    return allowedRules;
+  }
+
+  public String getAllowedSignatures(SqlOperator op, String opName) {
+    if (composition == Composition.SEQUENCE) {
+      throw Util.needToImplement("must override getAllowedSignatures");
     }
-
-    //~ Instance fields --------------------------------------------------------
-
-    private final ImmutableList<SqlSingleOperandTypeChecker> allowedRules;
-    private final Composition composition;
-
-    //~ Constructors -----------------------------------------------------------
-
-    /** Package private. Use {@link SqlTypeStrategies#and},
-     * {@link SqlTypeStrategies#or}. */
-    CompositeOperandTypeChecker(
-        Composition composition,
-        ImmutableList<SqlSingleOperandTypeChecker> allowedRules)
-    {
-        assert null != allowedRules;
-        assert allowedRules.size() > 1;
-        this.allowedRules = allowedRules;
-        this.composition = composition;
+    StringBuilder ret = new StringBuilder();
+    for (Ord<SqlSingleOperandTypeChecker> ord : Ord.zip(allowedRules)) {
+      if (ord.i > 0) {
+        ret.append(SqlOperator.NL);
+      }
+      ret.append(ord.e.getAllowedSignatures(op, opName));
+      if (composition == Composition.AND) {
+        break;
+      }
     }
+    return ret.toString();
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public ImmutableList<SqlSingleOperandTypeChecker> getRules()
-    {
-        return allowedRules;
-    }
-
-    public String getAllowedSignatures(SqlOperator op, String opName)
-    {
-        if (composition == Composition.SEQUENCE) {
-            throw Util.needToImplement("must override getAllowedSignatures");
-        }
-        StringBuilder ret = new StringBuilder();
-        for (Ord<SqlSingleOperandTypeChecker> ord : Ord.zip(allowedRules)) {
-            if (ord.i > 0) {
-                ret.append(SqlOperator.NL);
+  public SqlOperandCountRange getOperandCountRange() {
+    switch (composition) {
+    case SEQUENCE:
+      return SqlOperandCountRanges.of(allowedRules.size());
+    case AND:
+    case OR:
+    default:
+      final List<SqlOperandCountRange> ranges =
+          new AbstractList<SqlOperandCountRange>() {
+            public SqlOperandCountRange get(int index) {
+              return allowedRules.get(index).getOperandCountRange();
             }
-            ret.append(ord.e.getAllowedSignatures(op, opName));
-            if (composition == Composition.AND) {
-                break;
+
+            public int size() {
+              return allowedRules.size();
             }
-        }
-        return ret.toString();
-    }
-
-    public SqlOperandCountRange getOperandCountRange()
-    {
-        switch (composition) {
-        case SEQUENCE:
-            return SqlOperandCountRanges.of(allowedRules.size());
-        case AND:
-        case OR:
-        default:
-            final List<SqlOperandCountRange> ranges =
-                new AbstractList<SqlOperandCountRange>() {
-                    public SqlOperandCountRange get(int index) {
-                        return allowedRules.get(index).getOperandCountRange();
-                    }
-
-                    public int size() {
-                        return allowedRules.size();
-                    }
-                };
-            final int min = minMin(ranges);
-            final int max = maxMax(ranges);
-            SqlOperandCountRange composite =
-                new SqlOperandCountRange() {
-                    public boolean isValidCount(int count) {
-                        switch (composition) {
-                        case AND:
-                            for (SqlOperandCountRange range : ranges) {
-                                if (!range.isValidCount(count)) {
-                                    return false;
-                                }
-                            }
-                            return true;
-                        case OR:
-                        default:
-                            for (SqlOperandCountRange range : ranges) {
-                                if (range.isValidCount(count)) {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }
-                    }
-
-                    public int getMin() {
-                        return min;
-                    }
-
-                    public int getMax() {
-                        return max;
-                    }
-                };
-            if (max >= 0) {
-                for (int i = min; i <= max; i++) {
-                    if (!composite.isValidCount(i)) {
-                        // Composite is not a simple range. Can't simplify,
-                        // so return the composite.
-                        return composite;
-                    }
+          };
+      final int min = minMin(ranges);
+      final int max = maxMax(ranges);
+      SqlOperandCountRange composite =
+          new SqlOperandCountRange() {
+            public boolean isValidCount(int count) {
+              switch (composition) {
+              case AND:
+                for (SqlOperandCountRange range : ranges) {
+                  if (!range.isValidCount(count)) {
+                    return false;
+                  }
                 }
-            }
-            return SqlOperandCountRanges.between(min, max);
-        }
-    }
-
-    private int minMin(List<SqlOperandCountRange> ranges) {
-        int min = Integer.MAX_VALUE;
-        for (SqlOperandCountRange range : ranges) {
-            min = Math.min(min, range.getMax());
-        }
-        return min;
-    }
-
-    private int maxMax(List<SqlOperandCountRange> ranges) {
-        int max = Integer.MAX_VALUE;
-        for (SqlOperandCountRange range : ranges) {
-            if (range.getMax() < 0) {
-                if (composition == Composition.OR) {
-                    return -1;
+                return true;
+              case OR:
+              default:
+                for (SqlOperandCountRange range : ranges) {
+                  if (range.isValidCount(count)) {
+                    return true;
+                  }
                 }
-            } else {
-                max = Math.max(max, range.getMax());
+                return false;
+              }
             }
+
+            public int getMin() {
+              return min;
+            }
+
+            public int getMax() {
+              return max;
+            }
+          };
+      if (max >= 0) {
+        for (int i = min; i <= max; i++) {
+          if (!composite.isValidCount(i)) {
+            // Composite is not a simple range. Can't simplify,
+            // so return the composite.
+            return composite;
+          }
         }
-        return max;
+      }
+      return SqlOperandCountRanges.between(min, max);
+    }
+  }
+
+  private int minMin(List<SqlOperandCountRange> ranges) {
+    int min = Integer.MAX_VALUE;
+    for (SqlOperandCountRange range : ranges) {
+      min = Math.min(min, range.getMax());
+    }
+    return min;
+  }
+
+  private int maxMax(List<SqlOperandCountRange> ranges) {
+    int max = Integer.MAX_VALUE;
+    for (SqlOperandCountRange range : ranges) {
+      if (range.getMax() < 0) {
+        if (composition == Composition.OR) {
+          return -1;
+        }
+      } else {
+        max = Math.max(max, range.getMax());
+      }
+    }
+    return max;
+  }
+
+  public boolean checkSingleOperandType(
+      SqlCallBinding callBinding,
+      SqlNode node,
+      int iFormalOperand,
+      boolean throwOnFailure) {
+    assert allowedRules.size() >= 1;
+
+    if (composition == Composition.SEQUENCE) {
+      return allowedRules.get(iFormalOperand).checkSingleOperandType(
+          callBinding, node, 0, throwOnFailure);
     }
 
-    public boolean checkSingleOperandType(
-        SqlCallBinding callBinding,
-        SqlNode node,
-        int iFormalOperand,
-        boolean throwOnFailure)
-    {
-        assert allowedRules.size() >= 1;
+    int typeErrorCount = 0;
 
-        if (composition == Composition.SEQUENCE) {
-            return allowedRules.get(iFormalOperand).checkSingleOperandType(
-                callBinding, node, 0, throwOnFailure);
-        }
-
-        int typeErrorCount = 0;
-
-        boolean throwOnAndFailure =
-            (composition == Composition.AND)
+    boolean throwOnAndFailure =
+        (composition == Composition.AND)
             && throwOnFailure;
 
-        for (SqlSingleOperandTypeChecker rule : allowedRules) {
-            if (!rule.checkSingleOperandType(
-                    callBinding,
-                    node,
-                    iFormalOperand,
-                    throwOnAndFailure))
-            {
-                typeErrorCount++;
-            }
-        }
-
-        boolean ret;
-        switch (composition) {
-        case AND:
-            ret = typeErrorCount == 0;
-            break;
-        case OR:
-            ret = (typeErrorCount < allowedRules.size());
-            break;
-        default:
-            // should never come here
-            throw Util.unexpected(composition);
-        }
-
-        if (!ret && throwOnFailure) {
-            // In the case of a composite OR, we want to throw an error
-            // describing in more detail what the problem was, hence doing the
-            // loop again.
-            for (SqlSingleOperandTypeChecker rule : allowedRules) {
-                rule.checkSingleOperandType(
-                    callBinding,
-                    node,
-                    iFormalOperand,
-                    true);
-            }
-
-            // If no exception thrown, just throw a generic validation signature
-            // error.
-            throw callBinding.newValidationSignatureError();
-        }
-
-        return ret;
+    for (SqlSingleOperandTypeChecker rule : allowedRules) {
+      if (!rule.checkSingleOperandType(
+          callBinding,
+          node,
+          iFormalOperand,
+          throwOnAndFailure)) {
+        typeErrorCount++;
+      }
     }
 
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        int typeErrorCount = 0;
-
-        label:
-        for (Ord<SqlSingleOperandTypeChecker> ord : Ord.zip(allowedRules)) {
-            SqlSingleOperandTypeChecker rule = ord.e;
-
-            switch (composition) {
-            case SEQUENCE:
-                if (ord.i >= callBinding.getOperandCount()) {
-                    break label;
-                }
-                if (!rule.checkSingleOperandType(
-                        callBinding,
-                        callBinding.getCall().operands[ord.i],
-                        0,
-                        false))
-                {
-                    typeErrorCount++;
-                }
-                break;
-            default:
-                if (!rule.checkOperandTypes(callBinding, false)) {
-                    typeErrorCount++;
-                }
-                break;
-            }
-        }
-
-        boolean failed;
-        switch (composition) {
-        case AND:
-        case SEQUENCE:
-            failed = typeErrorCount > 0;
-            break;
-        case OR:
-            failed = (typeErrorCount == allowedRules.size());
-            break;
-        default:
-            throw new AssertionError();
-        }
-
-        if (failed) {
-            if (throwOnFailure) {
-                // In the case of a composite OR, we want to throw an error
-                // describing in more detail what the problem was, hence doing
-                // the loop again.
-                if (composition == Composition.OR) {
-                    for (SqlOperandTypeChecker allowedRule : allowedRules) {
-                        allowedRule.checkOperandTypes(callBinding, true);
-                    }
-                }
-
-                // If no exception thrown, just throw a generic validation
-                // signature error.
-                throw callBinding.newValidationSignatureError();
-            }
-            return false;
-        }
-        return true;
+    boolean ret;
+    switch (composition) {
+    case AND:
+      ret = typeErrorCount == 0;
+      break;
+    case OR:
+      ret = (typeErrorCount < allowedRules.size());
+      break;
+    default:
+      // should never come here
+      throw Util.unexpected(composition);
     }
+
+    if (!ret && throwOnFailure) {
+      // In the case of a composite OR, we want to throw an error
+      // describing in more detail what the problem was, hence doing the
+      // loop again.
+      for (SqlSingleOperandTypeChecker rule : allowedRules) {
+        rule.checkSingleOperandType(
+            callBinding,
+            node,
+            iFormalOperand,
+            true);
+      }
+
+      // If no exception thrown, just throw a generic validation signature
+      // error.
+      throw callBinding.newValidationSignatureError();
+    }
+
+    return ret;
+  }
+
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    int typeErrorCount = 0;
+
+    label:
+    for (Ord<SqlSingleOperandTypeChecker> ord : Ord.zip(allowedRules)) {
+      SqlSingleOperandTypeChecker rule = ord.e;
+
+      switch (composition) {
+      case SEQUENCE:
+        if (ord.i >= callBinding.getOperandCount()) {
+          break label;
+        }
+        if (!rule.checkSingleOperandType(
+            callBinding,
+            callBinding.getCall().operands[ord.i],
+            0,
+            false)) {
+          typeErrorCount++;
+        }
+        break;
+      default:
+        if (!rule.checkOperandTypes(callBinding, false)) {
+          typeErrorCount++;
+        }
+        break;
+      }
+    }
+
+    boolean failed;
+    switch (composition) {
+    case AND:
+    case SEQUENCE:
+      failed = typeErrorCount > 0;
+      break;
+    case OR:
+      failed = (typeErrorCount == allowedRules.size());
+      break;
+    default:
+      throw new AssertionError();
+    }
+
+    if (failed) {
+      if (throwOnFailure) {
+        // In the case of a composite OR, we want to throw an error
+        // describing in more detail what the problem was, hence doing
+        // the loop again.
+        if (composition == Composition.OR) {
+          for (SqlOperandTypeChecker allowedRule : allowedRules) {
+            allowedRule.checkOperandTypes(callBinding, true);
+          }
+        }
+
+        // If no exception thrown, just throw a generic validation
+        // signature error.
+        throw callBinding.newValidationSignatureError();
+      }
+      return false;
+    }
+    return true;
+  }
 }
 
 // End CompositeOperandTypeChecker.java

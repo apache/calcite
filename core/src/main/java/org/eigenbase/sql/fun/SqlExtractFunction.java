@@ -27,44 +27,39 @@ import org.eigenbase.util.*;
  * <code>EXTRACT(HOUR FROM INTERVAL '364 23:59:59')</code> returns <code>
  * 23</code>
  */
-public class SqlExtractFunction
-    extends SqlFunction
-{
-    //~ Constructors -----------------------------------------------------------
+public class SqlExtractFunction extends SqlFunction {
+  //~ Constructors -----------------------------------------------------------
 
-    // SQL2003, Part 2, Section 4.4.3 - extract returns a exact numeric
-    // TODO: Return type should be decimal for seconds
-    public SqlExtractFunction()
-    {
-        super(
-            "EXTRACT",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiNullableBigint,
-            null,
-            SqlTypeStrategies.otcIntervalSameX2,
-            SqlFunctionCategory.System);
-    }
+  // SQL2003, Part 2, Section 4.4.3 - extract returns a exact numeric
+  // TODO: Return type should be decimal for seconds
+  public SqlExtractFunction() {
+    super(
+        "EXTRACT",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiNullableBigint,
+        null,
+        SqlTypeStrategies.otcIntervalSameX2,
+        SqlFunctionCategory.System);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public String getSignatureTemplate(int operandsCount)
-    {
-        Util.discard(operandsCount);
-        return "{0}({1} FROM {2})";
-    }
+  public String getSignatureTemplate(int operandsCount) {
+    Util.discard(operandsCount);
+    return "{0}({1} FROM {2})";
+  }
 
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        final SqlWriter.Frame frame = writer.startFunCall(getName());
-        operands[0].unparse(writer, leftPrec, rightPrec);
-        writer.sep("FROM");
-        operands[1].unparse(writer, leftPrec, rightPrec);
-        writer.endFunCall(frame);
-    }
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall(getName());
+    operands[0].unparse(writer, leftPrec, rightPrec);
+    writer.sep("FROM");
+    operands[1].unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(frame);
+  }
 }
 
 // End SqlExtractFunction.java

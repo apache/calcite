@@ -21,40 +21,38 @@ import java.util.List;
 
 import org.eigenbase.reltype.*;
 
-
 /**
  * A <code>RelOptSchema</code> is a set of {@link RelOptTable} objects.
  */
-public interface RelOptSchema
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RelOptSchema {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Retrieves a {@link RelOptTable} based upon a member access.
-     *
-     * <p>For example, the Saffron expression <code>salesSchema.emps</code>
-     * would be resolved using a call to <code>salesSchema.getTableForMember(new
-     * String[]{"emps" })</code>.</p>
-     *
-     * <p>Note that name.length is only greater than 1 for queries originating
-     * from JDBC.</p>
-     *
-     * @param names Qualified name
-     */
-    RelOptTable getTableForMember(List<String> names);
+  /**
+   * Retrieves a {@link RelOptTable} based upon a member access.
+   *
+   * <p>For example, the Saffron expression <code>salesSchema.emps</code>
+   * would be resolved using a call to <code>salesSchema.getTableForMember(new
+   * String[]{"emps" })</code>.</p>
+   *
+   * <p>Note that name.length is only greater than 1 for queries originating
+   * from JDBC.</p>
+   *
+   * @param names Qualified name
+   */
+  RelOptTable getTableForMember(List<String> names);
 
-    /**
-     * Returns the {@link RelDataTypeFactory type factory} used to generate
-     * types for this schema.
-     */
-    RelDataTypeFactory getTypeFactory();
+  /**
+   * Returns the {@link RelDataTypeFactory type factory} used to generate
+   * types for this schema.
+   */
+  RelDataTypeFactory getTypeFactory();
 
-    /**
-     * Registers all of the rules supported by this schema. Only called by
-     * {@link RelOptPlanner#registerSchema}.
-     */
-    void registerRules(RelOptPlanner planner)
-        throws Exception;
+  /**
+   * Registers all of the rules supported by this schema. Only called by
+   * {@link RelOptPlanner#registerSchema}.
+   */
+  void registerRules(RelOptPlanner planner)
+      throws Exception;
 }
 
 // End RelOptSchema.java

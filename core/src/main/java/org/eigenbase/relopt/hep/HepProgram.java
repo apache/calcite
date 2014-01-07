@@ -30,52 +30,50 @@ import com.google.common.collect.ImmutableList;
  * as read/write during planning, so a program can only be in use by a single
  * planner at a time.
  */
-public class HepProgram
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class HepProgram {
+  //~ Static fields/initializers ---------------------------------------------
 
-    /**
-     * Symbolic constant for matching until no more matches occur.
-     */
-    public static final int MATCH_UNTIL_FIXPOINT = Integer.MAX_VALUE;
+  /**
+   * Symbolic constant for matching until no more matches occur.
+   */
+  public static final int MATCH_UNTIL_FIXPOINT = Integer.MAX_VALUE;
 
-    //~ Instance fields --------------------------------------------------------
+  //~ Instance fields --------------------------------------------------------
 
-    final ImmutableList<HepInstruction> instructions;
+  final ImmutableList<HepInstruction> instructions;
 
-    int matchLimit;
+  int matchLimit;
 
-    HepMatchOrder matchOrder;
+  HepMatchOrder matchOrder;
 
-    HepInstruction.EndGroup group;
+  HepInstruction.EndGroup group;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a new empty HepProgram. The program has an initial match order of
-     * {@link org.eigenbase.relopt.hep.HepMatchOrder#ARBITRARY}, and an initial
-     * match limit of {@link #MATCH_UNTIL_FIXPOINT}.
-     */
-    HepProgram(List<HepInstruction> instructions) {
-        this.instructions = ImmutableList.copyOf(instructions);
+  /**
+   * Creates a new empty HepProgram. The program has an initial match order of
+   * {@link org.eigenbase.relopt.hep.HepMatchOrder#ARBITRARY}, and an initial
+   * match limit of {@link #MATCH_UNTIL_FIXPOINT}.
+   */
+  HepProgram(List<HepInstruction> instructions) {
+    this.instructions = ImmutableList.copyOf(instructions);
+  }
+
+  public static HepProgramBuilder builder() {
+    return new HepProgramBuilder();
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  void initialize(boolean clearCache) {
+    matchLimit = MATCH_UNTIL_FIXPOINT;
+    matchOrder = HepMatchOrder.ARBITRARY;
+    group = null;
+
+    for (HepInstruction instruction : instructions) {
+      instruction.initialize(clearCache);
     }
-
-    public static HepProgramBuilder builder() {
-        return new HepProgramBuilder();
-    }
-
-    //~ Methods ----------------------------------------------------------------
-
-    void initialize(boolean clearCache)
-    {
-        matchLimit = MATCH_UNTIL_FIXPOINT;
-        matchOrder = HepMatchOrder.ARBITRARY;
-        group = null;
-
-        for (HepInstruction instruction : instructions) {
-            instruction.initialize(clearCache);
-        }
-    }
+  }
 }
 
 // End HepProgram.java

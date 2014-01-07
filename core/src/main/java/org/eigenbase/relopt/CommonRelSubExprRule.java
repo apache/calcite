@@ -23,24 +23,20 @@ package org.eigenbase.relopt;
  * that are fired only on relational expressions that appear more than once
  * in a query tree.
  */
-public abstract class CommonRelSubExprRule
-    extends RelOptRule
-{
-    //~ Constructors -----------------------------------------------------------
+public abstract class CommonRelSubExprRule extends RelOptRule {
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a <code>CommonRelSubExprRule</code>.
-     *
-     * @param operand root operand, must not be null
-     *
-     * @pre operand != null
-     */
-    public CommonRelSubExprRule(RelOptRuleOperand operand)
-    {
-        super(operand);
-    }
+  /**
+   * Creates a <code>CommonRelSubExprRule</code>.
+   *
+   * @param operand root operand, must not be null
+   * @pre operand != null
+   */
+  public CommonRelSubExprRule(RelOptRuleOperand operand) {
+    super(operand);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
 }
 

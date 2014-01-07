@@ -50,1101 +50,1043 @@ import static org.junit.Assert.*;
  * validator to use.</p>
  */
 public class SqlValidatorTestCase {
-    //~ Static fields/initializers ---------------------------------------------
+  //~ Static fields/initializers ---------------------------------------------
 
-    protected static final String NL = System.getProperty("line.separator");
+  protected static final String NL = System.getProperty("line.separator");
 
-    private static final Pattern lineColPattern =
-        Pattern.compile("At line ([0-9]+), column ([0-9]+)");
+  private static final Pattern lineColPattern =
+      Pattern.compile("At line ([0-9]+), column ([0-9]+)");
 
-    private static final Pattern lineColTwicePattern =
-        Pattern.compile(
-            "(?s)From line ([0-9]+), column ([0-9]+) to line ([0-9]+), column ([0-9]+): (.*)");
+  private static final Pattern lineColTwicePattern =
+      Pattern.compile(
+          "(?s)From line ([0-9]+), column ([0-9]+) to line ([0-9]+), column ([0-9]+): (.*)");
 
-    //~ Instance fields --------------------------------------------------------
+  //~ Instance fields --------------------------------------------------------
 
-    protected final Tester tester;
+  protected final Tester tester;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a test case.
-     */
-    public SqlValidatorTestCase(SqlConformance conformance) {
-        if (conformance == null) {
-            conformance = SqlConformance.Default;
+  /**
+   * Creates a test case.
+   */
+  public SqlValidatorTestCase(SqlConformance conformance) {
+    if (conformance == null) {
+      conformance = SqlConformance.Default;
+    }
+    this.tester = getTester(conformance);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Returns a tester. Derived classes should override this method to run the
+   * same set of tests in a different testing environment.
+   *
+   * @param conformance Language version tests should check compatibility with
+   */
+  public Tester getTester(SqlConformance conformance) {
+    return new TesterImpl(conformance);
+  }
+
+  public void check(String sql) {
+    tester.assertExceptionIsThrown(sql, null);
+  }
+
+  public void checkExp(String sql) {
+    tester.assertExceptionIsThrown(
+        TesterImpl.buildQuery(sql),
+        null);
+  }
+
+  /**
+   * Checks that a SQL query gives a particular error, or succeeds if {@code
+   * expected} is null.
+   */
+  public final void checkFails(
+      String sql,
+      String expected) {
+    tester.assertExceptionIsThrown(sql, expected);
+  }
+
+  /**
+   * Checks that a SQL expression gives a particular error.
+   */
+  public final void checkExpFails(
+      String sql,
+      String expected) {
+    tester.assertExceptionIsThrown(
+        TesterImpl.buildQuery(sql),
+        expected);
+  }
+
+  /**
+   * Checks that a SQL expression gives a particular error, and that the
+   * location of the error is the whole expression.
+   */
+  public final void checkWholeExpFails(
+      String sql,
+      String expected) {
+    assert sql.indexOf('^') < 0;
+    checkExpFails("^" + sql + "^", expected);
+  }
+
+  public void checkExpType(
+      String sql,
+      String expected) {
+    checkColumnType(
+        TesterImpl.buildQuery(sql),
+        expected);
+  }
+
+  /**
+   * Checks that a query returns a single column, and that the column has the
+   * expected type. For example,
+   *
+   * <blockquote><code>checkColumnType("SELECT empno FROM Emp", "INTEGER NOT
+   * NULL");</code></blockquote>
+   *
+   * @param sql      Query
+   * @param expected Expected type, including nullability
+   */
+  public void checkColumnType(
+      String sql,
+      String expected) {
+    tester.checkColumnType(sql, expected);
+  }
+
+  /**
+   * Checks that a query returns a row of the expected type. For example,
+   *
+   * <blockquote><code>checkResultType("select empno, name from emp","{EMPNO
+   * INTEGER NOT NULL, NAME VARCHAR(10) NOT NULL}");</code></blockquote>
+   *
+   * @param sql      Query
+   * @param expected Expected row type
+   */
+  public void checkResultType(
+      String sql,
+      String expected) {
+    tester.checkResultType(sql, expected);
+  }
+
+  /**
+   * Checks that the first column returned by a query has the expected type.
+   * For example,
+   *
+   * <blockquote><code>checkQueryType("SELECT empno FROM Emp", "INTEGER NOT
+   * NULL");</code></blockquote>
+   *
+   * @param sql      Query
+   * @param expected Expected type, including nullability
+   */
+  public void checkIntervalConv(
+      String sql,
+      String expected) {
+    tester.checkIntervalConv(
+        TesterImpl.buildQuery(sql),
+        expected);
+  }
+
+  protected final void assertExceptionIsThrown(
+      String sql,
+      String expectedMsgPattern) {
+    tester.assertExceptionIsThrown(sql, expectedMsgPattern);
+  }
+
+  public void checkCharset(
+      String sql,
+      Charset expectedCharset) {
+    tester.checkCharset(sql, expectedCharset);
+  }
+
+  public void checkCollation(
+      String sql,
+      String expectedCollationName,
+      SqlCollation.Coercibility expectedCoercibility) {
+    tester.checkCollation(sql, expectedCollationName, expectedCoercibility);
+  }
+
+  /**
+   * Checks whether an exception matches the expected pattern. If <code>
+   * sap</code> contains an error location, checks this too.
+   *
+   * @param ex                 Exception thrown
+   * @param expectedMsgPattern Expected pattern
+   * @param sap                Query and (optional) position in query
+   */
+  public static void checkEx(
+      Throwable ex,
+      String expectedMsgPattern,
+      SqlParserUtil.StringAndPos sap) {
+    if (null == ex) {
+      if (expectedMsgPattern == null) {
+        // No error expected, and no error happened.
+        return;
+      } else {
+        throw new AssertionError(
+            "Expected query to throw exception, but it did not; "
+            + "query [" + sap.sql
+            + "]; expected [" + expectedMsgPattern + "]");
+      }
+    }
+    Throwable actualException = ex;
+    String actualMessage = actualException.getMessage();
+    int actualLine = -1;
+    int actualColumn = -1;
+    int actualEndLine = 100;
+    int actualEndColumn = 99;
+
+    // Search for an EigenbaseContextException somewhere in the stack.
+    EigenbaseContextException ece = null;
+    for (Throwable x = ex; x != null; x = x.getCause()) {
+      if (x instanceof EigenbaseContextException) {
+        ece = (EigenbaseContextException) x;
+        break;
+      }
+      if (x.getCause() == x) {
+        break;
+      }
+    }
+
+    // Search for a SqlParseException -- with its position set -- somewhere
+    // in the stack.
+    SqlParseException spe = null;
+    for (Throwable x = ex; x != null; x = x.getCause()) {
+      if ((x instanceof SqlParseException)
+          && (((SqlParseException) x).getPos() != null)) {
+        spe = (SqlParseException) x;
+        break;
+      }
+      if (x.getCause() == x) {
+        break;
+      }
+    }
+
+    if (ece != null) {
+      actualLine = ece.getPosLine();
+      actualColumn = ece.getPosColumn();
+      actualEndLine = ece.getEndPosLine();
+      actualEndColumn = ece.getEndPosColumn();
+      if (ece.getCause() != null) {
+        actualException = ece.getCause();
+        actualMessage = actualException.getMessage();
+      }
+    } else if (spe != null) {
+      actualLine = spe.getPos().getLineNum();
+      actualColumn = spe.getPos().getColumnNum();
+      actualEndLine = spe.getPos().getEndLineNum();
+      actualEndColumn = spe.getPos().getEndColumnNum();
+      if (spe.getCause() != null) {
+        actualException = spe.getCause();
+        actualMessage = actualException.getMessage();
+      }
+    } else {
+      final String message = ex.getMessage();
+      if (message != null) {
+        Matcher matcher = lineColTwicePattern.matcher(message);
+        if (matcher.matches()) {
+          actualLine = Integer.parseInt(matcher.group(1));
+          actualColumn = Integer.parseInt(matcher.group(2));
+          actualEndLine = Integer.parseInt(matcher.group(3));
+          actualEndColumn = Integer.parseInt(matcher.group(4));
+          actualMessage = matcher.group(5);
+        } else {
+          matcher = lineColPattern.matcher(message);
+          if (matcher.matches()) {
+            actualLine = Integer.parseInt(matcher.group(1));
+            actualColumn = Integer.parseInt(matcher.group(2));
+          }
         }
-        this.tester = getTester(conformance);
+      }
     }
 
-    //~ Methods ----------------------------------------------------------------
+    if (null == expectedMsgPattern) {
+      if (null != actualException) {
+        actualException.printStackTrace();
+        fail(
+            "Validator threw unexpected exception"
+            + "; query [" + sap.sql
+            + "]; exception [" + actualMessage
+            + "]; pos [line " + actualLine
+            + " col " + actualColumn
+            + " thru line " + actualLine
+            + " col " + actualColumn + "]");
+      }
+    } else if (null != expectedMsgPattern) {
+      if (null == actualException) {
+        fail(
+            "Expected validator to throw "
+            + "exception, but it did not; query [" + sap.sql
+            + "]; expected [" + expectedMsgPattern + "]");
+      } else {
+        String sqlWithCarets;
+        if ((actualColumn <= 0)
+            || (actualLine <= 0)
+            || (actualEndColumn <= 0)
+            || (actualEndLine <= 0)) {
+          if (sap.pos != null) {
+            throw new AssertionError(
+                "Expected error to have position,"
+                + " but actual error did not: "
+                + " actual pos [line " + actualLine
+                + " col " + actualColumn
+                + " thru line " + actualEndLine
+                + " col " + actualEndColumn + "]");
+          }
+          sqlWithCarets = sap.sql;
+        } else {
+          sqlWithCarets =
+              SqlParserUtil.addCarets(
+                  sap.sql,
+                  actualLine,
+                  actualColumn,
+                  actualEndLine,
+                  actualEndColumn + 1);
+          if (sap.pos == null) {
+            throw new AssertionError(
+                "Actual error had a position, but expected error"
+                + " did not. Add error position carets to sql:\n"
+                    + sqlWithCarets);
+          }
+        }
+        if ((actualMessage == null)
+            || !actualMessage.matches(expectedMsgPattern)) {
+          actualException.printStackTrace();
+          final String actualJavaRegexp =
+              (actualMessage == null) ? "null"
+                  : TestUtil.quoteForJava(
+                      TestUtil.quotePattern(actualMessage));
+          fail(
+              "Validator threw different "
+              + "exception than expected; query [" + sap.sql
+              + "];" + NL
+              + " expected pattern [" + expectedMsgPattern
+              + "];" + NL
+              + " actual [" + actualMessage
+              + "];" + NL
+              + " actual as java regexp [" + actualJavaRegexp
+              + "]; pos [" + actualLine
+              + " col " + actualColumn
+              + " thru line " + actualEndLine
+              + " col " + actualEndColumn
+              + "]; sql [" + sqlWithCarets + "]");
+        } else if (
+            (sap.pos != null)
+                && ((actualLine != sap.pos.getLineNum())
+                || (actualColumn != sap.pos.getColumnNum())
+                || (actualEndLine != sap.pos.getEndLineNum())
+                || (actualEndColumn != sap.pos.getEndColumnNum()))) {
+          fail(
+              "Validator threw expected "
+              + "exception [" + actualMessage
+              + "];\nbut at pos [line " + actualLine
+              + " col " + actualColumn
+              + " thru line " + actualEndLine
+              + " col " + actualEndColumn
+              + "];\nsql [" + sqlWithCarets + "]");
+        }
+      }
+    }
+  }
+
+  //~ Inner Interfaces -------------------------------------------------------
+
+  /**
+   * Encapsulates differences between test environments, for example, which
+   * SQL parser or validator to use.
+   *
+   * <p>It contains a mock schema with <code>EMP</code> and <code>DEPT</code>
+   * tables, which can run without having to start up Farrago.
+   */
+  public interface Tester {
+    SqlNode parseQuery(String sql)
+        throws SqlParseException;
+
+    SqlNode parseAndValidate(SqlValidator validator, String sql);
+
+    SqlValidator getValidator();
 
     /**
-     * Returns a tester. Derived classes should override this method to run the
-     * same set of tests in a different testing environment.
+     * Checks that a query is valid, or, if invalid, throws the right
+     * message at the right location.
      *
-     * @param conformance Language version tests should check compatibility with
+     * <p>If <code>expectedMsgPattern</code> is null, the query must
+     * succeed.
+     *
+     * <p>If <code>expectedMsgPattern</code> is not null, the query must
+     * fail, and give an error location of (expectedLine, expectedColumn)
+     * through (expectedEndLine, expectedEndColumn).
+     *
+     * @param sql                SQL statement
+     * @param expectedMsgPattern If this parameter is null the query must be
+     *                           valid for the test to pass; If this parameter
+     *                           is not null the query must be malformed and the
+     *                           message given must match the pattern
      */
-    public Tester getTester(SqlConformance conformance)
-    {
-        return new TesterImpl(conformance);
-    }
+    void assertExceptionIsThrown(
+        String sql,
+        String expectedMsgPattern);
 
-    public void check(String sql)
-    {
-        tester.assertExceptionIsThrown(sql, null);
-    }
+    /**
+     * Returns the data type of the sole column of a SQL query.
+     *
+     * <p>For example, <code>getResultType("VALUES (1")</code> returns
+     * <code>INTEGER</code>.
+     *
+     * <p>Fails if query returns more than one column.
+     *
+     * @see #getResultType(String)
+     */
+    RelDataType getColumnType(String sql);
 
-    public void checkExp(String sql)
-    {
-        tester.assertExceptionIsThrown(
-            TesterImpl.buildQuery(sql),
-            null);
+    /**
+     * Returns the data type of the row returned by a SQL query.
+     *
+     * <p>For example, <code>getResultType("VALUES (1, 'foo')")</code>
+     * returns <code>RecordType(INTEGER EXPR$0, CHAR(3) EXPR#1)</code>.
+     */
+    RelDataType getResultType(String sql);
+
+    void checkCollation(
+        String sql,
+        String expectedCollationName,
+        SqlCollation.Coercibility expectedCoercibility);
+
+    void checkCharset(
+        String sql,
+        Charset expectedCharset);
+
+    /**
+     * Checks that a query returns one column of an expected type. For
+     * example, <code>checkType("VALUES (1 + 2)", "INTEGER NOT
+     * NULL")</code>.
+     */
+    void checkColumnType(
+        String sql,
+        String expected);
+
+    /**
+     * Given a SQL query, returns a list of the origins of each result
+     * field.
+     *
+     * @param sql             SQL query
+     * @param fieldOriginList Field origin list, e.g.
+     *                        "{(CATALOG.SALES.EMP.EMPNO, null)}"
+     */
+    void checkFieldOrigin(String sql, String fieldOriginList);
+
+    /**
+     * Checks that a query gets rewritten to an expected form.
+     *
+     * @param validator       validator to use; null for default
+     * @param query           query to test
+     * @param expectedRewrite expected SQL text after rewrite and unparse
+     */
+    void checkRewrite(
+        SqlValidator validator,
+        String query,
+        String expectedRewrite);
+
+    /**
+     * Checks that a query returns one column of an expected type. For
+     * example, <code>checkType("select empno, name from emp""{EMPNO INTEGER
+     * NOT NULL, NAME VARCHAR(10) NOT NULL}")</code>.
+     */
+    void checkResultType(
+        String sql,
+        String expected);
+
+    /**
+     * Checks if the interval value conversion to milliseconds is valid. For
+     * example, <code>checkIntervalConv(VALUES (INTERVAL '1' Minute),
+     * "60000")</code>.
+     */
+    void checkIntervalConv(
+        String sql,
+        String expected);
+
+    /**
+     * Given a SQL query, returns the monotonicity of the first item in the
+     * SELECT clause.
+     *
+     * @param sql SQL query
+     * @return Monotonicity
+     */
+    SqlMonotonicity getMonotonicity(String sql);
+
+    SqlConformance getConformance();
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
+
+  /**
+   * Implementation of {@link org.eigenbase.test.SqlValidatorTestCase.Tester}
+   * which talks to a mock catalog.
+   *
+   * <p>It is also a pure-Java implementation of the {@link SqlTester} used by
+   * {@link SqlOperatorBaseTest}. It can parse and validate queries, but it
+   * does not invoke Farrago, so it is very fast but cannot execute functions.
+   */
+  public static class TesterImpl implements Tester, SqlTester {
+    protected final SqlOperatorTable opTab;
+    protected final SqlConformance conformance;
+
+    public TesterImpl(SqlConformance conformance) {
+      assert conformance != null;
+      this.conformance = conformance;
+      this.opTab = createOperatorTable();
     }
 
     /**
-     * Checks that a SQL query gives a particular error, or succeeds if {@code
-     * expected} is null.
-     */
-    public final void checkFails(
-        String sql,
-        String expected)
-    {
-        tester.assertExceptionIsThrown(sql, expected);
-    }
-
-    /**
-     * Checks that a SQL expression gives a particular error.
-     */
-    public final void checkExpFails(
-        String sql,
-        String expected)
-    {
-        tester.assertExceptionIsThrown(
-            TesterImpl.buildQuery(sql),
-            expected);
-    }
-
-    /**
-     * Checks that a SQL expression gives a particular error, and that the
-     * location of the error is the whole expression.
-     */
-    public final void checkWholeExpFails(
-        String sql,
-        String expected)
-    {
-        assert sql.indexOf('^') < 0;
-        checkExpFails("^" + sql + "^", expected);
-    }
-
-    public void checkExpType(
-        String sql,
-        String expected)
-    {
-        checkColumnType(
-            TesterImpl.buildQuery(sql),
-            expected);
-    }
-
-    /**
-     * Checks that a query returns a single column, and that the column has the
-     * expected type. For example,
+     * {@inheritDoc}
      *
-     * <blockquote><code>checkColumnType("SELECT empno FROM Emp", "INTEGER NOT
-     * NULL");</code></blockquote>
-     *
-     * @param sql Query
-     * @param expected Expected type, including nullability
+     * This default implementation does nothing.
      */
-    public void checkColumnType(
-        String sql,
-        String expected)
-    {
-        tester.checkColumnType(sql, expected);
+    public void close() {
+      // no resources to release
     }
 
-    /**
-     * Checks that a query returns a row of the expected type. For example,
-     *
-     * <blockquote><code>checkResultType("select empno, name from emp","{EMPNO
-     * INTEGER NOT NULL, NAME VARCHAR(10) NOT NULL}");</code></blockquote>
-     *
-     * @param sql Query
-     * @param expected Expected row type
-     */
-    public void checkResultType(
-        String sql,
-        String expected)
-    {
-        tester.checkResultType(sql, expected);
+    public SqlConformance getConformance() {
+      return conformance;
     }
 
-    /**
-     * Checks that the first column returned by a query has the expected type.
-     * For example,
-     *
-     * <blockquote><code>checkQueryType("SELECT empno FROM Emp", "INTEGER NOT
-     * NULL");</code></blockquote>
-     *
-     * @param sql Query
-     * @param expected Expected type, including nullability
-     */
-    public void checkIntervalConv(
-        String sql,
-        String expected)
-    {
-        tester.checkIntervalConv(
-            TesterImpl.buildQuery(sql),
-            expected);
+    protected SqlOperatorTable createOperatorTable() {
+      MockSqlOperatorTable opTab =
+          new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+      MockSqlOperatorTable.addRamp(opTab);
+      return opTab;
     }
 
-    protected final void assertExceptionIsThrown(
-        String sql,
-        String expectedMsgPattern)
-    {
-        tester.assertExceptionIsThrown(sql, expectedMsgPattern);
+    public SqlValidator getValidator() {
+      final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
+      return SqlValidatorUtil.newValidator(
+          opTab,
+          new MockCatalogReader(typeFactory),
+          typeFactory);
     }
 
-    public void checkCharset(
+    public void assertExceptionIsThrown(
         String sql,
-        Charset expectedCharset)
-    {
-        tester.checkCharset(sql, expectedCharset);
+        String expectedMsgPattern) {
+      SqlValidator validator;
+      SqlNode sqlNode;
+      SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
+      try {
+        sqlNode = parseQuery(sap.sql);
+        validator = getValidator();
+      } catch (SqlParseException e) {
+        String errMessage = e.getMessage();
+        if (expectedMsgPattern == null) {
+          e.printStackTrace();
+          throw new AssertionError(
+              "Error while parsing query [" + sap.sql + "]");
+        } else if (
+            (null == errMessage)
+                || !errMessage.matches(expectedMsgPattern)) {
+          e.printStackTrace();
+          throw new AssertionError(
+              "Error did not match expected ["
+                  + expectedMsgPattern + "] while parsing query ["
+                  + sap.sql + "]");
+        }
+        return;
+      } catch (Throwable e) {
+        e.printStackTrace();
+        throw new AssertionError(
+            "Error while parsing query [" + sap.sql + "]");
+      }
+
+      Throwable thrown = null;
+      try {
+        validator.validate(sqlNode);
+      } catch (Throwable ex) {
+        thrown = ex;
+      }
+
+      checkEx(thrown, expectedMsgPattern, sap);
+    }
+
+    public RelDataType getColumnType(String sql) {
+      RelDataType rowType = getResultType(sql);
+      final List<RelDataTypeField> fields = rowType.getFieldList();
+      assertEquals("expected query to return 1 field", 1, fields.size());
+      RelDataType actualType = fields.get(0).getType();
+      return actualType;
+    }
+
+    public RelDataType getResultType(String sql) {
+      SqlValidator validator = getValidator();
+      SqlNode n = parseAndValidate(validator, sql);
+
+      RelDataType rowType = validator.getValidatedNodeType(n);
+      return rowType;
+    }
+
+    public SqlNode parseAndValidate(SqlValidator validator, String sql) {
+      if (validator == null) {
+        validator = getValidator();
+      }
+      SqlNode sqlNode;
+      try {
+        sqlNode = parseQuery(sql);
+      } catch (SqlParseException e) {
+        throw new RuntimeException(
+            "Error while parsing query [" + sql + "]", e);
+      } catch (Throwable e) {
+        e.printStackTrace();
+        throw new AssertionError(
+            "Error while parsing query [" + sql + "]");
+      }
+      return validator.validate(sqlNode);
+    }
+
+    public SqlNode parseQuery(String sql)
+        throws SqlParseException {
+      SqlParser parser = new SqlParser(sql);
+      return parser.parseQuery();
+    }
+
+    public void checkColumnType(String sql, String expected) {
+      RelDataType actualType = getColumnType(sql);
+      String actual = AbstractSqlTester.getTypeString(actualType);
+      assertEquals(expected, actual);
+    }
+
+    public void checkFieldOrigin(String sql, String fieldOriginList) {
+      SqlValidator validator = getValidator();
+      SqlNode n = parseAndValidate(validator, sql);
+      final List<List<String>> list = validator.getFieldOrigins(n);
+      final StringBuilder buf = new StringBuilder("{");
+      int i = 0;
+      for (List<String> strings : list) {
+        if (i++ > 0) {
+          buf.append(", ");
+        }
+        if (strings == null) {
+          buf.append("null");
+        } else {
+          int j = 0;
+          for (String s : strings) {
+            if (j++ > 0) {
+              buf.append('.');
+            }
+            buf.append(s);
+          }
+        }
+      }
+      buf.append("}");
+      assertEquals(fieldOriginList, buf.toString());
+    }
+
+    public void checkResultType(String sql, String expected) {
+      RelDataType actualType = getResultType(sql);
+      String actual = AbstractSqlTester.getTypeString(actualType);
+      assertEquals(expected, actual);
+    }
+
+    public void checkIntervalConv(String sql, String expected) {
+      SqlValidator validator = getValidator();
+      final SqlCall n = (SqlCall) parseAndValidate(validator, sql);
+
+      SqlNode node = null;
+      for (int i = 0; i < n.getOperands().length; i++) {
+        node = n.getOperands()[i];
+        if (node instanceof SqlCall) {
+          if (node.getKind() == SqlKind.AS) {
+            node = ((SqlCall) node).operands[0];
+          }
+          node = ((SqlCall) node).getOperands()[0];
+          break;
+        }
+      }
+
+      SqlIntervalLiteral.IntervalValue interval =
+          (SqlIntervalLiteral.IntervalValue) ((SqlIntervalLiteral) node)
+              .getValue();
+      long l =
+          interval.getIntervalQualifier().isYearMonth()
+              ? SqlParserUtil.intervalToMonths(interval)
+              : SqlParserUtil.intervalToMillis(interval);
+      String actual = l + "";
+      assertEquals(expected, actual);
+    }
+
+    public void checkType(String expression, String type) {
+      for (String sql : buildQueries(expression)) {
+        checkColumnType(sql, type);
+      }
     }
 
     public void checkCollation(
-        String sql,
+        String expression,
         String expectedCollationName,
-        SqlCollation.Coercibility expectedCoercibility)
-    {
-        tester.checkCollation(sql, expectedCollationName, expectedCoercibility);
+        SqlCollation.Coercibility expectedCoercibility) {
+      for (String sql : buildQueries(expression)) {
+        RelDataType actualType = getColumnType(sql);
+        SqlCollation collation = actualType.getCollation();
+
+        assertEquals(
+            expectedCollationName, collation.getCollationName());
+        assertEquals(expectedCoercibility, collation.getCoercibility());
+      }
     }
 
-    /**
-     * Checks whether an exception matches the expected pattern. If <code>
-     * sap</code> contains an error location, checks this too.
-     *
-     * @param ex Exception thrown
-     * @param expectedMsgPattern Expected pattern
-     * @param sap Query and (optional) position in query
-     */
-    public static void checkEx(
-        Throwable ex,
-        String expectedMsgPattern,
-        SqlParserUtil.StringAndPos sap)
-    {
-        if (null == ex) {
-            if (expectedMsgPattern == null) {
-                // No error expected, and no error happened.
-                return;
-            } else {
-                throw new AssertionError(
-                    "Expected query to throw exception, but it did not; "
-                    + "query [" + sap.sql
-                    + "]; expected [" + expectedMsgPattern + "]");
-            }
-        }
-        Throwable actualException = ex;
-        String actualMessage = actualException.getMessage();
-        int actualLine = -1;
-        int actualColumn = -1;
-        int actualEndLine = 100;
-        int actualEndColumn = 99;
+    public void checkCharset(
+        String expression,
+        Charset expectedCharset) {
+      for (String sql : buildQueries(expression)) {
+        RelDataType actualType = getColumnType(sql);
+        Charset actualCharset = actualType.getCharset();
 
-        // Search for an EigenbaseContextException somewhere in the stack.
-        EigenbaseContextException ece = null;
-        for (Throwable x = ex; x != null; x = x.getCause()) {
-            if (x instanceof EigenbaseContextException) {
-                ece = (EigenbaseContextException) x;
-                break;
-            }
-            if (x.getCause() == x) {
-                break;
-            }
+        if (!expectedCharset.equals(actualCharset)) {
+          fail(
+              NL + "Expected=" + expectedCharset.name() + NL
+                  + "  actual=" + actualCharset.name());
         }
+      }
+    }
 
-        // Search for a SqlParseException -- with its position set -- somewhere
-        // in the stack.
-        SqlParseException spe = null;
-        for (Throwable x = ex; x != null; x = x.getCause()) {
-            if ((x instanceof SqlParseException)
-                && (((SqlParseException) x).getPos() != null))
-            {
-                spe = (SqlParseException) x;
-                break;
-            }
-            if (x.getCause() == x) {
-                break;
-            }
-        }
+    // SqlTester methods
 
-        if (ece != null) {
-            actualLine = ece.getPosLine();
-            actualColumn = ece.getPosColumn();
-            actualEndLine = ece.getEndPosLine();
-            actualEndColumn = ece.getEndPosColumn();
-            if (ece.getCause() != null) {
-                actualException = ece.getCause();
-                actualMessage = actualException.getMessage();
-            }
-        } else if (spe != null) {
-            actualLine = spe.getPos().getLineNum();
-            actualColumn = spe.getPos().getColumnNum();
-            actualEndLine = spe.getPos().getEndLineNum();
-            actualEndColumn = spe.getPos().getEndColumnNum();
-            if (spe.getCause() != null) {
-                actualException = spe.getCause();
-                actualMessage = actualException.getMessage();
-            }
+    public void setFor(
+        SqlOperator operator,
+        VmName... unimplementedVmNames) {
+      // do nothing
+    }
+
+    public void checkAgg(
+        String expr,
+        String[] inputValues,
+        Object result,
+        double delta) {
+      String query =
+          AbstractSqlTester.generateAggQuery(expr, inputValues);
+      check(query, AbstractSqlTester.AnyTypeChecker, result, delta);
+    }
+
+    public void checkWinAgg(
+        String expr,
+        String[] inputValues,
+        String windowSpec,
+        String type,
+        Object result,
+        double delta) {
+      String query =
+          AbstractSqlTester.generateWinAggQuery(
+              expr, windowSpec, inputValues);
+      check(query, AbstractSqlTester.AnyTypeChecker, result, delta);
+    }
+
+    public void checkScalar(
+        String expression,
+        Object result,
+        String resultType) {
+      checkType(expression, resultType);
+      for (String sql : buildQueries(expression)) {
+        check(sql, AbstractSqlTester.AnyTypeChecker, result, 0);
+      }
+    }
+
+    public void checkScalarExact(
+        String expression,
+        String result) {
+      for (String sql : buildQueries(expression)) {
+        check(sql, AbstractSqlTester.IntegerTypeChecker, result, 0);
+      }
+    }
+
+    public void checkScalarExact(
+        String expression,
+        String expectedType,
+        String result) {
+      for (String sql : buildQueries(expression)) {
+        TypeChecker typeChecker =
+            new AbstractSqlTester.StringTypeChecker(expectedType);
+        check(sql, typeChecker, result, 0);
+      }
+    }
+
+    public void checkScalarApprox(
+        String expression,
+        String expectedType,
+        double expectedResult,
+        double delta) {
+      for (String sql : buildQueries(expression)) {
+        TypeChecker typeChecker =
+            new AbstractSqlTester.StringTypeChecker(expectedType);
+        check(
+            sql,
+            typeChecker,
+            new Double(expectedResult),
+            delta);
+      }
+    }
+
+    public void checkBoolean(
+        String expression,
+        Boolean result) {
+      for (String sql : buildQueries(expression)) {
+        if (null == result) {
+          checkNull(expression);
         } else {
-            final String message = ex.getMessage();
-            if (message != null) {
-                Matcher matcher = lineColTwicePattern.matcher(message);
-                if (matcher.matches()) {
-                    actualLine = Integer.parseInt(matcher.group(1));
-                    actualColumn = Integer.parseInt(matcher.group(2));
-                    actualEndLine = Integer.parseInt(matcher.group(3));
-                    actualEndColumn = Integer.parseInt(matcher.group(4));
-                    actualMessage = matcher.group(5);
-                } else {
-                    matcher = lineColPattern.matcher(message);
-                    if (matcher.matches()) {
-                        actualLine = Integer.parseInt(matcher.group(1));
-                        actualColumn = Integer.parseInt(matcher.group(2));
-                    }
-                }
-            }
+          check(
+              sql,
+              AbstractSqlTester.BooleanTypeChecker,
+              result.toString(),
+              0);
         }
-
-        if (null == expectedMsgPattern) {
-            if (null != actualException) {
-                actualException.printStackTrace();
-                fail(
-                    "Validator threw unexpected exception"
-                    + "; query [" + sap.sql
-                    + "]; exception [" + actualMessage
-                    + "]; pos [line " + actualLine
-                    + " col " + actualColumn
-                    + " thru line " + actualLine
-                    + " col " + actualColumn + "]");
-            }
-        } else if (null != expectedMsgPattern) {
-            if (null == actualException) {
-                fail(
-                    "Expected validator to throw "
-                    + "exception, but it did not; query [" + sap.sql
-                    + "]; expected [" + expectedMsgPattern + "]");
-            } else {
-                String sqlWithCarets;
-                if ((actualColumn <= 0)
-                    || (actualLine <= 0)
-                    || (actualEndColumn <= 0)
-                    || (actualEndLine <= 0))
-                {
-                    if (sap.pos != null) {
-                        throw new AssertionError(
-                            "Expected error to have position,"
-                            + " but actual error did not: "
-                            + " actual pos [line " + actualLine
-                            + " col " + actualColumn
-                            + " thru line " + actualEndLine
-                            + " col " + actualEndColumn + "]");
-                    }
-                    sqlWithCarets = sap.sql;
-                } else {
-                    sqlWithCarets =
-                        SqlParserUtil.addCarets(
-                            sap.sql,
-                            actualLine,
-                            actualColumn,
-                            actualEndLine,
-                            actualEndColumn + 1);
-                    if (sap.pos == null) {
-                        throw new AssertionError(
-                            "Actual error had a position, but expected error"
-                            + " did not. Add error position carets to sql:\n"
-                            + sqlWithCarets);
-                    }
-                }
-                if ((actualMessage == null)
-                    || !actualMessage.matches(expectedMsgPattern))
-                {
-                    actualException.printStackTrace();
-                    final String actualJavaRegexp =
-                        (actualMessage == null) ? "null"
-                        : TestUtil.quoteForJava(
-                            TestUtil.quotePattern(actualMessage));
-                    fail(
-                        "Validator threw different "
-                        + "exception than expected; query [" + sap.sql
-                        + "];" + NL
-                        + " expected pattern [" + expectedMsgPattern
-                        + "];" + NL
-                        + " actual [" + actualMessage
-                        + "];" + NL
-                        + " actual as java regexp [" + actualJavaRegexp
-                        + "]; pos [" + actualLine
-                        + " col " + actualColumn
-                        + " thru line " + actualEndLine
-                        + " col " + actualEndColumn
-                        + "]; sql [" + sqlWithCarets + "]");
-                } else if (
-                    (sap.pos != null)
-                    && ((actualLine != sap.pos.getLineNum())
-                        || (actualColumn != sap.pos.getColumnNum())
-                        || (actualEndLine != sap.pos.getEndLineNum())
-                        || (actualEndColumn != sap.pos.getEndColumnNum())))
-                {
-                    fail(
-                        "Validator threw expected "
-                        + "exception [" + actualMessage
-                        + "];\nbut at pos [line " + actualLine
-                        + " col " + actualColumn
-                        + " thru line " + actualEndLine
-                        + " col " + actualEndColumn
-                        + "];\nsql [" + sqlWithCarets + "]");
-                }
-            }
-        }
+      }
     }
 
-    //~ Inner Interfaces -------------------------------------------------------
-
-    /**
-     * Encapsulates differences between test environments, for example, which
-     * SQL parser or validator to use.
-     *
-     * <p>It contains a mock schema with <code>EMP</code> and <code>DEPT</code>
-     * tables, which can run without having to start up Farrago.
-     */
-    public interface Tester
-    {
-        SqlNode parseQuery(String sql)
-            throws SqlParseException;
-
-        SqlNode parseAndValidate(SqlValidator validator, String sql);
-
-        SqlValidator getValidator();
-
-        /**
-         * Checks that a query is valid, or, if invalid, throws the right
-         * message at the right location.
-         *
-         * <p>If <code>expectedMsgPattern</code> is null, the query must
-         * succeed.
-         *
-         * <p>If <code>expectedMsgPattern</code> is not null, the query must
-         * fail, and give an error location of (expectedLine, expectedColumn)
-         * through (expectedEndLine, expectedEndColumn).
-         *
-         * @param sql SQL statement
-         * @param expectedMsgPattern If this parameter is null the query must be
-         * valid for the test to pass; If this parameter is not null the query
-         * must be malformed and the message given must match the pattern
-         */
-        void assertExceptionIsThrown(
-            String sql,
-            String expectedMsgPattern);
-
-        /**
-         * Returns the data type of the sole column of a SQL query.
-         *
-         * <p>For example, <code>getResultType("VALUES (1")</code> returns
-         * <code>INTEGER</code>.
-         *
-         * <p>Fails if query returns more than one column.
-         *
-         * @see #getResultType(String)
-         */
-        RelDataType getColumnType(String sql);
-
-        /**
-         * Returns the data type of the row returned by a SQL query.
-         *
-         * <p>For example, <code>getResultType("VALUES (1, 'foo')")</code>
-         * returns <code>RecordType(INTEGER EXPR$0, CHAR(3) EXPR#1)</code>.
-         */
-        RelDataType getResultType(String sql);
-
-        void checkCollation(
-            String sql,
-            String expectedCollationName,
-            SqlCollation.Coercibility expectedCoercibility);
-
-        void checkCharset(
-            String sql,
-            Charset expectedCharset);
-
-        /**
-         * Checks that a query returns one column of an expected type. For
-         * example, <code>checkType("VALUES (1 + 2)", "INTEGER NOT
-         * NULL")</code>.
-         */
-        void checkColumnType(
-            String sql,
-            String expected);
-
-        /**
-         * Given a SQL query, returns a list of the origins of each result
-         * field.
-         *
-         * @param sql SQL query
-         * @param fieldOriginList Field origin list, e.g.
-         *   "{(CATALOG.SALES.EMP.EMPNO, null)}"
-         */
-        void checkFieldOrigin(String sql, String fieldOriginList);
-
-        /**
-         * Checks that a query gets rewritten to an expected form.
-         *
-         * @param validator validator to use; null for default
-         * @param query query to test
-         * @param expectedRewrite expected SQL text after rewrite and unparse
-         */
-        void checkRewrite(
-            SqlValidator validator,
-            String query,
-            String expectedRewrite);
-
-        /**
-         * Checks that a query returns one column of an expected type. For
-         * example, <code>checkType("select empno, name from emp""{EMPNO INTEGER
-         * NOT NULL, NAME VARCHAR(10) NOT NULL}")</code>.
-         */
-        void checkResultType(
-            String sql,
-            String expected);
-
-        /**
-         * Checks if the interval value conversion to milliseconds is valid. For
-         * example, <code>checkIntervalConv(VALUES (INTERVAL '1' Minute),
-         * "60000")</code>.
-         */
-        void checkIntervalConv(
-            String sql,
-            String expected);
-
-        /**
-         * Given a SQL query, returns the monotonicity of the first item in the
-         * SELECT clause.
-         *
-         * @param sql SQL query
-         *
-         * @return Monotonicity
-         */
-        SqlMonotonicity getMonotonicity(String sql);
-
-        SqlConformance getConformance();
+    public void checkString(
+        String expression,
+        String result,
+        String expectedType) {
+      for (String sql : buildQueries(expression)) {
+        TypeChecker typeChecker =
+            new AbstractSqlTester.StringTypeChecker(expectedType);
+        check(sql, typeChecker, result, 0);
+      }
     }
 
-    //~ Inner Classes ----------------------------------------------------------
+    public void checkNull(String expression) {
+      for (String sql : buildQueries(expression)) {
+        check(sql, AbstractSqlTester.AnyTypeChecker, null, 0);
+      }
+    }
+
+    public final void check(
+        String query,
+        TypeChecker typeChecker,
+        Object result,
+        double delta) {
+      check(
+          query,
+          typeChecker,
+          AbstractSqlTester.createChecker(result, delta));
+    }
+
+    public void check(
+        String query,
+        TypeChecker typeChecker,
+        ResultChecker resultChecker) {
+      // This implementation does NOT check the result!
+      // (It can't because we're pure Java.)
+      // All it does is check the return type.
+
+      // Parse and validate. There should be no errors.
+      RelDataType actualType = getColumnType(query);
+
+      // Check result type.
+      typeChecker.checkType(actualType);
+    }
+
+    public void checkRewrite(
+        SqlValidator validator,
+        String query,
+        String expectedRewrite) {
+      SqlNode rewrittenNode = parseAndValidate(validator, query);
+      String actualRewrite =
+          rewrittenNode.toSqlString(SqlDialect.DUMMY, false).getSql();
+      TestUtil.assertEqualsVerbose(expectedRewrite, actualRewrite);
+    }
+
+    public void checkFails(
+        String expression,
+        String expectedError,
+        boolean runtime) {
+      if (runtime) {
+        // We need to test that the expression fails at runtime.
+        // Ironically, that means that it must succeed at prepare time.
+        SqlValidator validator = getValidator();
+        final String sql = buildQuery(expression);
+        SqlNode n = parseAndValidate(validator, sql);
+        assertNotNull(n);
+      } else {
+        assertExceptionIsThrown(
+            buildQuery(expression),
+            expectedError);
+      }
+    }
+
+    public SqlMonotonicity getMonotonicity(String sql) {
+      final SqlValidator validator = getValidator();
+      final SqlNode node = parseAndValidate(validator, sql);
+      final SqlSelect select = (SqlSelect) node;
+      final SqlNode selectItem0 = select.getSelectList().get(0);
+      final SqlValidatorScope scope = validator.getSelectScope(select);
+      return selectItem0.getMonotonicity(scope);
+    }
+
+    private static String buildQuery(String expression) {
+      return "values (" + expression + ")";
+    }
 
     /**
-     * Implementation of {@link org.eigenbase.test.SqlValidatorTestCase.Tester}
-     * which talks to a mock catalog.
+     * Builds a query that extracts all literals as columns in an underlying
+     * select.
      *
-     * <p>It is also a pure-Java implementation of the {@link SqlTester} used by
-     * {@link SqlOperatorBaseTest}. It can parse and validate queries, but it
-     * does not invoke Farrago, so it is very fast but cannot execute functions.
+     * <p>For example,</p>
+     *
+     * <blockquote>{@code 1 < 5}</blockquote>
+     *
+     * <p>becomes</p>
+     *
+     * <blockquote>{@code SELECT p0 < p1
+     * FROM (VALUES (1, 5)) AS t(p0, p1)}</blockquote>
+     *
+     * <p>Null literals don't have enough type information to be extracted.
+     * We push down {@code CAST(NULL AS type)} but raw nulls such as
+     * {@code CASE 1 WHEN 2 THEN 'a' ELSE NULL END} are left as is.</p>
+     *
+     * @param expression Scalar expression
+     * @return Query that evaluates a scalar expression
      */
-    public static class TesterImpl
-        implements Tester,
-            SqlTester
-    {
-        protected final SqlOperatorTable opTab;
-        protected final SqlConformance conformance;
+    private String buildQuery2(String expression) {
+      // "values (1 < 5)"
+      // becomes
+      // "select p0 < p1 from (values (1, 5)) as t(p0, p1)"
+      SqlNode x;
+      final String sql = "values (" + expression + ")";
+      try {
+        x = parseQuery(sql);
+      } catch (SqlParseException e) {
+        throw new RuntimeException(e);
+      }
+      final Collection<SqlNode> literalSet = new LinkedHashSet<SqlNode>();
+      x.accept(
+          new SqlShuttle() {
+            private final List<SqlOperator> ops =
+                ImmutableList.<SqlOperator>of(
+                    SqlStdOperatorTable.literalChainOperator,
+                    SqlStdOperatorTable.localTimeFunc,
+                    SqlStdOperatorTable.localTimestampFunc,
+                    SqlStdOperatorTable.currentTimeFunc,
+                    SqlStdOperatorTable.currentTimestampFunc);
 
-        public TesterImpl(SqlConformance conformance)
-        {
-            assert conformance != null;
-            this.conformance = conformance;
-            this.opTab = createOperatorTable();
-        }
-
-        /** {@inheritDoc}
-         *
-         * This default implementation does nothing.
-         */
-        public void close() {
-            // no resources to release
-        }
-
-        public SqlConformance getConformance()
-        {
-            return conformance;
-        }
-
-        protected SqlOperatorTable createOperatorTable()
-        {
-            MockSqlOperatorTable opTab =
-                new MockSqlOperatorTable(SqlStdOperatorTable.instance());
-            MockSqlOperatorTable.addRamp(opTab);
-            return opTab;
-        }
-
-        public SqlValidator getValidator()
-        {
-            final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
-            return SqlValidatorUtil.newValidator(
-                opTab,
-                new MockCatalogReader(typeFactory),
-                typeFactory);
-        }
-
-        public void assertExceptionIsThrown(
-            String sql,
-            String expectedMsgPattern)
-        {
-            SqlValidator validator;
-            SqlNode sqlNode;
-            SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
-            try {
-                sqlNode = parseQuery(sap.sql);
-                validator = getValidator();
-            } catch (SqlParseException e) {
-                String errMessage = e.getMessage();
-                if (expectedMsgPattern == null) {
-                    e.printStackTrace();
-                    throw new AssertionError(
-                        "Error while parsing query [" + sap.sql + "]");
-                } else if (
-                    (null == errMessage)
-                    || !errMessage.matches(expectedMsgPattern))
-                {
-                    e.printStackTrace();
-                    throw new AssertionError(
-                        "Error did not match expected ["
-                        + expectedMsgPattern + "] while parsing query ["
-                        + sap.sql + "]");
-                }
-                return;
-            } catch (Throwable e) {
-                e.printStackTrace();
-                throw new AssertionError(
-                    "Error while parsing query [" + sap.sql + "]");
+            @Override
+            public SqlNode visit(SqlLiteral literal) {
+              if (!isNull(literal)
+                  && literal.getTypeName() != SqlTypeName.SYMBOL) {
+                literalSet.add(literal);
+              }
+              return literal;
             }
 
-            Throwable thrown = null;
-            try {
-                validator.validate(sqlNode);
-            } catch (Throwable ex) {
-                thrown = ex;
+            @Override
+            public SqlNode visit(SqlCall call) {
+              final SqlOperator operator = call.getOperator();
+              if (operator == SqlStdOperatorTable.castFunc
+                  && isNull(call.getOperandList().get(0))) {
+                literalSet.add(call);
+                return call;
+              } else if (ops.contains(operator)) {
+                // "Argument to function 'LOCALTIME' must be a
+                // literal"
+                return call;
+              } else {
+                return super.visit(call);
+              }
             }
 
-            checkEx(thrown, expectedMsgPattern, sap);
-        }
-
-        public RelDataType getColumnType(String sql)
-        {
-            RelDataType rowType = getResultType(sql);
-            final List<RelDataTypeField> fields = rowType.getFieldList();
-            assertEquals("expected query to return 1 field", 1, fields.size());
-            RelDataType actualType = fields.get(0).getType();
-            return actualType;
-        }
-
-        public RelDataType getResultType(String sql)
-        {
-            SqlValidator validator = getValidator();
-            SqlNode n = parseAndValidate(validator, sql);
-
-            RelDataType rowType = validator.getValidatedNodeType(n);
-            return rowType;
-        }
-
-        public SqlNode parseAndValidate(SqlValidator validator, String sql)
-        {
-            if (validator == null) {
-                validator = getValidator();
+            private boolean isNull(SqlNode sqlNode) {
+              return sqlNode instanceof SqlLiteral
+                  && ((SqlLiteral) sqlNode).getTypeName()
+                  == SqlTypeName.NULL;
             }
-            SqlNode sqlNode;
-            try {
-                sqlNode = parseQuery(sql);
-            } catch (SqlParseException e) {
-                throw new RuntimeException(
-                    "Error while parsing query [" + sql + "]", e);
-            } catch (Throwable e) {
-                e.printStackTrace();
-                throw new AssertionError(
-                    "Error while parsing query [" + sql + "]");
+          });
+      final List<SqlNode> nodes = new ArrayList<SqlNode>(literalSet);
+      Collections.sort(
+          nodes,
+          new Comparator<SqlNode>() {
+            public int compare(SqlNode o1, SqlNode o2) {
+              final SqlParserPos pos0 = o1.getParserPosition();
+              final SqlParserPos pos1 = o2.getParserPosition();
+              int c = -Utilities.compare(
+                  pos0.getLineNum(), pos1.getLineNum());
+              if (c != 0) {
+                return c;
+              }
+              return -Utilities.compare(
+                  pos0.getColumnNum(), pos1.getColumnNum());
             }
-            return validator.validate(sqlNode);
-        }
+          });
+      String sql2 = sql;
+      final List<Pair<String, String>> values =
+          new ArrayList<Pair<String, String>>();
+      int p = 0;
+      for (SqlNode literal : nodes) {
+        final SqlParserPos pos = literal.getParserPosition();
+        final int start =
+            SqlParserUtil.lineColToIndex(
+                sql, pos.getLineNum(), pos.getColumnNum());
+        final int end =
+            SqlParserUtil.lineColToIndex(
+                sql,
+                pos.getEndLineNum(),
+                pos.getEndColumnNum()) + 1;
+        String param = "p" + (p++);
+        values.add(Pair.of(sql2.substring(start, end), param));
+        sql2 = sql2.substring(0, start)
+            + param
+            + sql2.substring(end);
+      }
+      if (values.isEmpty()) {
+        values.add(Pair.of("1", "p0"));
+      }
+      return "select "
+          + sql2.substring("values (".length(), sql2.length() - 1)
+          + " from (values ("
+          + Util.commaList(Pair.left(values))
+          + ")) as t("
+          + Util.commaList(Pair.right(values))
+          + ")";
+    }
 
-        public SqlNode parseQuery(String sql)
-            throws SqlParseException
-        {
-            SqlParser parser = new SqlParser(sql);
-            return parser.parseQuery();
-        }
-
-        public void checkColumnType(String sql, String expected)
-        {
-            RelDataType actualType = getColumnType(sql);
-            String actual = AbstractSqlTester.getTypeString(actualType);
-            assertEquals(expected, actual);
-        }
-
-        public void checkFieldOrigin(String sql, String fieldOriginList)
-        {
-            SqlValidator validator = getValidator();
-            SqlNode n = parseAndValidate(validator, sql);
-            final List<List<String>> list = validator.getFieldOrigins(n);
-            final StringBuilder buf = new StringBuilder("{");
+    /**
+     * Converts a scalar expression into a list of SQL queries that
+     * evaluate it.
+     *
+     * @param expression Scalar expression
+     * @return List of queries that evaluate an expression
+     */
+    private Iterable<String> buildQueries(final String expression) {
+      // Why an explicit iterable rather than a list? If there is
+      // a syntax error in the expression, the calling code discovers it
+      // before we try to parse it to do substitutions on the parse tree.
+      return new Iterable<String>() {
+        public Iterator<String> iterator() {
+          return new Iterator<String>() {
             int i = 0;
-            for (List<String> strings : list) {
-                if (i++ > 0) {
-                    buf.append(", ");
-                }
-                if (strings == null) {
-                    buf.append("null");
-                } else {
-                    int j = 0;
-                    for (String s : strings) {
-                        if (j++ > 0) {
-                            buf.append('.');
-                        }
-                        buf.append(s);
-                    }
-                }
-            }
-            buf.append("}");
-            assertEquals(fieldOriginList, buf.toString());
-        }
 
-        public void checkResultType(String sql, String expected)
-        {
-            RelDataType actualType = getResultType(sql);
-            String actual = AbstractSqlTester.getTypeString(actualType);
-            assertEquals(expected, actual);
-        }
-
-        public void checkIntervalConv(String sql, String expected)
-        {
-            SqlValidator validator = getValidator();
-            final SqlCall n = (SqlCall) parseAndValidate(validator, sql);
-
-            SqlNode node = null;
-            for (int i = 0; i < n.getOperands().length; i++) {
-                node = n.getOperands()[i];
-                if (node instanceof SqlCall) {
-                    if (node.getKind() == SqlKind.AS) {
-                        node = ((SqlCall) node).operands[0];
-                    }
-                    node = ((SqlCall) node).getOperands()[0];
-                    break;
-                }
+            public void remove() {
+              throw new UnsupportedOperationException();
             }
 
-            SqlIntervalLiteral.IntervalValue interval =
-                (SqlIntervalLiteral.IntervalValue) ((SqlIntervalLiteral) node)
-                .getValue();
-            long l =
-                interval.getIntervalQualifier().isYearMonth()
-                ? SqlParserUtil.intervalToMonths(interval)
-                : SqlParserUtil.intervalToMillis(interval);
-            String actual = l + "";
-            assertEquals(expected, actual);
-        }
-
-        public void checkType(String expression, String type)
-        {
-            for (String sql : buildQueries(expression)) {
-                checkColumnType(sql, type);
+            public String next() {
+              switch (i++) {
+              case 0:
+                return buildQuery(expression);
+              case 1:
+                return buildQuery2(expression);
+              default:
+                throw new NoSuchElementException();
+              }
             }
-        }
 
-        public void checkCollation(
-            String expression,
-            String expectedCollationName,
-            SqlCollation.Coercibility expectedCoercibility)
-        {
-            for (String sql : buildQueries(expression)) {
-                RelDataType actualType = getColumnType(sql);
-                SqlCollation collation = actualType.getCollation();
-
-                assertEquals(
-                    expectedCollationName, collation.getCollationName());
-                assertEquals(expectedCoercibility, collation.getCoercibility());
+            public boolean hasNext() {
+              return i < 2;
             }
+          };
         }
-
-        public void checkCharset(
-            String expression,
-            Charset expectedCharset)
-        {
-            for (String sql : buildQueries(expression)) {
-                RelDataType actualType = getColumnType(sql);
-                Charset actualCharset = actualType.getCharset();
-
-                if (!expectedCharset.equals(actualCharset)) {
-                    fail(
-                        NL + "Expected=" + expectedCharset.name() + NL
-                        + "  actual=" + actualCharset.name());
-                }
-            }
-        }
-
-        // SqlTester methods
-
-        public void setFor(
-            SqlOperator operator,
-            VmName ... unimplementedVmNames)
-        {
-            // do nothing
-        }
-
-        public void checkAgg(
-            String expr,
-            String [] inputValues,
-            Object result,
-            double delta)
-        {
-            String query =
-                AbstractSqlTester.generateAggQuery(expr, inputValues);
-            check(query, AbstractSqlTester.AnyTypeChecker, result, delta);
-        }
-
-        public void checkWinAgg(
-            String expr,
-            String [] inputValues,
-            String windowSpec,
-            String type,
-            Object result,
-            double delta)
-        {
-            String query =
-                AbstractSqlTester.generateWinAggQuery(
-                    expr, windowSpec, inputValues);
-            check(query, AbstractSqlTester.AnyTypeChecker, result, delta);
-        }
-
-        public void checkScalar(
-            String expression,
-            Object result,
-            String resultType)
-        {
-            checkType(expression, resultType);
-            for (String sql : buildQueries(expression)) {
-                check(sql, AbstractSqlTester.AnyTypeChecker, result, 0);
-            }
-        }
-
-        public void checkScalarExact(
-            String expression,
-            String result)
-        {
-            for (String sql : buildQueries(expression)) {
-                check(sql, AbstractSqlTester.IntegerTypeChecker, result, 0);
-            }
-        }
-
-        public void checkScalarExact(
-            String expression,
-            String expectedType,
-            String result)
-        {
-            for (String sql : buildQueries(expression)) {
-                TypeChecker typeChecker =
-                    new AbstractSqlTester.StringTypeChecker(expectedType);
-                check(sql, typeChecker, result, 0);
-            }
-        }
-
-        public void checkScalarApprox(
-            String expression,
-            String expectedType,
-            double expectedResult,
-            double delta)
-        {
-            for (String sql : buildQueries(expression)) {
-                TypeChecker typeChecker =
-                    new AbstractSqlTester.StringTypeChecker(expectedType);
-                check(
-                    sql,
-                    typeChecker,
-                    new Double(expectedResult),
-                    delta);
-            }
-        }
-
-        public void checkBoolean(
-            String expression,
-            Boolean result)
-        {
-            for (String sql : buildQueries(expression)) {
-                if (null == result) {
-                    checkNull(expression);
-                } else {
-                    check(
-                        sql,
-                        AbstractSqlTester.BooleanTypeChecker,
-                        result.toString(),
-                        0);
-                }
-            }
-        }
-
-        public void checkString(
-            String expression,
-            String result,
-            String expectedType)
-        {
-            for (String sql : buildQueries(expression)) {
-                TypeChecker typeChecker =
-                    new AbstractSqlTester.StringTypeChecker(expectedType);
-                check(sql, typeChecker, result, 0);
-            }
-        }
-
-        public void checkNull(String expression)
-        {
-            for (String sql : buildQueries(expression)) {
-                check(sql, AbstractSqlTester.AnyTypeChecker, null, 0);
-            }
-        }
-
-        public final void check(
-            String query,
-            TypeChecker typeChecker,
-            Object result,
-            double delta)
-        {
-            check(
-                query,
-                typeChecker,
-                AbstractSqlTester.createChecker(result, delta));
-        }
-
-        public void check(
-            String query,
-            TypeChecker typeChecker,
-            ResultChecker resultChecker)
-        {
-            // This implementation does NOT check the result!
-            // (It can't because we're pure Java.)
-            // All it does is check the return type.
-
-            // Parse and validate. There should be no errors.
-            RelDataType actualType = getColumnType(query);
-
-            // Check result type.
-            typeChecker.checkType(actualType);
-        }
-
-        public void checkRewrite(
-            SqlValidator validator,
-            String query,
-            String expectedRewrite)
-        {
-            SqlNode rewrittenNode = parseAndValidate(validator, query);
-            String actualRewrite =
-                rewrittenNode.toSqlString(SqlDialect.DUMMY, false).getSql();
-            TestUtil.assertEqualsVerbose(expectedRewrite, actualRewrite);
-        }
-
-        public void checkFails(
-            String expression,
-            String expectedError,
-            boolean runtime)
-        {
-            if (runtime) {
-                // We need to test that the expression fails at runtime.
-                // Ironically, that means that it must succeed at prepare time.
-                SqlValidator validator = getValidator();
-                final String sql = buildQuery(expression);
-                SqlNode n = parseAndValidate(validator, sql);
-                assertNotNull(n);
-            } else {
-                assertExceptionIsThrown(
-                    buildQuery(expression),
-                    expectedError);
-            }
-        }
-
-        public SqlMonotonicity getMonotonicity(String sql)
-        {
-            final SqlValidator validator = getValidator();
-            final SqlNode node = parseAndValidate(validator, sql);
-            final SqlSelect select = (SqlSelect) node;
-            final SqlNode selectItem0 = select.getSelectList().get(0);
-            final SqlValidatorScope scope = validator.getSelectScope(select);
-            return selectItem0.getMonotonicity(scope);
-        }
-
-        private static String buildQuery(String expression)
-        {
-            return "values (" + expression + ")";
-        }
-
-        /**
-         * Builds a query that extracts all literals as columns in an underlying
-         * select.
-         *
-         * <p>For example,</p>
-         *
-         * <blockquote>{@code 1 < 5}</blockquote>
-         *
-         * <p>becomes</p>
-         *
-         * <blockquote>{@code SELECT p0 < p1
-         * FROM (VALUES (1, 5)) AS t(p0, p1)}</blockquote>
-         *
-         * <p>Null literals don't have enough type information to be extracted.
-         * We push down {@code CAST(NULL AS type)} but raw nulls such as
-         * {@code CASE 1 WHEN 2 THEN 'a' ELSE NULL END} are left as is.</p>
-         *
-         * @param expression Scalar expression
-         * @return Query that evaluates a scalar expression
-         */
-        private String buildQuery2(String expression)
-        {
-            // "values (1 < 5)"
-            // becomes
-            // "select p0 < p1 from (values (1, 5)) as t(p0, p1)"
-            SqlNode x;
-            final String sql = "values (" + expression + ")";
-            try {
-                x = parseQuery(sql);
-            } catch (SqlParseException e) {
-                throw new RuntimeException(e);
-            }
-            final Collection<SqlNode> literalSet = new LinkedHashSet<SqlNode>();
-            x.accept(
-                new SqlShuttle() {
-                    private final List<SqlOperator> ops =
-                        ImmutableList.<SqlOperator>of(
-                            SqlStdOperatorTable.literalChainOperator,
-                            SqlStdOperatorTable.localTimeFunc,
-                            SqlStdOperatorTable.localTimestampFunc,
-                            SqlStdOperatorTable.currentTimeFunc,
-                            SqlStdOperatorTable.currentTimestampFunc);
-
-                    @Override
-                    public SqlNode visit(SqlLiteral literal) {
-                        if (!isNull(literal)
-                            && literal.getTypeName() != SqlTypeName.SYMBOL)
-                        {
-                            literalSet.add(literal);
-                        }
-                        return literal;
-                    }
-
-                    @Override
-                    public SqlNode visit(SqlCall call) {
-                        final SqlOperator operator = call.getOperator();
-                        if (operator == SqlStdOperatorTable.castFunc
-                            && isNull(call.getOperandList().get(0)))
-                        {
-                            literalSet.add(call);
-                            return call;
-                        } else if (ops.contains(operator)) {
-                            // "Argument to function 'LOCALTIME' must be a
-                            // literal"
-                            return call;
-                        } else {
-                            return super.visit(call);
-                        }
-                    }
-
-                    private boolean isNull(SqlNode sqlNode) {
-                        return sqlNode instanceof SqlLiteral
-                            && ((SqlLiteral) sqlNode).getTypeName()
-                               == SqlTypeName.NULL;
-                    }
-                });
-            final List<SqlNode> nodes = new ArrayList<SqlNode>(literalSet);
-            Collections.sort(
-                nodes,
-                new Comparator<SqlNode>() {
-                    public int compare(SqlNode o1, SqlNode o2) {
-                        final SqlParserPos pos0 = o1.getParserPosition();
-                        final SqlParserPos pos1 = o2.getParserPosition();
-                        int c = -Utilities.compare(
-                            pos0.getLineNum(), pos1.getLineNum());
-                        if (c != 0) {
-                            return c;
-                        }
-                        return -Utilities.compare(
-                            pos0.getColumnNum(), pos1.getColumnNum());
-                    }
-                });
-            String sql2 = sql;
-            final List<Pair<String, String>> values =
-                new ArrayList<Pair<String, String>>();
-            int p = 0;
-            for (SqlNode literal : nodes) {
-                final SqlParserPos pos = literal.getParserPosition();
-                final int start =
-                    SqlParserUtil.lineColToIndex(
-                        sql, pos.getLineNum(), pos.getColumnNum());
-                final int end =
-                    SqlParserUtil.lineColToIndex(
-                        sql,
-                        pos.getEndLineNum(),
-                        pos.getEndColumnNum()) + 1;
-                String param = "p" + (p++);
-                values.add(Pair.of(sql2.substring(start, end), param));
-                sql2 = sql2.substring(0, start)
-                    + param
-                    + sql2.substring(end);
-            }
-            if (values.isEmpty()) {
-                values.add(Pair.of("1", "p0"));
-            }
-            return "select "
-                   + sql2.substring("values (".length(), sql2.length() - 1)
-                   + " from (values ("
-                   + Util.commaList(Pair.left(values))
-                   + ")) as t("
-                   + Util.commaList(Pair.right(values))
-                   + ")";
-        }
-
-        /**
-         * Converts a scalar expression into a list of SQL queries that
-         * evaluate it.
-         *
-         * @param expression Scalar expression
-         * @return List of queries that evaluate an expression
-         */
-        private Iterable<String> buildQueries(final String expression)
-        {
-            // Why an explicit iterable rather than a list? If there is
-            // a syntax error in the expression, the calling code discovers it
-            // before we try to parse it to do substitutions on the parse tree.
-            return new Iterable<String>() {
-                public Iterator<String> iterator() {
-                    return new Iterator<String>() {
-                        int i = 0;
-                        public void remove() {
-                            throw new UnsupportedOperationException();
-                        }
-
-                        public String next() {
-                            switch (i++) {
-                            case 0:
-                                return buildQuery(expression);
-                            case 1:
-                                return buildQuery2(expression);
-                            default:
-                                throw new NoSuchElementException();
-                            }
-                        }
-
-                        public boolean hasNext() {
-                            return i < 2;
-                        }
-                    };
-                }
-            };
-        }
-
-        public boolean isVm(VmName vmName)
-        {
-            return false;
-        }
+      };
     }
+
+    public boolean isVm(VmName vmName) {
+      return false;
+    }
+  }
 }
 
 // End SqlValidatorTestCase.java

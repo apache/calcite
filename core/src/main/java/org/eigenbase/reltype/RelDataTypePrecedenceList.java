@@ -23,31 +23,27 @@ package org.eigenbase.reltype;
  *
  * @sql.99 Part 2 Section 9.5
  */
-public interface RelDataTypePrecedenceList
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RelDataTypePrecedenceList {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Determines whether a type appears in this precedence list.
-     *
-     * @param type type to check
-     *
-     * @return true iff this list contains type
-     */
-    public boolean containsType(RelDataType type);
+  /**
+   * Determines whether a type appears in this precedence list.
+   *
+   * @param type type to check
+   * @return true iff this list contains type
+   */
+  public boolean containsType(RelDataType type);
 
-    /**
-     * Compares the precedence of two types.
-     *
-     * @param type1 first type to compare
-     * @param type2 second type to compare
-     *
-     * @return positive if type1 has higher precedence; negative if type2 has
-     * higher precedence; 0 if types have equal precedence
-     *
-     * @pre containsType(type1) && containsType(type2)
-     */
-    public int compareTypePrecedence(RelDataType type1, RelDataType type2);
+  /**
+   * Compares the precedence of two types.
+   *
+   * @param type1 first type to compare
+   * @param type2 second type to compare
+   * @return positive if type1 has higher precedence; negative if type2 has
+   * higher precedence; 0 if types have equal precedence
+   * @pre containsType(type1) && containsType(type2)
+   */
+  public int compareTypePrecedence(RelDataType type1, RelDataType type2);
 }
 
 // End RelDataTypePrecedenceList.java

@@ -40,26 +40,25 @@ import java.util.*;
  * Calendar}. Jdbc types, such as {@link java.sql.Date} typically contain zoned
  * times.
  */
-public interface BasicDatetime
-{
-    //~ Methods ----------------------------------------------------------------
+public interface BasicDatetime {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Gets the internal value of this datetime
-     */
-    public long getTime();
+  /**
+   * Gets the internal value of this datetime
+   */
+  public long getTime();
 
-    /**
-     * Sets this datetime via a zoneless time value. See class comments for more
-     * information.
-     */
-    public void setZonelessTime(long value);
+  /**
+   * Sets this datetime via a zoneless time value. See class comments for more
+   * information.
+   */
+  public void setZonelessTime(long value);
 
-    /**
-     * Sets this datetime via a zoned time value. See class comments for more
-     * information.
-     */
-    public void setZonedTime(long value, TimeZone zone);
+  /**
+   * Sets this datetime via a zoned time value. See class comments for more
+   * information.
+   */
+  public void setZonedTime(long value, TimeZone zone);
 }
 
 // End BasicDatetime.java

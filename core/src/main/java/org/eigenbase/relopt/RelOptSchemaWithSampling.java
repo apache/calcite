@@ -24,27 +24,24 @@ import java.util.List;
  *
  * @see RelOptSchema
  */
-public interface RelOptSchemaWithSampling
-    extends RelOptSchema
-{
-    //~ Methods ----------------------------------------------------------------
+public interface RelOptSchemaWithSampling extends RelOptSchema {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Retrieves a {@link RelOptTable} based upon a member access, using a
-     * sample dataset if it exists.
-     *
-     * @param names Compound name of table
-     * @param datasetName Name of sample dataset to substitute, if it exists;
-     * null to not look for a sample
-     * @param usedDataset Output parameter which is set to true if a sample
-     * dataset is found; may be null
-     *
-     * @return Table, or null if not found
-     */
-    RelOptTable getTableForMember(
-        List<String> names,
-        String datasetName,
-        boolean [] usedDataset);
+  /**
+   * Retrieves a {@link RelOptTable} based upon a member access, using a
+   * sample dataset if it exists.
+   *
+   * @param names       Compound name of table
+   * @param datasetName Name of sample dataset to substitute, if it exists;
+   *                    null to not look for a sample
+   * @param usedDataset Output parameter which is set to true if a sample
+   *                    dataset is found; may be null
+   * @return Table, or null if not found
+   */
+  RelOptTable getTableForMember(
+      List<String> names,
+      String datasetName,
+      boolean[] usedDataset);
 }
 
 // End RelOptSchemaWithSampling.java

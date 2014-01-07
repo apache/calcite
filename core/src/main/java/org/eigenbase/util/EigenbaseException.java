@@ -26,42 +26,40 @@ import java.util.logging.*;
 
 /**
  * Base class for all exceptions originating from Farrago.
+ *
  * @see EigenbaseContextException
  */
-public class EigenbaseException
-    extends RuntimeException
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class EigenbaseException extends RuntimeException {
+  //~ Static fields/initializers ---------------------------------------------
 
-    /**
-     * SerialVersionUID created with JDK 1.5 serialver tool. Prevents
-     * incompatible class conflict when serialized from JDK 1.5-built server to
-     * JDK 1.4-built client.
-     */
-    private static final long serialVersionUID = -1314522633397794178L;
+  /**
+   * SerialVersionUID created with JDK 1.5 serialver tool. Prevents
+   * incompatible class conflict when serialized from JDK 1.5-built server to
+   * JDK 1.4-built client.
+   */
+  private static final long serialVersionUID = -1314522633397794178L;
 
-    private static Logger tracer =
-        Logger.getLogger(EigenbaseException.class.getName());
+  private static Logger tracer =
+      Logger.getLogger(EigenbaseException.class.getName());
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a new EigenbaseException object.
-     *
-     * @param message error message
-     * @param cause underlying cause
-     */
-    public EigenbaseException(
-        String message,
-        Throwable cause)
-    {
-        super(message, cause);
+  /**
+   * Creates a new EigenbaseException object.
+   *
+   * @param message error message
+   * @param cause   underlying cause
+   */
+  public EigenbaseException(
+      String message,
+      Throwable cause) {
+    super(message, cause);
 
-        // TODO: Force the caller to pass in a Logger as a trace argument for
-        // better context.  Need to extend ResGen for this.
-        tracer.throwing("EigenbaseException", "constructor", this);
-        tracer.severe(toString());
-    }
+    // TODO: Force the caller to pass in a Logger as a trace argument for
+    // better context.  Need to extend ResGen for this.
+    tracer.throwing("EigenbaseException", "constructor", this);
+    tracer.severe(toString());
+  }
 }
 
 // End EigenbaseException.java

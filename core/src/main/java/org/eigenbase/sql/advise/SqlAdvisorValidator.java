@@ -32,180 +32,165 @@ import org.eigenbase.util.*;
  * up the scopes and namespaces to facilitate retrieval of SQL statement
  * completion hints.
  */
-public class SqlAdvisorValidator
-    extends SqlValidatorImpl
-{
-    //~ Instance fields --------------------------------------------------------
+public class SqlAdvisorValidator extends SqlValidatorImpl {
+  //~ Instance fields --------------------------------------------------------
 
-    private final Set<SqlValidatorNamespace> activeNamespaces =
-        new HashSet<SqlValidatorNamespace>();
+  private final Set<SqlValidatorNamespace> activeNamespaces =
+      new HashSet<SqlValidatorNamespace>();
 
-    private final RelDataType emptyStructType =
-        SqlTypeUtil.createEmptyStructType(typeFactory);
+  private final RelDataType emptyStructType =
+      SqlTypeUtil.createEmptyStructType(typeFactory);
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a SqlAdvisor validator.
-     *
-     * @param opTab Operator table
-     * @param catalogReader Catalog reader
-     * @param typeFactory Type factory
-     * @param conformance Compatibility mode
-     *
-     * @pre opTab != null
-     * @pre // node is a "query expression" (per SQL standard)
-     * @pre catalogReader != null
-     * @pre typeFactory != null
-     */
-    public SqlAdvisorValidator(
-        SqlOperatorTable opTab,
-        SqlValidatorCatalogReader catalogReader,
-        RelDataTypeFactory typeFactory,
-        SqlConformance conformance)
-    {
-        super(opTab, catalogReader, typeFactory, conformance);
+  /**
+   * Creates a SqlAdvisor validator.
+   *
+   * @param opTab         Operator table
+   * @param catalogReader Catalog reader
+   * @param typeFactory   Type factory
+   * @param conformance   Compatibility mode
+   * @pre opTab != null
+   * @pre // node is a "query expression" (per SQL standard)
+   * @pre catalogReader != null
+   * @pre typeFactory != null
+   */
+  public SqlAdvisorValidator(
+      SqlOperatorTable opTab,
+      SqlValidatorCatalogReader catalogReader,
+      RelDataTypeFactory typeFactory,
+      SqlConformance conformance) {
+    super(opTab, catalogReader, typeFactory, conformance);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Registers the identifier and its scope into a map keyed by ParserPostion.
+   */
+  public void validateIdentifier(SqlIdentifier id, SqlValidatorScope scope) {
+    registerId(id, scope);
+    try {
+      super.validateIdentifier(id, scope);
+    } catch (EigenbaseException e) {
+      Util.swallow(e, tracer);
     }
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    /**
-     * Registers the identifier and its scope into a map keyed by ParserPostion.
-     */
-    public void validateIdentifier(SqlIdentifier id, SqlValidatorScope scope)
-    {
-        registerId(id, scope);
-        try {
-            super.validateIdentifier(id, scope);
-        } catch (EigenbaseException e) {
-            Util.swallow(e, tracer);
-        }
+  private void registerId(SqlIdentifier id, SqlValidatorScope scope) {
+    for (int i = 0; i < id.names.length; i++) {
+      final SqlParserPos subPos = id.getComponentParserPosition(i);
+      final List<String> nameList = Arrays.asList(id.names);
+      SqlIdentifier subId =
+          (i == (id.names.length - 1)) ? id
+              : new SqlIdentifier(
+                  nameList.subList(0, i + 1).toArray(new String[i]),
+                  subPos);
+      idPositions.put(
+          subPos.toString(),
+          new IdInfo(scope, subId));
     }
+  }
 
-    private void registerId(SqlIdentifier id, SqlValidatorScope scope)
-    {
-        for (int i = 0; i < id.names.length; i++) {
-            final SqlParserPos subPos = id.getComponentParserPosition(i);
-            final List<String> nameList = Arrays.asList(id.names);
-            SqlIdentifier subId =
-                (i == (id.names.length - 1)) ? id
-                : new SqlIdentifier(
-                    nameList.subList(0, i + 1).toArray(new String[i]),
-                    subPos);
-            idPositions.put(
-                subPos.toString(),
-                new IdInfo(scope, subId));
-        }
-    }
+  public SqlNode expand(SqlNode expr, SqlValidatorScope scope) {
+    // Disable expansion. It doesn't help us come up with better hints.
+    return expr;
+  }
 
-    public SqlNode expand(SqlNode expr, SqlValidatorScope scope)
-    {
-        // Disable expansion. It doesn't help us come up with better hints.
-        return expr;
-    }
+  public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
+    // Disable expansion. It doesn't help us come up with better hints.
+    return orderExpr;
+  }
 
-    public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr)
-    {
-        // Disable expansion. It doesn't help us come up with better hints.
-        return orderExpr;
+  /**
+   * Calls the parent class method and mask Farrago exception thrown.
+   */
+  public RelDataType deriveType(
+      SqlValidatorScope scope,
+      SqlNode operand) {
+    // REVIEW Do not mask Error (indicates a serious system problem) or
+    // UnsupportedOperationException (a bug). I have to mask
+    // UnsupportedOperationException because
+    // SqlValidatorImpl.getValidatedNodeType throws it for an unrecognized
+    // identifier node I have to mask Error as well because
+    // AbstractNamespace.getRowType  called in super.deriveType can do a
+    // Util.permAssert that throws Error
+    try {
+      return super.deriveType(scope, operand);
+    } catch (EigenbaseException e) {
+      return unknownType;
+    } catch (UnsupportedOperationException e) {
+      return unknownType;
+    } catch (Error e) {
+      return unknownType;
     }
+  }
 
-    /**
-     * Calls the parent class method and mask Farrago exception thrown.
-     */
-    public RelDataType deriveType(
-        SqlValidatorScope scope,
-        SqlNode operand)
-    {
-        // REVIEW Do not mask Error (indicates a serious system problem) or
-        // UnsupportedOperationException (a bug). I have to mask
-        // UnsupportedOperationException because
-        // SqlValidatorImpl.getValidatedNodeType throws it for an unrecognized
-        // identifier node I have to mask Error as well because
-        // AbstractNamespace.getRowType  called in super.deriveType can do a
-        // Util.permAssert that throws Error
-        try {
-            return super.deriveType(scope, operand);
-        } catch (EigenbaseException e) {
-            return unknownType;
-        } catch (UnsupportedOperationException e) {
-            return unknownType;
-        } catch (Error e) {
-            return unknownType;
-        }
+  // we do not need to validate from clause for traversing the parse tree
+  // because there is no SqlIdentifier in from clause that need to be
+  // registered into {@link #idPositions} map
+  protected void validateFrom(
+      SqlNode node,
+      RelDataType targetRowType,
+      SqlValidatorScope scope) {
+    try {
+      super.validateFrom(node, targetRowType, scope);
+    } catch (EigenbaseException e) {
+      Util.swallow(e, tracer);
     }
+  }
 
-    // we do not need to validate from clause for traversing the parse tree
-    // because there is no SqlIdentifier in from clause that need to be
-    // registered into {@link #idPositions} map
-    protected void validateFrom(
-        SqlNode node,
-        RelDataType targetRowType,
-        SqlValidatorScope scope)
-    {
-        try {
-            super.validateFrom(node, targetRowType, scope);
-        } catch (EigenbaseException e) {
-            Util.swallow(e, tracer);
-        }
+  /**
+   * Calls the parent class method and masks Farrago exception thrown.
+   */
+  protected void validateWhereClause(SqlSelect select) {
+    try {
+      super.validateWhereClause(select);
+    } catch (EigenbaseException e) {
+      Util.swallow(e, tracer);
     }
+  }
 
-    /**
-     * Calls the parent class method and masks Farrago exception thrown.
-     */
-    protected void validateWhereClause(SqlSelect select)
-    {
-        try {
-            super.validateWhereClause(select);
-        } catch (EigenbaseException e) {
-            Util.swallow(e, tracer);
-        }
+  /**
+   * Calls the parent class method and masks Farrago exception thrown.
+   */
+  protected void validateHavingClause(SqlSelect select) {
+    try {
+      super.validateHavingClause(select);
+    } catch (EigenbaseException e) {
+      Util.swallow(e, tracer);
     }
+  }
 
-    /**
-     * Calls the parent class method and masks Farrago exception thrown.
-     */
-    protected void validateHavingClause(SqlSelect select)
-    {
-        try {
-            super.validateHavingClause(select);
-        } catch (EigenbaseException e) {
-            Util.swallow(e, tracer);
-        }
+  protected void validateOver(SqlCall call, SqlValidatorScope scope) {
+    try {
+      final OverScope overScope = (OverScope) getOverScope(call);
+      final SqlNode relation = call.operands[0];
+      validateFrom(relation, unknownType, scope);
+      final SqlNode window = call.operands[1];
+      SqlValidatorScope opScope = scopes.get(relation);
+      if (opScope == null) {
+        opScope = overScope;
+      }
+      validateWindow(window, opScope, null);
+    } catch (EigenbaseException e) {
+      Util.swallow(e, tracer);
     }
+  }
 
-    protected void validateOver(SqlCall call, SqlValidatorScope scope)
-    {
-        try {
-            final OverScope overScope = (OverScope) getOverScope(call);
-            final SqlNode relation = call.operands[0];
-            validateFrom(relation, unknownType, scope);
-            final SqlNode window = call.operands[1];
-            SqlValidatorScope opScope = scopes.get(relation);
-            if (opScope == null) {
-                opScope = overScope;
-            }
-            validateWindow(window, opScope, null);
-        } catch (EigenbaseException e) {
-            Util.swallow(e, tracer);
-        }
+  protected void validateNamespace(final SqlValidatorNamespace namespace) {
+    // Only attempt to validate each namespace once. Otherwise if
+    // validation fails, we may end up cycling.
+    if (activeNamespaces.add(namespace)) {
+      super.validateNamespace(namespace);
+    } else {
+      namespace.setRowType(emptyStructType);
     }
+  }
 
-    protected void validateNamespace(final SqlValidatorNamespace namespace)
-    {
-        // Only attempt to validate each namespace once. Otherwise if
-        // validation fails, we may end up cycling.
-        if (activeNamespaces.add(namespace)) {
-            super.validateNamespace(namespace);
-        } else {
-            namespace.setRowType(emptyStructType);
-        }
-    }
-
-    protected boolean shouldAllowOverRelation()
-    {
-        return true; // no reason not to be lenient
-    }
+  protected boolean shouldAllowOverRelation() {
+    return true; // no reason not to be lenient
+  }
 }
 
 // End SqlAdvisorValidator.java

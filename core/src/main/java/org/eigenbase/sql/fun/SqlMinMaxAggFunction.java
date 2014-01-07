@@ -43,78 +43,71 @@ import org.eigenbase.util.*;
  * therefore be constant for the duration of the aggregation.</dd>
  * </dl>
  */
-public class SqlMinMaxAggFunction
-    extends SqlAggFunction
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlMinMaxAggFunction extends SqlAggFunction {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final int MINMAX_INVALID = -1;
-    public static final int MINMAX_PRIMITIVE = 0;
-    public static final int MINMAX_COMPARABLE = 1;
-    public static final int MINMAX_COMPARATOR = 2;
+  public static final int MINMAX_INVALID = -1;
+  public static final int MINMAX_PRIMITIVE = 0;
+  public static final int MINMAX_COMPARABLE = 1;
+  public static final int MINMAX_COMPARATOR = 2;
 
-    //~ Instance fields --------------------------------------------------------
+  //~ Instance fields --------------------------------------------------------
 
-    public final List<RelDataType> argTypes;
-    private final boolean isMin;
-    private final int kind;
+  public final List<RelDataType> argTypes;
+  private final boolean isMin;
+  private final int kind;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlMinMaxAggFunction(
-        List<RelDataType> argTypes,
-        boolean isMin,
-        int kind)
-    {
-        super(
-            isMin ? "MIN" : "MAX",
-            SqlKind.OTHER_FUNCTION,
-            SqlTypeStrategies.rtiFirstArgType,
-            null,
-            SqlTypeStrategies.otcComparableOrdered,
-            SqlFunctionCategory.System);
-        this.argTypes = argTypes;
-        this.isMin = isMin;
-        this.kind = kind;
+  public SqlMinMaxAggFunction(
+      List<RelDataType> argTypes,
+      boolean isMin,
+      int kind) {
+    super(
+        isMin ? "MIN" : "MAX",
+        SqlKind.OTHER_FUNCTION,
+        SqlTypeStrategies.rtiFirstArgType,
+        null,
+        SqlTypeStrategies.otcComparableOrdered,
+        SqlFunctionCategory.System);
+    this.argTypes = argTypes;
+    this.isMin = isMin;
+    this.kind = kind;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public boolean isMin() {
+    return isMin;
+  }
+
+  public int getMinMaxKind() {
+    return kind;
+  }
+
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+    switch (kind) {
+    case MINMAX_PRIMITIVE:
+    case MINMAX_COMPARABLE:
+      return argTypes;
+    case MINMAX_COMPARATOR:
+      return argTypes.subList(1, 2);
+    default:
+      throw Util.newInternal("bad kind: " + kind);
     }
+  }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public boolean isMin()
-    {
-        return isMin;
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+    switch (kind) {
+    case MINMAX_PRIMITIVE:
+    case MINMAX_COMPARABLE:
+      return argTypes.get(0);
+    case MINMAX_COMPARATOR:
+      return argTypes.get(1);
+    default:
+      throw Util.newInternal("bad kind: " + kind);
     }
-
-    public int getMinMaxKind()
-    {
-        return kind;
-    }
-
-    public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory)
-    {
-        switch (kind) {
-        case MINMAX_PRIMITIVE:
-        case MINMAX_COMPARABLE:
-            return argTypes;
-        case MINMAX_COMPARATOR:
-            return argTypes.subList(1, 2);
-        default:
-            throw Util.newInternal("bad kind: " + kind);
-        }
-    }
-
-    public RelDataType getReturnType(RelDataTypeFactory typeFactory)
-    {
-        switch (kind) {
-        case MINMAX_PRIMITIVE:
-        case MINMAX_COMPARABLE:
-            return argTypes.get(0);
-        case MINMAX_COMPARATOR:
-            return argTypes.get(1);
-        default:
-            throw Util.newInternal("bad kind: " + kind);
-        }
-    }
+  }
 
 }
 

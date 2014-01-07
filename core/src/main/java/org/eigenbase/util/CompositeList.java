@@ -33,57 +33,52 @@ import java.util.*;
  *
  * @param <T> Element type
  */
-public class CompositeList<T> extends AbstractList<T>
-{
-    private final List<T>[] lists;
+public class CompositeList<T> extends AbstractList<T> {
+  private final List<T>[] lists;
 
-    /**
-     * Creates a CompoundList.
-     *
-     * @param lists Constituent lists
-     */
-    public CompositeList(List<T>... lists)
-    {
-        this.lists = lists;
-    }
+  /**
+   * Creates a CompoundList.
+   *
+   * @param lists Constituent lists
+   */
+  public CompositeList(List<T>... lists) {
+    this.lists = lists;
+  }
 
-    /**
-     * Creates a CompoundList.
-     *
-     * <p>More convenient than {@link #CompositeList(java.util.List[])},
-     * because element type is inferred. Use this method as you would
-     * {@link java.util.Arrays#asList(Object[])} or
-     * {@link java.util.EnumSet#of(Enum, Enum[])}.
-     *
-     * @param lists Constituent lists
-     * @param <T> Element type
-     * @return List consisting of all lists
-     */
-    public static <T> CompositeList<T> of(List<T>... lists)
-    {
-        return new CompositeList<T>(lists);
-    }
+  /**
+   * Creates a CompoundList.
+   *
+   * <p>More convenient than {@link #CompositeList(java.util.List[])},
+   * because element type is inferred. Use this method as you would
+   * {@link java.util.Arrays#asList(Object[])} or
+   * {@link java.util.EnumSet#of(Enum, Enum[])}.
+   *
+   * @param lists Constituent lists
+   * @param <T>   Element type
+   * @return List consisting of all lists
+   */
+  public static <T> CompositeList<T> of(List<T>... lists) {
+    return new CompositeList<T>(lists);
+  }
 
-    public T get(int index)
-    {
-        for (List<T> list : lists) {
-            int nextIndex = index - list.size();
-            if (nextIndex < 0) {
-                return list.get(index);
-            }
-            index = nextIndex;
-        }
-        throw new IndexOutOfBoundsException();
+  public T get(int index) {
+    for (List<T> list : lists) {
+      int nextIndex = index - list.size();
+      if (nextIndex < 0) {
+        return list.get(index);
+      }
+      index = nextIndex;
     }
+    throw new IndexOutOfBoundsException();
+  }
 
-    public int size()
-    {
-        int n = 0;
-        for (List<T> list : lists) {
-            n += list.size();
-        }
-        return n;
+  public int size() {
+    int n = 0;
+    for (List<T> list : lists) {
+      n += list.size();
     }
+    return n;
+  }
 }
 
 // End CompositeList.java

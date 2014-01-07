@@ -21,14 +21,13 @@ package org.eigenbase.util;
  * ClosableAllocation represents an object which requires a call in order to
  * release resources early rather than waiting for finalization.
  */
-public interface ClosableAllocation
-{
-    //~ Methods ----------------------------------------------------------------
+public interface ClosableAllocation {
+  //~ Methods ----------------------------------------------------------------
 
-    /**
-     * Closes this object.
-     */
-    public void closeAllocation();
+  /**
+   * Closes this object.
+   */
+  public void closeAllocation();
 }
 
 // End ClosableAllocation.java

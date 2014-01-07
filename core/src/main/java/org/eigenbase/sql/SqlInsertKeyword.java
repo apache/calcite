@@ -19,7 +19,6 @@ package org.eigenbase.sql;
 
 import org.eigenbase.util.*;
 
-
 /**
  * Defines the keywords which can occur immediately after the "INSERT" keyword.
  * Standard SQL has no such keywords. This enumeration exists only to allow
@@ -27,31 +26,27 @@ import org.eigenbase.util.*;
  */
 public class SqlInsertKeyword
     extends EnumeratedValues.BasicValue
-    implements SqlLiteral.SqlSymbol
-{
-    //~ Static fields/initializers ---------------------------------------------
+    implements SqlLiteral.SqlSymbol {
+  //~ Static fields/initializers ---------------------------------------------
 
-    public static final EnumeratedValues enumeration =
-        new EnumeratedValues(new SqlInsertKeyword[] {});
+  public static final EnumeratedValues enumeration =
+      new EnumeratedValues(new SqlInsertKeyword[]{});
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    protected SqlInsertKeyword(String name, int ordinal)
-    {
-        super(name, ordinal, null);
-    }
+  protected SqlInsertKeyword(String name, int ordinal) {
+    super(name, ordinal, null);
+  }
 
-    //~ Methods ----------------------------------------------------------------
+  //~ Methods ----------------------------------------------------------------
 
-    public String name()
-    {
-        return getName();
-    }
+  public String name() {
+    return getName();
+  }
 
-    public int ordinal()
-    {
-        return getOrdinal();
-    }
+  public int ordinal() {
+    return getOrdinal();
+  }
 }
 
 // End SqlInsertKeyword.java

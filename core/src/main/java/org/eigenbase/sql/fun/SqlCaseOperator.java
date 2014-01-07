@@ -115,264 +115,249 @@ import com.google.common.collect.Iterables;
  * </ul>
  * </p>
  */
-public class SqlCaseOperator
-    extends SqlOperator
-{
-    //~ Static fields/initializers ---------------------------------------------
+public class SqlCaseOperator extends SqlOperator {
+  //~ Static fields/initializers ---------------------------------------------
 
-    private static final SqlWriter.FrameType CaseFrameType =
-        SqlWriter.FrameTypeEnum.create("CASE");
+  private static final SqlWriter.FrameType CaseFrameType =
+      SqlWriter.FrameTypeEnum.create("CASE");
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    public SqlCaseOperator()
-    {
-        super(
-            "CASE",
-            SqlKind.CASE,
-            MaxPrec,
-            true,
-            null,
-            SqlTypeStrategies.otiReturnType,
-            null);
+  public SqlCaseOperator() {
+    super(
+        "CASE",
+        SqlKind.CASE,
+        MaxPrec,
+        true,
+        null,
+        SqlTypeStrategies.otiReturnType,
+        null);
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  public void validateCall(
+      SqlCall call,
+      SqlValidator validator,
+      SqlValidatorScope scope,
+      SqlValidatorScope operandScope) {
+    final SqlCase sqlCase = (SqlCase) call;
+    final SqlNodeList whenOperands = sqlCase.getWhenOperands();
+    final SqlNodeList thenOperands = sqlCase.getThenOperands();
+    final SqlNode elseOperand = sqlCase.getElseOperand();
+    for (SqlNode operand : whenOperands) {
+      operand.validateExpr(validator, operandScope);
+    }
+    for (SqlNode operand : thenOperands) {
+      operand.validateExpr(validator, operandScope);
+    }
+    if (elseOperand != null) {
+      elseOperand.validateExpr(validator, operandScope);
+    }
+  }
+
+  public RelDataType deriveType(
+      SqlValidator validator,
+      SqlValidatorScope scope,
+      SqlCall call) {
+    // Do not try to derive the types of the operands. We will do that
+    // later, top down.
+    return validateOperands(validator, scope, call);
+  }
+
+  public boolean checkOperandTypes(
+      SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    SqlCase caseCall = (SqlCase) callBinding.getCall();
+    SqlNodeList whenList = caseCall.getWhenOperands();
+    SqlNodeList thenList = caseCall.getThenOperands();
+    assert (whenList.size() == thenList.size());
+
+    // checking that search conditions are ok...
+    for (SqlNode node : whenList) {
+      // should throw validation error if something wrong...
+      RelDataType type =
+          callBinding.getValidator().deriveType(
+              callBinding.getScope(),
+              node);
+      if (!SqlTypeUtil.inBooleanFamily(type)) {
+        if (throwOnFailure) {
+          throw callBinding.newError(
+              EigenbaseResource.instance().ExpectedBoolean.ex());
+        }
+        return false;
+      }
     }
 
-    //~ Methods ----------------------------------------------------------------
-
-    public void validateCall(
-        SqlCall call,
-        SqlValidator validator,
-        SqlValidatorScope scope,
-        SqlValidatorScope operandScope)
-    {
-        final SqlCase sqlCase = (SqlCase) call;
-        final SqlNodeList whenOperands = sqlCase.getWhenOperands();
-        final SqlNodeList thenOperands = sqlCase.getThenOperands();
-        final SqlNode elseOperand = sqlCase.getElseOperand();
-        for (SqlNode operand : whenOperands) {
-            operand.validateExpr(validator, operandScope);
-        }
-        for (SqlNode operand : thenOperands) {
-            operand.validateExpr(validator, operandScope);
-        }
-        if (elseOperand != null) {
-            elseOperand.validateExpr(validator, operandScope);
-        }
+    boolean foundNotNull = false;
+    for (SqlNode node : thenList) {
+      if (!SqlUtil.isNullLiteral(node, false)) {
+        foundNotNull = true;
+      }
     }
 
-    public RelDataType deriveType(
-        SqlValidator validator,
-        SqlValidatorScope scope,
-        SqlCall call)
-    {
-        // Do not try to derive the types of the operands. We will do that
-        // later, top down.
-        return validateOperands(validator, scope, call);
+    if (!SqlUtil.isNullLiteral(
+        caseCall.getElseOperand(),
+        false)) {
+      foundNotNull = true;
     }
 
-    public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure)
-    {
-        SqlCase caseCall = (SqlCase) callBinding.getCall();
-        SqlNodeList whenList = caseCall.getWhenOperands();
-        SqlNodeList thenList = caseCall.getThenOperands();
-        assert (whenList.size() == thenList.size());
+    if (!foundNotNull) {
+      // according to the sql standard we can not have all of the THEN
+      // statements and the ELSE returning null
+      if (throwOnFailure) {
+        throw callBinding.newError(
+            EigenbaseResource.instance().MustNotNullInElse.ex());
+      }
+      return false;
+    }
+    return true;
+  }
 
-        // checking that search conditions are ok...
-        for (SqlNode node : whenList) {
-            // should throw validation error if something wrong...
-            RelDataType type =
-                callBinding.getValidator().deriveType(
-                    callBinding.getScope(),
-                    node);
-            if (!SqlTypeUtil.inBooleanFamily(type)) {
-                if (throwOnFailure) {
-                    throw callBinding.newError(
-                        EigenbaseResource.instance().ExpectedBoolean.ex());
-                }
-                return false;
-            }
-        }
+  public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    // REVIEW jvs 4-June-2005:  can't these be unified?
+    if (!(opBinding instanceof SqlCallBinding)) {
+      return inferTypeFromOperands(
+          opBinding.getTypeFactory(),
+          opBinding.collectOperandTypes());
+    }
+    return inferTypeFromValidator((SqlCallBinding) opBinding);
+  }
 
-        boolean foundNotNull = false;
-        for (SqlNode node : thenList) {
-            if (!SqlUtil.isNullLiteral(node, false)) {
-                foundNotNull = true;
-            }
-        }
-
-        if (!SqlUtil.isNullLiteral(
-                caseCall.getElseOperand(),
-                false))
-        {
-            foundNotNull = true;
-        }
-
-        if (!foundNotNull) {
-            // according to the sql standard we can not have all of the THEN
-            // statements and the ELSE returning null
-            if (throwOnFailure) {
-                throw callBinding.newError(
-                    EigenbaseResource.instance().MustNotNullInElse.ex());
-            }
-            return false;
-        }
-        return true;
+  private RelDataType inferTypeFromValidator(
+      SqlCallBinding callBinding) {
+    SqlCase caseCall = (SqlCase) callBinding.getCall();
+    SqlNodeList thenList = caseCall.getThenOperands();
+    ArrayList<SqlNode> nullList = new ArrayList<SqlNode>();
+    List<RelDataType> argTypes = new ArrayList<RelDataType>();
+    for (SqlNode node : thenList) {
+      argTypes.add(
+          callBinding.getValidator().deriveType(
+              callBinding.getScope(), node));
+      if (SqlUtil.isNullLiteral(node, false)) {
+        nullList.add(node);
+      }
+    }
+    SqlNode elseOp = caseCall.getElseOperand();
+    argTypes.add(
+        callBinding.getValidator().deriveType(
+            callBinding.getScope(), caseCall.getElseOperand()));
+    if (SqlUtil.isNullLiteral(elseOp, false)) {
+      nullList.add(elseOp);
     }
 
-    public RelDataType inferReturnType(
-        SqlOperatorBinding opBinding)
-    {
-        // REVIEW jvs 4-June-2005:  can't these be unified?
-        if (!(opBinding instanceof SqlCallBinding)) {
-            return inferTypeFromOperands(
-                opBinding.getTypeFactory(),
-                opBinding.collectOperandTypes());
-        }
-        return inferTypeFromValidator((SqlCallBinding) opBinding);
+    RelDataType ret =
+        callBinding.getTypeFactory().leastRestrictive(
+            argTypes);
+    if (null == ret) {
+      throw callBinding.newValidationError(
+          EigenbaseResource.instance().IllegalMixingOfTypes.ex());
+    }
+    for (SqlNode node : nullList) {
+      callBinding.getValidator().setValidatedNodeType(node, ret);
+    }
+    return ret;
+  }
+
+  private RelDataType inferTypeFromOperands(
+      RelDataTypeFactory typeFactory,
+      List<RelDataType> argTypes) {
+    assert (argTypes.size() % 2) == 1 : "odd number of arguments expected: "
+        + argTypes.size();
+    assert argTypes.size() > 1 : argTypes.size();
+    List<RelDataType> thenTypes = new ArrayList<RelDataType>();
+    for (int j = 1; j < (argTypes.size() - 1); j += 2) {
+      thenTypes.add(argTypes.get(j));
     }
 
-    private RelDataType inferTypeFromValidator(
-        SqlCallBinding callBinding)
-    {
-        SqlCase caseCall = (SqlCase) callBinding.getCall();
-        SqlNodeList thenList = caseCall.getThenOperands();
-        ArrayList<SqlNode> nullList = new ArrayList<SqlNode>();
-        List<RelDataType> argTypes = new ArrayList<RelDataType>();
-        for (SqlNode node : thenList) {
-            argTypes.add(
-                callBinding.getValidator().deriveType(
-                    callBinding.getScope(), node));
-            if (SqlUtil.isNullLiteral(node, false)) {
-                nullList.add(node);
-            }
-        }
-        SqlNode elseOp = caseCall.getElseOperand();
-        argTypes.add(
-            callBinding.getValidator().deriveType(
-                callBinding.getScope(), caseCall.getElseOperand()));
-        if (SqlUtil.isNullLiteral(elseOp, false)) {
-            nullList.add(elseOp);
-        }
+    thenTypes.add(Iterables.getLast(argTypes));
+    return typeFactory.leastRestrictive(thenTypes);
+  }
 
-        RelDataType ret =
-            callBinding.getTypeFactory().leastRestrictive(
-                argTypes);
-        if (null == ret) {
-            throw callBinding.newValidationError(
-                EigenbaseResource.instance().IllegalMixingOfTypes.ex());
-        }
-        for (SqlNode node : nullList) {
-            callBinding.getValidator().setValidatedNodeType(node, ret);
-        }
-        return ret;
+  public SqlOperandCountRange getOperandCountRange() {
+    return SqlOperandCountRanges.any();
+  }
+
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.Special;
+  }
+
+  public SqlCall createCall(
+      SqlLiteral functionQualifier,
+      SqlParserPos pos,
+      SqlNode... operands) {
+    assert functionQualifier == null;
+    return new SqlCase(this, operands, pos);
+  }
+
+  /**
+   * Creates a call to the switched form of the case operator, viz:
+   *
+   * <blockquote><code>CASE value<br/>
+   * WHEN whenList[0] THEN thenList[0]<br/>
+   * WHEN whenList[1] THEN thenList[1]<br/>
+   * ...<br/>
+   * ELSE elseClause<br/>
+   * END</code></blockquote>
+   */
+  public SqlCase createSwitchedCall(
+      SqlParserPos pos,
+      SqlNode value,
+      SqlNodeList whenList,
+      SqlNodeList thenList,
+      SqlNode elseClause) {
+    if (null != value) {
+      List<SqlNode> list = whenList.getList();
+      for (int i = 0; i < list.size(); i++) {
+        SqlNode e = list.get(i);
+        list.set(
+            i,
+            SqlStdOperatorTable.equalsOperator.createCall(
+                pos,
+                value,
+                e));
+      }
     }
 
-    private RelDataType inferTypeFromOperands(
-        RelDataTypeFactory typeFactory,
-        List<RelDataType> argTypes)
-    {
-        assert (argTypes.size() % 2) == 1 : "odd number of arguments expected: "
-            + argTypes.size();
-        assert argTypes.size() > 1 : argTypes.size();
-        List<RelDataType> thenTypes = new ArrayList<RelDataType>();
-        for (int j = 1; j < (argTypes.size() - 1); j += 2) {
-            thenTypes.add(argTypes.get(j));
-        }
-
-        thenTypes.add(Iterables.getLast(argTypes));
-        return typeFactory.leastRestrictive(thenTypes);
+    if (null == elseClause) {
+      elseClause = SqlLiteral.createNull(pos);
     }
 
-    public SqlOperandCountRange getOperandCountRange()
-    {
-        return SqlOperandCountRanges.any();
+    return (SqlCase) createCall(
+        pos,
+        null,
+        whenList,
+        thenList,
+        elseClause);
+  }
+
+  public void unparse(
+      SqlWriter writer,
+      SqlNode[] operands,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame frame =
+        writer.startList(CaseFrameType, "CASE", "END");
+    SqlNode value = operands[SqlCase.VALUE_OPERAND];
+    SqlNodeList whenList = (SqlNodeList) operands[SqlCase.WHEN_OPERANDS];
+    SqlNodeList thenList = (SqlNodeList) operands[SqlCase.THEN_OPERANDS];
+    assert whenList.size() == thenList.size();
+    if (value != null) {
+      value.unparse(writer, 0, 0);
+    }
+    for (Pair<SqlNode, SqlNode> pair : Pair.zip(whenList, thenList)) {
+      writer.sep("WHEN");
+      pair.left.unparse(writer, 0, 0);
+      writer.sep("THEN");
+      pair.right.unparse(writer, 0, 0);
     }
 
-    public SqlSyntax getSyntax()
-    {
-        return SqlSyntax.Special;
-    }
-
-    public SqlCall createCall(
-        SqlLiteral functionQualifier,
-        SqlParserPos pos,
-        SqlNode ... operands)
-    {
-        assert functionQualifier == null;
-        return new SqlCase(this, operands, pos);
-    }
-
-    /**
-     * Creates a call to the switched form of the case operator, viz:
-     *
-     * <blockquote><code>CASE value<br/>
-     * WHEN whenList[0] THEN thenList[0]<br/>
-     * WHEN whenList[1] THEN thenList[1]<br/>
-     * ...<br/>
-     * ELSE elseClause<br/>
-     * END</code></blockquote>
-     */
-    public SqlCase createSwitchedCall(
-        SqlParserPos pos,
-        SqlNode value,
-        SqlNodeList whenList,
-        SqlNodeList thenList,
-        SqlNode elseClause)
-    {
-        if (null != value) {
-            List<SqlNode> list = whenList.getList();
-            for (int i = 0; i < list.size(); i++) {
-                SqlNode e = list.get(i);
-                list.set(
-                    i,
-                    SqlStdOperatorTable.equalsOperator.createCall(
-                        pos,
-                        value,
-                        e));
-            }
-        }
-
-        if (null == elseClause) {
-            elseClause = SqlLiteral.createNull(pos);
-        }
-
-        return (SqlCase) createCall(
-            pos,
-            null,
-            whenList,
-            thenList,
-            elseClause);
-    }
-
-    public void unparse(
-        SqlWriter writer,
-        SqlNode [] operands,
-        int leftPrec,
-        int rightPrec)
-    {
-        final SqlWriter.Frame frame =
-            writer.startList(CaseFrameType, "CASE", "END");
-        SqlNode value = operands[SqlCase.VALUE_OPERAND];
-        SqlNodeList whenList = (SqlNodeList) operands[SqlCase.WHEN_OPERANDS];
-        SqlNodeList thenList = (SqlNodeList) operands[SqlCase.THEN_OPERANDS];
-        assert whenList.size() == thenList.size();
-        if (value != null) {
-            value.unparse(writer, 0, 0);
-        }
-        for (Pair<SqlNode, SqlNode> pair : Pair.zip(whenList, thenList)) {
-            writer.sep("WHEN");
-            pair.left.unparse(writer, 0, 0);
-            writer.sep("THEN");
-            pair.right.unparse(writer, 0, 0);
-        }
-
-        writer.sep("ELSE");
-        final SqlNode elseOperand = operands[SqlCase.ELSE_OPERAND];
-        elseOperand.unparse(writer, 0, 0);
-        writer.endList(frame);
-    }
+    writer.sep("ELSE");
+    final SqlNode elseOperand = operands[SqlCase.ELSE_OPERAND];
+    elseOperand.unparse(writer, 0, 0);
+    writer.endList(frame);
+  }
 }
 
 // End SqlCaseOperator.java

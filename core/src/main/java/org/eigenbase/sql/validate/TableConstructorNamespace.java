@@ -23,73 +23,67 @@ import org.eigenbase.sql.*;
 /**
  * Namespace for a table constructor <code>VALUES (expr, expr, ...)</code>.
  */
-public class TableConstructorNamespace
-    extends AbstractNamespace
-{
-    //~ Instance fields --------------------------------------------------------
+public class TableConstructorNamespace extends AbstractNamespace {
+  //~ Instance fields --------------------------------------------------------
 
-    private final SqlCall values;
-    private final SqlValidatorScope scope;
+  private final SqlCall values;
+  private final SqlValidatorScope scope;
 
-    //~ Constructors -----------------------------------------------------------
+  //~ Constructors -----------------------------------------------------------
 
-    /**
-     * Creates a TableConstructorNamespace.
-     *
-     * @param validator Validator
-     * @param values VALUES parse tree node
-     * @param scope Scope
-     * @param enclosingNode Enclosing node
-     */
-    TableConstructorNamespace(
-        SqlValidatorImpl validator,
-        SqlCall values,
-        SqlValidatorScope scope,
-        SqlNode enclosingNode)
-    {
-        super(validator, enclosingNode);
-        this.values = values;
-        this.scope = scope;
+  /**
+   * Creates a TableConstructorNamespace.
+   *
+   * @param validator     Validator
+   * @param values        VALUES parse tree node
+   * @param scope         Scope
+   * @param enclosingNode Enclosing node
+   */
+  TableConstructorNamespace(
+      SqlValidatorImpl validator,
+      SqlCall values,
+      SqlValidatorScope scope,
+      SqlNode enclosingNode) {
+    super(validator, enclosingNode);
+    this.values = values;
+    this.scope = scope;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  protected RelDataType validateImpl() {
+    // First, validate the VALUES. If VALUES is inside INSERT, infers
+    // the type of NULL values based on the types of target columns.
+    final RelDataType targetRowType;
+    if (enclosingNode instanceof SqlInsert) {
+      SqlInsert node = (SqlInsert) enclosingNode;
+      targetRowType = validator.getValidatedNodeType(node);
+    } else {
+      targetRowType = validator.getUnknownType();
     }
-
-    //~ Methods ----------------------------------------------------------------
-
-    protected RelDataType validateImpl()
-    {
-        // First, validate the VALUES. If VALUES is inside INSERT, infers
-        // the type of NULL values based on the types of target columns.
-        final RelDataType targetRowType;
-        if (enclosingNode instanceof SqlInsert) {
-            SqlInsert node = (SqlInsert) enclosingNode;
-            targetRowType = validator.getValidatedNodeType(node);
-        } else {
-            targetRowType = validator.getUnknownType();
-        }
-        validator.validateValues(values, targetRowType, scope);
-        final RelDataType tableConstructorRowType =
-            validator.getTableConstructorRowType(values, scope);
-        if (tableConstructorRowType == null) {
-            throw validator.newValidationError(
-                values,
-                new SqlValidatorException("Incompatible types", null));
-        }
-        return tableConstructorRowType;
+    validator.validateValues(values, targetRowType, scope);
+    final RelDataType tableConstructorRowType =
+        validator.getTableConstructorRowType(values, scope);
+    if (tableConstructorRowType == null) {
+      throw validator.newValidationError(
+          values,
+          new SqlValidatorException("Incompatible types", null));
     }
+    return tableConstructorRowType;
+  }
 
-    public SqlNode getNode()
-    {
-        return values;
-    }
+  public SqlNode getNode() {
+    return values;
+  }
 
-    /**
-     * Returns the scope.
-     *
-     * @return scope
-     */
-    public SqlValidatorScope getScope()
-    {
-        return scope;
-    }
+  /**
+   * Returns the scope.
+   *
+   * @return scope
+   */
+  public SqlValidatorScope getScope() {
+    return scope;
+  }
 }
 
 // End TableConstructorNamespace.java
