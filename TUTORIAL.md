@@ -428,8 +428,8 @@ public class CsvPushProjectOntoTableRule extends RelOptRule {
 
   private CsvPushProjectOntoTableRule() {
     super(
-        some(ProjectRel.class,
-            leaf(CsvTableScan.class)),
+        operand(ProjectRel.class,
+            operand(CsvTableScan.class, none())),
         "CsvPushProjectOntoTableRule");
   }
 
