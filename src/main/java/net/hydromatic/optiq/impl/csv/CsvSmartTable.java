@@ -19,20 +19,17 @@ package net.hydromatic.optiq.impl.csv;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelProtoDataType;
 
 import java.io.File;
-import java.util.List;
 
 /**
  * Refinement of {@link CsvTable} that plans itself.
  */
 class CsvSmartTable extends CsvTable {
-
   /** Creates a CsvSmartTable. */
-  CsvSmartTable(CsvSchema schema, String tableName, File file,
-      RelDataType rowType, List<CsvFieldType> fieldTypes) {
-    super(schema, tableName, file, rowType, fieldTypes);
+  CsvSmartTable(File file, RelProtoDataType protoRowType) {
+    super(file, protoRowType);
   }
 
   public RelNode toRel(

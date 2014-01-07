@@ -19,11 +19,9 @@ package net.hydromatic.optiq.impl.csv;
 
 import net.hydromatic.optiq.*;
 
-import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.*;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,16 +36,14 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
   public CsvTableFactory() {
   }
 
-  public CsvTable create(Schema schema, String name,
+  public CsvTable create(SchemaPlus schema, String name,
       Map<String, Object> map, RelDataType rowType) {
     String fileName = (String) map.get("file");
     Boolean smart = (Boolean) map.get("smart");
     final File file = new File(fileName);
-    final List<CsvFieldType> list = new ArrayList<CsvFieldType>();
-    final RelDataType rowType2 =
-        CsvTable.deduceRowType(schema.getTypeFactory(), file, list);
-    final RelDataType rowType3 = rowType != null ? rowType : rowType2;
-    return new CsvTable(schema, name, file, rowType3, list);
+    final RelProtoDataType protoRowType =
+        rowType != null ? RelDataTypeImpl.proto(rowType) : null;
+    return new CsvTable(file, protoRowType);
   }
 }
 

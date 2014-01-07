@@ -18,16 +18,17 @@
 package net.hydromatic.optiq.impl.csv;
 
 import net.hydromatic.linq4j.*;
-import net.hydromatic.linq4j.expressions.*;
 
 import net.hydromatic.optiq.*;
+import net.hydromatic.optiq.impl.AbstractTableQueryable;
+import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import net.hydromatic.optiq.rules.java.JavaRules;
 
 import org.eigenbase.rel.RelNode;
 import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.*;
 import org.eigenbase.util.Pair;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -38,65 +39,49 @@ import java.util.*;
 /**
  * Table based on a CSV file.
  */
-public class CsvTable extends AbstractQueryable<Object[]>
-    implements TranslatableTable<Object[]> {
-  private final Schema schema;
-  private final String tableName;
+public class CsvTable extends AbstractQueryableTable
+    implements TranslatableTable {
   private final File file;
-  private final RelDataType rowType;
-  private final List<CsvFieldType> fieldTypes;
+  private final RelProtoDataType protoRowType;
+  private List<CsvFieldType> fieldTypes;
 
   /** Creates a CsvTable. */
-  CsvTable(Schema schema, String tableName, File file, RelDataType rowType,
-      List<CsvFieldType> fieldTypes) {
-    this.schema = schema;
-    this.tableName = tableName;
+  CsvTable(File file, RelProtoDataType protoRowType) {
+    super(Object[].class);
     this.file = file;
-    this.rowType = rowType;
-    this.fieldTypes = fieldTypes;
-    assert rowType != null;
-    assert schema != null;
-    assert tableName != null;
+    this.protoRowType = protoRowType;
   }
 
   public String toString() {
-    return "CsvTable {" + tableName + "}";
+    return "CsvTable";
   }
 
-  public QueryProvider getProvider() {
-    return schema.getQueryProvider();
-  }
-
-  public Class getElementType() {
-    return Object[].class;
-  }
-
-  public RelDataType getRowType() {
-    return rowType;
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    if (protoRowType != null) {
+      return protoRowType.apply(typeFactory);
+    }
+    if (fieldTypes == null) {
+      fieldTypes = new ArrayList<CsvFieldType>();
+      return deduceRowType((JavaTypeFactory) typeFactory, file, fieldTypes);
+    } else {
+      return deduceRowType((JavaTypeFactory) typeFactory, file, null);
+    }
   }
 
   public Statistic getStatistic() {
     return Statistics.UNKNOWN;
   }
 
-  public Expression getExpression() {
-    return Expressions.convert_(
-        Expressions.call(
-            schema.getExpression(),
-            "getTable",
-            Expressions.<Expression>list()
-                .append(Expressions.constant(tableName))
-                .append(Expressions.constant(getElementType()))),
-        CsvTable.class);
-  }
-
-  public Iterator<Object[]> iterator() {
-    return Linq4j.enumeratorIterator(enumerator());
-  }
-
-  public Enumerator<Object[]> enumerator() {
-    return new CsvEnumerator(file,
-        fieldTypes.toArray(new CsvFieldType[fieldTypes.size()]));
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+      SchemaPlus schema, String tableName) {
+    return new AbstractTableQueryable<T>(queryProvider, schema, this,
+        tableName) {
+      public Enumerator<T> enumerator() {
+        //noinspection unchecked
+        return (Enumerator<T>) new CsvEnumerator(file,
+            fieldTypes.toArray(new CsvFieldType[fieldTypes.size()]));
+      }
+    };
   }
 
   /** Returns an enumerable over a given projection of the fields. */
@@ -116,8 +101,7 @@ public class CsvTable extends AbstractQueryable<Object[]>
         context.getCluster(),
         context.getCluster().traitSetOf(EnumerableConvention.INSTANCE),
         relOptTable,
-        getExpression(),
-        getElementType());
+        (Class) getElementType());
   }
 
   /** Deduces the names and types of a table's columns by reading the first line
@@ -150,7 +134,9 @@ public class CsvTable extends AbstractQueryable<Object[]>
         }
         names.add(name);
         types.add(type);
-        fieldTypes.add(fieldType);
+        if (fieldTypes != null) {
+          fieldTypes.add(fieldType);
+        }
       }
     } catch (IOException e) {
       // ignore

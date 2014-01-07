@@ -17,15 +17,14 @@
 */
 package net.hydromatic.optiq.impl.csv;
 
+import net.hydromatic.linq4j.Queryable;
 import net.hydromatic.optiq.rules.java.*;
 
 import net.hydromatic.linq4j.expressions.*;
 
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.rel.TableAccessRelBase;
+import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.reltype.*;
 
 import java.util.*;
 
@@ -54,19 +53,20 @@ public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
   }
 
   @Override
-  public RelOptPlanWriter explainTerms(RelOptPlanWriter pw) {
+  public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("fields", Primitive.asList(fields));
   }
 
   @Override
   public RelDataType deriveRowType() {
+    final List<RelDataTypeField> fieldList = table.getRowType().getFieldList();
     final RelDataTypeFactory.FieldInfoBuilder builder =
-        new RelDataTypeFactory.FieldInfoBuilder();
+        getCluster().getTypeFactory().builder();
     for (int field : fields) {
-      builder.add(table.getRowType().getFieldList().get(field));
+      builder.add(fieldList.get(field));
     }
-    return getCluster().getTypeFactory().createStructType(builder);
+    return builder.build();
   }
 
   @Override
@@ -84,7 +84,7 @@ public class CsvTableScan extends TableAccessRelBase implements EnumerableRel {
     return implementor.result(
         physType,
         Blocks.toBlock(
-            Expressions.call(csvTable.getExpression(), "project",
+            Expressions.call(table.getExpression(CsvTable.class), "project",
                 Expressions.constant(fields))));
   }
 }

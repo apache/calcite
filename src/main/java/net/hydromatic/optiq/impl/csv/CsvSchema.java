@@ -17,13 +17,10 @@
 */
 package net.hydromatic.optiq.impl.csv;
 
-import net.hydromatic.linq4j.expressions.Expression;
-
 import net.hydromatic.optiq.*;
-import net.hydromatic.optiq.impl.TableInSchemaImpl;
-import net.hydromatic.optiq.impl.java.MapSchema;
+import net.hydromatic.optiq.impl.AbstractSchema;
 
-import org.eigenbase.reltype.RelDataType;
+import com.google.common.collect.ImmutableMap;
 
 import java.io.*;
 import java.util.*;
@@ -32,7 +29,7 @@ import java.util.*;
  * Schema mapped onto a directory of CSV files. Each table in the schema
  * is a CSV file in that directory.
  */
-public class CsvSchema extends MapSchema {
+public class CsvSchema extends AbstractSchema {
   final File directoryFile;
   private final boolean smart;
 
@@ -42,25 +39,22 @@ public class CsvSchema extends MapSchema {
    * @param parentSchema Parent schema
    * @param name Schema name
    * @param directoryFile Directory that holds .csv files
-   * @param expression Java expression to create an instance of this schema
-   *                   in generated code
    * @param smart      Whether to instantiate smart tables that undergo
    *                   query optimization
    */
   public CsvSchema(
-      Schema parentSchema,
+      SchemaPlus parentSchema,
       String name,
       File directoryFile,
-      Expression expression,
       boolean smart) {
-    super(parentSchema, name, expression);
+    super(parentSchema, name);
     this.directoryFile = directoryFile;
     this.smart = smart;
   }
 
   @Override
-  protected Collection<TableInSchema> initialTables() {
-    final List<TableInSchema> list = new ArrayList<TableInSchema>();
+  protected Map<String, Table> getTableMap() {
+    final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     File[] files = directoryFile.listFiles(
         new FilenameFilter() {
           public boolean accept(File dir, String name) {
@@ -77,18 +71,15 @@ public class CsvSchema extends MapSchema {
         tableName = tableName.substring(
             0, tableName.length() - ".csv".length());
       }
-      final List<CsvFieldType> fieldTypes = new ArrayList<CsvFieldType>();
-      final RelDataType rowType =
-          CsvTable.deduceRowType(typeFactory, file, fieldTypes);
       final CsvTable table;
       if (smart) {
-        table = new CsvSmartTable(this, tableName, file, rowType, fieldTypes);
+        table = new CsvSmartTable(file, null);
       } else {
-        table = new CsvTable(this, tableName, file, rowType, fieldTypes);
+        table = new CsvTable(file, null);
       }
-      list.add(new TableInSchemaImpl(this, tableName, TableType.TABLE, table));
+      builder.put(tableName, table);
     }
-    return list;
+    return builder.build();
   }
 }
 

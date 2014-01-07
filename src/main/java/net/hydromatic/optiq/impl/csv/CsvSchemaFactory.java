@@ -33,20 +33,15 @@ public class CsvSchemaFactory implements SchemaFactory {
   public CsvSchemaFactory() {
   }
 
-  public Schema create(MutableSchema parentSchema, String name,
+  public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
-    Map map = (Map) operand;
-    String directory = (String) map.get("directory");
-    Boolean smart = (Boolean) map.get("smart");
-    final CsvSchema schema =
-        new CsvSchema(
-            parentSchema,
-            name,
-            new File(directory),
-            parentSchema.getSubSchemaExpression(name, CsvSchema.class),
-            smart != null && smart);
-    parentSchema.addSchema(name, schema);
-    return schema;
+    String directory = (String) operand.get("directory");
+    Boolean smart = (Boolean) operand.get("smart");
+    return new CsvSchema(
+        parentSchema,
+        name,
+        new File(directory),
+        smart != null && smart);
   }
 }
 
