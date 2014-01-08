@@ -561,7 +561,7 @@ public abstract class SqlUtil {
   public static SqlCall makeCall(
       SqlOperatorTable opTab,
       SqlIdentifier id) {
-    if (id.names.length == 1) {
+    if (id.names.size() == 1) {
       List<SqlOperator> list =
           opTab.lookupOperatorOverloads(
               id,
@@ -596,17 +596,12 @@ public abstract class SqlUtil {
    *
    * @param op       operator
    * @param typeList list of types to use for operands. Types may be
-   *                 represented as {@link String}, {@link SqlTypeFamily}, or any object with
-   *                 a valid {@link Object#toString()} method.
+   *                 represented as {@link String}, {@link SqlTypeFamily}, or
+   *                 any object with a valid {@link Object#toString()} method.
    * @return constructed signature
    */
-  public static String getOperatorSignature(
-      SqlOperator op,
-      List<? extends Object> typeList) {
-    return getAliasedSignature(
-        op,
-        op.getName(),
-        typeList);
+  public static String getOperatorSignature(SqlOperator op, List<?> typeList) {
+    return getAliasedSignature(op, op.getName(), typeList);
   }
 
   /**

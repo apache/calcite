@@ -18,7 +18,6 @@
 package org.eigenbase.sql;
 
 import java.math.*;
-
 import java.util.*;
 
 import org.eigenbase.reltype.*;
@@ -28,6 +27,8 @@ import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * An operator describing a window specification.
@@ -600,10 +601,8 @@ public class SqlWindowOperator extends SqlOperator {
         null,
         new SqlNodeList(SqlParserPos.ZERO),
         new SqlNodeList(
-            Collections.singletonList(
-                new SqlIdentifier(
-                    new String[]{columnName},
-                    SqlParserPos.ZERO)),
+            ImmutableList.of(
+                new SqlIdentifier(columnName, SqlParserPos.ZERO)),
             SqlParserPos.ZERO),
         SqlLiteral.createBoolean(true, SqlParserPos.ZERO),
         createCurrentRow(SqlParserPos.ZERO),
@@ -624,10 +623,8 @@ public class SqlWindowOperator extends SqlOperator {
         null,
         new SqlNodeList(SqlParserPos.ZERO),
         new SqlNodeList(
-            Collections.singletonList(
-                new SqlIdentifier(
-                    new String[]{columnName},
-                    SqlParserPos.ZERO)),
+            ImmutableList.of(
+                new SqlIdentifier(columnName, SqlParserPos.ZERO)),
             SqlParserPos.ZERO),
         SqlLiteral.createBoolean(false, SqlParserPos.ZERO),
         createUnboundedPreceding(SqlParserPos.ZERO),

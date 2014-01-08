@@ -34,8 +34,8 @@ import net.hydromatic.optiq.runtime.FlatLists;
 import net.hydromatic.optiq.util.BitSets;
 import net.hydromatic.optiq.util.CompositeMap;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.ImmutableSet;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
@@ -1142,6 +1142,21 @@ public class UtilTest {
     assertThat(
         ImmutableMultiset.copyOf(map.values()),
         equalTo((ImmutableMultiset.copyOf(Arrays.asList(4, 4, 6, 5)))));
+  }
+
+  /** Tests {@link Util#commaList(java.util.List)}. */
+  @Test public void testCommaList() {
+    try {
+      String s = Util.commaList(null);
+      fail("expected NPE, got " + s);
+    } catch (NullPointerException e) {
+      // ok
+    }
+    assertThat(Util.commaList(ImmutableList.<Object>of()), equalTo(""));
+    assertThat(Util.commaList(ImmutableList.of(1)), equalTo("1"));
+    assertThat(Util.commaList(ImmutableList.of(2, 3)), equalTo("2, 3"));
+    assertThat(Util.commaList(Arrays.asList(2, null, 3)),
+        equalTo("2, null, 3"));
   }
 
   //~ Inner Classes ----------------------------------------------------------

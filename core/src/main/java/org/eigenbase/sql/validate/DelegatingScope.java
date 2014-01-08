@@ -24,6 +24,8 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.*;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * A scope which delegates all requests to its parent scope. Use this as a base
  * class for defining nested scopes.
@@ -131,9 +133,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     String tableName;
     String columnName;
 
-    switch (identifier.names.length) {
+    switch (identifier.names.size()) {
     case 1:
-      columnName = identifier.names[0];
+      columnName = identifier.names.get(0);
       tableName =
           findQualifyingTableName(columnName, identifier);
 
@@ -141,18 +143,15 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       final SqlParserPos pos = identifier.getParserPosition();
       SqlIdentifier expanded =
           new SqlIdentifier(
-              new String[]{tableName, columnName},
+              ImmutableList.of(tableName, columnName),
               null,
               pos,
-              new SqlParserPos[]{
-                  SqlParserPos.ZERO,
-                  pos
-              });
+              ImmutableList.of(SqlParserPos.ZERO, pos));
       validator.setOriginal(expanded, identifier);
       return expanded;
 
     case 2:
-      tableName = identifier.names[0];
+      tableName = identifier.names.get(0);
       final SqlValidatorNamespace fromNs = resolve(tableName, null, null);
       if (fromNs == null) {
         throw validator.newValidationError(
@@ -160,7 +159,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
             EigenbaseResource.instance().TableNameNotFound.ex(
                 tableName));
       }
-      columnName = identifier.names[1];
+      columnName = identifier.names.get(1);
       final RelDataType fromRowType = fromNs.getRowType();
       final RelDataType type =
           SqlValidatorUtil.lookupFieldType(fromRowType, columnName);
@@ -177,7 +176,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     default:
       // NOTE jvs 26-May-2004:  lengths greater than 2 are possible
       // for row and structured types
-      assert identifier.names.length > 0;
+      assert identifier.names.size() > 0;
       return identifier;
     }
   }

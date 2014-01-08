@@ -17,6 +17,8 @@
 */
 package org.eigenbase.sql.validate;
 
+import java.util.List;
+
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
 
@@ -45,7 +47,7 @@ public class SqlIdentifierMoniker implements SqlMoniker {
     return SqlMonikerType.Column;
   }
 
-  public String[] getFullyQualifiedNames() {
+  public List<String> getFullyQualifiedNames() {
     return id.names;
   }
 

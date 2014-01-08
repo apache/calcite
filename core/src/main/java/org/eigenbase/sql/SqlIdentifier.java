@@ -22,6 +22,9 @@ import java.util.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
@@ -34,46 +37,45 @@ public class SqlIdentifier extends SqlNode {
    *
    * <p>It's convenient to have this member public, and it's convenient to
    * have this member not-final, but it's a shame it's public and not-final.
-   * If you assign to this member, please use {@link #setNames(String[],
-   * SqlParserPos[])}. And yes, we'd like to make identifiers immutable one
-   * day.
+   * If you assign to this member, please use
+   * {@link #setNames(java.util.List, java.util.List)}.
+   * And yes, we'd like to make identifiers immutable one day.
    */
-  public String[] names;
+  public ImmutableList<String> names;
 
   /**
    * This identifier's collation (if any).
    */
-  SqlCollation collation;
+  final SqlCollation collation;
 
   /**
    * A list of the positions of the components of compound identifiers.
    */
-  private SqlParserPos[] componentPositions;
+  private ImmutableList<SqlParserPos> componentPositions;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a compound identifier, for example <code>foo.bar</code>.
    *
-   * @param names Parts of the identifier, length &gt;= 1
+   * @param names Parts of the identifier, length &ge; 1
    */
   public SqlIdentifier(
-      String[] names,
+      List<String> names,
       SqlCollation collation,
       SqlParserPos pos,
-      SqlParserPos[] componentPositions) {
+      List<SqlParserPos> componentPositions) {
     super(pos);
-    this.names = names;
+    this.names = ImmutableList.copyOf(names);
     this.collation = collation;
-    this.componentPositions = componentPositions;
+    this.componentPositions = componentPositions == null ? null
+        : ImmutableList.copyOf(componentPositions);
     for (String name : names) {
       assert name != null;
     }
   }
 
-  public SqlIdentifier(
-      String[] names,
-      SqlParserPos pos) {
+  public SqlIdentifier(List<String> names, SqlParserPos pos) {
     this(names, null, pos, null);
   }
 
@@ -85,11 +87,7 @@ public class SqlIdentifier extends SqlNode {
       String name,
       SqlCollation collation,
       SqlParserPos pos) {
-    this(
-        new String[]{name},
-        collation,
-        pos,
-        null);
+    this(ImmutableList.of(name), collation, pos, null);
   }
 
   /**
@@ -98,11 +96,7 @@ public class SqlIdentifier extends SqlNode {
   public SqlIdentifier(
       String name,
       SqlParserPos pos) {
-    this(
-        new String[]{name},
-        null,
-        pos,
-        null);
+    this(ImmutableList.of(name), null, pos, null);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -112,24 +106,11 @@ public class SqlIdentifier extends SqlNode {
   }
 
   public SqlNode clone(SqlParserPos pos) {
-    return new SqlIdentifier(
-        names.clone(),
-        collation,
-        pos,
-        componentPositions);
+    return new SqlIdentifier(names, collation, pos, componentPositions);
   }
 
   public String toString() {
-    // Short-circuit for common case.
-    if (names.length == 1) {
-      return names[0];
-    }
-    StringBuilder buf = new StringBuilder(names[0]);
-    for (int i = 1; i < names.length; i++) {
-      buf.append('.');
-      buf.append(names[i]);
-    }
-    return buf.toString();
+    return Util.sepList(names, ".");
   }
 
   /**
@@ -137,11 +118,11 @@ public class SqlIdentifier extends SqlNode {
    *
    * @param names Names of components
    * @param poses Positions of components
-   * @deprecated Identifiers should be immutable
    */
-  public void setNames(String[] names, SqlParserPos[] poses) {
-    this.names = names;
-    this.componentPositions = poses;
+  public void setNames(List<String> names, List<SqlParserPos> poses) {
+    this.names = ImmutableList.copyOf(names);
+    this.componentPositions = poses == null ? null
+        : ImmutableList.copyOf(poses);
   }
 
   /**
@@ -153,9 +134,9 @@ public class SqlIdentifier extends SqlNode {
    * @return Position of i'th component
    */
   public SqlParserPos getComponentParserPosition(int i) {
-    assert (i >= 0) && (i < names.length);
+    assert (i >= 0) && (i < names.size());
     return (componentPositions == null) ? getParserPosition()
-        : componentPositions[i];
+        : componentPositions.get(i);
   }
 
   /**
@@ -174,8 +155,7 @@ public class SqlIdentifier extends SqlNode {
    * SqlParserPos}, provided that detailed position information is available.
    */
   public SqlIdentifier getComponent(int ordinal) {
-    return new SqlIdentifier(
-        names[ordinal],
+    return new SqlIdentifier(names.get(ordinal),
         getComponentParserPosition(ordinal));
   }
 
@@ -225,12 +205,12 @@ public class SqlIdentifier extends SqlNode {
       return false;
     }
     SqlIdentifier that = (SqlIdentifier) node;
-    if (this.names.length != that.names.length) {
+    if (this.names.size() != that.names.size()) {
       assert !fail : this + "!=" + node;
       return false;
     }
-    for (int i = 0; i < names.length; i++) {
-      if (!this.names[i].equals(that.names[i])) {
+    for (int i = 0; i < names.size(); i++) {
+      if (!this.names.get(i).equals(that.names.get(i))) {
         assert !fail : this + "!=" + node;
         return false;
       }
@@ -247,15 +227,15 @@ public class SqlIdentifier extends SqlNode {
   }
 
   public String getSimple() {
-    assert (names.length == 1);
-    return names[0];
+    assert names.size() == 1;
+    return names.get(0);
   }
 
   /**
    * Returns whether this identifier is a star, such as "*" or "foo.bar.*".
    */
   public boolean isStar() {
-    return names[names.length - 1].equals("*");
+    return Util.last(names).equals("*");
   }
 
   /**
@@ -263,7 +243,7 @@ public class SqlIdentifier extends SqlNode {
    * "FOO.*" and "FOO.BAR" are not.
    */
   public boolean isSimple() {
-    return (names.length == 1) && !names[0].equals("*");
+    return (names.size() == 1) && !names.get(0).equals("*");
   }
 
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
@@ -279,14 +259,8 @@ public class SqlIdentifier extends SqlNode {
     }
     final SqlIdentifier fqId = scope.fullyQualify(this);
     final SqlValidatorNamespace ns =
-        SqlValidatorUtil.lookup(
-            scope,
-            Arrays.asList(fqId.names).subList(0, fqId.names.length - 1));
-    return ns.getMonotonicity(fqId.names[fqId.names.length - 1]);
-  }
-
-  public boolean equalsBaseName(String name) {
-    return names[names.length - 1].equals(name);
+        SqlValidatorUtil.lookup(scope, Util.butLast(fqId.names));
+    return ns.getMonotonicity(Util.last(fqId.names));
   }
 }
 

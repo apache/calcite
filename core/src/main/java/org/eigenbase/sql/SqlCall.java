@@ -154,10 +154,7 @@ public class SqlCall extends SqlNode {
         SqlParserPos idPos = id.getParserPosition();
         if (idPos.toString().equals(pos.toString())) {
           ((SqlValidatorImpl) validator).lookupNameCompletionHints(
-              scope,
-              Arrays.asList(id.names),
-              pos,
-              hintList);
+              scope, id.names, pos, hintList);
           return;
         }
       }
@@ -238,7 +235,7 @@ public class SqlCall extends SqlNode {
       final SqlNode parm = operands[0];
       if (parm instanceof SqlIdentifier) {
         SqlIdentifier id = (SqlIdentifier) parm;
-        if (id.isStar() && (id.names.length == 1)) {
+        if (id.isStar() && (id.names.size() == 1)) {
           return true;
         }
       }

@@ -682,18 +682,26 @@ public class Util {
    * @return String representation of string
    */
   public static <T> String commaList(List<T> list) {
-    if (list.size() == 1) {
+    return sepList(list, ", ");
+  }
+
+  /** Converts a list of a string, with a given separator between elements. */
+  public static <T> String sepList(List<T> list, String sep) {
+    final int max = list.size() - 1;
+    switch (max) {
+    case -1:
+      return "";
+    case 0:
       return list.get(0).toString();
     }
     final StringBuilder buf = new StringBuilder();
-    int k = -1;
-    for (T t : list) {
-      if (++k > 0) {
-        buf.append(", ");
+    for (int i = 0;; i++) {
+      buf.append(list.get(i));
+      if (i == max) {
+        return buf.toString();
       }
-      buf.append(t);
+      buf.append(sep);
     }
-    return buf.toString();
   }
 
   /**
@@ -737,8 +745,7 @@ public class Util {
    *                                                      virtual machine
    */
   public static Charset getDefaultCharset() {
-    return Charset.forName(
-        SaffronProperties.instance().defaultCharset.get());
+    return Charset.forName(SaffronProperties.instance().defaultCharset.get());
   }
 
   public static Error newInternal() {
@@ -1917,6 +1924,19 @@ public class Util {
 
   public static <T> T first(T t0, T t1) {
     return t0 != null ? t0 : t1;
+  }
+
+  /** Returns the last element of a list.
+   *
+   * @throws java.lang.IndexOutOfBoundsException if the list is empty
+   */
+  public static <E> E last(List<E> list) {
+    return list.get(list.size() - 1);
+  }
+
+  /** Returns every element of a list but its last element. */
+  public static <E> List<E> butLast(List<E> list) {
+    return list.subList(0, list.size() - 1);
   }
 
   public static List<Integer> range(final int start, final int end) {

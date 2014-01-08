@@ -136,15 +136,13 @@ class JdbcTable extends AbstractQueryableTable implements TranslatableTable {
       strings.add(jdbcSchema.schema);
     }
     strings.add(jdbcTableName);
-    return new SqlIdentifier(
-        strings.toArray(new String[strings.size()]),
-        SqlParserPos.ZERO);
+    return new SqlIdentifier(strings, SqlParserPos.ZERO);
   }
 
-  public RelNode toRel(
-      RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-    return new JdbcTableScan(
-        context.getCluster(), relOptTable, this, jdbcSchema.convention);
+  public RelNode toRel(RelOptTable.ToRelContext context,
+      RelOptTable relOptTable) {
+    return new JdbcTableScan(context.getCluster(), relOptTable, this,
+        jdbcSchema.convention);
   }
 
   public <T> Queryable<T> asQueryable(QueryProvider queryProvider,

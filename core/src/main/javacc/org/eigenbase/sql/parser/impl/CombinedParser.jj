@@ -36,6 +36,8 @@ import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.resource.*;
 
+import com.google.common.collect.ImmutableList;
+
 import java.math.*;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -1356,10 +1358,10 @@ SqlNode SelectExpression() :
     {
         starPos = getPos();
         return new SqlIdentifier(
-            new String[] {id, "*"},
+            ImmutableList.of(id, "*"),
             null,
             pos.plus(starPos),
-            new SqlParserPos[] {pos, starPos});
+            ImmutableList.of(pos, starPos));
     }
     |
     <STAR>
@@ -3271,8 +3273,8 @@ List SimpleIdentifierCommaList() :
  */
 SqlIdentifier CompoundIdentifier() :
 {
-    List list = new ArrayList();
-    List posList = new ArrayList();
+    List<String> list = new ArrayList<String>();
+    List<SqlParserPos> posList = new ArrayList<SqlParserPos>();
     String p;
 }
 {
@@ -3293,8 +3295,7 @@ SqlIdentifier CompoundIdentifier() :
             (SqlParserPos []) posList.toArray(
                 new SqlParserPos[posList.size()]);
         SqlParserPos pos = SqlParserPos.sum(componentPositions);
-        return new SqlIdentifier(
-            SqlParserUtil.toStringArray(list), null, pos, componentPositions);
+        return new SqlIdentifier(list, null, pos, posList);
     }
 }
 

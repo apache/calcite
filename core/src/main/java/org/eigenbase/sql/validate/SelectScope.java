@@ -132,7 +132,7 @@ public class SelectScope extends ListScope {
       SqlWindow window = (SqlWindow) windowList.get(i);
       final SqlIdentifier declId = window.getDeclName();
       assert declId.isSimple();
-      if (declId.names[0].equals(name)) {
+      if (declId.names.get(0).equals(name)) {
         return window;
       }
     }

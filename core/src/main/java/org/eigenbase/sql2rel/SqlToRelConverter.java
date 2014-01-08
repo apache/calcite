@@ -2348,9 +2348,9 @@ public class SqlToRelConverter {
         SqlIdentifier expr = (SqlIdentifier) expandedGroupExpr;
 
         // column references should be fully qualified.
-        assert (expr.names.length == 2);
-        String originalRelName = expr.names[0];
-        String originalFieldName = expr.names[1];
+        assert expr.names.size() == 2;
+        String originalRelName = expr.names.get(0);
+        String originalFieldName = expr.names.get(1);
 
         int[] nsIndexes = {-1};
         final SqlValidatorScope[] ancestorScopes = {null};
@@ -3142,9 +3142,9 @@ public class SqlToRelConverter {
     SqlValidatorNamespace namespace = null;
     if (bb.scope != null) {
       identifier = bb.scope.fullyQualify(identifier);
-      namespace = bb.scope.resolve(identifier.names[0], null, null);
+      namespace = bb.scope.resolve(identifier.names.get(0), null, null);
     }
-    RexNode e = bb.lookupExp(identifier.names[0]);
+    RexNode e = bb.lookupExp(identifier.names.get(0));
     final String correlationName;
     if (e instanceof RexCorrelVariable) {
       correlationName = ((RexCorrelVariable) e).getName();
@@ -3152,8 +3152,8 @@ public class SqlToRelConverter {
       correlationName = null;
     }
 
-    for (int i = 1; i < identifier.names.length; i++) {
-      String name = identifier.names[i];
+    for (int i = 1; i < identifier.names.size(); i++) {
+      String name = identifier.names.get(i);
       if (namespace != null) {
         name = namespace.translate(name);
         namespace = null;

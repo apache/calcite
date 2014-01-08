@@ -452,7 +452,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       OptiqCatalogReader catalogReader =
           new OptiqCatalogReader(
               schema.root(),
-              butLast(materialization.materializedTable.path()),
+              Util.butLast(materialization.materializedTable.path()),
               context.getTypeFactory());
       final OptiqMaterializer materializer =
           new OptiqMaterializer(context, catalogReader, schema, planner);
@@ -461,10 +461,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       throw new RuntimeException("While populating materialization "
           + materialization.materializedTable.path(), e);
     }
-  }
-
-  private static <E> List<E> butLast(List<E> list) {
-    return list.subList(0, list.size() - 1);
   }
 
   private static RelDataType makeStruct(
@@ -1042,7 +1038,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         return Collections.emptyList();
       }
       // FIXME: ignoring prefix of opName
-      String name = opName.names[opName.names.length - 1];
+      String name = Util.last(opName.names);
       Collection<TableFunction> tableFunctions =
           rootSchema.compositeTableFunctionMap.get(name);
       if (tableFunctions.isEmpty()) {

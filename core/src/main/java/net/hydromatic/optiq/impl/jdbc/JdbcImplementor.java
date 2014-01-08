@@ -193,7 +193,7 @@ public class JdbcImplementor {
       if (nodeList.size() == 2) {
         return op.createCall(new SqlNodeList(nodeList, POS));
       }
-      final List<SqlNode> butLast = nodeList.subList(0, nodeList.size() - 1);
+      final List<SqlNode> butLast = Util.butLast(nodeList);
       final SqlNode last = nodeList.get(nodeList.size() - 1);
       final SqlNode call = createLeftCall(op, butLast);
       return op.createCall(new SqlNodeList(ImmutableList.of(call, last), POS));
@@ -307,8 +307,8 @@ public class JdbcImplementor {
         if (ordinal < fields.size()) {
           RelDataTypeField field = fields.get(ordinal);
           return new SqlIdentifier(!qualified
-              ? new String[] {field.getName()}
-              : new String[] {alias.left, field.getName()},
+              ? ImmutableList.of(field.getName())
+              : ImmutableList.of(alias.left, field.getName()),
               POS);
         }
         ordinal -= fields.size();

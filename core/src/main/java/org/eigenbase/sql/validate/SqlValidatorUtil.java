@@ -56,8 +56,7 @@ public class SqlValidatorUtil {
     if (namespace.isWrapperFor(IdentifierNamespace.class)) {
       IdentifierNamespace identifierNamespace =
           namespace.unwrap(IdentifierNamespace.class);
-      final List<String> names =
-          Arrays.asList(identifierNamespace.getId().names);
+      final List<String> names = identifierNamespace.getId().names;
       if ((datasetName != null)
           && (catalogReader instanceof RelOptSchemaWithSampling)) {
         return ((RelOptSchemaWithSampling) catalogReader)
@@ -86,8 +85,7 @@ public class SqlValidatorUtil {
       final RelDataType rowType,
       String columnName) {
     final List<RelDataTypeField> fields = rowType.getFieldList();
-    for (int i = 0; i < fields.size(); i++) {
-      RelDataTypeField field = fields.get(i);
+    for (RelDataTypeField field : fields) {
       if (field.getName().equals(columnName)) {
         return field.getType();
       }
@@ -111,9 +109,7 @@ public class SqlValidatorUtil {
   public static RelDataTypeField lookupField(
       final RelDataType rowType,
       String columnName) {
-    final List<RelDataTypeField> fields = rowType.getFieldList();
-    for (int i = 0; i < fields.size(); i++) {
-      RelDataTypeField field = fields.get(i);
+    for (RelDataTypeField field : rowType.getFieldList()) {
       if (field.getName().equals(columnName)) {
         return field;
       }
@@ -161,22 +157,6 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Derives an alias for a node. If it cannot derive an alias, returns null.
-   *
-   * <p>This method doesn't try very hard. It doesn't invent mangled aliases,
-   * and doesn't even recognize an AS clause. (See {@link #getAlias(SqlNode,
-   * int)} for that.) It just takes the last part of an identifier.
-   */
-  public static String getAlias(SqlNode node) {
-    if (node instanceof SqlIdentifier) {
-      String[] names = ((SqlIdentifier) node).names;
-      return names[names.length - 1];
-    } else {
-      return null;
-    }
-  }
-
-  /**
    * Derives an alias for a node, and invents a mangled identifier if it
    * cannot.
    *
@@ -203,8 +183,7 @@ public class SqlValidatorUtil {
 
     case IDENTIFIER:
       // E.g. "foo.bar" --> "bar"
-      final String[] names = ((SqlIdentifier) node).names;
-      return names[names.length - 1];
+      return Util.last(((SqlIdentifier) node).names);
 
     default:
       if (ordinal < 0) {

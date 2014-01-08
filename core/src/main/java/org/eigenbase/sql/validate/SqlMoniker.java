@@ -17,6 +17,8 @@
 */
 package org.eigenbase.sql.validate;
 
+import java.util.List;
+
 import org.eigenbase.sql.*;
 
 /**
@@ -33,7 +35,7 @@ public interface SqlMoniker {
   /**
    * Returns the array of component names.
    */
-  String[] getFullyQualifiedNames();
+  List<String> getFullyQualifiedNames();
 
   /**
    * Creates a {@link SqlIdentifier} containing the fully-qualified name.

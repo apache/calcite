@@ -22,7 +22,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.util.JsonBuilder;
 import org.eigenbase.util.Pair;
-import org.eigenbase.util.Util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -82,7 +81,7 @@ public class MongoFilterRel
     }
 
     private Object translateOr(RexNode condition) {
-      List list = new ArrayList();
+      List<Object> list = new ArrayList<Object>();
       for (RexNode node : RelOptUtil.disjunctions(condition)) {
         list.add(translateAnd(node));
       }
@@ -170,10 +169,6 @@ public class MongoFilterRel
         multimap.put(name, Pair.of(op, right));
       }
     }
-  }
-
-  private static String list(String start, String end, List list) {
-    return start + Util.commaList(list) + end;
   }
 }
 

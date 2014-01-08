@@ -22,6 +22,7 @@ import org.eigenbase.resource.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
+import org.eigenbase.util.Util;
 
 /**
  * A <code>SqlFunction</code> is a type of operator which has conventional
@@ -94,8 +95,7 @@ public class SqlFunction extends SqlOperator {
       SqlOperandTypeChecker operandTypeChecker,
       RelDataType[] paramTypes,
       SqlFunctionCategory funcType) {
-    super(
-        sqlIdentifier.names[sqlIdentifier.names.length - 1],
+    super(Util.last(sqlIdentifier.names),
         SqlKind.OTHER_FUNCTION,
         100,
         100,
