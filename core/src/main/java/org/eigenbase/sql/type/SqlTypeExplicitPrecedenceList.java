@@ -20,11 +20,14 @@ package org.eigenbase.sql.type;
 import java.util.*;
 
 import org.eigenbase.reltype.*;
+import org.eigenbase.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 /**
- * SqlTypeExplicitPrecedenceList implements the {@link
- * RelDataTypePrecedenceList} interface via an explicit list of SqlTypeName
- * entries.
+ * SqlTypeExplicitPrecedenceList implements the
+ * {@link RelDataTypePrecedenceList} interface via an explicit list of
+ * {@link SqlTypeName} entries.
  */
 public class SqlTypeExplicitPrecedenceList
     implements RelDataTypePrecedenceList {
@@ -61,7 +64,7 @@ public class SqlTypeExplicitPrecedenceList
         new HashMap<SqlTypeName, SqlTypeExplicitPrecedenceList>();
     addList(
         SqlTypeName.BOOLEAN,
-        new SqlTypeName[]{SqlTypeName.BOOLEAN});
+        ImmutableList.of(SqlTypeName.BOOLEAN));
     addNumericList(
         SqlTypeName.TINYINT,
         numericList);
@@ -88,31 +91,31 @@ public class SqlTypeExplicitPrecedenceList
         numericList);
     addList(
         SqlTypeName.CHAR,
-        new SqlTypeName[]{SqlTypeName.CHAR, SqlTypeName.VARCHAR});
+        ImmutableList.of(SqlTypeName.CHAR, SqlTypeName.VARCHAR));
     addList(
         SqlTypeName.VARCHAR,
-        new SqlTypeName[]{SqlTypeName.VARCHAR});
+        ImmutableList.of(SqlTypeName.VARCHAR));
     addList(
         SqlTypeName.BINARY,
-        new SqlTypeName[]{SqlTypeName.BINARY, SqlTypeName.VARBINARY});
+        ImmutableList.of(SqlTypeName.BINARY, SqlTypeName.VARBINARY));
     addList(
         SqlTypeName.VARBINARY,
-        new SqlTypeName[]{SqlTypeName.VARBINARY});
+        ImmutableList.of(SqlTypeName.VARBINARY));
     addList(
         SqlTypeName.DATE,
-        new SqlTypeName[]{SqlTypeName.DATE});
+        ImmutableList.of(SqlTypeName.DATE));
     addList(
         SqlTypeName.TIME,
-        new SqlTypeName[]{SqlTypeName.TIME});
+        ImmutableList.of(SqlTypeName.TIME));
     addList(
         SqlTypeName.TIMESTAMP,
-        new SqlTypeName[]{SqlTypeName.TIMESTAMP});
+        ImmutableList.of(SqlTypeName.TIMESTAMP));
     addList(
         SqlTypeName.INTERVAL_YEAR_MONTH,
-        new SqlTypeName[]{SqlTypeName.INTERVAL_YEAR_MONTH});
+        ImmutableList.of(SqlTypeName.INTERVAL_YEAR_MONTH));
     addList(
         SqlTypeName.INTERVAL_DAY_TIME,
-        new SqlTypeName[]{SqlTypeName.INTERVAL_DAY_TIME});
+        ImmutableList.of(SqlTypeName.INTERVAL_DAY_TIME));
   }
 
   //~ Instance fields --------------------------------------------------------
@@ -121,15 +124,15 @@ public class SqlTypeExplicitPrecedenceList
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlTypeExplicitPrecedenceList(SqlTypeName[] typeNames) {
-    this.typeNames = Arrays.asList(typeNames);
+  public SqlTypeExplicitPrecedenceList(List<SqlTypeName> typeNames) {
+    this.typeNames = ImmutableList.copyOf(typeNames);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   private static void addList(
       SqlTypeName typeName,
-      SqlTypeName[] array) {
+      List<SqlTypeName> array) {
     typeNameToPrecedenceList.put(
         typeName,
         new SqlTypeExplicitPrecedenceList(array));
@@ -139,9 +142,7 @@ public class SqlTypeExplicitPrecedenceList
       SqlTypeName typeName,
       List<SqlTypeName> numericList) {
     int i = getListPosition(typeName, numericList);
-    List<SqlTypeName> subList = numericList.subList(i, numericList.size());
-    SqlTypeName[] array = subList.toArray(new SqlTypeName[subList.size()]);
-    addList(typeName, array);
+    addList(typeName, Util.skip(numericList, i));
   }
 
   // implement RelDataTypePrecedenceList

@@ -294,7 +294,7 @@ public class SqlValidatorUtil {
       List<String> names,
       List<SqlMoniker> hints) {
     // Assume that the last name is 'dummy' or similar.
-    List<String> subNames = names.subList(0, names.size() - 1);
+    List<String> subNames = Util.skipLast(names);
     hints.addAll(catalogReader.getAllSchemaObjectNames(subNames));
 
     // If the name has length 0, try prepending the name of the default

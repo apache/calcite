@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
+import org.eigenbase.util.Util;
 
 /**
  * CombineUnionsRule implements the rule for combining two non-distinct {@link
@@ -78,9 +79,7 @@ public class CombineUnionsRule extends RelOptRule {
       unionInputs.addAll(bottomUnionRel.getInputs());
     } else {
       unionInputs.addAll(bottomUnionRel.getInputs());
-      unionInputs.addAll(
-          topUnionRel.getInputs().subList(
-              1, topUnionRel.getInputs().size()));
+      unionInputs.addAll(Util.skip(topUnionRel.getInputs()));
     }
     assert unionInputs.size()
         == bottomUnionRel.getInputs().size()

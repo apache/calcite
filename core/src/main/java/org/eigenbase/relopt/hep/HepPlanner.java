@@ -394,31 +394,29 @@ public class HepPlanner extends AbstractRelOptPlanner {
     collectGarbage();
 
     if (currentProgram.matchOrder == HepMatchOrder.ARBITRARY) {
-      return new DepthFirstIterator<HepRelVertex, DefaultEdge>(
-          graph,
-          start);
+      return DepthFirstIterator.of(graph, start).iterator();
     }
 
-    assert (start == root);
+    assert start == root;
 
     // see above
 /*
         collectGarbage();
 */
 
-    Iterator<HepRelVertex> iter =
-        new TopologicalOrderIterator<HepRelVertex, DefaultEdge>(graph);
+    Iterable<HepRelVertex> iter =
+        TopologicalOrderIterator.of(graph);
 
     if (currentProgram.matchOrder == HepMatchOrder.TOP_DOWN) {
-      return iter;
+      return iter.iterator();
     }
 
     // TODO jvs 4-Apr-2006:  enhance TopologicalOrderIterator
     // to support reverse walk.
-    assert (currentProgram.matchOrder == HepMatchOrder.BOTTOM_UP);
-    ArrayList<HepRelVertex> list = new ArrayList<HepRelVertex>();
-    while (iter.hasNext()) {
-      list.add(iter.next());
+    assert currentProgram.matchOrder == HepMatchOrder.BOTTOM_UP;
+    final List<HepRelVertex> list = new ArrayList<HepRelVertex>();
+    for (HepRelVertex vertex : iter) {
+      list.add(vertex);
     }
     Collections.reverse(list);
     return list.iterator();

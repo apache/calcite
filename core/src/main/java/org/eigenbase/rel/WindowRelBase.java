@@ -224,8 +224,7 @@ public abstract class WindowRelBase extends SingleRel {
      */
     public List<AggregateCall> getAggregateCalls(WindowRelBase windowRel) {
       final List<String> fieldNames =
-          Util.subList(
-              windowRel.getRowType().getFieldNames(),
+          Util.skip(windowRel.getRowType().getFieldNames(),
               windowRel.getChild().getRowType().getFieldCount());
       return new AbstractList<AggregateCall>() {
         public int size() {

@@ -27,6 +27,7 @@ import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.*;
 import org.eigenbase.util.Stacks;
+import org.eigenbase.util.Util;
 
 /**
  * Collection of planner rules that apply various simplifying transformations on
@@ -551,10 +552,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
       // look for NON_CONSTANT operands
       int operandCount = call.getOperands().size();
-      List<Constancy> operandStack =
-          stack.subList(
-              stack.size() - operandCount,
-              stack.size());
+      List<Constancy> operandStack = Util.last(stack, operandCount);
       for (Constancy operandConstancy : operandStack) {
         if (operandConstancy == Constancy.NON_CONSTANT) {
           callConstancy = Constancy.NON_CONSTANT;
@@ -658,7 +656,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     }
   }
 
-  interface Executor {
+  public interface Executor {
     /**
      * Reduces expressions. Returns whether failed.
      */

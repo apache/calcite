@@ -3105,7 +3105,7 @@ public class SqlToRelConverter {
     if (updateCall != null) {
       final ProjectRel project = (ProjectRel) mergeSourceRel;
       projects.addAll(
-          Util.subList(project.getProjects(), nSourceFields));
+          Util.skip(project.getProjects(), nSourceFields));
     }
 
     RelNode massagedRel =

@@ -193,7 +193,7 @@ public class JdbcImplementor {
       if (nodeList.size() == 2) {
         return op.createCall(new SqlNodeList(nodeList, POS));
       }
-      final List<SqlNode> butLast = Util.butLast(nodeList);
+      final List<SqlNode> butLast = Util.skipLast(nodeList);
       final SqlNode last = nodeList.get(nodeList.size() - 1);
       final SqlNode call = createLeftCall(op, butLast);
       return op.createCall(new SqlNodeList(ImmutableList.of(call, last), POS));

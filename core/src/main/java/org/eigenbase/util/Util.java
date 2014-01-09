@@ -187,13 +187,6 @@ public class Util {
   }
 
   /**
-   * Returns a sub-list from a given position to the end.
-   */
-  public static <E> List<E> subList(List<E> list, int fromIndex) {
-    return list.subList(fromIndex, list.size());
-  }
-
-  /**
    * Returns whether two lists are equal to each other using shallow
    * comparisons.
    *
@@ -1935,8 +1928,28 @@ public class Util {
   }
 
   /** Returns every element of a list but its last element. */
-  public static <E> List<E> butLast(List<E> list) {
-    return list.subList(0, list.size() - 1);
+  public static <E> List<E> skipLast(List<E> list) {
+    return skipLast(list, 1);
+  }
+
+  /** Returns every element of a list but its last {@code n} elements. */
+  public static <E> List<E> skipLast(List<E> list, int n) {
+    return list.subList(0, list.size() - n);
+  }
+
+  /** Returns the last {@code n} elements of a list. */
+  public static <E> List<E> last(List<E> list, int n) {
+    return list.subList(list.size() - n, list.size());
+  }
+
+  /** Returns all but the first element of a list. */
+  public static <E> List<E> skip(List<E> list) {
+    return skip(list, 1);
+  }
+
+  /** Returns all but the first {@code n} elements of a list. */
+  public static <E> List<E> skip(List<E> list, int fromIndex) {
+    return list.subList(fromIndex, list.size());
   }
 
   public static List<Integer> range(final int start, final int end) {

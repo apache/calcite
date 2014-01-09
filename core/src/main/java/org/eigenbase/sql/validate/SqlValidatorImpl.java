@@ -573,7 +573,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlParserPos pos,
       List<SqlMoniker> hintList) {
     // Remove the last part of name - it is a dummy
-    List<String> subNames = names.subList(0, names.size() - 1);
+    List<String> subNames = Util.skipLast(names);
 
     if (subNames.size() > 0) {
       // If there's a prefix, resolve it to a namespace.

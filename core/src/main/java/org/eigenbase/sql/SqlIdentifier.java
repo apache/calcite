@@ -259,7 +259,7 @@ public class SqlIdentifier extends SqlNode {
     }
     final SqlIdentifier fqId = scope.fullyQualify(this);
     final SqlValidatorNamespace ns =
-        SqlValidatorUtil.lookup(scope, Util.butLast(fqId.names));
+        SqlValidatorUtil.lookup(scope, Util.skipLast(fqId.names));
     return ns.getMonotonicity(Util.last(fqId.names));
   }
 }

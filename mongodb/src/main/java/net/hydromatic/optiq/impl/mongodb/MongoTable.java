@@ -30,6 +30,7 @@ import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -124,7 +125,7 @@ public class MongoTable extends AbstractQueryableTable
       list.add((DBObject) JSON.parse(operation));
     }
     final DBObject first = list.get(0);
-    final List<DBObject> rest = list.subList(1, list.size());
+    final List<DBObject> rest = Util.skip(list);
     final Function1<DBObject, Object> getter = MongoEnumerator.getter(fields);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {

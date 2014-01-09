@@ -452,7 +452,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       OptiqCatalogReader catalogReader =
           new OptiqCatalogReader(
               schema.root(),
-              Util.butLast(materialization.materializedTable.path()),
+              Util.skipLast(materialization.materializedTable.path()),
               context.getTypeFactory());
       final OptiqMaterializer materializer =
           new OptiqMaterializer(context, catalogReader, schema, planner);
