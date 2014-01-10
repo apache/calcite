@@ -295,7 +295,7 @@ public class ReflectiveSchemaTest {
         : fn.equals("avg") ? EveryType.numericFields() : EveryType.fields()) {
       with.query(
           "select " + fn + "(\"" + field.getName() + "\") as c\n"
-              + "from \"s\".\"everyTypes\"")
+          + "from \"s\".\"everyTypes\"")
           .returns(Functions.<ResultSet, Void>constantNull());
     }
   }

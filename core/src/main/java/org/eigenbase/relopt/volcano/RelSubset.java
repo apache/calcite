@@ -422,7 +422,7 @@ public class RelSubset extends AbstractRelNode {
           final PrintWriter pw = new PrintWriter(sw);
           pw.println(
               "Node [" + subset.getDescription()
-                  + "] could not be implemented; planner state:\n");
+              + "] could not be implemented; planner state:\n");
           planner.dump(pw);
           pw.flush();
           final String dump = sw.toString();

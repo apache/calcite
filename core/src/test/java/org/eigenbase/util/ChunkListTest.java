@@ -313,7 +313,7 @@ public class ChunkListTest {
         }
         new Benchmark(
             "get from " + size.right + " values, " + (size.left / 1000)
-                + " times, " + pair.right,
+            + " times, " + pair.right,
             new Function1<Benchmark.Statistician, Void>() {
               public Void apply(Benchmark.Statistician statistician) {
                 final List<Integer> list = pair.left.apply();

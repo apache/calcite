@@ -5089,8 +5089,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // select 'bb' as x1, 'bb' as x2, ... from dept)"
     check(
         "select " + list(", ", "x", x)
-            + " from (select " + list(", ", "'a' as x", x) + " from emp "
-            + "union all select " + list(", ", "'bb' as x", x) + " from dept)");
+        + " from (select " + list(", ", "'a' as x", x) + " from emp "
+        + "union all select " + list(", ", "'bb' as x", x) + " from dept)");
   }
 
   private String list(String sep, String before, int count) {

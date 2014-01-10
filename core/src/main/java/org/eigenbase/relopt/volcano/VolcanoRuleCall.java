@@ -81,7 +81,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
     if (tracer.isLoggable(Level.FINE)) {
       tracer.fine(
           "Transform to: rel#" + rel.getId() + " via " + getRule()
-              + (equiv.isEmpty() ? "" : " with equivalences " + equiv));
+          + (equiv.isEmpty() ? "" : " with equivalences " + equiv));
       if (generatedRelList != null) {
         generatedRelList.add(rel);
       }
@@ -157,7 +157,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         if (tracer.isLoggable(Level.FINE)) {
           tracer.fine(
               "Rule [" + getRule() + "] not fired"
-                  + " due to exclusion filter");
+              + " due to exclusion filter");
         }
         return;
       }
@@ -170,8 +170,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           if (tracer.isLoggable(Level.FINE)) {
             tracer.fine(
                 "Rule [" + getRule() + "] not fired because"
-                    + " operand #" + i + " (" + rel
-                    + ") has no subset");
+                + " operand #" + i + " (" + rel
+                + ") has no subset");
           }
           return;
         }
@@ -180,8 +180,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           if (tracer.isLoggable(Level.FINE)) {
             tracer.fine(
                 "Rule [" + getRule() + "] not fired because"
-                    + " operand #" + i + " (" + rel
-                    + ") belongs to obsolete set");
+                + " operand #" + i + " (" + rel
+                + ") belongs to obsolete set");
           }
           return;
         }
@@ -192,8 +192,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           if (tracer.isLoggable(Level.FINE)) {
             tracer.fine(
                 "Rule [" + getRule() + "] not fired because"
-                    + " operand #" + i + " (" + rel
-                    + ") has importance=0");
+                + " operand #" + i + " (" + rel
+                + ") has importance=0");
           }
           return;
         }
@@ -228,7 +228,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         } else {
           tracer.fine(
               "call#" + id + " generated " + generatedRelList.size()
-                  + " successors: " + generatedRelList);
+              + " successors: " + generatedRelList);
         }
         this.generatedRelList = null;
       }

@@ -119,8 +119,8 @@ public abstract class AbstractRelNode implements RelNode {
     }
     throw new AssertionError(
         "Relational expression should override copy. Class=[" + getClass()
-            + "]; traits=[" + getTraitSet() + "]; desired traits=[" + traitSet
-            + "]");
+        + "]; traits=[" + getTraitSet() + "]; desired traits=[" + traitSet
+        + "]");
   }
 
   protected static <T> T sole(List<T> collection) {

@@ -382,7 +382,7 @@ public class SubstitutionVisitor {
       if (DEBUG) {
         System.out.println(
             "Convert: query=" + RelOptUtil.toString(query)
-                + "\nnode=" + RelOptUtil.toString(node));
+            + "\nnode=" + RelOptUtil.toString(node));
       }
       return node;
     }

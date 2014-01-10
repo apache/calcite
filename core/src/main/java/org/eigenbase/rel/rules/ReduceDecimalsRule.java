@@ -750,7 +750,7 @@ public class ReduceDecimalsRule extends RelOptRule {
           || !SqlTypeUtil.isExactNumeric(toType)) {
         throw Util.needToImplement(
             "Cast from '" + fromType.toString()
-                + "' to '" + toType.toString() + "'");
+            + "' to '" + toType.toString() + "'");
       }
       int fromScale = fromType.getScale();
       int toScale = toType.getScale();

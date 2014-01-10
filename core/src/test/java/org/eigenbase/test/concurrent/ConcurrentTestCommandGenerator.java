@@ -1027,7 +1027,7 @@ public class ConcurrentTestCommandGenerator {
       if (expected.size() != result.size()) {
         dumpData(
             "Expected " + expected.size() + " rows, got "
-                + result.size());
+            + result.size());
       }
 
       Iterator<List<Object>> expectedIter = expected.iterator();
@@ -1052,7 +1052,7 @@ public class ConcurrentTestCommandGenerator {
       if (expectedRow.size() != resultRow.size()) {
         dumpData(
             "Row " + rowNum + " Expected " + expected.size()
-                + " columns, got " + result.size());
+            + " columns, got " + result.size());
       }
 
       Iterator expectedIter = expectedRow.iterator();

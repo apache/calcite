@@ -413,7 +413,7 @@ class RuleQueue {
     for (RelSubset subset : subsets) {
       pw.print(
           " " + subset.toString() + "="
-              + subsetImportances.get(subset));
+          + subsetImportances.get(subset));
     }
     pw.println("}");
   }

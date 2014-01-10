@@ -736,7 +736,7 @@ public class DiffRepository {
     default:
       throw new RuntimeException(
           "unexpected node type: " + node.getNodeType()
-              + " (" + node + ")");
+          + " (" + node + ")");
     }
   }
 
