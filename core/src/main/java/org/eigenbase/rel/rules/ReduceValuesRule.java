@@ -46,7 +46,7 @@ public abstract class ReduceValuesRule extends RelOptRule {
   private static final Logger tracer = EigenbaseTrace.getPlannerTracer();
 
   /**
-   * Singleton instance of this rule that applies to the pattern
+   * Instance of this rule that applies to the pattern
    * Filter(Values).
    */
   public static final ReduceValuesRule FILTER_INSTANCE =
@@ -62,7 +62,7 @@ public abstract class ReduceValuesRule extends RelOptRule {
       };
 
   /**
-   * Singleton instance of this rule that applies to the pattern
+   * Instance of this rule that applies to the pattern
    * Project(Values).
    */
   public static final ReduceValuesRule PROJECT_INSTANCE =

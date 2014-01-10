@@ -343,7 +343,6 @@ public class RexToLixTranslator {
       RelDataType type,
       JavaTypeFactory typeFactory,
       RexImpTable.NullAs nullAs) {
-    Type javaClass = typeFactory.getJavaClass(type);
     final RexLiteral literal = (RexLiteral) expr;
     Comparable value = literal.getValue();
     if (value == null) {
@@ -356,6 +355,8 @@ public class RexToLixTranslator {
         return RexImpTable.FALSE_EXPR;
       case NOT_POSSIBLE:
         throw new AlwaysNull();
+      case NULL:
+        return RexImpTable.NULL_EXPR;
       }
     } else {
       switch (nullAs) {
@@ -365,6 +366,7 @@ public class RexToLixTranslator {
         return RexImpTable.FALSE_EXPR;
       }
     }
+    Type javaClass = typeFactory.getJavaClass(type);
     final Object value2;
     switch (literal.getType().getSqlTypeName()) {
     case DECIMAL:

@@ -1,11 +1,11 @@
 <?xml version="1.0" ?>
 <Root>
-  <TestCase name="testUnionToDistinctRule">
-    <Resource name="sql">
-      <![CDATA[select * from dept union select * from dept]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
+    <TestCase name="testUnionToDistinctRule">
+        <Resource name="sql">
+            <![CDATA[select * from dept union select * from dept]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
 AggregateRel(group=[{0, 1}])
   UnionRel(all=[true])
     ProjectRel(DEPTNO=[$0], NAME=[$1])
@@ -13,53 +13,53 @@ AggregateRel(group=[{0, 1}])
     ProjectRel(DEPTNO=[$0], NAME=[$1])
       TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
 UnionRel(all=[false])
   ProjectRel(DEPTNO=[$0], NAME=[$1])
     TableAccessRel(table=[[CATALOG, SALES, DEPT]])
   ProjectRel(DEPTNO=[$0], NAME=[$1])
     TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testExtractJoinFilterRule">
-    <Resource name="sql">
-      <![CDATA[select 1 from emp inner join dept on emp.deptno=dept.deptno]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
+        </Resource>
+    </TestCase>
+    <TestCase name="testExtractJoinFilterRule">
+        <Resource name="sql">
+            <![CDATA[select 1 from emp inner join dept on emp.deptno=dept.deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
 ProjectRel(EXPR$0=[1])
   JoinRel(condition=[=($7, $9)], joinType=[inner])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
     TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
 ProjectRel(EXPR$0=[1])
   FilterRel(condition=[=($7, $9)])
     JoinRel(condition=[true], joinType=[inner])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
       TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testAddRedundantSemiJoinRule">
-    <Resource name="sql">
-      <![CDATA[select 1 from emp inner join dept on emp.deptno = dept.deptno]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
+        </Resource>
+    </TestCase>
+    <TestCase name="testAddRedundantSemiJoinRule">
+        <Resource name="sql">
+            <![CDATA[select 1 from emp inner join dept on emp.deptno = dept.deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
 ProjectRel(EXPR$0=[1])
   JoinRel(condition=[=($7, $9)], joinType=[inner])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
     TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
 ProjectRel(EXPR$0=[1])
   JoinRel(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
     SemiJoinRel(condition=[=($7, $9)], joinType=[inner])
@@ -67,85 +67,85 @@ ProjectRel(EXPR$0=[1])
       TableAccessRel(table=[[CATALOG, SALES, DEPT]])
     TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testPushFilterThroughOuterJoin">
-    <Resource name="sql">
-      <![CDATA[select 1 from sales.dept d left outer join sales.emp e on d.deptno = e.deptno where d.name = 'Charlie']]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushFilterThroughOuterJoin">
+        <Resource name="sql">
+            <![CDATA[select 1 from sales.dept d left outer join sales.emp e on d.deptno = e.deptno where d.name = 'Charlie']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
 ProjectRel(EXPR$0=[1])
   FilterRel(condition=[=($1, 'Charlie')])
     JoinRel(condition=[=($0, $9)], joinType=[left])
       TableAccessRel(table=[[CATALOG, SALES, DEPT]])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
 ProjectRel(EXPR$0=[1])
   JoinRel(condition=[=($0, $9)], joinType=[left])
     FilterRel(condition=[=($1, 'Charlie')])
       TableAccessRel(table=[[CATALOG, SALES, DEPT]])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testReduceAverage">
-    <Resource name="sql">
-      <![CDATA[select name, max(name), avg(deptno), min(name) from sales.dept group by name]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceAverage">
+        <Resource name="sql">
+            <![CDATA[select name, max(name), avg(deptno), min(name) from sales.dept group by name]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
 AggregateRel(group=[{0}], EXPR$1=[MAX($0)], EXPR$2=[AVG($1)], EXPR$3=[MIN($0)])
   ProjectRel(NAME=[$1], DEPTNO=[$0])
     TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
 ProjectRel(NAME=[$0], EXPR$1=[$1], EXPR$2=[CAST(/($2, $3)):INTEGER NOT NULL], EXPR$3=[$4])
   AggregateRel(group=[{0}], EXPR$1=[MAX($0)], agg#1=[SUM($1)], agg#2=[COUNT($1)], EXPR$3=[MIN($0)])
     ProjectRel(NAME=[$1], DEPTNO=[$0])
       TableAccessRel(table=[[CATALOG, SALES, DEPT]])
 ]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testPushProjectPastFilter">
-    <Resource name="sql">
-      <![CDATA[select empno + deptno from emp where sal = 10 * comm and upper(ename) = 'FOO']]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushProjectPastFilter">
+        <Resource name="sql">
+            <![CDATA[select empno + deptno from emp where sal = 10 * comm and upper(ename) = 'FOO']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
 ProjectRel(EXPR$0=[+($0, $7)])
   FilterRel(condition=[AND(=($5, *(10, $6)), =(UPPER($1), 'FOO'))])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
 ProjectRel(EXPR$0=[+($0, $4)])
   FilterRel(condition=[AND(=($2, *(10, $3)), =(UPPER($1), 'FOO'))])
     ProjectRel(EMPNO=[$0], ENAME=[$1], SAL=[$5], COMM=[$6], DEPTNO=[$7])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testPushProjectPastJoin">
-    <Resource name="sql">
-      <![CDATA[select e.sal + b.comm from emp e inner join bonus b on e.ename = b.ename and e.deptno = 10]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushProjectPastJoin">
+        <Resource name="sql">
+            <![CDATA[select e.sal + b.comm from emp e inner join bonus b on e.ename = b.ename and e.deptno = 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
 ProjectRel(EXPR$0=[+($5, $12)])
   JoinRel(condition=[AND(=($1, $9), =($7, 10))], joinType=[inner])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
     TableAccessRel(table=[[CATALOG, SALES, BONUS]])
 ]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
 ProjectRel(EXPR$0=[+($1, $4)])
   JoinRel(condition=[AND(=($0, $3), =($2, 10))], joinType=[inner])
     ProjectRel(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
@@ -153,14 +153,14 @@ ProjectRel(EXPR$0=[+($1, $4)])
     ProjectRel(ENAME=[$0], COMM=[$3])
       TableAccessRel(table=[[CATALOG, SALES, BONUS]])
 ]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testPushProjectPastSetOp">
-    <Resource name="sql">
-      <![CDATA[select sal from (select * from emp e1 union all select * from emp e2)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushProjectPastSetOp">
+        <Resource name="sql">
+            <![CDATA[select sal from (select * from emp e1 union all select * from emp e2)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
 ProjectRel(SAL=[$5])
   UnionRel(all=[true])
     ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -168,9 +168,9 @@ ProjectRel(SAL=[$5])
     ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
 UnionRel(all=[true])
   ProjectRel(SAL=[$0])
     ProjectRel(SAL=[$5])
@@ -181,14 +181,14 @@ UnionRel(all=[true])
       ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testPushJoinThroughUnionOnLeft">
-    <Resource name="sql">
-      <![CDATA[select r1.sal from (select * from emp e1 union all select * from emp e2) r1, emp r2]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushJoinThroughUnionOnLeft">
+        <Resource name="sql">
+            <![CDATA[select r1.sal from (select * from emp e1 union all select * from emp e2) r1, emp r2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
 ProjectRel(SAL=[$5])
   JoinRel(condition=[true], joinType=[inner])
     UnionRel(all=[true])
@@ -198,9 +198,9 @@ ProjectRel(SAL=[$5])
         TableAccessRel(table=[[CATALOG, SALES, EMP]])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
 ProjectRel(SAL=[$5])
   UnionRel(all=[true])
     JoinRel(condition=[true], joinType=[inner])
@@ -212,14 +212,14 @@ ProjectRel(SAL=[$5])
         TableAccessRel(table=[[CATALOG, SALES, EMP]])
       TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testPushJoinThroughUnionOnRight">
-    <Resource name="sql">
-      <![CDATA[select r1.sal from emp r1, (select * from emp e1 union all select * from emp e2) r2]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushJoinThroughUnionOnRight">
+        <Resource name="sql">
+            <![CDATA[select r1.sal from emp r1, (select * from emp e1 union all select * from emp e2) r2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
 ProjectRel(SAL=[$5])
   JoinRel(condition=[true], joinType=[inner])
     TableAccessRel(table=[[CATALOG, SALES, EMP]])
@@ -229,9 +229,9 @@ ProjectRel(SAL=[$5])
       ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
 ProjectRel(SAL=[$5])
   UnionRel(all=[true])
     JoinRel(condition=[true], joinType=[inner])
@@ -243,6 +243,300 @@ ProjectRel(SAL=[$5])
       ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         TableAccessRel(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-  </TestCase>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstants">
+        <Resource name="sql">
+            <![CDATA[select 1+2, d.deptno+(3+4), (5+6)+d.deptno, cast(null as integer), coalesce(2,null), row(7+8) from dept d inner join emp e on d.deptno = e.deptno + (5-5) where d.deptno=(7+8) and d.deptno=coalesce(2,null)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[+(1, 2)], EXPR$1=[+($0, +(3, 4))], EXPR$2=[+(+(5, 6), $0)], EXPR$3=[null], EXPR$4=[CASE(IS NOT NULL(2), 2, null)], EXPR$5=[ROW(+(7, 8))])
+  FilterRel(condition=[AND(=($0, +(7, 8)), =($0, CASE(IS NOT NULL(2), 2, null)))])
+    ProjectRel(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+      JoinRel(condition=[=($0, $11)], joinType=[inner])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+        ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, -(5, 5))])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[3], EXPR$1=[+($0, 7)], EXPR$2=[+(11, $0)], EXPR$3=[null], EXPR$4=[CAST(2):INTEGER], EXPR$5=[ROW(15)])
+  FilterRel(condition=[AND(=($0, 15), =($0, CAST(2):INTEGER))])
+    ProjectRel(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+      JoinRel(condition=[=($0, $11)], joinType=[inner])
+        TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+        ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, 0)])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsEliminatesFilter">
+        <Resource name="sql">
+            <![CDATA[select * from (values (1,2)) where 1 + 2 > 3 + CAST(NULL AS INTEGER)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[$0], EXPR$1=[$1])
+  FilterRel(condition=[>(+(1, 2), +(3, null))])
+    ValuesRel(tuples=[[{ 1, 2 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[$0], EXPR$1=[$1])
+  EmptyRel
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAlreadyFalseEliminatesFilter">
+        <Resource name="sql">
+            <![CDATA[select * from (values (1,2)) where false]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[$0], EXPR$1=[$1])
+  FilterRel(condition=[false])
+    ValuesRel(tuples=[[{ 1, 2 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[$0], EXPR$1=[$1])
+  EmptyRel
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceValuesUnderFilter">
+        <Resource name="sql">
+            <![CDATA[select a, b from (values (10, 'x'), (20, 'y')) as t(a, b) where a < 15]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(A=[$0], B=[$1])
+  FilterRel(condition=[<($0, 15)])
+    ValuesRel(tuples=[[{ 10, 'x' }, { 20, 'y' }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(A=[$0], B=[$1])
+  ValuesRel(tuples=[[{ 10, 'x' }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceValuesUnderProject">
+        <Resource name="sql">
+            <![CDATA[select a + b from (values (10, 1), (20, 3)) as t(a, b)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[+($0, $1)])
+  ValuesRel(tuples=[[{ 10, 1 }, { 20, 3 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ValuesRel(tuples=[[{ 11 }, { 23 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceValuesUnderProjectFilter">
+        <Resource name="sql">
+            <![CDATA[select a + b as x, b, a from (values (10, 1), (30, 7), (20, 3)) as t(a, b) where a - b < 21]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(X=[+($0, $1)], B=[$1], A=[$0])
+  FilterRel(condition=[<(-($0, $1), 21)])
+    ValuesRel(tuples=[[{ 10, 1 }, { 30, 7 }, { 20, 3 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ValuesRel(tuples=[[{ 11, 1, 10 }, { 23, 3, 20 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceValuesToEmpty">
+        <Resource name="sql">
+            <![CDATA[select a + b as x, b, a from (values (10, 1), (30, 7)) as t(a, b) where a - b < 0]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(X=[+($0, $1)], B=[$1], A=[$0])
+  FilterRel(condition=[<(-($0, $1), 0)])
+    ValuesRel(tuples=[[{ 10, 1 }, { 30, 7 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EmptyRel
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testEmptyFilterProjectUnion">
+        <Resource name="sql">
+            <![CDATA[select * from (
+select * from (values (10, 1), (30, 3)) as t (x, y)
+union all
+select * from (values (20, 2))
+)
+where x + y > 30]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(X=[$0], Y=[$1])
+  FilterRel(condition=[>(+($0, $1), 30)])
+    UnionRel(all=[true])
+      ProjectRel(X=[$0], Y=[$1])
+        ValuesRel(tuples=[[{ 10, 1 }, { 30, 3 }]])
+      ProjectRel(EXPR$0=[$0], EXPR$1=[$1])
+        ValuesRel(tuples=[[{ 20, 2 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(X=[$0], Y=[$1])
+  ValuesRel(tuples=[[{ 30, 3 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceCasts">
+        <Resource name="sql">
+            <![CDATA[select cast(d.name as varchar(128)), cast(e.empno as integer) from dept as d inner join emp as e on cast(d.deptno as integer) = cast(e.deptno as integer) where cast(e.job as varchar(1)) = 'Manager']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[CAST($1):VARCHAR(128) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], EXPR$1=[CAST($2):INTEGER NOT NULL])
+  FilterRel(condition=[=(CAST(CAST($4):VARCHAR(1) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL):VARCHAR(7) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL, 'Manager')])
+    ProjectRel(DEPTNO=[$0], NAME=[$1], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO0=[$10], SLACKER=[$11])
+      JoinRel(condition=[=($2, $12)], joinType=[inner])
+        ProjectRel(DEPTNO=[$0], NAME=[$1], $f2=[CAST($0):INTEGER NOT NULL])
+          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+        ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[CAST($7):INTEGER NOT NULL])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[CAST($1):VARCHAR(128) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], EXPR$1=[$2])
+  FilterRel(condition=[=(CAST(CAST($4):VARCHAR(1) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL):VARCHAR(7) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL, 'Manager')])
+    ProjectRel(DEPTNO=[$0], NAME=[$1], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO0=[$10], SLACKER=[$11])
+      JoinRel(condition=[=($2, $12)], joinType=[inner])
+        ProjectRel(DEPTNO=[$0], NAME=[$1], $f2=[$0])
+          TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+        ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[$7])
+          TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushAggThroughUnion">
+        <Resource name="sql">
+            <![CDATA[select ename,sum(empno),count(*) from (select * from emp as e1 union all select * from emp as e2) group by ename]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+AggregateRel(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT()])
+  ProjectRel(ENAME=[$1], EMPNO=[$0])
+    UnionRel(all=[true])
+      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(ENAME=[$0], EXPR$1=[$1], EXPR$2=[CAST($2):BIGINT NOT NULL])
+  AggregateRel(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[SUM($2)])
+    UnionRel(all=[true])
+      AggregateRel(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT()])
+        ProjectRel(ENAME=[$1], EMPNO=[$0])
+          ProjectRel(EMPNO=[$0], ENAME=[$1])
+            ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              TableAccessRel(table=[[CATALOG, SALES, EMP]])
+      AggregateRel(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT()])
+        ProjectRel(ENAME=[$1], EMPNO=[$0])
+          ProjectRel(EMPNO=[$0], ENAME=[$1])
+            ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceCastAndConsts">
+        <Resource name="sql">
+            <![CDATA[select * from emp where cast((empno + (10/2)) as int) = 13]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  FilterRel(condition=[=(CAST(+($0, /(10, 2))):INTEGER NOT NULL, 13)])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  FilterRel(condition=[=(+($0, 5), 13)])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstantsCalc">
+        <Resource name="sql">
+            <![CDATA[select * from (
+  select upper(substring(x FROM 1 FOR 2) || substring(x FROM 3)) as u,
+      substring(x FROM 1 FOR 1) as s
+  from (
+    select 'table' as x from (values (true))
+    union
+    select 'view' from (values (true))
+    union
+    select 'foreign table' from (values (true))
+  )
+) where u = 'TABLE']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(U=[$0], S=[$1])
+  FilterRel(condition=[=($0, 'TABLE')])
+    ProjectRel(U=[UPPER(||(SUBSTRING($0, 1, 2), SUBSTRING($0, 3)))], S=[SUBSTRING($0, 1, 1)])
+      UnionRel(all=[false])
+        UnionRel(all=[false])
+          ProjectRel(X=['table'])
+            ValuesRel(tuples=[[{ true }]])
+          ProjectRel(EXPR$0=['view'])
+            ValuesRel(tuples=[[{ true }]])
+        ProjectRel(EXPR$0=['foreign table'])
+          ValuesRel(tuples=[[{ true }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+CalcRel(expr#0=[{inputs}], expr#1=['TABLE'], expr#2=['t'], U=[$t1], S=[$t2])
+  ValuesRel(tuples=[[{ true }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceConstants2">
+        <Resource name="sql">
+            <![CDATA[select p1 is not distinct from p0 from (values (2, cast(null as integer))) as t(p0, p1)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EXPR$0=[CAST(CASE(IS NULL($1), IS NULL($0), IS NULL($0), IS NULL($1), =($1, $0))):BOOLEAN NOT NULL])
+  ProjectRel(EXPR$0=[2], EXPR$1=[null])
+    OneRowRel
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EXPR$0=[CAST(CASE(IS NULL($1), IS NULL($0), IS NULL($0), IS NULL($1), =($1, $0))):BOOLEAN NOT NULL])
+  ProjectRel(EXPR$0=[2], EXPR$1=[null])
+    OneRowRel
+]]>
+        </Resource>
+    </TestCase>
 </Root>

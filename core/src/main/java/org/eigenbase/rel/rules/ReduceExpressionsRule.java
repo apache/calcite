@@ -313,7 +313,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
               removableCasts,
               reducedExprs,
               noCasts);
-      replacer.apply(expList);
+      replacer.mutate(expList);
     }
 
     if (constExps.isEmpty()) {
@@ -347,12 +347,12 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
             constExps,
             reducedValues,
             addCasts);
-    replacer.apply(expList);
+    replacer.mutate(expList);
     return true;
   }
 
   static Executor getExecutor(RelNode rel) {
-    return null; // TODO:
+    return new RexExecutorImpl();
   }
 
   /**

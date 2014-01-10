@@ -36,6 +36,9 @@ public enum Hook {
   /** Called with the output of sql-to-rel-converter. */
   CONVERTED,
 
+  /** Called when a constant expression is being reduced. */
+  EXPRESSION_REDUCER,
+
   /** Called with a query that has been generated to send to a back-end system.
    * The query might be a SQL string (for the JDBC adapter), a list of Mongo
    * pipeline expressions (for the MongoDB adapter), et cetera. */

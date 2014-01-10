@@ -559,6 +559,7 @@ public class RexImpTable {
         translator.translateList(call.getOperands());
     switch (nullAs) {
     case NOT_POSSIBLE:
+    case NULL:
       for (Expression translatedOperand : translatedOperands) {
         if (Expressions.isConstantNull(translatedOperand)) {
           return NULL_EXPR;

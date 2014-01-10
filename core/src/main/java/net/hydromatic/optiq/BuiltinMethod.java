@@ -81,6 +81,7 @@ public enum BuiltinMethod {
   NULLS_COMPARATOR(Functions.class, "nullsComparator", boolean.class,
       boolean.class),
   ARRAY_COMPARER(Functions.class, "arrayComparer"),
+  FUNCTION0_APPLY(Function0.class, "apply"),
   ARRAYS_AS_LIST(FlatLists.class, "of", Object[].class),
   LIST2(FlatLists.class, "of", Object.class, Object.class),
   LIST3(FlatLists.class, "of", Object.class, Object.class, Object.class),

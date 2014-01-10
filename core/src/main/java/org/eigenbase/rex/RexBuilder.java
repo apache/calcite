@@ -30,6 +30,7 @@ import org.eigenbase.util.*;
 import org.eigenbase.util14.DateTimeUtil;
 
 import net.hydromatic.avatica.ByteString;
+
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import com.google.common.collect.ImmutableList;
@@ -592,9 +593,7 @@ public class RexBuilder {
             SqlTypeName.BIGINT);
     RexNode cast = ensureType(bigintType, value, true);
     return makeReinterpretCast(
-        type,
-        cast,
-        makeLiteral(checkOverflow));
+        type, cast, makeLiteral(checkOverflow));
   }
 
   /**
@@ -610,9 +609,7 @@ public class RexBuilder {
         typeFactory.createSqlType(
             SqlTypeName.BIGINT);
     return makeReinterpretCast(
-        matchNullability(bigintType, node),
-        node,
-        makeLiteral(false));
+        matchNullability(bigintType, node), node, makeLiteral(false));
   }
 
   /**
@@ -802,9 +799,7 @@ public class RexBuilder {
       int precision = bd.unscaledValue().toString().length();
       relType =
           typeFactory.createSqlType(
-              SqlTypeName.DECIMAL,
-              scale,
-              precision);
+              SqlTypeName.DECIMAL, scale, precision);
     }
     return makeExactLiteral(bd, relType);
   }
@@ -823,8 +818,7 @@ public class RexBuilder {
    * Creates a numeric literal.
    */
   public RexLiteral makeExactLiteral(BigDecimal bd, RelDataType type) {
-    return makeLiteral(
-        bd, type, SqlTypeName.DECIMAL);
+    return makeLiteral(bd, type, SqlTypeName.DECIMAL);
   }
 
   /**
@@ -833,9 +827,7 @@ public class RexBuilder {
   public RexLiteral makeBinaryLiteral(ByteString byteString) {
     return makeLiteral(
         byteString,
-        typeFactory.createSqlType(
-            SqlTypeName.BINARY,
-            byteString.length()),
+        typeFactory.createSqlType(SqlTypeName.BINARY, byteString.length()),
         SqlTypeName.BINARY);
   }
 
@@ -848,8 +840,7 @@ public class RexBuilder {
     if (bd.doubleValue() == 0) {
       bd = BigDecimal.ZERO;
     }
-    return makeApproxLiteral(
-        bd, typeFactory.createSqlType(SqlTypeName.DOUBLE));
+    return makeApproxLiteral(bd, typeFactory.createSqlType(SqlTypeName.DOUBLE));
   }
 
   /**
@@ -860,12 +851,9 @@ public class RexBuilder {
    * @return new literal
    */
   public RexLiteral makeApproxLiteral(BigDecimal bd, RelDataType type) {
-    assert (SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(
-        type.getSqlTypeName()));
-    return makeLiteral(
-        bd,
-        type,
-        SqlTypeName.DOUBLE);
+    assert SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(
+        type.getSqlTypeName());
+    return makeLiteral(bd, type, SqlTypeName.DOUBLE);
   }
 
   /**
@@ -885,7 +873,7 @@ public class RexBuilder {
    * @return Character string literal
    */
   protected RexLiteral makePreciseStringLiteral(String s) {
-    Util.pre(s != null, "s != null");
+    assert s != null;
     if (s.equals("")) {
       return charEmpty;
     } else {
@@ -962,9 +950,7 @@ public class RexBuilder {
   public RexLiteral makeDateLiteral(Calendar date) {
     Util.pre(date != null, "date != null");
     return makeLiteral(
-        date,
-        typeFactory.createSqlType(SqlTypeName.DATE),
-        SqlTypeName.DATE);
+        date, typeFactory.createSqlType(SqlTypeName.DATE), SqlTypeName.DATE);
   }
 
   /**
@@ -1049,9 +1035,7 @@ public class RexBuilder {
         typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(typeName, precision),
             true);
-    return makeCast(
-        type,
-        constantNull());
+    return makeCast(type, constantNull());
   }
 
   /**
@@ -1070,9 +1054,7 @@ public class RexBuilder {
         typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(typeName),
             true);
-    return makeCast(
-        type,
-        constantNull());
+    return makeCast(type, constantNull());
   }
 
   /**
@@ -1091,18 +1073,6 @@ public class RexBuilder {
   /**
    * Creates a literal of the default value for the given type.
    *
-   * @param type Type
-   * @return Simple literal
-   * @see #makeZeroLiteral(org.eigenbase.reltype.RelDataType, boolean)
-   */
-  public RexLiteral makeZeroLiteral(RelDataType type) {
-    return (RexLiteral) makeZeroLiteral(type, false);
-  }
-
-  /**
-   * Creates an expression of the default value for the given type, casting if
-   * necessary to ensure that the expression is the exact type.
-   *
    * <p>This value is:</p>
    *
    * <ul>
@@ -1114,31 +1084,78 @@ public class RexBuilder {
    * </ul>
    *
    * @param type      Type
+   * @return Simple literal, or cast simple literal
+   */
+  public RexNode makeZeroLiteral(RelDataType type) {
+    return makeLiteral(zeroValue(type), type, false);
+  }
+
+  private static Comparable zeroValue(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+    case CHAR:
+      return new NlsString(Util.spaces(type.getPrecision()), null, null);
+    case VARCHAR:
+      return new NlsString("", null, null);
+    case BINARY:
+      return new ByteString(new byte[type.getPrecision()]);
+    case VARBINARY:
+      return ByteString.EMPTY;
+    case TINYINT:
+    case SMALLINT:
+    case INTEGER:
+    case BIGINT:
+    case DECIMAL:
+    case FLOAT:
+    case REAL:
+    case DOUBLE:
+      return BigDecimal.ZERO;
+    case BOOLEAN:
+      return false;
+    case TIME:
+    case DATE:
+    case TIMESTAMP:
+      return DateTimeUtil.zeroCalendar;
+    default:
+      throw Util.unexpected(type.getSqlTypeName());
+    }
+  }
+
+  /**
+   * Creates a literal of a given type. The value is assumed to be
+   * compatible with the type.
+   *
+   * @param type      Type
    * @param allowCast Whether to allow a cast. If false, value is always a
    *                  {@link RexLiteral} but may not be the exact type
    * @return Simple literal, or cast simple literal
    */
-  public RexNode makeZeroLiteral(RelDataType type, boolean allowCast) {
+  public RexNode makeLiteral(Comparable value, RelDataType type,
+      boolean allowCast) {
+    if (value == null) {
+      return makeNullLiteral(type.getSqlTypeName());
+    }
     if (type.isNullable()) {
-      type = typeFactory.createTypeWithNullability(type, false);
+      final RelDataType typeNotNull =
+          typeFactory.createTypeWithNullability(type, false);
+      RexNode literalNotNull = makeLiteral(value, typeNotNull, allowCast);
+      return makeAbstractCast(type, literalNotNull);
     }
     RexLiteral literal;
     switch (type.getSqlTypeName()) {
     case CHAR:
       return makeCharLiteral(
-          new NlsString(Util.spaces(type.getPrecision()), null, null));
+          new NlsString(rpad((String) value, type.getPrecision()), null, null));
     case VARCHAR:
-      literal = makeCharLiteral(new NlsString("", null, null));
+      literal = makeCharLiteral(new NlsString((String) value, null, null));
       if (allowCast) {
         return makeCast(type, literal);
       } else {
         return literal;
       }
     case BINARY:
-      return makeBinaryLiteral(
-          new ByteString(new byte[type.getPrecision()]));
+      return makeBinaryLiteral(rpad(toByteString(value), type.getPrecision()));
     case VARBINARY:
-      literal = makeBinaryLiteral(ByteString.EMPTY);
+      literal = makeBinaryLiteral(toByteString(value));
       if (allowCast) {
         return makeCast(type, literal);
       } else {
@@ -1149,24 +1166,53 @@ public class RexBuilder {
     case INTEGER:
     case BIGINT:
     case DECIMAL:
-      return makeExactLiteral(BigDecimal.ZERO, type);
+      return makeExactLiteral(toBigDecimal(value), type);
     case FLOAT:
     case REAL:
     case DOUBLE:
-      return makeApproxLiteral(BigDecimal.ZERO, type);
+      return makeApproxLiteral(toBigDecimal(value), type);
     case BOOLEAN:
-      return booleanFalse;
+      return (Boolean) value ? booleanTrue : booleanFalse;
     case TIME:
-      return makeTimeLiteral(
-          DateTimeUtil.zeroCalendar, type.getPrecision());
+      return makeTimeLiteral((Calendar) value, type.getPrecision());
     case DATE:
-      return makeDateLiteral(DateTimeUtil.zeroCalendar);
+      return makeDateLiteral((Calendar) value);
     case TIMESTAMP:
-      return makeTimestampLiteral(
-          DateTimeUtil.zeroCalendar, type.getPrecision());
+      return makeTimestampLiteral((Calendar) value, type.getPrecision());
     default:
       throw Util.unexpected(type.getSqlTypeName());
     }
+  }
+
+  private static BigDecimal toBigDecimal(Object value) {
+    if (value instanceof BigDecimal) {
+      return (BigDecimal) value;
+    } else if (value instanceof Double || value instanceof Float) {
+      return new BigDecimal(((Number) value).doubleValue());
+    } else {
+      return new BigDecimal(((Number) value).longValue());
+    }
+  }
+
+  private static ByteString toByteString(Object value) {
+    if (value instanceof byte[]) {
+      return new ByteString((byte[]) value);
+    }
+    return (ByteString) value;
+  }
+
+  /** Returns a string padded with spaces to make it at least a given length, */
+  private static String rpad(String s, int length) {
+    return s + Util.spaces(Math.max(length - s.length(), 0));
+  }
+
+  /** Returns a byte-string padded with zero bytes to make it at least a given
+   * length, */
+  private static ByteString rpad(ByteString s, int length) {
+    if (s.length() >= length) {
+      return s;
+    }
+    return new ByteString(Arrays.copyOf(s.getBytes(), length));
   }
 }
 
