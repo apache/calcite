@@ -410,8 +410,8 @@ public class ConcurrentTestCommandGenerator {
       if (debug) {
         debugStream.println(
             "Thread ID: " + threadId + " ("
-                + getThreadName(threadId)
-                + ")");
+            + getThreadName(threadId)
+            + ")");
         printCommands(debugStream, threadId);
       }
 
@@ -991,7 +991,7 @@ public class ConcurrentTestCommandGenerator {
           } else if (!Character.isWhitespace(ch)) {
             throw new IllegalStateException(
                 "unexpected character '" + ch + "' at position "
-                    + i + " of expected values");
+                + i + " of expected values");
           }
           break;
         }
@@ -1116,7 +1116,7 @@ public class ConcurrentTestCommandGenerator {
         } else {
           throw new IllegalStateException(
               "unknown type of expected value: "
-                  + expectedValue.getClass().getName());
+              + expectedValue.getClass().getName());
         }
 
         colNum++;
@@ -1204,7 +1204,7 @@ public class ConcurrentTestCommandGenerator {
         int colNum) {
       dumpData(
           "Row " + rowNum + ", column " + colNum + ": expected <"
-              + expected + ">, got <" + got + ">");
+          + expected + ">, got <" + got + ">");
     }
 
     /**

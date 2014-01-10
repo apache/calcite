@@ -59,8 +59,8 @@ public abstract class TestUtil {
       } else {
         String message =
             "Expected:" + NL
-                + expected + NL
-                + "Actual: null";
+            + expected + NL
+            + "Actual: null";
         throw new ComparisonFailure(message, expected, actual);
       }
     }

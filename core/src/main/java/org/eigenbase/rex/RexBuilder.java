@@ -125,7 +125,7 @@ public class RexBuilder {
     if (field == null) {
       throw Util.newInternal(
           "Type '" + type + "' has no field '"
-              + fieldName + "'");
+          + fieldName + "'");
     }
     return makeFieldAccessInternal(expr, field);
   }

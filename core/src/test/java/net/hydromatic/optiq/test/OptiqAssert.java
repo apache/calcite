@@ -581,9 +581,9 @@ public class OptiqAssert {
       if (model.contains("defaultSchema: 'foodmart'")) {
         model2 = model.replace("]",
             ", { name: 'mat', "
-                + buf
-                + "}\n"
-        + "]");
+            + buf
+            + "}\n"
+            + "]");
       } else if (model.contains("type: ")) {
         model2 = model.replace("type: ",
             buf + ",\n"

@@ -611,9 +611,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           "Cheapest plan:\n"
           + RelOptUtil.toString(cheapest, SqlExplainLevel.ALL_ATTRIBUTES));
 
-      tracer.fine(
-          "Provenance:\n"
-              + provenance(cheapest));
+      tracer.fine("Provenance:\n"
+          + provenance(cheapest));
     }
     return cheapest;
   }
@@ -1142,9 +1141,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           if (importance != null) {
             pw.print(", importance=" + importance);
           }
-          pw.print(
-              ", rowcount="
-                  + RelMetadataQuery.getRowCount(rel));
+          pw.print(", rowcount=" + RelMetadataQuery.getRowCount(rel));
           pw.println(", cumulative cost=" + getCost(rel));
         }
       }
@@ -1400,7 +1397,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       throw Util.newInternal(
           "Relational expression " + rel
           + " does not have the correct number of traits "
-              + traits.size() + " != " + traitDefs.size());
+          + traits.size() + " != " + traitDefs.size());
     }
 
     // Ensure that its sub-expressions are registered.

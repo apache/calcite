@@ -395,10 +395,8 @@ public abstract class ReflectUtil {
             } else {
               // c1 and c2 are not directly related
               throw new IllegalArgumentException(
-                  "dispatch ambiguity between "
-                      + candidateMethod
-                      + " and "
-                      + method);
+                  "dispatch ambiguity between " + candidateMethod
+                  + " and " + method);
             }
           }
         }

@@ -1913,8 +1913,7 @@ public class SqlToRelConverter {
               // correl not grouped
               throw Util.newInternal(
                   "Identifier '" + originalRelName + "."
-                      + originalFieldName
-                      + "' is not a group expr");
+                  + originalFieldName + "' is not a group expr");
             }
           }
 

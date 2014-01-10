@@ -704,7 +704,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       if (!found) {
         throw Util.newInternal(
             "no '" + visitMethodName + "' method found for class "
-                + p.getClass().getName());
+            + p.getClass().getName());
       }
     }
   }

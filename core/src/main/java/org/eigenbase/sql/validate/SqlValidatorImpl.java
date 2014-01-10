@@ -699,9 +699,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNode outermostNode = performUnconditionalRewrites(topNode, false);
     cursorSet.add(outermostNode);
     if (tracer.isLoggable(Level.FINER)) {
-      tracer.finer(
-          "After unconditional rewrite: "
-              + outermostNode.toString());
+      tracer.finer("After unconditional rewrite: " + outermostNode.toString());
     }
     if (outermostNode.isA(SqlKind.TOP_LEVEL)) {
       registerQuery(

@@ -97,7 +97,7 @@ public abstract class EigenbaseTestCase {
     if ((message == null) || (message.indexOf(pattern) < 0)) {
       fail(
           "expected pattern <" + pattern + "> in exception <"
-              + throwable + ">");
+          + throwable + ">");
     }
   }
 

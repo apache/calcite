@@ -64,8 +64,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
       int target = targets[i];
       if (sources[target] != -1) {
         throw new IllegalArgumentException(
-            "more than one permutation element maps to position "
-                + target);
+            "more than one permutation element maps to position " + target);
       }
       sources[target] = i;
     }

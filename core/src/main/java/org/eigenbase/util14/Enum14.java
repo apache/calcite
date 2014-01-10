@@ -273,9 +273,8 @@ public class Enum14 implements Cloneable {
   public Error badValue(int ordinal) {
     return new AssertionError(
         "bad value " + ordinal + "("
-            + getName(ordinal) + ") for enumeration '"
-            + getClass().getName()
-            + "'");
+        + getName(ordinal) + ") for enumeration '"
+        + getClass().getName() + "'");
   }
 
   /**
@@ -290,7 +289,7 @@ public class Enum14 implements Cloneable {
       if (ordinalToValueMap[index] != null) {
         throw new AssertionError(
             "Enumeration has more than one value with ordinal "
-                + value.getOrdinal());
+            + value.getOrdinal());
       }
       ordinalToValueMap[index] = value;
     }
@@ -312,7 +311,7 @@ public class Enum14 implements Cloneable {
     if (old != null) {
       throw new AssertionError(
           "Enumeration already contained a value '"
-              + old.getName() + "'");
+          + old.getName() + "'");
     }
     final int ordinal = value.getOrdinal();
     min = Math.min(min, ordinal);
@@ -445,8 +444,7 @@ public class Enum14 implements Cloneable {
 
     public Error unexpected() {
       return new AssertionError(
-          "Value " + name + " of class "
-              + getClass() + " unexpected here");
+          "Value " + name + " of class " + getClass() + " unexpected here");
     }
   }
 

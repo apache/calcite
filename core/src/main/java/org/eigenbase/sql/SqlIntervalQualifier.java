@@ -814,7 +814,7 @@ public class SqlIntervalQualifier extends SqlNode {
     // Note: must check two patterns, since fractional second is optional
     String intervalPatternWithFracSec =
         "(\\d+) (\\d{1,2}):(\\d{1,2}):(\\d{1,2})\\.(\\d{1,"
-            + fractionalSecondPrecision + "})";
+        + fractionalSecondPrecision + "})";
     String intervalPatternWithoutFracSec =
         "(\\d+) (\\d{1,2}):(\\d{1,2}):(\\d{1,2})";
 
@@ -957,7 +957,7 @@ public class SqlIntervalQualifier extends SqlNode {
     // Note: must check two patterns, since fractional second is optional
     String intervalPatternWithFracSec =
         "(\\d+):(\\d{1,2}):(\\d{1,2})\\.(\\d{1,"
-            + fractionalSecondPrecision + "})";
+        + fractionalSecondPrecision + "})";
     String intervalPatternWithoutFracSec =
         "(\\d+):(\\d{1,2}):(\\d{1,2})";
 

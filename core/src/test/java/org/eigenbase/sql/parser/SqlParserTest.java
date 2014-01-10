@@ -5269,19 +5269,19 @@ public class SqlParserTest {
     // parser, the literal already contains Unicode characters.
     String in1 =
         "values _UTF16'"
-            + ConversionUtil.TEST_UNICODE_STRING + "'";
+        + ConversionUtil.TEST_UNICODE_STRING + "'";
     String out1 =
         "(VALUES (ROW(_UTF16'"
-            + ConversionUtil.TEST_UNICODE_STRING + "')))";
+        + ConversionUtil.TEST_UNICODE_STRING + "')))";
     check(in1, out1);
 
     // Without the U& prefix, escapes are left unprocessed
     String in2 =
         "values '"
-            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'";
+        + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'";
     String out2 =
         "(VALUES (ROW('"
-            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "')))";
+        + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "')))";
     check(in2, out2);
 
     // Likewise, even with the U& prefix, if some other escape
@@ -5289,11 +5289,11 @@ public class SqlParserTest {
     // sequences are not interpreted
     String in3 =
         "values U&'"
-            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL
-            + "' UESCAPE '!'";
+        + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL
+        + "' UESCAPE '!'";
     String out3 =
         "(VALUES (ROW(_UTF16'"
-            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "')))";
+        + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "')))";
     check(in3, out3);
   }
 
@@ -5303,10 +5303,10 @@ public class SqlParserTest {
     // by the SQL parser.
     String in =
         "values U&'"
-            + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'";
+        + ConversionUtil.TEST_UNICODE_SQL_ESCAPED_LITERAL + "'";
     String out =
         "(VALUES (ROW(_UTF16'"
-            + ConversionUtil.TEST_UNICODE_STRING + "')))";
+        + ConversionUtil.TEST_UNICODE_STRING + "')))";
     check(in, out);
 
     // Verify that we can override with an explicit escape character
@@ -5389,7 +5389,7 @@ public class SqlParserTest {
         String message =
             "Received error while parsing SQL '" + sql
             + "'; error is:\n"
-                + e.toString();
+            + e.toString();
         throw new AssertionError(message);
       }
       return sqlNode;
@@ -5411,7 +5411,7 @@ public class SqlParserTest {
         String message =
             "Received error while parsing SQL '" + sql
             + "'; error is:\n"
-                + e.toString();
+            + e.toString();
         throw new RuntimeException(message, e);
       }
       return sqlNode;

@@ -442,7 +442,7 @@ public class RexLiteral extends RexNode {
       if (cal == null) {
         throw Util.newInternal(
             "fromJdbcString: invalid date/time value '"
-                + literal + "'");
+            + literal + "'");
       }
       return new RexLiteral(cal, type, typeName);
     case SYMBOL:

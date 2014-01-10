@@ -850,7 +850,7 @@ public class ReduceDecimalsRule extends RelOptRule {
       } else {
         throw Util.newInternal(
             "ReduceDecimalsRule could not expand "
-                + call.getOperator());
+            + call.getOperator());
       }
     }
 

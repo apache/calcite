@@ -179,8 +179,7 @@ public class OptionsList {
       }
       if (!usedOptions.contains(option)) {
         throw new RuntimeException(
-            "Mandatory option '"
-                + option.getName() + "' was not specified");
+            "Mandatory option '" + option.getName() + "' was not specified");
       }
     }
 

@@ -347,7 +347,7 @@ public class SqlValidatorTestCase {
             throw new AssertionError(
                 "Actual error had a position, but expected error"
                 + " did not. Add error position carets to sql:\n"
-                    + sqlWithCarets);
+                + sqlWithCarets);
           }
         }
         if ((actualMessage == null)
@@ -587,8 +587,8 @@ public class SqlValidatorTestCase {
           e.printStackTrace();
           throw new AssertionError(
               "Error did not match expected ["
-                  + expectedMsgPattern + "] while parsing query ["
-                  + sap.sql + "]");
+              + expectedMsgPattern + "] while parsing query ["
+              + sap.sql + "]");
         }
         return;
       } catch (Throwable e) {

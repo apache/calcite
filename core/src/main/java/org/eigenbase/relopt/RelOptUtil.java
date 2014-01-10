@@ -207,13 +207,13 @@ public abstract class RelOptUtil {
 
     String s =
         "Cannot add expression of different type to set: "
-            + Util.lineSeparator + "set type is "
-            + expectedRowType.getFullTypeString()
-            + Util.lineSeparator + "expression type is "
-            + actualRowType.getFullTypeString()
-            + Util.lineSeparator + "set is " + equivalenceClass.toString()
-            + Util.lineSeparator
-            + "expression is " + newRel.toString();
+        + Util.lineSeparator + "set type is "
+        + expectedRowType.getFullTypeString()
+        + Util.lineSeparator + "expression type is "
+        + actualRowType.getFullTypeString()
+        + Util.lineSeparator + "set is " + equivalenceClass.toString()
+        + Util.lineSeparator
+        + "expression is " + newRel.toString();
     throw Util.newInternal(s);
   }
 
@@ -904,8 +904,8 @@ public abstract class RelOptUtil {
             if (targetKeyType == null) {
               throw Util.newInternal(
                   "Cannot find common type for join keys "
-                      + leftKey + " (type " + leftKeyType + ") and "
-                      + rightKey + " (type " + rightKeyType + ")");
+                  + leftKey + " (type " + leftKeyType + ") and "
+                  + rightKey + " (type " + rightKeyType + ")");
             }
 
             if (leftKeyType != targetKeyType) {
@@ -1521,13 +1521,10 @@ public abstract class RelOptUtil {
       if (fail) {
         throw new AssertionError(
             "Type mismatch:\n"
-                + desc1
-                + ":\n"
-                + type1.getFullTypeString()
-                + "\n"
-                + desc2
-                + ":\n"
-                + type2.getFullTypeString());
+            + desc1 + ":\n"
+            + type1.getFullTypeString() + "\n"
+            + desc2 + ":\n"
+            + type2.getFullTypeString());
       }
       return false;
     }

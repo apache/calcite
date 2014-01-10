@@ -4375,8 +4375,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   private void checkNegWindow(String s, String msg) {
     String sql =
         "select sum(deptno) over ^(order by empno "
-            + s
-            + ")^ from emp";
+        + s
+        + ")^ from emp";
     checkFails(
         sql,
         msg);
@@ -4452,8 +4452,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkFails(
         "select name from " + depts + " " + NL
         + "join (select mod(age, 30) as agemod, deptno from " + emps + ") "
-            + NL
-            + "on ^deptno^ = agemod",
+        + NL
+        + "on ^deptno^ = agemod",
         "Column 'DEPTNO' is ambiguous");
 
     // fail: lateral reference
@@ -6149,8 +6149,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         validator,
         "select * from dept",
         "SELECT `DEPT`.`DEPTNO`, `DEPT`.`NAME`"
-            + NL
-            + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`");
+        + NL
+        + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`");
   }
 
   @Test public void testRewriteWithColumnReferenceExpansion() {
@@ -6212,8 +6212,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
           validator,
           "select coalesce(deptno, empno) from emp",
           "SELECT COALESCE(`DEPTNO`, `EMPNO`)"
-              + NL
-              + "FROM `EMP`");
+          + NL
+          + "FROM `EMP`");
     }
   }
 
@@ -6233,8 +6233,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
           "select coalesce(deptno, empno) from emp",
           "SELECT CASE WHEN `DEPTNO` IS NOT NULL THEN `DEPTNO` "
           + "ELSE `EMPNO` END"
-              + NL
-              + "FROM `EMP`");
+          + NL
+          + "FROM `EMP`");
     }
   }
 

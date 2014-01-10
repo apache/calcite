@@ -214,8 +214,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
       if (tracer.isLoggable(Level.FINEST)) {
         tracer.finest(
             "Looking up rule with description "
-                + instruction.ruleDescription
-                + ", found " + instruction.rule);
+            + instruction.ruleDescription
+            + ", found " + instruction.rule);
       }
     }
     if (instruction.rule != null) {
@@ -621,8 +621,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
         if (tracer.isLoggable(Level.FINER)) {
           tracer.finer(
               "considering " + rel + " with cumulative cost="
-                  + thisCost + " and rowcount="
-                  + RelMetadataQuery.getRowCount(rel));
+              + thisCost + " and rowcount="
+              + RelMetadataQuery.getRowCount(rel));
         }
         if ((bestRel == null) || thisCost.isLt(bestCost)) {
           bestRel = rel;
@@ -904,7 +904,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     throw Util.newInternal(
         "Query graph cycle detected in HepPlanner:  "
-            + cyclicVertices);
+        + cyclicVertices);
   }
 
   private void dumpGraph() {

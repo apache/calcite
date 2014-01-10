@@ -1006,7 +1006,7 @@ public class ConcurrentTestCommandScript
               throw new IllegalStateException(
                   "Unable to reset reader -- repeat "
                   + "contents must be less than "
-                      + REPEAT_READ_AHEAD_LIMIT + " bytes");
+                  + REPEAT_READ_AHEAD_LIMIT + " bytes");
             }
 
             trace("end @repeat block");

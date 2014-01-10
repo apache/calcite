@@ -475,7 +475,7 @@ public final class SqlParserUtil {
       // FIXME jvs 28-Aug-2004:  i18n
       throw EigenbaseResource.instance().ParserError.ex(
           "Locale '"
-              + localeStr + "' in an illegal format");
+          + localeStr + "' in an illegal format");
     }
     return new ParsedCollation(charset, locale, strength);
   }
@@ -731,9 +731,7 @@ public final class SqlParserUtil {
           }
           i = nextOrdinal;
         } else {
-          throw Util.newInternal(
-              "Unexpected operator type: "
-                  + current);
+          throw Util.newInternal("Unexpected operator type: " + current);
         }
       }
 

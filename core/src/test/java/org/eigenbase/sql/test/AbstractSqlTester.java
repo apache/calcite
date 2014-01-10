@@ -305,7 +305,7 @@ public abstract class AbstractSqlTester implements SqlTester {
     if (!pattern.matcher(actual).matches()) {
       Assert.fail(
           "Query returned '" + actual + "', expected '"
-              + pattern.pattern() + "'");
+          + pattern.pattern() + "'");
     }
   }
 
@@ -333,7 +333,7 @@ public abstract class AbstractSqlTester implements SqlTester {
       Assert.fail(
           "Query returned " + actual
           + ", expected " + expected
-              + ((delta == 0) ? "" : ("+/-" + delta)));
+          + ((delta == 0) ? "" : ("+/-" + delta)));
     }
   }
 

@@ -637,9 +637,7 @@ public abstract class SqlUtil {
       values[0] = opName;
       ret.append("'");
       for (int i = 0; i < typeList.size(); i++) {
-        values[i + 1] =
-            "<"
-                + typeList.get(i).toString().toUpperCase() + ">";
+        values[i + 1] = "<" + typeList.get(i).toString().toUpperCase() + ">";
       }
       ret.append(MessageFormat.format(template, values));
       ret.append("'");

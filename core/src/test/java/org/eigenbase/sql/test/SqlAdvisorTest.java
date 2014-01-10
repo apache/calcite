@@ -435,8 +435,8 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         && (expectedList.size() == uniqueResults.values().size()))) {
       fail(
           "SqlAdvisorTest: completion hints results not as salesTables:\n"
-              + uniqueResults.values() + "\nExpected:\n"
-              + expectedList);
+          + uniqueResults.values() + "\nExpected:\n"
+          + expectedList);
     }
   }
 

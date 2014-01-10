@@ -717,9 +717,7 @@ public class Util {
       try {
         Class.forName(jdbcDriver);
       } catch (ClassNotFoundException e) {
-        System.out.println(
-            "Warning: could not find driver "
-                + jdbcDriver);
+        System.out.println("Warning: could not find driver " + jdbcDriver);
       }
     }
     driversLoaded = true;
@@ -1307,9 +1305,8 @@ public class Util {
     String tzString = tz.toString();
     Matcher matcher = pattern.matcher(tzString);
     if (!matcher.matches()) {
-      throw new AssertionError(
-          "tz.toString not of expected format: "
-              + tzString);
+      throw new AssertionError("tz.toString not of expected format: "
+          + tzString);
     }
     int j = 0;
     int startMode = Integer.valueOf(matcher.group(++j));

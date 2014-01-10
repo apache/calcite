@@ -503,9 +503,9 @@ class RuleQueue {
     if (tracer.isLoggable(Level.FINEST)) {
       tracer.finest(
           "Importance of [" + child + "] to its parent ["
-              + parent + "] is " + importance + " (parent importance="
-              + parentImportance + ", child cost=" + childCost
-              + ", parent cost=" + parentCost + ")");
+          + parent + "] is " + importance + " (parent importance="
+          + parentImportance + ", child cost=" + childCost
+          + ", parent cost=" + parentCost + ")");
     }
     return importance;
   }

@@ -208,9 +208,9 @@ public class SwapJoinRule extends RelOptRule {
         }
         throw Util.newInternal(
             "Bad field offset: index="
-                + var.getIndex()
-                + ", leftFieldCount=" + leftFields.size()
-                + ", rightFieldCount=" + rightFields.size());
+            + var.getIndex()
+            + ", leftFieldCount=" + leftFields.size()
+            + ", rightFieldCount=" + rightFields.size());
       } else {
         return rex;
       }

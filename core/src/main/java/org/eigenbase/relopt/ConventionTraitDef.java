@@ -143,11 +143,9 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
                   conversionData.mapArcToConverterRule);
           if (converted == null) {
             throw Util.newInternal(
-                "Converter from "
-                    + previous
-                    + " to "
-                    + arc
-                    + " guaranteed that it could convert any relexp");
+                "Converter from " + previous
+                + " to " + arc
+                + " guaranteed that it could convert any relexp");
           }
         }
         previous = arc;

@@ -237,7 +237,7 @@ public class ConnectStringParserTest {
     if (!msg.matches(expectedPattern)) {
       fail(
           "Got a different error '" + msg + "' than expected '"
-              + expectedPattern + "'");
+          + expectedPattern + "'");
     }
   }
 

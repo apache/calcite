@@ -243,10 +243,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         volcanoPlanner.listener.ruleAttempted(event);
       }
     } catch (Throwable e) {
-      throw Util.newInternal(
-          e,
+      throw Util.newInternal(e,
           "Error while applying rule "
-              + getRule() + ", args " + Arrays.toString(rels));
+          + getRule() + ", args " + Arrays.toString(rels));
     }
   }
 

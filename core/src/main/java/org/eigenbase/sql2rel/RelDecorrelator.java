@@ -2138,9 +2138,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         if (!RelMdUtil.areColumnsDefinitelyUnique(
             leftInputRel,
             allCols)) {
-          sqlToRelTracer.fine(
-              "There are no unique keys for "
-                  + leftInputRel.toString());
+          sqlToRelTracer.fine("There are no unique keys for " + leftInputRel);
           return;
         }
         //

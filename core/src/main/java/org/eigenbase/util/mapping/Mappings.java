@@ -183,10 +183,8 @@ public abstract class Mappings {
     if (mapping.getSourceCount() != list.size()) {
       // REVIEW: too strict?
       throw new IllegalArgumentException(
-          "mapping source count "
-              + mapping.getSourceCount()
-              + " does not match list size "
-              + list.size());
+          "mapping source count " + mapping.getSourceCount()
+          + " does not match list size " + list.size());
     }
     final int targetCount = mapping.getTargetCount();
     final List<T> list2 = new ArrayList<T>(targetCount);
@@ -612,8 +610,7 @@ public abstract class Mappings {
       int target = getTargetOpt(source);
       if (target == -1) {
         throw new NoElementException(
-            "source #" + source + " has no target in mapping "
-                + toString());
+            "source #" + source + " has no target in mapping " + toString());
       }
       return target;
     }
@@ -626,8 +623,7 @@ public abstract class Mappings {
       int source = getSourceOpt(target);
       if (source == -1) {
         throw new NoElementException(
-            "target #" + target + " has no source in mapping "
-                + toString());
+            "target #" + target + " has no source in mapping " + toString());
       }
       return source;
     }
