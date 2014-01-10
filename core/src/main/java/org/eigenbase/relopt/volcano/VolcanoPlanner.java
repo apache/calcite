@@ -27,6 +27,7 @@ import org.eigenbase.rel.convert.*;
 import org.eigenbase.rel.metadata.*;
 import org.eigenbase.rel.rules.*;
 import org.eigenbase.relopt.*;
+import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.util.*;
 
@@ -89,11 +90,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   final List<RelSet> allSets = new ArrayList<RelSet>();
 
   /**
-   * Canonical map from {@link String digest} to the unique {@link RelNode
-   * relational expression} with that digest.
+   * Canonical map from {@link String digest} to the unique
+   * {@link RelNode relational expression} with that digest.
+   *
+   * <p>Row type is part of the key for the rare occasion that similar
+   * expressions have different types, e.g. variants of
+   * {@code Project(child=rel#1, a=null)} where a is a null INTEGER or a
+   * null VARCHAR(10).
    */
-  private final Map<String, RelNode> mapDigestToRel =
-      new HashMap<String, RelNode>();
+  private final Map<Pair<String, RelDataType>, RelNode> mapDigestToRel =
+      new HashMap<Pair<String, RelDataType>, RelNode>();
 
   /**
    * Map each registered expression ({@link RelNode}) to its equivalence set
@@ -829,16 +835,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         if (subset.set != set) {
           throw new AssertionError(
               "subset [" + subset.getDescription()
-                  + "] is in wrong set [" + set + "]");
+              + "] is in wrong set [" + set + "]");
         }
         for (RelNode rel : subset.getRels()) {
           RelOptCost relCost = getCost(rel);
           if (relCost.isLt(subset.bestCost)) {
             throw new AssertionError(
                 "rel [" + rel.getDescription()
-                    + "] has lower cost " + relCost
-                    + " than best cost " + subset.bestCost
-                    + " of subset [" + subset.getDescription() + "]");
+                + "] has lower cost " + relCost
+                + " than best cost " + subset.bestCost
+                + " of subset [" + subset.getDescription() + "]");
           }
         }
       }
@@ -1108,7 +1114,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         ++j;
         pw.println(
             "\t" + subset.getDescription() + ", best="
-                + ((subset.best == null) ? "null"
+            + ((subset.best == null) ? "null"
                 : ("rel#" + subset.best.getId())) + ", importance="
                 + ruleQueue.getImportance(subset));
         assert (subset.set == set);
@@ -1161,12 +1167,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   void rename(RelNode rel) {
     final String oldDigest = rel.getDigest();
     if (fixUpInputs(rel)) {
-      assert mapDigestToRel.remove(oldDigest) == rel;
+      final Pair<String, RelDataType> oldKey =
+          Pair.of(oldDigest, rel.getRowType());
+      final RelNode removed = mapDigestToRel.remove(oldKey);
+      assert removed == rel;
       final String newDigest = rel.recomputeDigest();
       tracer.finer(
           "Rename #" + rel.getId() + " from '" + oldDigest
-              + "' to '" + newDigest + "'");
-      final RelNode equivRel = mapDigestToRel.put(newDigest, rel);
+          + "' to '" + newDigest + "'");
+      Pair<String, RelDataType> key = Pair.of(newDigest, rel.getRowType());
+      final RelNode equivRel = mapDigestToRel.put(key, rel);
       if (equivRel != null) {
         assert equivRel != rel;
 
@@ -1174,10 +1184,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         // just knocked it out. Put it back, and forget about 'rel'.
         tracer.finer(
             "After renaming rel#" + rel.getId()
-                + ", it is now equivalent to rel#" + equivRel.getId());
-        mapDigestToRel.put(
-            equivRel.getDigest(),
-            equivRel);
+            + ", it is now equivalent to rel#" + equivRel.getId());
+        mapDigestToRel.put(key, equivRel);
 
         RelSubset equivRelSubset = getSubset(equivRel);
         ruleQueue.recompute(equivRelSubset, true);
@@ -1420,8 +1428,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // If it is equivalent to an existing expression, return the set that
     // the equivalent expression belongs to.
-    String digest = rel.getDigest();
-    RelNode equivExp = mapDigestToRel.get(digest);
+    Pair<String, RelDataType> key = Pair.of(rel.getDigest(), rel.getRowType());
+    RelNode equivExp = mapDigestToRel.get(key);
     if (equivExp == null) {
       ;
     } else if (equivExp == rel) {
@@ -1438,11 +1446,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         if (tracer.isLoggable(Level.FINER)) {
           tracer.finer(
               "Register: rel#" + rel.getId()
-                  + " is equivalent to " + equivExp.getDescription());
+              + " is equivalent to " + equivExp.getDescription());
         }
-        return registerSubset(
-            set,
-            getSubset(equivExp));
+        return registerSubset(set, getSubset(equivExp));
       }
     }
 
@@ -1455,8 +1461,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           && (set.equivalentSet == null)) {
         if (tracer.isLoggable(Level.FINER)) {
           tracer.finer(
-              "Register #" + rel.getId() + " " + digest
-                  + " (and merge sets, because it is a conversion)");
+              "Register #" + rel.getId() + " " + rel.getDigest()
+              + " (and merge sets, because it is a conversion)");
         }
         merge(set, childSet);
         registerCount++;
@@ -1466,8 +1472,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         // check whether we are now equivalent to an existing
         // expression.
         if (fixUpInputs(rel)) {
-          digest = rel.recomputeDigest();
-          RelNode equivRel = mapDigestToRel.get(digest);
+          rel.recomputeDigest();
+          key = Pair.of(rel.getDigest(), rel.getRowType());
+          RelNode equivRel = mapDigestToRel.get(key);
           if ((equivRel != rel) && (equivRel != null)) {
             // make sure this bad rel didn't get into the
             // set in any way (fixupInputs will do this but it
@@ -1503,13 +1510,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     registerCount++;
     RelSubset subset = asd(rel, set);
 
-    final RelNode xx = mapDigestToRel.put(digest, rel);
-    assert ((xx == null) || (xx == rel)) : digest;
+    final RelNode xx = mapDigestToRel.put(key, rel);
+    assert ((xx == null) || (xx == rel)) : rel.getDigest();
 
     if (tracer.isLoggable(Level.FINER)) {
       tracer.finer(
           "Register " + rel.getDescription()
-              + " in " + subset.getDescription());
+          + " in " + subset.getDescription());
     }
 
     // This relational expression may have been registered while we
@@ -1577,7 +1584,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         && (subset.set.equivalentSet == null)) {
       tracer.finer(
           "Register #" + subset.getId() + " " + subset
-              + ", and merge sets");
+          + ", and merge sets");
       merge(set, subset.set);
       registerCount++;
     }
