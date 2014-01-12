@@ -559,9 +559,9 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         callConstancy = Constancy.NON_CONSTANT;
       } else if (call.getOperator().isDynamicFunction()) {
         // We can reduce the call to a constant, but we can't
-        // cache the plan if the function is dynamic
-
-        // TODO: Flag that the plan cannot be cached
+        // cache the plan if the function is dynamic.
+        // For now, treat it same as non-deterministic.
+        callConstancy = Constancy.NON_CONSTANT;
       }
 
       // Row operator itself can't be reduced to a literal, but if

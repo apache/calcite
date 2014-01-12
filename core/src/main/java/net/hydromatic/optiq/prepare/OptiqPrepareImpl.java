@@ -180,6 +180,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       planner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
       planner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
       planner.addRule(ReduceExpressionsRule.CALC_INSTANCE);
+      planner.addRule(ReduceExpressionsRule.JOIN_INSTANCE);
       planner.addRule(ReduceValuesRule.FILTER_INSTANCE);
       planner.addRule(ReduceValuesRule.PROJECT_FILTER_INSTANCE);
       planner.addRule(ReduceValuesRule.PROJECT_INSTANCE);
