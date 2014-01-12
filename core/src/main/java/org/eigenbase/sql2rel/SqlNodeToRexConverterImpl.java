@@ -119,7 +119,7 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       ByteString byteString = new ByteString(bitString.getAsByteArray());
       return rexBuilder.makeBinaryLiteral(byteString);
     case SYMBOL:
-      return rexBuilder.makeFlag(value);
+      return rexBuilder.makeFlag((Enum) value);
     case TIMESTAMP:
       return rexBuilder.makeTimestampLiteral(
           (Calendar) value,

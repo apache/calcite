@@ -108,9 +108,7 @@ public class OptionsList {
    * Creates an options list with an array of options.
    */
   public OptionsList(Option[] options) {
-    for (Option option : options) {
-      this.options.add(option);
-    }
+    Collections.addAll(this.options, options);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -428,17 +426,11 @@ public class OptionsList {
         boolean required,
         boolean anonymous,
         boolean defaultValue) {
-      super(
-          flag,
-          option,
-          description,
-          required,
-          anonymous,
-          Boolean.valueOf(defaultValue));
+      super(flag, option, description, required, anonymous, defaultValue);
     }
 
     public boolean booleanValue() {
-      return ((Boolean) value).booleanValue();
+      return (Boolean) value;
     }
 
     protected void readArg(String arg) {
@@ -453,7 +445,7 @@ public class OptionsList {
   }
 
   public static class EnumeratedOption extends Option {
-    private final EnumeratedValues enumeration;
+    private final Class<? extends Enum> enumeration;
 
     public EnumeratedOption(
         String flag,
@@ -461,8 +453,8 @@ public class OptionsList {
         String description,
         boolean required,
         boolean anonymous,
-        EnumeratedValues.Value defaultValue,
-        EnumeratedValues enumeration) {
+        Enum defaultValue,
+        Class<? extends Enum> enumeration) {
       super(
           flag,
           option,
@@ -474,7 +466,7 @@ public class OptionsList {
     }
 
     protected void readArg(String arg) {
-      final EnumeratedValues.Value value = enumeration.getValue(arg);
+      final Enum value = Util.enumVal(enumeration, arg);
       if (value == null) {
         valueError(arg);
       } else {
@@ -511,15 +503,11 @@ public class OptionsList {
     protected void readArg(String arg) {
       try {
         final long value = Long.parseLong(arg);
-        set(
-            new Long(value),
-            true);
+        set(value, true);
       } catch (NumberFormatException e) {
         try {
           final double doubleValue = Double.parseDouble(arg);
-          set(
-              new Double(doubleValue),
-              true);
+          set(doubleValue, true);
         } catch (NumberFormatException e1) {
           valueError(arg);
         }

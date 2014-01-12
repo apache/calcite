@@ -18,39 +18,13 @@
 package org.eigenbase.sql;
 
 import org.eigenbase.sql.parser.SqlParserPos;
-import org.eigenbase.util.*;
 
 /**
  * Defines the keywords which can occur immediately after the "SELECT" keyword.
  */
-public class SqlSelectKeyword extends EnumeratedValues.BasicValue
-    implements SqlLiteral.SqlSymbol {
-  //~ Static fields/initializers ---------------------------------------------
-
-  public static final int Distinct_ordinal = 0;
-  public static final SqlSelectKeyword Distinct =
-      new SqlSelectKeyword("Distinct", Distinct_ordinal);
-  public static final int All_ordinal = 1;
-  public static final SqlSelectKeyword All =
-      new SqlSelectKeyword("All", All_ordinal);
-  public static final EnumeratedValues enumeration =
-      new EnumeratedValues(new SqlSelectKeyword[]{Distinct, All});
-
-  //~ Constructors -----------------------------------------------------------
-
-  protected SqlSelectKeyword(String name, int ordinal) {
-    super(name, ordinal, null);
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
-  public String name() {
-    return getName();
-  }
-
-  public int ordinal() {
-    return getOrdinal();
-  }
+public enum SqlSelectKeyword implements SqlLiteral.SqlSymbol {
+  Distinct,
+  All;
 
   /**
    * Creates a parse-tree node representing an occurrence of this keyword

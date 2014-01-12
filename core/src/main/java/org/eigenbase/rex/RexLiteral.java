@@ -223,8 +223,7 @@ public class RexLiteral extends RexNode {
           && (((NlsString) value).getCharset() != null)
           && (((NlsString) value).getCollation() != null);
     case SYMBOL:
-      return (value instanceof EnumeratedValues.Value)
-          || (value instanceof Enum);
+      return value instanceof Enum;
     case ANY:
       // Literal of type ANY is not legal. "CAST(2 AS ANY)" remains
       // an integer literal surrounded by a cast function.

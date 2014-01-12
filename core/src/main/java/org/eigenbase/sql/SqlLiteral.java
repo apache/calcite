@@ -240,7 +240,7 @@ public class SqlLiteral extends SqlNode {
    * @throws ClassCastException if the value is not a boolean literal
    */
   public static boolean booleanValue(SqlNode node) {
-    return ((Boolean) ((SqlLiteral) node).value).booleanValue();
+    return (Boolean) ((SqlLiteral) node).value;
   }
 
   /**
@@ -505,8 +505,7 @@ public class SqlLiteral extends SqlNode {
     switch (typeName) {
     case BOOLEAN:
       writer.keyword(
-          (value == null) ? "UNKNOWN"
-              : (((Boolean) value).booleanValue() ? "TRUE" : "FALSE"));
+          value == null ? "UNKNOWN" : (Boolean) value ? "TRUE" : "FALSE");
       break;
     case NULL:
       writer.keyword("NULL");
@@ -520,10 +519,7 @@ public class SqlLiteral extends SqlNode {
       throw Util.unexpected(typeName);
 
     case SYMBOL:
-      if (value instanceof EnumeratedValues.Value) {
-        EnumeratedValues.Value enumVal = (EnumeratedValues.Value) value;
-        writer.keyword(enumVal.getName().toUpperCase());
-      } else if (value instanceof Enum) {
+      if (value instanceof Enum) {
         Enum enumVal = (Enum) value;
         writer.keyword(enumVal.toString());
       } else {

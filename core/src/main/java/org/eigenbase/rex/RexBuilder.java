@@ -721,14 +721,9 @@ public class RexBuilder {
    *             org.eigenbase.util14.Enum14.Value} or a {@link Enum}, and hence a {@link
    *             Comparable}.
    */
-  public RexLiteral makeFlag(
-      Object flag) {
+  public RexLiteral makeFlag(Enum flag) {
     assert flag != null;
-    assert (flag instanceof EnumeratedValues.Value)
-        || (flag instanceof Enum);
-    assert flag instanceof Comparable;
-    return makeLiteral(
-        (Comparable) flag,
+    return makeLiteral(flag,
         typeFactory.createSqlType(SqlTypeName.SYMBOL),
         SqlTypeName.SYMBOL);
   }

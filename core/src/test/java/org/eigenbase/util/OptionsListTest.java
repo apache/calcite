@@ -140,7 +140,7 @@ public class OptionsListTest {
                 false,
                 false,
                 Color.RED,
-                Color.RED.getEnumeratedType())
+                Color.class)
         },
         new String[]{"-c GREEN"});
   }
@@ -157,7 +157,7 @@ public class OptionsListTest {
                 false,
                 false,
                 Color.RED,
-                Color.RED.getEnumeratedType())
+                Color.class)
         },
         new String[]{"color=BLUE"});
   }
@@ -174,7 +174,7 @@ public class OptionsListTest {
                 false,
                 false,
                 Color.RED,
-                Color.RED.getEnumeratedType())
+                Color.class)
         },
         new String[]{"-c PURPLE"});
   }
@@ -191,7 +191,7 @@ public class OptionsListTest {
                 false,
                 false,
                 Color.RED,
-                Color.RED.getEnumeratedType()),
+                Color.class),
             new OptionsList.NumberOption(
                 "x",
                 "x",
@@ -362,22 +362,8 @@ public class OptionsListTest {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  private static class Color extends EnumeratedValues.BasicValue {
-    public static final Color RED = new Color("RED", 0);
-    public static final Color GREEN = new Color("GREEN", 0);
-    public static final Color BLUE = new Color("BLUE", 0);
-    public static final EnumeratedValues enumeration =
-        new EnumeratedValues(new Color[]{RED, GREEN, BLUE});
-
-    public Color(
-        String name,
-        int ordinal) {
-      super(name, ordinal, null);
-    }
-
-    public EnumeratedValues getEnumeratedType() {
-      return enumeration;
-    }
+  private enum Color {
+    RED, GREEN, BLUE
   }
 
   /**
