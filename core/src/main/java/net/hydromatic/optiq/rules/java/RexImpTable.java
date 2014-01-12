@@ -246,7 +246,7 @@ public class RexImpTable {
         public Expression implement(
             RexToLixTranslator translator, RexCall call, NullAs nullAs) {
           final RexCall call2 = call2(false, translator, call);
-          final NullAs nullAs2 = nullAs == NullAs.FALSE ? NullAs.NULL : nullAs;
+          final NullAs nullAs2 = nullAs == NullAs.TRUE ? NullAs.NULL : nullAs;
           final List<Expression> expressions =
               translator.translateList(call2.getOperands(), nullAs2);
           switch (nullAs) {
@@ -261,12 +261,11 @@ public class RexImpTable {
           }
           return optimize(
               Expressions.condition(
-                  optimize(Expressions.equal(t0, NULL_EXPR)),
+                  Expressions.equal(t0, NULL_EXPR),
                   Expressions.condition(
-                      optimize(
-                          Expressions.orElse(
-                              Expressions.equal(t1, NULL_EXPR),
-                              t1)),
+                      Expressions.orElse(
+                          Expressions.equal(t1, NULL_EXPR),
+                          t1),
                       NULL_EXPR,
                       BOXED_FALSE_EXPR),
                   Expressions.condition(
