@@ -17,11 +17,14 @@
 */
 package net.hydromatic.optiq.util.graph;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
+import org.hamcrest.CoreMatchers;
+
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -144,6 +147,9 @@ public class DirectedGraphTest {
   }
 
   private DefaultDirectedGraph<String, DefaultEdge> createDag() {
+    // A - B - C - D
+    //  \     /
+    //   +- E - F
     final DefaultDirectedGraph<String, DefaultEdge> graph =
         DefaultDirectedGraph.create();
     graph.addVertex("A");
@@ -194,6 +200,95 @@ public class DirectedGraphTest {
     assertEquals("[[D, E]]", frozenGraph.getPaths("D", "E").toString());
     assertEquals("[D, E]", frozenGraph.getShortestPath("D", "E").toString());
   }
+
+  /** Unit test for {@link net.hydromatic.optiq.util.graph.CycleDetector}. */
+  @Test public void testCycleDetection() {
+    // A - B - C - D
+    //  \     /
+    //   +- E - F
+    DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+        CoreMatchers.<Set<String>>equalTo(ImmutableSet.<String>of()));
+
+    // Add cycle C-D-E-C
+    //
+    // A - B - C - D
+    //  \     /     \
+    //   +- E - F   |
+    //      ^      /
+    //      \_____/
+    graph.addEdge("D", "E");
+    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+        CoreMatchers.<Set<String>>equalTo(
+            ImmutableSet.<String>of("C", "D", "E", "F")));
+
+    // Add another cycle, D-C-D in addition to C-D-E-C.
+    //           __
+    //          /  \
+    // A - B - C - D
+    //  \     /     \
+    //   +- E - F   |
+    //      ^      /
+    //      \_____/
+    graph.addEdge("D", "C");
+    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+        CoreMatchers.<Set<String>>equalTo(
+            ImmutableSet.<String>of("C", "D", "E", "F")));
+
+    graph.removeEdge("D", "E");
+    graph.removeEdge("D", "C");
+    graph.addEdge("C", "B");
+
+    // Add cycle of length 2, C-B-C
+    //       __
+    //      /  \
+    // A - B - C - D
+    //  \     /
+    //   +- E - F
+    //
+    // Detected cycle contains "D", which is downstream from the cycle but not
+    // in the cycle. Not sure whether that is correct.
+    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+        CoreMatchers.<Set<String>>equalTo(
+            ImmutableSet.<String>of("B", "C", "D")));
+
+    // Add single-node cycle, C-C
+    //
+    //        ___
+    //        \ /
+    // A - B - C - D
+    //  \     /
+    //   +- E - F
+    graph.removeEdge("C", "B");
+    graph.addEdge("C", "C");
+    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+        CoreMatchers.<Set<String>>equalTo(
+            ImmutableSet.<String>of("C", "D")));
+
+    // Empty graph is not cyclic.
+    graph.removeAllVertices(graph.vertexSet());
+    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
+        CoreMatchers.<Set<String>>equalTo(ImmutableSet.<String>of()));
+  }
+
+  /** Unit test for
+   * {@link net.hydromatic.optiq.util.graph.BreadthFirstIterator}. */
+  @Test public void testBreadthFirstIterator() {
+    DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    assertThat(getA(graph, "A"),
+        CoreMatchers.<List<String>>equalTo(
+            ImmutableList.of("A", "B", "E", "C", "F", "D")));
+  }
+
+  private List<String> getA(DefaultDirectedGraph<String, DefaultEdge> graph,
+      String root) {
+    final List<String> list = new ArrayList<String>();
+    for (String s : BreadthFirstIterator.of(graph, root)) {
+      list.add(s);
+    }
+    return list;
+  }
+
 }
 
 // End DirectedGraphTest.java

@@ -17,21 +17,49 @@
 */
 package net.hydromatic.optiq.util.graph;
 
+import org.eigenbase.util.ChunkList;
+
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Iterates over the vertices in a directed graph in breadth-first order.
  */
-public class BreadthFirstIterator<V, E> implements Iterator<V> {
+public class BreadthFirstIterator<V, E extends DefaultEdge>
+    implements Iterator<V> {
+  private final DirectedGraph<V, E> graph;
+  private final List<V> list = new ChunkList<V>();
+  private final Set<V> set = new HashSet<V>();
+
   public BreadthFirstIterator(DirectedGraph<V, E> graph, V root) {
+    this.graph = graph;
+    this.list.add(root);
+  }
+
+  public static <V, E extends DefaultEdge> Iterable<V> of(
+      final DirectedGraph<V, E> graph, final V root) {
+    return new Iterable<V>() {
+      public Iterator<V> iterator() {
+        return new BreadthFirstIterator<V, E>(graph, root);
+      }
+    };
   }
 
   public boolean hasNext() {
-    throw new UnsupportedOperationException();
+    return !list.isEmpty();
   }
 
   public V next() {
-    throw new UnsupportedOperationException();
+    V v = list.remove(0);
+    for (E e : graph.getOutwardEdges(v)) {
+      @SuppressWarnings("unchecked") V target = (V) e.target;
+      if (set.add(target)) {
+        list.add(target);
+      }
+    }
+    return v;
   }
 
   public void remove() {

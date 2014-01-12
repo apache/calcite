@@ -67,8 +67,7 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
   }
 
   public V next() {
-    V v = empties.get(0);
-    empties.remove(0);
+    V v = empties.remove(0);
     for (E o : graph.vertexMap.get(v).outEdges) {
       //noinspection unchecked
       final V target = (V) o.target;
@@ -82,6 +81,13 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
 
   public void remove() {
     throw new UnsupportedOperationException();
+  }
+
+  Set<V> findCycles() {
+    while (hasNext()) {
+      next();
+    }
+    return countMap.keySet();
   }
 }
 
