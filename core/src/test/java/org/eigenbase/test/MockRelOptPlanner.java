@@ -21,7 +21,10 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
+import org.eigenbase.rex.RexExecutorImpl;
 import org.eigenbase.util.Pair;
+
+import net.hydromatic.optiq.Schemas;
 
 /**
  * MockRelOptPlanner is a mock implementation of the {@link RelOptPlanner}
@@ -37,6 +40,12 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
   private RelNode transformationResult;
 
   //~ Methods ----------------------------------------------------------------
+
+  /** Creates MockRelOptPlanner. */
+  public MockRelOptPlanner() {
+    super();
+    setExecutor(new RexExecutorImpl(Schemas.createDataContext(null)));
+  }
 
   // implement RelOptPlanner
   public void setRoot(RelNode rel) {
