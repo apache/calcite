@@ -18,7 +18,10 @@
 package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.linq4j.function.Functions;
+
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.impl.StarTable;
+import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.runtime.Bindable;
@@ -30,6 +33,7 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.relopt.hep.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.rex.RexBuilder;
+import org.eigenbase.rex.RexExecutorImpl;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.sql2rel.SqlToRelConverter;
@@ -37,6 +41,7 @@ import org.eigenbase.trace.EigenbaseTimingTracer;
 import org.eigenbase.trace.EigenbaseTrace;
 
 import java.lang.reflect.Type;
+import java.sql.Connection;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -46,6 +51,8 @@ import java.util.logging.Logger;
  */
 public abstract class Prepare {
   protected static final Logger tracer = EigenbaseTrace.getStatementTracer();
+
+  protected final OptiqPrepare.Context context;
   protected final CatalogReader catalogReader;
   protected String queryString = null;
   /**
@@ -58,7 +65,10 @@ public abstract class Prepare {
 
   public static boolean TRIM = false; // temporary. for testing.
 
-  public Prepare(CatalogReader catalogReader, Convention resultConvention) {
+  public Prepare(OptiqPrepare.Context context, CatalogReader catalogReader,
+      Convention resultConvention) {
+    assert context != null;
+    this.context = context;
     this.catalogReader = catalogReader;
     this.resultConvention = resultConvention;
   }
@@ -83,6 +93,9 @@ public abstract class Prepare {
   protected RelNode optimize(RelDataType logicalRowType, RelNode rootRel,
       List<Materialization> materializations) {
     final RelOptPlanner planner = rootRel.getCluster().getPlanner();
+
+    final DataContext dataContext = context.getDataContext();
+    planner.setExecutor(new RexExecutorImpl(dataContext));
 
     // Allow each rel to register its own rules.
     RelVisitor visitor = new RelVisitor() {

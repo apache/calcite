@@ -87,6 +87,8 @@ public interface OptiqPrepare {
 
     /** Returns the spark handler. Never null. */
     SparkHandler spark();
+
+    DataContext getDataContext();
   }
 
   /** Callback to register Spark as the main engine. */

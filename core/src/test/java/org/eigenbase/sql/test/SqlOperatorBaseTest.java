@@ -261,8 +261,6 @@ public abstract class SqlOperatorBaseTest {
    * For development. Put any old code in here.
    */
   @Test public void testDummy() {
-    //testNullIfOperatorIntervals();
-    //testCastIntervalToInterval();
   }
 
   @Test public void testBetween() {
@@ -4113,14 +4111,10 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testItemOp() {
     tester.setFor(SqlStdOperatorTable.itemOp);
-    tester.checkScalar(
-        "ARRAY ['foo', 'bar'][1]", "foo", "CHAR(3) NOT NULL");
-    tester.checkScalar(
-        "ARRAY ['foo', 'bar'][0]", null, "CHAR(3) NOT NULL");
-    tester.checkScalar(
-        "ARRAY ['foo', 'bar'][2]", "bar", "CHAR(3) NOT NULL");
-    tester.checkScalar(
-        "ARRAY ['foo', 'bar'][3]", null, "CHAR(3) NOT NULL");
+    tester.checkScalar("ARRAY ['foo', 'bar'][1]", "foo", "CHAR(3)");
+    tester.checkScalar("ARRAY ['foo', 'bar'][0]", null, "CHAR(3)");
+    tester.checkScalar("ARRAY ['foo', 'bar'][2]", "bar", "CHAR(3)");
+    tester.checkScalar("ARRAY ['foo', 'bar'][3]", null, "CHAR(3)");
     tester.checkNull(
         "ARRAY ['foo', 'bar'][1 + CAST(NULL AS INTEGER)]");
     tester.checkFails(
@@ -4131,14 +4125,12 @@ public abstract class SqlOperatorBaseTest {
 
     // Array of INTEGER NOT NULL is interesting because we might be tempted
     // to represent the result as Java "int".
-    tester.checkScalar(
-        "ARRAY [2, 4, 6][2]", "4", "INTEGER NOT NULL");
-    tester.checkScalar(
-        "ARRAY [2, 4, 6][4]", null, "INTEGER NOT NULL");
+    tester.checkScalar("ARRAY [2, 4, 6][2]", "4", "INTEGER");
+    tester.checkScalar("ARRAY [2, 4, 6][4]", null, "INTEGER");
 
     // Map item
     tester.checkScalarExact(
-        "map['foo', 3, 'bar', 7]['bar']", "INTEGER NOT NULL", "7");
+        "map['foo', 3, 'bar', 7]['bar']", "INTEGER", "7");
     tester.checkScalarExact(
         "map['foo', CAST(NULL AS INTEGER), 'bar', 7]['bar']", "INTEGER",
         "7");

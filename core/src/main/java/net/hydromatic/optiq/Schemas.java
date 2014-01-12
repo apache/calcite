@@ -212,8 +212,8 @@ public final class Schemas {
         clazz, expression);
   }
 
-  public static DataContext createDataContext(Connection schema) {
-    return new DummyDataContext((OptiqConnection) schema);
+  public static DataContext createDataContext(Connection connection) {
+    return new DummyDataContext((OptiqConnection) connection);
   }
 
   /** Returns a {@link Queryable}, given a fully-qualified table name. */
@@ -265,17 +265,19 @@ public final class Schemas {
       final List<String> schemaPath) {
     if (connection == null) {
       final OptiqPrepare.Context context0 = OptiqPrepare.Dummy.peek();
-      return makeContext(context0.config(), context0.getTypeFactory(), schema,
-          schemaPath);
+      return makeContext(context0.config(), context0.getTypeFactory(),
+          context0.getDataContext(), schema, schemaPath);
     } else {
       return makeContext(connection.config(), connection.getTypeFactory(),
-          schema, schemaPath);
+          createDataContext(connection), schema, schemaPath);
     }
   }
 
   private static OptiqPrepare.Context makeContext(
       final ConnectionConfig connectionConfig,
-      final JavaTypeFactory typeFactory, final OptiqSchema schema,
+      final JavaTypeFactory typeFactory,
+      final DataContext dataContext,
+      final OptiqSchema schema,
       final List<String> schemaPath) {
     return new OptiqPrepare.Context() {
       public JavaTypeFactory getTypeFactory() {
@@ -297,6 +299,10 @@ public final class Schemas {
 
       public ConnectionConfig config() {
         return connectionConfig;
+      }
+
+      public DataContext getDataContext() {
+        return dataContext;
       }
 
       public OptiqPrepare.SparkHandler spark() {

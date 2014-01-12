@@ -246,10 +246,33 @@ public class RexImpTable {
         public Expression implement(
             RexToLixTranslator translator, RexCall call, NullAs nullAs) {
           final RexCall call2 = call2(false, translator, call);
+          final NullAs nullAs2 = nullAs == NullAs.FALSE ? NullAs.NULL : nullAs;
           final List<Expression> expressions =
-              translator.translateList(
-                  call2.getOperands(), nullAs);
-          return Expressions.foldAnd(expressions);
+              translator.translateList(call2.getOperands(), nullAs2);
+          switch (nullAs) {
+          case NOT_POSSIBLE:
+          case TRUE:
+            return Expressions.foldAnd(expressions);
+          }
+          final Expression t0 = expressions.get(0);
+          final Expression t1 = expressions.get(1);
+          if (!nullable(call2, 0) && !nullable(call2, 1)) {
+            return Expressions.andAlso(t0, t1);
+          }
+          return optimize(
+              Expressions.condition(
+                  optimize(Expressions.equal(t0, NULL_EXPR)),
+                  Expressions.condition(
+                      optimize(
+                          Expressions.orElse(
+                              Expressions.equal(t1, NULL_EXPR),
+                              t1)),
+                      NULL_EXPR,
+                      BOXED_FALSE_EXPR),
+                  Expressions.condition(
+                      Expressions.unbox(t0),
+                      Expressions.box(t1),
+                      BOXED_FALSE_EXPR)));
         }
       };
     case OR:
@@ -1118,6 +1141,14 @@ public class RexImpTable {
           return binary.expression0.equals(binary.expression1)
               ? TRUE_EXPR : FALSE_EXPR;
         }
+        if (isConstantNull(binary.expression1)
+            && Primitive.is(binary.expression0.getType())) {
+          return FALSE_EXPR;
+        }
+        if (isConstantNull(binary.expression0)
+            && Primitive.is(binary.expression1.getType())) {
+          return FALSE_EXPR;
+        }
         break;
       case NotEqual:
         if (binary.expression0 instanceof ConstantExpression
@@ -1125,9 +1156,22 @@ public class RexImpTable {
           return !binary.expression0.equals(binary.expression1)
               ? TRUE_EXPR : FALSE_EXPR;
         }
+        if (isConstantNull(binary.expression1)
+            && Primitive.is(binary.expression0.getType())) {
+          return TRUE_EXPR;
+        }
+        if (isConstantNull(binary.expression0)
+            && Primitive.is(binary.expression1.getType())) {
+          return TRUE_EXPR;
+        }
         break;
       }
       return binary;
+    }
+
+    private boolean isConstantNull(Expression expression) {
+      return expression instanceof ConstantExpression
+          && ((ConstantExpression) expression).value == null;
     }
 
     /** Returns whether an expression always evaluates to true or false.

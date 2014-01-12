@@ -20,6 +20,7 @@ package org.eigenbase.sql.fun;
 import java.util.List;
 
 import org.eigenbase.reltype.RelDataType;
+import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.SqlParserUtil;
 import org.eigenbase.sql.type.*;
@@ -112,14 +113,17 @@ class SqlItemOperator extends SqlSpecialOperator {
 
   @Override
   public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataType operandType = opBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {
     case ARRAY:
-      return operandType.getComponentType();
+      return typeFactory.createTypeWithNullability(
+          operandType.getComponentType(), true);
     case MAP:
-      return operandType.getValueType();
+      return typeFactory.createTypeWithNullability(operandType.getValueType(),
+          true);
     case ANY:
-      return opBinding.getTypeFactory().createSqlType(SqlTypeName.ANY);
+      return typeFactory.createSqlType(SqlTypeName.ANY);
     default:
       throw new AssertionError();
     }

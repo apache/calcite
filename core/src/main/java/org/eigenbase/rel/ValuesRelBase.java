@@ -113,9 +113,8 @@ public abstract class ValuesRelBase extends AbstractRelNode {
         // overflow, rounding, and padding/truncation must already have
         // been dealt with.
         if (!RexLiteral.isNullLiteral(literal)) {
-          assert (SqlTypeUtil.canAssignFrom(
-              fieldType,
-              literal.getType()));
+          assert SqlTypeUtil.canAssignFrom(fieldType, literal.getType())
+              : "to " + fieldType + " from " + literal;
         }
       }
     }

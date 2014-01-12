@@ -692,7 +692,8 @@ public abstract class SqlTypeUtil {
       return false;
     }
 
-    return toType.getFamily() == fromType.getFamily();
+    return toType.getFamily() == SqlTypeFamily.ANY
+        || toType.getFamily() == fromType.getFamily();
   }
 
   /**

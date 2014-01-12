@@ -23,6 +23,8 @@ import java.util.regex.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.metadata.*;
+import org.eigenbase.rex.RexBuilder;
+import org.eigenbase.rex.RexNode;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 
@@ -289,6 +291,19 @@ public interface RelOptPlanner {
    * @return Empty trait set
    */
   RelTraitSet emptyTraitSet();
+
+  /** Sets the object that can execute scalar expressions. */
+  void setExecutor(Executor executor);
+
+  Executor getExecutor();
+
+  interface Executor {
+    /**
+     * Reduces expressions, and writes their results into {@code reducedValues}.
+     */
+    void execute(RexBuilder rexBuilder, List<RexNode> constExps,
+        List<RexNode> reducedValues);
+  }
 
   /**
    * Thrown by {@link org.eigenbase.relopt.RelOptPlanner#findBestExp()}.

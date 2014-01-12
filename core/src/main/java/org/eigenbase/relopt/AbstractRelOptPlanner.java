@@ -55,6 +55,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   private final Set<Class<? extends RelNode>> classes =
       new HashSet<Class<? extends RelNode>>();
 
+  private Executor executor;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -237,6 +239,14 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   public List<RelTraitDef> getRelTraitDefs() {
     return Collections.emptyList();
+  }
+
+  public void setExecutor(Executor executor) {
+    this.executor = executor;
+  }
+
+  public Executor getExecutor() {
+    return executor;
   }
 
   /**

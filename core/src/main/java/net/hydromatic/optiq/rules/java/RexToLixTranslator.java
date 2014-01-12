@@ -308,17 +308,22 @@ public class RexToLixTranslator {
       return translateParameter((RexDynamicParam) expr, nullAs);
     default:
       if (expr instanceof RexCall) {
-        final RexCall call = (RexCall) expr;
-        final SqlOperator operator = call.getOperator();
-        RexImpTable.CallImplementor implementor =
-            RexImpTable.INSTANCE.get(operator);
-        if (implementor != null) {
-          return implementor.implement(this, call, nullAs);
-        }
+        return translateCall((RexCall) expr, nullAs);
       }
       throw new RuntimeException(
           "cannot translate expression " + expr);
     }
+  }
+
+  /** Translates a call to an operator or function. */
+  private Expression translateCall(RexCall call, RexImpTable.NullAs nullAs) {
+    final SqlOperator operator = call.getOperator();
+    RexImpTable.CallImplementor implementor =
+        RexImpTable.INSTANCE.get(operator);
+    if (implementor == null) {
+      throw new RuntimeException("cannot translate call " + call);
+    }
+    return implementor.implement(this, call, nullAs);
   }
 
   /** Translates a parameter. */

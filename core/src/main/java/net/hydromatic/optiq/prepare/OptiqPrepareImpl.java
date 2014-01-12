@@ -174,6 +174,17 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(PushJoinThroughJoinRule.RIGHT);
     planner.addRule(PushJoinThroughJoinRule.LEFT);
     planner.addRule(PushSortPastProjectRule.INSTANCE);
+
+    // Change the below to enable constant-reduction.
+    if (false) {
+      planner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
+      planner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
+      planner.addRule(ReduceExpressionsRule.CALC_INSTANCE);
+      planner.addRule(ReduceValuesRule.FILTER_INSTANCE);
+      planner.addRule(ReduceValuesRule.PROJECT_FILTER_INSTANCE);
+      planner.addRule(ReduceValuesRule.PROJECT_INSTANCE);
+    }
+
     context.spark().registerRules(planner);
     return planner;
   }
@@ -491,7 +502,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       implements RelOptTable.ViewExpander {
     private final RelOptPlanner planner;
     private final RexBuilder rexBuilder;
-    private final Context context;
     protected final OptiqSchema schema;
     protected final RelDataTypeFactory typeFactory;
     private final EnumerableRel.Prefer prefer;
@@ -506,9 +516,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         EnumerableRel.Prefer prefer,
         RelOptPlanner planner,
         Convention resultConvention) {
-      super(catalogReader, resultConvention);
-      assert context != null;
-      this.context = context;
+      super(context, catalogReader, resultConvention);
       this.schema = schema;
       this.prefer = prefer;
       this.planner = planner;
@@ -683,7 +691,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       } catch (Exception e) {
         throw Helper.INSTANCE.wrap(
             "Error while compiling generated Java code:\n"
-                + s,
+            + s,
             e);
       }
 
@@ -968,7 +976,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       default:
         throw new UnsupportedOperationException(
             "unknown expression type " + expression.getNodeType() + " "
-                + expression);
+            + expression);
       }
     }
 

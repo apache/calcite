@@ -558,8 +558,7 @@ public class RexBuilder {
             SqlTypeName.DECIMAL,
             scale + intervalType.getPrecision(),
             scale);
-    RexNode value = decodeIntervalOrDecimal(
-        ensureType(decimalType, exp, true));
+    RexNode value = decodeIntervalOrDecimal(ensureType(decimalType, exp, true));
     if (multiplier.longValue() != 1) {
       value = makeCall(
           SqlStdOperatorTable.multiplyOperator,
@@ -592,8 +591,7 @@ public class RexBuilder {
         typeFactory.createSqlType(
             SqlTypeName.BIGINT);
     RexNode cast = ensureType(bigintType, value, true);
-    return makeReinterpretCast(
-        type, cast, makeLiteral(checkOverflow));
+    return makeReinterpretCast(type, cast, makeLiteral(checkOverflow));
   }
 
   /**
@@ -605,9 +603,7 @@ public class RexBuilder {
   public RexNode decodeIntervalOrDecimal(RexNode node) {
     assert (SqlTypeUtil.isDecimal(node.getType())
         || SqlTypeUtil.isInterval(node.getType()));
-    RelDataType bigintType =
-        typeFactory.createSqlType(
-            SqlTypeName.BIGINT);
+    RelDataType bigintType = typeFactory.createSqlType(SqlTypeName.BIGINT);
     return makeReinterpretCast(
         matchNullability(bigintType, node), node, makeLiteral(false));
   }
@@ -1124,15 +1120,16 @@ public class RexBuilder {
    * Creates a literal of a given type. The value is assumed to be
    * compatible with the type.
    *
+   * @param value     Value
    * @param type      Type
    * @param allowCast Whether to allow a cast. If false, value is always a
    *                  {@link RexLiteral} but may not be the exact type
    * @return Simple literal, or cast simple literal
    */
-  public RexNode makeLiteral(Comparable value, RelDataType type,
+  public RexNode makeLiteral(Object value, RelDataType type,
       boolean allowCast) {
     if (value == null) {
-      return makeNullLiteral(type.getSqlTypeName());
+      return makeCast(type, constantNull);
     }
     if (type.isNullable()) {
       final RelDataType typeNotNull =
@@ -1140,11 +1137,14 @@ public class RexBuilder {
       RexNode literalNotNull = makeLiteral(value, typeNotNull, allowCast);
       return makeAbstractCast(type, literalNotNull);
     }
+    value = clean(value, type);
     RexLiteral literal;
+    final List<RexNode> operands;
     switch (type.getSqlTypeName()) {
     case CHAR:
       return makeCharLiteral(
-          new NlsString(rpad((String) value, type.getPrecision()), null, null));
+          new NlsString(
+              padRight((String) value, type.getPrecision()), null, null));
     case VARCHAR:
       literal = makeCharLiteral(new NlsString((String) value, null, null));
       if (allowCast) {
@@ -1153,9 +1153,10 @@ public class RexBuilder {
         return literal;
       }
     case BINARY:
-      return makeBinaryLiteral(rpad(toByteString(value), type.getPrecision()));
+      return makeBinaryLiteral(
+          padRight((ByteString) value, type.getPrecision()));
     case VARBINARY:
-      literal = makeBinaryLiteral(toByteString(value));
+      literal = makeBinaryLiteral((ByteString) value);
       if (allowCast) {
         return makeCast(type, literal);
       } else {
@@ -1166,11 +1167,11 @@ public class RexBuilder {
     case INTEGER:
     case BIGINT:
     case DECIMAL:
-      return makeExactLiteral(toBigDecimal(value), type);
+      return makeExactLiteral((BigDecimal) value, type);
     case FLOAT:
     case REAL:
     case DOUBLE:
-      return makeApproxLiteral(toBigDecimal(value), type);
+      return makeApproxLiteral((BigDecimal) value, type);
     case BOOLEAN:
       return (Boolean) value ? booleanTrue : booleanFalse;
     case TIME:
@@ -1179,36 +1180,124 @@ public class RexBuilder {
       return makeDateLiteral((Calendar) value);
     case TIMESTAMP:
       return makeTimestampLiteral((Calendar) value, type.getPrecision());
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_DAY_TIME:
+      return makeIntervalLiteral((BigDecimal) value,
+          type.getIntervalQualifier());
+    case MAP:
+      final MapSqlType mapType = (MapSqlType) type;
+      @SuppressWarnings("unchecked")
+      final Map<Object, Object> map = (Map) value;
+      operands = new ArrayList<RexNode>();
+      for (Map.Entry<Object, Object> entry : map.entrySet()) {
+        operands.add(
+            makeLiteral(entry.getKey(), mapType.getKeyType(), allowCast));
+        operands.add(
+            makeLiteral(entry.getValue(), mapType.getValueType(), allowCast));
+      }
+      return makeCall(SqlStdOperatorTable.mapValueConstructor, operands);
+    case ARRAY:
+      final ArraySqlType arrayType = (ArraySqlType) type;
+      @SuppressWarnings("unchecked")
+      final List<Object> listValue = (List) value;
+      operands = new ArrayList<RexNode>();
+      for (Object entry : listValue) {
+        operands.add(
+            makeLiteral(entry, arrayType.getComponentType(), allowCast));
+      }
+      return makeCall(SqlStdOperatorTable.arrayValueConstructor, operands);
+    case ANY:
+      return makeLiteral(value, guessType(value), allowCast);
     default:
       throw Util.unexpected(type.getSqlTypeName());
     }
   }
 
-  private static BigDecimal toBigDecimal(Object value) {
-    if (value instanceof BigDecimal) {
-      return (BigDecimal) value;
-    } else if (value instanceof Double || value instanceof Float) {
-      return new BigDecimal(((Number) value).doubleValue());
-    } else {
-      return new BigDecimal(((Number) value).longValue());
+  /** Converts the type of a value to comply with
+   * {@link org.eigenbase.rex.RexLiteral#valueMatchesType}. */
+  private static Object clean(Object o, RelDataType type) {
+    if (o == null) {
+      return null;
+    }
+    final Calendar calendar;
+    switch (type.getSqlTypeName()) {
+    case TINYINT:
+    case SMALLINT:
+    case INTEGER:
+    case BIGINT:
+    case DECIMAL:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_DAY_TIME:
+      if (o instanceof BigDecimal) {
+        return o;
+      }
+      return new BigDecimal(((Number) o).longValue());
+    case FLOAT:
+    case REAL:
+    case DOUBLE:
+      if (o instanceof BigDecimal) {
+        return o;
+      }
+      return new BigDecimal(((Number) o).doubleValue());
+    case TIME:
+      if (o instanceof Calendar) {
+        return o;
+      }
+      calendar = Calendar.getInstance(DateTimeUtil.gmtZone);
+      calendar.setTimeInMillis((Integer) o);
+      return calendar;
+    case DATE:
+      if (o instanceof Calendar) {
+        return o;
+      }
+      calendar = Calendar.getInstance(DateTimeUtil.gmtZone);
+      calendar.setTimeInMillis(0);
+      calendar.add(Calendar.DAY_OF_YEAR, (Integer) o);
+      return calendar;
+    case TIMESTAMP:
+      if (o instanceof Calendar) {
+        return o;
+      }
+      calendar = Calendar.getInstance(DateTimeUtil.gmtZone);
+      calendar.setTimeInMillis((Long) o);
+      return calendar;
+    default:
+      return o;
     }
   }
 
-  private static ByteString toByteString(Object value) {
-    if (value instanceof byte[]) {
-      return new ByteString((byte[]) value);
+  private RelDataType guessType(Object value) {
+    if (value == null) {
+      return typeFactory.createSqlType(SqlTypeName.NULL);
     }
-    return (ByteString) value;
+    if (value instanceof Float || value instanceof Double) {
+      return typeFactory.createSqlType(SqlTypeName.DOUBLE);
+    }
+    if (value instanceof Number) {
+      return typeFactory.createSqlType(SqlTypeName.BIGINT);
+    }
+    if (value instanceof Boolean) {
+      return typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    }
+    if (value instanceof String) {
+      return typeFactory.createSqlType(SqlTypeName.CHAR,
+          ((String) value).length());
+    }
+    if (value instanceof ByteString) {
+      return typeFactory.createSqlType(SqlTypeName.BINARY,
+          ((ByteString) value).length());
+    }
+    throw new AssertionError("unknown type " + value.getClass());
   }
 
-  /** Returns a string padded with spaces to make it at least a given length, */
-  private static String rpad(String s, int length) {
+  /** Returns a string padded with spaces to make it at least a given length. */
+  private static String padRight(String s, int length) {
     return s + Util.spaces(Math.max(length - s.length(), 0));
   }
 
   /** Returns a byte-string padded with zero bytes to make it at least a given
    * length, */
-  private static ByteString rpad(ByteString s, int length) {
+  private static ByteString padRight(ByteString s, int length) {
     if (s.length() >= length) {
       return s;
     }

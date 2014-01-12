@@ -581,10 +581,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           injectImportanceBoost();
         }
 
-        if (!ruleQueue.hasNextMatch(phase)) {
-          break;
-        }
-
         if (tracer.isLoggable(Level.FINE)) {
           tracer.fine(
               "PLANNER = " + this
@@ -594,6 +590,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
 
         VolcanoRuleMatch match = ruleQueue.popMatch(phase);
+        if (match == null) {
+          break;
+        }
+
         assert match.getRule().matches(match);
         match.onMatch();
 

@@ -144,21 +144,6 @@ class RuleQueue {
   }
 
   /**
-   * Returns whether there is a rule match in the queue for the given phase.
-   *
-   * <p>Note that the VolcanoPlanner may still decide to reject rule matches
-   * which have become invalid, say if one of their operands belongs to an
-   * obsolete set or has importance=0.
-   *
-   * @throws NullPointerException if this method is called with a phase
-   *                              previously marked as completed via {@link
-   *                              #phaseCompleted(VolcanoPlannerPhase)}.
-   */
-  public boolean hasNextMatch(VolcanoPlannerPhase phase) {
-    return !matchListMap.get(phase).list.isEmpty();
-  }
-
-  /**
    * Recomputes the importance of the given RelSubset.
    *
    * @param subset RelSubset whose importance is to be recomputed
@@ -421,49 +406,70 @@ class RuleQueue {
   /**
    * Removes the rule match with the highest importance, and returns it.
    *
-   * @pre hasNextMatch()
+   * <p>Returns {@code null} if there are no more matches.</p>
+   *
+   * <p>Note that the VolcanoPlanner may still decide to reject rule matches
+   * which have become invalid, say if one of their operands belongs to an
+   * obsolete set or has importance=0.
+   *
+   * @throws java.lang.AssertionError if this method is called with a phase
+   *                              previously marked as completed via
+   *                              {@link #phaseCompleted(VolcanoPlannerPhase)}.
    */
   VolcanoRuleMatch popMatch(VolcanoPlannerPhase phase) {
     dump();
-    assert (hasNextMatch(phase));
 
     PhaseMatchList phaseMatchList = matchListMap.get(phase);
-    assert (phaseMatchList != null) : "Used match list for phase " + phase
-        + " after phase complete";
+    if ((phaseMatchList == null)) {
+      throw new AssertionError("Used match list for phase " + phase
+          + " after phase complete");
+    }
 
-    List<VolcanoRuleMatch> matchList = phaseMatchList.list;
-
+    final List<VolcanoRuleMatch> matchList = phaseMatchList.list;
     VolcanoRuleMatch match;
-    if (tracer.isLoggable(Level.FINEST)) {
-      Collections.sort(matchList, ruleMatchImportanceComparator);
-      match = matchList.remove(0);
-
-      StringBuilder b = new StringBuilder();
-      b.append("Sorted rule queue:");
-      for (VolcanoRuleMatch match2 : matchList) {
-        final double importance = match2.computeImportance();
-        b.append("\n");
-        b.append(match2);
-        b.append(" importance ");
-        b.append(importance);
+    for (;;) {
+      if (matchList.isEmpty()) {
+        return null;
       }
+      if (tracer.isLoggable(Level.FINEST)) {
+        Collections.sort(matchList, ruleMatchImportanceComparator);
+        match = matchList.remove(0);
 
-      tracer.finest(b.toString());
-    } else {
-      // If we're not tracing, it's not worth the effort of sorting the
-      // list to find the minimum.
-      match = null;
-      int bestPos = -1;
-      int i = -1;
-      for (VolcanoRuleMatch match2 : matchList) {
-        ++i;
-        if (match == null
-            || ruleMatchImportanceComparator.compare(match2, match) < 0) {
-          bestPos = i;
-          match = match2;
+        StringBuilder b = new StringBuilder();
+        b.append("Sorted rule queue:");
+        for (VolcanoRuleMatch match2 : matchList) {
+          final double importance = match2.computeImportance();
+          b.append("\n");
+          b.append(match2);
+          b.append(" importance ");
+          b.append(importance);
         }
+
+        tracer.finest(b.toString());
+      } else {
+        // If we're not tracing, it's not worth the effort of sorting the
+        // list to find the minimum.
+        match = null;
+        int bestPos = -1;
+        int i = -1;
+        for (VolcanoRuleMatch match2 : matchList) {
+          ++i;
+          if (match == null
+              || ruleMatchImportanceComparator.compare(match2, match) < 0) {
+            bestPos = i;
+            match = match2;
+          }
+        }
+        match = matchList.remove(bestPos);
       }
-      match = matchList.remove(bestPos);
+
+      if (skipMatch(match)) {
+        if (tracer.isLoggable(Level.FINE)) {
+          tracer.fine("Skip match: " + match);
+        }
+      } else {
+        break;
+      }
     }
 
     // A rule match's digest is composed of the operand RelNodes' digests,
@@ -479,6 +485,24 @@ class RuleQueue {
       tracer.fine("Pop match: " + match);
     }
     return match;
+  }
+
+  /** Returns whether to skip a match. This happens if any of the
+   * {@link RelNode}s have importance zero. */
+  private boolean skipMatch(VolcanoRuleMatch match) {
+    final List<RelSubset> subsets = new ArrayList<RelSubset>();
+    for (RelNode rel : match.rels) {
+      Double importance = planner.relImportances.get(rel);
+      if (importance != null && importance == 0d) {
+        return true;
+      }
+      subsets.add(planner.getSubset(rel));
+    }
+    if (!Util.isDistinct(subsets)) {
+      // If the same subset appears more than once in the match, it is gnarly.
+      return true;
+    }
+    return false;
   }
 
   /**

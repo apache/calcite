@@ -321,12 +321,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     }
 
     // Compute the values they reduce to.
-    Executor executor = getExecutor(rel);
+    RelOptPlanner.Executor executor =
+        rel.getCluster().getPlanner().getExecutor();
     List<RexNode> reducedValues = new ArrayList<RexNode>();
-    boolean failed = executor.execute(rexBuilder, constExps, reducedValues);
-    if (failed) {
-      return false;
-    }
+    executor.execute(rexBuilder, constExps, reducedValues);
 
     // For ProjectRel, we have to be sure to preserve the result
     // types, so always cast regardless of the expression type.
@@ -349,10 +347,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
             addCasts);
     replacer.mutate(expList);
     return true;
-  }
-
-  static Executor getExecutor(RelNode rel) {
-    return new RexExecutorImpl();
   }
 
   /**
@@ -566,7 +560,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       } else if (call.getOperator().isDynamicFunction()) {
         // We can reduce the call to a constant, but we can't
         // cache the plan if the function is dynamic
-        assert false; // TODO:
+
+        // TODO: Flag that the plan cannot be cached
       }
 
       // Row operator itself can't be reduced to a literal, but if
@@ -656,13 +651,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     }
   }
 
-  public interface Executor {
-    /**
-     * Reduces expressions. Returns whether failed.
-     */
-    boolean execute(RexBuilder rexBuilder, List<RexNode> constExps,
-        List<RexNode> reducedValues);
-  }
 }
 
 // End ReduceExpressionsRule.java

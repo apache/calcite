@@ -20,19 +20,22 @@ package org.eigenbase.rex;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
 
-import org.eigenbase.rel.rules.ReduceExpressionsRule;
+import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util14.DateTimeUtil;
 
 import net.hydromatic.linq4j.expressions.*;
-import net.hydromatic.linq4j.function.Function0;
+import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.BuiltinMethod;
+import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
+import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.rules.java.RexToLixTranslator;
 import net.hydromatic.optiq.runtime.*;
 
@@ -45,8 +48,7 @@ import org.codehaus.janino.Scanner;
 /**
 * Evaluates a {@link RexNode} expression.
 */
-public class RexExecutorImpl implements ReduceExpressionsRule.Executor {
-
+public class RexExecutorImpl implements RelOptPlanner.Executor {
   private static final RexToLixTranslator.InputGetter BAD_GETTER =
       new RexToLixTranslator.InputGetter() {
         public Expression field(BlockBuilder list, int index) {
@@ -54,7 +56,13 @@ public class RexExecutorImpl implements ReduceExpressionsRule.Executor {
         }
       };
 
-  public boolean execute(RexBuilder rexBuilder, List<RexNode> constExps,
+  private final DataContext dataContext;
+
+  public RexExecutorImpl(DataContext dataContext) {
+    this.dataContext = dataContext;
+  }
+
+  public void execute(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
     final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
     final RelDataType emptyRowType = typeFactory.builder().build();
@@ -66,6 +74,13 @@ public class RexExecutorImpl implements ReduceExpressionsRule.Executor {
     }
     final JavaTypeFactoryImpl javaTypeFactory = new JavaTypeFactoryImpl();
     final BlockBuilder blockBuilder = new BlockBuilder();
+    final ParameterExpression _root0 =
+        Expressions.parameter(Object.class, "root0");
+    final ParameterExpression _root = DataContext.ROOT;
+    blockBuilder.add(
+        Expressions.declare(
+            Modifier.FINAL, _root,
+            Expressions.convert_(_root0, DataContext.class)));
     final List<Expression> expressions =
         RexToLixTranslator.translateProjects(programBuilder.getProgram(),
         javaTypeFactory, blockBuilder, BAD_GETTER);
@@ -74,27 +89,27 @@ public class RexExecutorImpl implements ReduceExpressionsRule.Executor {
             Expressions.newArrayInit(Object[].class, expressions)));
     final MethodDeclaration methodDecl =
         Expressions.methodDecl(Modifier.PUBLIC, Object[].class,
-            BuiltinMethod.FUNCTION0_APPLY.method.getName(),
-            ImmutableList.<ParameterExpression>of(), blockBuilder.toBlock());
+            BuiltinMethod.FUNCTION1_APPLY.method.getName(),
+            ImmutableList.of(_root0), blockBuilder.toBlock());
     String s = Expressions.toString(methodDecl);
+    if (OptiqPrepareImpl.DEBUG) {
+      System.out.println(s);
+    }
     try {
       //noinspection unchecked
-      Function0<Object[]> function =
-          (Function0) ClassBodyEvaluator.createFastClassBodyEvaluator(
+      Function1<DataContext, Object[]> function =
+          (Function1) ClassBodyEvaluator.createFastClassBodyEvaluator(
               new Scanner(null, new StringReader(s)),
               "Reducer",
               Utilities.class,
-              new Class[]{Function0.class},
+              new Class[]{Function1.class},
               getClass().getClassLoader());
-      Object[] values = function.apply();
+      Object[] values = function.apply(dataContext);
       assert values.length == constExps.size();
       final List<Object> valueList = Arrays.asList(values);
       for (Pair<RexNode, Object> value : Pair.zip(constExps, valueList)) {
-        final Comparable comparable = (Comparable) value.right;
         reducedValues.add(
-            rexBuilder.makeLiteral(
-                comparable,
-                value.left.getType(), true));
+            rexBuilder.makeLiteral(value.right, value.left.getType(), true));
       }
       Hook.EXPRESSION_REDUCER.run(Pair.of(s, values));
     } catch (CompileException e) {
@@ -102,7 +117,6 @@ public class RexExecutorImpl implements ReduceExpressionsRule.Executor {
     } catch (IOException e) {
       throw new RuntimeException("While evaluating " + constExps, e);
     }
-    return false;
   }
 }
 

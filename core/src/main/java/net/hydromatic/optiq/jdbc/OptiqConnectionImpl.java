@@ -351,6 +351,10 @@ abstract class OptiqConnectionImpl
       return connection.config();
     }
 
+    public DataContext getDataContext() {
+      return connection.createDataContext(ImmutableList.of());
+    }
+
     public OptiqPrepare.SparkHandler spark() {
       return OptiqPrepare.Dummy.getSparkHandler();
     }
