@@ -28,7 +28,7 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.util.*;
 import org.eigenbase.test.*;
 
-import org.junit.Test;
+import net.hydromatic.linq4j.function.Function1;
 
 import net.hydromatic.optiq.runtime.FlatLists;
 import net.hydromatic.optiq.util.BitSets;
@@ -36,6 +36,8 @@ import net.hydromatic.optiq.util.CompositeMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
+
+import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
@@ -1157,6 +1159,38 @@ public class UtilTest {
     assertThat(Util.commaList(ImmutableList.of(2, 3)), equalTo("2, 3"));
     assertThat(Util.commaList(Arrays.asList(2, null, 3)),
         equalTo("2, null, 3"));
+  }
+
+  /** Benchmark for {@link Util#isDistinct}. Has determined that map-based
+   * implementation is better than nested loops implementation if list is larger
+   * than about 15. */
+  @Test public void testIsDistinctBenchmark() {
+    // Run a much quicker form of the test during regular testing.
+    final int limit = Benchmark.enabled() ? 10000000 : 10;
+    for (int i = 0; i < 30; i ++) {
+      final int size = i;
+      new Benchmark("isDistinct " + i + " (set)",
+          new Function1<Benchmark.Statistician, Void>() {
+            public Void apply(Benchmark.Statistician statistician) {
+              final Random random = new Random();
+              final List<Integer> list = new ArrayList<Integer>();
+              for (int k = 0; k < size; k++) {
+                list.add(random.nextInt(size * size));
+              }
+              long nanos = System.nanoTime();
+              int n = 0;
+              for (int j = 0; j < limit; j++) {
+                if (Util.isDistinct(list)) {
+                  ++n;
+                }
+              }
+              statistician.record(nanos);
+              Util.discard(n);
+              return null;
+            }
+          },
+          5).run();
+    }
   }
 
   //~ Inner Classes ----------------------------------------------------------

@@ -17,6 +17,7 @@
 */
 package org.eigenbase.util;
 
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,7 +57,7 @@ public class Benchmark {
   static long printDuration(String desc, long t0) {
     final long t1 = System.nanoTime();
     final long duration = t1 - t0;
-    LOGGER.info(desc + " took " + duration + " nanos");
+    LOGGER.finer(desc + " took " + duration + " nanos");
     return duration;
   }
 
@@ -117,21 +118,16 @@ public class Benchmark {
         y += x * x;
       }
       final double stddev = Math.sqrt(y / count);
-      LOGGER.fine(
-          desc + ": " + (durations.size() == 0
-              ? "no runs"
-              : durations.get(0)
-                  + " first; "
-                  + avg
-                  + " +- "
-                  + stddev
-                  + "; "
-                  + coreDurations.get(0)
-                  + " min; "
-                  + coreDurations.get(coreDurations.size() - 1)
-                  + " max; "
-                  + durationsString
-                  + " nanos"));
+      if (durations.size() == 0) {
+        LOGGER.fine(MessageFormat.format("{0}: {1}", desc, "no runs"));
+      } else {
+        LOGGER.fine(
+            MessageFormat.format(
+                "{0}: {1} first; {2} +- {3}; {4} min; {5} max; {6} nanos",
+                desc,
+                durations.get(0), avg, stddev, coreDurations.get(0),
+                Util.last(coreDurations), durationsString));
+      }
     }
   }
 }

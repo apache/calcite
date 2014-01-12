@@ -2007,7 +2007,26 @@ public class Util {
    * Returns whether the elements of {@code list} are distinct.
    */
   public static <E> boolean isDistinct(List<E> list) {
-    final Map<E, Object> set = new HashMap<E, Object>(list.size());
+    final int size = list.size();
+    if (size < 2) {
+      // Lists of size 0 and 1 are always distinct.
+      return true;
+    }
+    if (size < 15) {
+      // For smaller lists, avoid the overhead of creating a set. Threshold
+      // determined empirically using UtilTest.testIsDistinctBenchmark.
+      for (int i = 1; i < size; i++) {
+        E e = list.get(i);
+        for (int j = i - 1; j >= 0; j--) {
+          E e1 = list.get(j);
+          if (equal(e, e1)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+    final Map<E, Object> set = new HashMap<E, Object>(size);
     for (E e : list) {
       if (set.put(e, "") != null) {
         return false;
