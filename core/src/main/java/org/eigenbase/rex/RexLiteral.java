@@ -112,8 +112,7 @@ import net.hydromatic.avatica.ByteString;
  * the SQL standard, and is not exposed to end-users. It is used to hold a flag,
  * such as the LEADING flag in a call to the function <code>
  * TRIM([LEADING|TRAILING|BOTH] chars FROM string)</code>.</td>
- * <td>A class which implements the {@link org.eigenbase.util14.Enum14.Value}
- * interface</td>
+ * <td>An enum class</td>
  * </tr>
  * </table>
  */
@@ -320,7 +319,7 @@ public class RexLiteral extends RexNode {
       pw.print("null");
       break;
     case SYMBOL:
-      assert value instanceof SqlLiteral.SqlSymbol;
+      assert value instanceof Enum;
       pw.print("FLAG(");
       pw.print(value);
       pw.print(")");
@@ -500,7 +499,7 @@ public class RexLiteral extends RexNode {
     case CHAR:
       return ((NlsString) value).getValue();
     case DECIMAL:
-      return new Long(((BigDecimal) value).unscaledValue().longValue());
+      return ((BigDecimal) value).unscaledValue().longValue();
     case DATE:
       return (int) (((Calendar) value).getTimeInMillis()
           / DateTimeUtil.MILLIS_PER_DAY);
@@ -508,7 +507,7 @@ public class RexLiteral extends RexNode {
       return (int) (((Calendar) value).getTimeInMillis()
           % DateTimeUtil.MILLIS_PER_DAY);
     case TIMESTAMP:
-      return new Long(((Calendar) value).getTimeInMillis());
+      return ((Calendar) value).getTimeInMillis();
     default:
       return value;
     }
@@ -529,7 +528,7 @@ public class RexLiteral extends RexNode {
   }
 
   public static boolean booleanValue(RexNode node) {
-    return ((Boolean) ((RexLiteral) node).value).booleanValue();
+    return (Boolean) ((RexLiteral) node).value;
   }
 
   public boolean isAlwaysTrue() {
@@ -591,7 +590,8 @@ public class RexLiteral extends RexNode {
   }
 
   public RexLiteral clone() {
-    return new RexLiteral(value, type, typeName);
+    // All fields are immutable, so there's no point in creating a copy.
+    return this;
   }
 
   private static boolean equals(

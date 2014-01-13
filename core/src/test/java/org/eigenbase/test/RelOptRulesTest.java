@@ -25,11 +25,12 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Unit test for rules in {@link org.eigenbase.rel} and subpackages.
+ * Unit test for rules in {@code org.eigenbase.rel} and subpackages.
  *
  * <p>As input, the test supplies a SQL statement and a single rule; the SQL is
- * translated into relational algebra and then fed into a {@link
- * org.eigenbase.relopt.hep.HepPlanner}. The planner fires the rule on every
+ * translated into relational algebra and then fed into a
+ * {@link org.eigenbase.relopt.hep.HepPlanner}. The planner fires the rule on
+ * every
  * pattern match in a depth-first left-to-right preorder traversal of the tree
  * for as long as the rule continues to succeed in applying its transform. (For
  * rules which call transformTo more than once, only the last result is used.)

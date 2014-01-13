@@ -43,6 +43,13 @@ public abstract class RexNode {
 
   public abstract RelDataType getType();
 
+  /** Returns a copy of this expression.
+   *
+   * <p>Expressions are immutable, so this method serves no purpose.</p>
+   *
+   * @deprecated Will be removed before 0.4.19.
+   * @see org.eigenbase.util.Bug#upgrade(String)
+   */
   public abstract RexNode clone();
 
   /**

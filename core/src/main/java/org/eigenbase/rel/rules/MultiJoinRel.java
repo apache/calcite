@@ -106,7 +106,7 @@ public final class MultiJoinRel extends AbstractRelNode {
     return new MultiJoinRel(
         getCluster(),
         inputs,
-        joinFilter.clone(),
+        joinFilter,
         rowType,
         isFullOuterJoin,
         outerJoinConditions,

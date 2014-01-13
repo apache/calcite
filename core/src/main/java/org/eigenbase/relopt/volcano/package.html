@@ -53,27 +53,24 @@ Optimizes relational expressions.<p>&nbsp;</p>
     an implementation of {@link org.eigenbase.relopt.RelTraitDef}.
     Manifestations of the trait
     implement {@link org.eigenbase.relopt.RelTrait}. The most common example of
-    a trait is calling
-    convention: the protocol used to receive and transmit data. {@link
-    org.eigenbase.relopt.CallingConventionTraitDef} defines the trait and {@link
-    org.eigenbase.relopt.CallingConvention} enumerates the protocols. Every
-    relational expression
+    a trait is calling convention: the protocol used to receive and transmit
+    data. {@link org.eigenbase.relopt.ConventionTraitDef}
+    defines the trait and {@link org.eigenbase.relopt.Convention}
+    enumerates the protocols. Every relational expression
     has a single calling convention by which it returns its results. Some
     examples:</p>
 <ul>
-    <li>{@link org.eigenbase.relopt.CallingConvention#RESULT_SET} is a fairly
-        conventional
-        calling convention; the results are rows from a {@link
-        java.sql.ResultSet JDBC
-        result set}.
+    <li>{@link net.hydromatic.optiq.impl.jdbc.JdbcConvention} is a fairly
+        conventional convention; the results are rows from a
+        {@link java.sql.ResultSet JDBC result set}.
     </li>
-    <li>{@link org.eigenbase.relopt.CallingConvention#NONE} means that a
+    <li>{@link org.eigenbase.relopt.Convention#NONE} means that a
         relational
         expression cannot be implemented; typically there are rules which can
         transform it to equivalent, implementable expressions.
     </li>
-    <li>{@link org.eigenbase.relopt.CallingConvention#JAVA} implements the
-        expression by
+    <li>{@link net.hydromatic.optiq.rules.java.EnumerableConvention}
+        implements the expression by
         generating Java code. The code places the current row in a Java
         variable, then
         calls the piece of code which implements the consuming relational
@@ -121,8 +118,8 @@ for (int i = 0; i &lt; names.length; i++) {
     registered with the planner.</p>
 
 <p>A {@link org.eigenbase.relopt.volcano.RelSubset} is a subset of a <code>RelSet</code>
-    containing expressions which are equivalent and which have the same <code>
-        CallingConvention</code>. Like <code>RelSet</code>, it is an equivalence
+    containing expressions which are equivalent and which have the same
+    <code>Convention</code>. Like <code>RelSet</code>, it is an equivalence
     class.</p>
 
 <h2>Related packages</h2>

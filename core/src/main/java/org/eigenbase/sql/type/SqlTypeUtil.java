@@ -20,7 +20,6 @@ package org.eigenbase.sql.type;
 import java.nio.charset.*;
 import java.util.*;
 
-import org.eigenbase.rel.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
@@ -135,20 +134,6 @@ public abstract class SqlTypeUtil {
   }
 
   /**
-   * Collects the row types of an array of relational expressions.
-   *
-   * @param rels array of relational expressions
-   * @return array of row types
-   */
-  public static RelDataType[] collectTypes(RelNode[] rels) {
-    RelDataType[] types = new RelDataType[rels.length];
-    for (int i = 0; i < types.length; i++) {
-      types[i] = rels[i].getRowType();
-    }
-    return types;
-  }
-
-  /**
    * Promotes a type to a row type (does nothing if it already is one).
    *
    * @param type      type to be promoted
@@ -173,8 +158,8 @@ public abstract class SqlTypeUtil {
   }
 
   /**
-   * Recreates a given RelDataType with nullablility iff any of a calls
-   * operand types are nullable.
+   * Recreates a given RelDataType with nullability iff any of the operands
+   * of a call are nullable.
    */
   public static RelDataType makeNullableIfOperandsAre(
       final SqlValidator validator,
@@ -312,7 +297,7 @@ public abstract class SqlTypeUtil {
 
   /**
    * @return true if two types are in same type family, or one or the other is
-   * of type SqlTypeName.Null
+   * of type {@link SqlTypeName#NULL} or {@link SqlTypeName#ANY}.
    */
   public static boolean inSameFamilyOrNull(RelDataType t1, RelDataType t2) {
     return (t1.getSqlTypeName() == SqlTypeName.NULL)
@@ -869,31 +854,6 @@ public abstract class SqlTypeUtil {
     return typeFactory.createStructType(types, fieldNames);
   }
 
-  /**
-   * Creates a record type with anonymous field names.
-   *
-   * @see Bug#upgrade(String) to be removed in optiq-0.4.18
-   * @deprecated not used
-   */
-  public static RelDataType createStructType(
-      RelDataTypeFactory typeFactory,
-      final RelDataType[] types) {
-    return typeFactory.createStructType(
-        new RelDataTypeFactory.FieldInfo() {
-          public int getFieldCount() {
-            return types.length;
-          }
-
-          public String getFieldName(int index) {
-            return "$" + index;
-          }
-
-          public RelDataType getFieldType(int index) {
-            return types[index];
-          }
-        });
-  }
-
   public static boolean needsNullIndicator(RelDataType recordType) {
     // NOTE jvs 9-Mar-2005: It would be more storage-efficient to say that
     // no null indicator is required for structured type columns declared
@@ -928,8 +888,7 @@ public abstract class SqlTypeUtil {
       list.add(nullIndicatorField);
       nested = true;
     }
-    for (RelDataTypeField field1 : type.getFieldList()) {
-      RelDataTypeField field = (RelDataTypeField) field1;
+    for (RelDataTypeField field : type.getFieldList()) {
       if (flatteningMap != null) {
         flatteningMap[field.getIndex()] = list.size();
       }
@@ -1106,57 +1065,6 @@ public abstract class SqlTypeUtil {
     }
     return type1.equals(
         factory.createTypeWithNullability(type2, type1.isNullable()));
-  }
-
-  /**
-   * Adds a field to a record type at a specified position.
-   *
-   * <p>For example, if type is <code>(A integer, B boolean)</code>, and
-   * fieldType is <code>varchar(10)</code>, then <code>prepend(typeFactory,
-   * type, 0, "Z", fieldType)</code> will return <code>(Z varchar(10), A
-   * integer, B boolean)</code>.
-   *
-   * @param typeFactory Type factory
-   * @param type        Record type
-   * @param at          Ordinal to add field
-   * @param fieldName   Name of new field
-   * @param fieldType   Type of new field
-   * @return Extended record type
-   * @see Bug#upgrade(String) to be removed in optiq-0.4.18
-   * @deprecated not used
-   */
-  public static RelDataType addField(
-      RelDataTypeFactory typeFactory,
-      final RelDataType type,
-      final int at,
-      final String fieldName,
-      final RelDataType fieldType) {
-    return typeFactory.createStructType(
-        new RelDataTypeFactory.FieldInfo() {
-          public int getFieldCount() {
-            return type.getFieldCount() + 1;
-          }
-
-          public String getFieldName(int index) {
-            if (index == at) {
-              return fieldName;
-            }
-            if (index > at) {
-              --index;
-            }
-            return type.getFieldList().get(index).getName();
-          }
-
-          public RelDataType getFieldType(int index) {
-            if (index == at) {
-              return fieldType;
-            }
-            if (index > at) {
-              --index;
-            }
-            return type.getFieldList().get(index).getType();
-          }
-        });
   }
 
   /**

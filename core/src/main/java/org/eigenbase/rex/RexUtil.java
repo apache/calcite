@@ -73,6 +73,8 @@ public class RexUtil {
 
   /**
    * Returns a copy of an array of row-expressions.
+   *
+   * @deprecated Will be removed before optiq-0.4.19.
    */
   public static RexNode[] clone(RexNode[] exps) {
     if (null == exps) {

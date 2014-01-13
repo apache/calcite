@@ -31,7 +31,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * Tests for the {@link org.eigenbase.sarg} class library.
+ * Tests for the {@code org.eigenbase.sarg} class library.
  *
  * <p>NOTE: This class lives in org.eigenbase.test rather than
  * org.eigenbase.sarg by design: we want to make sure we're only testing via the

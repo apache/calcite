@@ -39,7 +39,8 @@ public class RexCorrelVariable extends RexVariable {
   //~ Methods ----------------------------------------------------------------
 
   public RexCorrelVariable clone() {
-    return new RexCorrelVariable(name, type);
+    // All fields are immutable, so there's no point in creating a copy.
+    return this;
   }
 
   public <R> R accept(RexVisitor<R> visitor) {

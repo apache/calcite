@@ -19,6 +19,7 @@ package org.eigenbase.rex;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.SqlKind;
+import org.eigenbase.util.Bug;
 
 /**
  * Access to a field of a row-expression.
@@ -91,7 +92,15 @@ public class RexFieldAccess extends RexNode {
     return expr;
   }
 
+  /**
+   * Sets the reference expression.
+   *
+   * @param expr Reference expression
+   *
+   * @deprecated Not used; will be removed before optiq-0.4.19
+   */
   public void setReferenceExpr(RexNode expr) {
+    Bug.upgrade("remove before 0.4.19");
     this.expr = expr;
   }
 

@@ -20,7 +20,7 @@ package net.hydromatic.optiq.test;
 import org.junit.Test;
 
 /**
- * Tests for the {@link net.hydromatic.optiq.impl.jdbc} package.
+ * Tests for the {@code net.hydromatic.optiq.impl.jdbc} package.
  */
 public class JdbcAdapterTest {
   @Test public void testUnionPlan() {

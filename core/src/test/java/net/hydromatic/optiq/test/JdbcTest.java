@@ -248,7 +248,7 @@ public class JdbcTest {
     HandlerDriver.HANDLERS.remove();
   }
 
-  /** Tests {@link java.sql.Statement#closeOnCompletion()}. */
+  /** Tests {@link java.sql.Statement}.{@code closeOnCompletion()}. */
   @Test public void testStatementCloseOnCompletion() throws Exception {
     String javaVersion = System.getProperty("java.version");
     if (javaVersion.compareTo("1.7") < 0) {

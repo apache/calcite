@@ -68,7 +68,8 @@ public class RexRangeRef extends RexNode {
   }
 
   public RexRangeRef clone() {
-    return new RexRangeRef(type, offset);
+    // All fields are immutable, so there's no point in creating a copy.
+    return this;
   }
 
   public <R> R accept(RexVisitor<R> visitor) {

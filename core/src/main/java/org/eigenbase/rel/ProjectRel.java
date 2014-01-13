@@ -67,39 +67,6 @@ public final class ProjectRel extends ProjectRelBase {
   }
 
   /**
-   * Creates a ProjectRel, deriving a trait set.
-   *
-   * @param cluster       Cluster this relational expression belongs to
-   * @param child         input relational expression
-   * @param exps          List of expressions for the input columns
-   * @param rowType       output row type
-   * @param flags         values as in {@link ProjectRelBase.Flags}
-   * @param collationList List of sort keys
-   * @deprecated Use constructor without explicit collation-list;
-   * collations can be derived from the trait-set;
-   * this constructor will be removed after optiq-0.4.16.
-   */
-  public ProjectRel(
-      RelOptCluster cluster,
-      RelNode child,
-      List<RexNode> exps,
-      RelDataType rowType,
-      int flags,
-      final List<RelCollation> collationList) {
-    this(
-        cluster,
-        cluster.traitSetOf(
-            collationList.isEmpty()
-                ? RelCollationImpl.EMPTY
-                : collationList.get(0)),
-        child,
-        exps,
-        rowType,
-        flags);
-    Bug.upgrade("remove after optiq-0.4.16");
-  }
-
-  /**
    * Creates a ProjectRel.
    *
    * @param cluster  Cluster this relational expression belongs to
@@ -117,38 +84,6 @@ public final class ProjectRel extends ProjectRelBase {
       RelDataType rowType,
       int flags) {
     super(cluster, traitSet, child, exps, rowType, flags);
-  }
-
-  /**
-   * Creates a ProjectRel.
-   *
-   * @param cluster       Cluster this relational expression belongs to
-   * @param traitSet      traits of this rel
-   * @param child         input relational expression
-   * @param exps          List of expressions for the input columns
-   * @param rowType       output row type
-   * @param flags         values as in {@link ProjectRelBase.Flags}
-   * @param collationList List of sort keys
-   * @deprecated Use constructor without explicit collation-list;
-   * collations can be derived from the trait-set;
-   * this constructor will be removed after optiq-0.4.16.
-   */
-  public ProjectRel(
-      RelOptCluster cluster,
-      RelTraitSet traitSet,
-      RelNode child,
-      List<RexNode> exps,
-      RelDataType rowType,
-      int flags,
-      final List<RelCollation> collationList) {
-    super(
-        cluster,
-        traitSet,
-        child,
-        exps,
-        rowType,
-        flags,
-        collationList);
   }
 
   /**

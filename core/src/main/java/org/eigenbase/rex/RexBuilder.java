@@ -717,9 +717,7 @@ public class RexBuilder {
   /**
    * Creates a literal representing a flag.
    *
-   * @param flag Flag value; must be either a {@link
-   *             org.eigenbase.util14.Enum14.Value} or a {@link Enum}, and hence a {@link
-   *             Comparable}.
+   * @param flag Flag value
    */
   public RexLiteral makeFlag(Enum flag) {
     assert flag != null;

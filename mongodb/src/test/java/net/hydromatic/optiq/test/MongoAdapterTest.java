@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- * Tests for the {@link net.hydromatic.optiq.impl.mongodb} package.
+ * Tests for the {@code net.hydromatic.optiq.impl.mongodb} package.
  *
  * <p>Before calling this test, you need to populate MongoDB with the "zips"
  * data set (as described in HOWTO.md)

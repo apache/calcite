@@ -389,16 +389,9 @@ public class RexProgramBuilder {
           .getProgram(false);
     }
 
-    // Clone expressions, so builder can modify them after they have
-    // been put into the program. The projects and condition do not need
-    // to be cloned, because RexLocalRef is immutable.
-    List<RexNode> exprs = new ArrayList<RexNode>();
-    for (RexNode expr : exprList) {
-      exprs.add(expr.clone());
-    }
     return new RexProgram(
         inputRowType,
-        exprs,
+        exprList,
         projectRefList,
         conditionRef,
         outputRowType);

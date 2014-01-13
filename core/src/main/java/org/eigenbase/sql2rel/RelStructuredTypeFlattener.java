@@ -613,12 +613,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
         int j = 0;
         for (RelDataTypeField field : exp.getType().getFieldList()) {
-          RexNode cloneCall = exp.clone();
-          RexNode fieldAccess =
-              rexBuilder.makeFieldAccess(
-                  cloneCall,
-                  field.getIndex());
-          flattenedExps.add(fieldAccess);
+          flattenedExps.add(rexBuilder.makeFieldAccess(exp, field.getIndex()));
           flattenedFieldNames.add(fieldName + "$" + (j++));
         }
       } else {

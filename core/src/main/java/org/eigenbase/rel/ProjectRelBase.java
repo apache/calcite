@@ -24,7 +24,6 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
 import org.eigenbase.util.Util;
 
@@ -51,36 +50,6 @@ public abstract class ProjectRelBase extends SingleRel {
   protected final ImmutableList<RelCollation> collationList;
 
   //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates a Project.
-   *
-   * @param cluster       Cluster this relational expression belongs to
-   * @param traits        traits of this rel
-   * @param child         input relational expression
-   * @param exps          List of expressions for the input columns
-   * @param rowType       output row type
-   * @param flags         values as in {@link Flags}
-   * @param collationList List of sort keys
-   * @deprecated Use the other constructor, without collation list;
-   * this constructor will be removed after optiq-0.4.16.
-   */
-  protected ProjectRelBase(
-      RelOptCluster cluster,
-      RelTraitSet traits,
-      RelNode child,
-      List<RexNode> exps,
-      RelDataType rowType,
-      int flags,
-      final List<RelCollation> collationList) {
-    this(cluster, traits, child, exps, rowType, flags);
-    assert traitSet.containsIfApplicable(
-        collationList.isEmpty()
-            ? RelCollationImpl.EMPTY
-            : collationList.get(0))
-        : collationList;
-    Bug.upgrade("remove after optiq-0.4.16");
-  }
 
   /**
    * Creates a Project.

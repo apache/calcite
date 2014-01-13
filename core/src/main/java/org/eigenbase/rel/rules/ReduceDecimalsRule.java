@@ -713,11 +713,11 @@ public class ReduceDecimalsRule extends RelOptRule {
       assert operands.size() == 1;
       assert !RexLiteral.isNullLiteral(operands.get(0));
 
-      RexNode operand = operands.get(0).clone();
+      RexNode operand = operands.get(0);
       RelDataType fromType = operand.getType();
       RelDataType toType = call.getType();
-      assert (SqlTypeUtil.isDecimal(fromType)
-          || SqlTypeUtil.isDecimal(toType));
+      assert SqlTypeUtil.isDecimal(fromType)
+          || SqlTypeUtil.isDecimal(toType);
 
       if (SqlTypeUtil.isIntType(toType)) {
         // decimal to int
@@ -1233,7 +1233,7 @@ public class ReduceDecimalsRule extends RelOptRule {
       RexCall subCall = (RexCall) operands.get(0);
       RexNode innerValue = subCall.operands.get(0);
       if (canSimplify(call, subCall, innerValue)) {
-        return innerValue.clone();
+        return innerValue;
       }
       return call;
     }

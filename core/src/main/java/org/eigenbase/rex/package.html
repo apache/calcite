@@ -30,9 +30,9 @@ Provides a language for representing row-expressions.<p>&nbsp;</p>
     expression ({@link org.eigenbase.rel.RelNode}). Several kinds of nodes in
     this tree have row expressions ({@link org.eigenbase.rex.RexNode}).</p>
 
-<p>After the relational expression has been optimized, a {@link
-    org.eigenbase.oj.rel.JavaRelImplementor} converts it into to a plan. If the
-    plan is a Java
+<p>After the relational expression has been optimized, a
+    {@link net.hydromatic.optiq.rules.java.JavaRelImplementor} converts it
+    into to a plan. If the plan is a Java
     parse tree, row-expressions are translated into equivalent Java
     expressions.</p>
 
@@ -73,20 +73,19 @@ Provides a language for representing row-expressions.<p>&nbsp;</p>
                 during translation.
             </li>
         </ul>
+    </li>
+</ul>
 
-        <p>Expressions are generally
-            created using a {@link org.eigenbase.rex.RexBuilder} factory. If
-            Java
-            expressions are to be converted, you can use a derived class, {@link
-            org.eigenbase.oj.util.JavaRexBuilder}.</p>
+<p>Expressions are generally
+    created using a {@link org.eigenbase.rex.RexBuilder} factory.</p>
 
-        <h2>Related packages</h2>
-        <ul>
-            <li>{@link org.eigenbase.sql} SQL object model</li>
-            <li>{@link org.eigenbase.relopt} Core classes, including {@link
-                org.eigenbase.reltype.RelDataType} and {@link
-                org.eigenbase.reltype.RelDataTypeFactory}.
-            </li>
-        </ul>
+<h2>Related packages</h2>
+<ul>
+    <li>{@link org.eigenbase.sql} SQL object model</li>
+    <li>{@link org.eigenbase.relopt} Core classes, including {@link
+        org.eigenbase.reltype.RelDataType} and {@link
+        org.eigenbase.reltype.RelDataTypeFactory}.
+    </li>
+</ul>
 </body>
 </html>
