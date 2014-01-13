@@ -120,14 +120,6 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
           connection, resultSetType, resultSetConcurrency,
           resultSetHoldability);
     }
-
-    public void closeOnCompletion() throws SQLException {
-      this.closeOnCompletion = true;
-    }
-
-    public boolean isCloseOnCompletion() throws SQLException {
-      return closeOnCompletion;
-    }
   }
 
   private static class AvaticaJdbc41PreparedStatement
@@ -248,14 +240,6 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
     public void setNClob(
         int parameterIndex, Reader reader) throws SQLException {
       getParameter(parameterIndex).setNClob(reader);
-    }
-
-    public void closeOnCompletion() throws SQLException {
-      closeOnCompletion = true;
-    }
-
-    public boolean isCloseOnCompletion() throws SQLException {
-      return closeOnCompletion;
     }
   }
 

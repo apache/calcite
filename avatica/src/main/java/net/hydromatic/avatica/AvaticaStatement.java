@@ -302,6 +302,16 @@ public abstract class AvaticaStatement
     throw new UnsupportedOperationException();
   }
 
+  // implements java.sql.Statement.closeOnCompletion (added in JDK 1.7)
+  public void closeOnCompletion() throws SQLException {
+    closeOnCompletion = true;
+  }
+
+  // implements java.sql.Statement.isCloseOnCompletion (added in JDK 1.7)
+  public boolean isCloseOnCompletion() throws SQLException {
+    return closeOnCompletion;
+  }
+
   // implement Wrapper
 
   public <T> T unwrap(Class<T> iface) throws SQLException {

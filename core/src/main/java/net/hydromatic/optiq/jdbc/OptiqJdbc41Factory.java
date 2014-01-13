@@ -110,17 +110,8 @@ public class OptiqJdbc41Factory extends OptiqFactory {
         int resultSetType,
         int resultSetConcurrency,
         int resultSetHoldability) {
-      super(
-          connection, resultSetType, resultSetConcurrency,
+      super(connection, resultSetType, resultSetConcurrency,
           resultSetHoldability);
-    }
-
-    public void closeOnCompletion() throws SQLException {
-      this.closeOnCompletion = true;
-    }
-
-    public boolean isCloseOnCompletion() throws SQLException {
-      return closeOnCompletion;
     }
   }
 
@@ -242,14 +233,6 @@ public class OptiqJdbc41Factory extends OptiqFactory {
     public void setNClob(
         int parameterIndex, Reader reader) throws SQLException {
       getParameter(parameterIndex).setNClob(reader);
-    }
-
-    public void closeOnCompletion() throws SQLException {
-      closeOnCompletion = true;
-    }
-
-    public boolean isCloseOnCompletion() throws SQLException {
-      return closeOnCompletion;
     }
   }
 
