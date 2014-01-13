@@ -297,7 +297,7 @@ public abstract class SqlTypeUtil {
 
   /**
    * @return true if two types are in same type family, or one or the other is
-   * of type {@link SqlTypeName#NULL} or {@link SqlTypeName#ANY}.
+   * of type {@link SqlTypeName#NULL}.
    */
   public static boolean inSameFamilyOrNull(RelDataType t1, RelDataType t2) {
     return (t1.getSqlTypeName() == SqlTypeName.NULL)
@@ -854,6 +854,31 @@ public abstract class SqlTypeUtil {
     return typeFactory.createStructType(types, fieldNames);
   }
 
+  /**
+   * Creates a record type with anonymous field names.
+   *
+   * @see Bug#upgrade(String) to be removed in optiq-0.4.18
+   * @deprecated not used
+   */
+  public static RelDataType createStructType(
+      RelDataTypeFactory typeFactory,
+      final RelDataType[] types) {
+    return typeFactory.createStructType(
+        new RelDataTypeFactory.FieldInfo() {
+          public int getFieldCount() {
+            return types.length;
+          }
+
+          public String getFieldName(int index) {
+            return "$" + index;
+          }
+
+          public RelDataType getFieldType(int index) {
+            return types[index];
+          }
+        });
+  }
+
   public static boolean needsNullIndicator(RelDataType recordType) {
     // NOTE jvs 9-Mar-2005: It would be more storage-efficient to say that
     // no null indicator is required for structured type columns declared
@@ -1065,6 +1090,57 @@ public abstract class SqlTypeUtil {
     }
     return type1.equals(
         factory.createTypeWithNullability(type2, type1.isNullable()));
+  }
+
+  /**
+   * Adds a field to a record type at a specified position.
+   *
+   * <p>For example, if type is <code>(A integer, B boolean)</code>, and
+   * fieldType is <code>varchar(10)</code>, then <code>prepend(typeFactory,
+   * type, 0, "Z", fieldType)</code> will return <code>(Z varchar(10), A
+   * integer, B boolean)</code>.
+   *
+   * @param typeFactory Type factory
+   * @param type        Record type
+   * @param at          Ordinal to add field
+   * @param fieldName   Name of new field
+   * @param fieldType   Type of new field
+   * @return Extended record type
+   * @see Bug#upgrade(String) to be removed in optiq-0.4.18
+   * @deprecated not used
+   */
+  public static RelDataType addField(
+      RelDataTypeFactory typeFactory,
+      final RelDataType type,
+      final int at,
+      final String fieldName,
+      final RelDataType fieldType) {
+    return typeFactory.createStructType(
+        new RelDataTypeFactory.FieldInfo() {
+          public int getFieldCount() {
+            return type.getFieldCount() + 1;
+          }
+
+          public String getFieldName(int index) {
+            if (index == at) {
+              return fieldName;
+            }
+            if (index > at) {
+              --index;
+            }
+            return type.getFieldList().get(index).getName();
+          }
+
+          public RelDataType getFieldType(int index) {
+            if (index == at) {
+              return fieldType;
+            }
+            if (index > at) {
+              --index;
+            }
+            return type.getFieldList().get(index).getType();
+          }
+        });
   }
 
   /**

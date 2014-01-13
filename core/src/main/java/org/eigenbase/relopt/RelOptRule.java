@@ -20,6 +20,7 @@ package org.eigenbase.relopt;
 import java.util.*;
 
 import org.eigenbase.rel.*;
+import org.eigenbase.util.Bug;
 
 import com.google.common.collect.ImmutableList;
 
@@ -33,6 +34,20 @@ import com.google.common.collect.ImmutableList;
  */
 public abstract class RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
+
+  static {
+    // several deprecated methods and constants in this class
+    Bug.upgrade("remove before optiq-0.4.18");
+  }
+
+  /**
+   * Shorthand for
+   * {@link RelOptRuleOperandChildPolicy#ANY}.
+   *
+   * @deprecated Will be removed before optiq-0.4.18.
+   */
+  public static final RelOptRuleOperandChildPolicy ANY =
+      RelOptRuleOperandChildPolicy.ANY;
 
   //~ Instance fields --------------------------------------------------------
 
@@ -198,6 +213,122 @@ public abstract class RelOptRule {
    */
   public static RelOptRuleOperandChildren any() {
     return RelOptRuleOperandChildren.ANY_CHILDREN;
+  }
+
+  //~ Obsolete methods for creating operands ---------------------------------
+
+  /**
+   * Creates an operand that matches a relational expression that has no
+   * children.
+   *
+   * @param clazz Class of relational expression to match (must not be null)
+   * @return Operand
+   * @deprecated Use <code>operand(clazz, {@link #none()})</code>;
+   * will be removed before optiq-0.4.18.
+   */
+  public static RelOptRuleOperand leaf(
+      Class<? extends RelNode> clazz) {
+    return operand(clazz, none());
+  }
+
+  /**
+   * Creates an operand that matches a relational expression that has no
+   * children.
+   *
+   * @param clazz Class of relational expression to match (must not be null)
+   * @param trait Trait to match, or null to match any trait
+   * @return Operand
+   * @deprecated Use <code>operand(clazz, trait, {@link #none()})</code>;
+   * will be removed before optiq-0.4.18.
+   */
+  public static RelOptRuleOperand leaf(
+      Class<? extends RelNode> clazz,
+      RelTrait trait) {
+    return operand(clazz, trait, none());
+  }
+
+  /**
+   * Creates an operand that matches a relational expression that has any
+   * number of children.
+   *
+   * @param clazz Class of relational expression to match (must not be null)
+   * @return Operand
+   * @deprecated Use <code>operand(clazz, {@link #any()})</code>;
+   * will be removed before optiq-0.4.18.
+   */
+  public static RelOptRuleOperand any(
+      Class<? extends RelNode> clazz) {
+    return operand(clazz, any());
+  }
+
+  /**
+   * Creates an operand that matches a relational expression that has any
+   * number of children.
+   *
+   * @param clazz Class of relational expression to match (must not be null)
+   * @param trait Trait to match, or null to match any trait
+   * @return Operand
+   * @deprecated Use <code>operand(clazz, trait, {@link #any()})</code>;
+   * will be removed before optiq-0.4.18.
+   */
+  public static RelOptRuleOperand any(
+      Class<? extends RelNode> clazz,
+      RelTrait trait) {
+    return operand(clazz, trait, any());
+  }
+
+  /**
+   * Creates an operand which matches a given trait and matches child operands
+   * in the order they appear.
+   *
+   * @param clazz Class of relational expression to match (must not be null)
+   * @param first First child operand
+   * @param rest  Remaining child operands
+   * @deprecated Use <code>operand(clazz, some(...))</code>;
+   * will be removed before optiq-0.4.18.
+   */
+  public static RelOptRuleOperand some(
+      Class<? extends RelNode> clazz,
+      RelOptRuleOperand first,
+      RelOptRuleOperand... rest) {
+    return operand(clazz, some(first, rest));
+  }
+
+  /**
+   * Creates an operand which matches a given trait and matches child operands
+   * in the order they appear.
+   *
+   * @param clazz Class of relational expression to match (must not be null)
+   * @param trait Trait to match, or null to match any trait
+   * @param first First child operand
+   * @param rest  Remaining child operands
+   * @deprecated Use <code>operand(clazz, trait, some(...))</code>;
+   * will be removed before optiq-0.4.18.
+   */
+  public static RelOptRuleOperand some(
+      Class<? extends RelNode> clazz,
+      RelTrait trait,
+      RelOptRuleOperand first,
+      RelOptRuleOperand... rest) {
+    return operand(clazz, trait, some(first, rest));
+  }
+
+  /**
+   * Creates an operand that matches a relational expression and its children
+   * in any order.
+   *
+   * @param clazz Class of relational expression to match (must not be null)
+   * @param first First child operand
+   * @param rest  Remaining child operands
+   * @return Operand
+   * @deprecated Use <code>operand(clazz, trait, unordered(...))</code>;
+   * will be removed before optiq-0.4.18.
+   */
+  public static RelOptRuleOperand unordered(
+      Class<? extends RelNode> clazz,
+      RelOptRuleOperand first,
+      RelOptRuleOperand... rest) {
+    return operand(clazz, unordered(first, rest));
   }
 
   //~ Methods ----------------------------------------------------------------
