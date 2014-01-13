@@ -22,13 +22,15 @@ package org.eigenbase.rel.rules;
  *
  * <h2>Related packages and classes</h2>
  * <ul>
- *    <li>Package<code> <a href="../sql/package-summary.html">org.eigenbase.sql</a></code>
+ *    <li>Package<code> <a href="../sql/package-summary.html">
+ *        org.eigenbase.sql</a></code>
  *        is an object model for SQL expressions</li>
- *    <li>Package<code> <a href="../sql/package-summary.html">org.eigenbase.rex</a></code>
+ *    <li>Package<code> <a href="../sql/package-summary.html">
+          org.eigenbase.rex</a></code>
  *        is an object model for relational row expressions</li>
- *    <li>Package<code> <a href="../relopt/package-summary.html">org.eigenbase.relopt</a></code>
- *        provides an
- *        optimizer interface.</li>
+ *    <li>Package<code> <a href="../relopt/package-summary.html">
+          org.eigenbase.relopt</a></code>
+ *        provides an optimizer interface.</li>
  * </ul>
 */
 
