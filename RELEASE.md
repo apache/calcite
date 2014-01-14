@@ -53,7 +53,8 @@ Tuning
 
 Other
 
-* Rules for constant-expression reduction, and to simplify/eliminate
+* Fix <a href="https://github.com/julianhyde/optiq/issues/87">#87</a>,
+  "Constant folding". Rules for constant-expression reduction, and to simplify/eliminate
   `VALUES` operator.
 * Graph algorithms: Implement breadth-first iterator and cycle-detector.
 * Fix bug in planner which occurred when two `RelNode`s have identical
