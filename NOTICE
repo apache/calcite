@@ -1,6 +1,6 @@
 optiq-csv
 Optiq adapter that reads CSV files.
-Copyright (C) 2013-2013 Julian Hyde
+Copyright (C) 2013-2014 Julian Hyde
 
 ===============================================================================
 Licensed under the Apache License, Version 2.0 (the "License");
