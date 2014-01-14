@@ -2,9 +2,77 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/optiq/releases">github</a>.
 
-## HEAD
+## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.17">0.4.17</a> / 2014-01-13
 
+###API changes
+* Fix <a href="https://github.com/julianhyde/optiq/issues/106">#106</a>,
+  "Make Schema and Table SPIs simpler to implement, and make them
+  re-usable across connections". (This is a breaking change.)
+* Make it easier to define sub-classes of rule operands. The new class
+  RelOptRuleOperandChildren contains the children of an operand and
+  the policy for dealing with them. Existing rules now use the new
+  methods to construct operands: operand(), leaf(), any(), none(),
+  unordered(). The previous methods are now deprecated and will be
+  removed before 0.4.18. (This is a breaking change.)
+* Fix <a href="https://github.com/julianhyde/optiq/issues/101">#101</a>,
+  "Enable phased access to the Optiq engine".
+* List-handling methods in Util: add methods skipLast, last, skip; remove subList, butLast.
+* Convert SqlIdentifier.names from String[] to ImmutableList<String>.
+* Rename OptiqAssert.assertThat() to .that(), to avoid clash with junit's Assert.assertThat().
+* Usability improvements for RelDataTypeFactory.FieldInfoBuilder. It
+  now has a type-factory, so you can just call build().
+* Rework HepProgramBuilder into a fluent API.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/105">#105</a>, "Externalize RelNode to and from JSON"
+
+###Tuning
+* If EnumerableAggregateRel has no aggregate functions, generate a
+   call to Enumerable.distinct(), thereby saving the effort of
+   building trivial accumulators.
+* Default rule set now does not introduce CalcRel until a later phase
+  of planning. This reduces the number of trivial projects and calcs
+  created, merged, and elimated.
+* Tuning: Reduce the amount of time spent creating record types that
+  already exist.
+* More efficient implementation of Util.isDistinct for small lists.
+* When an internal record has 0 fields, rather than generating a
+  synthetic class and lots of instances that are all the same, use the
+  new Unit class, which is a singleton.
+* To take advantage of asymmetric hash join added recently in linq4j,
+  tweak cost of EnumerableJoinRel so that join is cheaper if the
+  larger input is on the left, and more expensive if it is a cartesian
+  product.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/70>#70</a>,
+  "Joins seem to be very expensive in memory".
+* Make planning process more efficient by not sorting the list of
+  matched rules each cycle. It is sorted if tracing is enabled;
+  otherwise we scan to find the most important element. For this list,
+  replace LinkedList with ChunkList, which has an O(1) remove and add,
+  a fast O(n) get, and fast scan.
+
+###Other
+* Rules for constant-expression reduction, and to simplify/eliminate
+  VALUES operator.
+* Graph algorithms: Implement breadth-first iterator and cycle-detector.
+* Fix bug in planner which occurred when two RelNodes have identical
+  digest but different row-type.
+* Fix link to optiq-csv tutorial.
+* Fix bugs in RemoveTrivialProjectRule.strip, JdbcProjectRel.implement
+  and SortRel.computeSelfCost.
+* Reformat code, and remove @author tags.
+* Upgrade to eigenbase-xom-1.3.4, eigenbase-properties-1.1.4,
+  eigenbase-resgen-1.3.6.
+* Upgrade to linq4j-0.1.12.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/97>#97</a>,
+  correlated EXISTS.
+* Fix a bug in VolcanoCost.
+* Add class FoodMartQuerySet, that contains the 6,700 foodmart queries.
+* Fix factory class names in UnregisteredDriver
+* Fix <a href="https://github.com/julianhyde/optiq/issues/96>#96</a>,
+  "LIMIT against a table in a clone schema causes UnsupportedOperationException".
+* Disable spark module by default.
+* Allow CloneSchema to be specified in terms of url, driver, user,
+  password; not just dataSource.
+* Wrap internal error in SQLException.
 
 ## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.16">0.4.16</a> / 2013-11-24
 
