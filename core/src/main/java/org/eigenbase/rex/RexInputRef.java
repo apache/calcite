@@ -51,6 +51,7 @@ public class RexInputRef extends RexSlot {
   //~ Static fields/initializers ---------------------------------------------
 
   // list of common names, to reduce memory allocations
+  @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
   private static final List<String> names = new SelfPopulatingList("$", 30);
 
   //~ Constructors -----------------------------------------------------------
@@ -58,7 +59,7 @@ public class RexInputRef extends RexSlot {
   /**
    * Creates an input variable.
    *
-   * @param index Index of the field in the underlying rowtype
+   * @param index Index of the field in the underlying row-type
    * @param type  Type of the column
    */
   public RexInputRef(
@@ -101,11 +102,6 @@ public class RexInputRef extends RexSlot {
   @Override
   public SqlKind getKind() {
     return SqlKind.INPUT_REF;
-  }
-
-  public RexInputRef clone() {
-    // All fields are immutable, so there's no point in creating a copy.
-    return this;
   }
 
   public <R> R accept(RexVisitor<R> visitor) {

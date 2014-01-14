@@ -589,11 +589,6 @@ public class RexLiteral extends RexNode {
         && (((RexLiteral) node).value == null);
   }
 
-  public RexLiteral clone() {
-    // All fields are immutable, so there's no point in creating a copy.
-    return this;
-  }
-
   private static boolean equals(
       Object o1,
       Object o2) {

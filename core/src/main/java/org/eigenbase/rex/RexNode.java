@@ -33,24 +33,18 @@ import org.eigenbase.sql.SqlKind;
  * {@link RexVariable} (variable), {@link RexCall} (call to operator with
  * operands). Expressions are generally created using a {@link RexBuilder}
  * factory.</p>
+ *
+ * <p>All sub-classes of RexNode are immutable.</p>
  */
 public abstract class RexNode {
   //~ Instance fields --------------------------------------------------------
 
+  // Effectively final. Set in each sub-class constructor, and never re-set.
   protected String digest;
 
   //~ Methods ----------------------------------------------------------------
 
   public abstract RelDataType getType();
-
-  /** Returns a copy of this expression.
-   *
-   * <p>Expressions are immutable, so this method serves no purpose.</p>
-   *
-   * @deprecated Will be removed before 0.4.19.
-   * @see org.eigenbase.util.Bug#upgrade(String)
-   */
-  public abstract RexNode clone();
 
   /**
    * Returns whether this expression always returns true. (Such as if this
@@ -79,7 +73,7 @@ public abstract class RexNode {
   /**
    * Returns the kind of node this is.
    *
-   * @return A {@link org.eigenbase.sql.SqlKind} value, never null
+   * @return Node kind, never null
    */
   public SqlKind getKind() {
     return SqlKind.OTHER;

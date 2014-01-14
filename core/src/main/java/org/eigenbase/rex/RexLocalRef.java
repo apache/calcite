@@ -38,6 +38,7 @@ public class RexLocalRef extends RexSlot {
   //~ Static fields/initializers ---------------------------------------------
 
   // array of common names, to reduce memory allocations
+  @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
   private static final List<String> names = new SelfPopulatingList("$t", 30);
 
   //~ Constructors -----------------------------------------------------------
@@ -64,12 +65,6 @@ public class RexLocalRef extends RexSlot {
   @Override
   public SqlKind getKind() {
     return SqlKind.LOCAL_REF;
-  }
-
-  public RexLocalRef clone() {
-    // Since refs are immutable and identity is based on value,
-    // there's no point returning a copy.
-    return this;
   }
 
   public boolean equals(Object obj) {

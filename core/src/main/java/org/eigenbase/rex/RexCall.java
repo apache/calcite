@@ -110,10 +110,6 @@ public class RexCall extends RexNode {
     return type;
   }
 
-  public RexCall clone() {
-    return new RexCall(type, op, operands);
-  }
-
   public SqlKind getKind() {
     return op.kind;
   }

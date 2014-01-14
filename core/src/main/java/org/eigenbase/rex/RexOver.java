@@ -84,10 +84,6 @@ public class RexOver extends RexCall {
     return super.computeDigest(withType) + " OVER (" + window + ")";
   }
 
-  public RexOver clone() {
-    return this; // immutable
-  }
-
   public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitOver(this);
   }

@@ -45,11 +45,6 @@ public class RexDynamicParam extends RexVariable {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RexDynamicParam clone() {
-    // All fields are immutable, so there's no point in creating a copy.
-    return this;
-  }
-
   public SqlKind getKind() {
     return SqlKind.DYNAMIC_PARAM;
   }

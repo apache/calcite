@@ -19,7 +19,6 @@ package org.eigenbase.rex;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.SqlKind;
-import org.eigenbase.util.Bug;
 
 /**
  * Access to a field of a row-expression.
@@ -34,7 +33,7 @@ import org.eigenbase.util.Bug;
  *
  * but there is a specialized expression {@link RexInputRef} for this purpose.
  * So in practice, <code>RexFieldAccess</code> is usually used to access fields
- * of correlating variabless, for example the expression <code>emp.deptno</code>
+ * of correlating variables, for example the expression <code>emp.deptno</code>
  * in
  *
  * <blockquote>
@@ -50,7 +49,7 @@ import org.eigenbase.util.Bug;
 public class RexFieldAccess extends RexNode {
   //~ Instance fields --------------------------------------------------------
 
-  private RexNode expr;
+  private final RexNode expr;
   private final RelDataTypeField field;
 
   //~ Constructors -----------------------------------------------------------
@@ -60,7 +59,7 @@ public class RexFieldAccess extends RexNode {
       RelDataTypeField field) {
     this.expr = expr;
     this.field = field;
-    computeDigest();
+    this.digest = expr + "." + field.getName();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -71,10 +70,6 @@ public class RexFieldAccess extends RexNode {
 
   public RelDataType getType() {
     return field.getType();
-  }
-
-  public RexFieldAccess clone() {
-    return new RexFieldAccess(expr, field);
   }
 
   public SqlKind getKind() {
@@ -93,18 +88,6 @@ public class RexFieldAccess extends RexNode {
   }
 
   /**
-   * Sets the reference expression.
-   *
-   * @param expr Reference expression
-   *
-   * @deprecated Not used; will be removed before optiq-0.4.19
-   */
-  public void setReferenceExpr(RexNode expr) {
-    Bug.upgrade("remove before 0.4.19");
-    this.expr = expr;
-  }
-
-  /**
    * Returns the name of the field.
    */
   public String getName() {
@@ -112,11 +95,7 @@ public class RexFieldAccess extends RexNode {
   }
 
   public String toString() {
-    return computeDigest();
-  }
-
-  private String computeDigest() {
-    return (this.digest = expr + "." + field.getName());
+    return digest;
   }
 }
 

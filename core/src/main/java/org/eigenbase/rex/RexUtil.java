@@ -66,25 +66,9 @@ public class RexUtil {
    */
   public static double getSelectivity(RexNode exp) {
     if ((exp == null) || exp.isAlwaysTrue()) {
-      return 1;
+      return 1d;
     }
-    return 0.1;
-  }
-
-  /**
-   * Returns a copy of an array of row-expressions.
-   *
-   * @deprecated Will be removed before optiq-0.4.19.
-   */
-  public static RexNode[] clone(RexNode[] exps) {
-    if (null == exps) {
-      return null;
-    }
-    RexNode[] exps2 = new RexNode[exps.length];
-    for (int i = 0; i < exps.length; i++) {
-      exps2[i] = exps[i].clone();
-    }
-    return exps2;
+    return 0.1d;
   }
 
   /**
@@ -554,11 +538,7 @@ public class RexUtil {
     String type = expr.getType().getFullTypeString();
     String separator = ";";
     String node = expr.toString();
-    StringBuilder keyBuilder =
-        new StringBuilder(
-            type.length() + separator.length() + node.length());
-    keyBuilder.append(type).append(separator).append(node);
-    return keyBuilder.toString();
+    return type + separator + node;
   }
 
   /**
