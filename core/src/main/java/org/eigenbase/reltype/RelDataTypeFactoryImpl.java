@@ -69,7 +69,9 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   private static final Map<Class, RelDataTypeFamily> CLASS_FAMILIES =
       ImmutableMap.<Class, RelDataTypeFamily>of(
-          String.class, SqlTypeFamily.CHARACTER);
+          String.class, SqlTypeFamily.CHARACTER,
+          boolean.class, SqlTypeFamily.BOOLEAN,
+          Boolean.class, SqlTypeFamily.BOOLEAN);
 
   //~ Constructors -----------------------------------------------------------
 

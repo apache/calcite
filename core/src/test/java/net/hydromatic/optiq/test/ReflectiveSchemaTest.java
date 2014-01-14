@@ -300,6 +300,39 @@ public class ReflectiveSchemaTest {
     }
   }
 
+  @Test public void testJavaBoolean() throws Exception {
+    final OptiqAssert.AssertThat with =
+        OptiqAssert.that().with("s", new CatchallSchema());
+    with.query(
+        "select count(*) as c from \"s\".\"everyTypes\"\n"
+        + "where \"primitiveBoolean\"")
+        .returns("C=1\n");
+    with.query(
+        "select count(*) as c from \"s\".\"everyTypes\"\n"
+        + "where \"wrapperBoolean\"")
+        .returns("C=0\n");
+    with.query(
+        "select count(*) as c from \"s\".\"everyTypes\"\n"
+        + "where \"wrapperBoolean\" is not true")
+        .returns("C=2\n");
+    with.query(
+        "select count(*) as c from \"s\".\"everyTypes\"\n"
+        + "where \"primitiveInt\" > 0")
+        .returns("C=1\n");
+    // count(nullif(b, false)) counts how many times b is true
+    with.query(
+        "select count(\"primitiveBoolean\") as p,\n"
+        + "  count(\"wrapperBoolean\") as w,\n"
+        + "  count(nullif(\"primitiveShort\" > 0, false)) as sp,\n"
+        + "  count(nullif(\"wrapperShort\" > 0, false)) as sw,\n"
+        + "  count(nullif(\"primitiveInt\" > 0, false)) as ip,\n"
+        + "  count(nullif(\"wrapperInteger\" > 0, false)) as iw,\n"
+        + "  count(nullif(\"primitiveLong\" > 0, false)) as lp,\n"
+        + "  count(nullif(\"wrapperLong\" > 0, false)) as lw\n"
+        + "from \"s\".\"everyTypes\"")
+        .returns("P=2; W=1; SP=1; SW=0; IP=1; IW=0; LP=1; LW=0\n");
+  }
+
   @Test public void testDivide() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.that().with("s", new CatchallSchema());
