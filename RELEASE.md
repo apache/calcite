@@ -5,6 +5,7 @@ For a full list of releases, see <a href="https://github.com/julianhyde/optiq/re
 ## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.17">0.4.17</a> / 2014-01-13
 
 API changes
+
 * Fix <a href="https://github.com/julianhyde/optiq/issues/106">#106</a>,
   "Make `Schema` and `Table` SPIs simpler to implement, and make them
   re-usable across connections". (**This is a breaking change**.)
@@ -24,7 +25,8 @@ API changes
 * Rework `HepProgramBuilder` into a fluent API.
 * Fix <a href="https://github.com/julianhyde/optiq/issues/105">#105</a>, "Externalize RelNode to and from JSON".
 
-###Tuning
+Tuning
+
 * If `EnumerableAggregateRel` has no aggregate functions, generate a
    call to `Enumerable.distinct()`, thereby saving the effort of
    building trivial accumulators.
@@ -41,7 +43,7 @@ API changes
   tweak cost of `EnumerableJoinRel` so that join is cheaper if the
   larger input is on the left, and more expensive if it is a cartesian
   product.
-* Fix <a href="https://github.com/julianhyde/optiq/issues/70>#70</a>,
+* Fix <a href="https://github.com/julianhyde/optiq/issues/70">#70</a>,
   "Joins seem to be very expensive in memory".
 * Make planning process more efficient by not sorting the list of
   matched rules each cycle. It is sorted if tracing is enabled;
@@ -49,7 +51,8 @@ API changes
   replace `LinkedList` with `ChunkList`, which has an O(1) remove and add,
   a fast O(n) get, and fast scan.
 
-###Other
+Other
+
 * Rules for constant-expression reduction, and to simplify/eliminate
   `VALUES` operator.
 * Graph algorithms: Implement breadth-first iterator and cycle-detector.
@@ -62,7 +65,7 @@ API changes
 * Upgrade to eigenbase-xom-1.3.4, eigenbase-properties-1.1.4,
   eigenbase-resgen-1.3.6.
 * Upgrade to linq4j-0.1.12.
-* Fix <a href="https://github.com/julianhyde/optiq/issues/97>#97</a>,
+* Fix <a href="https://github.com/julianhyde/optiq/issues/97">#97</a>,
   correlated EXISTS.
 * Fix a bug in `VolcanoCost`.
 * Add class `FoodMartQuerySet`, that contains the 6,700 foodmart queries.
