@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/julianhyde/optiq-csv.png)](https://travis-ci.org/julianhyde/optiq-csv)
+
 optiq-csv
 ============
 
@@ -10,7 +12,7 @@ data source and quickly get a full SQL/JDBC interface.
 Download and build
 ==================
 
-You need Java (1.5 or higher; 1.7 preferred), git and maven (2 or higher).
+You need Java (1.6 or higher; 1.7 preferred), git and maven (3.0.4 or later).
 
 ```bash
 $ git clone git://github.com/julianhyde/optiq-csv.git
@@ -58,3 +60,5 @@ More information
 * Project page: http://www.hydromatic.net/optiq-csv
 * Source code: http://github.com/julianhyde/optiq-csv
 * Developers list: http://groups.google.com/group/optiq-dev
+* <a href="TUTORIAL.md">Tutorial</a>
+* <a href="HISTORY.md">Release notes and history</a>
