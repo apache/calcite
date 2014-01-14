@@ -3,24 +3,24 @@
   <parent>
     <groupId>net.hydromatic</groupId>
     <artifactId>optiq-parent</artifactId>
-    <version>0.4.17-SNAPSHOT</version>
+    <version>0.4.17</version>
   </parent>
 
   <artifactId>optiq-spark</artifactId>
   <packaging>jar</packaging>
-  <version>0.4.17-SNAPSHOT</version>
+  <version>0.4.17</version>
   <name>optiq-spark</name>
 
   <dependencies>
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.4.17-SNAPSHOT</version>
+      <version>0.4.17</version>
     </dependency>
     <dependency>
       <groupId>net.hydromatic</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.4.17-SNAPSHOT</version>
+      <version>0.4.17</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
