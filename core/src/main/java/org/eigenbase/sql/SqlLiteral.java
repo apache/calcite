@@ -781,17 +781,17 @@ public class SqlLiteral extends SqlNode {
               EigenbaseResource.instance().UnicodeEscapeMalformed.ex(
                   i));
         }
-        String u = s.substring(i + 1, i + 5);
-        short v;
+        final String u = s.substring(i + 1, i + 5);
+        final int v;
         try {
-          v = Short.parseShort(u, 16);
+          v = Integer.parseInt(u, 16);
         } catch (NumberFormatException ex) {
           throw SqlUtil.newContextException(
               getParserPosition(),
               EigenbaseResource.instance().UnicodeEscapeMalformed.ex(
                   i));
         }
-        sb.append((char) v);
+        sb.append((char) (v & 0xFFFF));
 
         // skip hexits
         i += 4;
