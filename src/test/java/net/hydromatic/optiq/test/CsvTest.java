@@ -226,6 +226,12 @@ public class CsvTest {
         "select * from emps join depts on emps.name = depts.name",
         "");
   }
+
+  @Test public void testBoolean() throws SQLException {
+    checkSql("smart",
+        "select empno, slacker from emps where slacker",
+        "EMPNO=100; SLACKER=true\n");
+  }
 }
 
 // End CsvTest.java
