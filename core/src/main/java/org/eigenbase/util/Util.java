@@ -2043,6 +2043,9 @@ public class Util {
   public static class FoundOne extends RuntimeException {
     private final Object node;
 
+    /** Singleton instance. Can be used if you don't care about node. */
+    public static final FoundOne NULL = new FoundOne(null);
+
     public FoundOne(Object node) {
       this.node = node;
     }

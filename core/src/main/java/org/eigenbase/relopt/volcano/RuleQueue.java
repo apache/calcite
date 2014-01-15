@@ -490,19 +490,59 @@ class RuleQueue {
   /** Returns whether to skip a match. This happens if any of the
    * {@link RelNode}s have importance zero. */
   private boolean skipMatch(VolcanoRuleMatch match) {
-    final List<RelSubset> subsets = new ArrayList<RelSubset>();
     for (RelNode rel : match.rels) {
       Double importance = planner.relImportances.get(rel);
       if (importance != null && importance == 0d) {
         return true;
       }
-      subsets.add(planner.getSubset(rel));
     }
-    if (!Util.isDistinct(subsets)) {
-      // If the same subset appears more than once in the match, it is gnarly.
+
+    // If the same subset appears more than once along any path from root
+    // operand to a leaf operand, we have matched a cycle. A relational
+    // expression that consumes its own output can never be implemented, and
+    // furthermore, if we fire rules on it we may generate lots of garbage.
+    // For example, if
+    //   Project(A, X = X + 0)
+    // is in the same subset as A, then we would generate
+    //   Project(A, X = X + 0 + 0)
+    //   Project(A, X = X + 0 + 0 + 0)
+    // also in the same subset. They are valid but useless.
+    final List<RelSubset> subsets = new ArrayList<RelSubset>();
+    try {
+      checkDuplicateSubsets(subsets, match.rule.getOperand(), match.rels);
+    } catch (Util.FoundOne e) {
       return true;
     }
     return false;
+  }
+
+  /** Recursively checks whether there are any duplicate subsets along any path
+   * from root of the operand tree to one of the leaves.
+   *
+   * <p>It is OK for a match to have duplicate subsets if they are not on the
+   * same path. For example,</p>
+   *
+   * <pre>
+   *   Join
+   *  /   \
+   * X     X
+   * </pre>
+   *
+   * <p>is a valid match.</p>
+   */
+  private void checkDuplicateSubsets(List<RelSubset> subsets,
+      RelOptRuleOperand operand, RelNode[] rels) throws Util.FoundOne {
+    final RelSubset subset = planner.getSubset(rels[operand.ordinalInRule]);
+    if (subsets.contains(subset)) {
+      throw Util.FoundOne.NULL;
+    }
+    if (!operand.getChildOperands().isEmpty()) {
+      Stacks.push(subsets, subset);
+      for (RelOptRuleOperand childOperand : operand.getChildOperands()) {
+        checkDuplicateSubsets(subsets, childOperand, rels);
+      }
+      Stacks.pop(subsets, subset);
+    }
   }
 
   /**
