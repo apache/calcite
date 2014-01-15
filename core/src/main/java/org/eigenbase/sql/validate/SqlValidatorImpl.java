@@ -2895,7 +2895,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlValidatorScope fromScope = getFromScope(select);
     final List<Pair<String, SqlValidatorNamespace>> children =
         ((SelectScope) fromScope).children;
-    int duplicateAliasOrdinal = firstDuplicate(Pair.left(children));
+    int duplicateAliasOrdinal = Util.firstDuplicate(Pair.left(children));
     if (duplicateAliasOrdinal >= 0) {
       final Pair<String, SqlValidatorNamespace> child =
           children.get(duplicateAliasOrdinal);
@@ -2921,34 +2921,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // dialects you can refer to columns of the select list, e.g.
     // "SELECT empno AS x FROM emp ORDER BY x"
     validateOrderList(select);
-  }
-
-  /**
-   * Returns the ordinal of the first element in the list which is equal to a
-   * previous element in the list.
-   *
-   * <p>For example, <code>firstDuplicate(Arrays.asList("a", "b", "c", "b",
-   * "a"))</code> returns 3, the ordinal of the 2nd "b".
-   *
-   * @param list List
-   * @return Ordinal of first duplicate, or -1 if not found
-   */
-  private static <T> int firstDuplicate(List<T> list) {
-    // For large lists, it's more efficient to build a set to do a quick
-    // check for duplicates before we do an O(n^2) search.
-    if (list.size() > 10 && Util.isDistinct(list)) {
-      return -1;
-    }
-    for (int i = 1; i < list.size(); i++) {
-      final T e0 = list.get(i);
-      for (int j = 0; j < i; j++) {
-        final T e1 = list.get(j);
-        if (e0.equals(e1)) {
-          return i; // ordinal of the later item
-        }
-      }
-    }
-    return -1;
   }
 
   protected void validateWindowClause(SqlSelect select) {

@@ -2007,10 +2007,24 @@ public class Util {
    * Returns whether the elements of {@code list} are distinct.
    */
   public static <E> boolean isDistinct(List<E> list) {
+    return firstDuplicate(list) < 0;
+  }
+
+  /**
+   * Returns the ordinal of the first element in the list which is equal to a
+   * previous element in the list.
+   *
+   * <p>For example, <code>firstDuplicate(Arrays.asList("a", "b", "c", "b",
+   * "a"))</code> returns 3, the ordinal of the 2nd "b".
+   *
+   * @param list List
+   * @return Ordinal of first duplicate, or -1 if not found
+   */
+  public static <E> int firstDuplicate(List<E> list) {
     final int size = list.size();
     if (size < 2) {
       // Lists of size 0 and 1 are always distinct.
-      return true;
+      return -1;
     }
     if (size < 15) {
       // For smaller lists, avoid the overhead of creating a set. Threshold
@@ -2020,19 +2034,19 @@ public class Util {
         for (int j = i - 1; j >= 0; j--) {
           E e1 = list.get(j);
           if (equal(e, e1)) {
-            return false;
+            return i;
           }
         }
       }
-      return true;
+      return -1;
     }
     final Map<E, Object> set = new HashMap<E, Object>(size);
     for (E e : list) {
       if (set.put(e, "") != null) {
-        return false;
+        return set.size();
       }
     }
-    return true;
+    return -1;
   }
 
   //~ Inner Classes ----------------------------------------------------------

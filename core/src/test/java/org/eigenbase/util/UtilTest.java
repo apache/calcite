@@ -1131,12 +1131,28 @@ public class UtilTest {
         equalTo("2, null, 3"));
   }
 
+  /** Unit test for {@link Util#firstDuplicate(java.util.List)}. */
+  @Test public void testFirstDuplicate() {
+    assertThat(Util.firstDuplicate(ImmutableList.of()), equalTo(-1));
+    assertThat(Util.firstDuplicate(ImmutableList.of(5)), equalTo(-1));
+    assertThat(Util.firstDuplicate(ImmutableList.of(5, 6)), equalTo(-1));
+    assertThat(Util.firstDuplicate(ImmutableList.of(5, 6, 5)), equalTo(2));
+    assertThat(Util.firstDuplicate(ImmutableList.of(5, 5, 6)), equalTo(1));
+    assertThat(Util.firstDuplicate(ImmutableList.of(5, 5, 6, 5)), equalTo(1));
+    // list longer than 15, the threshold where we move to set-based algorithm
+    assertThat(
+        Util.firstDuplicate(
+            ImmutableList.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+                15, 16, 17, 3, 19, 3, 21)),
+        equalTo(18));
+  }
+
   /** Benchmark for {@link Util#isDistinct}. Has determined that map-based
    * implementation is better than nested loops implementation if list is larger
    * than about 15. */
   @Test public void testIsDistinctBenchmark() {
     // Run a much quicker form of the test during regular testing.
-    final int limit = Benchmark.enabled() ? 10000000 : 10;
+    final int limit = Benchmark.enabled() ? 1000000 : 10;
     for (int i = 0; i < 30; i ++) {
       final int size = i;
       new Benchmark("isDistinct " + i + " (set)",
