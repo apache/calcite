@@ -164,6 +164,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     planner.addRule(JavaRules.ENUMERABLE_VALUES_RULE);
     planner.addRule(JavaRules.ENUMERABLE_WINDOW_RULE);
     planner.addRule(JavaRules.ENUMERABLE_ONE_ROW_RULE);
+    planner.addRule(JavaRules.ENUMERABLE_EMPTY_RULE);
     planner.addRule(TableAccessRule.instance);
     planner.addRule(MergeProjectRule.instance);
     planner.addRule(PushFilterPastProjectRule.instance);

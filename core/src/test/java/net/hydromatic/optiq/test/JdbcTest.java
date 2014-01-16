@@ -1640,6 +1640,19 @@ public class JdbcTest {
             + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n");
   }
 
+  /** "SELECT ... LIMIT 0" is executed differently. A planner rule converts the
+   * whole query to an empty rel. */
+  @Test public void testLimitZero() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .query(
+            "select * from \"hr\".\"emps\"\n"
+            + "limit 0")
+        .returns("")
+        .planContains(
+            "return net.hydromatic.linq4j.Linq4j.asEnumerable(new Object[] {})");
+  }
+
   /** Alternative formulation for {@link #testFetchStar()}. */
   @Test public void testLimitStar() {
     OptiqAssert.that()

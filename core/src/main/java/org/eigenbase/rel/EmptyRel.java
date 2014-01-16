@@ -33,7 +33,7 @@ import org.eigenbase.sql.*;
  *
  * <ul>
  * <li>Created by {@code net.sf.farrago.query.FarragoReduceValuesRule}</li>
- * <li>Triggers {@link org.eigenbase.rel.rules.RemoveEmptyRule}</li>
+ * <li>Triggers {@link org.eigenbase.rel.rules.RemoveEmptyRules}</li>
  * </ul>
  *
  * @see org.eigenbase.rel.ValuesRel

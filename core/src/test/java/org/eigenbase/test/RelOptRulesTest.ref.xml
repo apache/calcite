@@ -539,4 +539,129 @@ ProjectRel(EXPR$0=[CAST(CASE(IS NULL($1), IS NULL($0), IS NULL($0), IS NULL($1),
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testEmptyJoin">
+        <Resource name="sql">
+            <![CDATA[select * from (
+select * from emp where false)
+join dept using (deptno)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  JoinRel(condition=[=($7, $9)], joinType=[inner])
+    ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      FilterRel(condition=[false])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  EmptyRel
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testEmptyJoinRight">
+        <Resource name="sql">
+            <![CDATA[select * from (
+select * from emp where false)
+right join dept using (deptno)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  JoinRel(condition=[=($7, $9)], joinType=[right])
+    ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      FilterRel(condition=[false])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  JoinRel(condition=[=($7, $9)], joinType=[right])
+    EmptyRel
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testEmptyJoinLeft">
+        <Resource name="sql">
+            <![CDATA[select * from (
+select * from emp where false)
+left join dept using (deptno)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  JoinRel(condition=[=($7, $9)], joinType=[left])
+    ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      FilterRel(condition=[false])
+        TableAccessRel(table=[[CATALOG, SALES, EMP]])
+    TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  EmptyRel
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testEmptyLimitZero">
+        <Resource name="sql">
+            <![CDATA[select * from emp order by deptno limit 0]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+SortRel(sort0=[$7], dir0=[Ascending], fetch=[0])
+  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EmptyRel
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testEmptySort">
+        <Resource name="sql">
+            <![CDATA[select * from emp where false order by deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+SortRel(sort0=[$7], dir0=[Ascending])
+  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    FilterRel(condition=[false])
+      TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+SortRel(sort0=[$7], dir0=[Ascending])
+  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    EmptyRel
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testEmptySortLimitZero">
+        <Resource name="sql">
+            <![CDATA[select * from emp order by deptno limit 0]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+SortRel(sort0=[$7], dir0=[Ascending], fetch=[0])
+  ProjectRel(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EmptyRel
+]]>
+        </Resource>
+    </TestCase>
 </Root>

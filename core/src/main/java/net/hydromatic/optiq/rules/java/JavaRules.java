@@ -1837,33 +1837,45 @@ public class JavaRules {
   public static final EnumerableOneRowRule ENUMERABLE_ONE_ROW_RULE =
       new EnumerableOneRowRule();
 
-  public static class EnumerableOneRowRule extends RelOptRule {
+  public static class EnumerableOneRowRule extends ConverterRule {
     private EnumerableOneRowRule() {
-      super(
-          operand(OneRowRel.class, Convention.NONE, none()),
+      super(OneRowRel.class,
+          Convention.NONE,
+          EnumerableConvention.INSTANCE,
           "EnumerableOneRowRule");
     }
 
-    @Override
-    public void onMatch(RelOptRuleCall call) {
-      final OneRowRel rel = call.rel(0);
-      call.transformTo(
-          new ValuesRel(
-              rel.getCluster(),
-              rel.getRowType(),
+    public RelNode convert(RelNode rel) {
+      OneRowRel oneRow = (OneRowRel) rel;
+      RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+      return new EnumerableValuesRel(
+          oneRow.getCluster(),
+          oneRow.getRowType(),
+          Collections.singletonList(
               Collections.singletonList(
-                  Collections.singletonList(
-                      rel.getCluster().getRexBuilder().makeExactLiteral(
-                          BigDecimal.ZERO)))));
+                  rexBuilder.makeExactLiteral(BigDecimal.ZERO))),
+          oneRow.getTraitSet().replace(EnumerableConvention.INSTANCE));
+    }
+  }
+
+  public static final EnumerableEmptyRule ENUMERABLE_EMPTY_RULE =
+      new EnumerableEmptyRule();
+
+  public static class EnumerableEmptyRule extends ConverterRule {
+    private EnumerableEmptyRule() {
+      super(EmptyRel.class,
+          Convention.NONE,
+          EnumerableConvention.INSTANCE,
+          "EnumerableEmptyRule");
     }
 
     public RelNode convert(RelNode rel) {
-      ValuesRel valuesRel = (ValuesRel) rel;
+      EmptyRel empty = (EmptyRel) rel;
       return new EnumerableValuesRel(
-          valuesRel.getCluster(),
-          valuesRel.getRowType(),
-          valuesRel.getTuples(),
-          valuesRel.getTraitSet().replace(EnumerableConvention.INSTANCE));
+          empty.getCluster(),
+          empty.getRowType(),
+          ImmutableList.<List<RexLiteral>>of(),
+          empty.getTraitSet().replace(EnumerableConvention.INSTANCE));
     }
   }
 

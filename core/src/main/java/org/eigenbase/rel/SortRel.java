@@ -129,7 +129,7 @@ public class SortRel extends SingleRel {
       RelCollation newCollation,
       RexNode offset,
       RexNode fetch) {
-    assert traitSet.contains(Convention.NONE);
+    assert traitSet.containsIfApplicable(Convention.NONE);
     return new SortRel(
         getCluster(),
         traitSet,

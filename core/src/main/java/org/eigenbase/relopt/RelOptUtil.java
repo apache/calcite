@@ -519,9 +519,7 @@ public abstract class RelOptUtil {
     }
     List<RexNode> castExps =
         RexUtil.generateCastExpressions(
-            rel.getCluster().getRexBuilder(),
-            castRowType,
-            rowType);
+            rel.getCluster().getRexBuilder(), castRowType, rowType);
     if (rename) {
       // Use names and types from castRowType.
       return CalcRel.createProject(
@@ -1384,9 +1382,14 @@ public abstract class RelOptUtil {
 
   public static void registerAbstractRels(RelOptPlanner planner) {
     planner.addRule(PullConstantsThroughAggregatesRule.instance);
-    planner.addRule(RemoveEmptyRule.unionInstance);
-    planner.addRule(RemoveEmptyRule.projectInstance);
-    planner.addRule(RemoveEmptyRule.filterInstance);
+    planner.addRule(RemoveEmptyRules.UNION_INSTANCE);
+    planner.addRule(RemoveEmptyRules.PROJECT_INSTANCE);
+    planner.addRule(RemoveEmptyRules.FILTER_INSTANCE);
+    planner.addRule(RemoveEmptyRules.SORT_INSTANCE);
+    planner.addRule(RemoveEmptyRules.AGGREGATE_INSTANCE);
+    planner.addRule(RemoveEmptyRules.JOIN_LEFT_INSTANCE);
+    planner.addRule(RemoveEmptyRules.JOIN_RIGHT_INSTANCE);
+    planner.addRule(RemoveEmptyRules.SORT_FETCH_ZERO_INSTANCE);
     planner.addRule(WindowedAggSplitterRule.PROJECT);
   }
 
@@ -1529,6 +1532,13 @@ public abstract class RelOptUtil {
       return false;
     }
     return true;
+  }
+
+  /** Returns whether two relational expressions have the same row-type. */
+  public static boolean equalType(String desc0, RelNode rel0, String desc1,
+      RelNode rel1, boolean fail) {
+    // TODO: change 'equal' to 'eq', which is stronger.
+    return equal(desc0, rel0.getRowType(), desc1, rel1.getRowType(), fail);
   }
 
   /**
@@ -1842,9 +1852,12 @@ public abstract class RelOptUtil {
    * @return modified list
    */
   public static List<Integer> adjustKeys(List<Integer> keys, int adjustment) {
+    if (adjustment == 0) {
+      return keys;
+    }
     List<Integer> newKeys = new ArrayList<Integer>();
-    for (int i = 0; i < keys.size(); i++) {
-      newKeys.add(keys.get(i) + adjustment);
+    for (int key : keys) {
+      newKeys.add(key + adjustment);
     }
     return newKeys;
   }
@@ -2296,6 +2309,62 @@ public abstract class RelOptUtil {
     }
     return new ProjectRel(
         child.getCluster(), child, nodes, names, ProjectRel.Flags.Boxed);
+  }
+
+  /** Returns whether relational expression {@code target} occurs within a
+   * relational expression {@code ancestor}. */
+  public static boolean contains(RelNode ancestor, final RelNode target) {
+    if (ancestor == target) {
+      // Short-cut common case.
+      return true;
+    }
+    try {
+      new RelVisitor() {
+        public void visit(RelNode node, int ordinal, RelNode parent) {
+          if (node == target) {
+            throw Util.FoundOne.NULL;
+          }
+          super.visit(node, ordinal, parent);
+        }
+      }.go(ancestor);
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
+  }
+
+  /** Within a relational expression {@code query}, replaces occurrences of
+   * {@code find} with {@code replace}. */
+  public static RelNode replace(RelNode query, RelNode find, RelNode replace) {
+    if (find == replace) {
+      // Short-cut common case.
+      return query;
+    }
+    assert equalType("find", find, "replace", replace, true);
+    if (query == find) {
+      // Short-cut another common case.
+      return replace;
+    }
+    return replaceRecurse(query, find, replace);
+  }
+
+  /** Helper for {@link #replace}. */
+  private static RelNode replaceRecurse(
+      RelNode query, RelNode find, RelNode replace) {
+    if (query == find) {
+      return replace;
+    }
+    final List<RelNode> inputs = query.getInputs();
+    if (!inputs.isEmpty()) {
+      final List<RelNode> newInputs = new ArrayList<RelNode>();
+      for (RelNode input : inputs) {
+        newInputs.add(replaceRecurse(input, find, replace));
+      }
+      if (!newInputs.equals(inputs)) {
+        return query.copy(query.getTraitSet(), newInputs);
+      }
+    }
+    return query;
   }
 
   //~ Inner Classes ----------------------------------------------------------

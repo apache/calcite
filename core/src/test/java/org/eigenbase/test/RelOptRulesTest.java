@@ -298,7 +298,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ReduceExpressionsRule.CALC_INSTANCE)
 
             // the hard part is done... a few more rule calls to clean up
-        .addRuleInstance(RemoveEmptyRule.unionInstance)
+        .addRuleInstance(RemoveEmptyRules.UNION_INSTANCE)
         .addRuleInstance(ProjectToCalcRule.instance)
         .addRuleInstance(MergeCalcRule.instance)
         .addRuleInstance(ReduceExpressionsRule.CALC_INSTANCE)
@@ -508,8 +508,8 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(PushFilterPastProjectRule.instance)
         .addRuleInstance(MergeProjectRule.instance)
         .addRuleInstance(ReduceValuesRule.PROJECT_FILTER_INSTANCE)
-        .addRuleInstance(RemoveEmptyRule.projectInstance)
-        .addRuleInstance(RemoveEmptyRule.unionInstance)
+        .addRuleInstance(RemoveEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(RemoveEmptyRules.UNION_INSTANCE)
         .build();
 
     // Plan should be same as for
@@ -521,6 +521,71 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "select * from (values (20, 2))\n"
         + ")\n"
         + "where x + y > 30");
+  }
+
+  @Test public void testEmptyJoin() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(RemoveEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(RemoveEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(RemoveEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    // Plan should be empty
+    checkPlanning(program,
+        "select * from (\n"
+        + "select * from emp where false)\n"
+        + "join dept using (deptno)");
+  }
+
+  @Test public void testEmptyJoinLeft() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(RemoveEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(RemoveEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(RemoveEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    // Plan should be empty
+    checkPlanning(program,
+        "select * from (\n"
+        + "select * from emp where false)\n"
+        + "left join dept using (deptno)");
+  }
+
+  @Test public void testEmptyJoinRight() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(RemoveEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(RemoveEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(RemoveEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    // Plan should be equivalent to "select * from emp join dept".
+    // Cannot optimize away the join because of RIGHT.
+    checkPlanning(program,
+        "select * from (\n"
+        + "select * from emp where false)\n"
+        + "right join dept using (deptno)");
+  }
+
+  @Test public void testEmptySort() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(RemoveEmptyRules.SORT_INSTANCE)
+        .build();
+
+    checkPlanning(program,
+        "select * from emp where false order by deptno");
+  }
+
+  @Test public void testEmptySortLimitZero() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(RemoveEmptyRules.SORT_FETCH_ZERO_INSTANCE)
+        .build();
+
+    checkPlanning(program,
+        "select * from emp order by deptno limit 0");
   }
 
   @Test public void testReduceCasts() throws Exception {
