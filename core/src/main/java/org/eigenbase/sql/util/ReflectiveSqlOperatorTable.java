@@ -18,11 +18,12 @@
 package org.eigenbase.sql.util;
 
 import java.lang.reflect.*;
-
 import java.util.*;
 
 import org.eigenbase.sql.*;
 import org.eigenbase.util.*;
+
+import com.google.common.collect.*;
 
 /**
  * ReflectiveSqlOperatorTable implements the {@link SqlOperatorTable } interface
@@ -33,11 +34,10 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final MultiMap<String, SqlOperator> operators =
-      new MultiMap<String, SqlOperator>();
+  private final Multimap<String, SqlOperator> operators = HashMultimap.create();
 
-  private final Map<String, SqlOperator> mapNameToOp =
-      new HashMap<String, SqlOperator>();
+  private final Map<Pair<String, SqlSyntax>, SqlOperator> mapNameToOp =
+      new HashMap<Pair<String, SqlSyntax>, SqlOperator>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -84,19 +84,22 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
       SqlSyntax syntax) {
     // NOTE jvs 3-Mar-2005:  ignore category until someone cares
 
-    List<SqlOperator> overloads = new ArrayList<SqlOperator>();
     String simpleName;
     if (opName.names.size() > 1) {
       if (opName.names.get(opName.names.size() - 2).equals(IS_NAME)) {
         // per SQL99 Part 2 Section 10.4 Syntax Rule 7.b.ii.1
         simpleName = Util.last(opName.names);
       } else {
-        return overloads;
+        return ImmutableList.of();
       }
     } else {
       simpleName = opName.getSimple();
     }
-    final List<SqlOperator> list = operators.getMulti(simpleName);
+    final Collection<SqlOperator> list = operators.get(simpleName);
+    if (list.isEmpty()) {
+      return ImmutableList.of();
+    }
+    final List<SqlOperator> overloads = new ArrayList<SqlOperator>();
     for (SqlOperator op : list) {
       if (op.getSyntax() == syntax) {
         overloads.add(op);
@@ -110,39 +113,28 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
 
     // REVIEW jvs 1-Jan-2005:  why is this extra lookup required?
     // Shouldn't it be covered by search above?
-    SqlOperator extra;
     switch (syntax) {
     case Binary:
-      extra = mapNameToOp.get(simpleName + ":BINARY");
-      break;
     case Prefix:
-      extra = mapNameToOp.get(simpleName + ":PREFIX");
-      break;
     case Postfix:
-      extra = mapNameToOp.get(simpleName + ":POSTFIX");
+      SqlOperator extra = mapNameToOp.get(Pair.of(simpleName, syntax));
+      if ((extra != null) && !overloads.contains(extra)) {
+        overloads.add(extra);
+      }
       break;
-    default:
-      extra = null;
-      break;
-    }
-
-    if ((extra != null) && !overloads.contains(extra)) {
-      overloads.add(extra);
     }
 
     return overloads;
   }
 
   public void register(SqlOperator op) {
-    operators.putMulti(
-        op.getName(),
-        op);
+    operators.put(op.getName(), op);
     if (op instanceof SqlBinaryOperator) {
-      mapNameToOp.put(op.getName() + ":BINARY", op);
+      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.Binary), op);
     } else if (op instanceof SqlPrefixOperator) {
-      mapNameToOp.put(op.getName() + ":PREFIX", op);
+      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.Prefix), op);
     } else if (op instanceof SqlPostfixOperator) {
-      mapNameToOp.put(op.getName() + ":POSTFIX", op);
+      mapNameToOp.put(Pair.of(op.getName(), SqlSyntax.Postfix), op);
     }
   }
 
@@ -152,25 +144,14 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
    * @param function Function to register
    */
   public void register(SqlFunction function) {
-    operators.putMulti(
-        function.getName(),
-        function);
+    operators.put(function.getName(), function);
     SqlFunctionCategory funcType = function.getFunctionType();
-    assert (funcType != null) : "Function type for " + function.getName()
-        + " not set";
+    assert funcType != null
+        : "Function type for " + function.getName() + " not set";
   }
 
-  // implement SqlOperatorTable
   public List<SqlOperator> getOperatorList() {
-    List<SqlOperator> list = new ArrayList<SqlOperator>();
-
-    Iterator<Map.Entry<String, SqlOperator>> it =
-        operators.entryIterMulti();
-    while (it.hasNext()) {
-      list.add(it.next().getValue());
-    }
-
-    return list;
+    return ImmutableList.copyOf(operators.values());
   }
 }
 

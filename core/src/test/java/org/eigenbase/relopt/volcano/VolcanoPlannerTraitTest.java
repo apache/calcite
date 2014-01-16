@@ -25,6 +25,9 @@ import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
 import org.eigenbase.util.*;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -244,9 +247,8 @@ public class VolcanoPlannerTraitTest {
   }
 
   private static class AltTraitDef extends RelTraitDef<AltTrait> {
-    private MultiMap<RelTrait, Pair<RelTrait, ConverterRule>>
-        conversionMap =
-        new MultiMap<RelTrait, Pair<RelTrait, ConverterRule>>();
+    private Multimap<RelTrait, Pair<RelTrait, ConverterRule>> conversionMap =
+        HashMultimap.create();
 
     public Class<AltTrait> getTraitClass() {
       return AltTrait.class;
@@ -268,9 +270,8 @@ public class VolcanoPlannerTraitTest {
       RelTrait fromTrait = rel.getTraitSet().getTrait(this);
 
       if (conversionMap.containsKey(fromTrait)) {
-        for (
-            Pair<RelTrait, ConverterRule> traitAndRule
-            : conversionMap.getMulti(fromTrait)) {
+        for (Pair<RelTrait, ConverterRule> traitAndRule
+            : conversionMap.get(fromTrait)) {
           RelTrait trait = traitAndRule.left;
           ConverterRule rule = traitAndRule.right;
 
@@ -293,9 +294,8 @@ public class VolcanoPlannerTraitTest {
         AltTrait fromTrait,
         AltTrait toTrait) {
       if (conversionMap.containsKey(fromTrait)) {
-        for (
-            Pair<RelTrait, ConverterRule> traitAndRule
-            : conversionMap.getMulti(fromTrait)) {
+        for (Pair<RelTrait, ConverterRule> traitAndRule
+            : conversionMap.get(fromTrait)) {
           if (traitAndRule.left == toTrait) {
             return true;
           }
@@ -315,8 +315,7 @@ public class VolcanoPlannerTraitTest {
       RelTrait fromTrait = converterRule.getInTrait();
       RelTrait toTrait = converterRule.getOutTrait();
 
-      conversionMap.putMulti(
-          fromTrait,
+      conversionMap.put(fromTrait,
           new Pair<RelTrait, ConverterRule>(toTrait, converterRule));
     }
   }

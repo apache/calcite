@@ -18,7 +18,6 @@
 package org.eigenbase.relopt.volcano;
 
 import java.io.*;
-
 import java.util.*;
 import java.util.logging.*;
 
@@ -26,6 +25,9 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * Priority queue of relexps whose rules have not been called, and rule-matches
@@ -253,10 +255,10 @@ class RuleQueue {
     subsetImportances.put(subset, importance);
 
     for (PhaseMatchList matchList : matchListMap.values()) {
-      MultiMap<RelSubset, VolcanoRuleMatch> relMatchMap =
+      Multimap<RelSubset, VolcanoRuleMatch> relMatchMap =
           matchList.matchMap;
       if (relMatchMap.containsKey(subset)) {
-        for (VolcanoRuleMatch match : relMatchMap.getMulti(subset)) {
+        for (VolcanoRuleMatch match : relMatchMap.get(subset)) {
           match.clearCachedImportance();
         }
       }
@@ -326,9 +328,8 @@ class RuleQueue {
 
       matchList.list.add(match);
 
-      matchList.matchMap.putMulti(
-          planner.getSubset(match.rels[0]),
-          match);
+      matchList.matchMap.put(
+          planner.getSubset(match.rels[0]), match);
     }
   }
 
@@ -477,9 +478,8 @@ class RuleQueue {
     // enqueued.
     match.recomputeDigest();
 
-    phaseMatchList.matchMap.removeMulti(
-        planner.getSubset(match.rels[0]),
-        match);
+    phaseMatchList.matchMap.remove(
+        planner.getSubset(match.rels[0]), match);
 
     if (tracer.isLoggable(Level.FINE)) {
       tracer.fine("Pop match: " + match);
@@ -668,32 +668,30 @@ class RuleQueue {
      * are appended to the end of this list. When removing a rule-match, the
      * list is sorted and the highest importance rule-match removed. It is
      * important for performance that this list remain mostly sorted.
+     *
+     * <p>Use a hunkList because {@link java.util.ArrayList} does not implement
+     * remove(0) efficiently.</p>
      */
-    final List<VolcanoRuleMatch> list;
+    final List<VolcanoRuleMatch> list = new ChunkList<VolcanoRuleMatch>();
 
     /**
      * A set of rule-match names contained in {@link #list}. Allows fast
      * detection of duplicate rule-matches.
      */
-    final Set<String> names;
+    final Set<String> names = new HashSet<String>();
 
     /**
-     * Multi-map of RelSubset to VolcanoRuleMatches. Used to {@link
-     * VolcanoRuleMatch#clearCachedImportance() clear} the rule-match's
-     * cached importance related RelSubset importances are modified (e.g.,
-     * due to invocation of {@link RuleQueue#boostImportance(Collection,
-     * double)}).
+     * Multi-map of RelSubset to VolcanoRuleMatches. Used to
+     * {@link VolcanoRuleMatch#clearCachedImportance() clear} the rule-match's
+     * cached importance when the importance of a related RelSubset is modified
+     * (e.g., due to invocation of
+     * {@link RuleQueue#boostImportance(Collection, double)}).
      */
-    final MultiMap<RelSubset, VolcanoRuleMatch> matchMap;
+    final Multimap<RelSubset, VolcanoRuleMatch> matchMap =
+        HashMultimap.create();
 
     PhaseMatchList(VolcanoPlannerPhase phase) {
       this.phase = phase;
-
-      // Use a double-linked list because an array-list does not
-      // implement remove(0) efficiently.
-      this.list = new ChunkList<VolcanoRuleMatch>();
-      this.names = new HashSet<String>();
-      this.matchMap = new MultiMap<RelSubset, VolcanoRuleMatch>();
     }
   }
 }

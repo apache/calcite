@@ -21,7 +21,11 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
-import org.eigenbase.util.*;
+import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 import net.hydromatic.optiq.util.graph.*;
 
@@ -86,7 +90,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
       conversionData.conversionGraph.addVertex(outConvention);
       conversionData.conversionGraph.addEdge(inConvention, outConvention);
 
-      conversionData.mapArcToConverterRule.putMulti(
+      conversionData.mapArcToConverterRule.put(
           Pair.of(inConvention, outConvention), converterRule);
     }
   }
@@ -106,7 +110,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
           conversionData.conversionGraph.removeEdge(
               inConvention, outConvention);
       assert removed;
-      conversionData.mapArcToConverterRule.removeMulti(
+      conversionData.mapArcToConverterRule.remove(
           Pair.of(inConvention, outConvention), converterRule);
     }
   }
@@ -164,14 +168,14 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
       RelNode rel,
       Convention source,
       Convention target,
-      final MultiMap<Pair<Convention, Convention>, ConverterRule>
+      final Multimap<Pair<Convention, Convention>, ConverterRule>
           mapArcToConverterRule) {
     assert source == rel.getConvention();
 
     // Try to apply each converter rule for this arc's source/target calling
     // conventions.
     final Pair<Convention, Convention> key = Pair.of(source, target);
-    for (ConverterRule rule : mapArcToConverterRule.getMulti(key)) {
+    for (ConverterRule rule : mapArcToConverterRule.get(key)) {
       assert rule.getInTrait() == source;
       assert rule.getOutTrait() == target;
       RelNode converted = rule.convert(rel);
@@ -213,9 +217,9 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
      * conversion rules. Maps {@link DefaultEdge} to a
      * collection of {@link ConverterRule} objects.
      */
-    final MultiMap<Pair<Convention, Convention>, ConverterRule>
+    final Multimap<Pair<Convention, Convention>, ConverterRule>
         mapArcToConverterRule =
-        new MultiMap<Pair<Convention, Convention>, ConverterRule>();
+        HashMultimap.create();
     private Graphs.FrozenGraph<Convention, DefaultEdge> pathMap;
 
     public List<List<Convention>> getPaths(
