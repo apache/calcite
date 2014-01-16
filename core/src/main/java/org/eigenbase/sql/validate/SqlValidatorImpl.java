@@ -1451,7 +1451,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlCall call,
       SqlFunction unresolvedConstructor,
       SqlFunction resolvedConstructor,
-      RelDataType[] argTypes) {
+      List<RelDataType> argTypes) {
     SqlIdentifier sqlIdentifier = unresolvedConstructor.getSqlIdentifier();
     assert (sqlIdentifier != null);
     RelDataType type = catalogReader.getNamedType(sqlIdentifier);
@@ -1467,7 +1467,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (call.getOperands().length > 0) {
         // This is not a default constructor invocation, and
         // no user-defined constructor could be found
-        handleUnresolvedFunction(call, unresolvedConstructor, argTypes);
+        throw handleUnresolvedFunction(call, unresolvedConstructor, argTypes);
       }
     } else {
       SqlCall testCall =
@@ -1502,10 +1502,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return type;
   }
 
-  public void handleUnresolvedFunction(
+  public EigenbaseException handleUnresolvedFunction(
       SqlCall call,
       SqlFunction unresolvedFunction,
-      RelDataType[] argTypes) {
+      List<RelDataType> argTypes) {
     // For builtins, we can give a better error message
     List<SqlOperator> overloads =
         opTab.lookupOperatorOverloads(
@@ -1534,8 +1534,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             unresolvedFunction.getName());
     throw newValidationError(
         call,
-        EigenbaseResource.instance().ValidatorUnknownFunction.ex(
-            signature));
+        EigenbaseResource.instance().ValidatorUnknownFunction.ex(signature));
   }
 
   protected void inferUnknownTypes(
@@ -3790,10 +3789,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // For example, "LOCALTIME()" is illegal. (It should be
       // "LOCALTIME", which would have been handled as a
       // SqlIdentifier.)
-      handleUnresolvedFunction(
+      throw handleUnresolvedFunction(
           call,
           (SqlFunction) operator,
-          new RelDataType[0]);
+          ImmutableList.<RelDataType>of());
     }
 
     SqlValidatorScope operandScope = scope.getOperandScope(call);
@@ -3918,7 +3917,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public void validateColumnListParams(
       SqlFunction function,
-      RelDataType[] argTypes,
+      List<RelDataType> argTypes,
       SqlNode[] operands) {
     throw new UnsupportedOperationException();
   }

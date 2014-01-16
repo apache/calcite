@@ -17,8 +17,15 @@
 */
 package org.eigenbase.sql.type;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
+import org.eigenbase.util.Pair;
+
+import net.hydromatic.linq4j.Ord;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * AssignableOperandTypeChecker implements {@link SqlOperandTypeChecker} by
@@ -28,7 +35,7 @@ import org.eigenbase.sql.*;
 public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
-  private final RelDataType[] paramTypes;
+  private final List<RelDataType> paramTypes;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -38,27 +45,28 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
    * @param paramTypes parameter types for operands; index in this array
    *                   corresponds to operand number
    */
-  public AssignableOperandTypeChecker(RelDataType[] paramTypes) {
-    this.paramTypes = paramTypes;
+  public AssignableOperandTypeChecker(List<RelDataType> paramTypes) {
+    this.paramTypes = ImmutableList.copyOf(paramTypes);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   // implement SqlOperandTypeChecker
   public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(paramTypes.length);
+    return SqlOperandCountRanges.of(paramTypes.size());
   }
 
   // implement SqlOperandTypeChecker
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    for (int i = 0; i < callBinding.getOperandCount(); ++i) {
+    final List<SqlNode> operands = callBinding.getCall().getOperandList();
+    for (Pair<RelDataType, SqlNode> pair : Pair.zip(paramTypes, operands)) {
       RelDataType argType =
           callBinding.getValidator().deriveType(
               callBinding.getScope(),
-              callBinding.getCall().operands[i]);
-      if (!SqlTypeUtil.canAssignFrom(paramTypes[i], argType)) {
+              pair.right);
+      if (!SqlTypeUtil.canAssignFrom(pair.left, argType)) {
         if (throwOnFailure) {
           throw callBinding.newValidationSignatureError();
         } else {
@@ -74,12 +82,12 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
     StringBuilder sb = new StringBuilder();
     sb.append(opName);
     sb.append("(");
-    for (int i = 0; i < paramTypes.length; ++i) {
-      if (i > 0) {
+    for (Ord<RelDataType> paramType : Ord.zip(paramTypes)) {
+      if (paramType.i > 0) {
         sb.append(", ");
       }
       sb.append("<");
-      sb.append(paramTypes[i].getFamily().toString());
+      sb.append(paramType.e.getFamily());
       sb.append(">");
     }
     sb.append(")");

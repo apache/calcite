@@ -266,7 +266,7 @@ public interface SqlValidator {
    */
   void validateColumnListParams(
       SqlFunction function,
-      RelDataType[] argTypes,
+      List<RelDataType> argTypes,
       SqlNode[] operands);
 
   /**
@@ -596,21 +596,21 @@ public interface SqlValidator {
       SqlCall call,
       SqlFunction unresolvedConstructor,
       SqlFunction resolvedConstructor,
-      RelDataType[] argTypes);
+      List<RelDataType> argTypes);
 
   /**
-   * Handles a call to a function which cannot be resolved, throwing an
-   * appropriately descriptive error.
+   * Handles a call to a function which cannot be resolved. Returns a an
+   * appropriately descriptive error, which caller must throw.
    *
    * @param call               Call
    * @param unresolvedFunction Overloaded function which is the target of the
    *                           call
    * @param argTypes           Types of arguments
    */
-  void handleUnresolvedFunction(
+  EigenbaseException handleUnresolvedFunction(
       SqlCall call,
       SqlFunction unresolvedFunction,
-      RelDataType[] argTypes);
+      List<RelDataType> argTypes);
 
   /**
    * Expands an expression in the ORDER BY clause into an expression with the

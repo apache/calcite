@@ -312,7 +312,7 @@ public abstract class SqlUtil {
   public static SqlFunction lookupRoutine(
       SqlOperatorTable opTab,
       SqlIdentifier funcName,
-      RelDataType[] argTypes,
+      List<RelDataType> argTypes,
       SqlFunctionCategory category) {
     List<SqlFunction> list =
         lookupSubjectRoutines(
@@ -341,7 +341,7 @@ public abstract class SqlUtil {
   public static List<SqlFunction> lookupSubjectRoutines(
       SqlOperatorTable opTab,
       SqlIdentifier funcName,
-      RelDataType[] argTypes,
+      List<RelDataType> argTypes,
       SqlFunctionCategory category) {
     // start with all routines matching by name
     List<SqlFunction> routines =
@@ -379,6 +379,7 @@ public abstract class SqlUtil {
    * Determine if there is a routine matching the given name and number of
    * arguments.
    *
+   *
    * @param opTab    operator table to search
    * @param funcName name of function being invoked
    * @param argTypes argument types
@@ -388,7 +389,7 @@ public abstract class SqlUtil {
   public static boolean matchRoutinesByParameterCount(
       SqlOperatorTable opTab,
       SqlIdentifier funcName,
-      RelDataType[] argTypes,
+      List<RelDataType> argTypes,
       SqlFunctionCategory category) {
     // start with all routines matching by name
     List<SqlFunction> routines =
@@ -398,7 +399,7 @@ public abstract class SqlUtil {
     // number of arguments
     filterRoutinesByParameterCount(routines, argTypes);
 
-    return (routines.size() > 0);
+    return routines.size() > 0;
   }
 
   private static List<SqlFunction> lookupSubjectRoutinesByName(
@@ -421,12 +422,12 @@ public abstract class SqlUtil {
 
   private static void filterRoutinesByParameterCount(
       List<SqlFunction> routines,
-      RelDataType[] argTypes) {
+      List<RelDataType> argTypes) {
     Iterator<SqlFunction> iter = routines.iterator();
     while (iter.hasNext()) {
-      SqlFunction function = (SqlFunction) iter.next();
+      SqlFunction function = iter.next();
       SqlOperandCountRange od = function.getOperandCountRange();
-      if (!od.isValidCount(argTypes.length)) {
+      if (!od.isValidCount(argTypes.size())) {
         iter.remove();
       }
     }
@@ -437,21 +438,22 @@ public abstract class SqlUtil {
    */
   private static void filterRoutinesByParameterType(
       List<SqlFunction> routines,
-      RelDataType[] argTypes) {
+      List<RelDataType> argTypes) {
     Iterator<SqlFunction> iter = routines.iterator();
     while (iter.hasNext()) {
       SqlFunction function = iter.next();
-      RelDataType[] paramTypes = function.getParamTypes();
+      List<RelDataType> paramTypes = function.getParamTypes();
       if (paramTypes == null) {
         // no parameter information for builtins; keep for now
         continue;
       }
-      assert (paramTypes.length == argTypes.length);
+      assert paramTypes.size() == argTypes.size();
       boolean keep = true;
-      for (int i = 0; i < paramTypes.length; ++i) {
-        RelDataTypePrecedenceList precList =
-            argTypes[i].getPrecedenceList();
-        if (!precList.containsType(paramTypes[i])) {
+      for (Pair<RelDataType, RelDataType> p : Pair.zip(paramTypes, argTypes)) {
+        final RelDataType argType = p.right;
+        final RelDataType paramType = p.left;
+        final RelDataTypePrecedenceList precList = argType.getPrecedenceList();
+        if (!precList.containsType(paramType)) {
           keep = false;
           break;
         }
@@ -467,39 +469,40 @@ public abstract class SqlUtil {
    */
   private static void filterRoutinesByTypePrecedence(
       List<SqlFunction> routines,
-      RelDataType[] argTypes) {
-    for (int i = 0; i < argTypes.length; ++i) {
+      List<RelDataType> argTypes) {
+    for (int i = 0; i < argTypes.size(); ++i) {
       RelDataTypePrecedenceList precList =
-          argTypes[i].getPrecedenceList();
+          argTypes.get(i).getPrecedenceList();
       RelDataType bestMatch = null;
       for (SqlFunction function : routines) {
-        RelDataType[] paramTypes = function.getParamTypes();
+        List<RelDataType> paramTypes = function.getParamTypes();
         if (paramTypes == null) {
           continue;
         }
+        final RelDataType paramType = paramTypes.get(i);
         if (bestMatch == null) {
-          bestMatch = paramTypes[i];
+          bestMatch = paramType;
         } else {
           int c =
               precList.compareTypePrecedence(
                   bestMatch,
-                  paramTypes[i]);
+                  paramType);
           if (c < 0) {
-            bestMatch = paramTypes[i];
+            bestMatch = paramType;
           }
         }
       }
       if (bestMatch != null) {
         Iterator<SqlFunction> iter = routines.iterator();
         while (iter.hasNext()) {
-          SqlFunction function = (SqlFunction) iter.next();
-          RelDataType[] paramTypes = function.getParamTypes();
+          SqlFunction function = iter.next();
+          List<RelDataType> paramTypes = function.getParamTypes();
           int c;
           if (paramTypes == null) {
             c = -1;
           } else {
             c = precList.compareTypePrecedence(
-                paramTypes[i],
+                paramTypes.get(i),
                 bestMatch);
           }
           if (c < 0) {

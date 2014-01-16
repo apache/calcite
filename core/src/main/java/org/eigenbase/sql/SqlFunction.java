@@ -17,12 +17,16 @@
 */
 package org.eigenbase.sql;
 
+import java.util.List;
+
 import org.eigenbase.reltype.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * A <code>SqlFunction</code> is a type of operator which has conventional
@@ -35,7 +39,7 @@ public class SqlFunction extends SqlOperator {
 
   private final SqlIdentifier sqlIdentifier;
 
-  private final RelDataType[] paramTypes;
+  private final List<RelDataType> paramTypes;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -108,7 +112,8 @@ public class SqlFunction extends SqlOperator {
 
     this.sqlIdentifier = sqlIdentifier;
     this.functionType = funcType;
-    this.paramTypes = paramTypes;
+    this.paramTypes =
+        paramTypes == null ? null : ImmutableList.copyOf(paramTypes);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -139,7 +144,7 @@ public class SqlFunction extends SqlOperator {
   /**
    * @return array of parameter types, or null for builtin function
    */
-  public RelDataType[] getParamTypes() {
+  public List<RelDataType> getParamTypes() {
     return paramTypes;
   }
 
@@ -210,7 +215,6 @@ public class SqlFunction extends SqlOperator {
       SqlCall call,
       boolean convertRowArgToColumnList) {
     final SqlNode[] operands = call.operands;
-    RelDataType[] argTypes = new RelDataType[operands.length];
 
     // Scope for operands. Usually the same as 'scope'.
     final SqlValidatorScope operandScope = scope.getOperandScope(call);
@@ -219,27 +223,28 @@ public class SqlFunction extends SqlOperator {
     validator.pushFunctionCall();
 
     try {
+      final ImmutableList.Builder<RelDataType> argTypeBuilder =
+          ImmutableList.builder();
       boolean containsRowArg = false;
-      for (int i = 0; i < operands.length; ++i) {
+      for (SqlNode operand : operands) {
         RelDataType nodeType;
 
         // for row arguments that should be converted to ColumnList
         // types, set the nodeType to a ColumnList type but defer
         // validating the arguments of the row constructor until we know
         // for sure that the row argument maps to a ColumnList type
-        if (operands[i].getKind() == SqlKind.ROW
-            && convertRowArgToColumnList) {
+        if (operand.getKind() == SqlKind.ROW && convertRowArgToColumnList) {
           containsRowArg = true;
           RelDataTypeFactory typeFactory = validator.getTypeFactory();
-          nodeType =
-              typeFactory.createSqlType(SqlTypeName.COLUMN_LIST);
+          nodeType = typeFactory.createSqlType(SqlTypeName.COLUMN_LIST);
         } else {
-          nodeType = validator.deriveType(operandScope, operands[i]);
+          nodeType = validator.deriveType(operandScope, operand);
         }
-        validator.setValidatedNodeType(operands[i], nodeType);
-        argTypes[i] = nodeType;
+        validator.setValidatedNodeType(operand, nodeType);
+        argTypeBuilder.add(nodeType);
       }
 
+      final List<RelDataType> argTypes = argTypeBuilder.build();
       SqlFunction function =
           SqlUtil.lookupRoutine(
               validator.getOperatorTable(),
@@ -268,27 +273,16 @@ public class SqlFunction extends SqlOperator {
           }
           return deriveType(validator, scope, call, false);
         } else if (function != null) {
-          validator.validateColumnListParams(
-              function,
-              argTypes,
-              operands);
+          validator.validateColumnListParams(function, argTypes, operands);
         }
       }
 
-      if (getFunctionType()
-          == SqlFunctionCategory.UserDefinedConstructor) {
-        return validator.deriveConstructorType(
-            scope,
-            call,
-            this,
-            function,
+      if (getFunctionType() == SqlFunctionCategory.UserDefinedConstructor) {
+        return validator.deriveConstructorType(scope, call, this, function,
             argTypes);
       }
       if (function == null) {
-        validator.handleUnresolvedFunction(
-            call,
-            this,
-            argTypes);
+        throw validator.handleUnresolvedFunction(call, this, argTypes);
       }
 
       // REVIEW jvs 25-Mar-2005:  This is, in a sense, expanding
