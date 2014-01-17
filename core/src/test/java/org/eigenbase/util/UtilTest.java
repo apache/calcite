@@ -1153,22 +1153,25 @@ public class UtilTest {
   @Test public void testIsDistinctBenchmark() {
     // Run a much quicker form of the test during regular testing.
     final int limit = Benchmark.enabled() ? 1000000 : 10;
+    final int zMax = 100;
     for (int i = 0; i < 30; i ++) {
       final int size = i;
       new Benchmark("isDistinct " + i + " (set)",
           new Function1<Benchmark.Statistician, Void>() {
             public Void apply(Benchmark.Statistician statistician) {
-              final Random random = new Random();
-              final List<Integer> list = new ArrayList<Integer>();
-              for (int k = 0; k < size; k++) {
-                list.add(random.nextInt(size * size));
+              final Random random = new Random(0);
+              final List<List<Integer>> lists = new ArrayList<List<Integer>>();
+              for (int z = 0; z < zMax; z++) {
+                final List<Integer> list = new ArrayList<Integer>();
+                for (int k = 0; k < size; k++) {
+                  list.add(random.nextInt(size * size));
+                }
+                lists.add(list);
               }
               long nanos = System.nanoTime();
               int n = 0;
               for (int j = 0; j < limit; j++) {
-                if (Util.isDistinct(list)) {
-                  ++n;
-                }
+                n += Util.firstDuplicate(lists.get(j % zMax));
               }
               statistician.record(nanos);
               Util.discard(n);
