@@ -297,7 +297,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     final Prepare.PreparedResult preparedResult;
     if (sql != null) {
       assert queryable == null;
-      SqlParser parser = new SqlParser(sql);
+      SqlParser parser = new SqlParser(sql, context.config().quoting());
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseStmt();

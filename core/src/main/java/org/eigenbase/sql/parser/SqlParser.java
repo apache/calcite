@@ -18,6 +18,7 @@
 package org.eigenbase.sql.parser;
 
 import java.io.*;
+import java.util.Arrays;
 
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.impl.*;
@@ -35,29 +36,25 @@ public class SqlParser {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a <code>SqlParser</code> which reads input from a string.
+   * Creates a <code>SqlParser</code> that reads input from a string.
    */
   public SqlParser(String s) {
-    parser = new SqlParserImpl(new StringReader(s));
-    parser.setTabSize(1);
-    this.originalInput = s;
+    this(s, Quoting.DOUBLE_QUOTE);
   }
 
   /**
-   * Creates a <code>SqlParser</code> which reads input from a reader.
+   * Creates a <code>SqlParser</code> that reads input from a string.
    */
-  public SqlParser(Reader reader) {
-    if (reader instanceof StringReader) {
-      try {
-        char[] buffer = new char[4096];
-        int count = reader.read(buffer);
-        this.originalInput = new String(buffer, 0, count);
-        reader.reset();
-      } catch (IOException e) {
-      }
-    }
-    parser = new SqlParserImpl(reader);
+  public SqlParser(String s, Quoting quoting) {
+    parser = new SqlParserImpl(new StringReader(s));
     parser.setTabSize(1);
+    this.originalInput = s;
+    switch (quoting) {
+    case DOUBLE_QUOTE:
+    case BACK_TICK:
+    case BRACKET:
+      parser.token_source.SwitchTo(quoting.state);
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -128,6 +125,20 @@ public class SqlParser {
    */
   public SqlParserImpl getParserImpl() {
     return parser;
+  }
+
+  public enum Quoting {
+    DOUBLE_QUOTE("DQID"),
+    BACK_TICK("BTID"),
+    BRACKET("DEFAULT");
+
+    public final int state;
+
+    Quoting(String stateName) {
+      state =
+          Arrays.asList(SqlParserImplTokenManager.lexStateNames)
+              .indexOf(stateName);
+    }
   }
 }
 

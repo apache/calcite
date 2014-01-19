@@ -32,6 +32,9 @@ public enum ConnectionProperty {
   /** URI of the model. */
   MODEL("model", Type.STRING, null),
 
+  /** How identifiers are quoted. */
+  QUOTING("quoting", Type.ENUM, "DOUBLE_QUOTE"),
+
   /** Name of initial schema. */
   SCHEMA("schema", Type.STRING, null),
 
@@ -91,6 +94,25 @@ public enum ConnectionProperty {
     return Boolean.parseBoolean(s);
   }
 
+  /** Returns the enum value of this property. Throws if not set and no
+   * default. */
+  public <E extends Enum> E getEnum(Properties properties, Class<E> enumClass) {
+    assert type == Type.ENUM;
+    String s = _get(properties);
+    if (s == null) {
+      throw new RuntimeException("Required property '" + camelName
+          + "' not specified");
+    }
+    for (Enum anEnum : enumClass.getEnumConstants()) {
+      if (anEnum.name().equals(s)) {
+        //noinspection unchecked
+        return (E) anEnum;
+      }
+    }
+    throw new RuntimeException("Property '" + s + "' not valid for enum "
+        + enumClass.getName());
+  }
+
   /** Converts a {@link Properties} object containing (name, value) pairs
    * into a map whose keys are {@link ConnectionProperty} objects.
    *
@@ -118,7 +140,8 @@ public enum ConnectionProperty {
 
   enum Type {
     BOOLEAN,
-    STRING
+    STRING,
+    ENUM
   }
 }
 

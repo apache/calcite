@@ -3206,6 +3206,14 @@ String Identifier() :
         {
             id = SqlParserUtil.strip(getToken(0).image, DOUBLE_QUOTE + "");
         }
+        | <BACK_QUOTED_IDENTIFIER>
+        {
+            id = SqlParserUtil.strip(getToken(0).image, "`");
+        }
+        | <BRACKET_QUOTED_IDENTIFIER>
+        {
+            id = SqlParserUtil.strip(getToken(0).image, "[", "");
+        }
         | <UNICODE_QUOTED_IDENTIFIER>
         {
             id = getToken(0).image;
@@ -4311,7 +4319,7 @@ SqlPostfixOperator PostfixRowOperator() :
 /* KEYWORDS:  anything in this list is a reserved word unless it appears
    in the NonReservedKeyWord() production. */
 
-TOKEN :
+<DEFAULT, DQID, BTID> TOKEN :
 {
     < A: "A" >
     | < ABS: "ABS" >
@@ -5091,7 +5099,7 @@ String CommonNonReservedKeyWord() :
 
 /* LITERALS */
 
-TOKEN :
+<DEFAULT, DQID, BTID> TOKEN :
 {
     < UNSIGNED_INTEGER_LITERAL: (["0"-"9"])+ >
     |
@@ -5126,7 +5134,7 @@ TOKEN :
     >
 }
 
-TOKEN :
+<DEFAULT, DQID, BTID> TOKEN :
 {
     < UNICODE_QUOTED_ESCAPE_CHAR:
     <QUOTE>
@@ -5137,7 +5145,7 @@ TOKEN :
 
 /* SEPARATORS */
 
-TOKEN :
+<DEFAULT, DQID, BTID> TOKEN :
 {
     < LPAREN: "(">
     | < RPAREN: ")">
@@ -5156,7 +5164,7 @@ TOKEN :
 
 /* OPERATORS */
 
-TOKEN :
+<DEFAULT, DQID, BTID> TOKEN :
 {
     < EQ: "=" >
     | < GT: ">" >
@@ -5181,9 +5189,38 @@ TOKEN :
  * Lexical Descriptions                  *
  *****************************************/
 
+TOKEN_MGR_DECLS : {
+    List<Integer> lexicalStateStack = new ArrayList<Integer>();
+
+    void pushState() {
+      lexicalStateStack.add(curLexState);
+    }
+
+    void popState() {
+      SwitchTo(lexicalStateStack.remove(lexicalStateStack.size() - 1));
+    }
+}
+
+/*
+Lexical states:
+
+DEFAULT: Identifiers are quoted in brackets, e.g. [My Identifier]
+DQID:    Identifiers are double-quoted, e.g. "My Identifier"
+BTID:    Identifiers are enclosed in back-ticks, e.g. `My Identifier`
+IN_SINGLE_LINE_COMMENT:
+IN_FORMAL_COMMENT:
+IN_MULTI_LINE_COMMENT:
+
+DEFAULT, DQID, BTID are the 3 'normal states'. Behavior is identical except
+for how quoted identifiers are recognized.
+
+After a comment has completed, the lexer returns to the previous state, one
+of the 'normal states'.
+*/
+
 /* WHITE SPACE */
 
-SKIP :
+<DEFAULT, DQID, BTID> SKIP :
 {
     " "
     | "\t"
@@ -5194,36 +5231,36 @@ SKIP :
 
 /* COMMENTS */
 
-MORE :
+<DEFAULT, DQID, BTID> MORE :
 {
-    <"/**" ~["/"]> : IN_FORMAL_COMMENT
+    <"/**" ~["/"]> { pushState(); } : IN_FORMAL_COMMENT
 }
 
-MORE :
+<DEFAULT, DQID, BTID> MORE :
 {
-    "//" : IN_SINGLE_LINE_COMMENT
+    "//" { pushState(); } : IN_SINGLE_LINE_COMMENT
     |
-    "--" : IN_SINGLE_LINE_COMMENT
+    "--" { pushState(); } : IN_SINGLE_LINE_COMMENT
     |
-    "/*" : IN_MULTI_LINE_COMMENT
+    "/*" { pushState(); } : IN_MULTI_LINE_COMMENT
 }
 
 <IN_SINGLE_LINE_COMMENT>
 SPECIAL_TOKEN :
 {
-    <SINGLE_LINE_COMMENT: "\n" | "\r" | "\r\n" > : DEFAULT
+    <SINGLE_LINE_COMMENT: "\n" | "\r" | "\r\n" > { popState(); }
 }
 
 <IN_FORMAL_COMMENT>
 SPECIAL_TOKEN :
 {
-    <FORMAL_COMMENT: "*/" > : DEFAULT
+    <FORMAL_COMMENT: "*/" > { popState(); }
 }
 
 <IN_MULTI_LINE_COMMENT>
 SPECIAL_TOKEN :
 {
-    <MULTI_LINE_COMMENT: "*/" > : DEFAULT
+    <MULTI_LINE_COMMENT: "*/" > { popState(); }
 }
 
 <IN_SINGLE_LINE_COMMENT,IN_FORMAL_COMMENT,IN_MULTI_LINE_COMMENT>
@@ -5235,7 +5272,40 @@ MORE :
 
 /* IDENTIFIERS */
 
-TOKEN :
+<DEFAULT> TOKEN :
+{
+    < BRACKET_QUOTED_IDENTIFIER:
+    "["
+    (   (~["]","\n","\r"])
+        | ("]]")
+        )+
+    "]"
+    >
+}
+
+<DQID> TOKEN :
+{
+    < QUOTED_IDENTIFIER:
+    "\""
+    (   (~["\"","\n","\r"])
+        | ("\"\"")
+        )+
+    "\""
+    >
+}
+
+<BTID>  TOKEN :
+{
+    < BACK_QUOTED_IDENTIFIER:
+    "`"
+    (   (~["`","\n","\r"])
+        | ("``")
+        )+
+    "`"
+    >
+}
+
+<DEFAULT, DQID, BTID> TOKEN :
 {
     < COLLATION_ID:
     (<LETTER>|<DIGIT>)+ (<LETTER>|<DIGIT>|":"|"."|"-"|"_")*
@@ -5245,14 +5315,6 @@ TOKEN :
     >
     |
     < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
-    |
-    < QUOTED_IDENTIFIER:
-    "\""
-    (   (~["\"","\n","\r"])
-        | ("\"\"")
-        )+
-    "\""
-    >
     |
     < UNICODE_QUOTED_IDENTIFIER: "U" "&" <QUOTED_IDENTIFIER> >
     |
@@ -5298,7 +5360,7 @@ TOKEN :
 /* Special token to throw a wrench in the works. It is never valid in SQL,
    and so when it occurs, it causes the parser to print which tokens would
    have been valid at that point. Used by SqlAdvisor. */
-TOKEN :
+<DEFAULT, DQID, BTID> TOKEN :
 {
     < BEL:
     [

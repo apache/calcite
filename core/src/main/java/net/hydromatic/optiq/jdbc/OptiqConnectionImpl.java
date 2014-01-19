@@ -30,6 +30,8 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
+import org.eigenbase.sql.parser.SqlParser;
+
 import com.google.common.collect.*;
 
 import java.lang.reflect.*;
@@ -109,6 +111,11 @@ abstract class OptiqConnectionImpl
 
       public String schema() {
         return ConnectionProperty.SCHEMA.getString(properties);
+      }
+
+      public SqlParser.Quoting quoting() {
+        return ConnectionProperty.QUOTING.getEnum(properties,
+            SqlParser.Quoting.class);
       }
 
       public boolean spark() {

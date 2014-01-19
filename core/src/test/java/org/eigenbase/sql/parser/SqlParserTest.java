@@ -25,6 +25,7 @@ import org.eigenbase.test.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -37,6 +38,8 @@ public class SqlParserTest {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final String ANY = "(?s).*";
+
+  SqlParser.Quoting quoting = SqlParser.Quoting.DOUBLE_QUOTE;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -59,7 +62,7 @@ public class SqlParserTest {
 
   protected SqlNode parseStmt(String sql)
       throws SqlParseException {
-    return new SqlParser(sql).parseStmt();
+    return new SqlParser(sql, quoting).parseStmt();
   }
 
   protected void checkExp(
@@ -70,11 +73,11 @@ public class SqlParserTest {
 
   protected SqlNode parseExpression(String sql)
       throws SqlParseException {
-    return new SqlParser(sql).parseExpression();
+    return new SqlParser(sql, quoting).parseExpression();
   }
 
   protected SqlParserImpl getParserImpl() {
-    return new SqlParser("").getParserImpl();
+    return new SqlParser("", quoting).getParserImpl();
   }
 
   protected void checkExpSame(String sql) {
@@ -125,22 +128,24 @@ public class SqlParserTest {
         "Lexical error at line 1, column 10\\.  Encountered: \"#\" \\(35\\), after : \"\"");
   }
 
-  public void _testDerivedColumnList() {
-    check("select * from emp (empno, gender) where true", "foo");
+  @Test public void testDerivedColumnList() {
+    check("select * from emp as e (empno, gender) where true",
+        "SELECT *\n"
+        + "FROM `EMP` AS `E` (`EMPNO`, `GENDER`)\n"
+        + "WHERE TRUE");
   }
 
-  public void _testDerivedColumnListInJoin() {
+  @Test public void testDerivedColumnListInJoin() {
     check(
-        "select * from emp as e (empno, gender) join dept (deptno, dname) on emp.deptno = dept.deptno",
-        "foo");
+        "select * from emp as e (empno, gender) join dept as d (deptno, dname) on emp.deptno = dept.deptno",
+        "SELECT *\n"
+        + "FROM `EMP` AS `E` (`EMPNO`, `GENDER`)\n"
+        + "INNER JOIN `DEPT` AS `D` (`DEPTNO`, `DNAME`) ON (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)");
   }
 
-  public void _testDerivedColumnListNoAs() {
+  @Ignore
+  @Test public void testDerivedColumnListNoAs() {
     check("select * from emp e (empno, gender) where true", "foo");
-  }
-
-  public void _testDerivedColumnListWithAlias() {
-    check("select * from emp as e (empno, gender) where true", "foo");
   }
 
   // jdbc syntax
@@ -264,8 +269,7 @@ public class SqlParserTest {
     checkExp("'abc'<>123", "('abc' <> 123)");
     checkExp("'abc'<>123='def'<>456", "((('abc' <> 123) = 'def') <> 456)");
     checkExp(
-        "'abc'<>123=('def'<>456)",
-        "(('abc' <> 123) = ('def' <> 456))");
+        "'abc'<>123=('def'<>456)", "(('abc' <> 123) = ('def' <> 456))");
   }
 
   @Test public void testBangEqualIsBad() {
@@ -745,7 +749,60 @@ public class SqlParserTest {
   @Test public void testIdentifier() {
     checkExp("ab", "`AB`");
     checkExp("     \"a  \"\" b!c\"", "`a  \" b!c`");
+    checkExpFails("     ^`^a  \" b!c`", "(?s).*Encountered.*");
     checkExp("\"x`y`z\"", "`x``y``z`");
+    checkExpFails("^`^x`y`z`", "(?s).*Encountered.*");
+
+    checkExp("myMap[field] + myArray[1 + 2]",
+        "(`MYMAP`[`FIELD`] + `MYARRAY`[(1 + 2)])");
+  }
+
+  @Test public void testBackTickIdentifier() {
+    quoting = SqlParser.Quoting.BACK_TICK;
+    checkExp("ab", "`AB`");
+    checkExp("     `a  \" b!c`", "`a  \" b!c`");
+    checkExpFails("     ^\"^a  \"\" b!c\"", "(?s).*Encountered.*");
+
+    checkExpFails("^\"^x`y`z\"", "(?s).*Encountered.*");
+    checkExp("`x``y``z`", "`x``y``z`");
+
+    checkExp("myMap[field] + myArray[1 + 2]",
+        "(`MYMAP`[`FIELD`] + `MYARRAY`[(1 + 2)])");
+  }
+
+  @Test public void testBracketIdentifier() {
+    quoting = SqlParser.Quoting.BRACKET;
+    checkExp("ab", "`AB`");
+    checkExp("     [a  \" b!c]", "`a  \" b!c`");
+    checkExpFails("     ^`^a  \" b!c`", "(?s).*Encountered.*");
+    checkExpFails("     ^\"^a  \"\" b!c\"", "(?s).*Encountered.*");
+
+    checkExp("[x`y`z]", "`x``y``z`");
+    checkExpFails("^\"^x`y`z\"", "(?s).*Encountered.*");
+    checkExpFails("^`^x``y``z`", "(?s).*Encountered.*");
+
+    checkExp("[anything [but brackets]] are].[ok]",
+        "`anything [but brackets]] are`.`ok`");
+
+    // What would be a call to the 'item' function in DOUBLE_QUOTE and BACK_TICK
+    // is a table alias.
+    check("select * from myMap[field], myArray[1 + 2]",
+        "SELECT *\n"
+        + "FROM `MYMAP` AS `field`,\n"
+        + "`MYARRAY` AS `1 + 2`");
+    check("select * from myMap [field], myArray [1 + 2]",
+        "SELECT *\n"
+        + "FROM `MYMAP` AS `field`,\n"
+        + "`MYARRAY` AS `1 + 2`");
+  }
+
+  @Test public void testBackTickQuery() {
+    quoting = SqlParser.Quoting.BACK_TICK;
+    check(
+        "select `x`.`b baz` from `emp` as `x` where `x`.deptno in (10, 20)",
+        "SELECT `x`.`b baz`\n"
+        + "FROM `emp` AS `x`\n"
+        + "WHERE (`x`.`DEPTNO` IN (10, 20))");
   }
 
   @Test public void testInList() {
@@ -1670,6 +1727,8 @@ public class SqlParserTest {
         + "Was expecting one of:\n"
         + "    <IDENTIFIER> \\.\\.\\.\n"
         + "    <QUOTED_IDENTIFIER> \\.\\.\\.\n"
+        + "    <BACK_QUOTED_IDENTIFIER> \\.\\.\\.\n"
+        + "    <BRACKET_QUOTED_IDENTIFIER> \\.\\.\\.\n"
         + "    <UNICODE_QUOTED_IDENTIFIER> \\.\\.\\.\n"
         + "    \"LATERAL\" \\.\\.\\.\n"
         + "    \"\\(\" \\.\\.\\.\n"

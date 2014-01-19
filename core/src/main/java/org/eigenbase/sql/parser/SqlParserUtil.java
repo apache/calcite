@@ -252,11 +252,18 @@ public final class SqlParserUtil {
    * Unquotes a quoted string. For example, <code>strip("'it''s got
    * quotes'")</code> returns <code>"it's got quotes"</code>.
    */
-  public static String strip(
-      String s,
-      String quote) {
+  public static String strip(String s, String quote) {
     assert s.startsWith(quote) && s.endsWith(quote) : s;
-    return s.substring(1, s.length() - 1).replaceAll(quote + quote, quote);
+    return s.substring(1, s.length() - 1).replace(quote + quote, quote);
+  }
+
+  /**
+   * Unquotes a quoted string, using different quotes for beginning and end.
+   */
+  public static String strip(String s, String startQuote, String endQuote) {
+    assert s.startsWith(startQuote) && s.endsWith(endQuote) : s;
+    return s.substring(1, s.length() - 1)
+        .replace(endQuote + endQuote, endQuote);
   }
 
   /**

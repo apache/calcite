@@ -17,6 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
+import org.eigenbase.sql.parser.SqlParser;
+
 /** Interface for reading connection properties within Optiq code. There is
  * a method for every property. At some point there will be similar config
  * classes for system and statement properties. */
@@ -25,6 +27,7 @@ public interface ConnectionConfig {
   boolean materializationsEnabled();
   String model();
   String schema();
+  SqlParser.Quoting quoting();
   boolean spark();
 }
 

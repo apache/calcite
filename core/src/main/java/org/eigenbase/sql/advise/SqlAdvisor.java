@@ -381,7 +381,7 @@ public class SqlAdvisor {
    * @return a {@link SqlAbstractParserImpl} instance
    */
   protected SqlAbstractParserImpl getParserImpl() {
-    SqlParser parser = new SqlParser(new StringReader(""));
+    SqlParser parser = new SqlParser("");
     return parser.getParserImpl();
   }
 
