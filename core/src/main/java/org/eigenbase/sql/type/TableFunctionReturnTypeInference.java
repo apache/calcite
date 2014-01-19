@@ -34,14 +34,14 @@ public class TableFunctionReturnTypeInference
 
   private final List<String> paramNames;
 
-  private Set<RelColumnMapping> columnMappings;
+  private Set<RelColumnMapping> columnMappings; // not re-entrant!
 
   private final boolean isPassthrough;
 
   //~ Constructors -----------------------------------------------------------
 
   public TableFunctionReturnTypeInference(
-      RelDataType unexpandedOutputType,
+      RelProtoDataType unexpandedOutputType,
       List<String> paramNames,
       boolean isPassthrough) {
     super(unexpandedOutputType);
@@ -58,7 +58,8 @@ public class TableFunctionReturnTypeInference
   public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     columnMappings = new HashSet<RelColumnMapping>();
-    RelDataType unexpandedOutputType = getExplicitType();
+    RelDataType unexpandedOutputType =
+        protoType.apply(opBinding.getTypeFactory());
     List<RelDataType> expandedOutputTypes = new ArrayList<RelDataType>();
     List<String> expandedFieldNames = new ArrayList<String>();
     for (RelDataTypeField field : unexpandedOutputType.getFieldList()) {

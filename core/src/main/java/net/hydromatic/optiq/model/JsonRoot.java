@@ -30,9 +30,12 @@ import java.util.List;
  * <p>Schema structure is as follows:</p>
  *
  * <pre>{@code Root}
- *   {@link JsonSchema}
- *     {@link JsonTable}
- *       {@link JsonColumn}</pre>
+ *   {@link JsonSchema} (in collection {@link JsonRoot#schemas schemas})
+ *     {@link JsonTable} (in collection {@link JsonMapSchema#tables tables})
+ *       {@link JsonColumn} (in collection {@link JsonTable#columns column}
+ *     {@link JsonView}
+ *     {@link JsonFunction}  (in collection {@link JsonMapSchema#functions functions})
+ * </pre>
  */
 public class JsonRoot {
   public String version;

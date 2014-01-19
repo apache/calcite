@@ -60,8 +60,7 @@ public class ChainedSqlOperatorTable implements SqlOperatorTable {
       SqlFunctionCategory category,
       SqlSyntax syntax) {
     List<SqlOperator> list = new ArrayList<SqlOperator>();
-    for (int i = 0; i < tableList.size(); ++i) {
-      SqlOperatorTable table = tableList.get(i);
+    for (SqlOperatorTable table : tableList) {
       list.addAll(
           table.lookupOperatorOverloads(opName, category, syntax));
     }

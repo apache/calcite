@@ -17,8 +17,7 @@
 */
 package net.hydromatic.optiq.rules.java;
 
-import net.hydromatic.optiq.BuiltinMethod;
-import net.hydromatic.optiq.ModifiableTable;
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.prepare.Prepare;
 import net.hydromatic.optiq.runtime.SortedMultiMap;
@@ -31,6 +30,7 @@ import net.hydromatic.linq4j.function.*;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.ConverterRule;
+import org.eigenbase.rel.metadata.RelColumnMapping;
 import org.eigenbase.rel.metadata.RelMetadataQuery;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.*;
@@ -1397,14 +1397,10 @@ public class JavaRules {
 
     public RelNode convert(RelNode rel) {
       final UnionRel union = (UnionRel) rel;
-      final RelTraitSet traitSet =
-          union.getTraitSet().replace(
-              EnumerableConvention.INSTANCE);
-      return new EnumerableUnionRel(
-          rel.getCluster(),
-          traitSet,
-          convertList(union.getInputs(), traitSet),
-          union.all);
+      final EnumerableConvention out = EnumerableConvention.INSTANCE;
+      final RelTraitSet traitSet = union.getTraitSet().replace(out);
+      return new EnumerableUnionRel(rel.getCluster(), traitSet,
+          convertList(union.getInputs(), out), union.all);
     }
   }
 
@@ -1486,14 +1482,10 @@ public class JavaRules {
       if (intersect.all) {
         return null; // INTERSECT ALL not implemented
       }
-      final RelTraitSet traitSet =
-          intersect.getTraitSet().replace(
-              EnumerableConvention.INSTANCE);
-      return new EnumerableIntersectRel(
-          rel.getCluster(),
-          traitSet,
-          convertList(intersect.getInputs(), traitSet),
-          intersect.all);
+      final EnumerableConvention out = EnumerableConvention.INSTANCE;
+      final RelTraitSet traitSet = intersect.getTraitSet().replace(out);
+      return new EnumerableIntersectRel(rel.getCluster(), traitSet,
+          convertList(intersect.getInputs(), out), intersect.all);
     }
   }
 
@@ -1580,14 +1572,12 @@ public class JavaRules {
       if (minus.all) {
         return null; // EXCEPT ALL not implemented
       }
+      final EnumerableConvention out = EnumerableConvention.INSTANCE;
       final RelTraitSet traitSet =
           rel.getTraitSet().replace(
               EnumerableConvention.INSTANCE);
-      return new EnumerableMinusRel(
-          rel.getCluster(),
-          traitSet,
-          convertList(minus.getInputs(), traitSet),
-          minus.all);
+      return new EnumerableMinusRel(rel.getCluster(), traitSet,
+          convertList(minus.getInputs(), out), minus.all);
     }
   }
 

@@ -73,26 +73,11 @@ public class AliasNamespace extends AbstractNamespace {
       nameList.add(name);
     }
     if (nameList.size() != rowType.getFieldCount()) {
-      StringBuilder buf = new StringBuilder();
-      buf.append("(");
-      int k = 0;
-      for (RelDataTypeField field : rowType.getFieldList()) {
-        if (k++ > 0) {
-          buf.append(", ");
-        }
-        buf.append("'");
-        buf.append(field.getName());
-        buf.append("'");
-      }
-      buf.append(")");
-
       // Position error at first name in list.
       throw validator.newValidationError(
           call.getOperands()[2],
           EigenbaseResource.instance().AliasListDegree.ex(
-              rowType.getFieldCount(),
-              buf.toString(),
-              nameList.size()));
+              rowType.getFieldCount(), getString(rowType), nameList.size()));
     }
     final List<RelDataType> typeList = new ArrayList<RelDataType>();
     for (RelDataTypeField field : rowType.getFieldList()) {
@@ -101,6 +86,21 @@ public class AliasNamespace extends AbstractNamespace {
     return validator.getTypeFactory().createStructType(
         typeList,
         nameList);
+  }
+
+  private String getString(RelDataType rowType) {
+    StringBuilder buf = new StringBuilder();
+    buf.append("(");
+    for (RelDataTypeField field : rowType.getFieldList()) {
+      if (field.getIndex() > 0) {
+        buf.append(", ");
+      }
+      buf.append("'");
+      buf.append(field.getName());
+      buf.append("'");
+    }
+    buf.append(")");
+    return buf.toString();
   }
 
   public SqlNode getNode() {

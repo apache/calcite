@@ -35,7 +35,7 @@ import com.google.common.collect.ImmutableList;
 public class SqlFunction extends SqlOperator {
   //~ Instance fields --------------------------------------------------------
 
-  private final SqlFunctionCategory functionType;
+  private final SqlFunctionCategory category;
 
   private final SqlIdentifier sqlIdentifier;
 
@@ -46,12 +46,12 @@ public class SqlFunction extends SqlOperator {
   /**
    * Creates a new SqlFunction for a call to a builtin function.
    *
-   * @param name                 of builtin function
+   * @param name                 Name of builtin function
    * @param kind                 kind of operator implemented by function
    * @param returnTypeInference  strategy to use for return type inference
    * @param operandTypeInference strategy to use for parameter type inference
    * @param operandTypeChecker   strategy to use for parameter type checking
-   * @param funcType             categorization for function
+   * @param category             categorization for function
    */
   public SqlFunction(
       String name,
@@ -59,25 +59,14 @@ public class SqlFunction extends SqlOperator {
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
-      SqlFunctionCategory funcType) {
-    super(
-        name,
-        kind,
-        100,
-        100,
-        returnTypeInference,
-        operandTypeInference,
-        operandTypeChecker);
-
-    assert !((funcType == SqlFunctionCategory.UserDefinedConstructor)
-        && (returnTypeInference == null));
-
-    this.functionType = funcType;
-
-    // NOTE jvs 18-Jan-2005:  we leave sqlIdentifier as null to indicate
+      SqlFunctionCategory category) {
+    // We leave sqlIdentifier as null to indicate
     // that this is a builtin.  Same for paramTypes.
-    this.sqlIdentifier = null;
-    this.paramTypes = null;
+    this(name, null, kind, returnTypeInference, operandTypeInference,
+        operandTypeChecker, null, category);
+
+    assert !((category == SqlFunctionCategory.UserDefinedConstructor)
+        && (returnTypeInference == null));
   }
 
   /**
@@ -97,21 +86,30 @@ public class SqlFunction extends SqlOperator {
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
-      RelDataType[] paramTypes,
+      List<RelDataType> paramTypes,
       SqlFunctionCategory funcType) {
-    super(Util.last(sqlIdentifier.names),
-        SqlKind.OTHER_FUNCTION,
-        100,
-        100,
-        returnTypeInference,
-        operandTypeInference,
+    this(Util.last(sqlIdentifier.names), sqlIdentifier, SqlKind.OTHER_FUNCTION,
+        returnTypeInference, operandTypeInference, operandTypeChecker,
+        paramTypes, funcType);
+  }
+
+  /**
+   * Internal constructor.
+   */
+  protected SqlFunction(
+      String name,
+      SqlIdentifier sqlIdentifier,
+      SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
+      SqlFunctionCategory category) {
+    super(name, kind, 100, 100, returnTypeInference, operandTypeInference,
         operandTypeChecker);
 
-    // assert !(funcType == SqlFunctionCategory.UserDefinedConstructor
-    // &&           returnTypeInference == null);
-
     this.sqlIdentifier = sqlIdentifier;
-    this.functionType = funcType;
+    this.category = category;
     this.paramTypes =
         paramTypes == null ? null : ImmutableList.copyOf(paramTypes);
   }
@@ -160,7 +158,7 @@ public class SqlFunction extends SqlOperator {
    * @return function category
    */
   public SqlFunctionCategory getFunctionType() {
-    return this.functionType;
+    return this.category;
   }
 
   /**

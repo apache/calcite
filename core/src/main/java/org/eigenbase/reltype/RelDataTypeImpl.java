@@ -270,12 +270,65 @@ public abstract class RelDataTypeImpl
   /**
    * Returns an implementation of
    * {@link RelProtoDataType}
-   * that copies a given type using th given type factory.
+   * that copies a given type using the given type factory.
    */
   public static RelProtoDataType proto(final RelDataType protoType) {
+    assert protoType != null;
     return new RelProtoDataType() {
-      public RelDataType apply(RelDataTypeFactory a0) {
-        return a0.copyType(protoType);
+      public RelDataType apply(RelDataTypeFactory typeFactory) {
+        return typeFactory.copyType(protoType);
+      }
+    };
+  }
+
+  /** Returns a {@link org.eigenbase.reltype.RelProtoDataType} that will create
+   * a type {@code typeName}. For example,
+   * {@code proto(SqlTypeName.DATE)} will create {@code DATE}.
+   *
+   * @param typeName Type name
+   * @return Proto data type
+   */
+  public static RelProtoDataType proto(final SqlTypeName typeName) {
+    assert typeName != null;
+    return new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory typeFactory) {
+        return typeFactory.createSqlType(typeName);
+      }
+    };
+  }
+
+  /** Returns a {@link org.eigenbase.reltype.RelProtoDataType} that will create
+   * a type {@code typeName(precision)}. For example,
+   * {@code proto(SqlTypeName.VARCHAR, 100)} will create {@code VARCHAR(100)}.
+   *
+   * @param typeName Type name
+   * @param precision Precision
+   * @return Proto data type
+   */
+  public static RelProtoDataType proto(final SqlTypeName typeName,
+      final int precision) {
+    assert typeName != null;
+    return new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory typeFactory) {
+        return typeFactory.createSqlType(typeName, precision);
+      }
+    };
+  }
+
+  /** Returns a {@link org.eigenbase.reltype.RelProtoDataType} that will create
+   * a type {@code typeName(precision, scale)}. For example,
+   * {@code proto(SqlTypeName.DECIMAL, 7, 2)} will create {@code DECIMAL(7, 2)}.
+   *
+   * @param typeName Type name
+   * @param precision Precision
+   * @param scale Scale
+   * @return Proto data type
+   */
+  public static RelProtoDataType proto(final SqlTypeName typeName,
+      final int precision, final int scale) {
+    return new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory typeFactory) {
+        return typeFactory.createSqlType(typeName, precision, scale);
       }
     };
   }

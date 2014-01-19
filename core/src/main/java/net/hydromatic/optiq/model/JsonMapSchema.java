@@ -27,6 +27,7 @@ import java.util.List;
  */
 public class JsonMapSchema extends JsonSchema {
   public final List<JsonTable> tables = new ArrayList<JsonTable>();
+  public final List<JsonFunction> functions = new ArrayList<JsonFunction>();
 
   @Override
   public void accept(ModelHandler handler) {
@@ -38,6 +39,9 @@ public class JsonMapSchema extends JsonSchema {
     super.visitChildren(modelHandler);
     for (JsonTable jsonTable : tables) {
       jsonTable.accept(modelHandler);
+    }
+    for (JsonFunction jsonFunction : functions) {
+      jsonFunction.accept(modelHandler);
     }
   }
 }

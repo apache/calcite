@@ -123,8 +123,7 @@ public class ReflectiveSchemaTest {
                     LINQ4J_AS_ENUMERABLE_METHOD,
                     Arrays.<Expression>asList(
                         Expressions.constant(
-                            new JdbcTest.HrSchema().emps))),
-                "asQueryable"),
+                            new JdbcTest.HrSchema().emps))), "asQueryable"),
             Employee.class)
             .select(Expressions.<Function1<Employee, Integer>>lambda(
                 Expressions.field(e, "empid"),
@@ -319,6 +318,19 @@ public class ReflectiveSchemaTest {
         "select count(*) as c from \"s\".\"everyTypes\"\n"
         + "where \"primitiveInt\" > 0")
         .returns("C=1\n");
+  }
+
+  /** Test case for https://github.com/julianhyde/optiq/issues/119. */
+  @Ignore
+  @Test public void testJavaBoolean2() throws Exception {
+    final OptiqAssert.AssertThat with =
+        OptiqAssert.that().with("s", new CatchallSchema());
+    // should return "C=1" but with optiq-119 it does not
+    with.query(
+        "select \"wrapperLong\" as c from \"s\".\"everyTypes\"\n"
+        + "where \"wrapperLong\" > 0")
+        .returns("C=1\n");
+
     // count(nullif(b, false)) counts how many times b is true
     with.query(
         "select count(\"primitiveBoolean\") as p,\n"
@@ -443,6 +455,32 @@ public class ReflectiveSchemaTest {
         .with("s", new CatchallSchema())
         .query(
             "select * from \"s\".\"prefixEmps\" where \"name\" in ('Ab', 'Abd')")
+        .returns(
+            "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
+            + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
+ }
+
+  /** If a method returns a
+   * {@link net.hydromatic.optiq.impl.ViewTable.ViewTableFunction}, then it
+   * should be expanded. */
+  @Ignore
+  @Test public void testTableFunctionIsView() throws Exception {
+    OptiqAssert.that()
+        .with("s", new JdbcTest.HrSchema())
+        .query(
+            "select * from table(\"s\".\"view\"('abc'))")
+        .returns(
+            "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
+            + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
+  }
+
+  /** Finds a table-function using reflection. */
+  @Ignore
+  @Test public void testTableFunction() throws Exception {
+    OptiqAssert.that()
+        .with("s", new JdbcTest.HrSchema())
+        .query(
+            "select * from table(\"s\".\"foo\"(3))")
         .returns(
             "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
             + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");

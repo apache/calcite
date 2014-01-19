@@ -1487,12 +1487,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         call.setOperator(resolvedConstructor);
       } else {
         // fake a fully-qualified call to the default constructor
-        SqlReturnTypeInference returnTypeInference =
-            new ExplicitReturnTypeInference(type);
         call.setOperator(
             new SqlFunction(
                 type.getSqlIdentifier(),
-                returnTypeInference,
+                ExplicitReturnTypeInference.of(type),
                 null,
                 null,
                 null,

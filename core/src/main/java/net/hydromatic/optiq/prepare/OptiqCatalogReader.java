@@ -17,23 +17,32 @@
 */
 package net.hydromatic.optiq.prepare;
 
-import net.hydromatic.optiq.Table;
+import net.hydromatic.linq4j.expressions.Primitive;
+
+import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 
 import org.eigenbase.relopt.RelOptPlanner;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.sql.SqlIdentifier;
+import org.eigenbase.reltype.*;
+import org.eigenbase.sql.*;
+import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.SqlMoniker;
+import org.eigenbase.sql.validate.SqlUserDefinedFunction;
+import org.eigenbase.util.Bug;
+import org.eigenbase.util.Util;
 
-import java.util.Collections;
-import java.util.List;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+
+import java.util.*;
 
 /**
- * Implementation of {@link net.hydromatic.optiq.prepare.Prepare.CatalogReader}.
+ * Implementation of {@link net.hydromatic.optiq.prepare.Prepare.CatalogReader}
+ * and also {@link org.eigenbase.sql.SqlOperatorTable} based on tables and
+ * functions defined schemas.
  */
-class OptiqCatalogReader implements Prepare.CatalogReader {
+class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
   final OptiqSchema rootSchema;
   final JavaTypeFactory typeFactory;
   private final List<String> defaultSchema;
@@ -63,12 +72,41 @@ class OptiqCatalogReader implements Prepare.CatalogReader {
       }
     }
     // If not found, look in the root schema
-    return getTableFrom(names, Collections.<String>emptyList());
+    return getTableFrom(names, ImmutableList.<String>of());
   }
 
   private OptiqPrepareImpl.RelOptTableImpl getTableFrom(
       List<String> names,
       List<String> schemaNames) {
+    OptiqSchema schema =
+        getSchema(Iterables.concat(schemaNames, Util.skipLast(names)));
+    if (schema == null) {
+      return null;
+    }
+    final String name = Util.last(names);
+    final Table table = schema.compositeTableMap.get(name);
+    if (table != null) {
+      return new OptiqPrepareImpl.RelOptTableImpl(
+          this,
+          table.getRowType(typeFactory),
+          schema.add(name, table));
+    }
+    return null;
+  }
+
+  private Collection<TableFunction> getTableFunctionsFrom(
+      List<String> names,
+      List<String> schemaNames) {
+    OptiqSchema schema =
+        getSchema(Iterables.concat(schemaNames, Util.skipLast(names)));
+    if (schema == null) {
+      return ImmutableList.of();
+    }
+    final String name = Util.last(names);
+    return schema.compositeTableFunctionMap.get(name);
+  }
+
+  private OptiqSchema getSchema(Iterable<String> schemaNames) {
     OptiqSchema schema = rootSchema;
     for (String schemaName : schemaNames) {
       schema = schema.getSubSchema(schemaName);
@@ -76,27 +114,7 @@ class OptiqCatalogReader implements Prepare.CatalogReader {
         return null;
       }
     }
-    for (int i = 0; i < names.size(); i++) {
-      final String name = names.get(i);
-      OptiqSchema subSchema = schema.getSubSchema(name);
-      if (subSchema != null) {
-        schema = subSchema;
-        continue;
-      }
-      final Table table = schema.compositeTableMap.get(name);
-      if (table != null) {
-        if (i != names.size() - 1) {
-          // not enough objects to match all names
-          return null;
-        }
-        return new OptiqPrepareImpl.RelOptTableImpl(
-            this,
-            table.getRowType(typeFactory),
-            schema.add(name, table));
-      }
-      return null;
-    }
-    return null;
+    return schema;
   }
 
   public RelDataType getNamedType(SqlIdentifier typeName) {
@@ -114,6 +132,101 @@ class OptiqCatalogReader implements Prepare.CatalogReader {
   public OptiqPrepareImpl.RelOptTableImpl getTableForMember(
       List<String> names) {
     return getTable(names);
+  }
+
+  public List<SqlOperator> lookupOperatorOverloads(
+      SqlIdentifier opName,
+      SqlFunctionCategory category,
+      SqlSyntax syntax) {
+    if (syntax != SqlSyntax.Function) {
+      return ImmutableList.of();
+    }
+    final Collection<TableFunction> tableFunctions =
+        getTableFunctionsFrom(opName.names, ImmutableList.<String>of());
+    if (tableFunctions.isEmpty()) {
+      return ImmutableList.of();
+    }
+    final String name = Util.last(opName.names);
+    return toOps(name, ImmutableList.copyOf(tableFunctions));
+  }
+
+  private List<SqlOperator> toOps(
+      final String name,
+      final ImmutableList<TableFunction> tableFunctions) {
+    return new AbstractList<SqlOperator>() {
+      public SqlOperator get(int index) {
+        return toOp(name, tableFunctions.get(index));
+      }
+
+      public int size() {
+        return tableFunctions.size();
+      }
+    };
+  }
+
+  private SqlOperator toOp(String name, TableFunction tableFunction) {
+    List<RelDataType> argTypes = new ArrayList<RelDataType>();
+    List<SqlTypeFamily> typeFamilies = new ArrayList<SqlTypeFamily>();
+    List<Object> dummyArguments = new ArrayList<Object>();
+    for (net.hydromatic.optiq.Parameter o : tableFunction.getParameters()) {
+      final RelDataType type = o.getType(typeFactory);
+      argTypes.add(type);
+      typeFamilies.add(SqlTypeFamily.ANY);
+      dummyArguments.add(zero(type));
+    }
+    final Table table;
+    final RelDataType returnType;
+    if (tableFunction instanceof ScalarFunction) {
+      returnType = ((ScalarFunction) tableFunction).getReturnType(typeFactory);
+      table = null;
+    } else {
+      // Make a call with dummy arguments, to get the table, so get its row
+      // type.
+      table = tableFunction.apply(dummyArguments);
+      returnType = typeFactory.createSqlType(SqlTypeName.CURSOR);
+    }
+    return new SqlUserDefinedFunction(name, returnType, argTypes, typeFamilies,
+        tableFunction, table);
+  }
+
+  private Object zero(RelDataType type) {
+    if (type instanceof RelDataTypeFactoryImpl.JavaType) {
+      RelDataTypeFactoryImpl.JavaType javaType =
+          (RelDataTypeFactoryImpl.JavaType) type;
+      Primitive primitive = Primitive.of(javaType.getJavaClass());
+      if (primitive != null) {
+        return zero(primitive);
+      }
+    }
+    return null;
+  }
+
+  private static Object zero(Primitive primitive) {
+    Bug.upgrade("move to linq4j Primitive");
+    switch (primitive) {
+    case BOOLEAN:
+      return false;
+    case BYTE:
+      return (byte) 0;
+    case CHAR:
+      return (char) 0;
+    case SHORT:
+      return (short) 0;
+    case INT:
+      return 0;
+    case LONG:
+      return 0L;
+    case FLOAT:
+      return 0F;
+    case DOUBLE:
+      return 0D;
+    default:
+      return null;
+    }
+  }
+
+  public List<SqlOperator> getOperatorList() {
+    return null;
   }
 
   public RelDataTypeFactory getTypeFactory() {

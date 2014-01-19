@@ -40,10 +40,13 @@ import org.eigenbase.rel.*;
 import org.eigenbase.relopt.*;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.reltype.RelProtoDataType;
 import org.eigenbase.sql.SqlDialect;
+import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.util.Bug;
 import org.eigenbase.util.Pair;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 
@@ -124,7 +127,8 @@ public class JdbcTest {
    * The function returns a {@link Queryable}.
    */
   @Ignore
-  @Test public void testFunction() throws SQLException, ClassNotFoundException {
+  @Test public void testTableFunction()
+      throws SQLException, ClassNotFoundException {
     Class.forName("net.hydromatic.optiq.jdbc.Driver");
     Connection connection =
         DriverManager.getConnection("jdbc:optiq:");
@@ -138,7 +142,7 @@ public class JdbcTest {
     schema.add("GenerateStrings", tableFunction);
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
-        + "from table(s.\"GenerateStrings\"(5)) as t(c)\n"
+        + "from table(\"s\".\"GenerateStrings\"(5)) as t(n, c)\n"
         + "where char_length(c) > 3");
     assertTrue(resultSet.next());
   }
@@ -148,40 +152,53 @@ public class JdbcTest {
     return q0.concat(q1);
   }
 
-  public static Queryable<IntString> generateStrings(final int count) {
-    return new BaseQueryable<IntString>(
-        null,
-        IntString.class,
-        null) {
-      public Enumerator<IntString> enumerator() {
-        return new Enumerator<IntString>() {
-          static final String z = "abcdefghijklm";
+  /** A function that generates a table that generates a sequence of
+   * {@link net.hydromatic.optiq.test.JdbcTest.IntString} values. */
+  public static Table generateStrings(final int count) {
+    return new AbstractQueryableTable(IntString.class) {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder()
+            .add("n", SqlTypeName.INTEGER)
+            .add("s", SqlTypeName.VARCHAR, -1)
+            .build();
+      }
 
-          int i = -1;
-          IntString o;
+      public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+          SchemaPlus schema, String tableName) {
+        BaseQueryable<IntString> queryable =
+            new BaseQueryable<IntString>(null, IntString.class, null) {
+              public Enumerator<IntString> enumerator() {
+                return new Enumerator<IntString>() {
+                  static final String z = "abcdefghijklm";
 
-          public IntString current() {
-            return o;
-          }
+                  int i = -1;
+                  IntString o;
 
-          public boolean moveNext() {
-            if (i < count - 1) {
-              o = new IntString(
-                  i, z.substring(0, i % z.length()));
-              ++i;
-              return true;
-            } else {
-              return false;
-            }
-          }
+                  public IntString current() {
+                    return o;
+                  }
 
-          public void reset() {
-            i = -1;
-          }
+                  public boolean moveNext() {
+                    if (i < count - 1) {
+                      o = new IntString(i, z.substring(0, i % z.length()));
+                      ++i;
+                      return true;
+                    } else {
+                      return false;
+                    }
+                  }
 
-          public void close() {
-          }
-        };
+                  public void reset() {
+                    i = -1;
+                  }
+
+                  public void close() {
+                  }
+                };
+              }
+            };
+        //noinspection unchecked
+        return (Queryable<T>) queryable;
       }
     };
   }
@@ -2343,6 +2360,83 @@ public class JdbcTest {
             });
   }
 
+
+  /** Tests user-defined function. */
+  @Test public void testUserDefinedFunction() throws Exception {
+    final OptiqAssert.AssertThat with = OptiqAssert.that()
+        .withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       name: 'adhoc',\n"
+            + "       tables: [\n"
+            + "         {\n"
+            + "           name: 'EMPLOYEES',\n"
+            + "           type: 'custom',\n"
+            + "           factory: '"
+            + EmpDeptTableFactory.class.getName()
+            + "',\n"
+            + "           operand: {'foo': true, 'bar': 345}\n"
+            + "         }\n"
+            + "       ],\n"
+            + "       functions: [\n"
+            + "         {\n"
+            + "           name: 'MY_PLUS',\n"
+            + "           className: '"
+            + MyPlusFunction.class.getName()
+            + "'\n"
+            + "         },\n"
+            + "         {\n"
+            + "           name: 'MY_DOUBLE',\n"
+            + "           className: '"
+            + MyDoubleFunction.class.getName()
+            + "'\n"
+            + "         }\n"
+            + "       ]\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}");
+    with.query(
+        "select \"adhoc\".my_plus(\"deptno\", 100) as p from \"adhoc\".EMPLOYEES")
+        .returns(
+            "P=110\n"
+            + "P=120\n"
+            + "P=110\n"
+            + "P=110\n");
+    with.query(
+        "select \"adhoc\".my_double(\"deptno\") as p from \"adhoc\".EMPLOYEES")
+        .returns(
+            "P=20\n"
+            + "P=40\n"
+            + "P=20\n"
+            + "P=20\n");
+  }
+
+  /** Tests user-defined function. */
+  @Test public void testUserDefinedFunction2() throws Exception {
+    OptiqAssert.that()
+        .withModel(
+            "{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       name: 'adhoc',\n"
+            + "       functions: [\n"
+            + "         {\n"
+            + "           name: 'AWKWARD',\n"
+            + "           className: '"
+            + AwkwardFunction.class.getName()
+            + "'\n"
+            + "         }\n"
+            + "       ]\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}")
+        .connectThrows(
+            "declaring class 'net.hydromatic.optiq.test.JdbcTest$AwkwardFunction' of non-static UDF must have a public constructor with zero parameters");
+  }
+
   @Test public void testExplain() {
     final OptiqAssert.AssertThat with =
         OptiqAssert.that().with(OptiqAssert.Config.FOODMART_CLONE);
@@ -2629,6 +2723,20 @@ public class JdbcTest {
         new Department(30, "Marketing", Collections.<Employee>emptyList()),
         new Department(40, "HR", Collections.singletonList(emps[1])),
     };
+
+    public Table foo(int count) {
+      return generateStrings(count);
+    }
+
+    public Table view(String s) {
+      return new ViewTable(Object.class,
+          new RelProtoDataType() {
+            public RelDataType apply(RelDataTypeFactory typeFactory) {
+              return typeFactory.builder().add("c", SqlTypeName.INTEGER)
+                  .build();
+            }
+          }, "values (1), (3)", ImmutableList.<String>of());
+    }
   }
 
   public static class Employee {
@@ -2875,6 +2983,34 @@ public class JdbcTest {
   public static class MySchema {
     public MyTable[] mytable = { new MyTable() };
     public MyTable2[] mytable2 = { new MyTable2() };
+  }
+
+  /** Example of a UDF with a nontatic {@code eval} method. */
+  public static class MyPlusFunction {
+    public int eval(int x, int y) {
+      return x + y;
+    }
+  }
+
+  /** Example of a UDF with a static {@code eval} method. Class is abstract,
+   * but code-generator should not need to instantiate it. */
+  public static abstract class MyDoubleFunction {
+    private MyDoubleFunction() {
+    }
+
+    public static int eval(int x) {
+      return x * 2;
+    }
+  }
+
+  /** Example of a UDF class that needs to be instantiated but cannot be. */
+  public static abstract class AwkwardFunction {
+    private AwkwardFunction() {
+    }
+
+    public int eval(int x) {
+      return 0;
+    }
   }
 }
 

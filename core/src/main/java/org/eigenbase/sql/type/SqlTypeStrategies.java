@@ -609,7 +609,7 @@ public abstract class SqlTypeStrategies {
    * Type-inference strategy whereby the result type of a call is Boolean.
    */
   public static final SqlReturnTypeInference rtiBoolean =
-      new ExplicitReturnTypeInference(SqlTypeName.BOOLEAN);
+      ExplicitReturnTypeInference.of(SqlTypeName.BOOLEAN);
 
   /**
    * Type-inference strategy whereby the result type of a call is Boolean
@@ -633,13 +633,13 @@ public abstract class SqlTypeStrategies {
    * Type-inference strategy whereby the result type of a call is Date.
    */
   public static final SqlReturnTypeInference rtiDate =
-      new ExplicitReturnTypeInference(SqlTypeName.DATE);
+      ExplicitReturnTypeInference.of(SqlTypeName.DATE);
 
   /**
    * Type-inference strategy whereby the result type of a call is Time(0).
    */
   public static final SqlReturnTypeInference rtiTime =
-      new ExplicitReturnTypeInference(SqlTypeName.TIME, 0);
+      ExplicitReturnTypeInference.of(SqlTypeName.TIME, 0);
 
   /**
    * Type-inference strategy whereby the result type of a call is nullable
@@ -654,7 +654,7 @@ public abstract class SqlTypeStrategies {
    * Type-inference strategy whereby the result type of a call is Double.
    */
   public static final SqlReturnTypeInference rtiDouble =
-      new ExplicitReturnTypeInference(SqlTypeName.DOUBLE);
+      ExplicitReturnTypeInference.of(SqlTypeName.DOUBLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is Double with
@@ -669,13 +669,13 @@ public abstract class SqlTypeStrategies {
    * Type-inference strategy whereby the result type of a call is an Integer.
    */
   public static final SqlReturnTypeInference rtiInteger =
-      new ExplicitReturnTypeInference(SqlTypeName.INTEGER);
+      ExplicitReturnTypeInference.of(SqlTypeName.INTEGER);
 
   /**
    * Type-inference strategy whereby the result type of a call is a Bigint
    */
   public static final SqlReturnTypeInference rtiBigint =
-      new ExplicitReturnTypeInference(SqlTypeName.BIGINT);
+      ExplicitReturnTypeInference.of(SqlTypeName.BIGINT);
 
   /**
    * Type-inference strategy whereby the result type of a call is an Bigint
@@ -708,25 +708,25 @@ public abstract class SqlTypeStrategies {
    * Type-inference strategy which always returns "VARCHAR(2000)".
    */
   public static final SqlReturnTypeInference rtiVarchar2000 =
-      new ExplicitReturnTypeInference(SqlTypeName.VARCHAR, 2000);
+      ExplicitReturnTypeInference.of(SqlTypeName.VARCHAR, 2000);
 
   /**
    * Type-inference strategy for Histogram agg support
    */
   public static final SqlReturnTypeInference rtiHistogram =
-      new ExplicitReturnTypeInference(SqlTypeName.VARBINARY, 8);
+      ExplicitReturnTypeInference.of(SqlTypeName.VARBINARY, 8);
 
   /**
    * Type-inference strategy which always returns "CURSOR".
    */
   public static final SqlReturnTypeInference rtiCursor =
-      new ExplicitReturnTypeInference(SqlTypeName.CURSOR);
+      ExplicitReturnTypeInference.of(SqlTypeName.CURSOR);
 
   /**
    * Type-inference strategy which always returns "COLUMN_LIST".
    */
   public static final SqlReturnTypeInference rtiColumnList =
-      new ExplicitReturnTypeInference(SqlTypeName.COLUMN_LIST);
+      ExplicitReturnTypeInference.of(SqlTypeName.COLUMN_LIST);
 
   /**
    * Type-inference strategy whereby the result type of a call is using its

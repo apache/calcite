@@ -25,6 +25,7 @@ import net.hydromatic.optiq.jdbc.OptiqSchema;
 
 import org.eigenbase.sql.SqlDialect;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -178,10 +179,7 @@ public class ModelHandler {
   public void visit(JsonView jsonView) {
     try {
       final SchemaPlus schema = currentMutableSchema("view");
-      final List<String> path =
-          jsonView.path == null
-              ? currentSchemaPath()
-              : jsonView.path;
+      final List<String> path = Util.first(jsonView.path, currentSchemaPath());
       schema.add(jsonView.name,
           ViewTable.viewFunction(schema, jsonView.sql, path));
     } catch (Exception e) {
@@ -209,6 +207,18 @@ public class ModelHandler {
           + schema.getName() + "' is not mutable");
     }
     return schema;
+  }
+
+  public void visit(JsonFunction jsonFunction) {
+    try {
+      final SchemaPlus schema = currentMutableSchema("function");
+      final List<String> path =
+          Util.first(jsonFunction.path, currentSchemaPath());
+      schema.add(jsonFunction.name,
+          ScalarFunctionImpl.create(path, jsonFunction.className));
+    } catch (Exception e) {
+      throw new RuntimeException("Error instantiating " + jsonFunction, e);
+    }
   }
 }
 

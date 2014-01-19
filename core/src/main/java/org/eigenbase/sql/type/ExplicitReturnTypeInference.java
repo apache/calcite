@@ -19,7 +19,6 @@ package org.eigenbase.sql.type;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.util.*;
 
 /**
  * A {@link SqlReturnTypeInference} which always returns the same SQL type.
@@ -27,11 +26,7 @@ import org.eigenbase.util.*;
 public class ExplicitReturnTypeInference implements SqlReturnTypeInference {
   //~ Instance fields --------------------------------------------------------
 
-  private final int argCount;
-  private final SqlTypeName typeName;
-  private final int length;
-  private final int scale;
-  private final RelDataType type;
+  protected final RelProtoDataType protoType;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -42,92 +37,46 @@ public class ExplicitReturnTypeInference implements SqlReturnTypeInference {
    * type object made using {@link RelDataTypeFactory#copyType(RelDataType)}
    * within the requesting type factory.
    *
-   * <p>REVIEW jvs 6-Aug-2006: Under what circumstances is a copy of the type
-   * required?
+   * <p>A copy of the type is required because each statement is prepared using
+   * a different type factory; each type factory maintains its own cache of
+   * canonical instances of each type.
    *
-   * @param type Type object
+   * @param protoType Type object
    */
-  public ExplicitReturnTypeInference(RelDataType type) {
-    this.type = type;
-    this.typeName = null;
-    this.length = -1;
-    this.scale = -1;
-    this.argCount = 0;
+  public ExplicitReturnTypeInference(RelProtoDataType protoType) {
+    assert protoType != null;
+    this.protoType = protoType;
   }
 
   /**
-   * Creates an inference rule which always returns a given SQL type with zero
-   * parameters (such as <code>DATE</code>).
-   *
-   * @param typeName Name of the type
+   * Creates an inference rule which returns a copy of a given data type.
    */
-  public ExplicitReturnTypeInference(SqlTypeName typeName) {
-    this.argCount = 1;
-    this.typeName = typeName;
-    this.length = -1;
-    this.scale = -1;
-    this.type = null;
+  public static ExplicitReturnTypeInference of(RelDataType type) {
+    return new ExplicitReturnTypeInference(RelDataTypeImpl.proto(type));
   }
 
   /**
-   * Creates an inference rule which always returns a given SQL type with a
-   * precision/length parameter (such as <code>VARCHAR(10)</code> and <code>
-   * NUMBER(5)</code>).
-   *
-   * @param typeName Name of the type
-   * @param length   Length or precision of the type
+   * Creates an inference rule which returns a type with no precision or scale,
+   * such as {@code DATE}.
    */
-  public ExplicitReturnTypeInference(SqlTypeName typeName, int length) {
-    this.argCount = 2;
-    this.typeName = typeName;
-    this.length = length;
-    this.scale = -1;
-    this.type = null;
+  public static ExplicitReturnTypeInference of(SqlTypeName typeName) {
+    return new ExplicitReturnTypeInference(RelDataTypeImpl.proto(typeName));
   }
 
   /**
-   * Creates an inference rule which always returns a given SQL type with a
-   * precision and scale parameters (such as <code>DECIMAL(8, 3)</code>).
-   *
-   * @param typeName Name of the type
-   * @param length   Precision of the type
+   * Creates an inference rule which returns a type with precision but no scale,
+   * such as {@code VARCHAR(100)}.
    */
-  public ExplicitReturnTypeInference(
-      SqlTypeName typeName,
-      int length,
-      int scale) {
-    this.argCount = 3;
-    this.typeName = typeName;
-    this.length = length;
-    this.scale = scale;
-    this.type = null;
+  public static ExplicitReturnTypeInference of(SqlTypeName typeName,
+      int precision) {
+    return new ExplicitReturnTypeInference(
+        RelDataTypeImpl.proto(typeName, precision));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType inferReturnType(
-      SqlOperatorBinding opBinding) {
-    if (type != null) {
-      return opBinding.getTypeFactory().copyType(type);
-    }
-    return createType(opBinding.getTypeFactory());
-  }
-
-  protected RelDataType getExplicitType() {
-    return type;
-  }
-
-  private RelDataType createType(RelDataTypeFactory typeFactory) {
-    switch (argCount) {
-    case 1:
-      return typeFactory.createSqlType(typeName);
-    case 2:
-      return typeFactory.createSqlType(typeName, length);
-    case 3:
-      return typeFactory.createSqlType(typeName, length, scale);
-    default:
-      throw Util.newInternal("unexpected argCount " + argCount);
-    }
+  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+    return protoType.apply(opBinding.getTypeFactory());
   }
 }
 

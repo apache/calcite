@@ -19,7 +19,10 @@ package net.hydromatic.optiq.rules.java;
 
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.expressions.*;
+
 import net.hydromatic.optiq.BuiltinMethod;
+import net.hydromatic.optiq.TableFunction;
+import net.hydromatic.optiq.impl.ScalarFunctionImpl;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
@@ -30,9 +33,9 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.fun.SqlTrimFunction;
 import org.eigenbase.sql.type.SqlTypeName;
+import org.eigenbase.sql.validate.SqlUserDefinedFunction;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -55,6 +58,27 @@ public class RexImpTable {
       Expressions.field(null, Boolean.class, "FALSE");
   public static final MemberExpression BOXED_TRUE_EXPR =
       Expressions.field(null, Boolean.class, "TRUE");
+
+  private static final CallImplementor UDF_IMPLEMENTOR =
+      createImplementor(
+          new NotNullImplementor() {
+            public Expression implement(RexToLixTranslator translator,
+                RexCall call, List<Expression> translatedOperands) {
+              TableFunction x =
+                  ((SqlUserDefinedFunction) call.getOperator()).tableFunction;
+              final Method method = ((ScalarFunctionImpl) x).method;
+              if ((method.getModifiers() & Modifier.STATIC) != 0) {
+                return Expressions.call(method, translatedOperands);
+              } else {
+                // The UDF class must have a public zero-args constructor.
+                // Assume that the validator checked already.
+                final NewExpression target =
+                    Expressions.new_(method.getDeclaringClass());
+                return Expressions.call(target, method, translatedOperands);
+              }
+            }
+          },
+          NullPolicy.ANY, false);
 
   private final Map<SqlOperator, CallImplementor> map =
       new HashMap<SqlOperator, CallImplementor>();
@@ -214,7 +238,7 @@ public class RexImpTable {
     return call.clone(call.getType(), operands2);
   }
 
-  private CallImplementor createImplementor(
+  private static CallImplementor createImplementor(
       final NotNullImplementor implementor,
       final NullPolicy nullPolicy,
       final boolean harmonize) {
@@ -389,6 +413,9 @@ public class RexImpTable {
   public static final RexImpTable INSTANCE = new RexImpTable();
 
   public CallImplementor get(final SqlOperator operator) {
+    if (operator instanceof SqlUserDefinedFunction) {
+      return UDF_IMPLEMENTOR;
+    }
     return map.get(operator);
   }
 
@@ -1005,8 +1032,9 @@ public class RexImpTable {
       if (backupMethodName != null) {
         final Primitive primitive =
             Primitive.ofBoxOr(expressions.get(0).getType());
+        final SqlBinaryOperator op = (SqlBinaryOperator) call.getOperator();
         if (primitive == null
-            || COMPARISON_OPERATORS.contains(call.getOperator())
+            || COMPARISON_OPERATORS.contains(op)
             && !COMP_OP_TYPES.contains(primitive)) {
           return Expressions.call(
               SqlFunctions.class,

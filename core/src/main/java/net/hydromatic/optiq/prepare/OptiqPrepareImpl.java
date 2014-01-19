@@ -307,9 +307,8 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       final OptiqSchema rootSchema = context.getRootSchema();
       final ChainedSqlOperatorTable opTab =
           new ChainedSqlOperatorTable(
-              Arrays.<SqlOperatorTable>asList(
-                  SqlStdOperatorTable.instance(),
-                  new OptiqSqlOperatorTable(rootSchema, typeFactory)));
+              ImmutableList.<SqlOperatorTable>of(
+                  SqlStdOperatorTable.instance(), catalogReader));
       final SqlValidator validator =
           new OptiqSqlValidator(opTab, catalogReader, typeFactory);
 
@@ -341,16 +340,16 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     final List<AvaticaParameter> parameters = new ArrayList<AvaticaParameter>();
     final RelDataType parameterRowType = preparedResult.getParameterRowType();
     for (RelDataTypeField field : parameterRowType.getFieldList()) {
-        RelDataType type = field.getType();
-        parameters.add(
-            new AvaticaParameter(
-                false,
-                getPrecision(type),
-                getScale(type),
-                getTypeOrdinal(type),
-                getTypeName(type),
-                getClassName(type),
-                field.getName()));
+      RelDataType type = field.getType();
+      parameters.add(
+          new AvaticaParameter(
+              false,
+              getPrecision(type),
+              getScale(type),
+              getTypeOrdinal(type),
+              getTypeName(type),
+              getClassName(type),
+              field.getName()));
     }
 
     RelDataType jdbcType = makeStruct(typeFactory, x);
@@ -443,18 +442,18 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         : type.getPrecision();
   }
 
-    private static String getTypeName(RelDataType type) {
-      SqlTypeName sqlTypeName = type.getSqlTypeName();
-      switch (sqlTypeName) {
-      case INTERVAL_YEAR_MONTH:
-      case INTERVAL_DAY_TIME:
-        // e.g. "INTERVAL_MONTH" or "INTERVAL_YEAR_MONTH"
-        return "INTERVAL_"
-            + type.getIntervalQualifier().toString().replace(' ', '_');
-      default:
-        return sqlTypeName.getName();
-      }
+  private static String getTypeName(RelDataType type) {
+    SqlTypeName sqlTypeName = type.getSqlTypeName();
+    switch (sqlTypeName) {
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_DAY_TIME:
+      // e.g. "INTERVAL_MONTH" or "INTERVAL_YEAR_MONTH"
+      return "INTERVAL_"
+          + type.getIntervalQualifier().toString().replace(' ', '_');
+    default:
+      return sqlTypeName.getName();
     }
+  }
 
   protected void populateMaterializations(Context context,
       RelOptPlanner planner, Prepare.Materialization materialization) {
@@ -693,7 +692,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       } catch (Exception e) {
         throw Helper.INSTANCE.wrap(
             "Error while compiling generated Java code:\n"
-            + s,
+                + s,
             e);
       }
 
@@ -843,21 +842,24 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         return ((TranslatableTable) table).toRel(context, this);
       }
       RelOptCluster cluster = context.getCluster();
-      Class elementType;
+      Class elementType = deduceElementType(table);
+      return new JavaRules.EnumerableTableAccessRel(
+          cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE),
+          this, elementType);
+    }
+
+    private Class deduceElementType(Table table) {
       if (table instanceof QueryableTable) {
         final QueryableTable queryableTable = (QueryableTable) table;
         final Type type = queryableTable.getElementType();
         if (type instanceof Class) {
-          elementType = (Class) type;
+          return (Class) type;
         } else {
-          elementType = Object[].class;
+          return Object[].class;
         }
       } else {
-        elementType = Object.class;
+        return Object.class;
       }
-      return new JavaRules.EnumerableTableAccessRel(
-          cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE),
-          this, elementType);
     }
 
     public List<RelCollation> getCollationList() {
@@ -978,7 +980,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       default:
         throw new UnsupportedOperationException(
             "unknown expression type " + expression.getNodeType() + " "
-            + expression);
+                + expression);
       }
     }
 
@@ -1026,69 +1028,6 @@ public class OptiqPrepareImpl implements OptiqPrepare {
         return values.get(i);
       }
       throw new RuntimeException("unknown parameter " + param);
-    }
-  }
-
-  private static class OptiqSqlOperatorTable implements SqlOperatorTable {
-    private final OptiqSchema rootSchema;
-    private final JavaTypeFactory typeFactory;
-
-    public OptiqSqlOperatorTable(
-        OptiqSchema rootSchema,
-        JavaTypeFactory typeFactory) {
-      this.rootSchema = rootSchema;
-      this.typeFactory = typeFactory;
-    }
-
-    public List<SqlOperator> lookupOperatorOverloads(
-        SqlIdentifier opName,
-        SqlFunctionCategory category,
-        SqlSyntax syntax) {
-      if (syntax != SqlSyntax.Function) {
-        return Collections.emptyList();
-      }
-      // FIXME: ignoring prefix of opName
-      String name = Util.last(opName.names);
-      Collection<TableFunction> tableFunctions =
-          rootSchema.compositeTableFunctionMap.get(name);
-      if (tableFunctions.isEmpty()) {
-        return Collections.emptyList();
-      }
-      return toOps(name, ImmutableList.copyOf(tableFunctions));
-    }
-
-    private List<SqlOperator> toOps(
-        final String name,
-        final ImmutableList<TableFunction> tableFunctions) {
-      return new AbstractList<SqlOperator>() {
-        public SqlOperator get(int index) {
-          return toOp(name, tableFunctions.get(index));
-        }
-
-        public int size() {
-          return tableFunctions.size();
-        }
-      };
-    }
-
-    private SqlOperator toOp(String name, TableFunction fun) {
-      List<RelDataType> argTypes = new ArrayList<RelDataType>();
-      List<SqlTypeFamily> typeFamilies = new ArrayList<SqlTypeFamily>();
-      for (net.hydromatic.optiq.Parameter o : fun.getParameters()) {
-        argTypes.add(o.getType(typeFactory));
-        typeFamilies.add(SqlTypeFamily.ANY);
-      }
-      return new SqlFunction(
-          name,
-          SqlKind.OTHER_FUNCTION,
-          new ExplicitReturnTypeInference(fun.getRowType(typeFactory)),
-          new ExplicitOperandTypeInference(argTypes),
-          SqlTypeStrategies.family(typeFamilies),
-          null);
-    }
-
-    public List<SqlOperator> getOperatorList() {
-      return null;
     }
   }
 }

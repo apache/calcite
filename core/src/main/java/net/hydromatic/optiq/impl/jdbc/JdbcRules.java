@@ -644,7 +644,7 @@ public class JdbcRules {
       final RelTraitSet traitSet =
           union.getTraitSet().replace(out);
       return new JdbcUnionRel(rel.getCluster(), traitSet,
-          convertList(union.getInputs(), traitSet), union.all);
+          convertList(union.getInputs(), out), union.all);
     }
   }
 
@@ -693,9 +693,8 @@ public class JdbcRules {
       }
       final RelTraitSet traitSet =
           intersect.getTraitSet().replace(out);
-      return new JdbcIntersectRel(
-          rel.getCluster(), traitSet,
-          convertList(intersect.getInputs(), traitSet), intersect.all);
+      return new JdbcIntersectRel(rel.getCluster(), traitSet,
+          convertList(intersect.getInputs(), out), intersect.all);
     }
   }
 
@@ -742,11 +741,8 @@ public class JdbcRules {
       }
       final RelTraitSet traitSet =
           rel.getTraitSet().replace(out);
-      return new JdbcMinusRel(
-          rel.getCluster(),
-          traitSet,
-          convertList(minus.getInputs(), traitSet),
-          minus.all);
+      return new JdbcMinusRel(rel.getCluster(), traitSet,
+          convertList(minus.getInputs(), out), minus.all);
     }
   }
 

@@ -19,6 +19,7 @@ package org.eigenbase.reltype;
 
 import java.lang.reflect.*;
 import java.nio.charset.*;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -68,10 +69,27 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
               });
 
   private static final Map<Class, RelDataTypeFamily> CLASS_FAMILIES =
-      ImmutableMap.<Class, RelDataTypeFamily>of(
-          String.class, SqlTypeFamily.CHARACTER,
-          boolean.class, SqlTypeFamily.BOOLEAN,
-          Boolean.class, SqlTypeFamily.BOOLEAN);
+      ImmutableMap.<Class, RelDataTypeFamily>builder()
+          .put(String.class, SqlTypeFamily.CHARACTER)
+          .put(byte[].class, SqlTypeFamily.BINARY)
+          .put(boolean.class, SqlTypeFamily.BOOLEAN)
+          .put(Boolean.class, SqlTypeFamily.BOOLEAN)
+          .put(char.class, SqlTypeFamily.NUMERIC)
+          .put(Character.class, SqlTypeFamily.NUMERIC)
+          .put(short.class, SqlTypeFamily.NUMERIC)
+          .put(Short.class, SqlTypeFamily.NUMERIC)
+          .put(int.class, SqlTypeFamily.NUMERIC)
+          .put(Integer.class, SqlTypeFamily.NUMERIC)
+          .put(long.class, SqlTypeFamily.NUMERIC)
+          .put(Long.class, SqlTypeFamily.NUMERIC)
+          .put(float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+          .put(Float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+          .put(double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+          .put(Double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+          .put(java.sql.Date.class, SqlTypeFamily.DATE)
+          .put(Time.class, SqlTypeFamily.TIME)
+          .put(Timestamp.class, SqlTypeFamily.TIMESTAMP)
+          .build();
 
   //~ Constructors -----------------------------------------------------------
 

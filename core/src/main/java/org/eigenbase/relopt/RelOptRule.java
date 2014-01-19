@@ -21,7 +21,9 @@ import java.util.*;
 
 import org.eigenbase.rel.*;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * A <code>RelOptRule</code> transforms an expression into another. It has a
@@ -428,18 +430,18 @@ public abstract class RelOptRule {
    * Converts a list of relational expressions.
    *
    * @param rels     Relational expressions
-   * @param traitSet Trait set to apply to each relational expression
-   * @return List of converted relational expressions, or null if any could
-   * not be converted
+   * @param trait   Trait to add to each relational expression
+   * @return List of converted relational expressions, never null
    */
   public static List<RelNode> convertList(
       List<RelNode> rels,
-      RelTraitSet traitSet) {
-    final List<RelNode> list = new ArrayList<RelNode>();
-    for (RelNode rel : rels) {
-      list.add(convert(rel, traitSet));
-    }
-    return list;
+      final RelTrait trait) {
+    return Lists.transform(rels,
+        new Function<RelNode, RelNode>() {
+          public RelNode apply(RelNode rel) {
+            return convert(rel, rel.getTraitSet().replace(trait));
+          }
+        });
   }
 
   /**
