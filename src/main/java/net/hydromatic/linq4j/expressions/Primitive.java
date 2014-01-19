@@ -32,23 +32,33 @@ import java.util.*;
  * (e.g. {@link Integer}).</p>
  */
 public enum Primitive {
-  BOOLEAN(Boolean.TYPE, Boolean.class, 1, Boolean.FALSE, Boolean.TRUE),
-  BYTE(Byte.TYPE, Byte.class, 2, Byte.MIN_VALUE, Byte.MAX_VALUE),
-  CHAR(Character.TYPE, Character.class, 2, Character.MIN_VALUE,
+  BOOLEAN(Boolean.TYPE, Boolean.class, 1, false, false, true),
+  BYTE(Byte.TYPE, Byte.class, 2, (byte) 0, Byte.MIN_VALUE, Byte.MAX_VALUE),
+  CHAR(Character.TYPE, Character.class, 2, (char) 0, Character.MIN_VALUE,
       Character.MAX_VALUE),
-  SHORT(Short.TYPE, Short.class, 2, Short.MIN_VALUE, Short.MAX_VALUE),
-  INT(Integer.TYPE, Integer.class, 2, Integer.MIN_VALUE, Integer.MAX_VALUE),
-  LONG(Long.TYPE, Long.class, 2, Long.MIN_VALUE, Long.MAX_VALUE),
-  FLOAT(Float.TYPE, Float.class, 3, Float.MIN_VALUE, Float.MAX_VALUE),
-  DOUBLE(Double.TYPE, Double.class, 3, Double.MIN_VALUE, Double.MAX_VALUE),
-  VOID(Void.TYPE, Void.class, 4, null, null),
-  OTHER(null, null, 5, null, null);
+  SHORT(Short.TYPE, Short.class, 2, (short) 0, Short.MIN_VALUE,
+      Short.MAX_VALUE),
+  INT(Integer.TYPE, Integer.class, 2, 0, Integer.MIN_VALUE, Integer.MAX_VALUE),
+  LONG(Long.TYPE, Long.class, 2, 0L, Long.MIN_VALUE, Long.MAX_VALUE),
+  FLOAT(Float.TYPE, Float.class, 3, 0F, Float.MIN_VALUE, Float.MAX_VALUE),
+  DOUBLE(Double.TYPE, Double.class, 3, 0D, Double.MIN_VALUE, Double.MAX_VALUE),
+  VOID(Void.TYPE, Void.class, 4, null, null, null),
+  OTHER(null, null, 5, null, null, null);
 
   public final Class primitiveClass;
   public final Class boxClass;
   public final String primitiveName; // e.g. "int"
   private final int family;
+
+  /** The default value of this primitive class. This is the value
+   * taken by uninitialized fields, for instance; 0 for {@code int}, false for
+   * {@code boolean}, etc. */
+  public final Object defaultValue;
+
+  /** The minimum value of this primitive class. */
   public final Object min;
+
+  /** The maximum value of this primitive class. */
   public final Object max;
 
   private static final Map<Class, Primitive> PRIMITIVE_MAP =
@@ -68,13 +78,14 @@ public enum Primitive {
     }
   }
 
-  Primitive(Class primitiveClass, Class boxClass, int family, Object min,
-      Object max) {
+  Primitive(Class primitiveClass, Class boxClass, int family,
+      Object defaultValue, Object min, Object max) {
     this.primitiveClass = primitiveClass;
     this.family = family;
     this.primitiveName =
         primitiveClass != null ? primitiveClass.getSimpleName() : null;
     this.boxClass = boxClass;
+    this.defaultValue = defaultValue;
     this.min = min;
     this.max = max;
   }
