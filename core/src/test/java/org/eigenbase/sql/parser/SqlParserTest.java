@@ -781,8 +781,8 @@ public class SqlParserTest {
     checkExpFails("^\"^x`y`z\"", "(?s).*Encountered.*");
     checkExpFails("^`^x``y``z`", "(?s).*Encountered.*");
 
-    checkExp("[anything [but brackets]] are].[ok]",
-        "`anything [but brackets]] are`.`ok`");
+    checkExp("[anything [even brackets]] is].[ok]",
+        "`anything [even brackets] is`.`ok`");
 
     // What would be a call to the 'item' function in DOUBLE_QUOTE and BACK_TICK
     // is a table alias.

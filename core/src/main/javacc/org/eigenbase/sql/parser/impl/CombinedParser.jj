@@ -3212,7 +3212,7 @@ String Identifier() :
         }
         | <BRACKET_QUOTED_IDENTIFIER>
         {
-            id = SqlParserUtil.strip(getToken(0).image, "[", "");
+            id = SqlParserUtil.strip(getToken(0).image, "[", "]");
         }
         | <UNICODE_QUOTED_IDENTIFIER>
         {
