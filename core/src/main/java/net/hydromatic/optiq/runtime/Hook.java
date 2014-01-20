@@ -19,6 +19,7 @@ package net.hydromatic.optiq.runtime;
 
 import net.hydromatic.linq4j.function.Function1;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -46,6 +47,13 @@ public enum Hook {
 
   private final List<Function1<Object, Object>> handlers =
       new CopyOnWriteArrayList<Function1<Object, Object>>();
+
+  private final ThreadLocal<List<Function1<Object, Object>>> threadHandlers =
+      new ThreadLocal<List<Function1<Object, Object>>>() {
+        protected List<Function1<Object, Object>> initialValue() {
+          return new ArrayList<Function1<Object, Object>>();
+        }
+      };
 
   /** Adds a handler for this Hook.
    *
@@ -75,9 +83,27 @@ public enum Hook {
     return handlers.remove(handler);
   }
 
+  /** Adds a handler for this thread. */
+  public Closeable addThread(final Function1<Object, Object> handler) {
+    threadHandlers.get().add(handler);
+    return new Closeable() {
+      public void close() {
+        removeThread(handler);
+      }
+    };
+  }
+
+  /** Removes a thread handler from this Hook. */
+  private boolean removeThread(Function1 handler) {
+    return threadHandlers.get().remove(handler);
+  }
+
   /** Runs all handlers registered for this Hook, with the given argument. */
   public void run(Object arg) {
     for (Function1<Object, Object> handler : handlers) {
+      handler.apply(arg);
+    }
+    for (Function1<Object, Object> handler : threadHandlers.get()) {
       handler.apply(arg);
     }
   }

@@ -41,8 +41,17 @@ import java.util.*;
  * and the process by which they become valid and invalid.
  */
 public class MaterializationService {
-  public static final MaterializationService INSTANCE =
+  private static final MaterializationService INSTANCE =
       new MaterializationService();
+
+  /** For testing. */
+  private static final ThreadLocal<MaterializationService> THREAD_INSTANCE =
+      new ThreadLocal<MaterializationService>() {
+        @Override
+        protected MaterializationService initialValue() {
+          return new MaterializationService();
+        }
+      };
 
   private final MaterializationActor actor = new MaterializationActor();
 
@@ -152,6 +161,23 @@ public class MaterializationService {
   public void clear() {
     actor.keyMap.clear();
   }
+
+  /** Used by tests, to ensure that they see their own service. */
+  public static void setThreadLocal() {
+    THREAD_INSTANCE.set(new MaterializationService());
+  }
+
+  /** Returns the instance of the materialization service. Usually the global
+   * one, but returns a thread-local one during testing (when
+   * {@link #setThreadLocal()} has been called by the current thread). */
+  public static MaterializationService instance() {
+    MaterializationService materializationService = THREAD_INSTANCE.get();
+    if (materializationService != null) {
+      return materializationService;
+    }
+    return INSTANCE;
+  }
+
 }
 
 // End MaterializationService.java

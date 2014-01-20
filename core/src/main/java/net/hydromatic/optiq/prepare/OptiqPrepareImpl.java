@@ -314,7 +314,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
 
       final List<Prepare.Materialization> materializations =
           context.config().materializationsEnabled()
-              ? MaterializationService.INSTANCE.query(rootSchema)
+              ? MaterializationService.instance().query(rootSchema)
               : ImmutableList.<Prepare.Materialization>of();
       for (Prepare.Materialization materialization : materializations) {
         populateMaterializations(context, planner, materialization);

@@ -832,7 +832,7 @@ public class OptiqAssert {
       if (plan != null) {
         return;
       }
-      final Hook.Closeable hook = Hook.JAVA_PLAN.add(
+      final Hook.Closeable hook = Hook.JAVA_PLAN.addThread(
           new Function1<Object, Object>() {
             public Object apply(Object a0) {
               plan = (String) a0;
@@ -857,7 +857,7 @@ public class OptiqAssert {
      * MongoDB or SQL query is generated, for instance. */
     public AssertQuery queryContains(Function1<List, Void> predicate1) {
       final List<Object> list = new ArrayList<Object>();
-      final Hook.Closeable hook = Hook.QUERY_PLAN.add(
+      final Hook.Closeable hook = Hook.QUERY_PLAN.addThread(
           new Function1<Object, Object>() {
             public Object apply(Object a0) {
               list.add(a0);

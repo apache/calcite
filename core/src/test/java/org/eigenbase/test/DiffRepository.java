@@ -275,7 +275,7 @@ public class DiffRepository {
    * Expands a string containing one or more variables. (Currently only works
    * if there is one variable.)
    */
-  public String expand(String tag, String text) {
+  public synchronized String expand(String tag, String text) {
     if (text == null) {
       return null;
     } else if (text.startsWith("${")
@@ -343,7 +343,7 @@ public class DiffRepository {
    * @param resourceName Name of resource, e.g. "sql", "plan"
    * @return The value of the resource, or null if not found
    */
-  private String get(
+  private synchronized String get(
       final String testCaseName,
       String resourceName) {
     Element testCaseElement = getTestCaseElement(testCaseName, true);
@@ -397,7 +397,7 @@ public class DiffRepository {
    *                      a base repository, it has overrides="true"
    * @return TestCase element, or null if not found
    */
-  private Element getTestCaseElement(
+  private synchronized Element getTestCaseElement(
       final String testCaseName,
       boolean checkOverride) {
     final NodeList childNodes = root.getChildNodes();
@@ -805,7 +805,7 @@ public class DiffRepository {
    * @param filter    Filters each string returned by the repository
    * @return The diff repository shared between testcases in this class.
    */
-  public static DiffRepository lookup(
+  public static synchronized DiffRepository lookup(
       Class clazz,
       DiffRepository baseRepos,
       Filter filter) {

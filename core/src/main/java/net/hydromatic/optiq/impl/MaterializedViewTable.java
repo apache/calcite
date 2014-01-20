@@ -84,7 +84,7 @@ public class MaterializedViewTable extends ViewTable {
   public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     final OptiqSchema.TableEntry tableEntry =
-        MaterializationService.INSTANCE.checkValid(key);
+        MaterializationService.instance().checkValid(key);
     if (tableEntry != null) {
       Table materializeTable = tableEntry.getTable();
       if (materializeTable instanceof TranslatableTable) {
@@ -103,7 +103,7 @@ public class MaterializedViewTable extends ViewTable {
         List<String> viewSchemaPath, String tableName) {
       super(schema, viewSql, viewSchemaPath);
       this.key =
-          MaterializationService.INSTANCE.defineMaterialization(
+          MaterializationService.instance().defineMaterialization(
               schema, viewSql, schemaPath, tableName);
     }
 

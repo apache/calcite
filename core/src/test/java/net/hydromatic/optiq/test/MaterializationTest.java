@@ -42,27 +42,24 @@ public class MaterializationTest {
   final RexBuilder rexBuilder = new RexBuilder(typeFactory);
 
   @Test public void testFilter() {
-    try {
-      OptiqAssert.that()
-          .with(OptiqAssert.Config.REGULAR)
-          .withMaterializations(
-              JdbcTest.HR_MODEL,
-              "m0",
-              "select * from \"emps\" where \"deptno\" = 10")
-          .query(
-              "select \"empid\" + 1 from \"emps\" where \"deptno\" = 10")
-          .enableMaterializations(true)
-          .explainContains(
-              "EnumerableTableAccessRel(table=[[hr, m0]])")
-          .sameResultWithMaterializationsDisabled();
-    } finally {
-      MaterializationService.INSTANCE.clear();
-    }
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.REGULAR)
+        .withMaterializations(
+            JdbcTest.HR_MODEL,
+            "m0",
+            "select * from \"emps\" where \"deptno\" = 10")
+        .query(
+            "select \"empid\" + 1 from \"emps\" where \"deptno\" = 10")
+        .enableMaterializations(true)
+        .explainContains(
+            "EnumerableTableAccessRel(table=[[hr, m0]])")
+        .sameResultWithMaterializationsDisabled();
   }
 
   @Test public void testFilterQueryOnProjectView() {
     try {
       Prepare.TRIM = true;
+      MaterializationService.setThreadLocal();
       OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
           .withMaterializations(
@@ -76,7 +73,6 @@ public class MaterializationTest {
               "EnumerableTableAccessRel(table=[[hr, m0]])")
           .sameResultWithMaterializationsDisabled();
     } finally {
-      MaterializationService.INSTANCE.clear();
       Prepare.TRIM = false;
     }
   }
@@ -93,6 +89,7 @@ public class MaterializationTest {
       String model) {
     try {
       Prepare.TRIM = true;
+      MaterializationService.setThreadLocal();
       OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
           .withMaterializations(model, "m0", materialize)
@@ -102,7 +99,6 @@ public class MaterializationTest {
               "EnumerableTableAccessRel(table=[[hr, m0]])")
           .sameResultWithMaterializationsDisabled();
     } finally {
-      MaterializationService.INSTANCE.clear();
       Prepare.TRIM = false;
     }
   }
@@ -113,6 +109,7 @@ public class MaterializationTest {
       String model) {
     try {
       Prepare.TRIM = true;
+      MaterializationService.setThreadLocal();
       OptiqAssert.that()
           .with(OptiqAssert.Config.REGULAR)
           .withMaterializations(model, "m0", materialize)
@@ -121,7 +118,6 @@ public class MaterializationTest {
           .explainContains(
               "EnumerableTableAccessRel(table=[[hr, emps]])");
     } finally {
-      MaterializationService.INSTANCE.clear();
       Prepare.TRIM = false;
     }
   }

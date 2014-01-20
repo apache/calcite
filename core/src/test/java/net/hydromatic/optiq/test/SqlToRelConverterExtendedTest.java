@@ -41,7 +41,7 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
 
   @Before public void before() {
     //noinspection unchecked
-    this.closeable = Hook.CONVERTED.add(
+    this.closeable = Hook.CONVERTED.addThread(
         (Function1) new Function1<RelNode, Void>() {
           public Void apply(RelNode a0) {
             foo(a0);
