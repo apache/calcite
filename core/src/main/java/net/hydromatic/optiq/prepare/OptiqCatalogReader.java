@@ -29,7 +29,6 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.SqlMoniker;
 import org.eigenbase.sql.validate.SqlUserDefinedFunction;
-import org.eigenbase.util.Bug;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -195,34 +194,10 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
           (RelDataTypeFactoryImpl.JavaType) type;
       Primitive primitive = Primitive.of(javaType.getJavaClass());
       if (primitive != null) {
-        return zero(primitive);
+        return primitive.defaultValue;
       }
     }
     return null;
-  }
-
-  private static Object zero(Primitive primitive) {
-    Bug.upgrade("move to linq4j Primitive");
-    switch (primitive) {
-    case BOOLEAN:
-      return false;
-    case BYTE:
-      return (byte) 0;
-    case CHAR:
-      return (char) 0;
-    case SHORT:
-      return (short) 0;
-    case INT:
-      return 0;
-    case LONG:
-      return 0L;
-    case FLOAT:
-      return 0F;
-    case DOUBLE:
-      return 0D;
-    default:
-      return null;
-    }
   }
 
   public List<SqlOperator> getOperatorList() {
