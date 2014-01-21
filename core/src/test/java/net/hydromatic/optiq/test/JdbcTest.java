@@ -2694,27 +2694,33 @@ public class JdbcTest {
     OptiqAssert.AssertThat with =
         OptiqAssert.that().with(OptiqAssert.Config.FOODMART_CLONE);
 
+    // Note that \u82f1 in a Java string is a Java unicode escape;
+    // But \\82f1 in a SQL string is a SQL unicode escape.
     // various ways to create a unicode string literal
-    with.query("values _UTF16'英国'")
-        .returns("EXPR$0=英国\n");
+    with.query("values _UTF16'\u82f1\u56fd'")
+        .returns("EXPR$0=\u82f1\u56fd\n");
     with.query("values U&'\\82F1\\56FD'")
-        .returns("EXPR$0=英国\n");
+        .returns("EXPR$0=\u82f1\u56fd\n");
     with.query("values u&'\\82f1\\56fd'")
-        .returns("EXPR$0=英国\n");
-    with.query("values '英国'")
-        .throws_("Failed to encode '英国' in character set 'ISO-8859-1'");
+        .returns("EXPR$0=\u82f1\u56fd\n");
+    with.query("values '\u82f1\u56fd'")
+        .throws_(
+            "Failed to encode '\u82f1\u56fd' in character set 'ISO-8859-1'");
 
     // comparing a unicode string literal with a regular string literal
-    with.query("select * from \"employee\" where \"full_name\" = '英国'")
-        .throws_("Failed to encode '英国' in character set 'ISO-8859-1'");
-    with.query("select * from \"employee\" where \"full_name\" = _UTF16'英国'")
+    with.query(
+        "select * from \"employee\" where \"full_name\" = '\u82f1\u56fd'")
+        .throws_(
+            "Failed to encode '\u82f1\u56fd' in character set 'ISO-8859-1'");
+    with.query(
+        "select * from \"employee\" where \"full_name\" = _UTF16'\u82f1\u56fd'")
         .throws_(
             "Cannot apply = to the two different charsets ISO-8859-1 and UTF-16LE");
 
     // The CONVERT function (what SQL:2011 calls "character transliteration") is
     // not implemented yet. See https://github.com/julianhyde/optiq/issues/111.
     with.query("select * from \"employee\"\n"
-        + "where convert(\"full_name\" using UTF16) = _UTF16'英国'")
+        + "where convert(\"full_name\" using UTF16) = _UTF16'\u82f1\u56fd'")
         .throws_("Column 'UTF16' not found in any table");
   }
 

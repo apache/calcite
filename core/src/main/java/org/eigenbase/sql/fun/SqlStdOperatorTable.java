@@ -1288,7 +1288,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *
    * <p>The SQL standard calls the ARRAY variant a
    * &lt;array element reference&gt;. Index is 1-based. The standard says
-   * to raise "data exception — array element error" but we currently return
+   * to raise "data exception - array element error" but we currently return
    * null.</p>
    *
    * <p>MAP is not standard SQL.</p>
