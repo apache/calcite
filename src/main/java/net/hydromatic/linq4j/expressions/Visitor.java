@@ -205,8 +205,8 @@ public class Visitor {
 
   public MemberDeclaration visit(FieldDeclaration fieldDeclaration,
       ParameterExpression parameter, Expression initializer) {
-    return parameter.equals(fieldDeclaration.parameter) && initializer.equals(
-        fieldDeclaration.initializer)
+    return parameter.equals(fieldDeclaration.parameter)
+        && eq(initializer, fieldDeclaration.initializer)
         ? fieldDeclaration
         : Expressions.fieldDecl(fieldDeclaration.modifier, parameter,
             initializer);

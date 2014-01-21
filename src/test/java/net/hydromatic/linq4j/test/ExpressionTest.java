@@ -877,7 +877,9 @@ public class ExpressionTest {
                 Expressions.add(three, six),
                 nine));
     statements.add(Expressions.return_(null, eighteen));
-    assertEquals(expected, Expressions.toString(statements.toBlock()));
+    BlockStatement expression = statements.toBlock();
+    assertEquals(expected, Expressions.toString(expression));
+    expression.accept(new Visitor());
   }
 
   @Test public void testBlockBuilder2() {
@@ -901,13 +903,15 @@ public class ExpressionTest {
                 treeSet,
                 "add",
                 element)));
+    BlockStatement expression = statements.toBlock();
     assertEquals(
         "{\n"
         + "  final java.util.Comparator comparator = null;\n"
         + "  return new java.util.TreeSet(\n"
         + "      comparator).add(null);\n"
         + "}\n",
-        Expressions.toString(statements.toBlock()));
+        Expressions.toString(expression));
+    expression.accept(new Visitor());
   }
 
   @Test public void testBlockBuilder3() {
@@ -946,6 +950,7 @@ public class ExpressionTest {
     // Correct result is
     //    bar(1, _b, _c, _d, foo(_c));
     // because _c has the same expression (a + 3) as inner b.
+    BlockStatement expression = builder0.toBlock();
     assertEquals(
         "{\n"
         + "  final int _b = 1 + 2;\n"
@@ -953,10 +958,22 @@ public class ExpressionTest {
         + "  final int _d = 1 + 4;\n"
         + "  net.hydromatic.linq4j.test.ExpressionTest.bar(1, _b, _c, _d, net.hydromatic.linq4j.test.ExpressionTest.foo(_c));\n"
         + "}\n",
-        Expressions.toString(builder0.toBlock()));
+        Expressions.toString(expression));
+    expression.accept(new Visitor());
   }
 
   @Test public void testConstantExpression() {
+    final Expression constant = Expressions.constant(
+        new Object[] {
+            1,
+            new Object[] {
+                (byte) 1, (short) 2, (int) 3, (long) 4,
+                (float) 5, (double) 6, (char) 7, true, "string", null
+            },
+            new AllType(true, (byte) 100, (char) 101, (short) 102, 103,
+                (long) 104, (float) 105, (double) 106, new BigDecimal(107),
+                new BigInteger("108"), "109", null)
+        });
     assertEquals(
         "new Object[] {\n"
         + "  1,\n"
@@ -984,15 +1001,8 @@ public class ExpressionTest {
         + "    new java.math.BigInteger(\"108\"),\n"
         + "    \"109\",\n"
         + "    null)}",
-        Expressions.constant(
-            new Object[] {
-                1,
-                new Object[] {(byte) 1, (short) 2, (int) 3, (long) 4,
-                    (float) 5, (double) 6, (char) 7, true, "string", null},
-                new AllType(true, (byte) 100, (char) 101, (short) 102, 103,
-                    (long) 104, (float) 105, (double) 106, new BigDecimal(107),
-                    new BigInteger("108"), "109", null)
-            }).toString());
+        constant.toString());
+    constant.accept(new Visitor());
   }
 
   @Test public void testClassDecl() {
@@ -1001,7 +1011,7 @@ public class ExpressionTest {
             Object.class,
             Collections.<Expression>emptyList(),
             Arrays.<MemberDeclaration>asList(
-                new FieldDeclaration(
+                Expressions.fieldDecl(
                     Modifier.PUBLIC | Modifier.FINAL,
                     Expressions.parameter(String.class, "foo"),
                     Expressions.constant("bar")),
@@ -1015,10 +1025,9 @@ public class ExpressionTest {
                             0,
                             Expressions.parameter(int.class, "x"),
                             Expressions.constant(0)))),
-                new FieldDeclaration(
+                Expressions.fieldDecl(
                     0,
-                    Expressions.parameter(int.class, "i"),
-                    null)));
+                    Expressions.parameter(int.class, "i"))));
     assertEquals(
         "new Object(){\n"
         + "  public final String foo = \"bar\";\n"
@@ -1028,6 +1037,7 @@ public class ExpressionTest {
         + "  int i;\n"
         + "}",
         Expressions.toString(newExpression));
+    newExpression.accept(new Visitor());
   }
 
   @Test public void testReturn() {

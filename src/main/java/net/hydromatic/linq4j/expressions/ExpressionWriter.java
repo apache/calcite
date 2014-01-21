@@ -28,7 +28,7 @@ class ExpressionWriter {
 
   private final StringBuilder buf = new StringBuilder();
   private int level;
-  private String indent;
+  private String indent = "";
   private boolean indentPending;
   private final boolean generics;
 

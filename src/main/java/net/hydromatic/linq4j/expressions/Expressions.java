@@ -1647,11 +1647,19 @@ public class Expressions {
   }
 
   /**
-   * Declares a field.
+   * Declares a field with an initializer.
    */
   public static FieldDeclaration fieldDecl(int modifier,
       ParameterExpression parameter, Expression initializer) {
     return new FieldDeclaration(modifier, parameter, initializer);
+  }
+
+  /**
+   * Declares a field.
+   */
+  public static FieldDeclaration fieldDecl(int modifier,
+      ParameterExpression parameter) {
+    return new FieldDeclaration(modifier, parameter, null);
   }
 
   /**

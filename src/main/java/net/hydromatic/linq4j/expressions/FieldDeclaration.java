@@ -37,7 +37,8 @@ public class FieldDeclaration extends MemberDeclaration {
   @Override
   public MemberDeclaration accept(Visitor visitor) {
     // do not visit parameter - visit may not return a ParameterExpression
-    final Expression initializer = this.initializer.accept(visitor);
+    final Expression initializer =
+        this.initializer == null ? null : this.initializer.accept(visitor);
     return visitor.visit(this, parameter, initializer);
   }
 
