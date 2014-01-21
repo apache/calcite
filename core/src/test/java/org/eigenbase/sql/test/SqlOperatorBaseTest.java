@@ -30,7 +30,6 @@ import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.util.SqlString;
-import org.eigenbase.sql.validate.SqlConformance;
 import org.eigenbase.test.*;
 import org.eigenbase.util.*;
 
@@ -1718,7 +1717,7 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(SqlStdOperatorTable.selectOperator, VM_EXPAND);
     tester.check(
         "select * from (values(1))",
-        AbstractSqlTester.IntegerTypeChecker,
+        SqlTests.IntegerTypeChecker,
         "1",
         0);
 
@@ -1814,7 +1813,7 @@ public abstract class SqlOperatorBaseTest {
     // both are valid
     tester.check(
         "values 1 > 2 and sqrt(-4) = -2",
-        AbstractSqlTester.BooleanTypeChecker,
+        SqlTests.BooleanTypeChecker,
         new ValueOrExceptionResultChecker(
             Boolean.FALSE, invalidArgForPower, code2201f));
   }
@@ -2668,7 +2667,7 @@ public abstract class SqlOperatorBaseTest {
     // get error
     tester.check(
         "values 1 < cast(null as integer) or sqrt(-4) = -2",
-        AbstractSqlTester.BooleanTypeChecker,
+        SqlTests.BooleanTypeChecker,
         new ValueOrExceptionResultChecker(
             null, invalidArgForPower, code2201f));
 
@@ -2678,7 +2677,7 @@ public abstract class SqlOperatorBaseTest {
     // both are valid.
     tester.check(
         "values 1 < 2 or sqrt(-4) = -2",
-        AbstractSqlTester.BooleanTypeChecker,
+        SqlTests.BooleanTypeChecker,
         new ValueOrExceptionResultChecker(
             Boolean.TRUE, invalidArgForPower, code2201f));
 
@@ -2688,7 +2687,7 @@ public abstract class SqlOperatorBaseTest {
     // both are valid.
     tester.check(
         "values 1 < cast(null as integer) or sqrt(4) = -2",
-        AbstractSqlTester.BooleanTypeChecker,
+        SqlTests.BooleanTypeChecker,
         new ValueOrExceptionResultChecker(
             null, invalidArgForPower, code2201f));
 
@@ -2986,7 +2985,7 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(SqlStdOperatorTable.valuesOperator, VM_EXPAND);
     tester.check(
         "select 'abc' from (values(true))",
-        new AbstractSqlTester.StringTypeChecker("CHAR(3) NOT NULL"),
+        new SqlTests.StringTypeChecker("CHAR(3) NOT NULL"),
         "abc",
         0);
   }
@@ -3983,7 +3982,7 @@ public abstract class SqlOperatorBaseTest {
     }
     tester.check(
         "select sum(1) over (order by x) from (select 1 as x, 2 as y from (values (true)))",
-        new AbstractSqlTester.StringTypeChecker("INTEGER"),
+        new SqlTests.StringTypeChecker("INTEGER"),
         "1",
         0);
   }
@@ -4980,11 +4979,11 @@ public abstract class SqlOperatorBaseTest {
    * Implementation of {@link org.eigenbase.sql.test.SqlTester} based on a
    * JDBC connection.
    */
-  protected static class TesterImpl extends SqlValidatorTestCase.TesterImpl {
+  protected static class TesterImpl extends SqlTesterImpl {
     final Connection connection;
 
     public TesterImpl(Connection connection) {
-      super(SqlConformance.Default);
+      super(DefaultSqlTestFactory.INSTANCE);
       this.connection = connection;
     }
 

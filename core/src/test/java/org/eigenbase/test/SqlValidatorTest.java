@@ -22,6 +22,7 @@ import java.nio.charset.*;
 import java.util.logging.*;
 
 import org.eigenbase.sql.*;
+import org.eigenbase.sql.parser.SqlParser;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
@@ -37,7 +38,7 @@ import static org.junit.Assert.*;
  *
  * <p>If you want to run these same tests in a different environment, create a
  * derived class whose {@link #getTester} returns a different implementation of
- * {@link org.eigenbase.test.SqlValidatorTestCase.Tester}.
+ * {@link org.eigenbase.sql.test.SqlTester}.
  */
 public class SqlValidatorTest extends SqlValidatorTestCase {
   //~ Static fields/initializers ---------------------------------------------
@@ -50,20 +51,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   public static final boolean todoTypeInference = false;
   private static final String ANY = "(?s).*";
 
-  //~ Instance fields --------------------------------------------------------
+  protected static final Logger logger =
+      Logger.getLogger(SqlValidatorTest.class.getName());
 
-  protected final Logger logger = Logger.getLogger(getClass().getName());
-
-  private final String ERR_IN_VALUES_INCOMPATIBLE =
+  private static final String ERR_IN_VALUES_INCOMPATIBLE =
       "Values in expression list must have compatible types";
 
-  private final String ERR_IN_OPERANDS_INCOMPATIBLE =
+  private static final String ERR_IN_OPERANDS_INCOMPATIBLE =
       "Values passed to IN operator must have compatible types";
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlValidatorTest() {
-    super(null);
+    super();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -6269,8 +6269,32 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " null}");
   }
 
+  @Test public void testBrackets() {
+    tester.withQuoting(SqlParser.Quoting.BRACKET)
+        .checkResultType("select [e].EMPNO from [EMP] as [e]",
+            "RecordType(INTEGER NOT NULL EMPNO) NOT NULL");
+
+    tester.withQuoting(SqlParser.Quoting.BRACKET)
+        .checkQueryFails("select ^e^.EMPNO from [EMP] as [e]",
+            "Table 'E' not found");
+
+    tester.withQuoting(SqlParser.Quoting.BRACKET)
+        .checkQueryFails("select ^x^ from (\n"
+            + "  select [e].EMPNO as [x] from [EMP] as [e])",
+            "Column 'X' not found in any table");
+
+    tester.withQuoting(SqlParser.Quoting.BRACKET)
+        .checkQueryFails("select EMP.^\"x\"^ from EMP",
+            "(?s).*Encountered \"\\. \\\\\"\" at line .*");
+
+    tester.withQuoting(SqlParser.Quoting.BRACKET)
+        .checkResultType("select [x[y]] z ] from (\n"
+            + "  select [e].EMPNO as [x[y]] z ] from [EMP] as [e])",
+            "RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
+  }
+
   @Test public void testNew() {
-    // (To debug invidual statements, paste them into this method.)
+    // (To debug individual statements, paste them into this method.)
     //            1         2         3         4         5         6
     //   12345678901234567890123456789012345678901234567890123456789012345
     //        check("SELECT count(0) FROM emp GROUP BY ()");

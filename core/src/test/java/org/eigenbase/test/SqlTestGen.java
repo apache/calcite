@@ -23,6 +23,7 @@ import java.nio.charset.*;
 import java.util.*;
 
 import org.eigenbase.sql.*;
+import org.eigenbase.sql.test.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
 
@@ -102,16 +103,18 @@ public class SqlTestGen {
       this.pw = pw;
     }
 
-    public SqlValidatorTestCase.Tester getTester(
-        SqlConformance conformance) {
-      return new TesterImpl(conformance) {
-        public SqlValidator getValidator() {
-          return (SqlValidator) Proxy.newProxyInstance(
-              SqlValidatorSpooler.class.getClassLoader(),
-              new Class[]{SqlValidator.class},
-              new MyInvocationHandler());
-        }
-
+    public SqlTester getTester() {
+      final SqlTestFactory factory =
+          new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
+            @Override
+            public SqlValidator getValidator(SqlTestFactory factory) {
+              return (SqlValidator) Proxy.newProxyInstance(
+                  SqlValidatorSpooler.class.getClassLoader(),
+                  new Class[]{SqlValidator.class},
+                  new MyInvocationHandler());
+            }
+          };
+      return new SqlTesterImpl(factory) {
         public void assertExceptionIsThrown(
             String sql,
             String expectedMsgPattern) {

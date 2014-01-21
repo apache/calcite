@@ -692,7 +692,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       } catch (Exception e) {
         throw Helper.INSTANCE.wrap(
             "Error while compiling generated Java code:\n"
-                + s,
+            + s,
             e);
       }
 
@@ -980,7 +980,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       default:
         throw new UnsupportedOperationException(
             "unknown expression type " + expression.getNodeType() + " "
-                + expression);
+            + expression);
       }
     }
 

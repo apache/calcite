@@ -17,23 +17,23 @@
 */
 package org.eigenbase.sql.test;
 
-import org.eigenbase.sql.validate.*;
-import org.eigenbase.test.*;
+import org.eigenbase.sql.SqlOperatorTable;
+import org.eigenbase.sql.advise.SqlAdvisor;
+import org.eigenbase.sql.parser.SqlParser;
+import org.eigenbase.sql.validate.SqlValidator;
+import org.eigenbase.sql.validate.SqlValidatorWithHints;
 
 /**
- * Concrete subclass of {@link SqlOperatorBaseTest} which checks against
- * a {@link SqlValidator}. Tests that involve execution trivially succeed.
- */
-public class SqlOperatorTest extends SqlOperatorBaseTest {
-  private static final SqlTester DEFAULT_TESTER =
-      (SqlTester) new SqlValidatorTestCase().getTester();
-
-  /**
-   * Creates a SqlOperatorTest.
-   */
-  public SqlOperatorTest() {
-    super(false, DEFAULT_TESTER);
-  }
+* Creates the objects needed to run a SQL parsing or validation test.
+ *
+ * @see org.eigenbase.sql.test.SqlTester
+*/
+public interface SqlTestFactory {
+  SqlOperatorTable createOperatorTable();
+  SqlParser createParser(SqlTestFactory factory, String sql);
+  SqlValidator getValidator(SqlTestFactory factory);
+  SqlAdvisor createAdvisor(SqlValidatorWithHints validator);
+  Object get(String name);
 }
 
-// End SqlOperatorTest.java
+// End SqlTestFactory.java

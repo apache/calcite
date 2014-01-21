@@ -28,12 +28,12 @@ import org.eigenbase.sql.type.*;
 import org.junit.Assert;
 
 import static org.junit.Assert.*;
+import static org.eigenbase.sql.test.SqlTester.*;
 
 /**
- * Abstract implementation of {@link SqlTester}. A derived class only needs to
- * implement {@link #check}, {@link #checkColumnType} and {@link #checkFails}.
+ * Utility methods.
  */
-public abstract class AbstractSqlTester implements SqlTester {
+public abstract class SqlTests {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final TypeChecker IntegerTypeChecker =
@@ -50,52 +50,6 @@ public abstract class AbstractSqlTester implements SqlTester {
         public void checkType(RelDataType type) {
         }
       };
-
-  //~ Instance fields --------------------------------------------------------
-
-  private SqlOperator operator;
-
-  //~ Methods ----------------------------------------------------------------
-
-
-  /**
-   * {@inheritDoc}
-   *
-   * This default implementation does nothing.
-   */
-  public void close() {
-    // no resources to release
-  }
-
-  public void setFor(SqlOperator operator, VmName... unimplementedVmNames) {
-    if ((operator != null) && (this.operator != null)) {
-      throw new AssertionError("isFor() called twice");
-    }
-    this.operator = operator;
-  }
-
-  public void checkAgg(
-      String expr,
-      String[] inputValues,
-      Object result,
-      double delta) {
-    String query = generateAggQuery(expr, inputValues);
-    check(query, AnyTypeChecker, result, delta);
-  }
-
-  public void checkWinAgg(
-      String expr,
-      String[] inputValues,
-      String windowSpec,
-      String type,
-      Object result,
-      double delta) {
-    // Windowed aggregation is not implemented in eigenbase. We cannot
-    // evaluate the query to check results. The best we can do is to check
-    // the type.
-    String query = generateWinAggQuery(expr, windowSpec, inputValues);
-    checkColumnType(query, type);
-  }
 
   /**
    * Helper function to get the string representation of a RelDataType
@@ -160,107 +114,6 @@ public abstract class AbstractSqlTester implements SqlTester {
     }
     buf.append(")");
     return buf.toString();
-  }
-
-  /**
-   * Helper method which converts a scalar expression into a SQL query.
-   *
-   * <p>By default, "expr" becomes "VALUES (expr)". Derived classes may
-   * override.
-   *
-   * @param expression Expression
-   * @return Query that returns expression
-   */
-  protected String buildQuery(String expression) {
-    return "values (" + expression + ")";
-  }
-
-  public void checkType(
-      String expression,
-      String type) {
-    checkColumnType(buildQuery(expression), type);
-  }
-
-  public void checkScalarExact(
-      String expression,
-      String result) {
-    String sql = buildQuery(expression);
-    check(sql, IntegerTypeChecker, result, 0);
-  }
-
-  public void checkScalarExact(
-      String expression,
-      String expectedType,
-      String result) {
-    String sql = buildQuery(expression);
-    TypeChecker typeChecker = new StringTypeChecker(expectedType);
-    check(sql, typeChecker, result, 0);
-  }
-
-  public void checkScalarApprox(
-      String expression,
-      String expectedType,
-      double expectedResult,
-      double delta) {
-    String sql = buildQuery(expression);
-    TypeChecker typeChecker = new StringTypeChecker(expectedType);
-    check(
-        sql,
-        typeChecker,
-        expectedResult,
-        delta);
-  }
-
-  public void checkBoolean(
-      String expression,
-      Boolean result) {
-    String sql = buildQuery(expression);
-    if (null == result) {
-      checkNull(expression);
-    } else {
-      check(
-          sql,
-          BooleanTypeChecker,
-          result.toString(),
-          0);
-    }
-  }
-
-  public void checkString(
-      String expression,
-      String result,
-      String expectedType) {
-    String sql = buildQuery(expression);
-    TypeChecker typeChecker = new StringTypeChecker(expectedType);
-    check(sql, typeChecker, result, 0);
-  }
-
-  public void checkNull(String expression) {
-    String sql = buildQuery(expression);
-    check(sql, AnyTypeChecker, null, 0);
-  }
-
-  public void checkScalar(
-      String expression,
-      Object result,
-      String resultType) {
-    checkType(expression, resultType);
-    check(
-        buildQuery(expression),
-        AnyTypeChecker,
-        result,
-        0);
-  }
-
-  /**
-   * Returns the operator this test is for. Throws if no operator has been
-   * set.
-   *
-   * @return the operator this test is for, never null
-   */
-  protected SqlOperator getFor() {
-    assertNotNull("Must call setFor()", operator);
-    return operator;
   }
 
   /**
@@ -519,7 +372,7 @@ public abstract class AbstractSqlTester implements SqlTester {
   public static class RefSetResultChecker implements ResultChecker {
     private final Set<String> expected;
 
-    public RefSetResultChecker(Set<String> expected) {
+    private RefSetResultChecker(Set<String> expected) {
       this.expected = expected;
     }
 
@@ -529,4 +382,4 @@ public abstract class AbstractSqlTester implements SqlTester {
   }
 }
 
-// End AbstractSqlTester.java
+// End SqlTests.java

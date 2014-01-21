@@ -288,7 +288,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   //~ Constructors -----------------------------------------------------------
 
   public SqlAdvisorTest() {
-    super(null);
+    super();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -352,7 +352,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
       throws Exception {
     SqlValidatorWithHints validator =
         (SqlValidatorWithHints) tester.getValidator();
-    SqlAdvisor advisor = ((Tester) tester).createAdvisor(validator);
+    SqlAdvisor advisor = tester.getFactory().createAdvisor(validator);
 
     SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
 
@@ -375,7 +375,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   protected void assertSimplify(String sql, String expected) {
     SqlValidatorWithHints validator =
         (SqlValidatorWithHints) tester.getValidator();
-    SqlAdvisor advisor = ((Tester) tester).createAdvisor(validator);
+    SqlAdvisor advisor = tester.getFactory().createAdvisor(validator);
 
     SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
     String actual = advisor.simplifySql(sap.sql, sap.cursor);
@@ -407,7 +407,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
       String expectedWord) {
     SqlValidatorWithHints validator =
         (SqlValidatorWithHints) tester.getValidator();
-    SqlAdvisor advisor = ((Tester) tester).createAdvisor(validator);
+    SqlAdvisor advisor = tester.getFactory().createAdvisor(validator);
 
     SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
     final String[] replaced = {null};
@@ -465,8 +465,9 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     return buf.toString();
   }
 
-  public Tester getTester(SqlConformance conformance) {
-    return new AdvisorTestImpl(conformance);
+  @Override
+  public SqlTester getTester() {
+    return new SqlTesterImpl(new AdvisorTesterFactory());
   }
 
   /**
@@ -1176,22 +1177,17 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, simplified);
   }
 
-  //~ Inner Interfaces -------------------------------------------------------
-
-  public interface Tester extends SqlValidatorTest.Tester {
-    SqlAdvisor createAdvisor(SqlValidatorWithHints validator);
-  }
-
-  //~ Inner Classes ----------------------------------------------------------
-
-  public class AdvisorTestImpl extends TesterImpl implements Tester {
-    public AdvisorTestImpl(SqlConformance conformance) {
-      super(conformance);
+  private static class AdvisorTesterFactory extends DelegatingSqlTestFactory {
+    public AdvisorTesterFactory() {
+      super(DefaultSqlTestFactory.INSTANCE);
     }
 
-    // REVIEW this is the same as the base method
-    public SqlValidator getValidator() {
+    @Override
+    public SqlValidator getValidator(
+        SqlTestFactory factory) {
       final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
+      final SqlConformance conformance =
+          (SqlConformance) get("conformance");
       return new SqlAdvisorValidator(
           SqlStdOperatorTable.instance(),
           new MockCatalogReader(typeFactory),
@@ -1199,6 +1195,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           conformance);
     }
 
+    @Override
     public SqlAdvisor createAdvisor(SqlValidatorWithHints validator) {
       return new SqlAdvisor(validator);
     }

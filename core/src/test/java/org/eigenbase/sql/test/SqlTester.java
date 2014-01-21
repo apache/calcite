@@ -22,6 +22,9 @@ import java.sql.ResultSet;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
+import org.eigenbase.sql.parser.SqlParser;
+import org.eigenbase.sql.validate.SqlConformance;
+import org.eigenbase.test.SqlValidatorTestCase;
 
 /**
  * SqlTester defines a callback for testing SQL queries and expressions.
@@ -32,11 +35,11 @@ import org.eigenbase.sql.*;
  * implementations of that operator, and test them all using the same set of
  * tests.
  *
- * <p>Specific implementations of <code>SqlTestser</code> might evaluate the
+ * <p>Specific implementations of <code>SqlTester</code> might evaluate the
  * queries in different ways, for example, using a C++ versus Java calculator.
  * An implementation might even ignore certain calls altogether.
  */
-public interface SqlTester extends Closeable {
+public interface SqlTester extends Closeable, SqlValidatorTestCase.Tester {
   //~ Enums ------------------------------------------------------------------
 
   /**
@@ -47,6 +50,15 @@ public interface SqlTester extends Closeable {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  SqlTestFactory getFactory();
+
+  /** Returns a tester that tests a given SQL quoting style. */
+  SqlTester withQuoting(SqlParser.Quoting bracket);
+
+  /** Returns a tester that tests conformance to a particular SQL language
+   * version. */
+  SqlTester withConformance(SqlConformance conformance);
 
   /**
    * Tests that a scalar SQL expression returns the expected result and the
@@ -312,6 +324,17 @@ public interface SqlTester extends Closeable {
       String expression,
       String expectedError,
       boolean runtime);
+
+  /**
+   * Tests that a SQL query fails at prepare time.
+   *
+   * @param sql           SQL query
+   * @param expectedError Pattern for expected error. Must
+   *                      include an error location.
+   */
+  void checkQueryFails(
+      String sql,
+      String expectedError);
 
   //~ Inner Interfaces -------------------------------------------------------
 

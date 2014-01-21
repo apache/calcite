@@ -21,8 +21,8 @@ import org.eigenbase.reltype.*;
 import org.eigenbase.resgen.*;
 import org.eigenbase.resource.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.fun.*;
 import org.eigenbase.sql.parser.*;
+import org.eigenbase.sql.test.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
@@ -45,13 +45,14 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   //~ Constructors -----------------------------------------------------------
 
   public SqlValidatorFeatureTest() {
-    super(null);
+    super();
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public Tester getTester(SqlConformance conformance) {
-    return new FeatureTesterImpl(conformance);
+  @Override
+  public SqlTester getTester() {
+    return new SqlTesterImpl(new FeatureTesterFactory());
   }
 
   @Test public void testDistinct() {
@@ -116,18 +117,20 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  private class FeatureTesterImpl extends TesterImpl {
-    private FeatureTesterImpl(SqlConformance conformance) {
-      super(conformance);
+  private class FeatureTesterFactory extends DelegatingSqlTestFactory {
+    public FeatureTesterFactory() {
+      super(DefaultSqlTestFactory.INSTANCE);
     }
 
-    public SqlValidator getValidator() {
+    @Override
+    public SqlValidator getValidator(SqlTestFactory factory) {
       final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
+      SqlConformance conformance = (SqlConformance) get("conformance");
       return new FeatureValidator(
-          SqlStdOperatorTable.instance(),
+          factory.createOperatorTable(),
           new MockCatalogReader(typeFactory),
           typeFactory,
-          getConformance());
+          conformance);
     }
   }
 
