@@ -24,13 +24,13 @@ import net.hydromatic.linq4j.expressions.*;
 import net.hydromatic.optiq.BuiltinMethod;
 import net.hydromatic.optiq.DataContext;
 import net.hydromatic.optiq.jdbc.JavaTypeFactoryImpl;
-import net.hydromatic.optiq.runtime.Bindable;
-import net.hydromatic.optiq.runtime.Utilities;
+import net.hydromatic.optiq.runtime.*;
 
 import org.eigenbase.relopt.RelImplementor;
 import org.eigenbase.rex.RexBuilder;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import java.io.Serializable;
 import java.lang.reflect.Modifier;
@@ -69,13 +69,28 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         new ArrayList<MemberDeclaration>();
     declareSyntheticClasses(result.block, memberDeclarations);
 
+    // The following is a workaround to
+    // http://jira.codehaus.org/browse/JANINO-169. Otherwise we'd remove the
+    // member variable, rename the "root0" parameter as "root", and reference it
+    // directly from inner classes.
+    final ParameterExpression _root0 =
+        Expressions.parameter(Modifier.FINAL, DataContext.class, "root0");
+    final BlockStatement block = Expressions.block(
+        Iterables.concat(
+            ImmutableList.of(
+                Expressions.statement(
+                    Expressions.assign(DataContext.ROOT, _root0))),
+            result.block.statements));
+    memberDeclarations.add(
+        Expressions.fieldDecl(0, DataContext.ROOT, null));
+
     memberDeclarations.add(
         Expressions.methodDecl(
             Modifier.PUBLIC,
             Enumerable.class,
             BuiltinMethod.BINDABLE_BIND.method.getName(),
-            Expressions.list(DataContext.ROOT),
-            result.block));
+            Expressions.list(_root0),
+            block));
     memberDeclarations.add(
         Expressions.methodDecl(
             Modifier.PUBLIC,

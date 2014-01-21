@@ -910,6 +910,18 @@ public class JdbcTest {
   public static final List<Pair<String, String>> FOODMART_QUERIES =
       querify(queries);
 
+  /** Janino bug
+   * <a href="https://jira.codehaus.org/browse/JANINO-169">JANINO-169</a>
+   * running queries against the JDBC adapter. As of janino-2.7.3 bug is
+   * open but we have a workaround in EnumerableRelImplementor. */
+  @Test public void testJanino169() {
+    OptiqAssert.that()
+        .with(OptiqAssert.Config.JDBC_FOODMART)
+        .query(
+            "select \"time_id\" from \"foodmart\".\"time_by_day\" as \"t\"\n")
+        .returnsCount(730);
+  }
+
   /** Unit test for self-join. Left and right children of the join are the same
    * relational expression. */
   @Test public void testSelfJoin() {
