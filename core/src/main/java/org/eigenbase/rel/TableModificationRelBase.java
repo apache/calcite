@@ -134,27 +134,19 @@ public abstract class TableModificationRelBase extends SingleRel {
     if (isUpdate()) {
       inputRowType =
           getCluster().getTypeFactory().createJoinType(
-              new RelDataType[]{
+              table.getRowType(),
+              getCatalogReader().createTypeFromProjection(
                   table.getRowType(),
-                  RelOptUtil.createTypeFromProjection(
-                      table.getRowType(),
-                      getCluster().getTypeFactory(),
-                      updateColumnList)
-              });
+                  updateColumnList));
     } else if (isMerge()) {
       inputRowType =
           getCluster().getTypeFactory().createJoinType(
-              new RelDataType[]{
-                  getCluster().getTypeFactory().createJoinType(
-                      new RelDataType[]{
-                          table.getRowType(),
-                          table.getRowType()
-                      }),
-                  RelOptUtil.createTypeFromProjection(
-                      table.getRowType(),
-                      getCluster().getTypeFactory(),
-                      updateColumnList)
-              });
+              getCluster().getTypeFactory().createJoinType(
+                  table.getRowType(),
+                  table.getRowType()),
+              getCatalogReader().createTypeFromProjection(
+                  table.getRowType(),
+                  updateColumnList));
     } else {
       inputRowType = table.getRowType();
     }

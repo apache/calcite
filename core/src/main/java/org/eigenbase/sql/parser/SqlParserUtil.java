@@ -18,11 +18,8 @@
 package org.eigenbase.sql.parser;
 
 import java.math.*;
-
 import java.nio.charset.*;
-
 import java.text.*;
-
 import java.util.*;
 import java.util.logging.*;
 
@@ -32,6 +29,8 @@ import org.eigenbase.sql.validate.SqlValidatorException;
 import org.eigenbase.trace.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
+
+import net.hydromatic.avatica.Casing;
 
 /**
  * Utility methods relating to parsing SQL.
@@ -82,7 +81,7 @@ public final class SqlParserUtil {
     if (i > 0) {
       s = s.substring(i);
     }
-    return strip(s, "'");
+    return strip(s, "'", "'", "''", Casing.UNCHANGED);
   }
 
   public static BigDecimal parseDecimal(String s) {
@@ -249,21 +248,26 @@ public final class SqlParserUtil {
   }
 
   /**
-   * Unquotes a quoted string. For example, <code>strip("'it''s got
-   * quotes'")</code> returns <code>"it's got quotes"</code>.
-   */
-  public static String strip(String s, String quote) {
-    assert s.startsWith(quote) && s.endsWith(quote) : s;
-    return s.substring(1, s.length() - 1).replace(quote + quote, quote);
-  }
-
-  /**
    * Unquotes a quoted string, using different quotes for beginning and end.
    */
-  public static String strip(String s, String startQuote, String endQuote) {
-    assert s.startsWith(startQuote) && s.endsWith(endQuote) : s;
-    return s.substring(1, s.length() - 1)
-        .replace(endQuote + endQuote, endQuote);
+  public static String strip(String s, String startQuote, String endQuote,
+      String escape, Casing casing) {
+    if (startQuote != null) {
+      assert endQuote != null;
+      assert startQuote.length() == 1;
+      assert endQuote.length() == 1;
+      assert escape != null;
+      assert s.startsWith(startQuote) && s.endsWith(endQuote) : s;
+      s = s.substring(1, s.length() - 1).replace(escape, endQuote);
+    }
+    switch (casing) {
+    case TO_UPPER:
+      return s.toUpperCase();
+    case TO_LOWER:
+      return s.toLowerCase();
+    default:
+      return s;
+    }
   }
 
   /**

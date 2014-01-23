@@ -2487,16 +2487,7 @@ public class JdbcTest {
    * is executed. */
   @Test public void testCurrentTimestamp() throws Exception {
     OptiqAssert.that()
-        .with(
-            new OptiqAssert.ConnectionFactory() {
-              public OptiqConnection createConnection() throws Exception {
-                Class.forName("net.hydromatic.optiq.jdbc.Driver");
-                final Properties info = new Properties();
-                info.setProperty("timezone", "GMT+1:00");
-                return (OptiqConnection) DriverManager.getConnection(
-                    "jdbc:optiq:", info);
-              }
-            })
+        .with(ImmutableMap.of("timezone", "GMT+1:00"))
         .doWithConnection(
             new Function1<OptiqConnection, Void>() {
               public Void apply(OptiqConnection connection) {
@@ -2537,16 +2528,7 @@ public class JdbcTest {
   /** Test for timestamps and time zones, based on pgsql TimezoneTest. */
   @Test public void testGetTimestamp() throws Exception {
     OptiqAssert.that()
-        .with(
-            new OptiqAssert.ConnectionFactory() {
-                public OptiqConnection createConnection() throws Exception {
-                    Class.forName("net.hydromatic.optiq.jdbc.Driver");
-                    final Properties info = new Properties();
-                    info.setProperty("timezone", "GMT+1:00");
-                    return (OptiqConnection) DriverManager.getConnection(
-                        "jdbc:optiq:", info);
-                }
-            })
+        .with(ImmutableMap.of("timezone", "GMT+1:00"))
         .doWithConnection(
             new Function1<OptiqConnection, Void>() {
               public Void apply(OptiqConnection connection) {
@@ -2722,6 +2704,109 @@ public class JdbcTest {
     with.query("select * from \"employee\"\n"
         + "where convert(\"full_name\" using UTF16) = _UTF16'\u82f1\u56fd'")
         .throws_("Column 'UTF16' not found in any table");
+  }
+
+  /** Tests metadata for the MySQL lexical scheme. */
+  @Test public void testLexMySQL() throws Exception {
+    OptiqAssert.that()
+        .with(ImmutableMap.of("lex", "MYSQL"))
+        .doWithConnection(
+            new Function1<OptiqConnection, Void>() {
+              public Void apply(OptiqConnection connection) {
+                try {
+                  DatabaseMetaData metaData = connection.getMetaData();
+                  assertThat(metaData.getIdentifierQuoteString(), equalTo("`"));
+                  assertThat(metaData.supportsMixedCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesMixedCaseIdentifiers(),
+                      equalTo(true));
+                  assertThat(metaData.storesUpperCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesLowerCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
+                      equalTo(true));
+                  assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesUpperCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+  }
+
+  /** Tests metadata for different the "SQL_SERVER" lexical scheme. */
+  @Test public void testLexSqlServer() throws Exception {
+    OptiqAssert.that()
+        .with(ImmutableMap.of("lex", "SQL_SERVER"))
+        .doWithConnection(
+            new Function1<OptiqConnection, Void>() {
+              public Void apply(OptiqConnection connection) {
+                try {
+                  DatabaseMetaData metaData = connection.getMetaData();
+                  assertThat(metaData.getIdentifierQuoteString(), equalTo("["));
+                  assertThat(metaData.supportsMixedCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesMixedCaseIdentifiers(),
+                      equalTo(true));
+                  assertThat(metaData.storesUpperCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesLowerCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
+                      equalTo(true));
+                  assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesUpperCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+  }
+
+  /** Tests metadata for the ORACLE (and default) lexical scheme. */
+  @Test public void testLexOracle() throws Exception {
+    OptiqAssert.that()
+        .with(ImmutableMap.of("lex", "ORACLE"))
+        .doWithConnection(
+            new Function1<OptiqConnection, Void>() {
+              public Void apply(OptiqConnection connection) {
+                try {
+                  DatabaseMetaData metaData = connection.getMetaData();
+                  assertThat(metaData.getIdentifierQuoteString(),
+                      equalTo("\""));
+                  assertThat(metaData.supportsMixedCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesMixedCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesUpperCaseIdentifiers(),
+                      equalTo(true));
+                  assertThat(metaData.storesLowerCaseIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
+                      equalTo(true));
+                  assertThat(metaData.storesUpperCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
+                      equalTo(false));
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
   }
 
   public static class HrSchema {

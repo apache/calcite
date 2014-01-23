@@ -1888,14 +1888,12 @@ public class SqlToRelConverter {
             }
           }
 
-          int pos =
-              namespaceOffset
-              + foundNs.getRowType().getFieldOrdinal(originalFieldName);
+          RelDataTypeField field =
+              catalogReader.field(foundNs.getRowType(), originalFieldName);
+          int pos = namespaceOffset + field.getIndex();
 
-          assert (foundNs.getRowType().getField(originalFieldName)
-              .getType()
-              == lookup.getFieldAccess(correlName).getField()
-              .getType());
+          assert field.getType()
+              == lookup.getFieldAccess(correlName).getField().getType();
 
           assert (pos != -1);
 
@@ -2220,15 +2218,14 @@ public class SqlToRelConverter {
     RexNode conditionExp = null;
     for (String name : nameList) {
       final RelDataType leftRowType = leftRel.getRowType();
-      RelDataTypeField
-          leftField = SqlValidatorUtil.lookupField(leftRowType, name);
+      RelDataTypeField leftField = catalogReader.field(leftRowType, name);
       RexNode left =
           rexBuilder.makeInputRef(
               leftField.getType(),
               leftField.getIndex());
       final RelDataType rightRowType = rightRel.getRowType();
-      RelDataTypeField
-          rightField = SqlValidatorUtil.lookupField(rightRowType, name);
+      RelDataTypeField rightField =
+          catalogReader.field(rightRowType, name);
       RexNode right =
           rexBuilder.makeInputRef(
               rightField.getType(),
@@ -2378,9 +2375,9 @@ public class SqlToRelConverter {
           }
         }
 
-        int origPos =
-            namespaceOffset
-                + foundNs.getRowType().getFieldOrdinal(originalFieldName);
+        RelDataTypeField field =
+            catalogReader.field(foundNs.getRowType(), originalFieldName);
+        int origPos = namespaceOffset + field.getIndex();
 
         groupExprProjection.put(origPos, i);
       }
@@ -2928,11 +2925,10 @@ public class SqlToRelConverter {
     // expression list according to the ordinal value returned from
     // the table construct, leaving nulls in the list for columns
     // that are not referenced.
-    for (int i = 0; i < targetColumnNames.size(); i++) {
-      String targetColumnName = targetColumnNames.get(i);
-      int iTarget = targetRowType.getFieldOrdinal(targetColumnName);
-      assert iTarget != -1 : "column " + targetColumnName + " not found";
-      sourceExps.set(iTarget, columnExprs.get(i));
+    for (Pair<String, RexNode> p : Pair.zip(targetColumnNames, columnExprs)) {
+      RelDataTypeField field = catalogReader.field(targetRowType, p.left);
+      assert field != null : "column " + p.left + " not found";
+      sourceExps.set(field.getIndex(), p.right);
     }
 
     // Walk the expression list and get default values for any columns
@@ -3151,13 +3147,13 @@ public class SqlToRelConverter {
       correlationName = null;
     }
 
-    for (int i = 1; i < identifier.names.size(); i++) {
-      String name = identifier.names.get(i);
+    for (String name : Util.skip(identifier.names)) {
       if (namespace != null) {
         name = namespace.translate(name);
         namespace = null;
       }
-      e = rexBuilder.makeFieldAccess(e, name);
+      final int fieldOrdinal = catalogReader.fieldOrdinal(e.getType(), name);
+      e = rexBuilder.makeFieldAccess(e, fieldOrdinal);
     }
     if (e instanceof RexInputRef) {
       // adjust the type to account for nulls introduced by outer joins

@@ -74,7 +74,7 @@ public abstract class RelDataTypeImpl
   //~ Methods ----------------------------------------------------------------
 
   // implement RelDataType
-  public RelDataTypeField getField(String fieldName) {
+  public RelDataTypeField getField(String fieldName, boolean caseSensitive) {
     for (RelDataTypeField field : fieldList) {
       if (field.getName().equals(fieldName)) {
         return field;
@@ -89,17 +89,6 @@ public abstract class RelDataTypeImpl
       }
     }
     return null;
-  }
-
-  // implement RelDataType
-  public int getFieldOrdinal(String fieldName) {
-    for (int i = 0; i < fieldList.size(); i++) {
-      RelDataTypeField field = fieldList.get(i);
-      if (field.getName().equals(fieldName)) {
-        return i;
-      }
-    }
-    return -1;
   }
 
   // implement RelDataType
@@ -331,6 +320,19 @@ public abstract class RelDataTypeImpl
         return typeFactory.createSqlType(typeName, precision, scale);
       }
     };
+  }
+
+  /**
+   * Returns the "extra" field in a row type whose presence signals that
+   * fields will come into existence just by asking for them.
+   *
+   * @param rowType Row type
+   * @return The "extra" field, or null
+   */
+  public static RelDataTypeField extra(RelDataType rowType) {
+    // Even in a case-insensitive connection, the name must be precisely
+    // "_extra".
+    return rowType.getField("_extra", true);
   }
 }
 

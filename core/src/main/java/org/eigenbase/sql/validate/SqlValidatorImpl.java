@@ -2751,9 +2751,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // Check compatibility of the chosen columns.
       for (String name : naturalColumnNames) {
         final RelDataType leftColType =
-            leftRowType.getField(name).getType();
+            catalogReader.field(leftRowType, name).getType();
         final RelDataType rightColType =
-            rightRowType.getField(name).getType();
+            catalogReader.field(rightRowType, name).getType();
         if (!SqlTypeUtil.isComparable(leftColType, rightColType)) {
           throw newValidationError(
               join,
@@ -2828,7 +2828,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       String name = id.names.get(0);
       final SqlValidatorNamespace namespace = getNamespace(leftOrRight);
       final RelDataType rowType = namespace.getRowType();
-      final RelDataTypeField field = rowType.getField(name);
+      final RelDataTypeField field = catalogReader.field(rowType, name);
       if (field != null) {
         if (Collections.frequency(rowType.getFieldNames(), name) > 1) {
           throw newValidationError(id,
@@ -3257,42 +3257,32 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return baseRowType;
     }
     List<RelDataTypeField> targetFields = baseRowType.getFieldList();
-    int targetColumnCount = targetColumnList.size();
+    final List<Map.Entry<String, RelDataType>> types =
+        new ArrayList<Map.Entry<String, RelDataType>>();
     if (append) {
-      targetColumnCount += baseRowType.getFieldCount();
-    }
-    RelDataType[] types = new RelDataType[targetColumnCount];
-    String[] fieldNames = new String[targetColumnCount];
-    int iTarget = 0;
-    if (append) {
-      iTarget += baseRowType.getFieldCount();
-      for (int i = 0; i < iTarget; ++i) {
-        types[i] = targetFields.get(i).getType();
-        fieldNames[i] = SqlUtil.deriveAliasFromOrdinal(i);
+      for (RelDataTypeField targetField : targetFields) {
+        types.add(
+            Pair.of(SqlUtil.deriveAliasFromOrdinal(types.size()),
+                targetField.getType()));
       }
     }
-    Set<String> assignedColumnNames = new HashSet<String>();
+    Set<Integer> assignedFields = new HashSet<Integer>();
     for (SqlNode node : targetColumnList) {
       SqlIdentifier id = (SqlIdentifier) node;
-      int iColumn = baseRowType.getFieldOrdinal(id.getSimple());
-      if (!assignedColumnNames.add(id.getSimple())) {
-        throw newValidationError(
-            id,
+      String name = id.getSimple();
+      RelDataTypeField targetField = catalogReader.field(baseRowType, name);
+      if (targetField == null) {
+        throw newValidationError(id,
+            EigenbaseResource.instance().UnknownTargetColumn.ex(name));
+      }
+      if (!assignedFields.add(targetField.getIndex())) {
+        throw newValidationError(id,
             EigenbaseResource.instance().DuplicateTargetColumn.ex(
-                id.getSimple()));
+                targetField.getName()));
       }
-      if (iColumn == -1) {
-        throw newValidationError(
-            id,
-            EigenbaseResource.instance().UnknownTargetColumn.ex(
-                id.getSimple()));
-      }
-      final RelDataTypeField targetField = targetFields.get(iColumn);
-      fieldNames[iTarget] = targetField.getName();
-      types[iTarget] = targetField.getType();
-      ++iTarget;
+      types.add(targetField);
     }
-    return typeFactory.createStructType(types, fieldNames);
+    return typeFactory.createStructType(types);
   }
 
   public void validateInsert(SqlInsert insert) {
@@ -3725,12 +3715,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  SqlValidatorNamespace lookupFieldNamespace(
-      RelDataType rowType,
-      String name) {
-    final RelDataType dataType =
-        SqlValidatorUtil.lookupFieldType(rowType, name);
-    return new FieldNamespace(this, dataType);
+  SqlValidatorNamespace lookupFieldNamespace(RelDataType rowType, String name) {
+    final RelDataTypeField field = catalogReader.field(rowType, name);
+    return new FieldNamespace(this, field.getType());
   }
 
   public void validateWindow(
@@ -4115,13 +4102,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 EigenbaseResource.instance().UnknownIdentifier.ex(name));
           }
         } else {
-          RelDataType fieldType =
-              SqlValidatorUtil.lookupFieldType(type, name);
-          if (fieldType == null) {
+          final RelDataTypeField field = catalogReader.field(type, name);
+          if (field == null) {
             throw newValidationError(id.getComponent(ord.i),
                 EigenbaseResource.instance().UnknownField.ex(name));
           }
-          type = fieldType;
+          type = field.getType();
         }
       }
       type =
@@ -4277,7 +4263,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         final RelDataType rowType =
             selectNs.getRowTypeSansSystemColumns();
         RelDataTypeField field =
-            SqlValidatorUtil.lookupField(rowType, alias);
+            catalogReader.field(rowType, alias);
         if (field != null) {
           return nthSelectItem(
               field.getIndex(),

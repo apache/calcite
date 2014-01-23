@@ -77,22 +77,23 @@ public interface RelDataType /*extends Type*/ {
   public int getFieldCount();
 
   /**
-   * Looks up the ordinal of a field by name.
-   *
-   * @param fieldName name of field to find
-   * @return 0-based ordinal of named field, or -1 if not found
-   * @pre this.isStruct()
-   */
-  public int getFieldOrdinal(String fieldName);
-
-  /**
    * Looks up a field by name.
    *
+   * <p>NOTE: Be careful choosing the value of {@code caseSensitive}:</p>
+   * <ul>
+   * <li>If the field name was supplied by an end-user (e.g. as a column alias
+   * in SQL), use your session's case-sensitivity setting.</li>
+   * <li>Only hard-code {@code true} if you are sure that the field name is
+   * internally generated.</li>
+   * <li>Hard-coding {@code false} is almost certainly wrong.</li>
+   * </ul>
+   *
    * @param fieldName name of field to find
+   * @param caseSensitive Whether case-sensitive
    * @return named field, or null if not found
    * @pre this.isStruct()
    */
-  public RelDataTypeField getField(String fieldName);
+  public RelDataTypeField getField(String fieldName, boolean caseSensitive);
 
   /**
    * Queries whether this type allows null values.

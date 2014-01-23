@@ -32,6 +32,9 @@ public enum ConnectionProperty {
   /** URI of the model. */
   MODEL("model", Type.STRING, null),
 
+  /** Lexical policy. */
+  LEX("lex", Type.ENUM, "ORACLE"),
+
   /** How identifiers are quoted. */
   QUOTING("quoting", Type.ENUM, "DOUBLE_QUOTE"),
 
@@ -66,55 +69,41 @@ public enum ConnectionProperty {
     this.defaultValue = defaultValue;
   }
 
-  private String _get(Properties properties) {
+  private <T> T _get(Properties properties, Converter<T> converter,
+      String defaultValue) {
     final Map<ConnectionProperty, String> map = parse(properties);
     final String s = map.get(this);
     if (s != null) {
-      return s;
+      return converter.apply(this, s);
     }
-    return defaultValue;
+    return converter.apply(this, defaultValue);
   }
 
   /** Returns the string value of this property, or null if not specified and
    * no default. */
   public String getString(Properties properties) {
     assert type == Type.STRING;
-    return _get(properties);
+    return _get(properties, IDENTITY_CONVERTER, defaultValue);
   }
 
   /** Returns the boolean value of this property. Throws if not set and no
    * default. */
   public boolean getBoolean(Properties properties) {
     assert type == Type.BOOLEAN;
-    String s = _get(properties);
-    if (s == null) {
-      throw new RuntimeException(
-          "Required property '" + camelName + "' not specified");
-    }
-    return Boolean.parseBoolean(s);
+    return _get(properties, BOOLEAN_CONVERTER, defaultValue);
   }
 
   /** Returns the enum value of this property. Throws if not set and no
    * default. */
   public <E extends Enum> E getEnum(Properties properties, Class<E> enumClass) {
     assert type == Type.ENUM;
-    String s = _get(properties);
-    if (s == null) {
-      throw new RuntimeException("Required property '" + camelName
-          + "' not specified");
-    }
-    for (Enum anEnum : enumClass.getEnumConstants()) {
-      if (anEnum.name().equals(s)) {
-        //noinspection unchecked
-        return (E) anEnum;
-      }
-    }
-    throw new RuntimeException("Property '" + s + "' not valid for enum "
-        + enumClass.getName());
+    //noinspection unchecked
+    return _get(properties, enumConverter(enumClass), defaultValue);
   }
 
-  /** Converts a {@link Properties} object containing (name, value) pairs
-   * into a map whose keys are {@link ConnectionProperty} objects.
+  /** Converts a {@link java.util.Properties} object containing (name, value)
+   * pairs into a map whose keys are
+   * {@link net.hydromatic.avatica.InternalProperty} objects.
    *
    * <p>Matching is case-insensitive. Throws if a property is not known.
    * If a property occurs more than once, takes the last occurrence.</p>
@@ -136,6 +125,48 @@ public enum ConnectionProperty {
       map.put(connectionProperty, properties.getProperty(name));
     }
     return map;
+  }
+
+  interface Converter<T> {
+    T apply(ConnectionProperty connectionProperty, String s);
+  }
+
+  private static final Converter<Boolean> BOOLEAN_CONVERTER =
+      new Converter<Boolean>() {
+        public Boolean apply(ConnectionProperty connectionProperty, String s) {
+          if (s == null) {
+            throw new RuntimeException("Required property '"
+                + connectionProperty.camelName + "' not specified");
+          }
+          return Boolean.parseBoolean(s);
+        }
+      };
+
+  private static final Converter<String> IDENTITY_CONVERTER =
+      new Converter<String>() {
+        public String apply(ConnectionProperty connectionProperty, String s) {
+          return s;
+        }
+      };
+
+  private static <E extends Enum> Converter<E> enumConverter(
+      final Class<E> enumClass) {
+    return new Converter<E>() {
+      public E apply(ConnectionProperty connectionProperty, String s) {
+        if (s == null) {
+          throw new RuntimeException("Required property '"
+              + connectionProperty.camelName + "' not specified");
+        }
+        for (Enum anEnum : enumClass.getEnumConstants()) {
+          if (anEnum.name().equals(s)) {
+            //noinspection unchecked
+            return (E) anEnum;
+          }
+        }
+        throw new RuntimeException("Property '" + s + "' not valid for enum "
+            + enumClass.getName());
+      }
+    };
   }
 
   enum Type {

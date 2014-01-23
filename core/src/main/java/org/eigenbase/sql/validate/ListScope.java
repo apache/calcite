@@ -97,7 +97,7 @@ public abstract class ListScope extends DelegatingScope {
     String tableName = null;
     for (Pair<String, SqlValidatorNamespace> child : children) {
       final RelDataType rowType = child.right.getRowType();
-      if (SqlValidatorUtil.lookupField(rowType, columnName) != null) {
+      if (validator.catalogReader.field(rowType, columnName) != null) {
         tableName = child.left;
         count++;
       }
@@ -119,7 +119,7 @@ public abstract class ListScope extends DelegatingScope {
       SqlValidatorScope[] ancestorOut,
       int[] offsetOut) {
     // First resolve by looking through the child namespaces.
-    final int i = Pair.left(children).indexOf(name);
+    final int i = validator.catalogReader.match(Pair.left(children), name);
     if (i >= 0) {
       if (ancestorOut != null) {
         ancestorOut[0] = this;
@@ -137,25 +137,26 @@ public abstract class ListScope extends DelegatingScope {
 
   public RelDataType resolveColumn(String columnName, SqlNode ctx) {
     int found = 0;
-    RelDataType theType = null;
+    RelDataType type = null;
     for (Pair<String, SqlValidatorNamespace> pair : children) {
       SqlValidatorNamespace childNs = pair.right;
       final RelDataType childRowType = childNs.getRowType();
-      final RelDataType type =
-          SqlValidatorUtil.lookupFieldType(childRowType, columnName);
-      if (type != null) {
+      final RelDataTypeField field =
+          validator.catalogReader.field(childRowType, columnName);
+      if (field != null) {
         found++;
-        theType = type;
+        type = field.getType();
       }
     }
-    if (found == 0) {
+    switch (found) {
+    case 0:
       return null;
-    } else if (found > 1) {
+    case 1:
+      return type;
+    default:
       throw validator.newValidationError(
           ctx,
           EigenbaseResource.instance().ColumnAmbiguous.ex(columnName));
-    } else {
-      return theType;
     }
   }
 }

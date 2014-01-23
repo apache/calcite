@@ -367,7 +367,7 @@ public class RelJson {
       if (field != null) {
         final Object jsonExpr = map.get("expr");
         final RexNode expr = toRex(relInput, jsonExpr);
-        return rexBuilder.makeFieldAccess(expr, field);
+        return rexBuilder.makeFieldAccess(expr, field, true);
       }
       final String correl = (String) map.get("correl");
       if (correl != null) {

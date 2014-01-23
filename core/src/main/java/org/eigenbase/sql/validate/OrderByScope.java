@@ -70,7 +70,7 @@ public class OrderByScope extends DelegatingScope {
       final SqlValidatorNamespace selectNs =
           validator.getNamespace(select);
       final RelDataType rowType = selectNs.getRowType();
-      if (SqlValidatorUtil.lookupField(rowType, name) != null) {
+      if (validator.catalogReader.field(rowType, name) != null) {
         return identifier;
       }
     }
@@ -80,10 +80,9 @@ public class OrderByScope extends DelegatingScope {
   public RelDataType resolveColumn(String name, SqlNode ctx) {
     final SqlValidatorNamespace selectNs = validator.getNamespace(select);
     final RelDataType rowType = selectNs.getRowType();
-    final RelDataType dataType =
-        SqlValidatorUtil.lookupFieldType(rowType, name);
-    if (dataType != null) {
-      return dataType;
+    final RelDataTypeField field = validator.catalogReader.field(rowType, name);
+    if (field != null) {
+      return field.getType();
     }
     final SqlValidatorScope selectScope = validator.getSelectScope(select);
     return selectScope.resolveColumn(name, ctx);

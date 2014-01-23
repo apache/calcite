@@ -114,10 +114,8 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
     // child of the project and the RHS of the semijoin
     RelDataType bottomInputRowType =
         typeFactory.createJoinType(
-            new RelDataType[]{
-                project.getChild().getRowType(),
-                rightChild.getRowType()
-            });
+            project.getChild().getRowType(),
+            rightChild.getRowType());
     RexProgramBuilder bottomProgramBuilder =
         new RexProgramBuilder(bottomInputRowType, rexBuilder);
 
@@ -143,10 +141,8 @@ public class PushSemiJoinPastProjectRule extends RelOptRule {
     // project and the RHS of the semijoin
     RelDataType topInputRowType =
         typeFactory.createJoinType(
-            new RelDataType[]{
-                project.getRowType(),
-                rightChild.getRowType()
-            });
+            project.getRowType(),
+            rightChild.getRowType());
     RexProgramBuilder topProgramBuilder =
         new RexProgramBuilder(
             topInputRowType,

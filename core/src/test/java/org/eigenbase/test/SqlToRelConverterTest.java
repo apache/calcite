@@ -228,6 +228,15 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         "${plan}");
   }
 
+  /** Tests referencing columns from a sub-query that has duplicate column
+   * names. I think the standard says that this is illegal. We roll with it,
+   * and rename the second column to "e0". */
+  @Test public void testDuplicateColumnsInSubQuery() {
+    String sql = "select \"e\" from (\n"
+        + "select empno as \"e\", deptno as d, 1 as \"e\" from EMP)";
+    tester.assertConvertsTo(sql, "${plan}");
+  }
+
   @Test public void testOrder() {
     check(
         "select empno from emp order by empno",

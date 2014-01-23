@@ -27,8 +27,7 @@ import org.eigenbase.relopt.RelOptPlanner;
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.type.*;
-import org.eigenbase.sql.validate.SqlMoniker;
-import org.eigenbase.sql.validate.SqlUserDefinedFunction;
+import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -45,20 +44,24 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
   final OptiqSchema rootSchema;
   final JavaTypeFactory typeFactory;
   private final List<String> defaultSchema;
+  private final boolean caseSensitive;
 
   public OptiqCatalogReader(
       OptiqSchema rootSchema,
+      boolean caseSensitive,
       List<String> defaultSchema,
       JavaTypeFactory typeFactory) {
     super();
     assert rootSchema != defaultSchema;
     this.rootSchema = rootSchema;
+    this.caseSensitive = caseSensitive;
     this.defaultSchema = defaultSchema;
     this.typeFactory = typeFactory;
   }
 
   public OptiqCatalogReader withSchemaPath(List<String> schemaPath) {
-    return new OptiqCatalogReader(rootSchema, schemaPath, typeFactory);
+    return new OptiqCatalogReader(rootSchema, caseSensitive, schemaPath,
+        typeFactory);
   }
 
   public OptiqPrepareImpl.RelOptTableImpl getTable(final List<String> names) {
@@ -131,6 +134,25 @@ class OptiqCatalogReader implements Prepare.CatalogReader, SqlOperatorTable {
   public OptiqPrepareImpl.RelOptTableImpl getTableForMember(
       List<String> names) {
     return getTable(names);
+  }
+
+  public RelDataTypeField field(RelDataType rowType, String alias) {
+    return SqlValidatorUtil.lookupField(caseSensitive, rowType, alias);
+  }
+
+  public int fieldOrdinal(RelDataType rowType, String alias) {
+    RelDataTypeField field = field(rowType, alias);
+    return field != null ? field.getIndex() : -1;
+  }
+
+  public int match(List<String> strings, String name) {
+    return Util.match2(strings, name, caseSensitive);
+  }
+
+  public RelDataType createTypeFromProjection(final RelDataType type,
+      final List<String> columnNameList) {
+    return SqlValidatorUtil.createTypeFromProjection(type, columnNameList,
+        typeFactory, caseSensitive);
   }
 
   public List<SqlOperator> lookupOperatorOverloads(

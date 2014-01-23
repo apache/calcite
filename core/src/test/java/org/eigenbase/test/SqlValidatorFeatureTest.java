@@ -126,9 +126,10 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
     public SqlValidator getValidator(SqlTestFactory factory) {
       final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
       SqlConformance conformance = (SqlConformance) get("conformance");
+      final boolean caseSensitive = (Boolean) get("caseSensitive");
       return new FeatureValidator(
           factory.createOperatorTable(),
-          new MockCatalogReader(typeFactory),
+          new MockCatalogReader(typeFactory, caseSensitive),
           typeFactory,
           conformance);
     }

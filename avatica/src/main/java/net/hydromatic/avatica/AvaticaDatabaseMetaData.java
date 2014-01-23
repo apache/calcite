@@ -18,8 +18,9 @@
 package net.hydromatic.avatica;
 
 import java.sql.*;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+
+import static net.hydromatic.avatica.InternalProperty.*;
 
 /**
  * Implementation of {@link java.sql.DatabaseMetaData}
@@ -34,6 +35,30 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   protected  AvaticaDatabaseMetaData(AvaticaConnection connection) {
     this.connection = connection;
   }
+
+  // Helper methods
+
+  private NullSorting nullSorting() {
+    return NULL_SORTING.getEnum(getProperties(), NullSorting.class);
+  }
+
+  private Quoting quoting() {
+    return QUOTING.getEnum(getProperties(), Quoting.class);
+  }
+
+  private Casing unquotedCasing() {
+    return UNQUOTED_CASING.getEnum(getProperties(), Casing.class);
+  }
+
+  private Casing quotedCasing() {
+    return QUOTED_CASING.getEnum(getProperties(), Casing.class);
+  }
+
+  private boolean caseSensitive() {
+    return CASE_SENSITIVE.getBoolean(getProperties());
+  }
+
+  // JDBC methods
 
   public boolean allProceduresAreCallable() throws SQLException {
     return true;
@@ -56,19 +81,19 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean nullsAreSortedHigh() throws SQLException {
-    return false;
+    return nullSorting() == NullSorting.HIGH;
   }
 
   public boolean nullsAreSortedLow() throws SQLException {
-    return false;
+    return nullSorting() == NullSorting.LOW;
   }
 
   public boolean nullsAreSortedAtStart() throws SQLException {
-    return false;
+    return nullSorting() == NullSorting.START;
   }
 
   public boolean nullsAreSortedAtEnd() throws SQLException {
-    return true;
+    return nullSorting() == NullSorting.END;
   }
 
   public String getDatabaseProductName() throws SQLException {
@@ -103,40 +128,44 @@ public class AvaticaDatabaseMetaData implements DatabaseMetaData {
     return false;
   }
 
+  public boolean storesMixedCaseIdentifiers() throws SQLException {
+    return !caseSensitive() && unquotedCasing() == Casing.UNCHANGED;
+  }
+
   public boolean supportsMixedCaseIdentifiers() throws SQLException {
-    return false;
+    return caseSensitive() && unquotedCasing() == Casing.UNCHANGED;
   }
 
   public boolean storesUpperCaseIdentifiers() throws SQLException {
-    return true;
+    return unquotedCasing() == Casing.TO_UPPER;
   }
 
   public boolean storesLowerCaseIdentifiers() throws SQLException {
-    return false;
-  }
-
-  public boolean storesMixedCaseIdentifiers() throws SQLException {
-    return false;
-  }
-
-  public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException {
-    return true;
-  }
-
-  public boolean storesUpperCaseQuotedIdentifiers() throws SQLException {
-    return false;
-  }
-
-  public boolean storesLowerCaseQuotedIdentifiers() throws SQLException {
-    return false;
+    return unquotedCasing() == Casing.TO_LOWER;
   }
 
   public boolean storesMixedCaseQuotedIdentifiers() throws SQLException {
-    return false;
+    return caseSensitive() && quotedCasing() == Casing.UNCHANGED;
+  }
+
+  public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException {
+    return !caseSensitive() && quotedCasing() == Casing.UNCHANGED;
+  }
+
+  public boolean storesUpperCaseQuotedIdentifiers() throws SQLException {
+    return quotedCasing() == Casing.TO_UPPER;
+  }
+
+  public boolean storesLowerCaseQuotedIdentifiers() throws SQLException {
+    return quotedCasing() == Casing.TO_LOWER;
   }
 
   public String getIdentifierQuoteString() throws SQLException {
-    return "\"";
+    return quoting().string;
+  }
+
+  private Map<InternalProperty, Object> getProperties() {
+    return connection.properties;
   }
 
   public String getSQLKeywords() throws SQLException {

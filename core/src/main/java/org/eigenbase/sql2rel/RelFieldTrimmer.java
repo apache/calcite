@@ -520,7 +520,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       // individually. For now, we assume that just one input has
       // on-demand fields.
       Set<RelDataTypeField> inputExtraFields =
-          input.getRowType().getField("_extra") == null
+          RelDataTypeImpl.extra(rowType) == null
               ? Collections.<RelDataTypeField>emptySet()
               : combinedInputExtraFields;
       inputExtraFieldCounts.add(inputExtraFields.size());

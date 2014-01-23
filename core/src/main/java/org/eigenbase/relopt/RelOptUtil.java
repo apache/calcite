@@ -144,21 +144,6 @@ public abstract class RelOptUtil {
     };
   }
 
-  public static RelDataType createTypeFromProjection(
-      final RelDataType type,
-      final RelDataTypeFactory typeFactory,
-      final List<String> columnNameList) {
-    // Use createStructType(List, List), which is the most efficient
-    // variant.
-    final List<RelDataType> types =
-        new ArrayList<RelDataType>(columnNameList.size());
-    for (String name : columnNameList) {
-      int field = type.getFieldOrdinal(name);
-      types.add(type.getFieldList().get(field).getType());
-    }
-    return typeFactory.createStructType(types, columnNameList);
-  }
-
   public static boolean areRowTypesEqual(
       RelDataType rowType1,
       RelDataType rowType2,

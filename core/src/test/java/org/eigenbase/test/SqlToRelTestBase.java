@@ -472,9 +472,10 @@ public abstract class SqlToRelTestBase {
     public SqlValidator createValidator(
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory) {
+      boolean caseSensitive = true;
       return new FarragoTestValidator(
           getOperatorTable(),
-          new MockCatalogReader(typeFactory),
+          new MockCatalogReader(typeFactory, caseSensitive),
           typeFactory,
           getConformance());
     }
@@ -500,7 +501,8 @@ public abstract class SqlToRelTestBase {
 
     public Prepare.CatalogReader createCatalogReader(
         RelDataTypeFactory typeFactory) {
-      return new MockCatalogReader(typeFactory);
+      boolean caseSensitive = true;
+      return new MockCatalogReader(typeFactory, caseSensitive);
     }
 
     public RelOptPlanner createPlanner() {

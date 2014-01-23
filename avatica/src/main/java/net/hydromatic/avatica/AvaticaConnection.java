@@ -44,6 +44,8 @@ public abstract class AvaticaConnection implements Connection {
   private String schema;
   protected final AvaticaDatabaseMetaData metaData;
   public final Helper helper = Helper.INSTANCE;
+  public final Map<InternalProperty, Object> properties =
+      new HashMap<InternalProperty, Object>();
 
   /**
    * Creates an AvaticaConnection.

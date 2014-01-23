@@ -43,6 +43,9 @@ public class PlannerImpl implements Planner {
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<RuleSet> ruleSets;
 
+  // Options. TODO: allow client to set these. Maybe use a ConnectionConfig.
+  private boolean caseSensitive = true;
+
   private State state;
 
   // set in STATE_1_RESET
@@ -167,6 +170,7 @@ public class PlannerImpl implements Planner {
   private OptiqCatalogReader createCatalogReader() {
     return new OptiqCatalogReader(
         OptiqSchema.from(rootSchema),
+        caseSensitive,
         Schemas.path(defaultSchema, null),
         typeFactory);
   }

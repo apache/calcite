@@ -89,6 +89,11 @@ public class OptiqAssert {
         }
 
         @Override
+        public AssertThat with(Map<String, String> map) {
+          return this;
+        }
+
+        @Override
         public AssertThat with(String name, Object schema) {
           return this;
         }
@@ -522,6 +527,22 @@ public class OptiqAssert {
 
     public AssertThat with(ConnectionFactory connectionFactory) {
       return new AssertThat(connectionFactory);
+    }
+
+    public AssertThat with(final Map<String, String> map) {
+      return new AssertThat(
+          new ConnectionFactory() {
+            public OptiqConnection createConnection() throws Exception {
+              Class.forName("net.hydromatic.optiq.jdbc.Driver");
+              final Properties info = new Properties();
+              for (Map.Entry<String, String> entry : map.entrySet()) {
+                info.setProperty(entry.getKey(), entry.getValue());
+              }
+              return (OptiqConnection) DriverManager.getConnection(
+                  "jdbc:optiq:", info);
+            }
+          }
+      );
     }
 
     /** Sets the default schema to a reflective schema based on a given

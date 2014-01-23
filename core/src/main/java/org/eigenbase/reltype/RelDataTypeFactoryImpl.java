@@ -109,7 +109,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   // implement RelDataTypeFactory
-  public RelDataType createJoinType(RelDataType[] types) {
+  public RelDataType createJoinType(RelDataType... types) {
     final List<RelDataType> flattenedTypes =
         getTypeArray(ImmutableList.copyOf(types));
     return canonize(

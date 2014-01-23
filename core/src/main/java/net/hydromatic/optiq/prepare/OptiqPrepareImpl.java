@@ -28,6 +28,7 @@ import net.hydromatic.linq4j.function.Function1;
 import net.hydromatic.optiq.*;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.ConnectionConfig;
 import net.hydromatic.optiq.jdbc.OptiqPrepare;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.materialize.MaterializationService;
@@ -101,6 +102,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     OptiqCatalogReader catalogReader =
         new OptiqCatalogReader(
             context.getRootSchema(),
+            context.config().caseSensitive(),
             context.getDefaultSchemaPath(),
             typeFactory);
     SqlParser parser = new SqlParser(sql);
@@ -219,6 +221,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     OptiqCatalogReader catalogReader =
         new OptiqCatalogReader(
             context.getRootSchema(),
+            context.config().caseSensitive(),
             context.getDefaultSchemaPath(),
             typeFactory);
     final List<Function1<Context, RelOptPlanner>> plannerFactories =
@@ -297,7 +300,9 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     final Prepare.PreparedResult preparedResult;
     if (sql != null) {
       assert queryable == null;
-      SqlParser parser = new SqlParser(sql, context.config().quoting());
+      final ConnectionConfig config = context.config();
+      SqlParser parser = new SqlParser(sql, config.quoting(),
+          config.unquotedCasing(), config.quotedCasing());
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseStmt();
@@ -313,7 +318,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           new OptiqSqlValidator(opTab, catalogReader, typeFactory);
 
       final List<Prepare.Materialization> materializations =
-          context.config().materializationsEnabled()
+          config.materializationsEnabled()
               ? MaterializationService.instance().query(rootSchema)
               : ImmutableList.<Prepare.Materialization>of();
       for (Prepare.Materialization materialization : materializations) {
@@ -464,6 +469,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
       OptiqCatalogReader catalogReader =
           new OptiqCatalogReader(
               schema.root(),
+              context.config().caseSensitive(),
               Util.skipLast(materialization.materializedTable.path()),
               context.getTypeFactory());
       final OptiqMaterializer materializer =
@@ -490,7 +496,10 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     final Context context = statement.createPrepareContext();
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     OptiqCatalogReader catalogReader = new OptiqCatalogReader(
-        context.getRootSchema(), context.getDefaultSchemaPath(), typeFactory);
+        context.getRootSchema(),
+        context.config().caseSensitive(),
+        context.getDefaultSchemaPath(),
+        typeFactory);
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final RelOptPlanner planner = createPlanner(context);
     final RelOptQuery query = new RelOptQuery(planner);
@@ -676,8 +685,7 @@ public class OptiqPrepareImpl implements OptiqPrepare {
           getRelImplementor(rootRel.getCluster().getRexBuilder());
       ClassDeclaration expr =
           relImplementor.implementRoot((EnumerableRel) rootRel, prefer);
-      String s =
-          Expressions.toString(expr.memberDeclarations, "\n", false);
+      String s = Expressions.toString(expr.memberDeclarations, "\n", false);
 
       if (DEBUG) {
         System.out.println();
@@ -932,10 +940,12 @@ public class OptiqPrepareImpl implements OptiqPrepare {
     public RexNode toRex(Expression expression) {
       switch (expression.getNodeType()) {
       case MemberAccess:
+        // Case-sensitive name match because name was previously resolved.
         return rexBuilder.makeFieldAccess(
             toRex(
                 ((MemberExpression) expression).expression),
-            ((MemberExpression) expression).field.getName());
+            ((MemberExpression) expression).field.getName(),
+            true);
       case GreaterThan:
         return binary(
             expression, SqlStdOperatorTable.greaterThanOperator);

@@ -80,13 +80,11 @@ public class FrameworksTest {
             final RexNode condition =
                 rexBuilder.makeCall(SqlStdOperatorTable.greaterThanOperator,
                     rexBuilder.makeFieldAccess(
-                        rexBuilder.makeRangeReference(table.getRowType(
-                            typeFactory)),
-                        "i"),
+                        rexBuilder.makeRangeReference(
+                            table.getRowType(typeFactory)), "i", true),
                     rexBuilder.makeExactLiteral(BigDecimal.ONE));
-            final FilterRel filterRel = new FilterRel(cluster,
-                tableRel,
-                condition);
+            final FilterRel filterRel =
+                new FilterRel(cluster, tableRel, condition);
 
             // Specify that the result should be in Enumerable convention.
             final RelNode rootRel = filterRel;

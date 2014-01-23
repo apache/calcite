@@ -28,12 +28,14 @@ import org.eigenbase.sql.parser.*;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.Pair;
+import org.eigenbase.util.Util;
 
 import net.hydromatic.optiq.prepare.Prepare;
 
 import net.hydromatic.linq4j.expressions.Expression;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Ordering;
 
 /**
  * Mock implementation of {@link SqlValidatorCatalogReader} which returns tables
@@ -45,13 +47,16 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   protected static final String defaultCatalog = "CATALOG";
   protected static final String defaultSchema = "SALES";
 
+  public static final Ordering<Iterable<String>>
+      CASE_INSENSITIVE_LIST_COMPARATOR =
+      Ordering.<String>from(String.CASE_INSENSITIVE_ORDER).lexicographical();
+
   //~ Instance fields --------------------------------------------------------
 
   protected final RelDataTypeFactory typeFactory;
-  private final Map<List<String>, MockTable> tables =
-      new HashMap<List<String>, MockTable>();
-  protected final Map<String, MockSchema> schemas =
-      new HashMap<String, MockSchema>();
+  private final boolean caseSensitive;
+  private final Map<List<String>, MockTable> tables;
+  protected final Map<String, MockSchema> schemas;
   private RelDataType addressType;
 
   //~ Constructors -----------------------------------------------------------
@@ -61,8 +66,9 @@ public class MockCatalogReader implements Prepare.CatalogReader {
    *
    * @param typeFactory Type factory
    */
-  public MockCatalogReader(RelDataTypeFactory typeFactory) {
-    this(typeFactory, false);
+  public MockCatalogReader(RelDataTypeFactory typeFactory,
+      boolean caseSensitive) {
+    this(typeFactory, caseSensitive, false);
     init();
   }
 
@@ -75,9 +81,19 @@ public class MockCatalogReader implements Prepare.CatalogReader {
    * @param typeFactory Type factory
    * @param dummy       Dummy parameter to distinguish from public constructor
    */
-  protected MockCatalogReader(RelDataTypeFactory typeFactory, boolean dummy) {
+  protected MockCatalogReader(RelDataTypeFactory typeFactory,
+      boolean caseSensitive, boolean dummy) {
     this.typeFactory = typeFactory;
+    this.caseSensitive = caseSensitive;
     assert !dummy;
+    if (caseSensitive) {
+    tables = new HashMap<List<String>, MockTable>();
+    schemas = new HashMap<String, MockSchema>();
+    } else {
+      tables = new TreeMap<List<String>, MockTable>(
+          CASE_INSENSITIVE_LIST_COMPARATOR);
+      schemas = new TreeMap<String, MockSchema>(String.CASE_INSENSITIVE_ORDER);
+    }
   }
 
   /**
@@ -266,6 +282,25 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
   public String getSchemaName() {
     return defaultSchema;
+  }
+
+  public RelDataTypeField field(RelDataType rowType, String alias) {
+    return SqlValidatorUtil.lookupField(caseSensitive, rowType, alias);
+  }
+
+  public int fieldOrdinal(RelDataType rowType, String alias) {
+    final RelDataTypeField field = field(rowType, alias);
+    return field != null ? field.getIndex() : -1;
+  }
+
+  public int match(List<String> strings, String name) {
+    return Util.match2(strings, name, caseSensitive);
+  }
+
+  public RelDataType createTypeFromProjection(final RelDataType type,
+      final List<String> columnNameList) {
+    return SqlValidatorUtil.createTypeFromProjection(type, columnNameList,
+        typeFactory, caseSensitive);
   }
 
   private static List<RelCollation> deduceMonotonicity(

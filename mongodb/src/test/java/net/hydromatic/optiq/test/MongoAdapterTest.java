@@ -20,18 +20,15 @@ package net.hydromatic.optiq.test;
 import net.hydromatic.linq4j.Ord;
 import net.hydromatic.linq4j.function.Function1;
 
-import net.hydromatic.optiq.jdbc.OptiqConnection;
-
 import org.eigenbase.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.sql.DriverManager;
 import java.util.List;
-import java.util.Properties;
 
 /**
  * Tests for the {@code net.hydromatic.optiq.impl.mongodb} package.
@@ -97,30 +94,14 @@ public class MongoAdapterTest {
       + "}";
 
   /** Connection factory based on the "mongo-zips" model. */
-  public static final OptiqAssert.ConnectionFactory ZIPS =
-      new OptiqAssert.ConnectionFactory() {
-        public OptiqConnection createConnection() throws Exception {
-          Class.forName("net.hydromatic.optiq.jdbc.Driver");
-          final Properties info = new Properties();
-          info.setProperty("model",
-              "mongodb/target/test-classes/mongo-zips-model.json");
-          return (OptiqConnection)
-              DriverManager.getConnection("jdbc:optiq:", info);
-        }
-      };
+  public static final ImmutableMap<String, String> ZIPS =
+      ImmutableMap.of("model",
+          "mongodb/target/test-classes/mongo-zips-model.json");
 
   /** Connection factory based on the "mongo-zips" model. */
-  public static final OptiqAssert.ConnectionFactory FOODMART =
-      new OptiqAssert.ConnectionFactory() {
-        public OptiqConnection createConnection() throws Exception {
-          Class.forName("net.hydromatic.optiq.jdbc.Driver");
-          final Properties info = new Properties();
-          info.setProperty("model",
-              "mongodb/target/test-classes/mongo-foodmart-model.json");
-          return (OptiqConnection)
-              DriverManager.getConnection("jdbc:optiq:", info);
-        }
-      };
+  public static final ImmutableMap<String, String> FOODMART =
+      ImmutableMap.of("model",
+          "mongodb/target/test-classes/mongo-foodmart-model.json");
 
   /** Disabled by default, because we do not expect Mongo to be installed and
    * populated with the FoodMart data set. */

@@ -60,6 +60,7 @@ public class RexFieldAccess extends RexNode {
     this.expr = expr;
     this.field = field;
     this.digest = expr + "." + field.getName();
+    assert expr.getType().getFieldList().get(field.getIndex()) == field;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -85,17 +86,6 @@ public class RexFieldAccess extends RexNode {
    */
   public RexNode getReferenceExpr() {
     return expr;
-  }
-
-  /**
-   * Returns the name of the field.
-   */
-  public String getName() {
-    return field.getName();
-  }
-
-  public String toString() {
-    return digest;
   }
 }
 

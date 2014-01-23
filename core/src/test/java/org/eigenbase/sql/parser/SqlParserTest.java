@@ -25,6 +25,9 @@ import org.eigenbase.test.*;
 import org.eigenbase.util.*;
 import org.eigenbase.util14.*;
 
+import net.hydromatic.avatica.Casing;
+import net.hydromatic.avatica.Quoting;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -39,7 +42,9 @@ public class SqlParserTest {
 
   private static final String ANY = "(?s).*";
 
-  SqlParser.Quoting quoting = SqlParser.Quoting.DOUBLE_QUOTE;
+  Quoting quoting = Quoting.DOUBLE_QUOTE;
+  Casing unquotedCasing = Casing.TO_UPPER;
+  Casing quotedCasing = Casing.UNCHANGED;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -60,9 +65,13 @@ public class SqlParserTest {
     getTester().check(sql, expected);
   }
 
+  private SqlParser getSqlParser(String sql) {
+    return new SqlParser(sql, quoting, unquotedCasing, quotedCasing);
+  }
+
   protected SqlNode parseStmt(String sql)
       throws SqlParseException {
-    return new SqlParser(sql, quoting).parseStmt();
+    return getSqlParser(sql).parseStmt();
   }
 
   protected void checkExp(
@@ -73,11 +82,11 @@ public class SqlParserTest {
 
   protected SqlNode parseExpression(String sql)
       throws SqlParseException {
-    return new SqlParser(sql, quoting).parseExpression();
+    return getSqlParser(sql).parseExpression();
   }
 
   protected SqlParserImpl getParserImpl() {
-    return new SqlParser("", quoting).getParserImpl();
+    return getSqlParser("").getParserImpl();
   }
 
   protected void checkExpSame(String sql) {
@@ -758,7 +767,7 @@ public class SqlParserTest {
   }
 
   @Test public void testBackTickIdentifier() {
-    quoting = SqlParser.Quoting.BACK_TICK;
+    quoting = Quoting.BACK_TICK;
     checkExp("ab", "`AB`");
     checkExp("     `a  \" b!c`", "`a  \" b!c`");
     checkExpFails("     ^\"^a  \"\" b!c\"", "(?s).*Encountered.*");
@@ -771,7 +780,7 @@ public class SqlParserTest {
   }
 
   @Test public void testBracketIdentifier() {
-    quoting = SqlParser.Quoting.BRACKET;
+    quoting = Quoting.BRACKET;
     checkExp("ab", "`AB`");
     checkExp("     [a  \" b!c]", "`a  \" b!c`");
     checkExpFails("     ^`^a  \" b!c`", "(?s).*Encountered.*");
@@ -797,7 +806,7 @@ public class SqlParserTest {
   }
 
   @Test public void testBackTickQuery() {
-    quoting = SqlParser.Quoting.BACK_TICK;
+    quoting = Quoting.BACK_TICK;
     check(
         "select `x`.`b baz` from `emp` as `x` where `x`.deptno in (10, 20)",
         "SELECT `x`.`b baz`\n"

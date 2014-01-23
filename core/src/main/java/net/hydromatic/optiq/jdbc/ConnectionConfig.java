@@ -17,7 +17,8 @@
 */
 package net.hydromatic.optiq.jdbc;
 
-import org.eigenbase.sql.parser.SqlParser;
+import net.hydromatic.avatica.Casing;
+import net.hydromatic.avatica.Quoting;
 
 /** Interface for reading connection properties within Optiq code. There is
  * a method for every property. At some point there will be similar config
@@ -27,8 +28,31 @@ public interface ConnectionConfig {
   boolean materializationsEnabled();
   String model();
   String schema();
-  SqlParser.Quoting quoting();
+  Lex lex();
+  Quoting quoting();
+  Casing unquotedCasing();
+  Casing quotedCasing();
+  boolean caseSensitive();
   boolean spark();
+
+  enum Lex {
+    ORACLE(Quoting.DOUBLE_QUOTE, Casing.TO_UPPER, Casing.UNCHANGED, true),
+    MYSQL(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, false),
+    SQL_SERVER(Quoting.BRACKET, Casing.UNCHANGED, Casing.UNCHANGED, false);
+
+    final Quoting quoting;
+    final Casing unquotedCasing;
+    final Casing quotedCasing;
+    final boolean caseSensitive;
+
+    Lex(Quoting quoting, Casing unquotedCasing, Casing quotedCasing,
+        boolean caseSensitive) {
+      this.quoting = quoting;
+      this.unquotedCasing = unquotedCasing;
+      this.quotedCasing = quotedCasing;
+      this.caseSensitive = caseSensitive;
+    }
+  }
 }
 
 // End ConnectionConfig.java

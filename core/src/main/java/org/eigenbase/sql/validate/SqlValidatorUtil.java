@@ -75,31 +75,6 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Looks up a field with a given name and if found returns its type.
-   *
-   * @param rowType    Row type
-   * @param columnName Field name
-   * @return Field's type, or null if not found
-   */
-  static RelDataType lookupFieldType(
-      final RelDataType rowType,
-      String columnName) {
-    final List<RelDataTypeField> fields = rowType.getFieldList();
-    for (RelDataTypeField field : fields) {
-      if (field.getName().equals(columnName)) {
-        return field.getType();
-      }
-    }
-    // If record type is flagged as having "any field you ask for",
-    // return a type. (TODO: Better way to mark accommodating types.)
-    RelDataTypeField extra = rowType.getField("_extra");
-    if (extra != null) {
-      return extra.getType();
-    }
-    return null;
-  }
-
-  /**
    * Looks up a field with a given name, returning null if not found.
    *
    * @param rowType    Row type
@@ -107,16 +82,17 @@ public class SqlValidatorUtil {
    * @return Field, or null if not found
    */
   public static RelDataTypeField lookupField(
+      boolean caseSensitive,
       final RelDataType rowType,
       String columnName) {
     for (RelDataTypeField field : rowType.getFieldList()) {
-      if (field.getName().equals(columnName)) {
+      if (Util.match(caseSensitive, columnName, field.getName())) {
         return field;
       }
     }
     // If record type is flagged as having "any field you ask for",
     // return a type. (TODO: Better way to mark accommodating types.)
-    RelDataTypeField extra = rowType.getField("_extra");
+    RelDataTypeField extra = RelDataTypeImpl.extra(rowType);
     if (extra != null) {
       return new RelDataTypeFieldImpl(columnName, -1, extra.getType());
     }
@@ -339,6 +315,21 @@ public class SqlValidatorUtil {
       }
     }
     return naturalColumnNames;
+  }
+
+  public static RelDataType createTypeFromProjection(RelDataType type,
+      List<String> columnNameList, RelDataTypeFactory typeFactory,
+      boolean caseSensitive) {
+    // If the names in columnNameList and type have case-sensitive differences,
+    // the resulting type will use those from type. These are presumably more
+    // canonical.
+    final List<RelDataTypeField> fields =
+        new ArrayList<RelDataTypeField>(columnNameList.size());
+    for (String name : columnNameList) {
+      RelDataTypeField field = type.getField(name, caseSensitive);
+      fields.add(type.getFieldList().get(field.getIndex()));
+    }
+    return typeFactory.createStructType(fields);
   }
 
   //~ Inner Classes ----------------------------------------------------------

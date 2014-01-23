@@ -42,30 +42,20 @@ class JoinNamespace extends AbstractNamespace {
         validator.getNamespace(join.getLeft()).getRowType();
     RelDataType rightType =
         validator.getNamespace(join.getRight()).getRowType();
-    if (join.getJoinType() == SqlJoinOperator.JoinType.Left) {
-      rightType =
-          validator.getTypeFactory().createTypeWithNullability(
-              rightType,
-              true);
+    final RelDataTypeFactory typeFactory = validator.getTypeFactory();
+    switch (join.getJoinType()) {
+    case Left:
+      rightType = typeFactory.createTypeWithNullability(rightType, true);
+      break;
+    case Right:
+      leftType = typeFactory.createTypeWithNullability(leftType, true);
+      break;
+    case Full:
+      leftType = typeFactory.createTypeWithNullability(leftType, true);
+      rightType = typeFactory.createTypeWithNullability(rightType, true);
+      break;
     }
-    if (join.getJoinType() == SqlJoinOperator.JoinType.Right) {
-      leftType =
-          validator.getTypeFactory().createTypeWithNullability(
-              leftType,
-              true);
-    }
-    if (join.getJoinType() == SqlJoinOperator.JoinType.Full) {
-      leftType =
-          validator.getTypeFactory().createTypeWithNullability(
-              leftType,
-              true);
-      rightType =
-          validator.getTypeFactory().createTypeWithNullability(
-              rightType,
-              true);
-    }
-    final RelDataType[] types = {leftType, rightType};
-    return validator.getTypeFactory().createJoinType(types);
+    return typeFactory.createJoinType(leftType, rightType);
   }
 
   public SqlNode getNode() {

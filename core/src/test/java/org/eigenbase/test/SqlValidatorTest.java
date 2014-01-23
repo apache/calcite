@@ -18,14 +18,15 @@
 package org.eigenbase.test;
 
 import java.nio.charset.*;
-
 import java.util.logging.*;
 
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.SqlParser;
+import org.eigenbase.sql.test.SqlTester;
 import org.eigenbase.sql.type.*;
 import org.eigenbase.sql.validate.*;
 import org.eigenbase.util.*;
+
+import net.hydromatic.avatica.Quoting;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -6270,27 +6271,81 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testBrackets() {
-    tester.withQuoting(SqlParser.Quoting.BRACKET)
-        .checkResultType("select [e].EMPNO from [EMP] as [e]",
-            "RecordType(INTEGER NOT NULL EMPNO) NOT NULL");
+    final SqlTester tester1 = tester.withQuoting(Quoting.BRACKET);
+    tester1.checkResultType(
+        "select [e].EMPNO from [EMP] as [e]",
+        "RecordType(INTEGER NOT NULL EMPNO) NOT NULL");
 
-    tester.withQuoting(SqlParser.Quoting.BRACKET)
-        .checkQueryFails("select ^e^.EMPNO from [EMP] as [e]",
-            "Table 'E' not found");
+    tester1.checkQueryFails(
+        "select ^e^.EMPNO from [EMP] as [e]",
+        "Table 'E' not found");
 
-    tester.withQuoting(SqlParser.Quoting.BRACKET)
-        .checkQueryFails("select ^x^ from (\n"
-            + "  select [e].EMPNO as [x] from [EMP] as [e])",
-            "Column 'X' not found in any table");
+    tester1.checkQueryFails(
+        "select ^x^ from (\n"
+        + "  select [e].EMPNO as [x] from [EMP] as [e])",
+        "Column 'X' not found in any table");
 
-    tester.withQuoting(SqlParser.Quoting.BRACKET)
-        .checkQueryFails("select EMP.^\"x\"^ from EMP",
-            "(?s).*Encountered \"\\. \\\\\"\" at line .*");
+    tester1.checkQueryFails(
+        "select EMP.^\"x\"^ from EMP",
+        "(?s).*Encountered \"\\. \\\\\"\" at line .*");
 
-    tester.withQuoting(SqlParser.Quoting.BRACKET)
-        .checkResultType("select [x[y]] z ] from (\n"
-            + "  select [e].EMPNO as [x[y]] z ] from [EMP] as [e])",
-            "RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
+    tester1.checkResultType(
+        "select [x[y]] z ] from (\n"
+        + "  select [e].EMPNO as [x[y]] z ] from [EMP] as [e])",
+        "RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
+  }
+
+  /** Tests using case-insensitive matching of identifiers. */
+  @Test public void testCaseInsensitive() {
+    final SqlTester tester1 = tester
+        .withCaseSensitive(false)
+        .withQuoting(Quoting.BRACKET);
+    tester1.checkQuery("select EMPNO from EMP");
+    tester1.checkQuery("select empno from emp");
+    tester1.checkQuery("select [empno] from [emp]");
+    tester1.checkQuery("select [E].[empno] from [emp] as e");
+    tester1.checkQuery("select t.[x] from (\n"
+        + "  select [E].[empno] as x from [emp] as e) as [t]");
+
+    // correlating variable
+    tester1.checkQuery(
+        "select * from emp as [e] where exists (\n"
+        + "select 1 from dept where dept.deptno = [E].deptno)");
+    tester.withQuoting(Quoting.BRACKET).checkQueryFails(
+        "select * from emp as [e] where exists (\n"
+        + "select 1 from dept where dept.deptno = ^[E]^.deptno)",
+        "(?s).*Table 'E' not found");
+  }
+
+  /** Tests that it is an error to insert into the same column twice, even using
+   * case-insensitive matching. */
+  @Test public void testCaseInsensitiveInsert() {
+    final SqlTester tester1 = tester
+        .withCaseSensitive(false)
+        .withQuoting(Quoting.BRACKET);
+    tester1.checkQueryFails("insert into EMP ([EMPNO], deptno, ^[empno]^)\n"
+        + " values (1, 1, 1)",
+        "Target column 'EMPNO' is assigned more than once");
+  }
+
+  /** Tests referencing columns from a sub-query that has duplicate column
+   * names. (The standard says it should be an error, but we don't right
+   * now.) */
+  @Test public void testCaseInsensitiveSubQuery() {
+    final SqlTester insensitive = tester
+        .withCaseSensitive(false)
+        .withQuoting(Quoting.BRACKET);
+    final SqlTester sensitive = tester
+        .withCaseSensitive(true)
+        .withQuoting(Quoting.BRACKET);
+    String sql = "select [e] from (\n"
+        + "select empno as [e], deptno as d, 1 as [e] from EMP)";
+    sensitive.checkQuery(sql);
+    insensitive.checkQuery(sql);
+    String sql1 = "select e from (\n"
+        + "select empno as [e], deptno as d, 1 as [E] from EMP)";
+    insensitive.checkQuery(sql1);
+    sensitive.checkQuery(sql1);
   }
 
   @Test public void testNew() {

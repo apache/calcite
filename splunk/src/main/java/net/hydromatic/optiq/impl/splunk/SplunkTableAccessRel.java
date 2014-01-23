@@ -97,7 +97,8 @@ public class SplunkTableAccessRel
     final RelDataTypeFactory.FieldInfoBuilder builder =
         getCluster().getTypeFactory().builder();
     for (String field : fieldList) {
-      builder.add(table.getRowType().getField(field));
+      // REVIEW: is case-sensitive match what we want here?
+      builder.add(table.getRowType().getField(field, true));
     }
     return builder.build();
   }

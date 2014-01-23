@@ -735,9 +735,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
       for (;;) {
         RexNode refExp = fieldAccess.getReferenceExpr();
-        int ordinal =
-            refExp.getType().getFieldOrdinal(
-                fieldAccess.getField().getName());
+        int ordinal = fieldAccess.getField().getIndex();
         iInput +=
             calculateFlattenedOffset(
                 refExp.getType(),

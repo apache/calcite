@@ -145,9 +145,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   public boolean fieldExists(String name) {
     final RelDataType rowType = getRowType();
-    final RelDataType dataType =
-        SqlValidatorUtil.lookupFieldType(rowType, name);
-    return dataType != null;
+    return validator.catalogReader.field(rowType, name) != null;
   }
 
   public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {

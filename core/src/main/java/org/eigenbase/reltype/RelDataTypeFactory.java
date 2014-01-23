@@ -56,7 +56,7 @@ public interface RelDataTypeFactory {
    * @pre types != null
    * @pre types.length >= 1
    */
-  public RelDataType createJoinType(RelDataType[] types);
+  public RelDataType createJoinType(RelDataType... types);
 
   /**
    * Creates a type which represents a structured collection of fields.

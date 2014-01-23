@@ -161,9 +161,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       }
       columnName = identifier.names.get(1);
       final RelDataType fromRowType = fromNs.getRowType();
-      final RelDataType type =
-          SqlValidatorUtil.lookupFieldType(fromRowType, columnName);
-      if (type != null) {
+      final RelDataTypeField field =
+          validator.catalogReader.field(fromRowType, columnName);
+      if (field != null) {
         return identifier; // it was fine already
       } else {
         throw validator.newValidationError(

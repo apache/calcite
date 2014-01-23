@@ -33,8 +33,6 @@ import java.util.jar.*;
 import java.util.logging.*;
 import java.util.regex.*;
 
-import org.eigenbase.sql.validate.*;
-
 import net.hydromatic.linq4j.Ord;
 
 /**
@@ -74,7 +72,6 @@ public class Util {
 
   public static final Object[] emptyObjectArray = new Object[0];
   public static final String[] emptyStringArray = new String[0];
-  public static final SqlMoniker[] emptySqlMonikerArray = new SqlMoniker[0];
 
   private static boolean driversLoaded = false;
 
@@ -2047,6 +2044,25 @@ public class Util {
       }
     }
     return -1;
+  }
+
+  public static int match2(List<String> strings, String name,
+      boolean caseSensitive1) {
+    if (caseSensitive1) {
+      return strings.indexOf(name);
+    }
+    for (int i = 0; i < strings.size(); i++) {
+      String s = strings.get(i);
+      if (s.equalsIgnoreCase(name)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  public static boolean match(boolean caseSensitive, String name1,
+      String name0) {
+    return caseSensitive ? name0.equals(name1) : name0.equalsIgnoreCase(name1);
   }
 
   //~ Inner Classes ----------------------------------------------------------

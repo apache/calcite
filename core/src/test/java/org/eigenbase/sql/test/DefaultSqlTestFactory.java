@@ -27,6 +27,9 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.test.MockCatalogReader;
 import org.eigenbase.test.MockSqlOperatorTable;
 
+import net.hydromatic.avatica.Casing;
+import net.hydromatic.avatica.Quoting;
+
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -41,7 +44,10 @@ import com.google.common.collect.ImmutableMap;
 public class DefaultSqlTestFactory implements SqlTestFactory {
   public static final ImmutableMap<String, Object> DEFAULT_OPTIONS =
       ImmutableMap.of(
-          "quoting", (Object) SqlParser.Quoting.DOUBLE_QUOTE,
+          "quoting", (Object) Quoting.DOUBLE_QUOTE,
+          "quotedCasing", Casing.UNCHANGED,
+          "unquotedCasing", Casing.TO_UPPER,
+          "caseSensitive", true,
           "conformance", SqlConformance.Default);
 
   public static final DefaultSqlTestFactory INSTANCE =
@@ -58,15 +64,18 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
   }
 
   public SqlParser createParser(SqlTestFactory factory, String sql) {
-    SqlParser.Quoting quoting = (SqlParser.Quoting) factory.get("quoting");
-    return new SqlParser(sql, quoting);
+    Quoting quoting = (Quoting) factory.get("quoting");
+    Casing quotedCasing = (Casing) factory.get("quotedCasing");
+    Casing unquotedCasing = (Casing) factory.get("unquotedCasing");
+    return new SqlParser(sql, quoting, unquotedCasing, quotedCasing);
   }
 
   public SqlValidator getValidator(SqlTestFactory factory) {
     final SqlOperatorTable operatorTable = factory.createOperatorTable();
+    final boolean caseSensitive = (Boolean) factory.get("caseSensitive");
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
     return SqlValidatorUtil.newValidator(operatorTable,
-        new MockCatalogReader(typeFactory),
+        new MockCatalogReader(typeFactory, caseSensitive),
         typeFactory);
   }
 

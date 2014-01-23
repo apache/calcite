@@ -24,6 +24,9 @@ import org.eigenbase.sql.*;
 import org.eigenbase.sql.parser.impl.*;
 import org.eigenbase.util.*;
 
+import net.hydromatic.avatica.Casing;
+import net.hydromatic.avatica.Quoting;
+
 /**
  * A <code>SqlParser</code> parses a SQL statement.
  */
@@ -39,22 +42,36 @@ public class SqlParser {
    * Creates a <code>SqlParser</code> that reads input from a string.
    */
   public SqlParser(String s) {
-    this(s, Quoting.DOUBLE_QUOTE);
+    this(s, Quoting.DOUBLE_QUOTE, Casing.TO_UPPER, Casing.UNCHANGED);
   }
 
   /**
    * Creates a <code>SqlParser</code> that reads input from a string.
    */
-  public SqlParser(String s, Quoting quoting) {
+  public SqlParser(String s, Quoting quoting, Casing unquotedCasing,
+      Casing quotedCasing) {
     parser = new SqlParserImpl(new StringReader(s));
     parser.setTabSize(1);
+    parser.quotedCasing = quotedCasing;
+    parser.unquotedCasing = unquotedCasing;
     this.originalInput = s;
     switch (quoting) {
     case DOUBLE_QUOTE:
+      switchTo("DQID");
+      break;
     case BACK_TICK:
+      switchTo("BTID");
+      break;
     case BRACKET:
-      parser.token_source.SwitchTo(quoting.state);
+      switchTo("DEFAULT");
+      break;
     }
+  }
+
+  public void switchTo(String stateName) {
+    int state = Arrays.asList(SqlParserImplTokenManager.lexStateNames)
+        .indexOf(stateName);
+    parser.token_source.SwitchTo(state);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -89,7 +106,7 @@ public class SqlParser {
   public SqlNode parseQuery()
       throws SqlParseException {
     try {
-      return parser.SqlQueryEof();
+      return parser.SqlStmtEof();
     } catch (Throwable ex) {
       if ((ex instanceof EigenbaseContextException)
           && (originalInput != null)) {
@@ -125,20 +142,6 @@ public class SqlParser {
    */
   public SqlParserImpl getParserImpl() {
     return parser;
-  }
-
-  public enum Quoting {
-    DOUBLE_QUOTE("DQID"),
-    BACK_TICK("BTID"),
-    BRACKET("DEFAULT");
-
-    public final int state;
-
-    Quoting(String stateName) {
-      state =
-          Arrays.asList(SqlParserImplTokenManager.lexStateNames)
-              .indexOf(stateName);
-    }
   }
 }
 

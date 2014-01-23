@@ -113,15 +113,22 @@ public class RexBuilder {
   /**
    * Creates an expression accessing a given named field from a record.
    *
+   * <p>NOTE: Be careful choosing the value of {@code caseSensitive}.
+   * If the field name was supplied by an end-user (e.g. as a column alias in
+   * SQL), use your session's case-sensitivity setting.
+   * Only hard-code {@code true} if you are sure that the field name is
+   * internally generated.
+   * Hard-coding {@code false} is almost certainly wrong.</p>
+   *
    * @param expr      Expression yielding a record
    * @param fieldName Name of field in record
+   * @param caseSensitive Whether match is case-sensitive
    * @return Expression accessing a given named field
    */
-  public RexNode makeFieldAccess(
-      RexNode expr,
-      String fieldName) {
+  public RexNode makeFieldAccess(RexNode expr, String fieldName,
+      boolean caseSensitive) {
     final RelDataType type = expr.getType();
-    final RelDataTypeField field = type.getField(fieldName);
+    final RelDataTypeField field = type.getField(fieldName, caseSensitive);
     if (field == null) {
       throw Util.newInternal(
           "Type '" + type + "' has no field '"

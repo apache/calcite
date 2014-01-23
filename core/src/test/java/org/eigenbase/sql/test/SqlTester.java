@@ -22,9 +22,11 @@ import java.sql.ResultSet;
 
 import org.eigenbase.reltype.*;
 import org.eigenbase.sql.*;
-import org.eigenbase.sql.parser.SqlParser;
 import org.eigenbase.sql.validate.SqlConformance;
 import org.eigenbase.test.SqlValidatorTestCase;
+
+import net.hydromatic.avatica.Casing;
+import net.hydromatic.avatica.Quoting;
 
 /**
  * SqlTester defines a callback for testing SQL queries and expressions.
@@ -54,7 +56,19 @@ public interface SqlTester extends Closeable, SqlValidatorTestCase.Tester {
   SqlTestFactory getFactory();
 
   /** Returns a tester that tests a given SQL quoting style. */
-  SqlTester withQuoting(SqlParser.Quoting bracket);
+  SqlTester withQuoting(Quoting quoting);
+
+  /** Returns a tester that applies a given casing policy to quoted
+   * identifiers. */
+  SqlTester withQuotedCasing(Casing casing);
+
+  /** Returns a tester that applies a given casing policy to unquoted
+   * identifiers. */
+  SqlTester withUnquotedCasing(Casing casing);
+
+  /** Returns a tester that matches identifiers by case-sensitive or
+   * case-insensitive. */
+  SqlTester withCaseSensitive(boolean sensitive);
 
   /** Returns a tester that tests conformance to a particular SQL language
    * version. */
@@ -335,6 +349,13 @@ public interface SqlTester extends Closeable, SqlValidatorTestCase.Tester {
   void checkQueryFails(
       String sql,
       String expectedError);
+
+  /**
+   * Tests that a SQL query succeeds at prepare time.
+   *
+   * @param sql           SQL query
+   */
+  void checkQuery(String sql);
 
   //~ Inner Interfaces -------------------------------------------------------
 

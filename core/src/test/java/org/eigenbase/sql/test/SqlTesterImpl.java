@@ -31,6 +31,9 @@ import org.eigenbase.sql.validate.*;
 import org.eigenbase.test.SqlValidatorTestCase;
 import org.eigenbase.util.*;
 
+import net.hydromatic.avatica.Casing;
+import net.hydromatic.avatica.Quoting;
+
 import net.hydromatic.optiq.runtime.Utilities;
 
 import com.google.common.collect.ImmutableList;
@@ -248,8 +251,20 @@ public class SqlTesterImpl implements SqlTester {
     }
   }
 
-  public SqlTesterImpl withQuoting(SqlParser.Quoting quoting) {
+  public SqlTesterImpl withQuoting(Quoting quoting) {
     return with("quoting", quoting);
+  }
+
+  public SqlTester withQuotedCasing(Casing casing) {
+    return with("quotedCasing", casing);
+  }
+
+  public SqlTester withUnquotedCasing(Casing casing) {
+    return with("unquotedCasing", casing);
+  }
+
+  public SqlTester withCaseSensitive(boolean sensitive) {
+    return with("caseSensitive", sensitive);
   }
 
   public SqlTesterImpl withConformance(SqlConformance conformance) {
@@ -435,6 +450,10 @@ public class SqlTesterImpl implements SqlTester {
 
   public void checkQueryFails(String sql, String expectedError) {
     assertExceptionIsThrown(sql, expectedError);
+  }
+
+  public void checkQuery(String sql) {
+    assertExceptionIsThrown(sql, null);
   }
 
   public SqlMonotonicity getMonotonicity(String sql) {

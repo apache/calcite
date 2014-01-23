@@ -36,6 +36,8 @@ import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.type.SqlTypeName;
 import org.eigenbase.resource.*;
 
+import net.hydromatic.avatica.Casing;
+
 import com.google.common.collect.ImmutableList;
 
 import java.math.*;
@@ -60,8 +62,13 @@ public class SqlParserImpl extends SqlAbstractParserImpl
     // backslash-backslash.
     private static final char BACKSLASH = 0x5c;
     private static final char DOUBLE_QUOTE = 0x22;
+    private static final String DQ = DOUBLE_QUOTE + "";
+    private static final String DQDQ = DQ + DQ;
 
     private static Metadata metadata;
+
+    public Casing unquotedCasing;
+    public Casing quotedCasing;
 
     // implement SqlAbstractParserImpl
     public SqlParseException normalizeException(Throwable ex)
@@ -306,7 +313,7 @@ JAVACODE void checkNonQueryExpression(ExprContext exprContext)
 JAVACODE SqlDateLiteral parseDateLiteral(
     String s, SqlParserPos pos)
 {
-    String dateStr = SqlParserUtil.strip(s, "'");
+    String dateStr = SqlParserUtil.parseString(s);
     Calendar cal = DateTimeUtil.parseDateFormat(
         dateStr, DateTimeUtil.DateFormatStr, DateTimeUtil.gmtZone);
     if (null == cal) {
@@ -324,7 +331,7 @@ JAVACODE SqlDateLiteral parseDateLiteral(
 JAVACODE SqlTimeLiteral parseTimeLiteral(
     String s, SqlParserPos pos)
 {
-    String dateStr = SqlParserUtil.strip(s, "'");
+    String dateStr = SqlParserUtil.parseString(s);
     DateTimeUtil.PrecisionTime pt =
     DateTimeUtil.parsePrecisionDateTimeLiteral(
         dateStr, DateTimeUtil.TimeFormatStr, DateTimeUtil.gmtZone);
@@ -343,7 +350,7 @@ JAVACODE SqlTimeLiteral parseTimeLiteral(
 JAVACODE SqlTimestampLiteral parseTimestampLiteral(
     String s, SqlParserPos pos)
 {
-    String dateStr = SqlParserUtil.strip(s, "'");
+    String dateStr = SqlParserUtil.parseString(s);
     DateTimeUtil.PrecisionTime pt =
     DateTimeUtil.parsePrecisionDateTimeLiteral(
         dateStr, DateTimeUtil.TimestampFormatStr, DateTimeUtil.gmtZone);
@@ -365,8 +372,7 @@ JAVACODE SqlIntervalLiteral parseIntervalLiteral(
     String s,
     SqlIntervalQualifier intervalQualifier) throws ParseException
 {
-    String intervalStr = SqlParserUtil.strip(s, "'");
-
+    String intervalStr = SqlParserUtil.parseString(s);
     if ("".equals(intervalStr)) {
         EigenbaseResource res = EigenbaseResource.instance();
         String msg = res.IllegalIntervalLiteral.str(
@@ -3200,25 +3206,29 @@ String Identifier() :
     (
         <IDENTIFIER>
         {
-            id = getToken(0).image.toUpperCase();
+            id = SqlParserUtil.strip(getToken(0).image.toUpperCase(),
+                null, null, null, unquotedCasing);
         }
         | <QUOTED_IDENTIFIER>
         {
-            id = SqlParserUtil.strip(getToken(0).image, DOUBLE_QUOTE + "");
+            id = SqlParserUtil.strip(getToken(0).image, DQ, DQ, DQDQ,
+                quotedCasing);
         }
         | <BACK_QUOTED_IDENTIFIER>
         {
-            id = SqlParserUtil.strip(getToken(0).image, "`");
+            id = SqlParserUtil.strip(getToken(0).image, "`", "`", "``",
+                quotedCasing);
         }
         | <BRACKET_QUOTED_IDENTIFIER>
         {
-            id = SqlParserUtil.strip(getToken(0).image, "[", "]");
+            id = SqlParserUtil.strip(getToken(0).image, "[", "]", "]]",
+                quotedCasing);
         }
         | <UNICODE_QUOTED_IDENTIFIER>
         {
             id = getToken(0).image;
-            id = id.substring(id.indexOf(DOUBLE_QUOTE));
-            id = SqlParserUtil.strip(id, DOUBLE_QUOTE + "");
+            id = id.substring(id.indexOf('"'));
+            id = SqlParserUtil.strip(id, DQ, DQ, DQDQ, quotedCasing);
         }
         [ <UESCAPE> <QUOTED_STRING>
             {

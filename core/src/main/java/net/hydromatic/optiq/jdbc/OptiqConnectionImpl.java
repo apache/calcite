@@ -30,8 +30,6 @@ import net.hydromatic.optiq.impl.java.JavaTypeFactory;
 import net.hydromatic.optiq.server.OptiqServer;
 import net.hydromatic.optiq.server.OptiqServerStatement;
 
-import org.eigenbase.sql.parser.SqlParser;
-
 import com.google.common.collect.*;
 
 import java.lang.reflect.*;
@@ -80,6 +78,13 @@ abstract class OptiqConnectionImpl
       rootSchema.addSchema(MetadataSchema.create(rootSchema.plus()));
     }
     this.rootSchema = rootSchema;
+
+    final ConnectionConfig.Lex lex =
+        ConnectionProperty.LEX.getEnum(info, ConnectionConfig.Lex.class);
+    this.properties.put(InternalProperty.CASE_SENSITIVE, lex.caseSensitive);
+    this.properties.put(InternalProperty.UNQUOTED_CASING, lex.unquotedCasing);
+    this.properties.put(InternalProperty.QUOTED_CASING, lex.quotedCasing);
+    this.properties.put(InternalProperty.QUOTING, lex.quoting);
   }
 
   @Override protected Meta createMeta() {
@@ -113,9 +118,24 @@ abstract class OptiqConnectionImpl
         return ConnectionProperty.SCHEMA.getString(properties);
       }
 
-      public SqlParser.Quoting quoting() {
-        return ConnectionProperty.QUOTING.getEnum(properties,
-            SqlParser.Quoting.class);
+      public Lex lex() {
+        return ConnectionProperty.LEX.getEnum(properties, Lex.class);
+      }
+
+      public Quoting quoting() {
+        return lex().quoting;
+      }
+
+      public Casing unquotedCasing() {
+        return lex().unquotedCasing;
+      }
+
+      public Casing quotedCasing() {
+        return lex().quotedCasing;
+      }
+
+      public boolean caseSensitive() {
+        return lex().caseSensitive;
       }
 
       public boolean spark() {

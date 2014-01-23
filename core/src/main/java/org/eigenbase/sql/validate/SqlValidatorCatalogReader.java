@@ -77,6 +77,23 @@ public interface SqlValidatorCatalogReader {
    * @return name of the current schema
    */
   String getSchemaName();
+
+  /**
+   * Finds a field with a given name, using the case-sensitivity of the current
+   * session.
+   */
+  RelDataTypeField field(RelDataType rowType, String alias);
+
+  /**
+   * Finds the ordinal of a field with a given name, using the case-sensitivity
+   * of the current session.
+   */
+  int fieldOrdinal(RelDataType rowType, String alias);
+
+  int match(List<String> strings, String name);
+
+  RelDataType createTypeFromProjection(RelDataType type,
+      List<String> columnNameList);
 }
 
 // End SqlValidatorCatalogReader.java

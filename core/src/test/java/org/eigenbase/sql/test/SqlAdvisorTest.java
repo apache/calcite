@@ -1186,11 +1186,11 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     public SqlValidator getValidator(
         SqlTestFactory factory) {
       final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl();
-      final SqlConformance conformance =
-          (SqlConformance) get("conformance");
+      final SqlConformance conformance = (SqlConformance) get("conformance");
+      final boolean caseSensitive = (Boolean) factory.get("caseSensitive");
       return new SqlAdvisorValidator(
           SqlStdOperatorTable.instance(),
-          new MockCatalogReader(typeFactory),
+          new MockCatalogReader(typeFactory, caseSensitive),
           typeFactory,
           conformance);
     }

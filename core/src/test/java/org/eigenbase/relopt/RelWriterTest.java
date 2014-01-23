@@ -128,7 +128,7 @@ public class RelWriterTest {
                             rexBuilder.makeFieldAccess(
                                 rexBuilder.makeRangeReference(
                                     table.getRowType()),
-                                "deptno"),
+                                "deptno", true),
                             rexBuilder.makeExactLiteral(BigDecimal.TEN)));
                 final RelJsonWriter writer = new RelJsonWriter();
                 final RelDataType intType =
