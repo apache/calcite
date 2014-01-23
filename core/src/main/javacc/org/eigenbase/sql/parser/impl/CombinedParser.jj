@@ -3206,8 +3206,8 @@ String Identifier() :
     (
         <IDENTIFIER>
         {
-            id = SqlParserUtil.strip(getToken(0).image.toUpperCase(),
-                null, null, null, unquotedCasing);
+            id = SqlParserUtil.strip(getToken(0).image, null, null, null,
+                unquotedCasing);
         }
         | <QUOTED_IDENTIFIER>
         {

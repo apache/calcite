@@ -38,12 +38,13 @@ public interface ConnectionConfig {
   enum Lex {
     ORACLE(Quoting.DOUBLE_QUOTE, Casing.TO_UPPER, Casing.UNCHANGED, true),
     MYSQL(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, false),
-    SQL_SERVER(Quoting.BRACKET, Casing.UNCHANGED, Casing.UNCHANGED, false);
+    SQL_SERVER(Quoting.BRACKET, Casing.UNCHANGED, Casing.UNCHANGED, false),
+    JAVA(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, true);
 
-    final Quoting quoting;
-    final Casing unquotedCasing;
-    final Casing quotedCasing;
-    final boolean caseSensitive;
+    public final Quoting quoting;
+    public final Casing unquotedCasing;
+    public final Casing quotedCasing;
+    public final boolean caseSensitive;
 
     Lex(Quoting quoting, Casing unquotedCasing, Casing quotedCasing,
         boolean caseSensitive) {

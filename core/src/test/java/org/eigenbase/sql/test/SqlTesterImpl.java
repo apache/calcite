@@ -34,6 +34,7 @@ import org.eigenbase.util.*;
 import net.hydromatic.avatica.Casing;
 import net.hydromatic.avatica.Quoting;
 
+import net.hydromatic.optiq.jdbc.ConnectionConfig;
 import net.hydromatic.optiq.runtime.Utilities;
 
 import com.google.common.collect.ImmutableList;
@@ -265,6 +266,13 @@ public class SqlTesterImpl implements SqlTester {
 
   public SqlTester withCaseSensitive(boolean sensitive) {
     return with("caseSensitive", sensitive);
+  }
+
+  public SqlTester withLex(ConnectionConfig.Lex lex) {
+    return withQuoting(lex.quoting)
+        .withCaseSensitive(lex.caseSensitive)
+        .withQuotedCasing(lex.quotedCasing)
+        .withUnquotedCasing(lex.unquotedCasing);
   }
 
   public SqlTesterImpl withConformance(SqlConformance conformance) {

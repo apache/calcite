@@ -28,6 +28,8 @@ import org.eigenbase.util.*;
 
 import net.hydromatic.avatica.Quoting;
 
+import net.hydromatic.optiq.jdbc.ConnectionConfig;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -6292,6 +6294,38 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester1.checkResultType(
         "select [x[y]] z ] from (\n"
         + "  select [e].EMPNO as [x[y]] z ] from [EMP] as [e])",
+        "RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
+  }
+
+  @Test public void testLexJava() {
+    final SqlTester tester1 = tester.withLex(ConnectionConfig.Lex.JAVA);
+    tester1.checkResultType(
+        "select e.EMPNO from EMP as e",
+        "RecordType(INTEGER NOT NULL EMPNO) NOT NULL");
+
+    tester1.checkQueryFails(
+        "select ^e^.EMPNO from EMP as E",
+        "Table 'e' not found");
+
+    tester1.checkQueryFails(
+        "select ^E^.EMPNO from EMP as e",
+        "Table 'E' not found");
+
+    tester1.checkQueryFails(
+        "select ^x^ from (\n"
+        + "  select e.EMPNO as X from EMP as e)",
+        "Column 'x' not found in any table");
+
+    // double-quotes are not valid in this lexical convention
+    tester1.checkQueryFails(
+        "select EMP.^\"x\"^ from EMP",
+        "(?s).*Encountered \"\\. \\\\\"\" at line .*");
+
+    // in Java mode, creating identifiers with spaces is not encouraged, but you
+    // can use back-ticks if you really have to
+    tester1.checkResultType(
+        "select `x[y] z ` from (\n"
+        + "  select e.EMPNO as `x[y] z ` from EMP as e)",
         "RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
   }
 
