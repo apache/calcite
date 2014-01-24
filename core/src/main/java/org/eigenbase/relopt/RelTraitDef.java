@@ -17,12 +17,12 @@
 */
 package org.eigenbase.relopt;
 
-import java.lang.ref.*;
-
-import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 import org.eigenbase.rel.*;
 import org.eigenbase.rel.convert.*;
+
+import com.google.common.cache.*;
 
 /**
  * RelTraitDef represents a class of {@link RelTrait}s. Implementations of
@@ -51,13 +51,20 @@ import org.eigenbase.rel.convert.*;
 public abstract class RelTraitDef<T extends RelTrait> {
   //~ Instance fields --------------------------------------------------------
 
-  private final WeakHashMap<RelTrait, WeakReference<RelTrait>> canonicalMap;
+  private final LoadingCache<T, T> canonicalMap =
+      CacheBuilder.newBuilder()
+          .softValues()
+          .build(
+              new CacheLoader<T, T>() {
+                @Override
+                public T load(T key) throws Exception {
+                  return key;
+                }
+              });
 
   //~ Constructors -----------------------------------------------------------
 
-  public RelTraitDef() {
-    this.canonicalMap =
-        new WeakHashMap<RelTrait, WeakReference<RelTrait>>();
+  protected RelTraitDef() {
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -101,30 +108,11 @@ public abstract class RelTraitDef<T extends RelTrait> {
         + " cannot canonize a "
         + trait.getClass().getName();
 
-    if (canonicalMap.containsKey(trait)) {
-      WeakReference<RelTrait> canonicalTraitRef = canonicalMap.get(trait);
-      if (canonicalTraitRef != null) {
-        // Make sure the canonical trait didn't disappear between
-        // containsKey and get.
-        @SuppressWarnings("unchecked")
-        T canonicalTrait = (T) canonicalTraitRef.get();
-        if (canonicalTrait != null) {
-          // Make sure the canonical trait didn't disappear between
-          // WeakHashMap.get() and WeakReference.get()
-          return canonicalTrait;
-        }
-      }
+    try {
+      return canonicalMap.get(trait);
+    } catch (ExecutionException e) {
+      throw new RuntimeException(e);
     }
-
-    // Canonical trait wasn't in map or was *very* recently removed from
-    // the map. Removal, however, indicates that no other references to
-    // the canonical trait existed, so the caller's trait becomes
-    // canonical.
-    canonicalMap.put(
-        trait,
-        new WeakReference<RelTrait>(trait));
-
-    return trait;
   }
 
   /**

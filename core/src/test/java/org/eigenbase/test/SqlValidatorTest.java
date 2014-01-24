@@ -5718,10 +5718,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     checkWholeExpFails(
         "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (time '4:5:6', interval '1 2:3:4.5' day to second)",
-        "(?s).*Cannot apply 'OVERLAPS' to arguments of type '.<TIMESTAMP>, <TIMESTAMP>. OVERLAPS .<TIME.0.>, <INTERVAL DAY TO SECOND>.*");
+        "(?s).*Cannot apply 'OVERLAPS' to arguments of type '.<TIMESTAMP.0.>, <TIMESTAMP.0.>. OVERLAPS .<TIME.0.>, <INTERVAL DAY TO SECOND>.*");
     checkWholeExpFails(
         "(time '4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (time '4:5:6', interval '1 2:3:4.5' day to second)",
-        "(?s).*Cannot apply 'OVERLAPS' to arguments of type '.<TIME.0.>, <TIMESTAMP>. OVERLAPS .<TIME.0.>, <INTERVAL DAY TO SECOND>.'.*");
+        "(?s).*Cannot apply 'OVERLAPS' to arguments of type '.<TIME.0.>, <TIMESTAMP.0.>. OVERLAPS .<TIME.0.>, <INTERVAL DAY TO SECOND>.'.*");
     checkWholeExpFails(
         "(time '4:5:6', time '4:5:6' ) overlaps (time '4:5:6', date '1-2-3')",
         "(?s).*Cannot apply 'OVERLAPS' to arguments of type '.<TIME.0.>, <TIME.0.>. OVERLAPS .<TIME.0.>, <DATE>.'.*");

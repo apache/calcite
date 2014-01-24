@@ -196,13 +196,12 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
   }
 
   private ConversionData getConversionData(RelOptPlanner planner) {
-    if (plannerConversionMap.containsKey(planner)) {
-      return plannerConversionMap.get(planner);
+    ConversionData conversionData = plannerConversionMap.get(planner);
+    if (conversionData == null) {
+      // Create new, empty ConversionData
+      conversionData = new ConversionData();
+      plannerConversionMap.put(planner, conversionData);
     }
-
-    // Create new, empty ConversionData
-    ConversionData conversionData = new ConversionData();
-    plannerConversionMap.put(planner, conversionData);
     return conversionData;
   }
 
