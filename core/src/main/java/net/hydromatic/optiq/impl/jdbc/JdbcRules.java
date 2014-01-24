@@ -211,7 +211,7 @@ public class JdbcRules {
       // We always "build" the
       double rowCount = RelMetadataQuery.getRowCount(this);
 
-      return planner.makeCost(rowCount, 0, 0);
+      return planner.getCostFactory().makeCost(rowCount, 0, 0);
     }
 
     @Override
@@ -341,7 +341,7 @@ public class JdbcRules {
       double dCpu = RelMetadataQuery.getRowCount(getChild())
           * program.getExprCount();
       double dIo = 0;
-      return planner.makeCost(dRows, dCpu, dIo);
+      return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

@@ -59,7 +59,7 @@ public abstract class ConverterRelImpl extends SingleRel
     double dRows = RelMetadataQuery.getRowCount(getChild());
     double dCpu = dRows;
     double dIo = 0;
-    return planner.makeCost(dRows, dCpu, dIo);
+    return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
   protected Error cannotImplement() {

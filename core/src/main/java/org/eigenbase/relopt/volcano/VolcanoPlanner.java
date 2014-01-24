@@ -190,6 +190,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * calling conventions.
    */
   public VolcanoPlanner() {
+    super(VolcanoCost.FACTORY);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -537,7 +538,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
       setInitialImportance();
 
-      RelOptCost targetCost = makeHugeCost();
+      RelOptCost targetCost = costFactory.makeHugeCost();
       int tick = 0;
       int firstFiniteTick = -1;
       int splitCount = 0;
@@ -754,30 +755,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     ruleQueue.boostImportance(empty, 1.0);
   }
 
-  // implement Planner
-  public RelOptCost makeCost(
-      double dRows,
-      double dCpu,
-      double dIo) {
-    return new VolcanoCost(dRows, dCpu, dIo);
-  }
-
-  public RelOptCost makeHugeCost() {
-    return VolcanoCost.HUGE;
-  }
-
-  public RelOptCost makeInfiniteCost() {
-    return VolcanoCost.INFINITY;
-  }
-
-  public RelOptCost makeTinyCost() {
-    return VolcanoCost.TINY;
-  }
-
-  public RelOptCost makeZeroCost() {
-    return VolcanoCost.ZERO;
-  }
-
   public RelSubset register(
       RelNode rel,
       RelNode equivRel) {
@@ -881,12 +858,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return ((RelSubset) rel).bestCost;
     }
     if (rel.getTraitSet().getTrait(0) == Convention.NONE) {
-      return makeInfiniteCost();
+      return costFactory.makeInfiniteCost();
     }
     RelOptCost cost = RelMetadataQuery.getNonCumulativeCost(rel);
     if (!VolcanoCost.ZERO.isLt(cost)) {
       // cost must be positive, so nudge it
-      cost = makeTinyCost();
+      cost = costFactory.makeTinyCost();
     }
     for (RelNode input : rel.getInputs()) {
       cost = cost.plus(getCost(input));

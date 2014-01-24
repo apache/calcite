@@ -77,7 +77,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
    * @param program program controlling rule application
    */
   public HepPlanner(HepProgram program) {
-    this(program, false, null);
+    this(program, false, null, RelOptCostImpl.FACTORY);
   }
 
   /**
@@ -90,7 +90,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
   public HepPlanner(
       HepProgram program,
       boolean noDAG,
-      Function2<RelNode, RelNode, Void> onCopyHook) {
+      Function2<RelNode, RelNode, Void> onCopyHook,
+      RelOptCostFactory costFactory) {
+    super(costFactory);
     this.mainProgram = program;
     if (onCopyHook == null) {
       this.onCopyHook = Functions.ignore2();

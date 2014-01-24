@@ -133,7 +133,7 @@ public abstract class ValuesRelBase extends AbstractRelNode {
     // Assume CPU is negligible since values are precomputed.
     double dCpu = 1;
     double dIo = 0;
-    return planner.makeCost(dRows, dCpu, dIo);
+    return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
   // implement RelNode

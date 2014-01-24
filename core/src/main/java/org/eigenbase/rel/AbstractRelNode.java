@@ -263,10 +263,7 @@ public abstract class AbstractRelNode implements RelNode {
     // by default, assume cost is proportional to number of rows
     double rowCount = RelMetadataQuery.getRowCount(this);
     double bytesPerRow = 1;
-    return planner.makeCost(
-        rowCount,
-        rowCount,
-        0);
+    return planner.getCostFactory().makeCost(rowCount, rowCount, 0);
   }
 
   public void explain(RelWriter pw) {

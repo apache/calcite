@@ -46,6 +46,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    */
   private final Map<String, RelOptRule> mapDescToRule;
 
+  protected final RelOptCostFactory costFactory;
+
   private MulticastRelOptListener listener;
 
   private Pattern ruleDescExclusionFilter;
@@ -62,7 +64,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /**
    * Creates an AbstractRelOptPlanner.
    */
-  protected AbstractRelOptPlanner() {
+  protected AbstractRelOptPlanner(RelOptCostFactory costFactory) {
+    this.costFactory = costFactory;
     mapDescToRule = new HashMap<String, RelOptRule>();
 
     // In case no one calls setCancelFlag, set up a
@@ -71,6 +74,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  public RelOptCostFactory getCostFactory() {
+    return costFactory;
+  }
 
   // implement RelOptPlanner
   public void setCancelFlag(CancelFlag cancelFlag) {
@@ -185,34 +192,6 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   public RelTraitSet emptyTraitSet() {
     return RelTraitSet.createEmpty();
-  }
-
-  // implement RelOptPlanner
-  public RelOptCost makeCost(
-      double dRows,
-      double dCpu,
-      double dIo) {
-    return new RelOptCostImpl(dRows);
-  }
-
-  // implement RelOptPlanner
-  public RelOptCost makeHugeCost() {
-    return new RelOptCostImpl(Double.MAX_VALUE);
-  }
-
-  // implement RelOptPlanner
-  public RelOptCost makeInfiniteCost() {
-    return new RelOptCostImpl(Double.POSITIVE_INFINITY);
-  }
-
-  // implement RelOptPlanner
-  public RelOptCost makeTinyCost() {
-    return new RelOptCostImpl(1.0);
-  }
-
-  // implement RelOptPlanner
-  public RelOptCost makeZeroCost() {
-    return new RelOptCostImpl(0.0);
   }
 
   // implement RelOptPlanner

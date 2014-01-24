@@ -43,7 +43,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
 
   /** Creates MockRelOptPlanner. */
   public MockRelOptPlanner() {
-    super();
+    super(RelOptCostImpl.FACTORY);
     setExecutor(new RexExecutorImpl(Schemas.createDataContext(null)));
   }
 

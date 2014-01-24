@@ -192,7 +192,7 @@ public abstract class ProjectRelBase extends SingleRel {
     double dRows = RelMetadataQuery.getRowCount(getChild());
     double dCpu = dRows * exps.size();
     double dIo = 0;
-    return planner.makeCost(dRows, dCpu, dIo);
+    return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
   public RelWriter explainTerms(RelWriter pw) {

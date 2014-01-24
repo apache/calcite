@@ -22,7 +22,10 @@ package org.eigenbase.relopt;
  * interface. It it defined in terms of a single scalar quantity; somewhat
  * arbitrarily, it returns this scalar for rows processed and zero for both CPU
  * and I/O.
- */ public class RelOptCostImpl implements RelOptCost {
+ */
+public class RelOptCostImpl implements RelOptCost {
+  public static final RelOptCostFactory FACTORY = new Factory();
+
   //~ Instance fields --------------------------------------------------------
 
   private final double value;
@@ -101,6 +104,36 @@ package org.eigenbase.relopt;
       return "huge";
     } else {
       return Double.toString(value);
+    }
+  }
+
+  private static class Factory implements RelOptCostFactory {
+    // implement RelOptPlanner
+    public RelOptCost makeCost(
+        double dRows,
+        double dCpu,
+        double dIo) {
+      return new RelOptCostImpl(dRows);
+    }
+
+    // implement RelOptPlanner
+    public RelOptCost makeHugeCost() {
+      return new RelOptCostImpl(Double.MAX_VALUE);
+    }
+
+    // implement RelOptPlanner
+    public RelOptCost makeInfiniteCost() {
+      return new RelOptCostImpl(Double.POSITIVE_INFINITY);
+    }
+
+    // implement RelOptPlanner
+    public RelOptCost makeTinyCost() {
+      return new RelOptCostImpl(1.0);
+    }
+
+    // implement RelOptPlanner
+    public RelOptCost makeZeroCost() {
+      return new RelOptCostImpl(0.0);
     }
   }
 }

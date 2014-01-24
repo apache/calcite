@@ -154,7 +154,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
             }
             return null;
           }
-        });
+        },
+        RelOptCostImpl.FACTORY);
   }
 
   public RelNode removeCorrelationViaRule(RelNode root) {

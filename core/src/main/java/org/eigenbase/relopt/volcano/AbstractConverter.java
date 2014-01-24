@@ -59,7 +59,7 @@ public class AbstractConverter extends ConverterRelImpl {
   }
 
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    return planner.makeInfiniteCost();
+    return planner.getCostFactory().makeInfiniteCost();
   }
 
   public RelWriter explainTerms(RelWriter pw) {

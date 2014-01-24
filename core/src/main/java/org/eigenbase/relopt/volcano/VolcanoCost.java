@@ -58,6 +58,7 @@ class VolcanoCost implements RelOptCost {
           return "{tiny}";
         }
       };
+  public static final RelOptCostFactory FACTORY = new Factory();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -209,6 +210,28 @@ class VolcanoCost implements RelOptCost {
 
   public String toString() {
     return "{" + dRows + " rows, " + dCpu + " cpu, " + dIo + " io}";
+  }
+
+  private static class Factory implements RelOptCostFactory {
+    public RelOptCost makeCost(double dRows, double dCpu, double dIo) {
+      return new VolcanoCost(dRows, dCpu, dIo);
+    }
+
+    public RelOptCost makeHugeCost() {
+      return VolcanoCost.HUGE;
+    }
+
+    public RelOptCost makeInfiniteCost() {
+      return VolcanoCost.INFINITY;
+    }
+
+    public RelOptCost makeTinyCost() {
+      return VolcanoCost.TINY;
+    }
+
+    public RelOptCost makeZeroCost() {
+      return VolcanoCost.ZERO;
+    }
   }
 }
 

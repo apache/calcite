@@ -198,7 +198,7 @@ public class JavaRules {
       if (condition.isAlwaysTrue()) {
         rowCount *= 10d;
       }
-      return planner.makeCost(rowCount, 0, 0);
+      return planner.getCostFactory().makeCost(rowCount, 0, 0);
     }
 
     private double addEpsilon(double d) {
@@ -1993,7 +1993,7 @@ public class JavaRules {
       for (WindowRel.Window window : windows) {
         count += window.aggCalls.size();
       }
-      return planner.makeCost(rowsIn, rowsIn * count, 0);
+      return planner.getCostFactory().makeCost(rowsIn, rowsIn * count, 0);
     }
 
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

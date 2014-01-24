@@ -145,7 +145,7 @@ public class SortRel extends SingleRel {
     // sort.
     double rowCount = RelMetadataQuery.getRowCount(this);
     double bytesPerRow = getRowType().getFieldCount() * 4;
-    return planner.makeCost(
+    return planner.getCostFactory().makeCost(
         Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);
   }
 

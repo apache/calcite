@@ -81,7 +81,7 @@ public abstract class FilterRelBase extends SingleRel {
     double dRows = RelMetadataQuery.getRowCount(this);
     double dCpu = RelMetadataQuery.getRowCount(getChild());
     double dIo = 0;
-    return planner.makeCost(dRows, dCpu, dIo);
+    return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
   // override RelNode

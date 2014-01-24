@@ -337,7 +337,7 @@ public class VolcanoPlannerTraitTest {
 
     // implement RelNode
     public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      return planner.makeInfiniteCost();
+      return planner.getCostFactory().makeInfiniteCost();
     }
 
     // implement RelNode
@@ -383,7 +383,7 @@ public class VolcanoPlannerTraitTest {
 
     // implement RelNode
     public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      return planner.makeTinyCost();
+      return planner.getCostFactory().makeTinyCost();
     }
 
     // TODO: SWZ Implement clone?
@@ -399,7 +399,7 @@ public class VolcanoPlannerTraitTest {
 
     // implement RelNode
     public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      return planner.makeInfiniteCost();
+      return planner.getCostFactory().makeInfiniteCost();
     }
 
     // implement RelNode
@@ -453,7 +453,7 @@ public class VolcanoPlannerTraitTest {
 
     // implement RelNode
     public RelOptCost computeSelfCost(RelOptPlanner planner) {
-      return planner.makeTinyCost();
+      return planner.getCostFactory().makeTinyCost();
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

@@ -120,7 +120,7 @@ public abstract class CalcRelBase extends SingleRel {
         RelMetadataQuery.getRowCount(getChild())
             * program.getExprCount();
     double dIo = 0;
-    return planner.makeCost(dRows, dCpu, dIo);
+    return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
   public RelWriter explainTerms(RelWriter pw) {

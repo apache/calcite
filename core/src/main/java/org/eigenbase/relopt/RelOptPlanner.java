@@ -153,32 +153,9 @@ public interface RelOptPlanner {
   public RelNode findBestExp();
 
   /**
-   * Creates a cost object.
+   * Returns the factory that creates {@link org.eigenbase.relopt.RelOptCost}s.
    */
-  public RelOptCost makeCost(
-      double dRows,
-      double dCpu,
-      double dIo);
-
-  /**
-   * Creates a cost object representing an enormous non-infinite cost.
-   */
-  public RelOptCost makeHugeCost();
-
-  /**
-   * Creates a cost object representing infinite cost.
-   */
-  public RelOptCost makeInfiniteCost();
-
-  /**
-   * Creates a cost object representing a small positive cost.
-   */
-  public RelOptCost makeTinyCost();
-
-  /**
-   * Creates a cost object representing zero cost.
-   */
-  public RelOptCost makeZeroCost();
+  public RelOptCostFactory getCostFactory();
 
   /**
    * Computes the cost of a RelNode. In most cases, this just dispatches to

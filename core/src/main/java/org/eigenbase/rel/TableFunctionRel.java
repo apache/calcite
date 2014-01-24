@@ -82,7 +82,7 @@ public class TableFunctionRel extends TableFunctionRelBase {
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
     // REVIEW jvs 8-Jan-2006:  what is supposed to be here
     // for an abstract rel?
-    return planner.makeHugeCost();
+    return planner.getCostFactory().makeHugeCost();
   }
 }
 

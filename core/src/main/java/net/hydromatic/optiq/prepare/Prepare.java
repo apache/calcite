@@ -145,7 +145,8 @@ public abstract class Prepare {
         .build();
     final HepPlanner planner3 =
         new HepPlanner(program, true,
-            Functions.<RelNode, RelNode, Void>ignore2());
+            Functions.<RelNode, RelNode, Void>ignore2(),
+            RelOptCostImpl.FACTORY);
     planner3.setRoot(rootRel3);
     final RelNode rootRel4 = planner3.findBestExp();
 

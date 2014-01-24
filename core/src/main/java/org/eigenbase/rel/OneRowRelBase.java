@@ -49,7 +49,7 @@ public abstract class OneRowRelBase extends AbstractRelNode {
   //~ Methods ----------------------------------------------------------------
 
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    return planner.makeTinyCost();
+    return planner.getCostFactory().makeTinyCost();
   }
 
   protected RelDataType deriveRowType() {

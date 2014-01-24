@@ -74,7 +74,7 @@ public class EmptyRel extends AbstractRelNode {
 
   // implement RelNode
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    return planner.makeZeroCost();
+    return planner.getCostFactory().makeZeroCost();
   }
 
   // implement RelNode

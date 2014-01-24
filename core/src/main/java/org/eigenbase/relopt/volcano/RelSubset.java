@@ -85,7 +85,7 @@ public class RelSubset extends AbstractRelNode {
   //~ Methods ----------------------------------------------------------------
 
   private RelOptCost computeBestCost(RelOptPlanner planner) {
-    RelOptCost bestCost = planner.makeInfiniteCost();
+    RelOptCost bestCost = planner.getCostFactory().makeInfiniteCost();
     for (RelNode rel : getRels()) {
       final RelOptCost cost = planner.getCost(rel);
       if (cost.isLt(bestCost)) {
@@ -112,7 +112,7 @@ public class RelSubset extends AbstractRelNode {
   }
 
   public RelOptCost computeSelfCost(RelOptPlanner planner) {
-    return planner.makeZeroCost();
+    return planner.getCostFactory().makeZeroCost();
   }
 
   public double getRows() {
