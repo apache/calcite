@@ -85,7 +85,7 @@ public class RelSubset extends AbstractRelNode {
   //~ Methods ----------------------------------------------------------------
 
   private RelOptCost computeBestCost(RelOptPlanner planner) {
-    RelOptCost bestCost = VolcanoCost.INFINITY;
+    RelOptCost bestCost = planner.makeInfiniteCost();
     for (RelNode rel : getRels()) {
       final RelOptCost cost = planner.getCost(rel);
       if (cost.isLt(bestCost)) {
@@ -117,7 +117,7 @@ public class RelSubset extends AbstractRelNode {
 
   public double getRows() {
     if (best == null) {
-      return VolcanoCost.INFINITY.getRows();
+      return Double.POSITIVE_INFINITY;
     } else {
       return RelMetadataQuery.getRowCount(best);
     }
