@@ -2,6 +2,35 @@
 
 For a full list of releases, see <a href="https://github.com/julianhyde/optiq/releases">github</a>.
 
+## HEAD
+
+* Fix <a href="https://github.com/julianhyde/optiq/issues/33">#33</a>,
+  "SQL parser should allow different identifier quoting".
+* Fix <a href="https://github.com/julianhyde/optiq/issues/34">#34</a>,
+  "Policy for case-sensitivity of identifiers should be configurable".
+  A new connect-string parameter, `lex`, with allowable values `ORACLE`,
+  `MYSQL`, `SQL_SERVER` and `JAVA`, sets policy to be like those databases,
+  in terms of quote string, whether quoted and unquoted identifiers are
+  converted to upper/lower case, and whether identifiers are matched
+  case-sensitively. Connections can have different settings.
+* Add a mechanism for defining configuration parameters and have them
+  appear in the responses to `AvaticaDatabaseMetaData` methods.
+* Work around <a href="http://jira.codehaus.org/browse/JANINO-169">JANINO-169</a>.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/113">#113</a>,
+  "User-defined scalar functions".
+* Add rules to short-cut a query if `LIMIT 0` is present. Also remove sort,
+  aggregation, join if their inputs are known to be empty, and propagate
+  the fact that the relational expressions are known to be empty up the
+  tree. (We already do this for union, filter, project.)
+* Fix the check for duplicate subsets in a rule match.
+* Fix <a href="https://github.com/julianhyde/optiq/issues/112">#112</a>,
+  "Java boolean column should be treated as SQL boolean".
+* RexNode and its sub-classes are now unmodifiable.
+* Fix escaped unicode characters above 0x8000. Add tests for unicode strings.
+* Enable multi-threaded testing.
+* Upgrade to sqlline-1.1.6.
+* Upgrade to linq4j-0.1.13.
+
 ## <a href="https://github.com/julianhyde/optiq/releases/tag/optiq-parent-0.4.17">0.4.17</a> / 2014-01-13
 
 API changes
