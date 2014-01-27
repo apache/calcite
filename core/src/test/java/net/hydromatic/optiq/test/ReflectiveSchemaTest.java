@@ -320,29 +320,32 @@ public class ReflectiveSchemaTest {
         .returns("C=1\n");
   }
 
-  /** Test case for https://github.com/julianhyde/optiq/issues/119. */
-  @Ignore
-  @Test public void testJavaBoolean2() throws Exception {
+  /** Test case for
+   * <a href="https://github.com/julianhyde/optiq/issues/119">optiq-119</a>.
+   * Comparing a Java type with a SQL type. */
+  @Test public void testCompareJavaAndSqlTypes() throws Exception {
     final OptiqAssert.AssertThat with =
         OptiqAssert.that().with("s", new CatchallSchema());
-    // should return "C=1" but with optiq-119 it does not
+    // With optiq-119, returned 0 rows. The problem was that when comparing
+    // a Java type (long) and a SQL type (INTEGER), the SQL type was deemed
+    // "less restrictive". So, the long value got truncated to an int value.
     with.query(
-        "select \"wrapperLong\" as c from \"s\".\"everyTypes\"\n"
-        + "where \"wrapperLong\" > 0")
-        .returns("C=1\n");
+        "select \"primitiveLong\" as c from \"s\".\"everyTypes\"\n"
+        + "where \"primitiveLong\" > 0")
+        .returns("C=9223372036854775807\n");
 
     // count(nullif(b, false)) counts how many times b is true
     with.query(
         "select count(\"primitiveBoolean\") as p,\n"
         + "  count(\"wrapperBoolean\") as w,\n"
-        + "  count(nullif(\"primitiveShort\" > 0, false)) as sp,\n"
-        + "  count(nullif(\"wrapperShort\" > 0, false)) as sw,\n"
-        + "  count(nullif(\"primitiveInt\" > 0, false)) as ip,\n"
-        + "  count(nullif(\"wrapperInteger\" > 0, false)) as iw,\n"
-        + "  count(nullif(\"primitiveLong\" > 0, false)) as lp,\n"
-        + "  count(nullif(\"wrapperLong\" > 0, false)) as lw\n"
+        + "  count(nullif(\"primitiveShort\" >= 0, false)) as sp,\n"
+        + "  count(nullif(\"wrapperShort\" >= 0, false)) as sw,\n"
+        + "  count(nullif(\"primitiveInt\" >= 0, false)) as ip,\n"
+        + "  count(nullif(\"wrapperInteger\" >= 0, false)) as iw,\n"
+        + "  count(nullif(\"primitiveLong\" >= 0, false)) as lp,\n"
+        + "  count(nullif(\"wrapperLong\" >= 0, false)) as lw\n"
         + "from \"s\".\"everyTypes\"")
-        .returns("P=2; W=1; SP=1; SW=0; IP=1; IW=0; LP=1; LW=0\n");
+        .returns("P=2; W=1; SP=2; SW=1; IP=2; IW=1; LP=2; LW=1\n");
   }
 
   @Test public void testDivide() throws Exception {

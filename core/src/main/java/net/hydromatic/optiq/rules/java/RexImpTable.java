@@ -26,8 +26,7 @@ import net.hydromatic.optiq.impl.ScalarFunctionImpl;
 import net.hydromatic.optiq.runtime.SqlFunctions;
 
 import org.eigenbase.rel.Aggregation;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
+import org.eigenbase.reltype.*;
 import org.eigenbase.rex.*;
 import org.eigenbase.sql.*;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
@@ -467,6 +466,7 @@ public class RexImpTable {
         translator.builder.getTypeFactory();
     for (RexNode operand : operands) {
       RelDataType type = operand.getType();
+      type = toSql(typeFactory, type);
       if (translator.isNullable(operand)) {
         ++nullCount;
       } else {
@@ -493,6 +493,19 @@ public class RexImpTable {
           translator.builder.ensureType(type, operand, false));
     }
     return list;
+  }
+
+  private static RelDataType toSql(RelDataTypeFactory typeFactory,
+      RelDataType type) {
+    if (type instanceof RelDataTypeFactoryImpl.JavaType) {
+      final SqlTypeName typeName = type.getSqlTypeName();
+      if (typeName != null && typeName != SqlTypeName.OTHER) {
+        return typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(typeName),
+            type.isNullable());
+      }
+    }
+    return type;
   }
 
   private static <E> boolean allSame(List<E> list) {
