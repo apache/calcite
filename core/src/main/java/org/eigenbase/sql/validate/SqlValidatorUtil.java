@@ -85,11 +85,10 @@ public class SqlValidatorUtil {
       boolean caseSensitive,
       final RelDataType rowType,
       String columnName) {
-    for (RelDataTypeField field : rowType.getFieldList()) {
-      if (Util.match(caseSensitive, columnName, field.getName())) {
-        return field;
-      }
-    }
+    
+    RelDataTypeField field = rowType.getField(columnName, caseSensitive);
+    if(field != null) return field;
+    
     // If record type is flagged as having "any field you ask for",
     // return a type. (TODO: Better way to mark accommodating types.)
     RelDataTypeField extra = RelDataTypeImpl.extra(rowType);
