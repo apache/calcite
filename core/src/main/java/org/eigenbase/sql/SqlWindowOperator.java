@@ -342,12 +342,10 @@ public class SqlWindowOperator extends SqlOperator {
             validator.deriveType(
                 operandScope,
                 orderList.get(0));
-        orderTypeFam =
-            SqlTypeFamily.getFamilyForSqlType(
-                orderType.getSqlTypeName());
+        orderTypeFam = orderType.getSqlTypeName().getFamily();
       } else {
         // requires an ORDER BY clause if frame is logical(RANGE)
-        // We relax this requirment if the table appears to be
+        // We relax this requirement if the table appears to be
         // sorted already
         if (!isRows && !isTableSorted(scope)) {
           throw validator.newValidationError(
@@ -447,13 +445,11 @@ public class SqlWindowOperator extends SqlOperator {
         }
       }
 
-      // if this is a range spec check and make sure the boundery type
+      // if this is a range spec check and make sure the boundary type
       // and order by type are compatible
       if ((null != orderTypeFam) && !isRows) {
         RelDataType bndType = validator.deriveType(scope, boundVal);
-        SqlTypeFamily bndTypeFam =
-            SqlTypeFamily.getFamilyForSqlType(
-                bndType.getSqlTypeName());
+        SqlTypeFamily bndTypeFam = bndType.getSqlTypeName().getFamily();
         switch (orderTypeFam) {
         case NUMERIC:
           if (SqlTypeFamily.NUMERIC != bndTypeFam) {

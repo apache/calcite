@@ -18,11 +18,11 @@
 package org.eigenbase.sql.type;
 
 import java.math.*;
-
 import java.sql.*;
 import java.sql.Date;
-
 import java.util.*;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * JavaToSqlTypeConversionRules defines mappings from common Java types to
@@ -37,42 +37,38 @@ public class JavaToSqlTypeConversionRules {
   //~ Instance fields --------------------------------------------------------
 
   private final Map<Class<?>, SqlTypeName> rules =
-      new HashMap<Class<?>, SqlTypeName>();
+      ImmutableMap.<Class<?>, SqlTypeName>builder()
+          .put(Integer.class, SqlTypeName.INTEGER)
+          .put(int.class, SqlTypeName.INTEGER)
+          .put(Long.class, SqlTypeName.BIGINT)
+          .put(long.class, SqlTypeName.BIGINT)
+          .put(Short.class, SqlTypeName.SMALLINT)
+          .put(short.class, SqlTypeName.SMALLINT)
+          .put(byte.class, SqlTypeName.TINYINT)
+          .put(Byte.class, SqlTypeName.TINYINT)
 
-  //~ Constructors -----------------------------------------------------------
+          .put(Float.class, SqlTypeName.REAL)
+          .put(float.class, SqlTypeName.REAL)
+          .put(Double.class, SqlTypeName.DOUBLE)
+          .put(double.class, SqlTypeName.DOUBLE)
 
-  private JavaToSqlTypeConversionRules() {
-    rules.put(Integer.class, SqlTypeName.INTEGER);
-    rules.put(int.class, SqlTypeName.INTEGER);
-    rules.put(Long.class, SqlTypeName.BIGINT);
-    rules.put(long.class, SqlTypeName.BIGINT);
-    rules.put(Short.class, SqlTypeName.SMALLINT);
-    rules.put(short.class, SqlTypeName.SMALLINT);
-    rules.put(byte.class, SqlTypeName.TINYINT);
-    rules.put(Byte.class, SqlTypeName.TINYINT);
+          .put(boolean.class, SqlTypeName.BOOLEAN)
+          .put(Boolean.class, SqlTypeName.BOOLEAN)
+          .put(byte[].class, SqlTypeName.VARBINARY)
+          .put(String.class, SqlTypeName.VARCHAR)
+          .put(char[].class, SqlTypeName.VARCHAR)
+          .put(Character.class, SqlTypeName.CHAR)
+          .put(char.class, SqlTypeName.CHAR)
 
-    rules.put(Float.class, SqlTypeName.REAL);
-    rules.put(float.class, SqlTypeName.REAL);
-    rules.put(Double.class, SqlTypeName.DOUBLE);
-    rules.put(double.class, SqlTypeName.DOUBLE);
+          .put(java.util.Date.class, SqlTypeName.TIMESTAMP)
+          .put(Date.class, SqlTypeName.DATE)
+          .put(Timestamp.class, SqlTypeName.TIMESTAMP)
+          .put(Time.class, SqlTypeName.TIME)
+          .put(BigDecimal.class, SqlTypeName.DECIMAL)
 
-    rules.put(boolean.class, SqlTypeName.BOOLEAN);
-    rules.put(Boolean.class, SqlTypeName.BOOLEAN);
-    rules.put(byte[].class, SqlTypeName.VARBINARY);
-    rules.put(String.class, SqlTypeName.VARCHAR);
-    rules.put(char[].class, SqlTypeName.VARCHAR);
-    rules.put(Character.class, SqlTypeName.CHAR);
-    rules.put(char.class, SqlTypeName.CHAR);
-
-    rules.put(java.util.Date.class, SqlTypeName.TIMESTAMP);
-    rules.put(Date.class, SqlTypeName.DATE);
-    rules.put(Timestamp.class, SqlTypeName.TIMESTAMP);
-    rules.put(Time.class, SqlTypeName.TIME);
-    rules.put(BigDecimal.class, SqlTypeName.DECIMAL);
-
-    rules.put(ResultSet.class, SqlTypeName.CURSOR);
-    rules.put(ColumnList.class, SqlTypeName.COLUMN_LIST);
-  }
+          .put(ResultSet.class, SqlTypeName.CURSOR)
+          .put(ColumnList.class, SqlTypeName.COLUMN_LIST)
+          .build();
 
   //~ Methods ----------------------------------------------------------------
 

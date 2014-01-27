@@ -33,6 +33,8 @@ import java.util.jar.*;
 import java.util.logging.*;
 import java.util.regex.*;
 
+import com.google.common.collect.ImmutableMap;
+
 import net.hydromatic.linq4j.Ord;
 
 /**
@@ -1842,11 +1844,11 @@ public class Util {
       // not an enum type
       return null;
     }
-    Map<String, T> map = new HashMap<String, T>(ts.length * 2);
+    ImmutableMap.Builder<String, T> builder = ImmutableMap.builder();
     for (T t : ts) {
-      map.put(t.name(), t);
+      builder.put(t.name(), t);
     }
-    return Collections.unmodifiableMap(map);
+    return builder.build();
   }
 
   /**

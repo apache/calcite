@@ -23,6 +23,7 @@ import java.util.*;
 import org.eigenbase.reltype.*;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * SqlTypeFamily provides SQL type categorization.
@@ -40,157 +41,68 @@ import com.google.common.collect.ImmutableList;
  */
 public enum SqlTypeFamily implements RelDataTypeFamily {
   // Primary families.
-
-  CHARACTER(SqlTypeName.charTypes),
-
-  BINARY(SqlTypeName.binaryTypes),
-
-  NUMERIC(SqlTypeName.numericTypes),
-
-  DATE(SqlTypeName.DATE),
-
-  TIME(SqlTypeName.TIME),
-
-  TIMESTAMP(SqlTypeName.TIMESTAMP),
-
-  BOOLEAN(SqlTypeName.booleanTypes),
-
-  INTERVAL_YEAR_MONTH(SqlTypeName.INTERVAL_YEAR_MONTH),
-
-  INTERVAL_DAY_TIME(SqlTypeName.INTERVAL_DAY_TIME),
+  CHARACTER,
+  BINARY,
+  NUMERIC,
+  DATE,
+  TIME,
+  TIMESTAMP,
+  BOOLEAN,
+  INTERVAL_YEAR_MONTH,
+  INTERVAL_DAY_TIME,
 
   // Secondary families.
 
-  STRING(SqlTypeName.stringTypes),
+  STRING,
+  APPROXIMATE_NUMERIC,
+  EXACT_NUMERIC,
+  INTEGER,
+  DATETIME,
+  DATETIME_INTERVAL,
+  MULTISET,
+  ARRAY,
+  MAP,
+  NULL,
+  ANY,
+  CURSOR,
+  COLUMN_LIST;
 
-  APPROXIMATE_NUMERIC(SqlTypeName.approxTypes),
+  private static final Map<Integer, SqlTypeFamily> JDBC_TYPE_TO_FAMILY =
+      ImmutableMap.<Integer, SqlTypeFamily>builder()
+          // Not present:
+          // SqlTypeName.MULTISET shares Types.ARRAY with SqlTypeName.ARRAY;
+          // SqlTypeName.MAP has no corresponding JDBC type
+          // SqlTypeName.COLUMN_LIST has no corresponding JDBC type
+          .put(Types.BIT, NUMERIC)
+          .put(Types.TINYINT, NUMERIC)
+          .put(Types.SMALLINT, NUMERIC)
+          .put(Types.BIGINT, NUMERIC)
+          .put(Types.INTEGER, NUMERIC)
+          .put(Types.NUMERIC, NUMERIC)
+          .put(Types.DECIMAL, NUMERIC)
 
-  EXACT_NUMERIC(SqlTypeName.exactTypes),
+          .put(Types.FLOAT, NUMERIC)
+          .put(Types.REAL, NUMERIC)
+          .put(Types.DOUBLE, NUMERIC)
 
-  INTEGER(SqlTypeName.intTypes),
+          .put(Types.CHAR, CHARACTER)
+          .put(Types.VARCHAR, CHARACTER)
+          .put(Types.LONGVARCHAR, CHARACTER)
+          .put(Types.CLOB, CHARACTER)
 
-  DATETIME(SqlTypeName.datetimeTypes),
+          .put(Types.BINARY, BINARY)
+          .put(Types.VARBINARY, BINARY)
+          .put(Types.LONGVARBINARY, BINARY)
+          .put(Types.BLOB, BINARY)
 
-  DATETIME_INTERVAL(SqlTypeName.intervalTypes),
+          .put(Types.DATE, DATE)
+          .put(Types.TIME, TIME)
+          .put(Types.TIMESTAMP, TIMESTAMP)
+          .put(Types.BOOLEAN, BOOLEAN)
 
-  MULTISET(SqlTypeName.MULTISET),
-
-  ARRAY(SqlTypeName.ARRAY),
-
-  MAP(SqlTypeName.MAP),
-
-  NULL(SqlTypeName.NULL),
-
-  ANY(SqlTypeName.allTypes),
-
-  CURSOR(SqlTypeName.CURSOR),
-
-  COLUMN_LIST(SqlTypeName.COLUMN_LIST);
-
-  private static SqlTypeFamily[] jdbcTypeToFamily;
-
-  private static SqlTypeFamily[] sqlTypeToFamily;
-
-  static {
-    // This squanders some memory since MAX_JDBC_TYPE == 2006!
-    jdbcTypeToFamily =
-        new SqlTypeFamily[(1 + SqlTypeName.MAX_JDBC_TYPE)
-            - SqlTypeName.MIN_JDBC_TYPE];
-
-    setFamilyForJdbcType(Types.BIT, NUMERIC);
-    setFamilyForJdbcType(Types.TINYINT, NUMERIC);
-    setFamilyForJdbcType(Types.SMALLINT, NUMERIC);
-    setFamilyForJdbcType(Types.BIGINT, NUMERIC);
-    setFamilyForJdbcType(Types.INTEGER, NUMERIC);
-    setFamilyForJdbcType(Types.NUMERIC, NUMERIC);
-    setFamilyForJdbcType(Types.DECIMAL, NUMERIC);
-
-    setFamilyForJdbcType(Types.FLOAT, NUMERIC);
-    setFamilyForJdbcType(Types.REAL, NUMERIC);
-    setFamilyForJdbcType(Types.DOUBLE, NUMERIC);
-
-    setFamilyForJdbcType(Types.CHAR, CHARACTER);
-    setFamilyForJdbcType(Types.VARCHAR, CHARACTER);
-    setFamilyForJdbcType(Types.LONGVARCHAR, CHARACTER);
-    setFamilyForJdbcType(Types.CLOB, CHARACTER);
-
-    setFamilyForJdbcType(Types.BINARY, BINARY);
-    setFamilyForJdbcType(Types.VARBINARY, BINARY);
-    setFamilyForJdbcType(Types.LONGVARBINARY, BINARY);
-    setFamilyForJdbcType(Types.BLOB, BINARY);
-
-    setFamilyForJdbcType(Types.DATE, DATE);
-    setFamilyForJdbcType(Types.TIME, TIME);
-    setFamilyForJdbcType(Types.TIMESTAMP, TIMESTAMP);
-    setFamilyForJdbcType(Types.BOOLEAN, BOOLEAN);
-
-    setFamilyForJdbcType(SqlTypeName.CURSOR.getJdbcOrdinal(), CURSOR);
-    setFamilyForJdbcType(SqlTypeName.ARRAY.getJdbcOrdinal(), ARRAY);
-    setFamilyForJdbcType(SqlTypeName.MULTISET.getJdbcOrdinal(), MULTISET);
-    setFamilyForJdbcType(SqlTypeName.MAP.getJdbcOrdinal(), MAP);
-
-    setFamilyForJdbcType(
-        SqlTypeName.COLUMN_LIST.getJdbcOrdinal(),
-        COLUMN_LIST);
-
-    sqlTypeToFamily = new SqlTypeFamily[SqlTypeName.values().length];
-    sqlTypeToFamily[SqlTypeName.BOOLEAN.ordinal()] = BOOLEAN;
-    sqlTypeToFamily[SqlTypeName.CHAR.ordinal()] = CHARACTER;
-    sqlTypeToFamily[SqlTypeName.VARCHAR.ordinal()] = CHARACTER;
-    sqlTypeToFamily[SqlTypeName.BINARY.ordinal()] = BINARY;
-    sqlTypeToFamily[SqlTypeName.VARBINARY.ordinal()] = BINARY;
-    sqlTypeToFamily[SqlTypeName.DECIMAL.ordinal()] = NUMERIC;
-    sqlTypeToFamily[SqlTypeName.TINYINT.ordinal()] = NUMERIC;
-    sqlTypeToFamily[SqlTypeName.SMALLINT.ordinal()] = NUMERIC;
-    sqlTypeToFamily[SqlTypeName.INTEGER.ordinal()] = NUMERIC;
-    sqlTypeToFamily[SqlTypeName.BIGINT.ordinal()] = NUMERIC;
-    sqlTypeToFamily[SqlTypeName.REAL.ordinal()] = NUMERIC;
-    sqlTypeToFamily[SqlTypeName.DOUBLE.ordinal()] = NUMERIC;
-    sqlTypeToFamily[SqlTypeName.FLOAT.ordinal()] = NUMERIC;
-    sqlTypeToFamily[SqlTypeName.DATE.ordinal()] = DATE;
-    sqlTypeToFamily[SqlTypeName.TIME.ordinal()] = TIME;
-    sqlTypeToFamily[SqlTypeName.TIMESTAMP.ordinal()] = TIMESTAMP;
-    sqlTypeToFamily[SqlTypeName.INTERVAL_YEAR_MONTH.ordinal()] =
-        INTERVAL_YEAR_MONTH;
-    sqlTypeToFamily[SqlTypeName.NULL.ordinal()] = NULL;
-    sqlTypeToFamily[SqlTypeName.ANY.ordinal()] = ANY;
-    sqlTypeToFamily[SqlTypeName.INTERVAL_DAY_TIME.ordinal()] =
-        INTERVAL_DAY_TIME;
-    sqlTypeToFamily[SqlTypeName.CURSOR.ordinal()] = CURSOR;
-    sqlTypeToFamily[SqlTypeName.ARRAY.ordinal()] = ARRAY;
-    sqlTypeToFamily[SqlTypeName.MULTISET.ordinal()] = MULTISET;
-    sqlTypeToFamily[SqlTypeName.MAP.ordinal()] = MAP;
-    sqlTypeToFamily[SqlTypeName.COLUMN_LIST.ordinal()] = COLUMN_LIST;
-  }
-
-  /**
-   * List of {@link SqlTypeName}s included in this family.
-   */
-  private List<SqlTypeName> typeNames;
-
-  private SqlTypeFamily(SqlTypeName typeName) {
-    this(ImmutableList.of(typeName));
-  }
-
-  private SqlTypeFamily(List<SqlTypeName> typeNames) {
-    this.typeNames = ImmutableList.copyOf(typeNames);
-  }
-
-  private static void setFamilyForJdbcType(
-      int jdbcType,
-      SqlTypeFamily family) {
-    jdbcTypeToFamily[jdbcType - SqlTypeName.MIN_JDBC_TYPE] = family;
-  }
-
-  /**
-   * Gets the primary family containing a SqlTypeName.
-   *
-   * @param sqlTypeName the type of interest
-   * @return containing family, or null for none
-   */
-  public static SqlTypeFamily getFamilyForSqlType(SqlTypeName sqlTypeName) {
-    return sqlTypeToFamily[sqlTypeName.ordinal()];
-  }
+          .put(ExtraSqlTypes.REF_CURSOR, CURSOR)
+          .put(Types.ARRAY, ARRAY)
+          .build();
 
   /**
    * Gets the primary family containing a JDBC type.
@@ -199,14 +111,61 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
    * @return containing family
    */
   public static SqlTypeFamily getFamilyForJdbcType(int jdbcType) {
-    return jdbcTypeToFamily[jdbcType - SqlTypeName.MIN_JDBC_TYPE];
+    return JDBC_TYPE_TO_FAMILY.get(jdbcType);
   }
 
   /**
    * @return collection of {@link SqlTypeName}s included in this family
    */
   public List<SqlTypeName> getTypeNames() {
-    return typeNames;
+    switch (this) {
+    case CHARACTER:
+      return SqlTypeName.charTypes;
+    case BINARY:
+      return SqlTypeName.binaryTypes;
+    case NUMERIC:
+      return SqlTypeName.numericTypes;
+    case DATE:
+      return ImmutableList.of(SqlTypeName.DATE);
+    case TIME:
+      return ImmutableList.of(SqlTypeName.TIME);
+    case TIMESTAMP:
+      return ImmutableList.of(SqlTypeName.TIMESTAMP);
+    case BOOLEAN:
+      return SqlTypeName.booleanTypes;
+    case INTERVAL_YEAR_MONTH:
+      return ImmutableList.of(SqlTypeName.INTERVAL_YEAR_MONTH);
+    case INTERVAL_DAY_TIME:
+      return ImmutableList.of(SqlTypeName.INTERVAL_DAY_TIME);
+    case STRING:
+      return SqlTypeName.stringTypes;
+    case APPROXIMATE_NUMERIC:
+      return SqlTypeName.approxTypes;
+    case EXACT_NUMERIC:
+      return SqlTypeName.exactTypes;
+    case INTEGER:
+      return SqlTypeName.intTypes;
+    case DATETIME:
+      return SqlTypeName.datetimeTypes;
+    case DATETIME_INTERVAL:
+      return SqlTypeName.intervalTypes;
+    case MULTISET:
+      return ImmutableList.of(SqlTypeName.MULTISET);
+    case ARRAY:
+      return ImmutableList.of(SqlTypeName.ARRAY);
+    case MAP:
+      return ImmutableList.of(SqlTypeName.MAP);
+    case NULL:
+      return ImmutableList.of(SqlTypeName.NULL);
+    case ANY:
+      return SqlTypeName.allTypes;
+    case CURSOR:
+      return ImmutableList.of(SqlTypeName.CURSOR);
+    case COLUMN_LIST:
+      return ImmutableList.of(SqlTypeName.COLUMN_LIST);
+    default:
+      throw new IllegalArgumentException();
+    }
   }
 
   public boolean contains(RelDataType type) {

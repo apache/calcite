@@ -38,6 +38,11 @@ public interface ExtraSqlTypes {
   int LONGNVARCHAR = -16;
   int NCLOB = 2011;
   int SQLXML = 2009;
+
+  // From JDK 1.8
+  int REF_CURSOR = 2012;
+  int TIME_WITH_TIMEZONE = 2013;
+  int TIMESTAMP_WITH_TIMEZONE = 2014;
 }
 
 // End ExtraSqlTypes.java

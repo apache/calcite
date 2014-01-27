@@ -65,7 +65,7 @@ public abstract class AbstractSqlType
 
   // implement RelDataType
   public RelDataTypeFamily getFamily() {
-    return SqlTypeFamily.getFamilyForSqlType(typeName);
+    return typeName.getFamily();
   }
 
   // implement RelDataType
