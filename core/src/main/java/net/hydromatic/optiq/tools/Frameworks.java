@@ -18,9 +18,9 @@
 package net.hydromatic.optiq.tools;
 
 import net.hydromatic.linq4j.function.Function1;
-
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.SchemaPlus;
+import net.hydromatic.optiq.jdbc.ConnectionConfig;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 import net.hydromatic.optiq.prepare.OptiqPrepareImpl;
 import net.hydromatic.optiq.prepare.PlannerImpl;
@@ -46,6 +46,8 @@ public class Frameworks {
   /**
    * Creates an instance of {@code Planner}.
    *
+   * @param lex The type of lexing the SqlParser should do.  Controls case rules 
+   * and quoted identifier syntax.
    * @param schemaFactory Schema factory. Given a root schema, it creates and
    *                      returns the schema that should be used to execute
    *                      queries.
@@ -62,9 +64,10 @@ public class Frameworks {
    * @return The Planner object.
    */
   public static Planner getPlanner(
+      ConnectionConfig.Lex lex,
       Function1<SchemaPlus, Schema> schemaFactory,
       SqlStdOperatorTable operatorTable, RuleSet... ruleSets) {
-    return new PlannerImpl(schemaFactory, operatorTable,
+    return new PlannerImpl(lex, schemaFactory, operatorTable,
         ImmutableList.copyOf(ruleSets));
   }
 

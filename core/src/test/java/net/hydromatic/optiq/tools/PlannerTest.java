@@ -18,10 +18,10 @@
 package net.hydromatic.optiq.tools;
 
 import net.hydromatic.linq4j.function.Function1;
-
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.impl.java.ReflectiveSchema;
+import net.hydromatic.optiq.jdbc.ConnectionConfig;
 import net.hydromatic.optiq.rules.java.EnumerableConvention;
 import net.hydromatic.optiq.rules.java.JavaRules;
 import net.hydromatic.optiq.test.JdbcTest;
@@ -34,9 +34,7 @@ import org.eigenbase.sql.SqlExplainLevel;
 import org.eigenbase.sql.SqlNode;
 import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.sql.parser.SqlParseException;
-
 import org.eigenbase.util.Util;
-
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -102,6 +100,7 @@ public class PlannerTest {
 
   private Planner getPlanner(RuleSet... ruleSets) {
     return Frameworks.getPlanner(
+        ConnectionConfig.Lex.ORACLE,
         new Function1<SchemaPlus, Schema>() {
           public Schema apply(SchemaPlus parentSchema) {
             return new ReflectiveSchema(parentSchema, "hr",

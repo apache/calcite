@@ -18,11 +18,11 @@
 package net.hydromatic.optiq.prepare;
 
 import net.hydromatic.linq4j.function.Function1;
-
 import net.hydromatic.optiq.Schema;
 import net.hydromatic.optiq.SchemaPlus;
 import net.hydromatic.optiq.Schemas;
 import net.hydromatic.optiq.impl.java.JavaTypeFactory;
+import net.hydromatic.optiq.jdbc.ConnectionConfig;
 import net.hydromatic.optiq.jdbc.OptiqSchema;
 import net.hydromatic.optiq.tools.*;
 
@@ -42,6 +42,7 @@ public class PlannerImpl implements Planner {
   private final Function1<SchemaPlus, Schema> schemaFactory;
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<RuleSet> ruleSets;
+  private final ConnectionConfig.Lex lex;
 
   // Options. TODO: allow client to set these. Maybe use a ConnectionConfig.
   private boolean caseSensitive = true;
@@ -65,11 +66,12 @@ public class PlannerImpl implements Planner {
   private SqlToRelConverter sqlToRelConverter;
   private RelNode rel;
 
-  public PlannerImpl(Function1<SchemaPlus, Schema> schemaFactory,
+  public PlannerImpl(ConnectionConfig.Lex lex, Function1<SchemaPlus, Schema> schemaFactory,
       SqlOperatorTable operatorTable, ImmutableList<RuleSet> ruleSets) {
     this.schemaFactory = schemaFactory;
     this.operatorTable = operatorTable;
     this.ruleSets = ruleSets;
+    this.lex = lex;
     this.state = State.STATE_0_CLOSED;
     reset();
   }
@@ -133,7 +135,7 @@ public class PlannerImpl implements Planner {
       ready();
     }
     ensure(State.STATE_2_READY);
-    SqlParser parser = new SqlParser(sql);
+    SqlParser parser = new SqlParser(sql, lex.quoting, lex.unquotedCasing, lex.quotedCasing);
     SqlNode sqlNode = parser.parseStmt();
     state = State.STATE_3_PARSED;
     return sqlNode;
